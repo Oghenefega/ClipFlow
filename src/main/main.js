@@ -6,7 +6,7 @@ const chokidar = require("chokidar");
 let mainWindow;
 let watcher = null;
 
-const isDev = !app.isPackaged;
+const isDev = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
