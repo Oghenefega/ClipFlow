@@ -252,7 +252,7 @@ export default function App() {
         />
       );
     }
-    if (view === "upload") return <UploadView watchFolder={watchFolder} />;
+    if (view === "upload") return <UploadView watchFolder={watchFolder} gamesDb={gamesDb} />;
     if (view === "queue") {
       return (
         <QueueView
@@ -318,7 +318,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: T.font, display: "flex" }}>
+    <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex" }}>
       <Sidebar
         navItems={navItems}
         activeView={view === "clips" ? "projects" : view}

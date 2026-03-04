@@ -43,6 +43,7 @@ const store = new Store({
       facebook: "{title} #{gametitle} #gaming #fbreels #fega",
     },
     ytDescriptions: {},
+    uploadedFiles: {},
   },
 });
 
