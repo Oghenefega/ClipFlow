@@ -11,14 +11,11 @@ export default function Sidebar({ navItems, activeView, onNavigate, mainGame }) 
         background: "rgba(10,11,16,0.6)",
         display: "flex",
         flexDirection: "column",
-        position: "sticky",
-        top: 0,
-        height: "100vh",
+        height: "100%",
       }}
     >
       {/* Logo */}
       <div
-        className="titlebar-drag"
         style={{
           padding: "20px 20px 24px",
           display: "flex",

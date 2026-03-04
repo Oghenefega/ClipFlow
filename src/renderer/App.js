@@ -318,16 +318,20 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex" }}>
-      <Sidebar
-        navItems={navItems}
-        activeView={view === "clips" ? "projects" : view}
-        onNavigate={nav}
-        mainGame={mainGame}
-      />
-      <div style={{ flex: 1, overflow: "auto" }}>
-        <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
-          {renderView()}
+    <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.08)" }}>
+      {/* Draggable title bar */}
+      <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(10,11,16,0.8)" }} />
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        <Sidebar
+          navItems={navItems}
+          activeView={view === "clips" ? "projects" : view}
+          onNavigate={nav}
+          mainGame={mainGame}
+        />
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            {renderView()}
+          </div>
         </div>
       </div>
       <TranscriptModal clip={transcript} onClose={() => setTranscript(null)} />
