@@ -10,6 +10,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [ignVal, setIgnVal] = useState(ignoredProcesses.join("\n"));
   const [editGD, setEditGD] = useState(null);
   const [showAddMain, setShowAddMain] = useState(false);
+  const [selGameLib, setSelGameLib] = useState(null);
+
+  const browseFolder = async () => {
+    if (!window.clipflow?.pickFolder) return;
+    const result = await window.clipflow.pickFolder();
+    if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
+      setWatchFolder(result.filePaths[0]);
+    }
+  };
 
   const togPlat = (key) => setPlatforms((p) => p.map((x) => (x.key === key ? { ...x, connected: !x.connected } : x)));
   const rmMain = (name) => setMainPool((p) => p.filter((n) => n !== name));
@@ -25,7 +34,10 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Watch Folder</div>
           {!editFolder ? (
-            <button onClick={() => { setEditFolder(true); setFolderVal(watchFolder); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={browseFolder} style={{ padding: "6px 12px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Browse</button>
+              <button onClick={() => { setEditFolder(true); setFolderVal(watchFolder); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+            </div>
           ) : (
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setEditFolder(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
@@ -74,15 +86,18 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       <Card style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Game Library</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {gamesDb.map((g) => (
-            <div key={g.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }}>
-              <GamePill tag={g.tag} color={g.color} size="sm" />
-              <span onClick={() => setEditGD(g)} style={{ color: T.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{g.name}</span>
-              <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono }}>#{g.hashtag}</span>
-              <span onClick={() => setEditGD(g)} style={{ color: T.textTertiary, fontSize: 12, cursor: "pointer" }}>✎</span>
-              <button onClick={() => delGame(g.name)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>✕</button>
-            </div>
-          ))}
+          {gamesDb.map((g) => {
+            const isSel = selGameLib === g.name;
+            return (
+              <div key={g.name} onClick={() => setSelGameLib(isSel ? null : g.name)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer" }}>
+                <GamePill tag={g.tag} color={g.color} size="sm" />
+                <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                {isSel && <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono }}>#{g.hashtag}</span>}
+                <span onClick={(e) => { e.stopPropagation(); setEditGD(g); }} style={{ color: T.textTertiary, fontSize: 12, cursor: "pointer" }}>{"\u270e"}</span>
+                <button onClick={(e) => { e.stopPropagation(); delGame(g.name); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>{"\u2715"}</button>
+              </div>
+            );
+          })}
         </div>
       </Card>
 

@@ -66,7 +66,8 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
             } catch (e) { /* skip */ }
           }
         }
-        all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Sort oldest first (ascending by date)
+        all.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         setFiles(all);
       } catch (e) { console.error("Failed to scan watch folder:", e); }
       setLoading(false);
@@ -108,16 +109,17 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
 
   const getGameFromName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(\S+)\s+Day/); return m ? m[1] : ""; };
   const getGameColor = (tag) => { const g = gamesDb.find((x) => x.tag === tag); return g ? g.color : T.accent; };
-
-  // Strip extension and date prefix for compact display: "AR Day25 Pt2"
-  const shortName = (name) => {
-    const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i);
-    return m ? m[1] : name;
-  };
+  const shortName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i); return m ? m[1] : name; };
 
   const grouped = {};
   files.forEach((f, i) => { if (!grouped[f.folder]) grouped[f.folder] = []; grouped[f.folder].push({ file: f, index: i }); });
-  const folderKeys = Object.keys(grouped).sort((a, b) => { if (a === "root") return 1; if (b === "root") return -1; return b.localeCompare(a); });
+
+  // Sort folder keys: oldest month first (ascending), root at the end
+  const folderKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === "root") return 1;
+    if (b === "root") return -1;
+    return a.localeCompare(b);
+  });
 
   const toggleCollapse = (folder) => setCollapsed((p) => ({ ...p, [folder]: !p[folder] }));
   const selectAllInFolder = (folder) => {
@@ -128,17 +130,20 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
     setSelected((p) => ({ ...p, ...u }));
   };
 
+  // Fixed pill width for uniform grid
+  const PILL_W = 250;
+
   return (
     <div>
-      <PageHeader title="Upload & Clip" subtitle="Renamed recordings \u2192 R2 \u2192 Vizard AI" />
-      <InfoBanner icon="\ud83d\udea7" color={T.yellow}>R2 upload integration coming soon. Upload button is a placeholder.</InfoBanner>
+      <PageHeader title="Upload & Clip" subtitle={"Renamed recordings \u2192 R2 \u2192 Vizard AI"} />
+      <InfoBanner icon={"\ud83d\udea7"} color={T.yellow}>R2 upload integration coming soon. Upload button is a placeholder.</InfoBanner>
 
       <div style={{ marginTop: 16 }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: 40, color: T.textTertiary }}>Scanning watch folder...</div>
         ) : files.length === 0 ? (
           <Card style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>\ud83d\udcc2</div>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>{"\ud83d\udcc2"}</div>
             <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>No renamed files found</div>
             <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Rename files in the Rename tab first, then they'll appear here for upload.</div>
           </Card>
@@ -162,8 +167,8 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
                     onClick={() => toggleCollapse(folder)}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: T.radius.md, background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, cursor: "pointer", marginBottom: isCollapsed ? 0 : 10 }}
                   >
-                    <span style={{ color: T.textTertiary, fontSize: 14, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>\u25bc</span>
-                    <span style={{ fontSize: 18 }}>\ud83d\udcc1</span>
+                    <span style={{ color: T.textTertiary, fontSize: 14, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>{"\u25bc"}</span>
+                    <span style={{ fontSize: 18 }}>{"\ud83d\udcc1"}</span>
                     <span style={{ color: T.text, fontSize: 14, fontWeight: 700, flex: 1 }}>{monthLabel(folder)}</span>
                     <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>{items.length} file{items.length !== 1 ? "s" : ""}</span>
                     {folderUploadedCount > 0 && <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>{folderUploadedCount} uploaded</span>}
@@ -173,9 +178,9 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
                     </button>
                   </div>
 
-                  {/* Files as horizontal pills */}
+                  {/* Files as uniform-width horizontal pills */}
                   {!isCollapsed && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${PILL_W}px, 1fr))`, gap: 6 }}>
                       {items.map(({ file: f, index: i }) => {
                         const isDone = done[i];
                         const isSel = selected[i];
@@ -189,28 +194,26 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
                             key={i}
                             onClick={() => toggle(i)}
                             style={{
-                              display: "inline-flex",
+                              display: "flex",
                               alignItems: "center",
                               gap: 8,
-                              padding: "8px 14px",
+                              padding: "8px 12px",
                               borderRadius: T.radius.md,
                               border: `1px solid ${isDone ? T.greenBorder : isSel ? T.accentBorder : T.border}`,
                               background: isDone ? "rgba(52,211,153,0.06)" : isSel ? T.accentDim : T.surface,
                               cursor: isDone ? "default" : "pointer",
-                              position: "relative",
-                              maxWidth: "100%",
+                              overflow: "hidden",
                             }}
                           >
                             <Checkbox checked={!!isSel || isDone} size={16} />
-                            {/* Game tag pill */}
                             {tag && (
                               <span style={{
                                 display: "inline-flex",
-                                padding: "2px 6px",
+                                padding: "2px 5px",
                                 background: `${tagColor}18`,
                                 border: `1px solid ${tagColor}44`,
                                 borderRadius: 4,
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: 700,
                                 color: tagColor,
                                 fontFamily: T.mono,
@@ -220,29 +223,15 @@ export default function UploadView({ watchFolder, gamesDb = [] }) {
                                 {tag}
                               </span>
                             )}
-                            {/* Short name */}
-                            <span style={{ color: T.text, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{shortName(f.name)}</span>
-                            {/* Size */}
-                            <span style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, flexShrink: 0 }}>{formatSize(f.size)}</span>
-                            {/* Uploaded badge */}
+                            <span style={{ color: T.text, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{shortName(f.name)}</span>
+                            <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono, flexShrink: 0 }}>{formatSize(f.size)}</span>
                             {(wasUploaded || isDone) && (
-                              <span style={{
-                                padding: "1px 6px",
-                                borderRadius: 4,
-                                fontSize: 9,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                color: T.green,
-                                background: T.greenDim,
-                                flexShrink: 0,
-                              }}>
-                                Uploaded
+                              <span style={{ padding: "1px 5px", borderRadius: 4, fontSize: 8, fontWeight: 700, textTransform: "uppercase", color: T.green, background: T.greenDim, flexShrink: 0 }}>
+                                {"✓"}
                               </span>
                             )}
-                            {/* Upload progress overlay */}
                             {isUp && (
-                              <span style={{ color: T.accentLight, fontSize: 11, fontWeight: 700, fontFamily: T.mono, flexShrink: 0 }}>{Math.round(progress[i] || 0)}%</span>
+                              <span style={{ color: T.accentLight, fontSize: 10, fontWeight: 700, fontFamily: T.mono, flexShrink: 0 }}>{Math.round(progress[i] || 0)}%</span>
                             )}
                           </div>
                         );

@@ -55,6 +55,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                     <div style={{ color: T.text, fontSize: 15, fontWeight: 700 }}>{game} Shorts</div>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => { setEditGame(game); setEditDesc(data.desc || ""); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+                      <button onClick={() => { navigator.clipboard.writeText(data.desc || ""); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Copy</button>
                       <button onClick={() => setYtDescriptions((p) => { const n = { ...p }; delete n[game]; return n; })} style={{ padding: "6px 12px", borderRadius: 6, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Del</button>
                     </div>
                   </div>
