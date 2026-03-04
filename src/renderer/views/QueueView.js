@@ -48,6 +48,15 @@ const buildCaption = (template, clipTitle, gameHashtag) => {
     .replace(/#\{gametitle\}/g, `#${gameHashtag || "gaming"}`);
 };
 
+// Build YouTube title: {clip title} #gamename #shorts
+// If the clip title already has the game hashtag, just append #shorts
+const buildYouTubeTitle = (clipTitle, gameHashtag) => {
+  const tag = `#${gameHashtag}`;
+  const hasTag = clipTitle.toLowerCase().includes(tag.toLowerCase());
+  if (hasTag) return `${clipTitle} #shorts`;
+  return `${clipTitle} ${tag} #shorts`;
+};
+
 // Find the game name from a clip's hashtag
 const findGameFromClip = (clipTitle, gamesDb) => {
   const tag = extractGameTag(clipTitle);
@@ -139,7 +148,7 @@ export default function QueueView({
         const result = await window.clipflow.vizardPublishClip({
           finalVideoId: clip.videoId,
           socialAccountId: plat.vizardAccountId,
-          title: isYouTube ? clip.title : undefined,
+          title: isYouTube ? buildYouTubeTitle(clip.title, gameHashtag) : undefined,
           post,
         });
 
@@ -239,7 +248,7 @@ export default function QueueView({
           finalVideoId: clip.videoId,
           socialAccountId: plat.vizardAccountId,
           publishTime: staggeredTime,
-          title: isYouTube ? clip.title : undefined,
+          title: isYouTube ? buildYouTubeTitle(clip.title, gameHashtag) : undefined,
           post,
         });
 
