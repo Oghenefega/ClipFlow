@@ -32,7 +32,12 @@ export default function App() {
   const renderView = () => {
     switch (view) {
       case "rename":
-        return <RenameView gamesDb={gamesDb} />;
+        return (
+          <RenameView
+            gamesDb={gamesDb}
+            onAddGame={(game) => setGamesDb((prev) => [...prev, game])}
+          />
+        );
       case "upload":
         return <PlaceholderView title="Upload & Clip" subtitle="Coming next — upload to R2, send to Vizard AI" />;
       case "projects":

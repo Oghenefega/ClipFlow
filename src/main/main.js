@@ -124,6 +124,10 @@ ipcMain.handle("fs:writeFile", async (_, filePath, content) => {
 });
 
 // File watcher: start watching a folder
+// Raw OBS files: YYYY-MM-DD HH-MM-SS[optional -vertical].(mp4|mkv)
+// Already-renamed files like "2026-02-06 AR Day25 Pt18.mp4" do NOT match
+const RAW_OBS_PATTERN = /^\d{4}-\d{2}-\d{2}[ _]\d{2}-\d{2}-\d{2}(-vertical)?\.(mp4|mkv)$/i;
+
 ipcMain.handle("watcher:start", async (_, folderPath) => {
   if (watcher) watcher.close();
 
@@ -131,6 +135,7 @@ ipcMain.handle("watcher:start", async (_, folderPath) => {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: false,
+    depth: 0, // root folder only — do not recurse into monthly subfolders
     awaitWriteFinish: {
       stabilityThreshold: 2000,
       pollInterval: 100,
@@ -138,15 +143,16 @@ ipcMain.handle("watcher:start", async (_, folderPath) => {
   });
 
   watcher.on("add", (filePath) => {
-    if (filePath.endsWith(".mp4") || filePath.endsWith(".mkv")) {
-      const stat = fs.statSync(filePath);
-      mainWindow?.webContents.send("watcher:fileAdded", {
-        name: path.basename(filePath),
-        path: filePath,
-        size: stat.size,
-        createdAt: stat.birthtime.toISOString(),
-      });
-    }
+    const name = path.basename(filePath);
+    // Only pick up raw OBS recordings; skip already-renamed files and non-video files
+    if (!RAW_OBS_PATTERN.test(name)) return;
+    const stat = fs.statSync(filePath);
+    mainWindow?.webContents.send("watcher:fileAdded", {
+      name,
+      path: filePath,
+      size: stat.size,
+      createdAt: stat.birthtime.toISOString(),
+    });
   });
 
   watcher.on("unlink", (filePath) => {
