@@ -115,8 +115,9 @@ export const GameEditModal = ({ game, onSave, onClose }) => {
             <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
           </div>
           <div>
-            <SectionLabel>Day Count</SectionLabel>
+            <SectionLabel>Last Day #</SectionLabel>
             <input type="number" min="0" value={dayCount} onChange={(e) => setDayCount(Math.max(0, parseInt(e.target.value) || 0))} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.yellow, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Next file = Day {(dayCount || 0) + 1}</div>
           </div>
         </div>
         <div style={{ marginBottom: 16 }}>

@@ -59,6 +59,31 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     });
   }, [managedFiles]);
 
+  // Recalculate pending DAY numbers when gamesDb changes (e.g. user edits dayCount in Settings)
+  const prevGamesRef = useRef(null);
+  useEffect(() => {
+    if (!prevGamesRef.current) { prevGamesRef.current = gamesDb; return; }
+    // Check if any dayCount actually changed
+    const changed = gamesDb.some((g) => {
+      const prev = prevGamesRef.current.find((p) => p.tag === g.tag);
+      return prev && (prev.dayCount !== g.dayCount || prev.lastDayDate !== g.lastDayDate);
+    });
+    prevGamesRef.current = gamesDb;
+    if (!changed) return;
+
+    setPendingRenames((prev) => {
+      if (prev.length === 0) return prev;
+      const updated = [];
+      for (const r of prev) {
+        const game = gamesDb.find((g) => g.tag === r.tag);
+        if (!game) { updated.push(r); continue; }
+        const detected = detectForGame(game, r.fileName, updated.filter((p) => p.tag === r.tag));
+        updated.push({ ...r, day: detected.day, part: detected.part });
+      }
+      return updated;
+    });
+  }, [gamesDb]);
+
   // ============ DAY DETECTION — uses stored dayCount/lastDayDate per game ============
   // Each unique calendar date a game is recorded = 1 new day.
   // dayCount and lastDayDate are stored in gamesDb and persisted via electron-store.
