@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, Checkbox } from "../components/shared";
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, managedFiles, setManagedFiles, watchFolder }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, managedFiles, setManagedFiles, watchFolder }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -33,9 +33,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return () => { window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb]);
 
-  // Recalculate pending day/part numbers once managedFiles loads from filesystem scan.
-  // The watcher detects files before the scan finishes, so pending files initially get day=1.
-  // Once the scan populates managedFiles, we recalculate with the real history.
+  // Recalculate pending PART numbers once managedFiles loads from filesystem scan.
+  // Days come from stored dayCount so they're correct immediately, but parts need
+  // managedFiles to know what parts already exist on disk.
   const managedLoaded = useRef(false);
   useEffect(() => {
     if (managedFiles.length === 0 || managedLoaded.current) return;
@@ -45,80 +45,74 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       if (prev.length === 0) return prev;
       const updated = [];
       for (const r of prev) {
-        const detected = detectGame(r.fileName, gamesDb, updated);
-        updated.push({ ...r, game: detected.game, tag: detected.tag, color: detected.color, day: detected.day, part: detected.part });
+        const fileDate = r.fileName.slice(0, 10);
+        // Recalculate parts using managedFiles + already-updated pending
+        const existingParts = [
+          ...managedFiles.filter((f) => f.tag === r.tag && f.name.startsWith(fileDate) && f.day === r.day).map((f) => f.part),
+          ...renameHistory.filter((h) => !h.undone && h.tag === r.tag && h.newName.startsWith(fileDate)).map((h) => h.part),
+          ...updated.filter((p) => p.tag === r.tag && p.fileName.slice(0, 10) === fileDate && p.day === r.day).map((p) => p.part),
+        ];
+        const part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
+        updated.push({ ...r, part });
       }
       return updated;
     });
   }, [managedFiles]);
 
-  // Helper: find the highest day number and its date for a game across all recordings
-  const findMaxDayForGame = (tag, currentPending, excludeId) => {
-    let maxDay = 0;
-    let maxDayDate = null;
+  // ============ DAY DETECTION — uses stored dayCount/lastDayDate per game ============
+  // Each unique calendar date a game is recorded = 1 new day.
+  // dayCount and lastDayDate are stored in gamesDb and persisted via electron-store.
 
-    managedFiles.forEach((f) => {
-      if (f.tag === tag && f.day > maxDay) {
-        maxDay = f.day;
-        maxDayDate = f.name.slice(0, 10);
-      }
-    });
-
-    renameHistory.forEach((h) => {
-      if (!h.undone && h.tag === tag && h.day > maxDay) {
-        maxDay = h.day;
-        maxDayDate = h.newName.slice(0, 10);
-      }
-    });
-
-    if (currentPending) {
-      currentPending.forEach((p) => {
-        if (p.tag === tag && (!excludeId || p.id !== excludeId) && p.day > maxDay) {
-          maxDay = p.day;
-          maxDayDate = p.fileName.slice(0, 10);
-        }
-      });
-    }
-
-    return { maxDay, maxDayDate };
+  const detectGame = (fileName, games, currentPending) => {
+    const game = games.find((g) => g.name === mainGameName) || games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
+    return detectForGame(game, fileName, currentPending);
   };
 
-  // Smart game detection — checks actual recording history for day numbers
-  const detectGame = (fileName, games, currentPending) => {
-    const defaultGame = games.find((g) => g.name === mainGameName) || games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
+  const detectForGame = (game, fileName, currentPending) => {
     const fileDate = fileName.slice(0, 10);
 
-    // Check if this date already has files for this game
-    const existingDay = managedFiles
-      .filter((f) => f.tag === defaultGame.tag && f.name.startsWith(fileDate))
-      .map((f) => f.day)[0];
-    const historyDay = renameHistory
-      .filter((h) => !h.undone && h.tag === defaultGame.tag && h.newName.startsWith(fileDate))
-      .map((h) => h.day)[0];
-    const pendingDay = (currentPending || [])
-      .filter((p) => p.tag === defaultGame.tag && p.fileName.slice(0, 10) === fileDate)
-      .map((p) => p.day)[0];
+    // Get effective day state: stored dayCount + any already-detected pending files
+    let effectiveDayCount = game.dayCount || 0;
+    let effectiveLastDate = game.lastDayDate || null;
+    (currentPending || []).forEach((p) => {
+      if (p.tag === game.tag) {
+        const pDate = p.fileName.slice(0, 10);
+        if (p.day > effectiveDayCount) {
+          effectiveDayCount = p.day;
+          effectiveLastDate = pDate;
+        } else if (p.day === effectiveDayCount && (!effectiveLastDate || pDate > effectiveLastDate)) {
+          effectiveLastDate = pDate;
+        }
+      }
+    });
 
-    const matchDay = existingDay || historyDay || pendingDay;
-
-    if (matchDay) {
-      const existingParts = [
-        ...managedFiles.filter((f) => f.tag === defaultGame.tag && f.name.startsWith(fileDate) && f.day === matchDay).map((f) => f.part),
-        ...renameHistory.filter((h) => !h.undone && h.tag === defaultGame.tag && h.newName.startsWith(fileDate)).map((h) => h.part),
-        ...(currentPending || []).filter((p) => p.tag === defaultGame.tag && p.fileName.slice(0, 10) === fileDate && p.day === matchDay).map((p) => p.part),
-      ];
-      return { game: defaultGame.name, tag: defaultGame.tag, color: defaultGame.color, day: matchDay, part: existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1 };
+    // Determine day number
+    let day;
+    if (effectiveLastDate && fileDate === effectiveLastDate) {
+      // Same date as last recording — same day number
+      day = effectiveDayCount;
+    } else if (!effectiveLastDate || fileDate > effectiveLastDate) {
+      // New date (later than last recording) — new day
+      day = effectiveDayCount + 1;
+    } else {
+      // Older date — use current dayCount (user can manually fix if needed)
+      day = effectiveDayCount;
     }
 
-    const { maxDay, maxDayDate } = findMaxDayForGame(defaultGame.tag, currentPending, null);
-    const sameDatePending = (currentPending || []).filter((p) => p.tag === defaultGame.tag && p.fileName.slice(0, 10) === fileDate).length;
-    const newDay = maxDay > 0 ? (fileDate === maxDayDate ? maxDay : maxDay + 1) : 1;
-    return { game: defaultGame.name, tag: defaultGame.tag, color: defaultGame.color, day: newDay, part: sameDatePending + 1 };
+    // Determine part number from all sources
+    const existingParts = [
+      ...managedFiles.filter((f) => f.tag === game.tag && f.name.startsWith(fileDate) && f.day === day).map((f) => f.part),
+      ...renameHistory.filter((h) => !h.undone && h.tag === game.tag && h.newName.startsWith(fileDate)).map((h) => h.part),
+      ...(currentPending || []).filter((p) => p.tag === game.tag && p.fileName.slice(0, 10) === fileDate && p.day === day).map((p) => p.part),
+    ];
+    const part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
+
+    return { game: game.name, tag: game.tag, color: game.color, day, part };
   };
 
   const getProposed = (r) => `${r.fileName.slice(0, 10)} ${r.tag} Day${r.day} Pt${r.part}.mp4`;
 
-  // Smart update — when game changes, recompute day and part
+  // Smart update — when game changes, recompute day and part using stored dayCount
   const updatePending = (id, field, value) => {
     setPendingRenames((prev) => prev.map((r) => {
       if (r.id !== id) return r;
@@ -128,28 +122,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         if (g) {
           u.tag = g.tag;
           u.color = g.color;
-          const fileDate = r.fileName.slice(0, 10);
-
-          // Check existing files for this game on this date
-          const existingDay = managedFiles.filter((f) => f.tag === g.tag && f.name.startsWith(fileDate)).map((f) => f.day)[0];
-          const historyDay = renameHistory.filter((h) => !h.undone && h.tag === g.tag && h.newName.startsWith(fileDate)).map((h) => h.day)[0];
-          const pendingDay = prev.filter((p) => p.id !== id && p.tag === g.tag && p.fileName.slice(0, 10) === fileDate).map((p) => p.day)[0];
-          const matchDay = existingDay || historyDay || pendingDay;
-
-          if (matchDay) {
-            u.day = matchDay;
-            const existingParts = [
-              ...managedFiles.filter((f) => f.tag === g.tag && f.name.startsWith(fileDate) && f.day === matchDay).map((f) => f.part),
-              ...renameHistory.filter((h) => !h.undone && h.tag === g.tag && h.newName.startsWith(fileDate)).map((h) => h.part),
-              ...prev.filter((p) => p.id !== id && p.tag === g.tag && p.fileName.slice(0, 10) === fileDate && p.day === matchDay).map((p) => p.part),
-            ];
-            u.part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
-          } else {
-            const { maxDay: mDay, maxDayDate: mDate } = findMaxDayForGame(g.tag, prev, id);
-            u.day = mDay > 0 ? (fileDate === mDate ? mDay : mDay + 1) : 1;
-            const sameDateCount = prev.filter((p) => p.id !== id && p.tag === g.tag && p.fileName.slice(0, 10) === fileDate).length;
-            u.part = sameDateCount + 1;
-          }
+          // Re-detect day/part for the new game using stored dayCount
+          const otherPending = prev.filter((p) => p.id !== id);
+          const detected = detectForGame(g, r.fileName, otherPending);
+          u.day = detected.day;
+          u.part = detected.part;
         }
       }
       return u;
@@ -172,6 +149,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
     setRenameHistory((prev) => [{ id: `h-${Date.now()}`, oldName: r.fileName, newName, game: r.game, tag: r.tag, color: r.color, day: r.day, part: r.part, time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), undone: false }, ...prev]);
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
+
+    // Persist the game's dayCount and lastDayDate
+    if (onGameDayUpdate) {
+      const fileDate = r.fileName.slice(0, 10);
+      const game = gamesDb.find((g) => g.tag === r.tag);
+      const newDayCount = Math.max(r.day, game?.dayCount || 0);
+      const newLastDate = !game?.lastDayDate || fileDate >= game.lastDayDate ? fileDate : game.lastDayDate;
+      onGameDayUpdate(r.tag, newDayCount, newLastDate);
+    }
   };
 
   const hideOne = (id) => setPendingRenames((prev) => prev.filter((x) => x.id !== id));
@@ -197,6 +183,23 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         }
 
         corrected.push({ id: `h-${Date.now()}-${r.id}`, oldName: r.fileName, newName, game: r.game, tag: r.tag, color: r.color, day: r.day, part, time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), undone: false });
+      }
+    }
+
+    // Persist dayCount/lastDayDate for all affected games
+    if (onGameDayUpdate) {
+      const gameUpdates = {};
+      for (const h of corrected) {
+        const fileDate = h.oldName.slice(0, 10);
+        if (!gameUpdates[h.tag]) {
+          const game = gamesDb.find((g) => g.tag === h.tag);
+          gameUpdates[h.tag] = { dayCount: game?.dayCount || 0, lastDayDate: game?.lastDayDate || null };
+        }
+        if (h.day > gameUpdates[h.tag].dayCount) gameUpdates[h.tag].dayCount = h.day;
+        if (!gameUpdates[h.tag].lastDayDate || fileDate >= gameUpdates[h.tag].lastDayDate) gameUpdates[h.tag].lastDayDate = fileDate;
+      }
+      for (const [tag, update] of Object.entries(gameUpdates)) {
+        onGameDayUpdate(tag, update.dayCount, update.lastDayDate);
       }
     }
 
@@ -244,11 +247,14 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     setBatchAction(null); setBatchValue(""); setManageSelected(new Set());
   };
 
-  // Computed stats
+  // Computed stats — Day stat uses stored dayCount from gamesDb
   const mainGameObj = gamesDb.find((g) => g.name === mainGameName) || gamesDb[0];
   const totalRenamed = managedFiles.length + renameHistory.filter((h) => !h.undone).length;
-  const { maxDay: mainMaxDay } = mainGameObj ? findMaxDayForGame(mainGameObj.tag, pendingRenames, null) : { maxDay: 0 };
-  const mainDayCount = mainMaxDay || (mainGameObj ? mainGameObj.dayCount : 0);
+  let mainDayCount = mainGameObj?.dayCount || 0;
+  // Also check pending files (they may have a higher day if new date was detected)
+  pendingRenames.forEach((p) => {
+    if (p.tag === mainGameObj?.tag && p.day > mainDayCount) mainDayCount = p.day;
+  });
 
   return (
     <div>

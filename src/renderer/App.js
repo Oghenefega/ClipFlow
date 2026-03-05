@@ -147,6 +147,25 @@ export default function App() {
           const result = await window.clipflow.scanWatchFolder(folder);
           if (result.files && result.files.length > 0) {
             setManagedFiles(result.files);
+
+            // Migration: initialize dayCount/lastDayDate from filesystem for games that have dayCount 0
+            // This runs once when a game has never had its dayCount set (first run or new game)
+            const games = all.gamesDb || INITIAL_GAMES;
+            const needsMigration = games.filter((g) => !g.dayCount || g.dayCount === 0);
+            if (needsMigration.length > 0) {
+              const migrated = games.map((g) => {
+                if (g.dayCount && g.dayCount > 0) return g;
+                // Count unique dates for this game's renamed files
+                const gameFiles = result.files.filter((f) => f.tag === g.tag);
+                if (gameFiles.length === 0) return g;
+                const uniqueDates = new Set(gameFiles.map((f) => f.name.slice(0, 10)));
+                const sortedDates = [...uniqueDates].sort();
+                const dayCount = sortedDates.length;
+                const lastDayDate = sortedDates[sortedDates.length - 1];
+                return { ...g, dayCount, lastDayDate };
+              });
+              setGamesDb(migrated);
+            }
           }
         }
       } catch (e) {
@@ -186,6 +205,13 @@ export default function App() {
     setShowAddGame(false);
   };
   const handleEditGame = (u) => setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
+
+  // Called by RenameView after a file is renamed — persists dayCount + lastDayDate per game
+  const handleGameDayUpdate = useCallback((tag, dayCount, lastDayDate) => {
+    setGamesDb((prev) => prev.map((g) =>
+      g.tag === tag ? { ...g, dayCount, lastDayDate } : g
+    ));
+  }, []);
 
   // Vizard project handlers
   const handleCreateProject = useCallback((project) => {
@@ -293,6 +319,7 @@ export default function App() {
           renameHistory={renameHistory}
           setRenameHistory={setRenameHistory}
           onAddGame={() => setShowAddGame(true)}
+          onGameDayUpdate={handleGameDayUpdate}
           managedFiles={managedFiles}
           setManagedFiles={setManagedFiles}
           watchFolder={watchFolder}
