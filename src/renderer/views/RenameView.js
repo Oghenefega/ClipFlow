@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, Checkbox } from "../components/shared";
 
@@ -32,6 +32,25 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     });
     return () => { window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb]);
+
+  // Recalculate pending day/part numbers once managedFiles loads from filesystem scan.
+  // The watcher detects files before the scan finishes, so pending files initially get day=1.
+  // Once the scan populates managedFiles, we recalculate with the real history.
+  const managedLoaded = useRef(false);
+  useEffect(() => {
+    if (managedFiles.length === 0 || managedLoaded.current) return;
+    managedLoaded.current = true;
+
+    setPendingRenames((prev) => {
+      if (prev.length === 0) return prev;
+      const updated = [];
+      for (const r of prev) {
+        const detected = detectGame(r.fileName, gamesDb, updated);
+        updated.push({ ...r, game: detected.game, tag: detected.tag, color: detected.color, day: detected.day, part: detected.part });
+      }
+      return updated;
+    });
+  }, [managedFiles]);
 
   // Helper: find the highest day number and its date for a game across all recordings
   const findMaxDayForGame = (tag, currentPending, excludeId) => {
