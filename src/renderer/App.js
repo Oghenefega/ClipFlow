@@ -12,13 +12,13 @@ import SettingsView from "./views/SettingsView";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
-  { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
-  { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
-  { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
-  { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
-  { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
-  { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
-  { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
+  { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders", active: true },
+  { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague", active: true },
+  { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant", active: true },
+  { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon", active: true },
+  { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery", active: true },
+  { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay", active: true },
+  { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia", active: true },
 ];
 const INITIAL_MAIN_POOL = ["Arc Raiders", "Rocket League", "Valorant"];
 const INITIAL_IGNORED = ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"];
@@ -97,6 +97,9 @@ export default function App() {
   // Queue / Tracker
   const [weeklyTemplate, setWeeklyTemplate] = useState(JSON.parse(JSON.stringify(DEFAULT_TEMPLATE)));
   const [trackerData, setTrackerData] = useState([]);
+  const [weekTemplateOverrides, setWeekTemplateOverrides] = useState({}); // { "2026-03-02": template }
+  const [savedTemplates, setSavedTemplates] = useState([]); // [{ name, template }]
+  const [mainGameHistory, setMainGameHistory] = useState([]); // [{ date, from, to }]
 
   // Captions
   const [captionTemplates, setCaptionTemplates] = useState({
@@ -130,6 +133,9 @@ export default function App() {
         }
         if (all.weeklyTemplate) setWeeklyTemplate(all.weeklyTemplate);
         if (all.trackerData) setTrackerData(all.trackerData);
+        if (all.weekTemplateOverrides) setWeekTemplateOverrides(all.weekTemplateOverrides);
+        if (all.savedTemplates) setSavedTemplates(all.savedTemplates);
+        if (all.mainGameHistory) setMainGameHistory(all.mainGameHistory);
         if (all.captionTemplates) setCaptionTemplates(all.captionTemplates);
         if (all.r2Config) setR2Config(all.r2Config);
         if (all.vizardApiKey) setVizardApiKey(all.vizardApiKey);
@@ -190,12 +196,30 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("platforms", platforms); }, [platforms]);
   useEffect(() => { if (!hasLoaded.current) return; persist("weeklyTemplate", weeklyTemplate); }, [weeklyTemplate]);
   useEffect(() => { if (!hasLoaded.current) return; persist("trackerData", trackerData); }, [trackerData]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("weekTemplateOverrides", weekTemplateOverrides); }, [weekTemplateOverrides]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("savedTemplates", savedTemplates); }, [savedTemplates]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("mainGameHistory", mainGameHistory); }, [mainGameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("captionTemplates", captionTemplates); }, [captionTemplates]);
   useEffect(() => { if (!hasLoaded.current) return; persist("ytDescriptions", ytDescriptions); }, [ytDescriptions]);
   useEffect(() => { if (!hasLoaded.current) return; persist("r2Config", r2Config); }, [r2Config]);
   useEffect(() => { if (!hasLoaded.current) return; persist("vizardApiKey", vizardApiKey); }, [vizardApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("vizardProjects", vizardProjects); }, [vizardProjects]);
   useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
+
+  // ============ MAIN GAME SWITCH LOGGING ============
+  const prevMainGame = useRef(null);
+  useEffect(() => {
+    if (!loaded) return;
+    if (prevMainGame.current === null) { prevMainGame.current = mainGame; return; }
+    if (mainGame !== prevMainGame.current) {
+      setMainGameHistory((prev) => [...prev, {
+        date: new Date().toISOString().split("T")[0],
+        from: prevMainGame.current,
+        to: mainGame,
+      }]);
+      prevMainGame.current = mainGame;
+    }
+  }, [mainGame, loaded]);
 
   // ============ HANDLERS ============
   const handleNewGame = (gd) => {
@@ -348,6 +372,10 @@ export default function App() {
           setTrackerData={setTrackerData}
           weeklyTemplate={weeklyTemplate}
           setWeeklyTemplate={setWeeklyTemplate}
+          weekTemplateOverrides={weekTemplateOverrides}
+          setWeekTemplateOverrides={setWeekTemplateOverrides}
+          savedTemplates={savedTemplates}
+          setSavedTemplates={setSavedTemplates}
           ytDescriptions={ytDescriptions}
           captionTemplates={captionTemplates}
           gamesDb={gamesDb}

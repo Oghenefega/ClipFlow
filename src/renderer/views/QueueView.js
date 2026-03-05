@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag } from "../components/shared";
 
@@ -93,7 +93,8 @@ const findGameFromClip = (clipTitle, gamesDb) => {
 
 export default function QueueView({
   allClips, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
-  weeklyTemplate, setWeeklyTemplate, ytDescriptions, captionTemplates, gamesDb,
+  weeklyTemplate, setWeeklyTemplate, weekTemplateOverrides, setWeekTemplateOverrides,
+  savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, gamesDb,
 }) {
   const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title));
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
@@ -109,16 +110,34 @@ export default function QueueView({
   const [editTmpl, setEditTmpl] = useState(false);
   const fileRef = useRef(null);
   const publishingRef = useRef(false);
+  const popoverRef = useRef(null);
+  const [popover, setPopover] = useState(null); // { di, si, iso, dayName, type:"pick"|"info", entry?, rect }
+  const [popPos, setPopPos] = useState(null); // measured popover position
+  const [hoveredCell, setHoveredCell] = useState(null); // "di-si"
+  const [showSaveAs, setShowSaveAs] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [showPresetDrop, setShowPresetDrop] = useState(false);
+  const presetDropRef = useRef(null);
   const dates = getUpcomingDates();
   const activePlat = platforms.filter((p) => p.connected && p.vizardAccountId);
   const refDate = new Date();
   refDate.setDate(refDate.getDate() + weekOffset * 7);
   const wd = getWeekDates(refDate);
+  const mondayIso = wd[0].iso;
+  const effectiveTemplate = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
+  const hasOverride = !!(weekTemplateOverrides?.[mondayIso]);
   const wIsos = new Set(wd.map((d) => d.iso));
   const wEntries = trackerData.filter((e) => wIsos.has(e.date));
   const slotFilled = (iso, si) => wEntries.find((e) => e.date === iso && e.time && e.time.replace(/\s/g, "") === TIME_SLOTS[si].replace(/\s/g, ""));
   const mw = wEntries.filter((e) => e.type === "main").length;
   const ow = wEntries.filter((e) => e.type === "other").length;
+
+  // Determine current preset name for display
+  const currentPresetName = (() => {
+    if (!hasOverride) return "Default";
+    const match = (savedTemplates || []).find((p) => JSON.stringify(p.template) === JSON.stringify(effectiveTemplate));
+    return match ? match.name : "Custom";
+  })();
 
   const logPost = (clip, date, day, time) => {
     const gt = extractGameTag(clip.title) || "unknown";
@@ -239,11 +258,117 @@ export default function QueueView({
 
   const toggleCell = (di, si) => {
     if (!editTmpl) return;
-    setWeeklyTemplate((p) => {
-      const n = JSON.parse(JSON.stringify(p));
-      n[DAY_NAMES[di]][si] = n[DAY_NAMES[di]][si] === "main" ? "other" : "main";
-      return n;
+    setWeekTemplateOverrides((prev) => {
+      const current = prev[mondayIso] || JSON.parse(JSON.stringify(weeklyTemplate));
+      const updated = JSON.parse(JSON.stringify(current));
+      updated[DAY_NAMES[di]][si] = updated[DAY_NAMES[di]][si] === "main" ? "other" : "main";
+      return { ...prev, [mondayIso]: updated };
     });
+  };
+
+  // Resolve game display info from a hashtag (stored in tracker entries)
+  const resolveGameDisplay = (hashtag) => {
+    const g = gamesDb.find((x) => x.hashtag === hashtag);
+    return g ? { name: g.name, color: g.color, tag: g.tag } : { name: hashtag, color: T.textMuted, tag: hashtag };
+  };
+
+  // Log a manual tracker entry
+  const logManualEntry = (iso, dayName, si, game) => {
+    setTrackerData((p) => [...p, {
+      date: iso,
+      day: dayName,
+      time: TIME_SLOTS[si],
+      title: "Manual entry",
+      game: game.hashtag,
+      type: game.hashtag === mainGameTag ? "main" : "other",
+      platforms: "Manual",
+      mainGameAtTime: mainGame,
+    }]);
+  };
+
+  // Remove a tracker entry
+  const removeTrackerEntry = (entry) => {
+    setTrackerData((p) => p.filter((e) => !(e.date === entry.date && e.time === entry.time && e.game === entry.game)));
+    setPopover(null);
+  };
+
+  // Handle cell click — routes based on mode and state
+  const handleCellClick = (di, si, e) => {
+    if (editTmpl) { toggleCell(di, si); return; }
+    const d = wd[di];
+    const tmpl = effectiveTemplate[d.dayName]?.[si] || "main";
+    const isM = tmpl === "main";
+    const fl = slotFilled(d.iso, si);
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    if (fl) {
+      // Filled cell → info popover
+      setPopover({ di, si, iso: d.iso, dayName: d.dayName, type: "info", entry: fl, rect });
+    } else if (isM) {
+      // Empty main cell → immediately log main game
+      const mainG = gamesDb.find((g) => g.hashtag === mainGameTag);
+      if (mainG) logManualEntry(d.iso, d.dayName, si, mainG);
+    } else {
+      // Empty other cell → game picker popover
+      setPopover({ di, si, iso: d.iso, dayName: d.dayName, type: "pick", rect });
+    }
+  };
+
+  // Close popover on Escape / click-outside
+  useEffect(() => {
+    if (!popover) return;
+    const onKey = (e) => { if (e.key === "Escape") setPopover(null); };
+    const onClick = (e) => { if (popoverRef.current && !popoverRef.current.contains(e.target)) setPopover(null); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("mousedown", onClick); };
+  }, [popover]);
+
+  // Close popover when week changes
+  useEffect(() => { setPopover(null); }, [weekOffset]);
+
+  // Auto-size and position popover after render
+  useLayoutEffect(() => {
+    if (!popover || !popoverRef.current) { setPopPos(null); return; }
+    const el = popoverRef.current;
+    const pr = popover.rect;
+    const { width: popW, height: popH } = el.getBoundingClientRect();
+    const viewH = window.innerHeight;
+    const viewW = window.innerWidth;
+    const showAbove = pr.bottom + popH + 8 > viewH;
+    const left = Math.max(8, Math.min(pr.left + pr.width / 2 - popW / 2, viewW - popW - 8));
+    const top = showAbove ? Math.max(8, pr.top - popH - 6) : pr.bottom + 6;
+    setPopPos({ left, top });
+  }, [popover]);
+
+  // Close preset dropdown on click-outside
+  useEffect(() => {
+    if (!showPresetDrop) return;
+    const onClick = (e) => { if (presetDropRef.current && !presetDropRef.current.contains(e.target)) setShowPresetDrop(false); };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [showPresetDrop]);
+
+  // Template preset handlers
+  const setAsDefault = () => {
+    setWeeklyTemplate(JSON.parse(JSON.stringify(effectiveTemplate)));
+  };
+  const savePreset = () => {
+    if (!presetName.trim()) return;
+    setSavedTemplates((prev) => [...prev, { name: presetName.trim(), template: JSON.parse(JSON.stringify(effectiveTemplate)) }]);
+    setPresetName("");
+    setShowSaveAs(false);
+  };
+  const loadPreset = (template) => {
+    setWeekTemplateOverrides((prev) => ({ ...prev, [mondayIso]: JSON.parse(JSON.stringify(template)) }));
+    setShowPresetDrop(false);
+  };
+  const clearOverride = () => {
+    setWeekTemplateOverrides((prev) => { const n = { ...prev }; delete n[mondayIso]; return n; });
+    setShowPresetDrop(false);
+  };
+  const deletePreset = (idx) => {
+    setSavedTemplates((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const exportCSV = () => {
@@ -409,10 +534,49 @@ export default function QueueView({
 
       {/* TRACKER */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: 0 }}>Tracker</h3>
-            <button onClick={() => setEditTmpl(!editTmpl)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${editTmpl ? T.accentBorder : T.border}`, background: editTmpl ? T.accentDim : "transparent", color: editTmpl ? T.accentLight : T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{editTmpl ? "Done" : "Edit Template"}</button>
+            {editTmpl ? (
+              showSaveAs ? (
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input value={presetName} onChange={(e) => setPresetName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && savePreset()} placeholder="Preset name..." autoFocus style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none", width: 120 }} />
+                  <button onClick={savePreset} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: T.green, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+                  <button onClick={() => setShowSaveAs(false)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <button onClick={() => { setEditTmpl(false); setShowSaveAs(false); }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Done</button>
+                  <button onClick={setAsDefault} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Set as Default</button>
+                  <button onClick={() => setShowSaveAs(true)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save As...</button>
+                </div>
+              )
+            ) : (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <button onClick={() => setEditTmpl(true)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Edit Template</button>
+                {/* Template preset dropdown */}
+                <div style={{ position: "relative" }}>
+                  <button onClick={() => setShowPresetDrop(!showPresetDrop)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${currentPresetName === "Custom" ? T.yellowBorder : T.border}`, background: currentPresetName === "Custom" ? "rgba(251,191,36,0.06)" : "transparent", color: currentPresetName === "Custom" ? T.yellow : T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
+                    {currentPresetName} <span style={{ fontSize: 8, marginLeft: 2 }}>{"\u25bc"}</span>
+                  </button>
+                  {showPresetDrop && (
+                    <div ref={presetDropRef} style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, padding: 4, minWidth: 160, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 100 }}>
+                      <button onClick={clearOverride} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: "none", background: currentPresetName === "Default" ? "rgba(139,92,246,0.1)" : "transparent", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, textAlign: "left", display: "flex", justifyContent: "space-between" }}>
+                        Default {currentPresetName === "Default" && <span style={{ color: T.green }}>{"\u2713"}</span>}
+                      </button>
+                      {(savedTemplates || []).map((p, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center" }}>
+                          <button onClick={() => loadPreset(p.template)} style={{ flex: 1, padding: "8px 12px", borderRadius: 6, border: "none", background: currentPresetName === p.name ? "rgba(139,92,246,0.1)" : "transparent", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, textAlign: "left", display: "flex", justifyContent: "space-between" }}>
+                            {p.name} {currentPresetName === p.name && <span style={{ color: T.green }}>{"\u2713"}</span>}
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); deletePreset(i); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 10, cursor: "pointer", padding: "4px 8px" }}>{"\u2715"}</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={exportCSV} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Export</button>
@@ -433,16 +597,17 @@ export default function QueueView({
 
         {/* Week navigation */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <button onClick={() => setWeekOffset((w) => w - 1)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2190"}</button>
+          <button onClick={() => { setWeekOffset((w) => w - 1); setPopover(null); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2190"}</button>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{getWeekLabel(refDate)}</span>
+            {hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
             <Select value={monthJump} onChange={jumpMonth} options={[{ value: "", label: "Jump..." }, ...MONTHS_2026]} style={{ padding: "6px 10px", fontSize: 12 }} />
           </div>
-          <button onClick={() => setWeekOffset((w) => w + 1)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2192"}</button>
+          <button onClick={() => { setWeekOffset((w) => w + 1); setPopover(null); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2192"}</button>
         </div>
 
         {/* Weekly grid */}
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", position: "relative" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 3, minWidth: 640 }}>
             <thead>
               <tr>
@@ -460,13 +625,38 @@ export default function QueueView({
                 <tr key={si}>
                   <td style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600, fontFamily: T.mono, padding: "3px 6px" }}>{slot}</td>
                   {wd.map((d, di) => {
-                    const tmpl = weeklyTemplate[d.dayName]?.[si] || "main";
+                    const tmpl = effectiveTemplate[d.dayName]?.[si] || "main";
                     const isM = tmpl === "main";
                     const fl = slotFilled(d.iso, si);
+                    const cellKey = `${di}-${si}`;
+                    const isHov = hoveredCell === cellKey && !editTmpl;
+                    const gameDisp = fl ? resolveGameDisplay(fl.game) : null;
+                    const filledColor = gameDisp?.color || (isM ? T.accent : T.green);
                     return (
                       <td key={di} style={{ padding: 2 }}>
-                        <div onClick={() => toggleCell(di, si)} style={{ height: 38, borderRadius: 6, cursor: editTmpl ? "pointer" : "default", background: fl ? (isM ? "rgba(139,92,246,0.35)" : "rgba(52,211,153,0.35)") : (isM ? "rgba(139,92,246,0.06)" : "rgba(52,211,153,0.06)"), border: editTmpl ? `1px dashed ${isM ? "rgba(139,92,246,0.4)" : "rgba(52,211,153,0.4)"}` : "1px solid transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: fl ? "rgba(255,255,255,0.9)" : T.textMuted }}>
-                          {fl ? "\u2713" : (isM ? "M" : "O")}
+                        <div
+                          onClick={(e) => handleCellClick(di, si, e)}
+                          onMouseEnter={() => !editTmpl && setHoveredCell(cellKey)}
+                          onMouseLeave={() => setHoveredCell(null)}
+                          style={{
+                            height: 38, borderRadius: 6, cursor: "pointer", transition: "all 0.15s ease",
+                            background: fl
+                              ? `${filledColor}${isHov ? "66" : "59"}` // filled: game color at ~35-40% opacity
+                              : isHov
+                                ? (isM ? "rgba(139,92,246,0.15)" : "rgba(52,211,153,0.15)")
+                                : (isM ? "rgba(139,92,246,0.06)" : "rgba(52,211,153,0.06)"),
+                            border: editTmpl
+                              ? `1px dashed ${isM ? "rgba(139,92,246,0.4)" : "rgba(52,211,153,0.4)"}`
+                              : fl
+                                ? `1px solid ${filledColor}44`
+                                : isHov ? `1px solid ${isM ? "rgba(139,92,246,0.3)" : "rgba(52,211,153,0.3)"}` : "1px solid transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: fl ? 11 : 10, fontWeight: 700, fontFamily: fl ? T.mono : T.font,
+                            color: fl ? "rgba(255,255,255,0.95)" : isHov ? (isM ? T.accent : T.green) : T.textMuted,
+                            transform: isHov && fl ? "scale(1.04)" : "none",
+                          }}
+                        >
+                          {editTmpl ? (isM ? "M" : "O") : fl ? (gameDisp?.tag || "\u2713") : (isHov ? "+" : (isM ? "M" : "O"))}
                         </div>
                       </td>
                     );
@@ -476,7 +666,97 @@ export default function QueueView({
             </tbody>
           </table>
         </div>
+
+        {/* Tracker Popover */}
+        {popover && (() => {
+          return (
+            <div ref={popoverRef} style={{
+              position: "fixed",
+              left: popPos ? popPos.left : -9999,
+              top: popPos ? popPos.top : -9999,
+              visibility: popPos ? "visible" : "hidden",
+              width: "auto", minWidth: 160, maxWidth: 280,
+              zIndex: 2000,
+              background: T.surface, borderRadius: T.radius.lg, padding: 16,
+              border: `1px solid ${T.borderHover}`, boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+            }} onClick={(e) => e.stopPropagation()}>
+              {popover.type === "pick" ? (
+                <>
+                  <div style={{ color: T.textTertiary, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 12 }}>Pick Game</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {gamesDb.filter((g) => g.hashtag !== mainGameTag && g.active !== false).map((g) => (
+                      <button key={g.tag} onClick={() => { logManualEntry(popover.iso, popover.dayName, popover.si, g); setPopover(null); }}
+                        style={{
+                          padding: "6px 12px", borderRadius: 8, border: `1px solid ${g.color}44`,
+                          background: `${g.color}1a`, color: g.color, fontSize: 12, fontWeight: 700,
+                          fontFamily: T.mono, cursor: "pointer", transition: "all 0.1s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = `${g.color}33`; e.currentTarget.style.transform = "scale(1.05)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = `${g.color}1a`; e.currentTarget.style.transform = "none"; }}
+                      >
+                        {g.tag}
+                      </button>
+                    ))}
+                    {/* Also allow selecting main game from "other" slot */}
+                    {(() => {
+                      const mg = gamesDb.find((g) => g.hashtag === mainGameTag && g.active !== false);
+                      if (!mg) return null;
+                      return (
+                        <button onClick={() => { logManualEntry(popover.iso, popover.dayName, popover.si, mg); setPopover(null); }}
+                          style={{
+                            padding: "6px 12px", borderRadius: 8, border: `1px solid ${mg.color}44`,
+                            background: `${mg.color}1a`, color: mg.color, fontSize: 12, fontWeight: 700,
+                            fontFamily: T.mono, cursor: "pointer", transition: "all 0.1s ease",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = `${mg.color}33`; e.currentTarget.style.transform = "scale(1.05)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = `${mg.color}1a`; e.currentTarget.style.transform = "none"; }}
+                        >
+                          {mg.tag}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Info popover for filled cells */}
+                  {(() => {
+                    const gd = resolveGameDisplay(popover.entry.game);
+                    return (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                            background: `${gd.color}33`, color: gd.color, fontSize: 11, fontWeight: 800, fontFamily: T.mono,
+                          }}>{gd.tag}</div>
+                          <div>
+                            <div style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{gd.name}</div>
+                            <div style={{ color: T.textTertiary, fontSize: 11 }}>{popover.entry.time}</div>
+                          </div>
+                        </div>
+                        <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 12 }}>
+                          {popover.entry.platforms === "Manual" ? "Logged manually" : popover.entry.platforms || "—"}
+                        </div>
+                        <button onClick={() => removeTrackerEntry(popover.entry)}
+                          style={{
+                            width: "100%", padding: "8px 0", borderRadius: 8,
+                            border: `1px solid ${T.redBorder}`, background: T.redDim,
+                            color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
+                        >Remove</button>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
+          );
+        })()}
+
         {editTmpl && <div style={{ marginTop: 12 }}><InfoBanner icon={"\u270f\ufe0f"}>Click cells to toggle Main (M) / Other (O).</InfoBanner></div>}
+        {!editTmpl && <div style={{ marginTop: 12 }}><InfoBanner icon={"\ud83d\udcdd"}>Click empty cells to log uploads. Click filled cells to view or remove.</InfoBanner></div>}
       </div>
       {/* Bottom padding so tracker grid isn't cut off */}
       <div style={{ height: 60 }} />

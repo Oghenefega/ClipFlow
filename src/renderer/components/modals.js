@@ -101,6 +101,7 @@ export const GameEditModal = ({ game, onSave, onClose }) => {
   const [hashtag, setHashtag] = useState(game.hashtag || "");
   const [color, setColor] = useState(game.color);
   const [dayCount, setDayCount] = useState(game.dayCount || 0);
+  const [active, setActive] = useState(game.active !== false);
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
@@ -127,13 +128,21 @@ export const GameEditModal = ({ game, onSave, onClose }) => {
             <input value={hashtag} onChange={(e) => setHashtag(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} style={{ flex: 1, background: "transparent", border: "none", padding: "12px 12px 12px 4px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none" }} />
           </div>
         </div>
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 16 }}>
           <SectionLabel>Color</SectionLabel>
           <div style={{ marginTop: 8 }}><ColorPicker value={color} onChange={setColor} /></div>
         </div>
+        <div style={{ marginBottom: 20 }}>
+          <SectionLabel>Status</SectionLabel>
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+            <button onClick={() => setActive(true)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${active ? T.greenBorder : T.border}`, background: active ? T.greenDim : "transparent", color: active ? T.green : T.textTertiary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Active</button>
+            <button onClick={() => setActive(false)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${!active ? T.redBorder : T.border}`, background: !active ? T.redDim : "transparent", color: !active ? T.red : T.textTertiary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Inactive</button>
+          </div>
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>Inactive games are hidden from the tracker picker</div>
+        </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-          <button onClick={() => onSave({ ...game, tag, hashtag, color, dayCount })} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save Changes</button>
+          <button onClick={() => onSave({ ...game, tag, hashtag, color, dayCount, active })} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save Changes</button>
         </div>
       </div>
     </div>

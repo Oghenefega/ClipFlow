@@ -101,9 +101,10 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           {gamesDb.map((g) => {
             const isSel = selGameLib === g.name;
             return (
-              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer" }}>
+              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
                 <GamePill tag={g.tag} color={g.color} size="sm" />
                 <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
                 {isSel && <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono }}>#{g.hashtag}</span>}
                 <button onClick={(e) => { e.stopPropagation(); delGame(g.name); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>{"\u2715"}</button>
               </div>
