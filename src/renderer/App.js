@@ -117,7 +117,17 @@ export default function App() {
         if (all.mainPool) setMainPool(all.mainPool);
         if (all.gamesDb) setGamesDb(all.gamesDb);
         if (all.ignoredProcesses) setIgnoredProcesses(all.ignoredProcesses);
-        if (all.platforms) setPlatforms(all.platforms);
+        if (all.platforms) {
+          // Merge vizardAccountId from defaults if missing in stored data
+          const merged = all.platforms.map((p) => {
+            if (!p.vizardAccountId) {
+              const def = PUBLISH_ORDER_INIT.find((d) => d.key === p.key);
+              if (def) return { ...p, vizardAccountId: def.vizardAccountId };
+            }
+            return p;
+          });
+          setPlatforms(merged);
+        }
         if (all.weeklyTemplate) setWeeklyTemplate(all.weeklyTemplate);
         if (all.trackerData) setTrackerData(all.trackerData);
         if (all.captionTemplates) setCaptionTemplates(all.captionTemplates);
@@ -277,6 +287,7 @@ export default function App() {
       return (
         <RenameView
           gamesDb={gamesDb}
+          mainGameName={mainGame}
           pendingRenames={pendingRenames}
           setPendingRenames={setPendingRenames}
           renameHistory={renameHistory}

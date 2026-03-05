@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, Checkbox } from "../components/shared";
 
-export default function RenameView({ gamesDb, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, managedFiles, setManagedFiles, watchFolder }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, managedFiles, setManagedFiles, watchFolder }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -66,7 +66,7 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
 
   // Smart game detection — checks actual recording history for day numbers
   const detectGame = (fileName, games, currentPending) => {
-    const defaultGame = games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
+    const defaultGame = games.find((g) => g.name === mainGameName) || games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
     const fileDate = fileName.slice(0, 10);
 
     // Check if this date already has files for this game
@@ -226,10 +226,10 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
   };
 
   // Computed stats
-  const mainGame = gamesDb[0];
+  const mainGameObj = gamesDb.find((g) => g.name === mainGameName) || gamesDb[0];
   const totalRenamed = managedFiles.length + renameHistory.filter((h) => !h.undone).length;
-  const { maxDay: mainMaxDay } = mainGame ? findMaxDayForGame(mainGame.tag, pendingRenames, null) : { maxDay: 0 };
-  const mainDayCount = mainMaxDay || (mainGame ? mainGame.dayCount : 0);
+  const { maxDay: mainMaxDay } = mainGameObj ? findMaxDayForGame(mainGameObj.tag, pendingRenames, null) : { maxDay: 0 };
+  const mainDayCount = mainMaxDay || (mainGameObj ? mainGameObj.dayCount : 0);
 
   return (
     <div>
