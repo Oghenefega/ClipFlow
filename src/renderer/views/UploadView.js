@@ -20,6 +20,11 @@ const monthLabel = (folder) => {
   return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 };
 
+// Pure helpers — extract game info from renamed filenames
+const getGameFromName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(\S+)\s+Day/); return m ? m[1] : ""; };
+const getGameColor = (tag, gamesDb) => { const g = gamesDb.find((x) => x.tag === tag); return g ? g.color : T.accent; };
+const shortName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i); return m ? m[1] : name; };
+
 export default function UploadView({ watchFolder, gamesDb = [], onCreateProject, uploadedFiles = {}, setUploadedFiles }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,9 +165,6 @@ export default function UploadView({ watchFolder, gamesDb = [], onCreateProject,
     setUploading(false);
   };
 
-  const getGameFromName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(\S+)\s+Day/); return m ? m[1] : ""; };
-  const getGameColor = (tag) => { const g = gamesDb.find((x) => x.tag === tag); return g ? g.color : T.accent; };
-  const shortName = (name) => { const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i); return m ? m[1] : name; };
 
   const grouped = {};
   files.forEach((f, i) => { if (!grouped[f.folder]) grouped[f.folder] = []; grouped[f.folder].push({ file: f, index: i }); });
@@ -240,7 +242,7 @@ export default function UploadView({ watchFolder, gamesDb = [], onCreateProject,
                         const status = uploadStatus[i];
                         const isSel = selected[i];
                         const tag = getGameFromName(f.name);
-                        const tagColor = getGameColor(tag);
+                        const tagColor = getGameColor(tag, gamesDb);
                         const wasUploaded = uploadedFiles[f.name];
                         const isDone = isFileDone(i) || !!wasUploaded;
                         const isUp = status === "uploading";

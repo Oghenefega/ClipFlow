@@ -3,6 +3,7 @@ import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag } from "../components/shared";
 
 const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const FULL_DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TIME_SLOTS = ["12:30 PM","1:30 PM","2:30 PM","3:30 PM","4:30 PM","7:30 PM","8:30 PM","9:30 PM"];
 const MONTHS_2026 = Array.from({ length: 12 }, (_, i) => ({ value: `2026-${String(i + 1).padStart(2, "0")}`, label: new Date(2026, i, 1).toLocaleString("en-US", { month: "long", year: "numeric" }) }));
 const STAGGER_MS = 30000; // 30 seconds between platforms
@@ -33,7 +34,7 @@ const getUpcomingDates = () => {
   const d = [], n = new Date();
   for (let i = 0; i < 14; i++) {
     const x = new Date(n); x.setDate(n.getDate() + i);
-    const dn = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][x.getDay()];
+    const dn = FULL_DAY_NAMES[x.getDay()];
     if (dn === "Sunday") continue;
     d.push({ label: `${dn} ${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}`, dayName: dn, iso: x.toISOString().split("T")[0] });
   }
@@ -110,9 +111,9 @@ export default function QueueView({
   const publishingRef = useRef(false);
   const dates = getUpcomingDates();
   const activePlat = platforms.filter((p) => p.connected && p.vizardAccountId);
-  const ref = new Date();
-  ref.setDate(ref.getDate() + weekOffset * 7);
-  const wd = getWeekDates(ref);
+  const refDate = new Date();
+  refDate.setDate(refDate.getDate() + weekOffset * 7);
+  const wd = getWeekDates(refDate);
   const wIsos = new Set(wd.map((d) => d.iso));
   const wEntries = trackerData.filter((e) => wIsos.has(e.date));
   const slotFilled = (iso, si) => wEntries.find((e) => e.date === iso && e.time && e.time.replace(/\s/g, "") === TIME_SLOTS[si].replace(/\s/g, ""));
@@ -125,8 +126,8 @@ export default function QueueView({
     setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame }]);
   };
 
-  // Real publish: call Vizard API for each connected platform with 30s stagger
-  const pubNow = async (clipId) => {
+  // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
+  const publishClip = async (clipId, scheduleOpts) => {
     if (publishingRef.current) return;
     const clip = approved.find((c) => c.id === clipId);
     if (!clip || !clip.videoId) {
@@ -146,12 +147,18 @@ export default function QueueView({
     setSelClip(null);
     setSchedAction(null);
 
+    // Build base timestamp for scheduled publishing
+    let baseTimestamp = null;
+    if (scheduleOpts) {
+      const [hh, mm] = scheduleOpts.time.split(":").map(Number);
+      baseTimestamp = new Date(`${scheduleOpts.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`).getTime();
+    }
+
     let allSuccess = true;
 
     for (let i = 0; i < activePlat.length; i++) {
       const plat = activePlat[i];
 
-      // Update this platform to "publishing"
       setPublishStatus((prev) => ({
         ...prev,
         [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "publishing" } },
@@ -162,22 +169,23 @@ export default function QueueView({
         const isYouTube = plat.platform === "YouTube";
         let post;
         if (isYouTube) {
-          // YouTube gets the full description
           const ytDesc = ytDescriptions?.[gameName];
           post = ytDesc?.desc || clip.title;
         } else {
-          // Other platforms get caption template
           const templateKey = plat.platform.toLowerCase().replace(/ /g, "");
           const template = captionTemplates?.[templateKey] || captionTemplates?.tiktok || "{title}";
           post = buildCaption(template, clip.title, gameHashtag);
         }
 
-        const result = await window.clipflow.vizardPublishClip({
+        const publishOpts = {
           finalVideoId: clip.videoId,
           socialAccountId: plat.vizardAccountId,
           title: isYouTube ? buildYouTubeTitle(clip.title, gameHashtag) : undefined,
           post,
-        });
+        };
+        if (baseTimestamp) publishOpts.publishTime = baseTimestamp + (i * STAGGER_MS);
+
+        const result = await window.clipflow.vizardPublishClip(publishOpts);
 
         if (result.error || (result.code && result.code !== 2000)) {
           const errMsg = result.error || result.errMsg || `Error code ${result.code}`;
@@ -200,8 +208,8 @@ export default function QueueView({
         allSuccess = false;
       }
 
-      // Wait 30s before next platform (except after last one)
-      if (i < activePlat.length - 1) {
+      // Wait 30s between platforms when publishing now (not needed for scheduled)
+      if (!baseTimestamp && i < activePlat.length - 1) {
         await new Promise((r) => setTimeout(r, STAGGER_MS));
       }
     }
@@ -213,105 +221,21 @@ export default function QueueView({
     }));
 
     // Log to tracker
-    const now = new Date();
-    const dn = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()];
-    logPost(clip, now.toISOString().split("T")[0], dn, now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+    if (scheduleOpts) {
+      const d = dates.find((x) => x.iso === scheduleOpts.date);
+      const tl = TIME_OPTIONS.find((x) => x.value === scheduleOpts.time)?.label || scheduleOpts.time;
+      setScheduled((p) => ({ ...p, [clipId]: `${d?.label || scheduleOpts.date} at ${tl}` }));
+      logPost(clip, scheduleOpts.date, d?.dayName || "", tl);
+    } else {
+      const now = new Date();
+      logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+    }
 
     publishingRef.current = false;
   };
 
-  // Real schedule: call Vizard API with publishTime for each platform with 30s stagger
-  const schedClip = async (clipId) => {
-    if (publishingRef.current) return;
-    const clip = approved.find((c) => c.id === clipId);
-    if (!clip || !clip.videoId) {
-      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Missing videoId", platforms: {} } }));
-      return;
-    }
-
-    publishingRef.current = true;
-    const game = findGameFromClip(clip.title, gamesDb);
-    const gameName = game?.name || "";
-    const gameHashtag = game?.hashtag || "";
-    const d = dates.find((x) => x.iso === schedDate);
-    const tl = TIME_OPTIONS.find((x) => x.value === schedTime)?.label || schedTime;
-
-    // Build base publish timestamp
-    const [hh, mm] = schedTime.split(":").map(Number);
-    const baseDate = new Date(`${schedDate}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
-    const baseTimestamp = baseDate.getTime();
-
-    // Initialize platform statuses
-    const platStatuses = {};
-    activePlat.forEach((p) => { platStatuses[p.key] = "pending"; });
-    setPublishStatus((prev) => ({ ...prev, [clipId]: { state: "publishing", platforms: { ...platStatuses } } }));
-    setSelClip(null);
-    setSchedAction(null);
-
-    let allSuccess = true;
-
-    for (let i = 0; i < activePlat.length; i++) {
-      const plat = activePlat[i];
-      const staggeredTime = baseTimestamp + (i * STAGGER_MS);
-
-      setPublishStatus((prev) => ({
-        ...prev,
-        [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "publishing" } },
-      }));
-
-      try {
-        const isYouTube = plat.platform === "YouTube";
-        let post;
-        if (isYouTube) {
-          const ytDesc = ytDescriptions?.[gameName];
-          post = ytDesc?.desc || clip.title;
-        } else {
-          const templateKey = plat.platform.toLowerCase().replace(/ /g, "");
-          const template = captionTemplates?.[templateKey] || captionTemplates?.tiktok || "{title}";
-          post = buildCaption(template, clip.title, gameHashtag);
-        }
-
-        const result = await window.clipflow.vizardPublishClip({
-          finalVideoId: clip.videoId,
-          socialAccountId: plat.vizardAccountId,
-          publishTime: staggeredTime,
-          title: isYouTube ? buildYouTubeTitle(clip.title, gameHashtag) : undefined,
-          post,
-        });
-
-        if (result.error || (result.code && result.code !== 2000)) {
-          const errMsg = result.error || result.errMsg || `Error code ${result.code}`;
-          setPublishStatus((prev) => ({
-            ...prev,
-            [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: errMsg } },
-          }));
-          allSuccess = false;
-        } else {
-          setPublishStatus((prev) => ({
-            ...prev,
-            [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
-          }));
-        }
-      } catch (err) {
-        setPublishStatus((prev) => ({
-          ...prev,
-          [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: err.message || "Network error" } },
-        }));
-        allSuccess = false;
-      }
-    }
-
-    // Final status
-    const finalState = allSuccess ? "done" : "failed";
-    setPublishStatus((prev) => ({
-      ...prev,
-      [clipId]: { ...prev[clipId], state: finalState },
-    }));
-    setScheduled((p) => ({ ...p, [clipId]: `${d?.label || schedDate} at ${tl}` }));
-    logPost(clip, schedDate, d?.dayName || "", tl);
-
-    publishingRef.current = false;
-  };
+  const pubNow = (clipId) => publishClip(clipId, null);
+  const schedClip = (clipId) => publishClip(clipId, { date: schedDate, time: schedTime });
 
   const toggleCell = (di, si) => {
     if (!editTmpl) return;
@@ -511,7 +435,7 @@ export default function QueueView({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <button onClick={() => setWeekOffset((w) => w - 1)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2190"}</button>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{getWeekLabel(ref)}</span>
+            <span style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{getWeekLabel(refDate)}</span>
             <Select value={monthJump} onChange={jumpMonth} options={[{ value: "", label: "Jump..." }, ...MONTHS_2026]} style={{ padding: "6px 10px", fontSize: 12 }} />
           </div>
           <button onClick={() => setWeekOffset((w) => w + 1)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", fontFamily: T.font }}>{"\u2192"}</button>

@@ -3,6 +3,13 @@ import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot, InfoBanner } from "../components/shared";
 import { GameEditModal } from "../components/modals";
 
+// Shared button styles used across all settings sections
+const BTN = { padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: T.font };
+const btnSecondary = { ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary };
+const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700 };
+const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
+const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "••••" + key.substring(key.length - 4);
+
 export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, ignoredProcesses, setIgnoredProcesses, platforms, setPlatforms, r2Config, setR2Config, vizardApiKey, setVizardApiKey, onResetUploads }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
@@ -30,11 +37,6 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const delGame = (name) => { setGamesDb((p) => p.filter((g) => g.name !== name)); setMainPool((p) => p.filter((n) => n !== name)); };
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
-  const maskKey = (key) => {
-    if (!key || key.length < 8) return key || "";
-    return key.substring(0, 4) + "••••" + key.substring(key.length - 4);
-  };
-
   return (
     <div>
       <PageHeader title="Settings" />
@@ -45,18 +47,18 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Watch Folder</div>
           {!editFolder ? (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={browseFolder} style={{ padding: "6px 12px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Browse</button>
-              <button onClick={() => { setEditFolder(true); setFolderVal(watchFolder); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+              <button onClick={browseFolder} style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700 }}>Browse</button>
+              <button onClick={() => { setEditFolder(true); setFolderVal(watchFolder); }} style={btnSecondary}>Edit</button>
             </div>
           ) : (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setEditFolder(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-              <button onClick={() => { setWatchFolder(folderVal); setEditFolder(false); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.green, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+              <button onClick={() => setEditFolder(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setWatchFolder(folderVal); setEditFolder(false); }} style={btnSave}>Save</button>
             </div>
           )}
         </div>
         {editFolder ? (
-          <input value={folderVal} onChange={(e) => setFolderVal(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" }} />
+          <input value={folderVal} onChange={(e) => setFolderVal(e.target.value)} style={{ ...inputStyle, border: `1px solid ${T.accentBorder}`, padding: "12px 16px" }} />
         ) : (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{watchFolder}</p>
         )}
@@ -128,11 +130,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Cloudflare R2</div>
           {!editR2 ? (
-            <button onClick={() => { setEditR2(true); setR2Vals(r2Config || {}); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+            <button onClick={() => { setEditR2(true); setR2Vals(r2Config || {}); }} style={btnSecondary}>Edit</button>
           ) : (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setEditR2(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-              <button onClick={() => { setR2Config(r2Vals); setEditR2(false); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.green, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+              <button onClick={() => setEditR2(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setR2Config(r2Vals); setEditR2(false); }} style={btnSave}>Save</button>
             </div>
           )}
         </div>
@@ -151,7 +153,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   value={r2Vals[field.key] || ""}
                   onChange={(e) => setR2Vals((p) => ({ ...p, [field.key]: e.target.value }))}
                   type={field.key.toLowerCase().includes("secret") ? "password" : "text"}
-                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box", marginTop: 6 }}
+                  style={{ ...inputStyle, marginTop: 6 }}
                 />
               </div>
             ))}
@@ -180,23 +182,18 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Vizard AI</div>
           {!editVizard ? (
-            <button onClick={() => { setEditVizard(true); setVizVal(vizardApiKey || ""); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+            <button onClick={() => { setEditVizard(true); setVizVal(vizardApiKey || ""); }} style={btnSecondary}>Edit</button>
           ) : (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setEditVizard(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-              <button onClick={() => { setVizardApiKey(vizVal); setEditVizard(false); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.green, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+              <button onClick={() => setEditVizard(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setVizardApiKey(vizVal); setEditVizard(false); }} style={btnSave}>Save</button>
             </div>
           )}
         </div>
         {editVizard ? (
           <div>
             <SectionLabel>API Key</SectionLabel>
-            <input
-              value={vizVal}
-              onChange={(e) => setVizVal(e.target.value)}
-              type="password"
-              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box", marginTop: 6 }}
-            />
+            <input value={vizVal} onChange={(e) => setVizVal(e.target.value)} type="password" style={{ ...inputStyle, marginTop: 6 }} />
           </div>
         ) : (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -213,17 +210,17 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Ignored Processes</div>
           {!editIgn ? (
-            <button onClick={() => { setEditIgn(true); setIgnVal(ignoredProcesses.join("\n")); }} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
+            <button onClick={() => { setEditIgn(true); setIgnVal(ignoredProcesses.join("\n")); }} style={btnSecondary}>Edit</button>
           ) : (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setEditIgn(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-              <button onClick={() => { setIgnoredProcesses(ignVal.split("\n").map((s) => s.trim()).filter(Boolean)); setEditIgn(false); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.green, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+              <button onClick={() => setEditIgn(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setIgnoredProcesses(ignVal.split("\n").map((s) => s.trim()).filter(Boolean)); setEditIgn(false); }} style={btnSave}>Save</button>
             </div>
           )}
         </div>
         <p style={{ color: T.textTertiary, fontSize: 12, margin: editIgn ? "0 0 10px" : 0 }}>Exe processes that won't be suggested as games.</p>
         {editIgn ? (
-          <textarea value={ignVal} onChange={(e) => setIgnVal(e.target.value)} rows={5} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 12, color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+          <textarea value={ignVal} onChange={(e) => setIgnVal(e.target.value)} rows={5} style={{ ...inputStyle, padding: 12, resize: "vertical" }} />
         ) : (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
             {ignoredProcesses.map((p) => (
@@ -238,12 +235,12 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Upload History</div>
           {!resetConfirm ? (
-            <button onClick={() => setResetConfirm(true)} style={{ padding: "6px 12px", borderRadius: 6, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Reset Uploads</button>
+            <button onClick={() => setResetConfirm(true)} style={{ ...BTN, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red, fontWeight: 700 }}>Reset Uploads</button>
           ) : (
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <span style={{ color: T.red, fontSize: 12 }}>Are you sure?</span>
-              <button onClick={() => setResetConfirm(false)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>No</button>
-              <button onClick={() => { if (onResetUploads) onResetUploads(); setResetConfirm(false); }} style={{ padding: "6px 12px", borderRadius: 6, background: T.red, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Yes, Reset</button>
+              <button onClick={() => setResetConfirm(false)} style={btnSecondary}>No</button>
+              <button onClick={() => { if (onResetUploads) onResetUploads(); setResetConfirm(false); }} style={{ ...BTN, background: T.red, border: "none", color: "#fff", fontWeight: 700 }}>Yes, Reset</button>
             </div>
           )}
         </div>

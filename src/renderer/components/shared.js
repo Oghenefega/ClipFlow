@@ -118,6 +118,8 @@ export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label }) => {
   const valRef = useRef(value);
 
   useEffect(() => { valRef.current = value; setEditVal(String(value)); }, [value]);
+  // Clean up timers on unmount to prevent memory leaks
+  useEffect(() => () => { clearTimeout(timerRef.current); clearInterval(intRef.current); }, []);
 
   const startHold = (d) => {
     const step = () => { valRef.current = Math.max(min, Math.min(max, valRef.current + d)); onChange(valRef.current); };

@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import T from "../styles/theme";
 import { Card, PageHeader, TabBar, SectionLabel } from "../components/shared";
 
+const PLATFORMS = [
+  { id: "tiktok", label: "TikTok" },
+  { id: "instagram", label: "Instagram" },
+  { id: "facebook", label: "Facebook" },
+];
+
 export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates }) {
   const [section, setSection] = useState("youtube");
   const [editGame, setEditGame] = useState(null);
@@ -15,12 +21,6 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
     setCopied(game);
     setTimeout(() => setCopied(null), 1500);
   };
-
-  const plats = [
-    { id: "tiktok", label: "TikTok" },
-    { id: "instagram", label: "Instagram" },
-    { id: "facebook", label: "Facebook" },
-  ];
 
   return (
     <div>
@@ -72,7 +72,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {plats.map((p) => (
+            {PLATFORMS.map((p) => (
               <Card key={p.id} style={{ padding: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>{p.label}</div>

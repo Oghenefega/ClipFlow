@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
 import { GamePill, Card, SectionLabel, ColorPicker } from "./shared";
 
@@ -11,6 +11,9 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
   const [color, setColor] = useState("#8b5cf6");
   const [step, setStep] = useState(1);
   const isFromExe = !!exe;
+  const timerRef = useRef(null);
+  // Clean up timeout on unmount to prevent state updates after unmount
+  useEffect(() => () => clearTimeout(timerRef.current), []);
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
@@ -67,7 +70,7 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
                   <button onClick={() => onIgnore(exe)} style={{ padding: "14px 16px", borderRadius: T.radius.md, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Ignore</button>
                 )}
                 <button onClick={onDismiss} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                <button onClick={() => { setStep(2); setTimeout(() => setStep(3), 2000); }} disabled={!gameName.trim() || !tag.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tag.trim()) ? 0.4 : 1 }}>Confirm & Generate</button>
+                <button onClick={() => { setStep(2); timerRef.current = setTimeout(() => setStep(3), 2000); }} disabled={!gameName.trim() || !tag.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tag.trim()) ? 0.4 : 1 }}>Confirm & Generate</button>
               </div>
             </>
           )}

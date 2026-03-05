@@ -1,6 +1,25 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, hasHashtag } from "../components/shared";
+
+// Pure helper — determine project game color
+const getGameColor = (p, gamesDb) => {
+  if (p.gameColor) return p.gameColor;
+  const g = gamesDb.find((x) => x.name === p.game);
+  return g ? g.color : T.accent;
+};
+
+// Pure helper — determine project status
+const getProjectStatus = (p) => {
+  if (p.status === "processing") return "processing";
+  if (p.status === "error") return "error";
+  if (p.clips && p.clips.length > 0) {
+    const tagged = p.clips.filter((c) => hasHashtag(c.title));
+    const allReviewed = tagged.length > 0 && tagged.filter((c) => c.status === "none").length === 0;
+    return allReviewed ? "done" : "ready";
+  }
+  return "ready";
+};
 
 // ============ PROJECT LIST ============
 export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject, mainGame, gamesDb = [] }) {
@@ -20,23 +39,6 @@ export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject,
     return () => clearInterval(interval);
   }, [vizardProjects, onPollProject]);
 
-  const getGameColor = (p) => {
-    if (p.gameColor) return p.gameColor;
-    const g = gamesDb.find((x) => x.name === p.game);
-    return g ? g.color : T.accent;
-  };
-
-  const getStatus = (p) => {
-    if (p.status === "processing") return "processing";
-    if (p.status === "error") return "error";
-    if (p.clips && p.clips.length > 0) {
-      const tagged = p.clips.filter((c) => hasHashtag(c.title));
-      const allReviewed = tagged.length > 0 && tagged.filter((c) => c.status === "none").length === 0;
-      return allReviewed ? "done" : "ready";
-    }
-    return "ready";
-  };
-
   if (vizardProjects.length === 0) {
     return (
       <div>
@@ -53,14 +55,14 @@ export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject,
   // Sort: processing first, then ready, then done, then error
   const sorted = [...vizardProjects].sort((a, b) => {
     const order = { processing: 0, ready: 1, done: 2, error: 3 };
-    const sa = order[getStatus(a)] ?? 1;
-    const sb = order[getStatus(b)] ?? 1;
+    const sa = order[getProjectStatus(a)] ?? 1;
+    const sb = order[getProjectStatus(b)] ?? 1;
     if (sa !== sb) return sa - sb;
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
   const processingCount = sorted.filter((p) => p.status === "processing").length;
-  const readyCount = sorted.filter((p) => getStatus(p) === "ready").length;
+  const readyCount = sorted.filter((p) => getProjectStatus(p) === "ready").length;
 
   return (
     <div>
@@ -68,8 +70,8 @@ export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject,
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
         {sorted.map((p) => {
-          const st = getStatus(p);
-          const gameColor = getGameColor(p);
+          const st = getProjectStatus(p);
+          const gameColor = getGameColor(p, gamesDb);
           const clipCount = p.clips ? p.clips.length : 0;
 
           return (
