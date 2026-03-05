@@ -14,13 +14,13 @@ const store = new Store({
     mainGame: "Arc Raiders",
     mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
     gamesDb: [
-      { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 24, hashtag: "arcraiders" },
-      { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 31, hashtag: "rocketleague" },
-      { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 42, hashtag: "valorant" },
-      { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 3, hashtag: "eggingon" },
-      { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 14, hashtag: "deadlinedelivery" },
-      { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 7, hashtag: "bionicbay" },
-      { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 8, hashtag: "princeofpersia" },
+      { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
+      { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
+      { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
+      { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
+      { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
+      { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
+      { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
     ],
     ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
     platforms: [
@@ -56,6 +56,7 @@ const store = new Store({
     vizardApiKey: "f0e33b267b1b4fca9b5082966654fbaf",
     vizardProjects: [],
     uploadedFiles: {},
+    renameHistory: [],
   },
 });
 
@@ -296,6 +297,73 @@ ipcMain.handle("dialog:openFile", async (_, options) => {
   });
   if (result.canceled) return null;
   return result.filePaths[0];
+});
+
+// ============ SCAN WATCH FOLDER: build managedFiles from actual filesystem ============
+// Parses renamed files like "2026-03-03 AR Day25 Pt1.mp4" in monthly subfolders
+const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)\.(mp4|mkv)$/i;
+
+ipcMain.handle("fs:scanWatchFolder", async (_, watchFolderPath) => {
+  try {
+    if (!fs.existsSync(watchFolderPath)) return { error: "Watch folder not found", files: [] };
+
+    const entries = fs.readdirSync(watchFolderPath, { withFileTypes: true });
+    const gamesDb = store.get("gamesDb") || [];
+    const managed = [];
+
+    // Scan monthly subfolders (e.g., 2026-03, 2026-02)
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      // Match YYYY-MM folder pattern
+      if (!/^\d{4}-\d{2}$/.test(entry.name)) continue;
+
+      const subfolderPath = path.join(watchFolderPath, entry.name);
+      let files;
+      try {
+        files = fs.readdirSync(subfolderPath);
+      } catch (e) {
+        continue;
+      }
+
+      for (const fileName of files) {
+        const match = fileName.match(RENAMED_FILE_PATTERN);
+        if (!match) continue;
+
+        const [, fileDate, tag, dayStr, partStr] = match;
+        const day = parseInt(dayStr, 10);
+        const part = parseInt(partStr, 10);
+
+        // Look up game info from gamesDb
+        const game = gamesDb.find((g) => g.tag === tag);
+        const gameName = game ? game.name : tag;
+        const color = game ? game.color : "#888";
+
+        let createdAt;
+        try {
+          const stat = fs.statSync(path.join(subfolderPath, fileName));
+          createdAt = stat.birthtime.toISOString();
+        } catch (e) {
+          createdAt = `${fileDate}T00:00:00.000Z`;
+        }
+
+        managed.push({
+          id: `m-${entry.name}-${fileName}`,
+          name: fileName,
+          tag,
+          game: gameName,
+          color,
+          day,
+          part,
+          folder: entry.name,
+          createdAt,
+        });
+      }
+    }
+
+    return { files: managed };
+  } catch (err) {
+    return { error: err.message, files: [] };
+  }
 });
 
 // ============ ELECTRON-STORE: persistent settings ============

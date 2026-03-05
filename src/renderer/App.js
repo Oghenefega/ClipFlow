@@ -12,13 +12,13 @@ import SettingsView from "./views/SettingsView";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
-  { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 24, hashtag: "arcraiders" },
-  { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 31, hashtag: "rocketleague" },
-  { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 42, hashtag: "valorant" },
-  { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 3, hashtag: "eggingon" },
-  { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 14, hashtag: "deadlinedelivery" },
-  { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 7, hashtag: "bionicbay" },
-  { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 8, hashtag: "princeofpersia" },
+  { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
+  { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
+  { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
+  { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
+  { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
+  { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
+  { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
 ];
 const INITIAL_MAIN_POOL = ["Arc Raiders", "Rocket League", "Valorant"];
 const INITIAL_IGNORED = ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"];
@@ -50,22 +50,7 @@ const REAL_YT_DESCRIPTIONS = {
   "Prince of Persia": { desc: "\u{1F534}Live every day 5PM\nFunniest Prince of Persia moments\u{1F602}\n\n\u{1F514}SUBSCRIBE https://www.youtube.com/@Fega\n\u{1F4AA}\u{1F3FD} Become a member: https://www.youtube.com/@Fega/join\n\n#princeofpersia #gamingshorts #Fega" },
 };
 
-const MOCK_PENDING = [
-  { id: "r1", fileName: "2026-03-03 17-02-33.mp4", detectedExe: "ArcRaiders.exe", game: "Arc Raiders", tag: "AR", day: 25, part: 1, color: "#ff6b35", createdAt: "2026-03-03T17:02:33" },
-  { id: "r2", fileName: "2026-03-03 17-32-33.mp4", detectedExe: "ArcRaiders.exe", game: "Arc Raiders", tag: "AR", day: 25, part: 2, color: "#ff6b35", createdAt: "2026-03-03T17:32:33" },
-  { id: "r3", fileName: "2026-03-03 18-02-33.mp4", detectedExe: "ArcRaiders.exe", game: "Arc Raiders", tag: "AR", day: 25, part: 3, color: "#ff6b35", createdAt: "2026-03-03T18:02:33" },
-];
-const MOCK_HISTORY = [
-  { id: "h1", oldName: "2026-03-02 17-05-12.mp4", newName: "2026-03-02 AR Day24 Pt1.mp4", game: "Arc Raiders", tag: "AR", color: "#ff6b35", day: 24, part: 1, time: "5:05 PM", undone: false },
-  { id: "h2", oldName: "2026-03-02 17-35-12.mp4", newName: "2026-03-02 AR Day24 Pt2.mp4", game: "Arc Raiders", tag: "AR", color: "#ff6b35", day: 24, part: 2, time: "5:35 PM", undone: false },
-  { id: "h3", oldName: "2026-03-01 17-00-45.mp4", newName: "2026-03-01 RL Day31 Pt1.mp4", game: "Rocket League", tag: "RL", color: "#00b4d8", day: 31, part: 1, time: "5:00 PM", undone: false },
-];
-const MOCK_MANAGED = [
-  { id: "m1", name: "2026-02-04 AR Day19 Pt1.mp4", tag: "AR", game: "Arc Raiders", color: "#ff6b35", day: 19, part: 1, folder: "2026-02", createdAt: "2026-02-04T17:00:00" },
-  { id: "m2", name: "2026-02-04 AR Day19 Pt2.mp4", tag: "AR", game: "Arc Raiders", color: "#ff6b35", day: 19, part: 2, folder: "2026-02", createdAt: "2026-02-04T17:30:00" },
-  { id: "m3", name: "2026-02-04 AR Day19 Pt3.mp4", tag: "AR", game: "Arc Raiders", color: "#ff6b35", day: 19, part: 3, folder: "2026-02", createdAt: "2026-02-04T18:00:00" },
-  { id: "m4", name: "2026-02-05 AR Day20 Pt1.mp4", tag: "AR", game: "Arc Raiders", color: "#ff6b35", day: 20, part: 1, folder: "2026-02", createdAt: "2026-02-05T17:00:00" },
-];
+// No more mock data — managedFiles are scanned from filesystem, renameHistory is persisted
 
 // ============ PERSIST HELPER ============
 const persist = (key, value) => {
@@ -84,10 +69,10 @@ export default function App() {
   const [gamesDb, setGamesDb] = useState(INITIAL_GAMES);
   const mainGameTag = (gamesDb.find((g) => g.name === mainGame)?.hashtag) || "arcraiders";
 
-  // Rename state
-  const [pendingRenames, setPendingRenames] = useState(MOCK_PENDING);
-  const [renameHistory, setRenameHistory] = useState(MOCK_HISTORY);
-  const [managedFiles, setManagedFiles] = useState(MOCK_MANAGED);
+  // Rename state — starts empty; managedFiles populated from filesystem scan, renameHistory from electron-store
+  const [pendingRenames, setPendingRenames] = useState([]);
+  const [renameHistory, setRenameHistory] = useState([]);
+  const [managedFiles, setManagedFiles] = useState([]);
 
   // Upload tracking
   const [uploadedFiles, setUploadedFiles] = useState({});
@@ -140,9 +125,19 @@ export default function App() {
         if (all.vizardApiKey) setVizardApiKey(all.vizardApiKey);
         if (all.vizardProjects) setVizardProjects(all.vizardProjects);
         if (all.uploadedFiles) setUploadedFiles(all.uploadedFiles);
+        if (all.renameHistory) setRenameHistory(all.renameHistory);
         // For ytDescriptions: merge real defaults with any saved overrides
         if (all.ytDescriptions && Object.keys(all.ytDescriptions).length > 0) {
           setYtDescriptions({ ...REAL_YT_DESCRIPTIONS, ...all.ytDescriptions });
+        }
+
+        // Scan the actual filesystem to build managedFiles from real renamed files
+        const folder = all.watchFolder || "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards";
+        if (window.clipflow.scanWatchFolder) {
+          const result = await window.clipflow.scanWatchFolder(folder);
+          if (result.files && result.files.length > 0) {
+            setManagedFiles(result.files);
+          }
         }
       } catch (e) {
         console.error("Failed to load settings:", e);
@@ -171,6 +166,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("r2Config", r2Config); }, [r2Config]);
   useEffect(() => { if (!hasLoaded.current) return; persist("vizardApiKey", vizardApiKey); }, [vizardApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("vizardProjects", vizardProjects); }, [vizardProjects]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
 
   // ============ HANDLERS ============
   const handleNewGame = (gd) => {
