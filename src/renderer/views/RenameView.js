@@ -33,7 +33,38 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
     return () => { window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb]);
 
-  // Smart game detection — uses dayCount from gamesDb and checks existing files
+  // Helper: find the highest day number and its date for a game across all recordings
+  const findMaxDayForGame = (tag, currentPending, excludeId) => {
+    let maxDay = 0;
+    let maxDayDate = null;
+
+    managedFiles.forEach((f) => {
+      if (f.tag === tag && f.day > maxDay) {
+        maxDay = f.day;
+        maxDayDate = f.name.slice(0, 10);
+      }
+    });
+
+    renameHistory.forEach((h) => {
+      if (!h.undone && h.tag === tag && h.day > maxDay) {
+        maxDay = h.day;
+        maxDayDate = h.newName.slice(0, 10);
+      }
+    });
+
+    if (currentPending) {
+      currentPending.forEach((p) => {
+        if (p.tag === tag && (!excludeId || p.id !== excludeId) && p.day > maxDay) {
+          maxDay = p.day;
+          maxDayDate = p.fileName.slice(0, 10);
+        }
+      });
+    }
+
+    return { maxDay, maxDayDate };
+  };
+
+  // Smart game detection — checks actual recording history for day numbers
   const detectGame = (fileName, games, currentPending) => {
     const defaultGame = games[0] || { name: "Unknown", tag: "??", color: "#888", dayCount: 0 };
     const fileDate = fileName.slice(0, 10);
@@ -60,8 +91,10 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
       return { game: defaultGame.name, tag: defaultGame.tag, color: defaultGame.color, day: matchDay, part: existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1 };
     }
 
+    const { maxDay, maxDayDate } = findMaxDayForGame(defaultGame.tag, currentPending, null);
     const sameDatePending = (currentPending || []).filter((p) => p.tag === defaultGame.tag && p.fileName.slice(0, 10) === fileDate).length;
-    return { game: defaultGame.name, tag: defaultGame.tag, color: defaultGame.color, day: defaultGame.dayCount + 1, part: sameDatePending + 1 };
+    const newDay = maxDay > 0 ? (fileDate === maxDayDate ? maxDay : maxDay + 1) : 1;
+    return { game: defaultGame.name, tag: defaultGame.tag, color: defaultGame.color, day: newDay, part: sameDatePending + 1 };
   };
 
   const getProposed = (r) => `${r.fileName.slice(0, 10)} ${r.tag} Day${r.day} Pt${r.part}.mp4`;
@@ -93,7 +126,8 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
             ];
             u.part = existingParts.length > 0 ? Math.max(...existingParts) + 1 : 1;
           } else {
-            u.day = g.dayCount + 1;
+            const { maxDay: mDay, maxDayDate: mDate } = findMaxDayForGame(g.tag, prev, id);
+            u.day = mDay > 0 ? (fileDate === mDate ? mDay : mDay + 1) : 1;
             const sameDateCount = prev.filter((p) => p.id !== id && p.tag === g.tag && p.fileName.slice(0, 10) === fileDate).length;
             u.part = sameDateCount + 1;
           }
@@ -194,7 +228,8 @@ export default function RenameView({ gamesDb, pendingRenames, setPendingRenames,
   // Computed stats
   const mainGame = gamesDb[0];
   const totalRenamed = managedFiles.length + renameHistory.filter((h) => !h.undone).length;
-  const mainDayCount = mainGame ? mainGame.dayCount : 0;
+  const { maxDay: mainMaxDay } = mainGame ? findMaxDayForGame(mainGame.tag, pendingRenames, null) : { maxDay: 0 };
+  const mainDayCount = mainMaxDay || (mainGame ? mainGame.dayCount : 0);
 
   return (
     <div>

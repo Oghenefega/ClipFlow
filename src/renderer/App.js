@@ -402,7 +402,7 @@ export default function App() {
           mainGame={mainGame}
         />
         <div style={{ flex: 1, overflow: "auto" }}>
-          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+          <div style={{ padding: "32px 40px", maxWidth: view === "upload" ? "none" : 860, margin: "0 auto" }}>
             {renderView()}
           </div>
         </div>
