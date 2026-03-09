@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import T from "../styles/theme";
-import { Card, GamePill, PageHeader, SectionLabel, Badge } from "../components/shared";
+import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox } from "../components/shared";
 
 const RENAMED_PATTERN = /^\d{4}-\d{2}-\d{2}\s+\S+\s+Day\d+\s+Pt\d+\.(mp4|mkv)$/i;
 
@@ -25,9 +25,9 @@ function extractTag(name) {
   return m ? m[1] : "";
 }
 
-function extractDate(name) {
-  const m = name.match(/^(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : "";
+function shortName(name) {
+  const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i);
+  return m ? m[1] : name;
 }
 
 function findGameByTag(tag, gamesDb) {
@@ -52,19 +52,39 @@ const STAGE_LABELS = {
   failed: "Failed",
 };
 
+const PILL_MIN = 200;
+
 export default function RecordingsView({ watchFolder, gamesDb = [], localProjects = [], onProjectCreated }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
-  const [generating, setGenerating] = useState(null); // file path currently generating
-  const [progress, setProgress] = useState(null); // { stage, pct, detail }
+  const [generating, setGenerating] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [selected, setSelected] = useState({});
+  const [doneFiles, setDoneFiles] = useState({});
 
+  // Load done files from store on mount
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.storeGet) {
+        const saved = await window.clipflow.storeGet("doneRecordings");
+        if (saved && typeof saved === "object") setDoneFiles(saved);
+      }
+    })();
+  }, []);
+
+  // Persist done files to store
+  const persistDone = useCallback(async (next) => {
+    setDoneFiles(next);
+    if (window.clipflow?.storeSet) {
+      await window.clipflow.storeSet("doneRecordings", next);
+    }
+  }, []);
+
+  // Scan watch folder
   useEffect(() => {
     async function scan() {
-      if (!window.clipflow || !watchFolder) {
-        setLoading(false);
-        return;
-      }
+      if (!window.clipflow || !watchFolder) { setLoading(false); return; }
       setLoading(true);
       try {
         const rootFiles = await window.clipflow.readDir(watchFolder);
@@ -85,10 +105,11 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                   .map((f) => ({ ...f, folder: sub.name }));
                 all = [...all, ...subRenamed];
               }
-            } catch (_) { /* skip unreadable subfolder */ }
+            } catch (_) { /* skip */ }
           }
         }
-        all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Sort ascending by name (oldest first — filenames start with date)
+        all.sort((a, b) => a.name.localeCompare(b.name));
         setFiles(all);
       } catch (e) {
         console.error("Failed to scan watch folder:", e);
@@ -98,35 +119,27 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     scan();
   }, [watchFolder]);
 
-  // Listen for pipeline progress events
+  // Pipeline progress events
   useEffect(() => {
     if (!window.clipflow?.onPipelineProgress) return;
-    window.clipflow.onPipelineProgress((data) => {
-      setProgress(data);
-    });
-    return () => {
-      window.clipflow?.removePipelineProgressListener?.();
-    };
+    window.clipflow.onPipelineProgress((data) => setProgress(data));
+    return () => { window.clipflow?.removePipelineProgressListener?.(); };
   }, []);
 
   const handleGenerate = useCallback(async (file) => {
-    if (generating) return; // already generating
-
+    if (generating) return;
     const tag = extractTag(file.name);
     const game = findGameByTag(tag, gamesDb);
-
     setGenerating(file.path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
-
     try {
       const result = await window.clipflow.generateClips(file.path, {
         name: file.name.replace(/\.(mp4|mkv)$/i, ""),
         game: game?.name || tag,
         gameTag: tag,
         gameColor: game?.color || "#888",
-        keywords: [], // TODO: per-game keywords from settings
+        keywords: [],
       });
-
       if (result.error) {
         setProgress({ stage: "failed", pct: 0, detail: result.error });
         setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
@@ -141,22 +154,65 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     }
   }, [generating, gamesDb, onProjectCreated]);
 
-  // Group files by folder
+  // --- Selection helpers ---
+  const toggle = (path) => setSelected((p) => ({ ...p, [path]: !p[path] }));
+
+  const selectAllInFolder = (folder) => {
+    const items = grouped[folder] || [];
+    const allSelected = items.every((f) => selected[f.path]);
+    setSelected((p) => {
+      const next = { ...p };
+      items.forEach((f) => { next[f.path] = !allSelected; });
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const allSelected = files.length > 0 && files.every((f) => selected[f.path]);
+    setSelected((p) => {
+      const next = { ...p };
+      files.forEach((f) => { next[f.path] = !allSelected; });
+      return next;
+    });
+  };
+
+  const selCount = Object.values(selected).filter(Boolean).length;
+
+  // --- Done helpers ---
+  const isDone = (f) => !!doneFiles[f.name] || !!findProjectForFile(f.name, localProjects);
+
+  const markSelectedDone = () => {
+    const next = { ...doneFiles };
+    files.forEach((f) => {
+      if (selected[f.path]) next[f.name] = true;
+    });
+    persistDone(next);
+    setSelected({});
+  };
+
+  const unmarkDone = (fileName) => {
+    const next = { ...doneFiles };
+    delete next[fileName];
+    persistDone(next);
+  };
+
+  // --- Group files by folder ---
   const grouped = {};
   files.forEach((f) => {
     if (!grouped[f.folder]) grouped[f.folder] = [];
     grouped[f.folder].push(f);
   });
 
+  // Sort oldest month first (ascending), root last
   const folderKeys = Object.keys(grouped).sort((a, b) => {
     if (a === "root") return 1;
     if (b === "root") return -1;
-    return b.localeCompare(a);
+    return a.localeCompare(b);
   });
 
-  function toggleCollapse(folder) {
-    setCollapsed((prev) => ({ ...prev, [folder]: !prev[folder] }));
-  }
+  const toggleCollapse = (folder) => setCollapsed((p) => ({ ...p, [folder]: !p[folder] }));
+
+  const totalDone = files.filter((f) => isDone(f)).length;
 
   if (loading) {
     return (
@@ -207,7 +263,6 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
               {progress.pct}%
             </span>
           </div>
-          {/* Progress bar */}
           <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
             <div style={{
               height: "100%", borderRadius: 2,
@@ -219,18 +274,32 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
         </Card>
       )}
 
-      <SectionLabel style={{ marginBottom: 16 }}>
-        {files.length} recording{files.length !== 1 ? "s" : ""}
-      </SectionLabel>
+      {/* Header row: count + select all */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <SectionLabel style={{ margin: 0 }}>
+          {files.length} recording{files.length !== 1 ? "s" : ""}
+          {totalDone > 0 ? ` \u00b7 ${totalDone} done` : ""}
+        </SectionLabel>
+        <button
+          onClick={selectAll}
+          style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
+        >
+          {files.length > 0 && files.every((f) => selected[f.path]) ? "Deselect All" : "Select All"}
+        </button>
+      </div>
 
-      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Folder groups */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {folderKeys.map((folder) => {
           const items = grouped[folder];
           const isCollapsed = collapsed[folder];
-          const projectCount = items.filter((f) => findProjectForFile(f.name, localProjects)).length;
+          const folderDoneCount = items.filter((f) => isDone(f)).length;
+          const folderSelCount = items.filter((f) => selected[f.path]).length;
+          const allFolderSelected = items.length > 0 && items.every((f) => selected[f.path]);
 
           return (
             <div key={folder}>
+              {/* Folder header */}
               <div
                 onClick={() => toggleCollapse(folder)}
                 style={{
@@ -251,76 +320,121 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                 <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
                   {items.length} file{items.length !== 1 ? "s" : ""}
                 </span>
-                {projectCount > 0 && (
+                {folderDoneCount > 0 && (
                   <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>
-                    {projectCount} clipped
+                    {folderDoneCount} done
                   </span>
                 )}
+                {folderSelCount > 0 && (
+                  <span style={{ color: T.accent, fontSize: 11, fontWeight: 700 }}>
+                    {folderSelCount} selected
+                  </span>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); selectAllInFolder(folder); }}
+                  style={{
+                    background: "none", border: `1px solid ${T.border}`, borderRadius: 6,
+                    padding: "4px 10px", color: T.textSecondary, fontSize: 11,
+                    fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  }}
+                >
+                  {allFolderSelected ? "Deselect" : "Select All"}
+                </button>
               </div>
 
+              {/* Grid of file pills */}
               {!isCollapsed && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(auto-fill, minmax(${PILL_MIN}px, 1fr))`,
+                  gap: 6,
+                }}>
                   {items.map((f) => {
                     const tag = extractTag(f.name);
                     const game = findGameByTag(tag, gamesDb);
+                    const tagColor = game?.color || T.accent;
                     const project = findProjectForFile(f.name, localProjects);
                     const clipCount = project?.clipCount || project?.clips?.length || 0;
-                    const dateStr = extractDate(f.name);
+                    const fileDone = isDone(f);
+                    const manualDone = !!doneFiles[f.name] && !project;
+                    const isSel = !!selected[f.path];
                     const isGenerating = generating === f.path;
 
                     return (
-                      <Card key={f.path} style={{ padding: "12px 16px", borderColor: isGenerating ? T.accentBorder : undefined }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        key={f.path}
+                        onClick={() => toggle(f.path)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "7px 10px", borderRadius: T.radius.md,
+                          border: `1px solid ${fileDone ? "rgba(52,211,153,0.25)" : isGenerating ? T.accentBorder : isSel ? T.accentBorder : T.border}`,
+                          background: fileDone ? "rgba(52,211,153,0.06)" : isSel ? T.accentDim : T.surface,
+                          cursor: "pointer", overflow: "hidden",
+                          opacity: fileDone && !isGenerating ? 0.7 : 1,
+                        }}
+                      >
+                        <Checkbox checked={isSel || fileDone} size={16} />
+
+                        {tag && (
                           <span style={{
-                            color: T.text, fontSize: 13, fontWeight: 600,
-                            fontFamily: T.mono, flex: 1,
-                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                            display: "inline-flex", padding: "2px 5px",
+                            background: `${tagColor}18`, border: `1px solid ${tagColor}44`,
+                            borderRadius: 4, fontSize: 9, fontWeight: 700, color: tagColor,
+                            fontFamily: T.mono, letterSpacing: "0.5px", flexShrink: 0,
                           }}>
-                            {f.name}
+                            {tag}
                           </span>
+                        )}
 
-                          {tag && (
-                            <GamePill tag={tag} color={game?.color || T.accent} size="sm" />
-                          )}
+                        <span style={{
+                          color: T.text, fontSize: 12, fontWeight: 600,
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1,
+                        }}>
+                          {shortName(f.name)}
+                        </span>
 
+                        <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono, flexShrink: 0 }}>
+                          {formatSize(f.size)}
+                        </span>
+
+                        {/* Status badges */}
+                        {project && (
                           <span style={{
-                            color: T.textTertiary, fontSize: 11, fontFamily: T.mono, flexShrink: 0,
+                            display: "inline-flex", alignItems: "center", gap: 3,
+                            padding: "1px 5px", borderRadius: 4, fontSize: 8, fontWeight: 700,
+                            color: T.green, background: "rgba(52,211,153,0.12)", flexShrink: 0,
                           }}>
-                            {dateStr}
+                            {"\u2713"} {clipCount}
                           </span>
+                        )}
 
+                        {manualDone && (
                           <span style={{
-                            color: T.textTertiary, fontSize: 11, fontFamily: T.mono, flexShrink: 0,
+                            display: "inline-flex", alignItems: "center", gap: 3,
+                            padding: "1px 5px", borderRadius: 4, fontSize: 8, fontWeight: 700,
+                            textTransform: "uppercase", color: T.green,
+                            background: "rgba(52,211,153,0.12)", flexShrink: 0,
                           }}>
-                            {formatSize(f.size)}
+                            DONE
+                            <span
+                              onClick={(e) => { e.stopPropagation(); unmarkDone(f.name); }}
+                              title="Unmark as done"
+                              style={{ cursor: "pointer", color: T.textMuted, fontSize: 10, fontWeight: 700, marginLeft: 2, lineHeight: 1 }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = T.red; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; }}
+                            >{"\u00d7"}</span>
                           </span>
+                        )}
 
-                          {project ? (
-                            <Badge color={T.green}>
-                              {"\u2713"} {clipCount} clip{clipCount !== 1 ? "s" : ""}
-                            </Badge>
-                          ) : (
-                            <button
-                              onClick={() => handleGenerate(f)}
-                              disabled={!!generating}
-                              style={{
-                                padding: "6px 14px", borderRadius: T.radius.sm, border: "none",
-                                background: generating
-                                  ? "rgba(255,255,255,0.04)"
-                                  : `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
-                                color: generating ? T.textMuted : "#fff",
-                                fontSize: 12, fontWeight: 700, fontFamily: T.font,
-                                cursor: generating ? "default" : "pointer",
-                                whiteSpace: "nowrap", flexShrink: 0,
-                                boxShadow: generating ? "none" : "0 2px 12px rgba(139,92,246,0.25)",
-                                opacity: generating && !isGenerating ? 0.5 : 1,
-                              }}
-                            >
-                              {isGenerating ? "Generating..." : "Generate Clips"}
-                            </button>
-                          )}
-                        </div>
-                      </Card>
+                        {isGenerating && (
+                          <span style={{
+                            padding: "1px 5px", borderRadius: 4, fontSize: 8, fontWeight: 700,
+                            color: T.yellow, background: "rgba(251,191,36,0.12)", flexShrink: 0,
+                          }}>
+                            {progress?.pct || 0}%
+                          </span>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -328,6 +442,40 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
             </div>
           );
         })}
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center" }}>
+        {selCount > 0 && !generating && (
+          <>
+            <button
+              onClick={() => {
+                const selectedFiles = files.filter((f) => selected[f.path] && !isDone(f));
+                if (selectedFiles.length > 0) handleGenerate(selectedFiles[0]);
+              }}
+              disabled={!!generating || files.filter((f) => selected[f.path] && !isDone(f)).length === 0}
+              style={{
+                padding: "10px 18px", borderRadius: T.radius.md, border: "none",
+                background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
+                color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
+                opacity: files.filter((f) => selected[f.path] && !isDone(f)).length === 0 ? 0.5 : 1,
+              }}
+            >
+              Generate Clips ({files.filter((f) => selected[f.path] && !isDone(f)).length})
+            </button>
+            <button
+              onClick={markSelectedDone}
+              style={{
+                padding: "10px 18px", borderRadius: T.radius.md,
+                border: `1px solid rgba(52,211,153,0.25)`, background: "rgba(52,211,153,0.08)",
+                color: T.green, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+              }}
+            >
+              Mark {selCount} as Done
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
