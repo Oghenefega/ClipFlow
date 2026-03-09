@@ -3,7 +3,7 @@ import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import { AddGameModal, TranscriptModal } from "./components/modals";
 import RenameView from "./views/RenameView";
-import UploadView from "./views/UploadView";
+import RecordingsView from "./views/UploadView";
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
@@ -308,7 +308,7 @@ export default function App() {
     }
     if (view === "recordings") {
       return (
-        <UploadView
+        <RecordingsView
           watchFolder={watchFolder}
           gamesDb={gamesDb}
           localProjects={localProjects}
