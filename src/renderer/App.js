@@ -92,6 +92,9 @@ export default function App() {
   // Transcript modal
   const [transcript, setTranscript] = useState(null);
 
+  // Editor context — which project/clip to open
+  const [editorContext, setEditorContext] = useState(null); // { projectId, clipId }
+
   // Add Game modal
   const [showAddGame, setShowAddGame] = useState(false);
   const [newGameExe, setNewGameExe] = useState(null);
@@ -270,6 +273,8 @@ export default function App() {
         clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, status } : c)),
       };
     }));
+    // Persist to project JSON on disk
+    window.clipflow?.projectUpdateClip?.(projectId, clipId, { status }).catch(() => {});
   }, []);
 
   const handleEditClipTitle = useCallback((projectId, clipId, title) => {
@@ -280,6 +285,25 @@ export default function App() {
         clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, title } : c)),
       };
     }));
+    // Persist to project JSON on disk
+    window.clipflow?.projectUpdateClip?.(projectId, clipId, { title }).catch(() => {});
+  }, []);
+
+  const handleOpenInEditor = useCallback((projectId, clipId) => {
+    setEditorContext({ projectId, clipId });
+    setView("editor");
+  }, []);
+
+  // Load full project data (with transcription + clips) when entering ClipBrowser
+  const handleSelectProject = useCallback(async (project) => {
+    try {
+      const full = await window.clipflow.projectLoad(project.id);
+      if (full && !full.error) {
+        setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? full : p)));
+      }
+    } catch (e) { /* use summary data as fallback */ }
+    setSelProj(project);
+    setView("clips");
   }, []);
 
   // Build allClips for QueueView — will be wired to localProjects in Phase 8
@@ -332,7 +356,7 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} />;
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} />;
     }
     if (view === "queue") {
       return (
@@ -399,7 +423,7 @@ export default function App() {
         return (
           <ProjectsListView
             localProjects={localProjects}
-            onSelect={(p) => { setSelProj(p); setView("clips"); }}
+            onSelect={handleSelectProject}
             mainGame={mainGame}
             gamesDb={gamesDb}
           />
@@ -412,6 +436,7 @@ export default function App() {
           onUpdateClip={handleUpdateClip}
           onTranscript={setTranscript}
           onEditClipTitle={handleEditClipTitle}
+          onOpenInEditor={handleOpenInEditor}
           gamesDb={gamesDb}
           anthropicApiKey={anthropicApiKey}
           styleGuide={styleGuide}
@@ -421,7 +446,7 @@ export default function App() {
     return (
       <ProjectsListView
         localProjects={localProjects}
-        onSelect={(p) => { setSelProj(p); setView("clips"); }}
+        onSelect={handleSelectProject}
         mainGame={mainGame}
         gamesDb={gamesDb}
       />

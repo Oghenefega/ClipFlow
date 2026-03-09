@@ -48,29 +48,31 @@
 
 ---
 
-## In Progress
+## Recently Completed (Phases 2-4)
 
-_(nothing currently in progress)_
+### Phase 2: Local Infrastructure ✅
+- [x] Created `src/main/ffmpeg.js` — checkFfmpeg, probe, extractAudio, cutClip, generateThumbnail, analyzeLoudness
+- [x] Created `src/main/whisper.js` — checkWhisper, transcribe (whisper.cpp + CUDA)
+- [x] Created `src/main/projects.js` — Project file CRUD at `{watchFolder}/.clipflow/projects/{id}/`
+- [x] Wired 17 IPC handlers in main.js for all new modules
+- [x] Added bridge methods in preload.js
+- [x] Populated Settings: ffmpeg status, Whisper binary/model path pickers
 
-## Up Next — Pipeline Revamp (Local AI + NLE)
+### Phase 3: Clip Generation Pipeline ✅
+- [x] Created `src/main/highlights.js` — audio energy (40%) + sentiment (30%) + keywords (20%) + pacing (10%)
+- [x] Wired `pipeline:generateClips` handler (extractAudio → transcribe → analyze → detect → cut → thumbnails → project)
+- [x] Connected RecordingsView "Generate Clips" button with progress overlay
 
-### Phase 2: Local Infrastructure — ffmpeg, Whisper, Project Files
-- [ ] Create `src/main/ffmpeg.js` — checkFfmpeg, probe, extractAudio, cutClip, generateThumbnail
-- [ ] Create `src/main/whisper.js` — checkWhisper, transcribe (whisper.cpp + CUDA)
-- [ ] Create `src/main/projects.js` — Project file CRUD at `{watchFolder}/.clipflow/projects/{id}/`
-- [ ] Wire IPC handlers in main.js for all new modules
-- [ ] Add bridge methods in preload.js
-- [ ] Populate Settings: ffmpeg status, Whisper binary/model path pickers
+### Phase 4: Projects Revamp — Local Project Browser ✅
+- [x] Updated clip data model: `duration` → computed from startTime/endTime, `viralScore` → `highlightScore`, `transcript` → derived from project transcription
+- [x] Added `getClipTranscript` helper to extract clip-level transcript from project transcription segments
+- [x] Added "Open in Editor" button per clip (purple accent styling)
+- [x] Added `editorContext` state and `handleOpenInEditor` callback in App.js
+- [x] Added `handleSelectProject` to load full project data (with transcription) on click
+- [x] Persisted clip status/title changes to project JSON on disk via `projectUpdateClip`
+- [x] Passed `editorContext` and `localProjects` to EditorView for Phase 5
 
-### Phase 3: Clip Generation Pipeline
-- [ ] Create `src/main/highlights.js` — audio energy (40%) + sentiment (30%) + keywords (20%) + pacing (10%)
-- [ ] Wire `pipeline:generateClips` handler (extractAudio → transcribe → analyze → detect → cut → thumbnails → project)
-- [ ] Connect RecordingsView "Generate Clips" button with progress overlay
-
-### Phase 4: Projects Revamp — Local Project Browser
-- [ ] Rewire ProjectsView for localProjects (remove import modal, use local file paths)
-- [ ] Add "Open in Editor" button per clip
-- [ ] Add editorContext state in App.js
+## Up Next — Pipeline Revamp (Continued)
 
 ### Phase 5: Editor Core — Real Data + NLE
 - [ ] Create `src/renderer/components/VideoPreview.js` (HTML5 video + subtitle overlay)

@@ -20,6 +20,16 @@ const getProjectStatus = (p) => {
   return "ready";
 };
 
+// Pure helper — extract transcript text for a clip from project transcription
+const getClipTranscript = (clip, project) => {
+  if (!project?.transcription?.segments) return "";
+  return project.transcription.segments
+    .filter((s) => s.start >= (clip.startTime || 0) && s.end <= (clip.endTime || 0))
+    .map((s) => s.text)
+    .join(" ")
+    .trim();
+};
+
 // ============ PROJECT LIST ============
 export function ProjectsListView({ localProjects = [], onSelect, mainGame, gamesDb = [] }) {
 
@@ -435,7 +445,7 @@ const GenerationPanel = ({ clip, project, gamesDb = [], anthropicApiKey, styleGu
 };
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, gamesDb, anthropicApiKey, styleGuide }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, gamesDb, anthropicApiKey, styleGuide }) {
   const [filter, setFilter] = useState("all");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -469,6 +479,8 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
         {filtered.map((clip) => {
           const ca = isApproved(clip);
           const rej = clip.status === "rejected";
+          const clipDuration = Math.round((clip.endTime || 0) - (clip.startTime || 0));
+          const clipTranscript = getClipTranscript(clip, project);
           return (
             <Card key={clip.id} borderColor={ca ? T.greenBorder : T.border} style={{ padding: 20, opacity: rej ? 0.35 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
@@ -489,21 +501,29 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono }}>{clip.duration}s</span>
-                {clip.viralScore > 0 && <ViralBar score={clip.viralScore} />}
+                <span style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono }}>{clipDuration}s</span>
+                {(clip.highlightScore || 0) > 0 && <ViralBar score={clip.highlightScore} />}
+                {clip.highlightReason && (
+                  <span style={{ color: T.textTertiary, fontSize: 11, fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>{clip.highlightReason}</span>
+                )}
               </div>
               {!rej && (
                 <div style={{ display: "flex", gap: 8, paddingTop: 14, borderTop: `1px solid ${T.border}`, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-                  <button onClick={() => onTranscript(clip)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83d\udcdd"} Transcript</button>
-                  {clip.transcript && (
+                  {clipTranscript && (
+                    <button onClick={() => onTranscript({ ...clip, transcript: clipTranscript })} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83d\udcdd"} Transcript</button>
+                  )}
+                  {clipTranscript && (
                     <button onClick={() => setExpandedClip(expandedClip === clip.id ? null : clip.id)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${expandedClip === clip.id ? T.accentBorder : T.border}`, background: expandedClip === clip.id ? T.accentDim : "rgba(255,255,255,0.03)", color: expandedClip === clip.id ? T.accentLight : T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\u2728"} AI Titles</button>
+                  )}
+                  {onOpenInEditor && (
+                    <button onClick={() => onOpenInEditor(project.id, clip.id)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83c\udfac"} Open in Editor</button>
                   )}
                   {ca && <Badge color={T.green}>{"\u2713"} Queued</Badge>}
                 </div>
               )}
-              {expandedClip === clip.id && clip.transcript && (
+              {expandedClip === clip.id && clipTranscript && (
                 <GenerationPanel
-                  clip={clip}
+                  clip={{ ...clip, transcript: clipTranscript }}
                   project={project}
                   gamesDb={gamesDb}
                   anthropicApiKey={anthropicApiKey}
