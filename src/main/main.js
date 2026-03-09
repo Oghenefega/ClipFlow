@@ -5,8 +5,6 @@ const fs = require("fs");
 const https = require("https");
 const chokidar = require("chokidar");
 const Store = require("electron-store");
-const { S3Client } = require("@aws-sdk/client-s3");
-const { Upload } = require("@aws-sdk/lib-storage");
 
 const store = new Store({
   name: "clipflow-settings",
@@ -25,12 +23,12 @@ const store = new Store({
     ],
     ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
     platforms: [
-      { key: "youtube1", platform: "YouTube", abbr: "YT", name: "Fega", connected: true, vizardAccountId: "dml6YXJkLTEtMTc0NTMz" },
-      { key: "instagram", platform: "Instagram", abbr: "IG", name: "fegagaming", connected: true, vizardAccountId: "dml6YXJkLTQtMTc0NTM2LTE4OTUw" },
-      { key: "facebook", platform: "Facebook", abbr: "FB", name: "Fega Gaming", connected: true, vizardAccountId: "dml6YXJkLTMtMTc0NTM1LTE4OTQ5" },
-      { key: "tiktok1", platform: "TikTok", abbr: "TT", name: "fega", connected: true, vizardAccountId: "dml6YXJkLTItMTc0NTM4" },
-      { key: "youtube2", platform: "YouTube", abbr: "YT", name: "ThatGuy", connected: true, vizardAccountId: "dml6YXJkLTEtMTc0NTM0" },
-      { key: "tiktok2", platform: "TikTok", abbr: "TT", name: "thatguyfega", connected: true, vizardAccountId: "dml6YXJkLTItMTc0NTM3" },
+      { key: "youtube1", platform: "YouTube", abbr: "YT", name: "Fega", connected: true },
+      { key: "instagram", platform: "Instagram", abbr: "IG", name: "fegagaming", connected: true },
+      { key: "facebook", platform: "Facebook", abbr: "FB", name: "Fega Gaming", connected: true },
+      { key: "tiktok1", platform: "TikTok", abbr: "TT", name: "fega", connected: true },
+      { key: "youtube2", platform: "YouTube", abbr: "YT", name: "ThatGuy", connected: true },
+      { key: "tiktok2", platform: "TikTok", abbr: "TT", name: "thatguyfega", connected: true },
     ],
     weeklyTemplate: {
       Monday: ["main","main","main","main","main","main","main","main"],
@@ -47,16 +45,10 @@ const store = new Store({
       facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
     },
     ytDescriptions: {},
-    r2Config: {
-      accountId: process.env.R2_ACCOUNT_ID || "",
-      accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-      bucketName: process.env.R2_BUCKET_NAME || "",
-      publicBaseUrl: process.env.R2_PUBLIC_BASE_URL || "",
-    },
-    vizardApiKey: process.env.VIZARD_API_KEY || "",
-    vizardProjects: [],
-    uploadedFiles: {},
+    outputFolder: "",
+    sfxFolder: "",
+    whisperModel: "large-v3",
+    localProjects: [],
     renameHistory: [],
     anthropicApiKey: "",
     styleGuide: "",
@@ -384,168 +376,6 @@ ipcMain.handle("store:getAll", async () => {
   return store.store;
 });
 
-// ============ R2 UPLOAD (Cloudflare R2 via S3 SDK) ============
-ipcMain.handle("r2:upload", async (event, filePath, fileName) => {
-  try {
-    const r2Config = store.get("r2Config");
-    if (!r2Config || !r2Config.accessKeyId) {
-      return { error: "R2 credentials not configured. Go to Settings." };
-    }
-
-    const client = new S3Client({
-      region: "auto",
-      endpoint: `https://${r2Config.accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: r2Config.accessKeyId,
-        secretAccessKey: r2Config.secretAccessKey,
-      },
-    });
-
-    const fileSize = fs.statSync(filePath).size;
-    const fileStream = fs.createReadStream(filePath);
-
-    const upload = new Upload({
-      client,
-      params: {
-        Bucket: r2Config.bucketName,
-        Key: fileName,
-        Body: fileStream,
-        ContentType: fileName.endsWith(".mkv") ? "video/x-matroska" : "video/mp4",
-      },
-      queueSize: 4,
-      partSize: 1024 * 1024 * 10, // 10MB parts
-    });
-
-    upload.on("httpUploadProgress", (progress) => {
-      const pct = Math.round(((progress.loaded || 0) / fileSize) * 100);
-      mainWindow?.webContents.send("r2:uploadProgress", { fileName, progress: pct });
-    });
-
-    await upload.done();
-
-    const publicUrl = `${r2Config.publicBaseUrl}/${encodeURIComponent(fileName)}`;
-    return { success: true, url: publicUrl, fileName };
-  } catch (err) {
-    return { error: err.message, fileName };
-  }
-});
-
-// ============ VIZARD AI API ============
-const vizardRequest = (method, apiPath, apiKey, body) => {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: "elb-api.vizard.ai",
-      path: `/hvizard-server-front/open-api/v1${apiPath}`,
-      method,
-      headers: {
-        "VIZARDAI_API_KEY": apiKey,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          reject(new Error(`Failed to parse Vizard response: ${data.substring(0, 200)}`));
-        }
-      });
-    });
-    req.on("error", reject);
-    if (body) req.write(JSON.stringify(body));
-    req.end();
-  });
-};
-
-ipcMain.handle("vizard:createProject", async (_, videoUrl, projectName) => {
-  try {
-    const apiKey = store.get("vizardApiKey");
-    if (!apiKey) return { error: "Vizard API key not configured. Go to Settings." };
-
-    const result = await vizardRequest("POST", "/project/create", apiKey, {
-      videoUrl,
-      videoType: 1,
-      ext: "mp4",
-      lang: "en",
-      preferLength: [1, 2],
-      ratioOfClip: 1,
-      subtitleSwitch: 1,
-      headlineSwitch: 1,
-      projectName: projectName || "ClipFlow Upload",
-    });
-
-    return result;
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-ipcMain.handle("vizard:queryProject", async (_, projectId) => {
-  try {
-    const apiKey = store.get("vizardApiKey");
-    if (!apiKey) return { error: "Vizard API key not configured." };
-
-    const result = await vizardRequest("GET", `/project/query/${projectId}`, apiKey);
-    return result;
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-// Vizard: get social accounts connected to the Vizard account
-ipcMain.handle("vizard:getSocialAccounts", async () => {
-  try {
-    const apiKey = store.get("vizardApiKey");
-    if (!apiKey) return { error: "Vizard API key not configured." };
-
-    const result = await vizardRequest("GET", "/project/social-accounts", apiKey);
-    return result;
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-// Vizard: publish a single clip to one social account
-ipcMain.handle("vizard:publishClip", async (_, options) => {
-  try {
-    const apiKey = store.get("vizardApiKey");
-    if (!apiKey) return { error: "Vizard API key not configured." };
-
-    const body = {
-      finalVideoId: options.finalVideoId,
-      socialAccountId: options.socialAccountId,
-    };
-    if (options.publishTime) body.publishTime = options.publishTime;
-    if (options.post !== undefined) body.post = options.post;
-    if (options.title) body.title = options.title;
-
-    const result = await vizardRequest("POST", "/project/publish-video", apiKey, body);
-    return result;
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-// Vizard: generate AI caption for a clip
-ipcMain.handle("vizard:generateCaption", async (_, options) => {
-  try {
-    const apiKey = store.get("vizardApiKey");
-    if (!apiKey) return { error: "Vizard API key not configured." };
-
-    const result = await vizardRequest("POST", "/project/generate-ai-social-caption", apiKey, {
-      finalVideoId: options.finalVideoId,
-      platform: options.platform || "TikTok",
-      tone: options.tone || "interesting",
-    });
-    return result;
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
 // ============ ANTHROPIC AI API ============
 const anthropicRequest = (apiKey, body) => {
   return new Promise((resolve, reject) => {
@@ -746,35 +576,3 @@ ipcMain.handle("anthropic:logHistory", async (_, entry) => {
   }
 });
 
-// ============ DOWNLOADS ============
-ipcMain.handle("download:clip", async (event, url, savePath) => {
-  return new Promise((resolve) => {
-    try {
-      const file = fs.createWriteStream(savePath);
-      const makeRequest = (requestUrl) => {
-        const proto = requestUrl.startsWith("https") ? https : require("http");
-        proto.get(requestUrl, (response) => {
-          if (response.statusCode === 301 || response.statusCode === 302) {
-            file.close();
-            try { fs.unlinkSync(savePath); } catch(_){}
-            makeRequest(response.headers.location);
-            return;
-          }
-          const total = parseInt(response.headers["content-length"], 10) || 0;
-          let downloaded = 0;
-          response.on("data", (chunk) => {
-            downloaded += chunk.length;
-            if (total > 0) {
-              event.sender.send("download:progress", { url, progress: Math.round((downloaded / total) * 100) });
-            }
-          });
-          response.pipe(file);
-          file.on("finish", () => { file.close(); resolve({ success: true, path: savePath }); });
-        }).on("error", (err) => { file.close(); try { fs.unlinkSync(savePath); } catch(_){} resolve({ error: err.message }); });
-      };
-      makeRequest(url);
-    } catch (err) {
-      resolve({ error: err.message });
-    }
-  });
-});
