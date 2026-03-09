@@ -160,7 +160,7 @@ export default function QueueView({
   const [newSlotVal, setNewSlotVal] = useState("");
 
   const dates = getUpcomingDates();
-  const activePlat = platforms.filter((p) => p.connected && p.vizardAccountId);
+  const activePlat = platforms.filter((p) => p.connected);
   const refDate = new Date();
   refDate.setDate(refDate.getDate() + weekOffset * 7);
   const wd = getWeekDates(refDate);
@@ -188,7 +188,7 @@ export default function QueueView({
   const logPost = (clip, date, day, time, isScheduled) => {
     const gt = extractGameTag(clip.title) || "unknown";
     const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
-    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "vizard", scheduled: !!isScheduled }]);
+    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
   };
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
@@ -201,9 +201,6 @@ export default function QueueView({
     }
 
     publishingRef.current = true;
-    const game = findGameFromClip(clip.title, gamesDb);
-    const gameName = game?.name || "";
-    const gameHashtag = game?.hashtag || "";
 
     // Initialize platform statuses
     const platStatuses = {};
@@ -229,49 +226,12 @@ export default function QueueView({
         [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "publishing" } },
       }));
 
-      try {
-        // Build caption based on platform type
-        const isYouTube = plat.platform === "YouTube";
-        let post;
-        if (isYouTube) {
-          const ytDesc = ytDescriptions?.[gameName];
-          post = ytDesc?.desc || clip.title;
-        } else {
-          const templateKey = plat.platform.toLowerCase().replace(/ /g, "");
-          const template = captionTemplates?.[templateKey] || captionTemplates?.tiktok || "{title}";
-          post = buildCaption(template, clip.title, gameHashtag);
-        }
-
-        const publishOpts = {
-          finalVideoId: clip.videoId,
-          socialAccountId: plat.vizardAccountId,
-          title: isYouTube ? buildYouTubeTitle(clip.title, gameHashtag) : undefined,
-          post,
-        };
-        if (baseTimestamp) publishOpts.publishTime = baseTimestamp + (i * STAGGER_MS);
-
-        const result = await window.clipflow.vizardPublishClip(publishOpts);
-
-        if (result.error || (result.code && result.code !== 2000)) {
-          const errMsg = result.error || result.errMsg || `Error code ${result.code}`;
-          setPublishStatus((prev) => ({
-            ...prev,
-            [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: errMsg } },
-          }));
-          allSuccess = false;
-        } else {
-          setPublishStatus((prev) => ({
-            ...prev,
-            [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
-          }));
-        }
-      } catch (err) {
-        setPublishStatus((prev) => ({
-          ...prev,
-          [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: err.message || "Network error" } },
-        }));
-        allSuccess = false;
-      }
+      // Publishing not yet wired — stub for tracker functionality
+      console.log("Publishing not yet wired", { platform: plat.key, clipTitle: clip.title });
+      setPublishStatus((prev) => ({
+        ...prev,
+        [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+      }));
 
       // Wait 30s between platforms when publishing now (not needed for scheduled)
       if (!baseTimestamp && i < activePlat.length - 1) {
@@ -674,7 +634,7 @@ export default function QueueView({
                 <Card style={{ padding: "16px 20px", marginTop: 4, borderColor: T.accentBorder }}>
                   {!hasVideoId && (
                     <div style={{ marginBottom: 12 }}>
-                      <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip has no Vizard video ID. It may need to be re-processed before publishing.</InfoBanner>
+                      <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip has no video ID. It may need to be re-rendered before publishing.</InfoBanner>
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 8, marginBottom: schedAction === "schedule" ? 14 : 0 }}>
@@ -716,7 +676,7 @@ export default function QueueView({
         </div>
         {activePlat.length === 0 && (
           <div style={{ marginTop: 10 }}>
-            <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>No connected platforms with Vizard account IDs. Check Settings.</InfoBanner>
+            <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>No connected platforms. Check Settings.</InfoBanner>
           </div>
         )}
       </Card>
@@ -895,9 +855,9 @@ export default function QueueView({
                             }}
                           >
                             {isNull ? "" : editTmpl ? (isM ? "M" : "O") : fl ? (gameDisp?.tag || "\u2713") : (isHov ? "+" : (isM ? "M" : "O"))}
-                            {/* Source indicator: cyan dot = Vizard, grey dot = manual */}
-                            {fl && !editTmpl && fl.source === "vizard" && (
-                              <div style={{ position: "absolute", bottom: 2, right: 3, width: 7, height: 7, borderRadius: "50%", background: T.cyan, boxShadow: `0 0 6px 2px ${T.cyan}88, 0 0 2px 1px ${T.cyan}aa` }} title="Published via Vizard" />
+                            {/* Source indicator: cyan dot = ClipFlow, grey dot = manual */}
+                            {fl && !editTmpl && fl.source === "clipflow" && (
+                              <div style={{ position: "absolute", bottom: 2, right: 3, width: 7, height: 7, borderRadius: "50%", background: T.cyan, boxShadow: `0 0 6px 2px ${T.cyan}88, 0 0 2px 1px ${T.cyan}aa` }} title="Published via ClipFlow" />
                             )}
                             {fl && !editTmpl && fl.source === "manual" && (
                               <div style={{ position: "absolute", bottom: 2, right: 3, width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,0.28)", boxShadow: "0 0 5px 1px rgba(255,255,255,0.12)" }} title="Logged manually" />
@@ -997,12 +957,12 @@ export default function QueueView({
                           </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: popover.entry.source === "vizard" ? T.cyan : "rgba(255,255,255,0.28)", boxShadow: popover.entry.source === "vizard" ? `0 0 6px 2px ${T.cyan}88` : "0 0 5px 1px rgba(255,255,255,0.12)" }} />
-                          <span style={{ color: popover.entry.source === "vizard" ? T.cyan : T.textTertiary, fontSize: 11, fontWeight: 600 }}>
-                            {popover.entry.source === "vizard" ? (popover.entry.scheduled ? "Scheduled via Vizard" : "Published via Vizard") : "Logged manually"}
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: popover.entry.source === "clipflow" ? T.cyan : "rgba(255,255,255,0.28)", boxShadow: popover.entry.source === "clipflow" ? `0 0 6px 2px ${T.cyan}88` : "0 0 5px 1px rgba(255,255,255,0.12)" }} />
+                          <span style={{ color: popover.entry.source === "clipflow" ? T.cyan : T.textTertiary, fontSize: 11, fontWeight: 600 }}>
+                            {popover.entry.source === "clipflow" ? (popover.entry.scheduled ? "Scheduled via ClipFlow" : "Published via ClipFlow") : "Logged manually"}
                           </span>
                         </div>
-                        {popover.entry.source === "vizard" && popover.entry.platforms && popover.entry.platforms !== "Manual" && (
+                        {popover.entry.source === "clipflow" && popover.entry.platforms && popover.entry.platforms !== "Manual" && (
                           <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 8 }}>{popover.entry.platforms}</div>
                         )}
                         <button onClick={() => removeTrackerEntry(popover.entry)}
@@ -1034,7 +994,7 @@ export default function QueueView({
             <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.cyan, boxShadow: `0 0 6px 2px ${T.cyan}88` }} />
-                <span style={{ color: T.textTertiary, fontSize: 11 }}>Vizard</span>
+                <span style={{ color: T.textTertiary, fontSize: 11 }}>ClipFlow</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.28)", boxShadow: "0 0 5px 1px rgba(255,255,255,0.12)" }} />

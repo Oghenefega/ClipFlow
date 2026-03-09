@@ -13,82 +13,84 @@
 - [x] Fix file watcher — root-only watching, skip subfolders/renamed files
 - [x] Add +Add Game button to Rename header
 - [x] Wire up OBS log parser for game detection
-- [x] **SettingsView** — game library CRUD, main game selector, watch folder, ignored processes, downloads
+- [x] **SettingsView** — game library CRUD, main game selector, watch folder, ignored processes
 - [x] **QueueView** — schedule/tracker tabs, manual logging, publish now, weekly template editor
-- [x] **ProjectsView** — Vizard project browser, clip review with approve/reject, inline title editing
+- [x] **ProjectsView** — project browser, clip review with approve/reject, inline title editing
 - [x] **CaptionsView** — YouTube descriptions per game, platform caption templates
-- [x] **UploadView** — file selection, R2 upload with progress
+- [x] **UploadView** → **RecordingsView** — recordings browser with Generate Clips stub
 - [x] electron-store persistence for all settings/data
-- [x] Vizard API integration — project import, clip mapping, deduplication
-- [x] Source video filtering (duration-based heuristic)
-- [x] Tracker source tagging (Vizard vs manual) with glow dots
+- [x] Tracker source tagging (ClipFlow vs manual) with glow dots
 - [x] Time picker redesign (hour + minute split dropdowns)
 - [x] Scrollbar overflow fixes across all views
-- [x] Clip download support with progress tracking
 - [x] **EditorView** — Full editor shell with topbar, left panel (transcript/subtitles), center preview, right rail+drawer (AI/Subtitles/Brand/Media), timeline, all resizable/collapsible
+
+---
+
+## Recently Completed
+
+### Phase 1: Remove Cloud Dependencies (Vizard + R2)
+
+**What changed:**
+- Removed `@aws-sdk/client-s3` and `@aws-sdk/lib-storage` dependencies
+- Cleaned `.env.example` to just `ANTHROPIC_API_KEY=`
+- Stripped ~212 lines from `main.js` (S3/Upload imports, R2 config, Vizard handlers, download handler)
+- Stripped ~25 lines from `preload.js` (10 cloud methods removed)
+- Stripped ~272 lines from `App.js` (cloud state, auto-import, Vizard callbacks, allClips derivation)
+- Rewrote `UploadView.js` as `RecordingsView` (380→184 lines) — recordings browser with "Generate Clips" stub
+- Stripped Vizard import modal + polling from `ProjectsView.js`
+- Replaced Vizard publish calls with stubs in `QueueView.js`, updated all UI text
+- Removed ~300 lines from `SettingsView.js` (R2 Config, Vizard AI, Downloads sections)
+- Added new settings: Output Folder, SFX Folder, Whisper Config (stub)
+- Added store defaults: `outputFolder`, `sfxFolder`, `whisperModel`, `localProjects`
+- Renamed nav item: Upload → Recordings
+
+**Verification:** ✅ Build passes, zero Vizard/R2/S3 references in src/
+
+---
 
 ## In Progress
 
 _(nothing currently in progress)_
 
-## Recently Completed
+## Up Next — Pipeline Revamp (Local AI + NLE)
 
-### Editor View — New Feature
+### Phase 2: Local Infrastructure — ffmpeg, Whisper, Project Files
+- [ ] Create `src/main/ffmpeg.js` — checkFfmpeg, probe, extractAudio, cutClip, generateThumbnail
+- [ ] Create `src/main/whisper.js` — checkWhisper, transcribe (whisper.cpp + CUDA)
+- [ ] Create `src/main/projects.js` — Project file CRUD at `{watchFolder}/.clipflow/projects/{id}/`
+- [ ] Wire IPC handlers in main.js for all new modules
+- [ ] Add bridge methods in preload.js
+- [ ] Populate Settings: ffmpeg status, Whisper binary/model path pickers
 
-**File Impact Analysis:**
-- **NEW:** `src/renderer/views/EditorView.js` — Full editor component (~1800-2200 lines)
-- **MODIFY:** `src/renderer/App.js` — Add import, nav item between Projects and Queue, route, adjust content wrapper for full-bleed layout
+### Phase 3: Clip Generation Pipeline
+- [ ] Create `src/main/highlights.js` — audio energy (40%) + sentiment (30%) + keywords (20%) + pacing (10%)
+- [ ] Wire `pipeline:generateClips` handler (extractAudio → transcribe → analyze → detect → cut → thumbnails → project)
+- [ ] Connect RecordingsView "Generate Clips" button with progress overlay
 
-**Implementation Steps:**
+### Phase 4: Projects Revamp — Local Project Browser
+- [ ] Rewire ProjectsView for localProjects (remove import modal, use local file paths)
+- [ ] Add "Open in Editor" button per clip
+- [ ] Add editorContext state in App.js
 
-- [x] **Step 1: Create EditorView.js shell** — Main layout with 4 zones (left panel, center preview, right rail+drawer, bottom timeline). All using theme.js tokens. Full-bleed layout (no padding/maxWidth).
+### Phase 5: Editor Core — Real Data + NLE
+- [ ] Create `src/renderer/components/VideoPreview.js` (HTML5 video + subtitle overlay)
+- [ ] Replace all EditorView mock data with real project/clip loading
+- [ ] Video playback, transcript sync, subtitle editing, timeline playhead, media panel, undo/redo, save to project JSON
 
-- [x] **Step 2: Left Panel — Transcript tab** — Mode pills (Karaoke/Word/Phrase), toolbar (Split/Merge/Words), search input, transcript rows with timecodes and highlight support. Collapsible + resizable panel.
+### Phase 6: AI Integration — Title/Caption Generation in Editor
+- [ ] Move GenerationPanel from ProjectsView into Editor's AI Tools drawer
+- [ ] Wire Anthropic API for real title/caption generation
+- [ ] Per-game context from gamesDb, voice mode (Hype/Chill)
 
-- [x] **Step 3: Left Panel — Edit Subtitles tab** — Toolbar (Split/Merge/Undo + track filter chips), segment list with editable text, timecodes, confidence dots, warnings, footer with selection actions.
+### Phase 7: Render Pipeline — "Ready to Share" → Output
+- [ ] Create `src/main/render.js` — ffmpeg filter_complex (subtitle burn-in + SFX mix + media compositing)
+- [ ] Wire "Ready to Share" button → render progress → output folder
+- [ ] Batch render for multiple clips
 
-- [x] **Step 4: Center Preview** — 9:16 video preview mockup with subtitle overlay, playback controls (time/play/speed), bottom bar (aspect ratio, background, layouts, expand).
-
-- [x] **Step 5: Editor Topbar** — Undo/redo/auto-save buttons, clip title selector (centered), zoom level + fullscreen + Save button.
-
-- [x] **Step 6: Right Rail** — 7 tool buttons (AI Tools, Subtitles, Headline, Brand Kit, Audio, Media, Text) that toggle a drawer panel open/closed.
-
-- [x] **Step 7: AI Tools drawer** — Voice fingerprint pills (Hype/Chill), context textarea, game selector dropdown, generate/regenerate button, title+caption result cards with accept/dismiss.
-
-- [x] **Step 8: Subtitles drawer** — Global section (mode, font/size, format toolbar, stroke, shadow, background, highlight swatches, position grid, punctuation toggles). Per-track accordions (Sub 1, Sub 2) with override controls.
-
-- [x] **Step 9: Brand Kit drawer** — Style presets (list with preview/select/delete), brand colors, fonts (primary/secondary), watermark section with position grid + opacity slider.
-
-- [x] **Step 10: Media drawer** — Upload drop zone, filter tabs (All/Images/GIFs/Audio), asset grid with thumbnails, add-to-timeline buttons.
-
-- [x] **Step 11: Timeline** — Toolbar (split, zoom slider, timecode, play, speed, collapse, overlay toggle). Ruler with time marks. Track rows (Caption, Sub 1, Sub 2, Video 1, Audio 1-4) with colored blocks. Playhead line. Resizable height. Collapse/expand.
-
-- [x] **Step 12: Wire into App.js** — Import EditorView, add "Editor" nav item (between Projects and Queue), add route, adjust wrapper to remove padding/maxWidth for editor view.
-
-- [x] **Step 13: Build + verify** — `npx react-scripts build`, `npm start`, visual check all panels.
-
-**Verification Criteria:**
-1. Build completes with no errors
-2. App launches, Editor tab appears between Projects and Queue in bottom nav
-3. All 4 zones render (left panel, center preview, right rail+drawer, timeline)
-4. Left panel tabs switch between Transcript and Edit Subtitles
-5. Right rail buttons toggle drawer panels
-6. Timeline collapse/expand works
-7. Left panel collapse/expand works
-8. No regressions in other views (Rename, Upload, Projects, Queue, Captions, Settings)
-
-## Up Next
-
-- [ ] Phase out legacy clipping software — track Vizard vs manual usage in tracker
-- [ ] Implement real platform API integrations:
-  - [ ] YouTube Data API (Shorts upload)
-  - [ ] TikTok API
-  - [ ] Instagram Graph API (Reels)
-  - [ ] Facebook Graph API (Reels)
-- [ ] Publishing automation — 30-second stagger across 6 accounts
-- [ ] Vizard publish integration (publish clips directly from Projects view)
-- [ ] Auto-fill tracker when publishing via platform APIs
-- [ ] Cloudflare R2 upload → Vizard project creation pipeline
+### Phase 8: Queue Rewiring — Local Rendered Clips
+- [ ] Create `src/main/publish.js` (platform API stubs)
+- [ ] Rewire QueueView to source clips from localProjects (renderStatus === "rendered")
+- [ ] Queue badge count from local data
 
 ## Known Issues
 

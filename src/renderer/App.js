@@ -86,7 +86,7 @@ export default function App() {
   const [renameHistory, setRenameHistory] = useState([]);
   const [managedFiles, setManagedFiles] = useState([]);
 
-  // Local projects (replaces Vizard cloud projects)
+  // Local projects
   const [localProjects, setLocalProjects] = useState([]);
 
   // Transcript modal

@@ -39,33 +39,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   storeSet: (key, value) => ipcRenderer.invoke("store:set", key, value),
   storeGetAll: () => ipcRenderer.invoke("store:getAll"),
 
-  // R2 Upload
-  r2Upload: (filePath, fileName) => ipcRenderer.invoke("r2:upload", filePath, fileName),
-  onUploadProgress: (callback) => {
-    ipcRenderer.on("r2:uploadProgress", (_, data) => callback(data));
-  },
-  removeUploadProgressListener: () => {
-    ipcRenderer.removeAllListeners("r2:uploadProgress");
-  },
-
-  // Vizard AI
-  vizardCreateProject: (videoUrl, projectName) => ipcRenderer.invoke("vizard:createProject", videoUrl, projectName),
-  vizardQueryProject: (projectId) => ipcRenderer.invoke("vizard:queryProject", projectId),
-  vizardGetSocialAccounts: () => ipcRenderer.invoke("vizard:getSocialAccounts"),
-  vizardPublishClip: (options) => ipcRenderer.invoke("vizard:publishClip", options),
-  vizardGenerateCaption: (options) => ipcRenderer.invoke("vizard:generateCaption", options),
-
   // Anthropic AI
   anthropicGenerate: (params) => ipcRenderer.invoke("anthropic:generate", params),
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
-
-  // Downloads
-  downloadClip: (url, savePath) => ipcRenderer.invoke("download:clip", url, savePath),
-  onDownloadProgress: (callback) => {
-    ipcRenderer.on("download:progress", (_, data) => callback(data));
-    return () => ipcRenderer.removeAllListeners("download:progress");
-  },
 
   // Platform info
   platform: process.platform,

@@ -21,126 +21,23 @@ const getProjectStatus = (p) => {
 };
 
 // ============ PROJECT LIST ============
-export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject, onImportProject, mainGame, gamesDb = [] }) {
-  const [showImport, setShowImport] = useState(false);
-  const [importId, setImportId] = useState("");
-  const [importError, setImportError] = useState("");
-  const [importing, setImporting] = useState(false);
+export function ProjectsListView({ localProjects = [], onSelect, mainGame, gamesDb = [] }) {
 
-  const handleImport = async () => {
-    const id = importId.trim();
-    if (!id) return;
-    if (vizardProjects.some((p) => String(p.id) === id)) {
-      setImportError("Project already exists");
-      return;
-    }
-    setImporting(true);
-    setImportError("");
-    try {
-      const result = await window.clipflow.vizardQueryProject(id);
-      if (result.error) {
-        setImportError(result.error);
-        setImporting(false);
-        return;
-      }
-      // Vizard API returns data at top level: { code, videos, projectName, projectId }
-      if (result.code !== 2000 || !result.projectId) {
-        setImportError(result.msg || "Project not found");
-        setImporting(false);
-        return;
-      }
-      // Map and deduplicate clips — videoId is THE unique identifier per Vizard API docs
-      // Vizard returns multiple re-edit versions sharing the same clipEditorUrl id; keep latest (highest videoId)
-      const mapped = (result.videos || []).map((v) => {
-        const editorMatch = (v.clipEditorUrl || "").match(/id=(\d+)/);
-        return {
-          id: String(v.videoId),
-          videoId: v.videoId,
-          title: v.title || "Untitled",
-          duration: Math.round((v.videoMsDuration || 0) / 1000),
-          viralScore: v.viralScore || 0,
-          viralReason: v.viralReason || "",
-          transcript: v.transcript || "",
-          videoUrl: v.videoUrl || "",
-          clipEditorUrl: v.clipEditorUrl || "",
-          clipEditorId: editorMatch ? editorMatch[1] : null,
-          status: "none",
-        };
-      });
-      // Deduplicate by clipEditorId — keep highest videoId (latest version)
-      const groups = {};
-      for (const c of mapped) {
-        const key = c.clipEditorId || c.id;
-        if (!groups[key] || c.videoId > (groups[key].videoId || 0)) groups[key] = c;
-      }
-      const clips = Object.values(groups);
-      const project = {
-        id: String(result.projectId || id),
-        name: result.projectName || `Vizard Project ${id}`,
-        status: result.videos && result.videos.length > 0 ? "ready" : "processing",
-        progress: result.progress || 0,
-        clips,
-        createdAt: new Date().toISOString(),
-        game: "Unknown",
-        gameTag: "?",
-        gameColor: T.accent,
-        imported: true,
-      };
-      if (onImportProject) onImportProject(project);
-      setImportId("");
-      setShowImport(false);
-    } catch (e) {
-      setImportError(e.message || "Import failed");
-    }
-    setImporting(false);
-  };
-
-  // Poll for processing projects every 30 seconds
-  useEffect(() => {
-    const processing = vizardProjects.filter((p) => p.status === "processing");
-    if (processing.length === 0) return;
-
-    const poll = async () => {
-      for (const proj of processing) {
-        if (onPollProject) await onPollProject(proj.id);
-      }
-    };
-
-    poll(); // poll immediately on mount
-    const interval = setInterval(poll, 30000);
-    return () => clearInterval(interval);
-  }, [vizardProjects, onPollProject]);
-
-  const importUI = (
-    <>
-      {showImport ? (
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <input value={importId} onChange={(e) => { setImportId(e.target.value); setImportError(""); }} onKeyDown={(e) => e.key === "Enter" && handleImport()} placeholder="Vizard Project ID" autoFocus style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${importError ? T.redBorder : T.accentBorder}`, background: "rgba(255,255,255,0.04)", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", width: 180 }} />
-          <button onClick={handleImport} disabled={importing} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: T.green, color: "#fff", fontSize: 11, fontWeight: 700, cursor: importing ? "default" : "pointer", fontFamily: T.font, opacity: importing ? 0.6 : 1 }}>{importing ? "..." : "Import"}</button>
-          <button onClick={() => { setShowImport(false); setImportError(""); setImportId(""); }} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-          {importError && <span style={{ color: T.red, fontSize: 11 }}>{importError}</span>}
-        </div>
-      ) : (
-        <button onClick={() => setShowImport(true)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Project</button>
-      )}
-    </>
-  );
-
-  if (vizardProjects.length === 0) {
+  if (localProjects.length === 0) {
     return (
       <div>
-        <PageHeader title="Projects" subtitle="Vizard AI clip review">{importUI}</PageHeader>
+        <PageHeader title="Projects" subtitle="Review generated clips" />
         <Card style={{ padding: 40, textAlign: "center" }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>{"\ud83c\udfac"}</div>
           <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>No projects yet</div>
-          <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Upload files in the Upload tab or add an existing Vizard project by ID.</div>
+          <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Projects will appear here once clips are generated.</div>
         </Card>
       </div>
     );
   }
 
   // Sort: processing first, then ready, then done, then error
-  const sorted = [...vizardProjects].sort((a, b) => {
+  const sorted = [...localProjects].sort((a, b) => {
     const order = { processing: 0, ready: 1, done: 2, error: 3 };
     const sa = order[getProjectStatus(a)] ?? 1;
     const sb = order[getProjectStatus(b)] ?? 1;
@@ -153,7 +50,7 @@ export function ProjectsListView({ vizardProjects = [], onSelect, onPollProject,
 
   return (
     <div>
-      <PageHeader title="Projects" subtitle={`${vizardProjects.length} project${vizardProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`}>{importUI}</PageHeader>
+      <PageHeader title="Projects" subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
         {sorted.map((p) => {
