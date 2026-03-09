@@ -106,6 +106,24 @@ npm start
 
 **Important:** In `src/main/main.js`, `isDev` is set to `false` so Electron loads from the `build/` folder. If you want hot reload, set `isDev = true` and run a React dev server on port 3000 first.
 
+### Quick Reference Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm start` | Dev mode (Electron loads from build/) |
+| `npx react-scripts build` | Production build (React → build/ folder) |
+| `npx electronmon .` | Electron dev mode with auto-reload |
+| `npm run make` | Package for distribution |
+
+### ClipFlow Verification Commands
+
+When running the global verification checklist, use these project-specific commands:
+
+1. **Build check:** `npx react-scripts build` — must complete with no errors
+2. **Dev launch:** `npm start` — app window must open
+3. **Electron dev:** `npx electronmon .` — for hot-reload testing
+4. **Full test:** Build → launch → verify changed feature → check adjacent features
+
 ## Design System
 
 The app uses a dark theme. Key tokens (from the v6.2 prototype and current theme.js):
@@ -305,6 +323,31 @@ Each game has its own YouTube Shorts description. Fega's descriptions include:
 9. **Add electron-store** for persistent settings/game library/tracker data
 10. **Implement real API integrations** — Vizard API, YouTube Data API, TikTok API, Instagram Graph API, Facebook Graph API
 
+## Schema Migration Requirement
+
+**Hard rule:** Every data structure change requires a migration function. No exceptions.
+
+- If you change a schema in electron-store, write the migration BEFORE changing anything else
+- Never modify stored data shapes without a migration path from the old shape to the new shape
+- Migration functions go in `src/main/main.js` near the store initialization
+- Each migration must handle the case where the old data doesn't exist (fresh install)
+- Test migrations against both fresh installs and existing data
+
+## Visual Design Standards
+
+These rules prevent recurring UI issues. Follow them for every component:
+
+| Element | Standard |
+|---------|----------|
+| Indicator dots | Minimum 7-8px with `boxShadow` glow (e.g., `0 0 6px <color>`) |
+| Scrollbar overflow | Outer container: `overflow: 'hidden'`. Inner container: `overflow: 'auto'` |
+| Long dropdowns | Split into columns or grouped sections when exceeding 10+ items |
+| Badge/tag placement | Always at the list-item level, never buried in detail views |
+| Font consistency | New components must match existing typography scale from `theme.js` |
+| Toggle states | Green = on, gray/red = off. Never green for both states |
+| Visual feedback | Every action needs confirmation: animations, color changes, or toast notifications |
+| Small indicators | Must have glow/shadow to be visible on dark backgrounds |
+
 ## Coding Conventions
 
 - React functional components with hooks
@@ -318,6 +361,96 @@ Each game has its own YouTube Shorts description. Fega's descriptions include:
 ## Reference Prototypes
 
 The `ClipFlow-v3.jsx` and `ClipFlow-v4.jsx` files in the project root are the **complete React prototypes** (each ~1100 lines) that show exactly how every view should look and behave. These are the UI spec — use them as reference when building real views. v4 is the latest.
+
+## Vizard API Integration
+
+**Base URL:** `https://elb-api.vizard.ai/hvizard-server-front/open-api/v1`
+**Auth Header:** `VIZARDAI_API_KEY: {apiKey}` (exact capitalization required)
+
+### Response Codes
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| `200` | Legacy success (project created) | Poll for completion |
+| `1000` | Processing (clips generating) | Poll again, check `progress` field (0-100) |
+| `2000` | Complete (clips ready) | Read `videos` array |
+| Other | Error | Show `msg` field to user |
+
+### Project Query Response Shape (`/project/query/{projectId}`)
+
+```javascript
+{
+  code: 2000,                    // status code
+  projectId: "28647499",         // string
+  projectName: "2026-03-03 AR Day25 Pt1",
+  progress: 100,                 // 0-100 (only meaningful when code === 1000)
+  videos: [{
+    videoId: 12345,              // NUMERIC — always String() for comparisons
+    title: "AI-generated title",
+    videoMsDuration: 45000,      // milliseconds (÷1000 for seconds)
+    viralScore: 85,              // 0-100+
+    viralReason: "text",
+    transcript: "speech text",
+    videoUrl: "https://...",     // expires after ~7 days
+    clipEditorUrl: "https://...?id=12345"  // editor link
+  }]
+}
+```
+
+### Source Video Filtering (Duration Heuristic)
+
+Located in `src/renderer/App.js` → `mapVizardClips()`:
+
+1. **Deduplicate re-edits:** Group by `clipEditorId` (regex `/id=(\d+)/` from URL), keep highest `videoId`
+2. **Identify source video:** Longest video that is both >180 seconds AND >3× the second-longest
+3. **Remove source video** from the clips array
+
+**Known fragility:** Fails if source video is short or if a clip exceeds 180 seconds.
+
+### Known Error Patterns
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Project not found" | `code !== 2000` or missing `projectId` | Verify project ID, check if still processing |
+| Clip duplication (18 entries for 2 clips) | Re-edits not deduplicated | `clipEditorId` grouping handles this |
+| videoUrl expired | URLs expire ~7 days after generation | Re-query the project for fresh URLs |
+| Parse failure | Non-JSON response from Vizard | Check API key, rate limits |
+
+### Clip State Merging
+
+When re-importing clips from Vizard, existing user edits (title, approval status) are preserved:
+```javascript
+// Existing clip data takes priority for user-edited fields
+{ ...freshClipFromAPI, title: existing.title, status: existing.status }
+```
+
+## Cloudflare R2 Configuration
+
+**Environment variables** (from `.env`):
+- `R2_ACCOUNT_ID` — Cloudflare account ID
+- `R2_ACCESS_KEY_ID` — S3-compatible access key
+- `R2_SECRET_ACCESS_KEY` — S3-compatible secret
+- `R2_BUCKET_NAME` — R2 bucket name
+- `R2_PUBLIC_BASE_URL` — Public URL prefix for uploaded files
+
+### Upload Pipeline
+
+1. File selected in UploadView → `window.clipflow.r2Upload(filePath, fileName)`
+2. Main process creates `S3Client` with R2 endpoint: `https://{accountId}.r2.cloudflarestorage.com`
+3. Multipart upload: 10MB parts, 4 concurrent, progress events via IPC
+4. Returns `{ success: true, url: publicUrl, fileName }`
+5. **Auto-handoff to Vizard:** `vizardCreateProject(publicUrl, projectName)`
+6. On Vizard success → project added to state with `status: "processing"`
+7. On Vizard failure → file stays at "uploaded" stage, error displayed
+
+### Upload Config
+
+```javascript
+// AWS SDK v3 Upload settings
+queueSize: 4,              // concurrent part uploads
+partSize: 1024 * 1024 * 10 // 10MB per part
+ContentType: "video/mp4"   // or "video/x-matroska" for .mkv
+```
 
 ## GitHub
 
