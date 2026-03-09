@@ -1,0 +1,57 @@
+{
+  "name": "clipflow",
+  "version": "1.0.0",
+  "description": "Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run dev:renderer\" \"wait-on http://localhost:3000 && electron .\"",
+    "dev:renderer": "react-scripts start",
+    "build:renderer": "react-scripts build",
+    "build": "npm run build:renderer && electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "homepage": "./",
+  "build": {
+    "appId": "com.clipflow.app",
+    "productName": "ClipFlow",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "src/main/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.png"
+    }
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1001.0",
+    "@aws-sdk/lib-storage": "^3.1001.0",
+    "chokidar": "^3.6.0",
+    "csv-parse": "^5.5.0",
+    "csv-stringify": "^6.4.0",
+    "dotenv": "^17.3.1",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "wait-on": "^7.2.0"
+  },
+  "browserslist": {
+    "production": [
+      "last 1 electron version"
+    ],
+    "development": [
+      "last 1 electron version"
+    ]
+  }
+}

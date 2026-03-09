@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0b10" />
+    <link rel="icon" href="./icon.png" />
+    <title>ClipFlow</title>
+    <style>
+      /* Fonts loaded locally from assets in production, CDN fallback for dev */
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #0a0b10;
+        color: #edeef2;
+        font-family: 'DM Sans', -apple-system, sans-serif;
+        overflow: hidden;
+        -webkit-app-region: no-drag;
+      }
+
+      /* Custom scrollbar — thin, contained within UI boundaries */
+      *::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      *::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 4px 0;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+      *::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      *::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+
+      /* PulseDot animation */
+      @keyframes pulse {
+        0%, 100% { opacity: 0; transform: scale(0.8); }
+        50% { opacity: 0.4; transform: scale(1.4); }
+      }
+
+      /* Scrollbar (Firefox) */
+      * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+
+      /* Disable text selection on UI elements */
+      button, [role="button"] {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Title bar drag region */
+      .titlebar-drag {
+        -webkit-app-region: drag;
+      }
+      .titlebar-drag button,
+      .titlebar-drag input,
+      .titlebar-drag select {
+        -webkit-app-region: no-drag;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
