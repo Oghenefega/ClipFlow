@@ -89,10 +89,15 @@
 
 ## Up Next — Pipeline Revamp (Continued)
 
-### Phase 6: AI Integration — Title/Caption Generation in Editor
-- [ ] Move GenerationPanel from ProjectsView into Editor's AI Tools drawer
-- [ ] Wire Anthropic API for real title/caption generation
-- [ ] Per-game context from gamesDb, voice mode (Hype/Chill)
+### Phase 6: AI Integration — Title/Caption Generation in Editor ✅
+- [x] Moved GenerationPanel from ProjectsView into Editor's AI Tools drawer
+- [x] Wired Anthropic API for real title/caption generation via `anthropicGenerate`
+- [x] Per-game context from gamesDb, voice mode (Hype/Chill) changes prompt tone
+- [x] Accept title → sets clipTitle + dirty, logs to history
+- [x] Accept caption → logs to history (for future render pipeline)
+- [x] Reject → tracks rejections, excluded from next generation
+- [x] Removed GenerationPanel + GameDropdown from ProjectsView (~260 lines stripped)
+- [x] Replaced "AI Titles" expand section with "Open in Editor" prompt
 
 ### Phase 7: Render Pipeline — "Ready to Share" → Output
 - [ ] Create `src/main/render.js` — ffmpeg filter_complex (subtitle burn-in + SFX mix + media compositing)

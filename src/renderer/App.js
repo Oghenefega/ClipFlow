@@ -356,7 +356,7 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} />;
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} />;
     }
     if (view === "queue") {
       return (
@@ -438,8 +438,6 @@ export default function App() {
           onEditClipTitle={handleEditClipTitle}
           onOpenInEditor={handleOpenInEditor}
           gamesDb={gamesDb}
-          anthropicApiKey={anthropicApiKey}
-          styleGuide={styleGuide}
         />
       );
     }

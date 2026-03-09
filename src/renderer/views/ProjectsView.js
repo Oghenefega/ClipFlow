@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar } from "../components/shared";
 
@@ -126,330 +126,13 @@ export function ProjectsListView({ localProjects = [], onSelect, mainGame, games
   );
 }
 
-// ============ CUSTOM DROPDOWN ============
-const GameDropdown = ({ value, onChange, projectGame, gamesDb = [] }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
-
-  const displayName = value || projectGame || "Select Game";
-  const activeGame = gamesDb.find((g) => g.name === (value || projectGame));
-  const activeColor = activeGame ? activeGame.color : T.accent;
-
-  const allOptions = [
-    { name: projectGame || "Project Game", value: "", color: gamesDb.find((g) => g.name === projectGame)?.color || T.accent },
-    ...gamesDb.filter((g) => g.name !== projectGame).map((g) => ({ name: g.name, value: g.name, color: g.color })),
-    { name: "Off-topic", value: "Just Chatting / Off-topic", color: T.textTertiary, separator: true },
-  ];
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${open ? T.accentBorder : T.border}`, borderRadius: 6, padding: "8px 12px", color: T.text, fontSize: 12, fontFamily: T.font, cursor: "pointer", whiteSpace: "nowrap", minWidth: 130 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: activeColor, flexShrink: 0 }} />
-        <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</span>
-        <span style={{ color: T.textTertiary, fontSize: 10, marginLeft: 4 }}>{open ? "▲" : "▼"}</span>
-      </button>
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, minWidth: 180, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, boxShadow: "0 12px 40px rgba(0,0,0,0.5)", zIndex: 50, overflow: "hidden", maxHeight: 260, overflowY: "auto" }}>
-          {allOptions.map((opt, i) => {
-            const isSel = opt.value === value;
-            return (
-              <React.Fragment key={opt.value || "__default"}>
-                {opt.separator && <div style={{ height: 1, background: T.border, margin: "4px 0" }} />}
-                <button
-                  onClick={() => { onChange(opt.value); setOpen(false); }}
-                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: isSel ? T.accentDim : "transparent", border: "none", color: isSel ? T.accentLight : T.text, fontSize: 12, fontFamily: T.font, cursor: "pointer", textAlign: "left" }}
-                  onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = T.surfaceHover; }}
-                  onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: 4, background: opt.color, flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{opt.name}</span>
-                  {isSel && <span style={{ color: T.accentLight, fontSize: 13 }}>{"\u2713"}</span>}
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============ GENERATION PANEL ============
-const GenerationPanel = ({ clip, project, gamesDb = [], anthropicApiKey, styleGuide, onEditClipTitle, onTitleHistory }) => {
-  const [userContext, setUserContext] = useState("");
-  const [themeOverride, setThemeOverride] = useState(""); // empty = project's game
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState("");
-  const [suggestions, setSuggestions] = useState(null); // { titles: [{text, why, visible}], captions: [{text, why, visible}] }
-  const [selectedTitle, setSelectedTitle] = useState(null); // index
-  const [selectedCaption, setSelectedCaption] = useState(null); // index
-  const [appliedTitle, setAppliedTitle] = useState(null);
-  const [appliedCaption, setAppliedCaption] = useState(null);
-  const [sessionRejections, setSessionRejections] = useState([]); // rejected texts from this session
-  const [undoStack, setUndoStack] = useState([]); // [{type, ...data}]
-
-  // Find game context for the active game
-  const activeGameName = themeOverride || project.game || "Unknown";
-  const activeGame = activeGameName === "Just Chatting / Off-topic" ? null : gamesDb.find((g) => g.name === activeGameName);
-
-  const handleGenerate = async () => {
-    if (!anthropicApiKey) { setError("Add your Anthropic API key in Settings first"); return; }
-    if (!clip.transcript) { setError("This clip has no transcript"); return; }
-    setGenerating(true);
-    setError("");
-    try {
-      const params = {
-        transcript: clip.transcript,
-        userContext: userContext.trim(),
-        gameName: activeGameName,
-        gameContextAuto: activeGame?.aiContextAuto || "",
-        gameContextUser: activeGame?.aiContextUser || "",
-        projectName: project.name || "",
-        rejectedSuggestions: sessionRejections,
-      };
-      const result = await window.clipflow.anthropicGenerate(params);
-      if (result.success && result.data) {
-        const titles = (result.data.titles || []).map((t) => ({ text: t.title || t.text || "", why: t.why || t.reason || "", visible: true }));
-        const captions = (result.data.captions || []).map((c) => ({ text: c.caption || c.text || "", why: c.why || c.reason || "", visible: true }));
-        if (suggestions) {
-          // Regenerating — fill only empty (rejected) slots
-          setSuggestions((prev) => {
-            const newTitles = [...prev.titles];
-            const newCaptions = [...prev.captions];
-            let tIdx = 0, cIdx = 0;
-            for (let i = 0; i < newTitles.length; i++) {
-              if (!newTitles[i].visible && tIdx < titles.length) { newTitles[i] = titles[tIdx++]; }
-            }
-            while (newTitles.length < 5 && tIdx < titles.length) { newTitles.push(titles[tIdx++]); }
-            for (let i = 0; i < newCaptions.length; i++) {
-              if (!newCaptions[i].visible && cIdx < captions.length) { newCaptions[i] = captions[cIdx++]; }
-            }
-            while (newCaptions.length < 5 && cIdx < captions.length) { newCaptions.push(captions[cIdx++]); }
-            return { titles: newTitles, captions: newCaptions };
-          });
-        } else {
-          setSuggestions({ titles, captions });
-        }
-      } else {
-        setError(result.error || "Generation failed");
-      }
-    } catch (err) {
-      setError(err.message || "Generation failed");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleReject = async (type, index) => {
-    const item = suggestions[type][index];
-    // Log rejection
-    try {
-      await window.clipflow.anthropicLogHistory({
-        type: "reject",
-        timestamp: new Date().toISOString(),
-        game: activeGameName,
-        [`${type === "titles" ? "title" : "caption"}Rejected`]: item.text,
-        reasonGiven: item.why,
-        userContext: userContext.trim(),
-      });
-    } catch (_) { /* non-critical */ }
-    setSessionRejections((prev) => [...prev, item.text]);
-    // Push to undo stack before hiding
-    setUndoStack((prev) => [...prev, { type: "reject", category: type, index, item: { ...item } }]);
-    setSuggestions((prev) => {
-      const updated = [...prev[type]];
-      updated[index] = { ...updated[index], visible: false };
-      return { ...prev, [type]: updated };
-    });
-  };
-
-  // Pick title → immediately apply as clip title
-  const handlePickTitle = async (index) => {
-    const item = suggestions.titles[index];
-    if (!item || !item.visible) return;
-    const oldTitle = clip.title;
-    setSelectedTitle(index);
-    setAppliedTitle(item.text);
-    // Log pick
-    try {
-      await window.clipflow.anthropicLogHistory({
-        type: "pick",
-        timestamp: new Date().toISOString(),
-        game: activeGameName,
-        titleChosen: item.text,
-        captionChosen: "",
-        transcriptSummary: (clip.transcript || "").substring(0, 100),
-        userContext: userContext.trim(),
-      });
-    } catch (_) { /* non-critical */ }
-    // Immediately apply to the clip
-    if (onEditClipTitle) {
-      if (onTitleHistory) onTitleHistory({ clipId: clip.id, oldTitle, newTitle: item.text });
-      onEditClipTitle(project.id, clip.id, item.text);
-    }
-    // Push to undo stack
-    setUndoStack((prev) => [...prev, { type: "titleChange", clipId: clip.id, oldTitle, newTitle: item.text }]);
-  };
-
-  // Pick caption → store locally (captions aren't part of clip metadata)
-  const handlePickCaption = async (index) => {
-    const item = suggestions.captions[index];
-    if (!item || !item.visible) return;
-    setSelectedCaption(index);
-    setAppliedCaption(item.text);
-    // Log pick
-    try {
-      await window.clipflow.anthropicLogHistory({
-        type: "pick",
-        timestamp: new Date().toISOString(),
-        game: activeGameName,
-        titleChosen: "",
-        captionChosen: item.text,
-        transcriptSummary: (clip.transcript || "").substring(0, 100),
-        userContext: userContext.trim(),
-      });
-    } catch (_) { /* non-critical */ }
-  };
-
-  // Unified undo — pops most recent action
-  const handleUndo = () => {
-    if (undoStack.length === 0) return;
-    const last = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, -1));
-
-    if (last.type === "reject") {
-      // Restore rejected suggestion
-      setSuggestions((prev) => {
-        const updated = [...prev[last.category]];
-        updated[last.index] = { ...last.item, visible: true };
-        return { ...prev, [last.category]: updated };
-      });
-      // Remove from session rejections
-      setSessionRejections((prev) => {
-        const idx = prev.lastIndexOf(last.item.text);
-        if (idx >= 0) { const n = [...prev]; n.splice(idx, 1); return n; }
-        return prev;
-      });
-    } else if (last.type === "titleChange") {
-      // Revert the title
-      if (onEditClipTitle) {
-        if (onTitleHistory) onTitleHistory({ clipId: last.clipId, oldTitle: last.newTitle, newTitle: last.oldTitle });
-        onEditClipTitle(project.id, last.clipId, last.oldTitle);
-      }
-      setAppliedTitle(null);
-      setSelectedTitle(null);
-    }
-  };
-
-  const hasRejected = suggestions && (suggestions.titles.some((t) => !t.visible) || suggestions.captions.some((c) => !c.visible));
-  const hasApiKey = Boolean(anthropicApiKey);
-
-  const SuggestionItem = ({ item, index, type, selected, onPick, onReject }) => {
-    if (!item.visible) return null;
-    const isSel = selected === index;
-    return (
-      <div style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${isSel ? T.greenBorder : T.border}`, background: isSel ? T.greenDim : "rgba(255,255,255,0.02)", marginBottom: 6, transition: "all 0.15s ease" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ flex: 1, color: T.text, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{item.text}</div>
-          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-            <button onClick={() => onPick(index)} title="Use this" style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${isSel ? T.greenBorder : T.border}`, background: isSel ? T.green : "rgba(255,255,255,0.04)", color: isSel ? "#fff" : T.textTertiary, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2713"}</button>
-            <button onClick={() => onReject(type, index)} title="Reject" style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.textTertiary, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2717"}</button>
-          </div>
-        </div>
-        {item.why && (
-          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4, lineHeight: 1.4, fontStyle: "italic" }}>{item.why}</div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div style={{ marginTop: 14, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-      {/* Applied results banner */}
-      {(appliedTitle || appliedCaption) && (
-        <div style={{ padding: "10px 14px", borderRadius: 8, background: T.greenDim, border: `1px solid ${T.greenBorder}`, marginBottom: 12 }}>
-          {appliedTitle && <div style={{ color: T.green, fontSize: 13, fontWeight: 600 }}>{"\u2713"} Title applied: {appliedTitle}</div>}
-          {appliedCaption && <div style={{ color: T.green, fontSize: 13, fontWeight: 600, marginTop: appliedTitle ? 4 : 0 }}>{"\u2713"} Caption: {appliedCaption}</div>}
-        </div>
-      )}
-
-      {/* Controls row */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <input
-          value={userContext}
-          onChange={(e) => setUserContext(e.target.value)}
-          placeholder="Additional context (optional)..."
-          style={{ flex: 1, minWidth: 180, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", color: T.text, fontSize: 12, fontFamily: T.font, outline: "none" }}
-        />
-        <GameDropdown value={themeOverride} onChange={setThemeOverride} projectGame={project.game} gamesDb={gamesDb} />
-        <button
-          onClick={handleGenerate}
-          disabled={generating || !hasApiKey}
-          style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: hasApiKey ? `linear-gradient(135deg, ${T.accent}, ${T.accentLight})` : T.border, color: hasApiKey ? "#fff" : T.textTertiary, fontSize: 12, fontWeight: 700, cursor: hasApiKey && !generating ? "pointer" : "not-allowed", fontFamily: T.font, whiteSpace: "nowrap", opacity: generating ? 0.6 : 1 }}
-        >
-          {generating ? "Generating..." : suggestions ? "Regenerate" : "\u2728 Generate"}
-        </button>
-        {undoStack.length > 0 && (
-          <button onClick={handleUndo} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\u21a9"} Undo</button>
-        )}
-      </div>
-
-      {!hasApiKey && <div style={{ color: T.yellow, fontSize: 11, marginBottom: 8 }}>Add your Anthropic API key in Settings to use AI generation</div>}
-      {error && <div style={{ color: T.red, fontSize: 12, marginBottom: 8 }}>{error}</div>}
-
-      {/* Suggestions display */}
-      {suggestions && (
-        <div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            {/* Titles column */}
-            <div>
-              <div style={{ color: T.accentLight, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Titles</div>
-              {suggestions.titles.map((t, i) => (
-                <SuggestionItem key={i} item={t} index={i} type="titles" selected={selectedTitle} onPick={handlePickTitle} onReject={handleReject} />
-              ))}
-              {suggestions.titles.every((t) => !t.visible) && (
-                <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 12 }}>All rejected — click Regenerate</div>
-              )}
-            </div>
-            {/* Captions column */}
-            <div>
-              <div style={{ color: T.accentLight, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Captions</div>
-              {suggestions.captions.map((c, i) => (
-                <SuggestionItem key={i} item={c} index={i} type="captions" selected={selectedCaption} onPick={handlePickCaption} onReject={handleReject} />
-              ))}
-              {suggestions.captions.every((c) => !c.visible) && (
-                <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 12 }}>All rejected — click Regenerate</div>
-              )}
-            </div>
-          </div>
-
-          {/* Action row */}
-          {hasRejected && (
-            <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
-              <button onClick={handleGenerate} disabled={generating} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 600, cursor: generating ? "default" : "pointer", fontFamily: T.font, opacity: generating ? 0.6 : 1 }}>
-                {generating ? "..." : "Regenerate Empty Slots"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+// ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, gamesDb, anthropicApiKey, styleGuide }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, gamesDb }) {
   const [filter, setFilter] = useState("all");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
-  const [titleHistory, setTitleHistory] = useState([]); // [{clipId, oldTitle, newTitle}]
   const [expandedClip, setExpandedClip] = useState(null); // clipId or null
 
   const clips = project.clips || [];
@@ -462,15 +145,6 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
     <div>
       <PageHeader title={project.name} subtitle={`${approved} approved \u00b7 ${pending} pending`} backAction={onBack}>
         <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
-        {titleHistory.length > 0 && (
-          <button onClick={() => {
-            const last = titleHistory[titleHistory.length - 1];
-            onEditClipTitle(project.id, last.clipId, last.oldTitle);
-            setTitleHistory((h) => h.slice(0, -1));
-          }} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>
-            {"\u21a9"} Undo rename
-          </button>
-        )}
       </PageHeader>
 
       <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={setFilter} />
@@ -487,8 +161,8 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
                 <div style={{ flex: 1 }}>
                   {editId === clip.id ? (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <input value={editText} onChange={(e) => setEditText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setTitleHistory((h) => [...h, { clipId: clip.id, oldTitle: clip.title, newTitle: editText }]); onEditClipTitle(project.id, clip.id, editText); setEditId(null); } if (e.key === "Escape") setEditId(null); }} autoFocus style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 15, fontWeight: 600, fontFamily: T.font, outline: "none" }} />
-                      <button onClick={() => { setTitleHistory((h) => [...h, { clipId: clip.id, oldTitle: clip.title, newTitle: editText }]); onEditClipTitle(project.id, clip.id, editText); setEditId(null); }} style={{ background: T.accent, border: "none", borderRadius: T.radius.md, padding: "10px 18px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+                      <input value={editText} onChange={(e) => setEditText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { onEditClipTitle(project.id, clip.id, editText); setEditId(null); } if (e.key === "Escape") setEditId(null); }} autoFocus style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 15, fontWeight: 600, fontFamily: T.font, outline: "none" }} />
+                      <button onClick={() => { onEditClipTitle(project.id, clip.id, editText); setEditId(null); }} style={{ background: T.accent, border: "none", borderRadius: T.radius.md, padding: "10px 18px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
                       <button onClick={() => setEditId(null)} style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.textTertiary, fontSize: 13, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                     </div>
                   ) : (
@@ -522,15 +196,25 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
                 </div>
               )}
               {expandedClip === clip.id && clipTranscript && (
-                <GenerationPanel
-                  clip={{ ...clip, transcript: clipTranscript }}
-                  project={project}
-                  gamesDb={gamesDb}
-                  anthropicApiKey={anthropicApiKey}
-                  styleGuide={styleGuide}
-                  onEditClipTitle={onEditClipTitle}
-                  onTitleHistory={(entry) => setTitleHistory((h) => [...h, entry])}
-                />
+                <div style={{ marginTop: 14, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, background: "rgba(139,92,246,0.06)", border: `1px solid ${T.accentBorder}` }}>
+                    <span style={{ fontSize: 16 }}>✦</span>
+                    <div style={{ flex: 1, color: T.textSecondary, fontSize: 12 }}>
+                      AI title & caption generation is available in the <strong style={{ color: T.text }}>Editor</strong>
+                    </div>
+                    <button
+                      onClick={() => onOpenInEditor(project.id, clip.id)}
+                      style={{
+                        padding: "6px 14px", borderRadius: 6, border: "none",
+                        background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
+                        color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                        whiteSpace: "nowrap", boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
+                      }}
+                    >
+                      🎬 Open in Editor
+                    </button>
+                  </div>
+                </div>
               )}
             </Card>
           );

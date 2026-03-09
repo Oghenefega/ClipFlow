@@ -155,7 +155,7 @@ const fmtTime = (sec) => {
 };
 
 // ============ EDITOR VIEW ============
-export default function EditorView({ gamesDb = [], editorContext, localProjects = [] }) {
+export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", styleGuide = "" }) {
   // ── Resolve real project/clip data from editorContext ──
   const project = editorContext ? localProjects.find((p) => p.id === editorContext.projectId) : null;
   const clip = project ? (project.clips || []).find((c) => c.id === editorContext.clipId) : null;
@@ -191,7 +191,10 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   const [voiceMode, setVoiceMode] = useState("hype");
   const [aiContext, setAiContext] = useState("");
   const [aiGame, setAiGame] = useState(gamesDb[0]?.name || "Arc Raiders");
-  const [aiGenerated, setAiGenerated] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState(null); // { titles: [], captions: [] }
+  const [aiRejections, setAiRejections] = useState([]); // rejected text strings this session
 
   // ── Subtitles drawer ──
   const [subMode, setSubMode] = useState("karaoke");
@@ -385,9 +388,71 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     }
   };
 
-  // ── AI cards (populated via GenerationPanel or stored on clip) ──
-  const aiTitles = clip?.aiTitles || [];
-  const aiCaptions = clip?.aiCaptions || [];
+  // ── AI generation handler ──
+  const handleAiGenerate = useCallback(async () => {
+    if (!clip || !project || aiGenerating) return;
+    if (!anthropicApiKey) { setAiError("Anthropic API key not set. Go to Settings."); return; }
+    setAiGenerating(true);
+    setAiError("");
+    try {
+      // Build clip transcript from project transcription
+      const clipStart = clip.startTime || 0;
+      const clipEnd = clip.endTime || 0;
+      const transcript = project?.transcription?.segments
+        ? project.transcription.segments
+            .filter((s) => s.start >= clipStart && s.end <= clipEnd)
+            .map((s) => s.text)
+            .join(" ")
+            .trim()
+        : "";
+      const activeGame = gamesDb.find((g) => g.name === aiGame);
+      const result = await window.clipflow.anthropicGenerate({
+        transcript,
+        userContext: `${voiceMode === "hype" ? "Use HYPE energy — punchy, exciting, gaming energy." : "Use CHILL tone — laid-back, conversational, relatable."} ${aiContext}`.trim(),
+        gameName: aiGame,
+        gameContextAuto: activeGame?.aiContextAuto || "",
+        gameContextUser: activeGame?.aiContextUser || "",
+        projectName: project.name || "",
+        rejectedSuggestions: aiRejections,
+      });
+      if (result.error) {
+        setAiError(result.error);
+      } else if (result.success && result.data) {
+        setAiSuggestions(result.data);
+      }
+    } catch (e) {
+      setAiError(e.message);
+    }
+    setAiGenerating(false);
+  }, [clip, project, aiGenerating, anthropicApiKey, aiGame, aiContext, voiceMode, gamesDb, aiRejections]);
+
+  // ── AI accept/reject handlers ──
+  const handleAiAcceptTitle = useCallback((titleObj) => {
+    const newTitle = titleObj.title || titleObj.text || "";
+    setClipTitle(newTitle);
+    setDirty(true);
+    // Log to history
+    window.clipflow?.anthropicLogHistory?.({
+      type: "pick", titleChosen: newTitle, game: aiGame, timestamp: Date.now(),
+    });
+  }, [aiGame]);
+
+  const handleAiAcceptCaption = useCallback((captionObj) => {
+    // Store caption on clip for render pipeline
+    const captionText = captionObj.caption || captionObj.text || "";
+    // Mark dirty — caption will be saved with next save
+    setDirty(true);
+    window.clipflow?.anthropicLogHistory?.({
+      type: "pick", captionChosen: captionText, game: aiGame, timestamp: Date.now(),
+    });
+  }, [aiGame]);
+
+  const handleAiReject = useCallback((text) => {
+    setAiRejections((prev) => [...prev, text]);
+    window.clipflow?.anthropicLogHistory?.({
+      type: "reject", titleRejected: text, game: aiGame, timestamp: Date.now(),
+    });
+  }, [aiGame]);
 
   // ── Brand presets (static for now — Phase 7 will make these configurable) ──
   const brandPresets = [
@@ -853,107 +918,169 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // ═══════════════════════════════════════
   // RENDER: AI TOOLS DRAWER
   // ═══════════════════════════════════════
-  const renderAIPanel = () => (
-    <div>
-      {/* Voice fingerprint bar */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "8px 12px", background: S2, borderBottom: `1px solid ${BD}`, gap: 8,
-      }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary }}>Voice</span>
-          <span style={{ fontSize: 10, color: T.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {voiceMode === "hype" ? "Hype — Gaming energy, punchy hooks" : "Chill — Laid-back, conversational"}
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <Pill label="🔥 Hype" active={voiceMode === "hype"} onClick={() => setVoiceMode("hype")} />
-          <Pill label="😌 Chill" active={voiceMode === "chill"} onClick={() => setVoiceMode("chill")} />
-        </div>
-      </div>
+  const renderAIPanel = () => {
+    const activeGame = gamesDb.find((g) => g.name === aiGame);
+    const titles = aiSuggestions?.titles || [];
+    const captions = aiSuggestions?.captions || [];
 
-      {/* Context textarea */}
-      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${BD}` }}>
-        <textarea
-          value={aiContext}
-          onChange={e => setAiContext(e.target.value)}
-          placeholder="Additional context (optional)…"
-          rows={2}
-          style={{
-            width: "100%", background: S2, border: `1px solid ${BD}`, borderRadius: 5,
-            padding: "6px 9px", color: T.text, fontSize: 11, fontFamily: T.font,
-            outline: "none", resize: "none", minHeight: 30, lineHeight: 1.5,
-          }}
-        />
-      </div>
-
-      {/* Game select + Generate */}
-      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${BD}`, display: "flex", gap: 8, alignItems: "center" }}>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 6, background: S2, border: `1px solid ${BD}`,
-          borderRadius: 5, padding: "6px 10px", fontSize: 11, color: T.textSecondary,
-          cursor: "pointer", whiteSpace: "nowrap", fontFamily: T.font, flexShrink: 0,
+    return (
+      <div>
+        {/* Voice fingerprint bar */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "8px 12px", background: S2, borderBottom: `1px solid ${BD}`, gap: 8,
         }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: gamesDb[0]?.color || T.accent }} />
-          <span>{aiGame}</span>
-          <span style={{ fontSize: 9, opacity: 0.5 }}>▾</span>
-        </button>
-        <button
-          onClick={() => setAiGenerated(true)}
-          style={{
-            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-            background: T.accent, color: "#fff", border: "none", borderRadius: 5,
-            padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-          }}
-        >
-          ✦ {aiGenerated ? "Regenerate" : "Generate"}
-        </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: T.textTertiary }}>Voice</span>
+            <span style={{ fontSize: 10, color: T.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {voiceMode === "hype" ? "Hype — Gaming energy, punchy hooks" : "Chill — Laid-back, conversational"}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+            <Pill label="🔥 Hype" active={voiceMode === "hype"} onClick={() => setVoiceMode("hype")} />
+            <Pill label="😌 Chill" active={voiceMode === "chill"} onClick={() => setVoiceMode("chill")} />
+          </div>
+        </div>
+
+        {/* Context textarea */}
+        <div style={{ padding: "10px 12px", borderBottom: `1px solid ${BD}` }}>
+          <textarea
+            value={aiContext}
+            onChange={e => setAiContext(e.target.value)}
+            placeholder="Additional context (optional)…"
+            rows={2}
+            style={{
+              width: "100%", background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+              padding: "6px 9px", color: T.text, fontSize: 11, fontFamily: T.font,
+              outline: "none", resize: "none", minHeight: 30, lineHeight: 1.5,
+            }}
+          />
+        </div>
+
+        {/* Game select + Generate */}
+        <div style={{ padding: "8px 12px", borderBottom: `1px solid ${BD}`, display: "flex", gap: 8, alignItems: "center" }}>
+          <select
+            value={aiGame}
+            onChange={(e) => setAiGame(e.target.value)}
+            style={{
+              background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+              padding: "6px 10px", fontSize: 11, color: T.textSecondary,
+              cursor: "pointer", fontFamily: T.font, flexShrink: 0, outline: "none",
+            }}
+          >
+            {gamesDb.map((g) => (
+              <option key={g.tag} value={g.name}>{g.tag} — {g.name}</option>
+            ))}
+            <option value="Just Chatting / Off-topic">Just Chatting / Off-topic</option>
+          </select>
+          <button
+            onClick={handleAiGenerate}
+            disabled={aiGenerating || !anthropicApiKey}
+            style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+              background: aiGenerating ? "rgba(255,255,255,0.06)" : (!anthropicApiKey ? "rgba(255,255,255,0.04)" : T.accent),
+              color: aiGenerating || !anthropicApiKey ? T.textMuted : "#fff",
+              border: "none", borderRadius: 5, padding: "6px 10px", fontSize: 11, fontWeight: 600,
+              cursor: aiGenerating || !anthropicApiKey ? "default" : "pointer", fontFamily: T.font,
+              opacity: !anthropicApiKey ? 0.5 : 1,
+            }}
+          >
+            {aiGenerating ? "⏳ Generating..." : `✦ ${aiSuggestions ? "Regenerate" : "Generate"}`}
+          </button>
+        </div>
+
+        {/* Error */}
+        {aiError && (
+          <div style={{ padding: "8px 12px", color: T.red, fontSize: 11, background: "rgba(248,113,113,0.08)", borderBottom: `1px solid ${BD}` }}>
+            {aiError}
+          </div>
+        )}
+
+        {/* Results or empty state */}
+        {!aiSuggestions && !aiGenerating ? (
+          <div style={{ padding: "28px 16px", textAlign: "center", color: T.textTertiary, fontSize: 12, lineHeight: 1.6 }}>
+            {!anthropicApiKey ? (
+              <>Set your <strong style={{ color: T.textSecondary }}>Anthropic API key</strong> in Settings first</>
+            ) : (
+              <>Set your game category,<br />add context if you want,<br />then hit <strong style={{ color: T.textSecondary }}>Generate</strong></>
+            )}
+          </div>
+        ) : aiGenerating ? (
+          <div style={{ padding: "28px 16px", textAlign: "center", color: T.textTertiary, fontSize: 12 }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>✦</div>
+            Generating titles & captions...
+          </div>
+        ) : (
+          <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
+            {/* Titles */}
+            <SectionLabel>Titles ({titles.length})</SectionLabel>
+            {titles.map((t, i) => {
+              const text = t.title || t.text || "";
+              const isRejected = aiRejections.includes(text);
+              return (
+                <div key={i} style={{
+                  background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+                  padding: "9px 10px", position: "relative", opacity: isRejected ? 0.35 : 1,
+                  transition: "opacity 0.2s",
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
+                    {text}
+                  </div>
+                  <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{t.why}</div>
+                  {!isRejected && (
+                    <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
+                      <Ib title="Apply as title" onClick={() => handleAiAcceptTitle(t)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
+                      <Ib title="Dismiss" onClick={() => handleAiReject(text)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Captions */}
+            <SectionLabel style={{ marginTop: 6 }}>Captions ({captions.length})</SectionLabel>
+            {captions.map((c, i) => {
+              const text = c.caption || c.text || "";
+              const isRejected = aiRejections.includes(text);
+              return (
+                <div key={i} style={{
+                  background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+                  padding: "9px 10px", position: "relative", opacity: isRejected ? 0.35 : 1,
+                  transition: "opacity 0.2s",
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
+                    {text}
+                  </div>
+                  <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{c.why}</div>
+                  {!isRejected && (
+                    <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
+                      <Ib title="Apply caption" onClick={() => handleAiAcceptCaption(c)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
+                      <Ib title="Dismiss" onClick={() => handleAiReject(text)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Regenerate hint if rejections */}
+            {aiRejections.length > 0 && (
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                <button
+                  onClick={handleAiGenerate}
+                  style={{
+                    background: "transparent", border: `1px solid ${T.accentBorder}`, borderRadius: 5,
+                    padding: "5px 14px", fontSize: 11, color: T.accentLight, cursor: "pointer", fontFamily: T.font,
+                  }}
+                >
+                  ✦ Regenerate ({aiRejections.length} rejected)
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Results or empty state */}
-      {!aiGenerated ? (
-        <div style={{ padding: "28px 16px", textAlign: "center", color: T.textTertiary, fontSize: 12, lineHeight: 1.6 }}>
-          Set your game category,<br />add context if you want,<br />then hit <strong style={{ color: T.textSecondary }}>Generate</strong>
-        </div>
-      ) : (
-        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-          <SectionLabel>Titles</SectionLabel>
-          {aiTitles.map(card => (
-            <div key={card.id} style={{
-              background: S2, border: `1px solid ${BD}`, borderRadius: 5,
-              padding: "9px 10px", position: "relative",
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 44, marginBottom: 4 }}>
-                {card.text} <span style={{ color: T.accentLight, fontWeight: 400, fontSize: 11 }}>#ArcRaiders</span>
-              </div>
-              <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{card.why}</div>
-              <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
-                <Ib title="Accept" style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✓</Ib>
-                <Ib title="Dismiss" style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
-              </div>
-            </div>
-          ))}
-
-          <SectionLabel>Captions</SectionLabel>
-          {aiCaptions.map(card => (
-            <div key={card.id} style={{
-              background: S2, border: `1px solid ${BD}`, borderRadius: 5,
-              padding: "9px 10px", position: "relative",
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 44, marginBottom: 4 }}>
-                {card.text}
-              </div>
-              <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{card.why}</div>
-              <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
-                <Ib title="Accept" style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✓</Ib>
-                <Ib title="Dismiss" style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   // ═══════════════════════════════════════
   // RENDER: SUBTITLES DRAWER
