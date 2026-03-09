@@ -499,7 +499,8 @@ export default function App() {
   });
 
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
-  const totalApproved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id)).length;
+  const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
+  const totalApproved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title)).length;
 
   const nav = (id) => { setView(id); setSelProj(null); };
 

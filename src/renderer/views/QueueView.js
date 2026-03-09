@@ -123,7 +123,8 @@ export default function QueueView({
   savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, gamesDb,
 }) {
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
-  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id));
+  const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
+  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title));
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
@@ -187,7 +188,7 @@ export default function QueueView({
   const logPost = (clip, date, day, time, isScheduled) => {
     const gt = extractGameTag(clip.title) || "unknown";
     const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
-    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "vizard", scheduled: !!isScheduled }]);
+    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "vizard", scheduled: !!isScheduled }]);
   };
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
