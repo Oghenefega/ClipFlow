@@ -67,6 +67,15 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectAddClip: (projectId, clipData) => ipcRenderer.invoke("project:addClip", projectId, clipData),
   projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
 
+  // Pipeline
+  generateClips: (sourceFile, gameData) => ipcRenderer.invoke("pipeline:generateClips", sourceFile, gameData),
+  onPipelineProgress: (callback) => {
+    ipcRenderer.on("pipeline:progress", (_, data) => callback(data));
+  },
+  removePipelineProgressListener: () => {
+    ipcRenderer.removeAllListeners("pipeline:progress");
+  },
+
   // Anthropic AI
   anthropicGenerate: (params) => ipcRenderer.invoke("anthropic:generate", params),
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),

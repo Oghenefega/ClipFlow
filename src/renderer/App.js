@@ -145,7 +145,17 @@ export default function App() {
         if (all.savedTemplates) setSavedTemplates(all.savedTemplates.map((p) => ({ ...p, template: migrateTemplate(p.template) })));
         if (all.mainGameHistory) setMainGameHistory(all.mainGameHistory);
         if (all.captionTemplates) setCaptionTemplates(all.captionTemplates);
-        if (all.localProjects) setLocalProjects(all.localProjects);
+        // Load projects from disk (file-based), fall back to store
+        if (window.clipflow?.projectList) {
+          const projResult = await window.clipflow.projectList();
+          if (projResult?.projects?.length > 0) {
+            setLocalProjects(projResult.projects);
+          } else if (all.localProjects) {
+            setLocalProjects(all.localProjects);
+          }
+        } else if (all.localProjects) {
+          setLocalProjects(all.localProjects);
+        }
         if (all.outputFolder) setOutputFolder(all.outputFolder);
         if (all.sfxFolder) setSfxFolder(all.sfxFolder);
         if (all.renameHistory) setRenameHistory(all.renameHistory);
@@ -312,6 +322,12 @@ export default function App() {
           watchFolder={watchFolder}
           gamesDb={gamesDb}
           localProjects={localProjects}
+          onProjectCreated={(projectId) => {
+            // Refresh local projects list from disk
+            window.clipflow?.projectList().then((result) => {
+              if (result?.projects) setLocalProjects(result.projects);
+            });
+          }}
         />
       );
     }

@@ -8,6 +8,7 @@ const Store = require("electron-store");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
+const highlights = require("./highlights");
 
 const store = new Store({
   name: "clipflow-settings",
@@ -485,6 +486,175 @@ ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) =>
     const watchFolder = store.get("watchFolder");
     return projects.deleteClip(watchFolder, projectId, clipId, deleteFile);
   } catch (err) { return { error: err.message }; }
+});
+
+// ============ PIPELINE: Generate Clips ============
+// Orchestrates: extract audio → transcribe → analyze loudness → detect highlights → cut clips → thumbnails → project
+ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
+  const watchFolder = store.get("watchFolder");
+  const sendProgress = (stage, pct, detail) => {
+    mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail });
+  };
+
+  try {
+    // Stage 0: Probe source file
+    sendProgress("probing", 0, "Analyzing source file...");
+    const probeResult = await ffmpeg.probe(sourceFile);
+    if (probeResult.error) return { error: `Probe failed: ${probeResult.error}` };
+
+    // Stage 1: Create project
+    sendProgress("creating", 5, "Creating project...");
+    const projResult = projects.createProject(watchFolder, {
+      sourceFile,
+      name: gameData.name || path.basename(sourceFile, path.extname(sourceFile)),
+      game: gameData.game || "Unknown",
+      gameTag: gameData.gameTag || "",
+      gameColor: gameData.gameColor || "#888",
+      sourceDuration: probeResult.duration,
+    });
+    if (projResult.error) return { error: projResult.error };
+    const project = projResult.project;
+    const clipsDir = projects.getClipsDir(watchFolder, project.id);
+
+    // Stage 2: Extract audio
+    sendProgress("extracting", 10, "Extracting audio...");
+    project.status = "transcribing";
+    projects.saveProject(watchFolder, project);
+
+    const wavPath = path.join(projects.getProjectsRoot(watchFolder), project.id, "audio.wav");
+    const audioResult = await ffmpeg.extractAudio(sourceFile, wavPath);
+    if (audioResult.error) {
+      project.status = "failed";
+      projects.saveProject(watchFolder, project);
+      return { error: `Audio extraction failed: ${audioResult.error}` };
+    }
+
+    // Stage 3: Transcribe
+    sendProgress("transcribing", 20, "Transcribing with Whisper...");
+    const whisperOpts = {
+      binaryPath: store.get("whisperBinaryPath") || "whisper",
+      modelPath: store.get("whisperModelPath") || "",
+      model: store.get("whisperModel") || "large-v3",
+      language: "en",
+      threads: 8,
+      useGpu: true,
+      onProgress: (pct) => {
+        // Map whisper's 0-100 to our 20-60 range
+        sendProgress("transcribing", 20 + Math.round(pct * 0.4), `Transcribing... ${pct}%`);
+      },
+    };
+
+    const transcription = await whisper.transcribe(wavPath, whisperOpts);
+    if (transcription.error) {
+      project.status = "failed";
+      projects.saveProject(watchFolder, project);
+      return { error: `Transcription failed: ${transcription.error}` };
+    }
+
+    project.transcription = transcription;
+    project.status = "analyzing";
+    projects.saveProject(watchFolder, project);
+
+    // Stage 4: Analyze loudness
+    sendProgress("analyzing", 65, "Analyzing audio energy...");
+    const loudnessResult = await ffmpeg.analyzeLoudness(wavPath, 1);
+
+    // Stage 5: Detect highlights
+    sendProgress("detecting", 70, "Detecting highlight moments...");
+    const gameKeywords = gameData.keywords || [];
+    const highlightSegments = highlights.detectHighlights(
+      transcription,
+      loudnessResult,
+      {
+        keywords: gameKeywords,
+        gameName: gameData.game,
+        minClipDuration: 15,
+        maxClipDuration: 60,
+        targetClipCount: 30,
+      }
+    );
+
+    // Stage 6: Cut clips + generate thumbnails
+    project.status = "clipping";
+    projects.saveProject(watchFolder, project);
+
+    const totalClips = highlightSegments.length;
+    for (let i = 0; i < totalClips; i++) {
+      const hl = highlightSegments[i];
+      const clipNum = String(i + 1).padStart(3, "0");
+      const clipFileName = `clip_${clipNum}.mp4`;
+      const clipPath = path.join(clipsDir, clipFileName);
+      const thumbPath = path.join(clipsDir, `clip_${clipNum}_thumb.jpg`);
+
+      const pct = 75 + Math.round((i / totalClips) * 20);
+      sendProgress("cutting", pct, `Cutting clip ${i + 1}/${totalClips}...`);
+
+      try {
+        await ffmpeg.cutClip(sourceFile, clipPath, hl.start, hl.end);
+      } catch (e) {
+        // Skip failed clips but continue
+        continue;
+      }
+
+      // Generate thumbnail at midpoint
+      const thumbTime = hl.start + (hl.end - hl.start) / 2;
+      try {
+        await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
+      } catch (e) { /* non-critical */ }
+
+      // Extract subtitle segments for this clip from the transcription
+      const clipSubtitles = (transcription.segments || [])
+        .filter((s) => s.start < hl.end && s.end > hl.start)
+        .map((s) => ({
+          start: Math.max(0, s.start - hl.start),
+          end: Math.min(hl.end - hl.start, s.end - hl.start),
+          text: s.text,
+          words: (s.words || []).map((w) => ({
+            ...w,
+            start: Math.max(0, w.start - hl.start),
+            end: Math.min(hl.end - hl.start, w.end - hl.start),
+          })),
+        }));
+
+      project.clips.push({
+        id: projects.generateClipId(),
+        title: "",
+        caption: "",
+        startTime: hl.start,
+        endTime: hl.end,
+        highlightScore: hl.score,
+        highlightReason: hl.reason,
+        status: "none",
+        subtitles: { sub1: clipSubtitles, sub2: [] },
+        sfx: [],
+        media: [],
+        renderStatus: "pending",
+        renderPath: null,
+        filePath: clipPath,
+        thumbnailPath: fs.existsSync(thumbPath) ? thumbPath : null,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Stage 7: Save final project
+    sendProgress("saving", 98, "Saving project...");
+    project.status = "ready";
+    projects.saveProject(watchFolder, project);
+
+    // Clean up wav file
+    try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
+
+    sendProgress("complete", 100, `Generated ${project.clips.length} clips`);
+
+    return {
+      success: true,
+      projectId: project.id,
+      clipCount: project.clips.length,
+    };
+  } catch (err) {
+    sendProgress("failed", 0, err.message);
+    return { error: err.message };
+  }
 });
 
 // ============ ELECTRON-STORE: persistent settings ============

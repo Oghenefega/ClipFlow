@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge } from "../components/shared";
 
@@ -39,10 +39,25 @@ function findProjectForFile(name, localProjects) {
   return localProjects.find((p) => p.name === baseName) || null;
 }
 
-export default function RecordingsView({ watchFolder, gamesDb = [], localProjects = [] }) {
+const STAGE_LABELS = {
+  probing: "Analyzing file",
+  creating: "Creating project",
+  extracting: "Extracting audio",
+  transcribing: "Transcribing",
+  analyzing: "Analyzing energy",
+  detecting: "Detecting highlights",
+  cutting: "Cutting clips",
+  saving: "Saving project",
+  complete: "Complete",
+  failed: "Failed",
+};
+
+export default function RecordingsView({ watchFolder, gamesDb = [], localProjects = [], onProjectCreated }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
+  const [generating, setGenerating] = useState(null); // file path currently generating
+  const [progress, setProgress] = useState(null); // { stage, pct, detail }
 
   useEffect(() => {
     async function scan() {
@@ -83,6 +98,49 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     scan();
   }, [watchFolder]);
 
+  // Listen for pipeline progress events
+  useEffect(() => {
+    if (!window.clipflow?.onPipelineProgress) return;
+    window.clipflow.onPipelineProgress((data) => {
+      setProgress(data);
+    });
+    return () => {
+      window.clipflow?.removePipelineProgressListener?.();
+    };
+  }, []);
+
+  const handleGenerate = useCallback(async (file) => {
+    if (generating) return; // already generating
+
+    const tag = extractTag(file.name);
+    const game = findGameByTag(tag, gamesDb);
+
+    setGenerating(file.path);
+    setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
+
+    try {
+      const result = await window.clipflow.generateClips(file.path, {
+        name: file.name.replace(/\.(mp4|mkv)$/i, ""),
+        game: game?.name || tag,
+        gameTag: tag,
+        gameColor: game?.color || "#888",
+        keywords: [], // TODO: per-game keywords from settings
+      });
+
+      if (result.error) {
+        setProgress({ stage: "failed", pct: 0, detail: result.error });
+        setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
+      } else {
+        setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
+        onProjectCreated?.(result.projectId);
+        setTimeout(() => { setGenerating(null); setProgress(null); }, 3000);
+      }
+    } catch (e) {
+      setProgress({ stage: "failed", pct: 0, detail: e.message });
+      setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
+    }
+  }, [generating, gamesDb, onProjectCreated]);
+
   // Group files by folder
   const grouped = {};
   files.forEach((f) => {
@@ -90,7 +148,6 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     grouped[f.folder].push(f);
   });
 
-  // Sort folder keys: most recent month first, root at the end
   const folderKeys = Object.keys(grouped).sort((a, b) => {
     if (a === "root") return 1;
     if (b === "root") return -1;
@@ -133,6 +190,35 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     <div>
       <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
 
+      {/* Pipeline progress overlay */}
+      {generating && progress && (
+        <Card style={{ padding: "16px 20px", marginBottom: 16, borderColor: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : T.accentBorder }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+            <span style={{ fontSize: 18 }}>
+              {progress.stage === "complete" ? "\u2705" : progress.stage === "failed" ? "\u274C" : "\u2699\uFE0F"}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: T.text, fontSize: 13, fontWeight: 700 }}>
+                {STAGE_LABELS[progress.stage] || progress.stage}
+              </div>
+              <div style={{ color: T.textTertiary, fontSize: 11 }}>{progress.detail}</div>
+            </div>
+            <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 700, fontFamily: T.mono }}>
+              {progress.pct}%
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{
+              height: "100%", borderRadius: 2,
+              background: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : `linear-gradient(90deg, ${T.accent}, ${T.accentLight})`,
+              width: `${progress.pct}%`,
+              transition: "width 0.3s ease",
+            }} />
+          </div>
+        </Card>
+      )}
+
       <SectionLabel style={{ marginBottom: 16 }}>
         {files.length} recording{files.length !== 1 ? "s" : ""}
       </SectionLabel>
@@ -145,7 +231,6 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
 
           return (
             <div key={folder}>
-              {/* Folder header */}
               <div
                 onClick={() => toggleCollapse(folder)}
                 style={{
@@ -173,20 +258,19 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                 )}
               </div>
 
-              {/* Recording cards */}
               {!isCollapsed && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {items.map((f) => {
                     const tag = extractTag(f.name);
                     const game = findGameByTag(tag, gamesDb);
                     const project = findProjectForFile(f.name, localProjects);
-                    const clipCount = project?.clips?.length || 0;
+                    const clipCount = project?.clipCount || project?.clips?.length || 0;
                     const dateStr = extractDate(f.name);
+                    const isGenerating = generating === f.path;
 
                     return (
-                      <Card key={f.path} style={{ padding: "12px 16px" }}>
+                      <Card key={f.path} style={{ padding: "12px 16px", borderColor: isGenerating ? T.accentBorder : undefined }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          {/* File name */}
                           <span style={{
                             color: T.text, fontSize: 13, fontWeight: 600,
                             fontFamily: T.mono, flex: 1,
@@ -195,42 +279,44 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                             {f.name}
                           </span>
 
-                          {/* Game pill */}
                           {tag && (
                             <GamePill tag={tag} color={game?.color || T.accent} size="sm" />
                           )}
 
-                          {/* Date */}
                           <span style={{
                             color: T.textTertiary, fontSize: 11, fontFamily: T.mono, flexShrink: 0,
                           }}>
                             {dateStr}
                           </span>
 
-                          {/* File size */}
                           <span style={{
                             color: T.textTertiary, fontSize: 11, fontFamily: T.mono, flexShrink: 0,
                           }}>
                             {formatSize(f.size)}
                           </span>
 
-                          {/* Action: either clips badge or generate button */}
                           {project ? (
                             <Badge color={T.green}>
                               {"\u2713"} {clipCount} clip{clipCount !== 1 ? "s" : ""}
                             </Badge>
                           ) : (
                             <button
-                              onClick={() => alert("Coming in Phase 3")}
+                              onClick={() => handleGenerate(f)}
+                              disabled={!!generating}
                               style={{
                                 padding: "6px 14px", borderRadius: T.radius.sm, border: "none",
-                                background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
-                                color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: T.font,
-                                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                                boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
+                                background: generating
+                                  ? "rgba(255,255,255,0.04)"
+                                  : `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
+                                color: generating ? T.textMuted : "#fff",
+                                fontSize: 12, fontWeight: 700, fontFamily: T.font,
+                                cursor: generating ? "default" : "pointer",
+                                whiteSpace: "nowrap", flexShrink: 0,
+                                boxShadow: generating ? "none" : "0 2px 12px rgba(139,92,246,0.25)",
+                                opacity: generating && !isGenerating ? 0.5 : 1,
                               }}
                             >
-                              Generate Clips
+                              {isGenerating ? "Generating..." : "Generate Clips"}
                             </button>
                           )}
                         </div>
