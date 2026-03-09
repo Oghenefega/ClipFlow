@@ -122,7 +122,8 @@ export default function QueueView({
   weeklyTemplate, setWeeklyTemplate, weekTemplateOverrides, setWeekTemplateOverrides,
   savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, gamesDb,
 }) {
-  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title));
+  const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
+  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id));
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);

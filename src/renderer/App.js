@@ -402,7 +402,11 @@ export default function App() {
   // ============ HANDLERS ============
   const handleNewGame = (gd) => {
     setGamesDb((p) => [...p, { ...gd, dayCount: 1 }]);
-    setYtDescriptions((p) => ({ ...p, [gd.name]: { desc: `\u{1F534}Live every day 5PM\nFunniest ${gd.name} moments\u{1F602}` } }));
+    // Build full YouTube description from template — swap game-specific parts
+    const gameName = gd.name;
+    const hashtag = gd.hashtag || gameName.toLowerCase().replace(/\s+/g, "");
+    const ytDesc = `\u{1F534}Live every day 5PM\nThe funniest and most chaotic ${gameName} moments from my streams\u{1F602}\n\nStay connected & support the journey \n\u{1F514}SUBSCRIBE https://www.youtube.com/@Fega  \n\u{1F4AA}\u{1F3FD} Become a member: https://www.youtube.com/@Fega/join   \n\nMultistreaming ON \nTwitch: https://www.twitch.tv/fegaabsolute  \nKick: https://www.kick.com/fegaabsolute  \nTiktok: https://www.tiktok.com/fega  \n\n\u{1F53D} Watch My Best Videos \u{1F525}  \n\u{1F3AE} Old but Gold \u2013 Gaming Highlights & Reactions (Valorant, Fortnite,  Fall Guys, Outlast):  https://www.youtube.com/watch?v=GjYKMJdpESM&list=PLb2kk3HKq1SY6wAXPzbptMKqXULJulUmO    \n\n\u{1F4F2} Follow the Journey:  \n\u27A1 https://instagram.com/fegagaming \n\u27A1 https://twitter.com/FegaAbsolute   \n\n\u{1F3AE}Stream Setup  \nCamera | Sony ZVE10 - https://amzn.to/44QBgk7  \nLens | Vlog Lens (Sigma 18-35 lens) - https://amzn.to/4eX3oXm  \nMic | Blue Snowball - https://amzn.to/40ty3pw  \nElgato CamLink - https://amzn.to/4m1REVR  \nElgato Teleprompter - https://amzn.to/45a4Hit  \nGaming Mouse | Glorious Model O Wireless - https://amzn.to/453cwWe   \n\n\u2702\uFE0FMy Content & Editing Essentials  \nBEST Keyboard EVER | https://charachorder.com/FEGA  \nEditing Mouse | Master MX 3s - https://amzn.to/4kQ5D0j  \nNVME SSD Enclosure Casing - https://amzn.to/4nUunH9  \n2tb Samsung SSD - https://amzn.to/4lCtDFm   \n\n\u{1F4B8} All links above are affiliate links. \nPurchasing anything through them  helps support me. Thank you and God bless you!   \n\n${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming shorts, gaming shorts, funny gaming moments, funny clips, stream highlights, viral shorts, gaming content, gaming videos, gaming entertainment, ${hashtag} highlights, ${hashtag} fails, ${hashtag} clutch, Fega, YouTube Live, live gaming, live reaction\n\n#${hashtag} #gamingshorts #Fega`;
+    setYtDescriptions((p) => ({ ...p, [gameName]: { desc: ytDesc } }));
     setNewGameExe(null);
     setShowAddGame(false);
   };
@@ -494,7 +498,8 @@ export default function App() {
     }
   });
 
-  const totalApproved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title)).length;
+  const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
+  const totalApproved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id)).length;
 
   const nav = (id) => { setView(id); setSelProj(null); };
 
@@ -642,20 +647,24 @@ export default function App() {
 
   return (
     <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}>
-      {/* Draggable title bar */}
-      <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(10,11,16,0.8)", borderRadius: "8px 8px 0 0" }} />
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
-        <Sidebar
-          navItems={navItems}
-          activeView={view === "clips" ? "projects" : view}
-          onNavigate={nav}
-          mainGame={mainGame}
-        />
+      {/* Draggable title bar with logo */}
+      <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(10,11,16,0.8)", borderRadius: "8px 8px 0 0", display: "flex", alignItems: "center", paddingLeft: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
+          <div style={{ width: 20, height: 20, borderRadius: 5, background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, boxShadow: "0 1px 8px rgba(139,92,246,0.3)" }}>⚡</div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>ClipFlow</span>
+        </div>
+      </div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
         <div style={{ flex: 1, overflow: "auto", scrollbarGutter: "stable" }}>
           <div style={{ padding: "32px 40px", maxWidth: view === "upload" ? "none" : 860, margin: "0 auto" }}>
             {renderView()}
           </div>
         </div>
+        <Sidebar
+          navItems={navItems}
+          activeView={view === "clips" ? "projects" : view}
+          onNavigate={nav}
+        />
       </div>
       <TranscriptModal clip={transcript} onClose={() => setTranscript(null)} />
       {(newGameExe || showAddGame) && (

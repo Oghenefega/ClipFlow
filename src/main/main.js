@@ -614,7 +614,7 @@ Your job is to generate 5 title options and 5 caption options for a gaming clip 
 
 **TITLE** = The video's title on the platform (YouTube Shorts, TikTok, Instagram Reels). This is what shows in the feed listing and search results. Titles should:
 - Be short, punchy, and optimized for discoverability
-- Include relevant hashtags naturally (e.g. "My Chess Rating is EMBARRASSING #arcraiders #gaming")
+- Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders") — NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
 - Work as standalone text that makes someone want to click/watch
 
 **CAPTION** = Scroll-stopping hook text that is BAKED INTO the video as a visible text overlay. This is the FIRST thing viewers read while scrolling through their feed. Captions must:
@@ -636,7 +636,7 @@ ${styleGuide ? `## Creator's Style Guide:\n${styleGuide}` : ""}${gameContext}${s
 Return ONLY valid JSON in this exact structure:
 {
   "titles": [
-    { "title": "the video title with #hashtags", "why": "why this title works for discovery" },
+    { "title": "the video title #gamehashtag", "why": "why this title works for discovery" },
     ...5 total
   ],
   "captions": [
@@ -696,12 +696,21 @@ ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
 
     const result = await anthropicRequest(apiKey, {
       model: "claude-opus-4-6",
-      max_tokens: 4000,
+      max_tokens: 1500,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
-      system: "You are a gaming research assistant. Your job is to build a comprehensive context profile about a video game for a gaming content creator. Use web search to find current information.",
+      system: `You are a gaming research assistant. Your ONLY job is to describe what it's like to PLAY a specific game — the gameplay experience, not corporate info.
+
+RULES:
+- Focus ONLY on: what the gameplay is like, how people play it, game modes, player count, the vibe/energy of playing
+- Include: funny situations that happen, chaotic moments, what makes it entertaining to watch
+- Do NOT include: developer names, publishers, release dates, corporate history, platform availability, system requirements, review scores
+- Do NOT include any preamble like "I'll research..." or "Here is the context for..."
+- Start directly with the game description
+- Keep it to 3-5 sentences max — concise and punchy
+- Write as plain description text, no bullet points or headers`,
       messages: [{
         role: "user",
-        content: `Research the game "${gameName}" and provide a comprehensive summary covering:\n\n1. What the game is (genre, developer, release date/status)\n2. Core gameplay mechanics and loop\n3. Community lingo and terminology players use\n4. Meme-worthy aspects, common jokes, funny situations\n5. Tone of the community (competitive? casual? toxic? wholesome?)\n6. What makes good short-form content from this game\n7. Popular content creator angles for this game\n\nProvide the summary as a cohesive text paragraph (not bullet points) that can be used as context for generating YouTube Shorts titles and captions.`,
+        content: `Describe the gameplay experience of "${gameName}". What is it like to play? How do people play it? What makes it fun, chaotic, or entertaining to watch?`,
       }],
     });
 
@@ -710,7 +719,10 @@ ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
 
     // Extract the final text response (may have tool_use blocks before it)
     const textBlocks = result.content.filter((c) => c.type === "text");
-    const summary = textBlocks.map((t) => t.text).join("\n\n");
+    let summary = textBlocks.map((t) => t.text).join("\n\n");
+
+    // Strip any AI preamble that slipped through
+    summary = summary.replace(/^(I'll research|Here is|Here's|Let me|Based on my research)[^\n]*\n+/i, "").trim();
 
     if (!summary) return { error: "No text summary in research response" };
     return { success: true, data: summary };
