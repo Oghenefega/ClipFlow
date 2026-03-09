@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot } from "../components/shared";
 import { GameEditModal } from "../components/modals";
@@ -24,6 +24,32 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [showAnthropicKeyEdit, setShowAnthropicKeyEdit] = useState(false);
   const [editGuide, setEditGuide] = useState(false);
   const [guideVal, setGuideVal] = useState(styleGuide || "");
+  const [ffmpegStatus, setFfmpegStatus] = useState(null); // { installed, version } or null
+  const [whisperStatus, setWhisperStatus] = useState(null);
+  const [whisperBinPath, setWhisperBinPath] = useState("");
+  const [whisperModelPath, setWhisperModelPath] = useState("");
+
+  // Check ffmpeg + whisper on mount
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.ffmpegCheck) {
+        const r = await window.clipflow.ffmpegCheck();
+        setFfmpegStatus(r);
+      }
+      // Load whisper paths from store
+      if (window.clipflow?.storeGet) {
+        const bp = await window.clipflow.storeGet("whisperBinaryPath");
+        const mp = await window.clipflow.storeGet("whisperModelPath");
+        if (bp) setWhisperBinPath(bp);
+        if (mp) setWhisperModelPath(mp);
+        // Check whisper with stored binary path
+        if (window.clipflow?.whisperCheck) {
+          const r = await window.clipflow.whisperCheck(bp || undefined);
+          setWhisperStatus(r);
+        }
+      }
+    })();
+  }, []);
 
   const copyToClipboard = (value, fieldName) => {
     if (!value) return;
@@ -173,11 +199,89 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
+      {/* Local Tools Status */}
+      <SectionLabel>Local Tools</SectionLabel>
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <PulseDot color={ffmpegStatus?.installed ? T.green : T.red} />
+          <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>ffmpeg</span>
+          <span style={{ color: ffmpegStatus?.installed ? T.green : T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
+            {ffmpegStatus?.installed ? `v${ffmpegStatus.version}` : ffmpegStatus?.error ? "Not found in PATH" : "Checking..."}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <PulseDot color={whisperStatus?.installed ? T.green : T.red} />
+          <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Whisper</span>
+          <span style={{ color: whisperStatus?.installed ? T.green : T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
+            {whisperStatus?.installed ? whisperStatus.version : whisperStatus?.error ? "Not found" : "Checking..."}
+          </span>
+        </div>
+        {(!ffmpegStatus?.installed || !whisperStatus?.installed) && (
+          <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.yellow}15`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33` }}>
+            <span style={{ color: T.yellow, fontSize: 11 }}>
+              {!ffmpegStatus?.installed && "ffmpeg must be installed and in PATH. "}
+              {!whisperStatus?.installed && "Set Whisper binary path below."}
+            </span>
+          </div>
+        )}
+      </Card>
+
       {/* Whisper Configuration */}
       <SectionLabel>Whisper Configuration</SectionLabel>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 12, padding: 16 }}>
-          Whisper model configuration &mdash; coming in Phase 2
+      <Card style={{ marginBottom: 16, padding: 16 }}>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Binary Path</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: whisperBinPath ? T.text : T.textTertiary, padding: "6px 0" }}>
+              {whisperBinPath || "Not set — using PATH lookup"}
+            </span>
+            <button onClick={async () => {
+              const f = await window.clipflow?.openFileDialog({ filters: [{ name: "Executables", extensions: ["exe", "*"] }] });
+              if (f) {
+                setWhisperBinPath(f);
+                await window.clipflow?.storeSet("whisperBinaryPath", f);
+                const r = await window.clipflow?.whisperCheck(f);
+                setWhisperStatus(r);
+              }
+            }} style={{ padding: "5px 12px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>
+              Browse
+            </button>
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Model Path</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: whisperModelPath ? T.text : T.textTertiary, padding: "6px 0" }}>
+              {whisperModelPath || "Not set — path to ggml model file or directory"}
+            </span>
+            <button onClick={async () => {
+              const f = await window.clipflow?.pickFolder();
+              if (f) {
+                setWhisperModelPath(f);
+                await window.clipflow?.storeSet("whisperModelPath", f);
+              }
+            }} style={{ padding: "5px 12px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>
+              Browse
+            </button>
+          </div>
+        </div>
+        <div>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Model</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {["tiny", "base", "small", "medium", "large-v3"].map((m) => {
+              const isActive = (sfxFolder === "" ? "large-v3" : m) === m; // TODO: wire to whisperModel state
+              return (
+                <button key={m} onClick={async () => { await window.clipflow?.storeSet("whisperModel", m); }}
+                  style={{
+                    padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.mono, cursor: "pointer",
+                    border: m === "large-v3" ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                    background: m === "large-v3" ? T.accentDim : "rgba(255,255,255,0.03)",
+                    color: m === "large-v3" ? T.accentLight : T.textSecondary,
+                  }}>{m}</button>
+              );
+            })}
+          </div>
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>RTX 3090 recommended: large-v3 (~2 min per 30 min audio)</div>
         </div>
       </Card>
 

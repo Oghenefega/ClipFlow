@@ -5,6 +5,9 @@ const fs = require("fs");
 const https = require("https");
 const chokidar = require("chokidar");
 const Store = require("electron-store");
+const ffmpeg = require("./ffmpeg");
+const whisper = require("./whisper");
+const projects = require("./projects");
 
 const store = new Store({
   name: "clipflow-settings",
@@ -48,6 +51,8 @@ const store = new Store({
     outputFolder: "",
     sfxFolder: "",
     whisperModel: "large-v3",
+    whisperBinaryPath: "",
+    whisperModelPath: "",
     localProjects: [],
     renameHistory: [],
     anthropicApiKey: "",
@@ -360,6 +365,126 @@ ipcMain.handle("fs:scanWatchFolder", async (_, watchFolderPath) => {
   } catch (err) {
     return { error: err.message, files: [] };
   }
+});
+
+// ============ FFMPEG ============
+ipcMain.handle("ffmpeg:checkInstalled", async () => {
+  try { return await ffmpeg.checkFfmpeg(); }
+  catch (err) { return { installed: false, error: err.message }; }
+});
+
+ipcMain.handle("ffmpeg:probe", async (_, filePath) => {
+  try { return await ffmpeg.probe(filePath); }
+  catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("ffmpeg:extractAudio", async (_, videoPath, wavPath) => {
+  try { return await ffmpeg.extractAudio(videoPath, wavPath); }
+  catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("ffmpeg:cutClip", async (_, srcPath, outPath, startTime, endTime) => {
+  try { return await ffmpeg.cutClip(srcPath, outPath, startTime, endTime); }
+  catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("ffmpeg:thumbnail", async (_, videoPath, outPath, time) => {
+  try { return await ffmpeg.generateThumbnail(videoPath, outPath, time); }
+  catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("ffmpeg:analyzeLoudness", async (_, audioPath, segmentDuration) => {
+  try { return await ffmpeg.analyzeLoudness(audioPath, segmentDuration); }
+  catch (err) { return { error: err.message }; }
+});
+
+// ============ WHISPER ============
+ipcMain.handle("whisper:checkInstalled", async (_, binaryPath) => {
+  try { return await whisper.checkWhisper(binaryPath); }
+  catch (err) { return { installed: false, error: err.message }; }
+});
+
+ipcMain.handle("whisper:transcribe", async (_, wavPath, opts) => {
+  try {
+    const storeOpts = {
+      binaryPath: store.get("whisperBinaryPath") || opts?.binaryPath || "whisper",
+      modelPath: store.get("whisperModelPath") || opts?.modelPath || "",
+      model: store.get("whisperModel") || opts?.model || "large-v3",
+      language: opts?.language || "en",
+      threads: opts?.threads || 8,
+      useGpu: opts?.useGpu !== false,
+    };
+
+    // Send progress events to renderer
+    if (mainWindow) {
+      storeOpts.onProgress = (pct) => {
+        mainWindow.webContents.send("whisper:progress", pct);
+      };
+    }
+
+    return await whisper.transcribe(wavPath, storeOpts);
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============ PROJECTS ============
+ipcMain.handle("project:create", async (_, data) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.createProject(watchFolder, data);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:load", async (_, projectId) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+    return { success: true, project };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:save", async (_, project) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.saveProject(watchFolder, project);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:list", async () => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.listProjects(watchFolder);
+  } catch (err) { return { error: err.message, projects: [] }; }
+});
+
+ipcMain.handle("project:delete", async (_, projectId) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.deleteProject(watchFolder, projectId);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.updateClip(watchFolder, projectId, clipId, updates);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:addClip", async (_, projectId, clipData) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.addClip(watchFolder, projectId, clipData);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.deleteClip(watchFolder, projectId, clipId, deleteFile);
+  } catch (err) { return { error: err.message }; }
 });
 
 // ============ ELECTRON-STORE: persistent settings ============
