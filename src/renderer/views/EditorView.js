@@ -216,6 +216,11 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // ── Editable subtitle segments ──
   const [editSegments, setEditSegments] = useState([]);
 
+  // ── Render state ──
+  const [rendering, setRendering] = useState(false);
+  const [renderProgress, setRenderProgress] = useState({ stage: "", pct: 0, detail: "" });
+  const [renderResult, setRenderResult] = useState(null); // { success, path, error }
+
   // ── Brand Kit ──
   const [activePreset, setActivePreset] = useState("gaming");
   const [wmOn, setWmOn] = useState(false);
@@ -454,7 +459,43 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     });
   }, [aiGame]);
 
-  // ── Brand presets (static for now — Phase 7 will make these configurable) ──
+  // ── Render handler ──
+  const handleRender = useCallback(async () => {
+    if (!clip || !project || rendering) return;
+    setRendering(true);
+    setRenderProgress({ stage: "rendering", pct: 0, detail: "Starting render..." });
+    setRenderResult(null);
+
+    // Listen for progress
+    const onProgress = (p) => setRenderProgress(p);
+    window.clipflow?.onRenderProgress?.(onProgress);
+
+    try {
+      // Build subtitle style from current editor settings
+      const subtitleStyle = {
+        fontSize,
+        fontName: "Montserrat",
+        highlightColor: `&H00${highlightColor.slice(5, 7)}${highlightColor.slice(3, 5)}${highlightColor.slice(1, 3)}`,
+        strokeWidth: strokeOn ? strokeWidth : 0,
+        position: subPos,
+      };
+
+      const result = await window.clipflow.renderClip(clip, project, null, { subtitleStyle });
+
+      if (result.error) {
+        setRenderResult({ success: false, error: result.error });
+      } else {
+        setRenderResult({ success: true, path: result.path });
+      }
+    } catch (e) {
+      setRenderResult({ success: false, error: e.message });
+    }
+
+    window.clipflow?.removeRenderProgressListener?.();
+    setRendering(false);
+  }, [clip, project, rendering, fontSize, highlightColor, strokeOn, strokeWidth, subPos]);
+
+  // ── Brand presets (static for now) ──
   const brandPresets = [
     { id: "gaming", name: "Gaming Default", detail: "Montserrat · 52 · Green", tracks: ["Sub 1", "Sub 2"] },
     { id: "chill", name: "Chill Vlog", detail: "DM Sans · 42 · Blue", tracks: ["Sub 1"] },
@@ -557,7 +598,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         )}
       </div>
 
-      {/* Right: Zoom, Fullscreen, Save */}
+      {/* Right: Zoom, Fullscreen, Save, Render */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
         <span style={{ fontSize: 11, color: T.textSecondary }}>{zoom}%</span>
         <Ib title="Fullscreen">⛶</Ib>
@@ -572,6 +613,20 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
           }}
         >
           {dirty ? "● Save" : "✓ Saved"}
+        </button>
+        <button
+          onClick={handleRender}
+          disabled={rendering || !clip}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: rendering ? T.yellow : `linear-gradient(135deg, ${T.green}, #2dd4a8)`,
+            color: rendering ? "#000" : "#fff",
+            border: "none", borderRadius: 5, padding: "6px 14px", fontSize: 12, fontWeight: 700,
+            cursor: rendering ? "default" : "pointer", fontFamily: T.font, transition: "all 0.15s",
+            opacity: !clip ? 0.4 : 1,
+          }}
+        >
+          {rendering ? `⏳ ${renderProgress.pct}%` : "🚀 Ready to Share"}
         </button>
       </div>
     </div>
@@ -1898,6 +1953,57 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
 
       {/* Timeline */}
       {renderTimeline()}
+
+      {/* Render progress/result overlay */}
+      {(rendering || renderResult) && (
+        <div style={{
+          position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 100,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: T.surface, border: `1px solid ${BD}`, borderRadius: T.radius.lg,
+            padding: "32px 40px", maxWidth: 420, width: "100%", textAlign: "center",
+          }}>
+            {rendering ? (
+              <>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
+                <div style={{ color: T.text, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Rendering...</div>
+                <div style={{ color: T.textSecondary, fontSize: 13, marginBottom: 16 }}>{renderProgress.detail || "Processing..."}</div>
+                <div style={{ height: 6, borderRadius: 3, background: S3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${renderProgress.pct}%`, background: `linear-gradient(90deg, ${T.green}, #2dd4a8)`, borderRadius: 3, transition: "width 0.3s" }} />
+                </div>
+                <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, marginTop: 8 }}>{renderProgress.pct}%</div>
+              </>
+            ) : renderResult?.success ? (
+              <>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+                <div style={{ color: T.green, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Render Complete!</div>
+                <div style={{ color: T.textSecondary, fontSize: 13, marginBottom: 16, wordBreak: "break-all" }}>{renderResult.path}</div>
+                <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                  <button
+                    onClick={() => { const folder = renderResult.path.replace(/[/\\][^/\\]+$/, ""); window.clipflow?.openFolder?.(folder); }}
+                    style={{ padding: "8px 20px", borderRadius: 6, border: `1px solid ${T.greenBorder}`, background: T.greenDim, color: T.green, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+                  >📂 Open Folder</button>
+                  <button
+                    onClick={() => setRenderResult(null)}
+                    style={{ padding: "8px 20px", borderRadius: 6, border: `1px solid ${BD}`, background: S2, color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+                  >Close</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>❌</div>
+                <div style={{ color: T.red, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Render Failed</div>
+                <div style={{ color: T.textSecondary, fontSize: 13, marginBottom: 16, maxHeight: 120, overflow: "auto", wordBreak: "break-all" }}>{renderResult?.error || "Unknown error"}</div>
+                <button
+                  onClick={() => setRenderResult(null)}
+                  style={{ padding: "8px 20px", borderRadius: 6, border: `1px solid ${BD}`, background: S2, color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+                >Close</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

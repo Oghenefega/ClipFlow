@@ -437,6 +437,13 @@ export default function App() {
           onTranscript={setTranscript}
           onEditClipTitle={handleEditClipTitle}
           onOpenInEditor={handleOpenInEditor}
+          onBatchRender={async (projectId) => {
+            // Reload project data after batch render to reflect updated renderStatus
+            try {
+              const full = await window.clipflow.projectLoad(projectId);
+              if (full?.project) setSelProj(full.project);
+            } catch (e) { /* ignore */ }
+          }}
           gamesDb={gamesDb}
         />
       );

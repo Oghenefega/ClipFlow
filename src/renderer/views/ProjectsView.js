@@ -129,21 +129,56 @@ export function ProjectsListView({ localProjects = [], onSelect, mainGame, games
 // ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, gamesDb }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, gamesDb }) {
   const [filter, setFilter] = useState("all");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [expandedClip, setExpandedClip] = useState(null); // clipId or null
+  const [batchRendering, setBatchRendering] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ pct: 0, detail: "" });
 
   const clips = project.clips || [];
   const isApproved = (c) => c.status === "approved" || c.status === "ready";
   const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? c.status === "none" : true);
   const approved = clips.filter(isApproved).length;
   const pending = clips.filter((c) => c.status === "none").length;
+  const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
+  const renderableApproved = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered").length;
+
+  const handleBatchRender = async () => {
+    if (batchRendering || renderableApproved === 0) return;
+    setBatchRendering(true);
+    setBatchProgress({ pct: 0, detail: "Starting batch render..." });
+    const onProgress = (p) => setBatchProgress(p);
+    window.clipflow?.onRenderProgress?.(onProgress);
+    try {
+      const clipsToRender = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered");
+      await window.clipflow.batchRender(clipsToRender, project, null, {});
+    } catch (e) { /* handled by result */ }
+    window.clipflow?.removeRenderProgressListener?.();
+    setBatchRendering(false);
+    // Trigger refresh by calling onBack then re-opening (parent handles)
+    if (onBatchRender) onBatchRender(project.id);
+  };
 
   return (
     <div>
-      <PageHeader title={project.name} subtitle={`${approved} approved \u00b7 ${pending} pending`} backAction={onBack}>
+      <PageHeader title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}`} backAction={onBack}>
+        {renderableApproved > 0 && (
+          <button
+            onClick={handleBatchRender}
+            disabled={batchRendering}
+            style={{
+              padding: "6px 14px", borderRadius: 6, border: "none",
+              background: batchRendering ? T.yellow : `linear-gradient(135deg, ${T.green}, #2dd4a8)`,
+              color: batchRendering ? "#000" : "#fff", fontSize: 12, fontWeight: 700,
+              cursor: batchRendering ? "default" : "pointer", fontFamily: T.font,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {batchRendering ? `⏳ ${batchProgress.pct}%` : `🚀 Render All (${renderableApproved})`}
+          </button>
+        )}
         <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
       </PageHeader>
 
@@ -193,6 +228,8 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
                     <button onClick={() => onOpenInEditor(project.id, clip.id)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83c\udfac"} Open in Editor</button>
                   )}
                   {ca && <Badge color={T.green}>{"\u2713"} Queued</Badge>}
+                  {clip.renderStatus === "rendered" && <Badge color={T.cyan}>{"✓"} Rendered</Badge>}
+                  {clip.renderStatus === "rendering" && <Badge color={T.yellow}>{"⏳"} Rendering</Badge>}
                 </div>
               )}
               {expandedClip === clip.id && clipTranscript && (

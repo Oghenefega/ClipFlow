@@ -81,6 +81,18 @@ contextBridge.exposeInMainWorld("clipflow", {
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
 
+  // Render pipeline
+  renderClip: (clipData, projectData, outputPath, options) =>
+    ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),
+  batchRender: (clips, projectData, outputDir, options) =>
+    ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
+  onRenderProgress: (callback) => {
+    ipcRenderer.on("render:progress", (_, data) => callback(data));
+  },
+  removeRenderProgressListener: () => {
+    ipcRenderer.removeAllListeners("render:progress");
+  },
+
   // Platform info
   platform: process.platform,
 });

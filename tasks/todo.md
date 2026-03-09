@@ -99,10 +99,15 @@
 - [x] Removed GenerationPanel + GameDropdown from ProjectsView (~260 lines stripped)
 - [x] Replaced "AI Titles" expand section with "Open in Editor" prompt
 
-### Phase 7: Render Pipeline — "Ready to Share" → Output
-- [ ] Create `src/main/render.js` — ffmpeg filter_complex (subtitle burn-in + SFX mix + media compositing)
-- [ ] Wire "Ready to Share" button → render progress → output folder
-- [ ] Batch render for multiple clips
+### Phase 7: Render Pipeline — "Ready to Share" → Output ✅
+- [x] Created `src/main/render.js` — generateAssFile (ASS subtitle generation), renderClip (ffmpeg subtitle burn-in via -vf ass filter, H.264/AAC, progress tracking), batchRender (sequential multi-clip)
+- [x] Wired IPC handlers: `render:clip`, `render:batch` with progress events and automatic renderStatus/renderPath update in project JSON
+- [x] Added preload bridge: `renderClip()`, `batchRender()`, `onRenderProgress()`, `removeRenderProgressListener()`
+- [x] Added "🚀 Ready to Share" button in EditorView topbar with render progress overlay (progress bar, success with Open Folder, error display)
+- [x] Subtitle style passes through from editor settings (fontSize, highlightColor, strokeWidth, position)
+- [x] Added render status badges in ProjectsView: "✓ Rendered" (cyan) and "⏳ Rendering" (yellow)
+- [x] Added "Render All" batch button in ClipBrowser header for approved unrendered clips
+- [x] Project data auto-reloads after batch render to reflect updated renderStatus
 
 ### Phase 8: Queue Rewiring — Local Rendered Clips
 - [ ] Create `src/main/publish.js` (platform API stubs)

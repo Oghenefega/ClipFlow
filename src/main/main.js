@@ -9,6 +9,7 @@ const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
 const highlights = require("./highlights");
+const render = require("./render");
 
 const store = new Store({
   name: "clipflow-settings",
@@ -866,6 +867,76 @@ ipcMain.handle("anthropic:logHistory", async (_, entry) => {
     const bounded = history.length > 200 ? history.slice(-200) : history;
     store.set("titleCaptionHistory", bounded);
     return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============ RENDER PIPELINE ============
+let activeRenderProc = null;
+
+ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
+  try {
+    // Determine output path if not provided
+    if (!outputPath) {
+      const outputFolder = store.get("outputFolder");
+      if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
+      const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
+      outputPath = path.join(outputFolder, fileName);
+    }
+
+    const result = await render.renderClip(clipData, projectData, outputPath, {
+      subtitleStyle: options?.subtitleStyle || {},
+      onProgress: (p) => {
+        mainWindow?.webContents.send("render:progress", p);
+      },
+    });
+
+    // Update clip renderStatus in project JSON
+    if (projectData?.id && clipData?.id) {
+      const watchFolder = store.get("watchFolder");
+      try {
+        projects.updateClip(watchFolder, projectData.id, clipData.id, {
+          renderStatus: "rendered",
+          renderPath: result.path,
+        });
+      } catch (e) { /* non-critical */ }
+    }
+
+    return result;
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, options) => {
+  try {
+    if (!outputDir) {
+      outputDir = store.get("outputFolder");
+      if (!outputDir) return { error: "Output folder not configured. Go to Settings." };
+    }
+
+    const results = await render.batchRender(clips, projectData, outputDir, {
+      subtitleStyle: options?.subtitleStyle || {},
+      onProgress: (p) => {
+        mainWindow?.webContents.send("render:progress", p);
+      },
+    });
+
+    // Update render status for each successful clip
+    const watchFolder = store.get("watchFolder");
+    for (const r of results) {
+      if (r.success && projectData?.id && r.clipId) {
+        try {
+          projects.updateClip(watchFolder, projectData.id, r.clipId, {
+            renderStatus: "rendered",
+            renderPath: r.path,
+          });
+        } catch (e) { /* non-critical */ }
+      }
+    }
+
+    return { success: true, results };
   } catch (err) {
     return { error: err.message };
   }
