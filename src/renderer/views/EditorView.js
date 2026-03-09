@@ -146,8 +146,20 @@ const SliderRow = ({ label, value, onChange, min = 0, max = 100, suffix = "" }) 
 );
 
 
+// ── Helpers: format time ──
+const fmtTime = (sec) => {
+  if (!sec || sec < 0) return "00:00.0";
+  const m = Math.floor(sec / 60);
+  const s = sec - m * 60;
+  return `${String(m).padStart(2, "0")}:${s.toFixed(1).padStart(4, "0")}`;
+};
+
 // ============ EDITOR VIEW ============
-export default function EditorView({ gamesDb = [] }) {
+export default function EditorView({ gamesDb = [], editorContext, localProjects = [] }) {
+  // ── Resolve real project/clip data from editorContext ──
+  const project = editorContext ? localProjects.find((p) => p.id === editorContext.projectId) : null;
+  const clip = project ? (project.clips || []).find((c) => c.id === editorContext.clipId) : null;
+
   // ── Layout state ──
   const [lpTab, setLpTab] = useState("transcript");
   const [lpCollapsed, setLpCollapsed] = useState(false);
@@ -162,15 +174,18 @@ export default function EditorView({ gamesDb = [] }) {
   // ── Left panel: Transcript state ──
   const [transcriptMode, setTranscriptMode] = useState("karaoke");
   const [transcriptSearch, setTranscriptSearch] = useState("");
-  const [activeRow, setActiveRow] = useState(1);
+  const [activeRow, setActiveRow] = useState(0);
 
   // ── Left panel: Edit Subtitles state ──
   const [esFilter, setEsFilter] = useState("all");
-  const [activeSegId, setActiveSegId] = useState(2);
+  const [activeSegId, setActiveSegId] = useState(null);
 
   // ── Topbar ──
-  const [clipTitle, setClipTitle] = useState("So I tried playing Pico Park");
+  const [clipTitle, setClipTitle] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [dirty, setDirty] = useState(false);
+  const titleInputRef = useRef(null);
 
   // ── AI Tools ──
   const [voiceMode, setVoiceMode] = useState("hype");
@@ -195,6 +210,9 @@ export default function EditorView({ gamesDb = [] }) {
   const [s1Open, setS1Open] = useState(false);
   const [s2Open, setS2Open] = useState(false);
 
+  // ── Editable subtitle segments ──
+  const [editSegments, setEditSegments] = useState([]);
+
   // ── Brand Kit ──
   const [activePreset, setActivePreset] = useState("gaming");
   const [wmOn, setWmOn] = useState(false);
@@ -203,17 +221,111 @@ export default function EditorView({ gamesDb = [] }) {
 
   // ── Media ──
   const [mediaFilter, setMediaFilter] = useState("all");
+  const [sfxFiles, setSfxFiles] = useState([]);
 
   // ── Timeline ──
   const [tlSpeed, setTlSpeed] = useState("1x");
 
   // ── Playback ──
   const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const videoRef = useRef(null);
 
   // ── Drag refs ──
   const lpResizing = useRef(false);
   const drawerResizing = useRef(false);
   const tlResizing = useRef(false);
+
+  // ── Initialize from real clip data ──
+  useEffect(() => {
+    if (!clip) return;
+    setClipTitle(clip.title || "Untitled Clip");
+    setActiveRow(0);
+    setActiveSegId(null);
+    setCurrentTime(0);
+    setPlaying(false);
+    setDirty(false);
+    // Build editable subtitle segments from project transcription
+    if (project?.transcription?.segments) {
+      const clipStart = clip.startTime || 0;
+      const clipEnd = clip.endTime || 0;
+      const segs = project.transcription.segments
+        .filter((s) => s.start >= clipStart && s.end <= clipEnd)
+        .map((s, i) => ({
+          id: i + 1,
+          start: fmtTime(s.start - clipStart),
+          end: fmtTime(s.end - clipStart),
+          dur: ((s.end - s.start).toFixed(1)) + "s",
+          text: s.text,
+          track: "s1",
+          conf: "high",
+          startSec: s.start - clipStart,
+          endSec: s.end - clipStart,
+          warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
+        }));
+      setEditSegments(segs);
+      if (segs.length > 0) setActiveSegId(segs[0].id);
+    }
+    // Set AI game from project data
+    if (project?.game) setAiGame(project.game);
+  }, [clip?.id, project?.id]);
+
+  // ── Video time update ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleEnded = () => setPlaying(false);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("ended", handleEnded);
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("ended", handleEnded);
+    };
+  }, [clip?.id]);
+
+  // ── Play/Pause sync ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (playing) video.play().catch(() => setPlaying(false));
+    else video.pause();
+  }, [playing]);
+
+  // ── Save handler ──
+  const handleSave = useCallback(async () => {
+    if (!clip || !project) return;
+    try {
+      await window.clipflow.projectUpdateClip(project.id, clip.id, {
+        title: clipTitle,
+        subtitles: { sub1: editSegments.filter((s) => s.track === "s1"), sub2: editSegments.filter((s) => s.track === "s2") },
+      });
+      setDirty(false);
+    } catch (e) {
+      console.error("Save failed:", e);
+    }
+  }, [clip, project, clipTitle, editSegments]);
+
+  // ── Build transcript rows from clip data ──
+  const transcriptRows = React.useMemo(() => {
+    if (!project?.transcription?.segments || !clip) return [];
+    const clipStart = clip.startTime || 0;
+    const clipEnd = clip.endTime || 0;
+    return project.transcription.segments
+      .filter((s) => s.start >= clipStart && s.end <= clipEnd)
+      .map((s, i) => ({
+        id: i,
+        start: fmtTime(s.start - clipStart),
+        end: fmtTime(s.end - clipStart),
+        dur: ((s.end - s.start).toFixed(1)) + "s",
+        text: s.text,
+        startSec: s.start - clipStart,
+        endSec: s.end - clipStart,
+      }));
+  }, [project?.transcription, clip?.startTime, clip?.endTime]);
+
+  // ── Use editSegments as the subtitle segments ──
+  const segments = editSegments;
 
   // ── Resize: left panel ──
   const onLpResizeStart = useCallback((e) => {
@@ -273,56 +385,42 @@ export default function EditorView({ gamesDb = [] }) {
     }
   };
 
-  // ── Mock transcript data ──
-  const transcriptRows = [
-    { id: 0, start: "00:03.6", end: "00:05.4", dur: "1.8s", text: "Yes! Yes!" },
-    { id: 1, start: "00:08.5", end: "00:20.8", dur: "12.3s", text: "Third time's the charm more like 6th time" },
-    { id: 2, start: "00:26.1", end: "00:28.6", dur: "2.4s", text: "We should make a happy dance." },
-    { id: 3, start: "00:29.1", end: "00:32.2", dur: "3.1s", text: "Happy dance. Yeah." },
-    { id: 4, start: "00:32.2", end: "00:35.4", dur: "3.2s", text: "All right." },
-  ];
+  // ── AI cards (populated via GenerationPanel or stored on clip) ──
+  const aiTitles = clip?.aiTitles || [];
+  const aiCaptions = clip?.aiCaptions || [];
 
-  // ── Mock subtitle segments ──
-  const segments = [
-    { id: 1, start: "00:03.6", end: "00:05.4", dur: "1.8s", text: "Yes! Yes!", track: "s1", conf: "high" },
-    { id: 2, start: "00:08.5", end: "00:20.8", dur: "12.3s", text: "Third time's the charm more like 6th time", track: "s1", conf: "high", warning: "Long segment — consider splitting" },
-    { id: 3, start: "00:26.1", end: "00:28.6", dur: "2.4s", text: "We should make a happy dance.", track: "s2", conf: "low" },
-    { id: 4, start: "00:29.1", end: "00:32.2", dur: "3.1s", text: "Happy dance. Yeah.", track: "s1", conf: "med" },
-    { id: 5, start: "00:32.2", end: "00:35.4", dur: "3.2s", text: "All right.", track: "s1", conf: "high" },
-  ];
-
-  // ── Mock AI cards ──
-  const aiTitles = [
-    { id: "t1", text: "This Trivia Question Broke My Brain", why: "Relatable confusion + curiosity gap" },
-    { id: "t2", text: "I Cannot Believe I Missed That", why: "Self-deprecating hook — drives rewatch" },
-    { id: "t3", text: "The Answer Was Right There the Whole Time", why: "Creates shared frustration" },
-    { id: "t4", text: "My Brain Completely Failed Me Here", why: "Vulnerability performs well" },
-    { id: "t5", text: "This Should Have Been Easy", why: "Expectation vs reality hook" },
-  ];
-  const aiCaptions = [
-    { id: "c1", text: "The answers were literally right there", why: "Self-deprecation trigger" },
-    { id: "c2", text: "I do not know how I missed this", why: "Curiosity gap" },
-    { id: "c3", text: "This broke my entire brain", why: "Relatable overwhelm" },
-    { id: "c4", text: "Why are we like this", why: "Universal relatability" },
-    { id: "c5", text: "I was so close and didn't even know", why: "Near-miss tension" },
-  ];
-
-  // ── Mock brand presets ──
+  // ── Brand presets (static for now — Phase 7 will make these configurable) ──
   const brandPresets = [
     { id: "gaming", name: "Gaming Default", detail: "Montserrat · 52 · Green", tracks: ["Sub 1", "Sub 2"] },
     { id: "chill", name: "Chill Vlog", detail: "DM Sans · 42 · Blue", tracks: ["Sub 1"] },
     { id: "bold", name: "Bold Impact", detail: "Impact · 64 · Red", tracks: ["Caption"] },
   ];
 
-  // ── Mock media assets ──
-  const mediaAssets = [
-    { id: "m1", name: "Fega Logo", type: "image", ext: "PNG" },
-    { id: "m2", name: "Overlay BG", type: "image", ext: "PNG" },
-    { id: "m3", name: "Hype", type: "gif", ext: "GIF" },
-    { id: "m4", name: "Skull", type: "gif", ext: "GIF" },
-    { id: "m5", name: "Hype SFX", type: "audio", ext: "MP3" },
-    { id: "m6", name: "Rizz Sound", type: "audio", ext: "MP3" },
-  ];
+  // ── Media assets from SFX folder ──
+  const mediaAssets = sfxFiles.length > 0 ? sfxFiles : [];
+  // Load SFX files from folder on mount
+  useEffect(() => {
+    const loadSfx = async () => {
+      if (!window.clipflow?.storeGetAll) return;
+      try {
+        const all = await window.clipflow.storeGetAll();
+        const folder = all.sfxFolder;
+        if (!folder) return;
+        const files = await window.clipflow.readDir(folder);
+        if (files && !files.error) {
+          const media = files
+            .filter((f) => !f.isDirectory && /\.(mp3|wav|ogg|png|jpg|gif|mp4)$/i.test(f.name))
+            .map((f, i) => {
+              const ext = f.name.split(".").pop().toUpperCase();
+              const type = /^(mp3|wav|ogg)$/i.test(ext) ? "audio" : /^gif$/i.test(ext) ? "gif" : "image";
+              return { id: `sfx_${i}`, name: f.name.replace(/\.[^.]+$/, ""), type, ext, path: f.path };
+            });
+          setSfxFiles(media);
+        }
+      } catch (e) { /* ignore */ }
+    };
+    loadSfx();
+  }, []);
 
   // ── Timeline tracks ──
   const tracks = [
@@ -362,29 +460,53 @@ export default function EditorView({ gamesDb = [] }) {
         <Ib title="Auto-save">◎</Ib>
       </div>
 
-      {/* Center: Clip title */}
+      {/* Center: Clip title — click to edit */}
       <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 6, background: S2, border: `1px solid ${BD}`,
-          borderRadius: 5, padding: "5px 12px", color: T.text, fontSize: 13, fontWeight: 500,
-          cursor: "pointer", fontFamily: T.font, maxWidth: 340, transition: "all 0.15s",
-        }}>
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clipTitle}</span>
-          <span style={{ opacity: 0.4, fontSize: 10, marginLeft: 4 }}>▾</span>
-        </button>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            value={clipTitle}
+            onChange={(e) => { setClipTitle(e.target.value); setDirty(true); }}
+            onBlur={() => setEditingTitle(false)}
+            onKeyDown={(e) => { if (e.key === "Enter") setEditingTitle(false); if (e.key === "Escape") { setClipTitle(clip?.title || "Untitled Clip"); setEditingTitle(false); } }}
+            autoFocus
+            style={{
+              background: S2, border: `1px solid ${T.accentBorder}`, borderRadius: 5,
+              padding: "5px 12px", color: T.text, fontSize: 13, fontWeight: 500,
+              fontFamily: T.font, maxWidth: 340, width: 300, outline: "none",
+              textAlign: "center",
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => setEditingTitle(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, background: S2, border: `1px solid ${BD}`,
+              borderRadius: 5, padding: "5px 12px", color: T.text, fontSize: 13, fontWeight: 500,
+              cursor: "pointer", fontFamily: T.font, maxWidth: 340, transition: "all 0.15s",
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clipTitle}</span>
+          </button>
+        )}
       </div>
 
       {/* Right: Zoom, Fullscreen, Save */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
         <span style={{ fontSize: 11, color: T.textSecondary }}>{zoom}%</span>
         <Ib title="Fullscreen">⛶</Ib>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 6, background: T.accent, color: "#fff",
-          border: "none", borderRadius: 5, padding: "6px 14px", fontSize: 12, fontWeight: 600,
-          cursor: "pointer", fontFamily: T.font, transition: "background 0.15s",
-        }}>
-          ✓ Save
+        <button
+          onClick={handleSave}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: dirty ? T.accent : "rgba(255,255,255,0.06)",
+            color: dirty ? "#fff" : T.textTertiary,
+            border: "none", borderRadius: 5, padding: "6px 14px", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", fontFamily: T.font, transition: "background 0.15s",
+          }}
+        >
+          {dirty ? "● Save" : "✓ Saved"}
         </button>
       </div>
     </div>
@@ -434,7 +556,14 @@ export default function EditorView({ gamesDb = [] }) {
           return (
             <div
               key={row.id}
-              onClick={() => setActiveRow(row.id)}
+              onClick={() => {
+                setActiveRow(row.id);
+                // Seek video to this segment's start time
+                if (videoRef.current && row.startSec !== undefined) {
+                  videoRef.current.currentTime = row.startSec;
+                  setCurrentTime(row.startSec);
+                }
+              }}
               style={{
                 padding: "10px 8px", borderBottom: `1px solid ${BD}`,
                 borderLeft: `2px solid ${isActive ? T.accent : "transparent"}`,
@@ -495,7 +624,14 @@ export default function EditorView({ gamesDb = [] }) {
             return (
               <div
                 key={seg.id}
-                onClick={() => setActiveSegId(seg.id)}
+                onClick={() => {
+                  setActiveSegId(seg.id);
+                  // Seek video to this segment's start time
+                  if (videoRef.current && seg.startSec !== undefined) {
+                    videoRef.current.currentTime = seg.startSec;
+                    setCurrentTime(seg.startSec);
+                  }
+                }}
                 style={{
                   background: isActive ? "rgba(139,92,246,0.06)" : S2,
                   border: `1px solid ${isActive ? T.accentBorder : BD}`,
@@ -517,11 +653,24 @@ export default function EditorView({ gamesDb = [] }) {
                   </div>
                 </div>
 
-                {/* Text + confidence */}
+                {/* Text + confidence — editable */}
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "0 9px 8px" }}>
-                  <div style={{ flex: 1, fontSize: 12.5, color: T.text, lineHeight: 1.5, outline: "none", minHeight: 18, borderRadius: 3, padding: "2px 4px" }}>
-                    {seg.text}
-                  </div>
+                  <input
+                    value={seg.text}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const newText = e.target.value;
+                      setEditSegments((prev) => prev.map((s) => s.id === seg.id ? { ...s, text: newText } : s));
+                      setDirty(true);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      flex: 1, fontSize: 12.5, color: T.text, lineHeight: 1.5, minHeight: 18,
+                      borderRadius: 3, padding: "2px 4px", background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                      border: isActive ? `1px solid ${BD}` : "1px solid transparent", outline: "none",
+                      fontFamily: T.font, width: "100%",
+                    }}
+                  />
                   <div style={{
                     width: 6, height: 6, borderRadius: "50%", flexShrink: 0, marginTop: 6,
                     background: confColor[seg.conf],
@@ -603,41 +752,63 @@ export default function EditorView({ gamesDb = [] }) {
   // ═══════════════════════════════════════
   // RENDER: CENTER PREVIEW
   // ═══════════════════════════════════════
+  // ── Find active subtitle at current time ──
+  const activeSubtitle = segments.find((s) => s.startSec !== undefined && currentTime >= s.startSec && currentTime <= s.endSec);
+  const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
+  const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
+
   const renderPreview = () => (
     <div style={{
       flex: 1, background: T.bg, display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", overflow: "hidden", minWidth: 0,
     }}>
-      {/* 9:16 mockup */}
+      {/* 9:16 preview */}
       <div style={{
         height: "calc(100% - 44px)", aspectRatio: "9/16", maxHeight: 460, maxWidth: 258,
         background: "#000", borderRadius: 6, position: "relative", overflow: "hidden",
         boxShadow: `0 0 0 1px ${BD}, 0 20px 60px rgba(0,0,0,0.7)`, flexShrink: 0,
       }}>
-        {/* Game area */}
-        <div style={{ width: "100%", height: "62%", background: "linear-gradient(180deg, #1a1a2e, #16213e)" }} />
-        {/* Camera area */}
-        <div style={{ width: "100%", height: "38%", background: "linear-gradient(180deg, #0d0d0d, #1a1a1a)", borderTop: "1px solid #222" }} />
+        {/* Video element */}
+        {videoSrc ? (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            style={{ width: "100%", height: "calc(100% - 40px)", objectFit: "cover" }}
+            preload="auto"
+            muted={false}
+          />
+        ) : (
+          <>
+            <div style={{ width: "100%", height: "62%", background: "linear-gradient(180deg, #1a1a2e, #16213e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: T.textTertiary, fontSize: 13 }}>{clip ? "Loading video..." : "No clip loaded"}</span>
+            </div>
+            <div style={{ width: "100%", height: "38%", background: "linear-gradient(180deg, #0d0d0d, #1a1a1a)", borderTop: "1px solid #222" }} />
+          </>
+        )}
 
-        {/* Subtitle overlay */}
-        <div style={{ position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center", padding: "0 14px" }}>
-          <div style={{
-            fontSize: 14, fontWeight: 800, color: "#fff",
-            textShadow: "0 2px 8px rgba(0,0,0,0.9)", lineHeight: 1.3,
-          }}>
-            Third <span style={{ color: T.green, textShadow: `0 0 10px rgba(52,211,153,0.5), 0 2px 8px rgba(0,0,0,0.9)` }}>time's</span> the charm
+        {/* Subtitle overlay — synced to playback */}
+        {showSubs && activeSubtitle && (
+          <div style={{ position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center", padding: "0 14px", pointerEvents: "none" }}>
+            <div style={{
+              fontSize: 14, fontWeight: 800, color: "#fff",
+              textShadow: "0 2px 8px rgba(0,0,0,0.9)", lineHeight: 1.3,
+            }}>
+              {activeSubtitle.text}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Caption overlay */}
-        <div style={{ position: "absolute", bottom: "9%", left: 0, right: 0, textAlign: "center", padding: "0 10px" }}>
-          <div style={{
-            fontSize: 12, fontWeight: 800, color: "#fff",
-            textShadow: "0 2px 6px rgba(0,0,0,0.95)", lineHeight: 1.3,
-          }}>
-            So I decided to play Pico Park
+        {clipTitle && (
+          <div style={{ position: "absolute", bottom: videoSrc ? "12%" : "9%", left: 0, right: 0, textAlign: "center", padding: "0 10px", pointerEvents: "none" }}>
+            <div style={{
+              fontSize: 12, fontWeight: 800, color: "#fff",
+              textShadow: "0 2px 6px rgba(0,0,0,0.95)", lineHeight: 1.3,
+            }}>
+              {clipTitle}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Playback controls */}
         <div style={{
@@ -645,7 +816,7 @@ export default function EditorView({ gamesDb = [] }) {
           display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           padding: "7px 12px", background: T.surface, borderTop: `1px solid ${BD}`,
         }}>
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64 }}>00:08.5</span>
+          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64 }}>{fmtTime(currentTime)}</span>
           <button
             onClick={() => setPlaying(!playing)}
             style={{
@@ -656,12 +827,12 @@ export default function EditorView({ gamesDb = [] }) {
           >
             {playing ? "⏸" : "▶"}
           </button>
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64, textAlign: "right" }}>00:35.4</span>
+          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64, textAlign: "right" }}>{fmtTime(clipDuration)}</span>
           <span style={{
             fontSize: 10, fontWeight: 600, color: T.textSecondary, border: `1px solid ${BD}`,
             borderRadius: 4, padding: "2px 5px", cursor: "pointer",
           }}>
-            1x
+            {tlSpeed}
           </span>
         </div>
       </div>
@@ -1428,7 +1599,7 @@ export default function EditorView({ gamesDb = [] }) {
             <Ib>+</Ib>
           </div>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary }}>00:08.5 / 00:35.4</span>
+          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary }}>{fmtTime(currentTime)} / {fmtTime(clipDuration)}</span>
           <Ib onClick={() => setPlaying(!playing)}>{playing ? "⏸" : "▶"}</Ib>
           <span
             onClick={() => setTlSpeed(tlSpeed === "1x" ? "2x" : "1x")}
@@ -1446,17 +1617,23 @@ export default function EditorView({ gamesDb = [] }) {
         {/* Timeline area (hidden when collapsed) */}
         {!tlCollapsed && (
           <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {/* Ruler */}
+            {/* Ruler — real clip duration */}
             <div style={{
               height: 20, minHeight: 20, background: S2, borderBottom: `1px solid ${BD}`,
               display: "flex", alignItems: "flex-end", paddingLeft: 104, overflow: "hidden", position: "relative",
             }}>
-              {["0s", "8s", "16s", "24s", "32s"].map(t => (
-                <div key={t} style={{ width: 80, flexShrink: 0, position: "relative", height: "100%" }}>
-                  <span style={{ fontSize: 9, fontFamily: T.mono, color: T.textTertiary, position: "absolute", left: 0, bottom: 3 }}>{t}</span>
-                  <div style={{ width: 1, height: 5, background: BDH, position: "absolute", left: 0, bottom: 0 }} />
-                </div>
-              ))}
+              {(() => {
+                const dur = clipDuration || 30;
+                const step = dur <= 15 ? 2 : dur <= 30 ? 4 : dur <= 60 ? 8 : 16;
+                const marks = [];
+                for (let t = 0; t <= dur; t += step) marks.push(t);
+                return marks.map(t => (
+                  <div key={t} style={{ width: 80, flexShrink: 0, position: "relative", height: "100%" }}>
+                    <span style={{ fontSize: 9, fontFamily: T.mono, color: T.textTertiary, position: "absolute", left: 0, bottom: 3 }}>{t}s</span>
+                    <div style={{ width: 1, height: 5, background: BDH, position: "absolute", left: 0, bottom: 0 }} />
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Track rows */}
@@ -1519,11 +1696,12 @@ export default function EditorView({ gamesDb = [] }) {
                       </div>
                     )}
 
-                    {/* Playhead */}
+                    {/* Playhead — synced to currentTime */}
                     {track.id === "cap" && (
                       <div style={{
                         position: "absolute", top: 0, bottom: 0, width: 1, background: T.accentLight,
-                        left: 132, pointerEvents: "none", zIndex: 10,
+                        left: `${clipDuration > 0 ? (currentTime / clipDuration) * 100 : 0}%`,
+                        pointerEvents: "none", zIndex: 10, transition: playing ? "none" : "left 0.1s",
                       }}>
                         <div style={{
                           position: "absolute", top: 0, left: -4, width: 0, height: 0,
@@ -1560,6 +1738,23 @@ export default function EditorView({ gamesDb = [] }) {
   // ═══════════════════════════════════════
   // MAIN LAYOUT
   // ═══════════════════════════════════════
+
+  // Empty state — no clip loaded
+  if (!clip) {
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column", height: "100%", width: "100%",
+        alignItems: "center", justifyContent: "center", background: T.bg,
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
+        <div style={{ color: T.textSecondary, fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No clip loaded</div>
+        <div style={{ color: T.textTertiary, fontSize: 13, maxWidth: 320, textAlign: "center", lineHeight: 1.6 }}>
+          Open a clip from the Projects tab to start editing. Click "Open in Editor" on any clip to load it here.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       display: "flex", flexDirection: "column", height: "100%", width: "100%",

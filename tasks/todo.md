@@ -72,12 +72,22 @@
 - [x] Persisted clip status/title changes to project JSON on disk via `projectUpdateClip`
 - [x] Passed `editorContext` and `localProjects` to EditorView for Phase 5
 
-## Up Next — Pipeline Revamp (Continued)
+### Phase 5: Editor Core — Real Data + NLE ✅
+- [x] Replaced all EditorView mock data with real project/clip loading from `editorContext`
+- [x] HTML5 `<video>` element with `file://` protocol for local clip playback (inline, no separate component needed)
+- [x] Synced subtitle overlay from project transcription (filtered by clip time range)
+- [x] Video playback controls with real `currentTime` / `clipDuration` display
+- [x] Transcript panel built from Whisper data via `React.useMemo`
+- [x] Transcript row click → video seek to segment start time
+- [x] Subtitle segment click → video seek to segment start time
+- [x] Inline clip title editing in topbar with dirty state tracking
+- [x] Editable subtitle text in Edit Subtitles panel with dirty tracking
+- [x] Save handler persists title + subtitle edits to project JSON via `projectUpdateClip`
+- [x] Timeline ruler & playhead use real clip duration and synced `currentTime`
+- [x] SFX folder file loading for media panel
+- [x] Empty state when no clip loaded
 
-### Phase 5: Editor Core — Real Data + NLE
-- [ ] Create `src/renderer/components/VideoPreview.js` (HTML5 video + subtitle overlay)
-- [ ] Replace all EditorView mock data with real project/clip loading
-- [ ] Video playback, transcript sync, subtitle editing, timeline playhead, media panel, undo/redo, save to project JSON
+## Up Next — Pipeline Revamp (Continued)
 
 ### Phase 6: AI Integration — Title/Caption Generation in Editor
 - [ ] Move GenerationPanel from ProjectsView into Editor's AI Tools drawer
