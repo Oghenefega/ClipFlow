@@ -306,9 +306,20 @@ export default function App() {
     setView("clips");
   }, []);
 
-  // Build allClips for QueueView — will be wired to localProjects in Phase 8
-  const allClips = {};
-  const totalApproved = 0; // TODO: derive from localProjects in Phase 8
+  // Build allClips for QueueView — derived from localProjects (rendered clips)
+  const allClips = React.useMemo(() => {
+    const result = {};
+    for (const proj of localProjects) {
+      const rendered = (proj.clips || []).filter((c) => c.renderStatus === "rendered");
+      if (rendered.length > 0) result[proj.id] = rendered;
+    }
+    return result;
+  }, [localProjects]);
+
+  // Queue badge count: approved rendered clips not yet scheduled
+  const totalApproved = React.useMemo(() => {
+    return Object.values(allClips).flat().filter((c) => c.status === "approved" || c.status === "ready").length;
+  }, [allClips]);
 
   const nav = (id) => { setView(id); setSelProj(null); };
 

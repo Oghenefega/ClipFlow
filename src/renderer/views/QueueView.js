@@ -195,8 +195,8 @@ export default function QueueView({
   const publishClip = async (clipId, scheduleOpts) => {
     if (publishingRef.current) return;
     const clip = approved.find((c) => c.id === clipId);
-    if (!clip || !clip.videoId) {
-      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Missing videoId — clip may need re-processing", platforms: {} } }));
+    if (!clip || !clip.renderPath) {
+      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Clip not rendered — render it first from the Editor", platforms: {} } }));
       return;
     }
 
@@ -567,6 +567,11 @@ export default function QueueView({
     <div>
       <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} />
 
+      <InfoBanner color={T.accent} icon={"🔌"}>
+        Platform API publishing coming soon. Clips are logged to the tracker for now — upload rendered files manually.
+      </InfoBanner>
+      <div style={{ height: 12 }} />
+
       {/* Main / Other stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <Card style={{ padding: 20, borderColor: T.accentBorder, background: T.accentGlow }}>
@@ -589,7 +594,7 @@ export default function QueueView({
           const isFailed = ps?.state === "failed";
           const isSch = scheduled[clip.id];
           const isSel = selClip === clip.id;
-          const hasVideoId = !!clip.videoId;
+          const hasVideoId = !!clip.renderPath;
           return (
             <div key={clip.id}>
               <Card onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }} style={{ padding: "14px 18px", borderLeft: `3px solid ${isM ? T.accent : T.green}`, borderColor: isSel ? T.accentBorder : isPub ? T.greenBorder : isFailed ? T.redBorder : T.border, background: isSel ? T.accentGlow : isPub ? "rgba(52,211,153,0.03)" : T.surface, opacity: isPub ? 0.6 : 1 }}>
@@ -599,7 +604,7 @@ export default function QueueView({
                   {isPublishing && <span style={{ color: T.yellow, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Publishing...</span>}
                   {isFailed && !isPub && <span style={{ color: T.red, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Failed</span>}
                   {isSch && !isPub && !isPublishing && !isFailed && <span style={{ color: T.accent, fontSize: 11, fontWeight: 600, fontFamily: T.mono, flexShrink: 0 }}>Scheduled {isSch}</span>}
-                  {!hasVideoId && <span style={{ color: T.yellow, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>No video ID</span>}
+                  {!hasVideoId && <span style={{ color: T.yellow, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Not rendered</span>}
                 </div>
               </Card>
 
@@ -634,7 +639,7 @@ export default function QueueView({
                 <Card style={{ padding: "16px 20px", marginTop: 4, borderColor: T.accentBorder }}>
                   {!hasVideoId && (
                     <div style={{ marginBottom: 12 }}>
-                      <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip has no video ID. It may need to be re-rendered before publishing.</InfoBanner>
+                      <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip hasn't been rendered yet. Open it in the Editor and click "Ready to Share" first.</InfoBanner>
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 8, marginBottom: schedAction === "schedule" ? 14 : 0 }}>

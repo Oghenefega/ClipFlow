@@ -109,10 +109,14 @@
 - [x] Added "Render All" batch button in ClipBrowser header for approved unrendered clips
 - [x] Project data auto-reloads after batch render to reflect updated renderStatus
 
-### Phase 8: Queue Rewiring — Local Rendered Clips
-- [ ] Create `src/main/publish.js` (platform API stubs)
-- [ ] Rewire QueueView to source clips from localProjects (renderStatus === "rendered")
-- [ ] Queue badge count from local data
+### Phase 8: Queue Rewiring — Local Rendered Clips ✅
+- [x] Created `src/main/publish.js` with platform API stubs (YouTube, TikTok, Instagram, Facebook)
+- [x] Rewired `allClips` in App.js to derive from `localProjects` (clips where `renderStatus === "rendered"`)
+- [x] Queue badge count derived from local rendered+approved clips via `React.useMemo`
+- [x] Replaced `clip.videoId` checks with `clip.renderPath` throughout QueueView
+- [x] Updated warning messages: "Not rendered" / "Open in Editor and click Ready to Share first"
+- [x] Added "Platform API coming soon" InfoBanner to QueueView header
+- [x] Publish Now / Schedule still logs to tracker for manual workflow tracking
 
 ## Known Issues
 
