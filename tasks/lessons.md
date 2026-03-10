@@ -64,6 +64,10 @@
 - **Mistake:** Built successfully but didn't launch the app to visually verify changes. User had to ask.
 - **Rule:** After EVERY build or code change, run `npm start` to launch the Electron app. Do not wait to be asked. Visual verification is mandatory before committing.
 
+### Moving hooks but not their dependencies causes TDZ crashes
+- **Mistake:** Added `useEffect` and `useCallback` that referenced `clipDuration` in their dependency arrays, but `clipDuration` was declared 700 lines later. JavaScript's Temporal Dead Zone (TDZ) makes `const` variables inaccessible before their declaration — `ReferenceError` at runtime, blank screen.
+- **Rule:** When adding hooks that reference derived `const` values, ALWAYS check that those values are declared ABOVE the hook in the component body. Move declarations up if needed. `const` is NOT hoisted like `var`.
+
 ### When a fix doesn't work, change the approach entirely
 - **Mistake:** Tried to tweak the field-based source video heuristic when it failed.
 - **Rule:** If a heuristic fails once, the underlying assumption is wrong. Don't patch it — rethink the approach from scratch (which led to the duration-based solution).

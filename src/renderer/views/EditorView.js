@@ -437,6 +437,10 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // ── Use editSegments as the subtitle segments ──
   const segments = editSegments;
 
+  // ── Derived values needed by hooks below ──
+  const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
+  const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
+
   // ── Resize: left panel ──
   const onLpResizeStart = useCallback((e) => {
     e.preventDefault();
@@ -1216,8 +1220,6 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // ── Find active subtitle at current time ──
   const adjustedPlayTime = currentTime - syncOffset;
   const activeSubtitle = segments.find((s) => s.startSec !== undefined && adjustedPlayTime >= s.startSec && adjustedPlayTime <= s.endSec);
-  const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
-  const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
 
   const handlePreviewWheel = useCallback((e) => {
     e.preventDefault();
