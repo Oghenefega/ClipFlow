@@ -63,12 +63,14 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
 
-  // Load done files from store on mount
+  // Load done files + collapsed state from store on mount
   useEffect(() => {
     (async () => {
       if (window.clipflow?.storeGet) {
         const saved = await window.clipflow.storeGet("doneRecordings");
         if (saved && typeof saved === "object") setDoneFiles(saved);
+        const savedCollapsed = await window.clipflow.storeGet("recordingsCollapsed");
+        if (savedCollapsed && typeof savedCollapsed === "object") setCollapsed(savedCollapsed);
       }
     })();
   }, []);
@@ -210,7 +212,13 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     return a.localeCompare(b);
   });
 
-  const toggleCollapse = (folder) => setCollapsed((p) => ({ ...p, [folder]: !p[folder] }));
+  const toggleCollapse = (folder) => {
+    setCollapsed((p) => {
+      const next = { ...p, [folder]: !p[folder] };
+      if (window.clipflow?.storeSet) window.clipflow.storeSet("recordingsCollapsed", next);
+      return next;
+    });
+  };
 
   const totalDone = files.filter((f) => isDone(f)).length;
 

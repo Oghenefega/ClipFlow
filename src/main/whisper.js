@@ -160,18 +160,50 @@ function transcribe(wavPath, opts = {}) {
 }
 
 /**
+ * Extract milliseconds from a whisper.cpp timestamp value.
+ * Handles both numeric offsets (720) and string timestamps ("00:00:00,720").
+ * @param {number|string|undefined} val
+ * @returns {number} milliseconds
+ */
+function toMs(val) {
+  if (typeof val === "number") return val;
+  if (typeof val === "string") {
+    // Parse "HH:MM:SS,mmm" format
+    const m = val.match(/(\d+):(\d+):(\d+)[,.](\d+)/);
+    if (m) {
+      return (
+        parseInt(m[1], 10) * 3600000 +
+        parseInt(m[2], 10) * 60000 +
+        parseInt(m[3], 10) * 1000 +
+        parseInt(m[4], 10)
+      );
+    }
+  }
+  return 0;
+}
+
+/**
  * Parse whisper.cpp JSON output into our standard format.
+ *
+ * whisper.cpp --output-json-full produces:
+ *   timestamps.from / timestamps.to  = STRING "HH:MM:SS,mmm"
+ *   offsets.from / offsets.to         = NUMBER (milliseconds)
+ *
+ * We prefer offsets (numeric) but safely handle either via toMs().
+ *
  * @param {object} raw - Raw whisper.cpp JSON
  * @returns {{ segments: Array<{start, end, text, words}>, text: string }}
  */
 function parseWhisperOutput(raw) {
-  const transcription = raw.transcription || raw.result || [];
+  // raw.transcription is the segment array; raw.result is { language: "en" }, NOT an array
+  const transcription = Array.isArray(raw.transcription) ? raw.transcription : [];
   const segments = [];
   let fullText = "";
 
   for (const seg of transcription) {
-    const startMs = seg.timestamps?.from || seg.offsets?.from || 0;
-    const endMs = seg.timestamps?.to || seg.offsets?.to || 0;
+    // Prefer numeric offsets, fall back to parsing string timestamps
+    const startMs = toMs(seg.offsets?.from) || toMs(seg.timestamps?.from);
+    const endMs = toMs(seg.offsets?.to) || toMs(seg.timestamps?.to);
     const text = (seg.text || "").trim();
 
     if (!text) continue;
@@ -182,10 +214,13 @@ function parseWhisperOutput(raw) {
         const word = (token.text || "").trim();
         if (!word || word.startsWith("[")) continue;
 
+        const tStart = toMs(token.offsets?.from) || toMs(token.timestamps?.from) || startMs;
+        const tEnd = toMs(token.offsets?.to) || toMs(token.timestamps?.to) || endMs;
+
         words.push({
           word,
-          start: (token.timestamps?.from || token.offsets?.from || startMs) / 1000,
-          end: (token.timestamps?.to || token.offsets?.to || endMs) / 1000,
+          start: tStart / 1000,
+          end: tEnd / 1000,
           probability: token.p ?? token.probability ?? 1.0,
         });
       }
