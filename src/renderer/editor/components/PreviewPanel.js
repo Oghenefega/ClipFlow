@@ -5,9 +5,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
-import { BD, S2 } from "../utils/constants";
-import { fmtTime } from "../utils/timeUtils";
-import { ToolBtn } from "../primitives/editorPrimitives";
+import { BD } from "../utils/constants";
 
 export default function PreviewPanel() {
   const videoRef = useRef(null);
@@ -15,10 +13,9 @@ export default function PreviewPanel() {
   // ── Store selectors ──
   const playing = usePlaybackStore((s) => s.playing);
   const currentTime = usePlaybackStore((s) => s.currentTime);
-  const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
   const setCurrentTime = usePlaybackStore((s) => s.setCurrentTime);
-  const setTlSpeed = usePlaybackStore((s) => s.setTlSpeed);
+  const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
 
   const clip = useEditorStore((s) => s.clip);
   const clipTitle = useEditorStore((s) => s.clipTitle);
@@ -108,7 +105,7 @@ export default function PreviewPanel() {
     >
       {/* 9:16 preview */}
       <div style={{
-        height: "calc(100% - 44px)", aspectRatio: "9/16", maxHeight: 600, maxWidth: 338,
+        height: "100%", aspectRatio: "9/16", maxHeight: 600, maxWidth: 338,
         background: "#000", borderRadius: 6, position: "relative", overflow: "hidden",
         boxShadow: `0 0 0 1px ${BD}, 0 20px 60px rgba(0,0,0,0.7)`, flexShrink: 0,
         transform: `scale(${zoom / 100})`, transformOrigin: "center center",
@@ -120,7 +117,7 @@ export default function PreviewPanel() {
             ref={videoRef}
             src={videoSrc}
             onClick={() => setPlaying(!playing)}
-            style={{ width: "100%", height: "calc(100% - 40px)", objectFit: "cover", cursor: "pointer" }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
             preload="auto"
             muted={false}
           />
@@ -205,45 +202,6 @@ export default function PreviewPanel() {
           </div>
         )}
 
-        {/* Playback controls */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          padding: "7px 12px", background: T.surface, borderTop: `1px solid ${BD}`,
-        }}>
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64 }}>{fmtTime(currentTime)}</span>
-          <button
-            onClick={() => setPlaying(!playing)}
-            style={{
-              width: 26, height: 26, background: T.accent, border: "none", borderRadius: "50%",
-              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-              color: "#fff", fontSize: 10,
-            }}
-          >
-            {playing ? "⏸" : "▶"}
-          </button>
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64, textAlign: "right" }}>{fmtTime(clipDuration)}</span>
-          <span
-            onClick={() => setTlSpeed(tlSpeed === "1x" ? "2x" : "1x")}
-            style={{
-              fontSize: 10, fontWeight: 600, color: T.textSecondary, border: `1px solid ${BD}`,
-              borderRadius: 4, padding: "2px 5px", cursor: "pointer",
-            }}
-          >
-            {tlSpeed}
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8, padding: "6px 14px",
-        background: T.surface, borderTop: `1px solid ${BD}`, width: "100%",
-      }}>
-        <ToolBtn active>📱 9:16</ToolBtn>
-        <ToolBtn>Background</ToolBtn>
-        <ToolBtn>Layouts</ToolBtn>
-        <ToolBtn style={{ marginLeft: "auto" }}>⛶ Expand</ToolBtn>
       </div>
     </div>
   );

@@ -91,7 +91,7 @@ export default function TranscriptPanel() {
                     key={wKey}
                     onClick={() => {
                       setActiveRow(row.id);
-                      seekTo(wordStart);
+                      seekTo(wordStart + 0.01);
                     }}
                     onDoubleClick={() => setEditingWordKey(wKey)}
                     style={{

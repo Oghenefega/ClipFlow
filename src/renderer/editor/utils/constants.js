@@ -42,8 +42,7 @@ export const RAIL_ITEMS = [
 
 export const TRACKS = [
   { id: "cap", label: "CAPTION", color: T.accent, type: "cap" },
-  { id: "s1", label: "SUB 1", color: "#90b8e0", type: "sub" },
-  { id: "s2", label: "SUB 2", color: "#d4b94a", type: "sub" },
+  { id: "s1", label: "SUBTITLES", color: "#90b8e0", type: "sub" },
   { id: "v1", label: "VIDEO 1", color: T.green, type: "video" },
   { id: "a1", label: "AUDIO 1", color: "#4a7fa0", type: "audio" },
   { id: "a2", label: "AUDIO 2", color: "#7a5fa0", type: "audio" },

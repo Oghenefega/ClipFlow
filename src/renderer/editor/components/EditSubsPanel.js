@@ -9,11 +9,9 @@ import { Ib, ToolBtn, EditableTC } from "../primitives/editorPrimitives";
 
 export default function EditSubsPanel() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
-  const esFilter = useSubtitleStore((s) => s.esFilter);
   const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
   const editingWordKey = useSubtitleStore((s) => s.editingWordKey);
-  const setEsFilter = useSubtitleStore((s) => s.setEsFilter);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
   const setSelectedWordInfo = useSubtitleStore((s) => s.setSelectedWordInfo);
   const setEditingWordKey = useSubtitleStore((s) => s.setEditingWordKey);
@@ -28,7 +26,7 @@ export default function EditSubsPanel() {
   const clip = useEditorStore((s) => s.clip);
   const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
 
-  const filtered = esFilter === "all" ? editSegments : editSegments.filter(s => s.track === esFilter);
+  const filtered = editSegments;
   const confColor = { high: T.green, med: T.yellow, low: T.red };
 
   const handleSplit = () => { splitSegment(); markDirty(); };
@@ -45,29 +43,12 @@ export default function EditSubsPanel() {
         <div style={{ width: 1, height: 16, background: BD, margin: "0 2px" }} />
         <ToolBtn onClick={handleSplitToWords}>≈ Words</ToolBtn>
         <div style={{ flex: 1 }} />
-        {["all", "s1", "s2"].map(f => (
-          <button
-            key={f}
-            onClick={() => setEsFilter(f)}
-            style={{
-              padding: "3px 8px", borderRadius: 12,
-              border: `1px solid ${esFilter === f ? T.accentBorder : f === "s1" ? "#90b8e0" : f === "s2" ? "#d4b94a" : BD}`,
-              fontSize: 10, fontWeight: 600,
-              color: esFilter === f ? T.accentLight : f === "s1" ? "#90b8e0" : f === "s2" ? "#d4b94a" : T.textTertiary,
-              background: esFilter === f ? T.accentDim : "transparent",
-              cursor: "pointer", fontFamily: T.font, transition: "all 0.15s",
-            }}
-          >
-            {f === "all" ? "All" : f.toUpperCase()}
-          </button>
-        ))}
       </div>
 
       {/* Segment list */}
       <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
         {filtered.map(seg => {
           const isActive = seg.id === activeSegId;
-          const dotColor = seg.track === "s1" ? "#90b8e0" : "#d4b94a";
           return (
             <div
               key={seg.id}
@@ -98,7 +79,6 @@ export default function EditSubsPanel() {
                   <span style={{ fontSize: 9, color: T.textTertiary, fontFamily: T.mono }}>[{seg.dur}]</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor }} title={seg.track === "s1" ? "Sub 1" : "Sub 2"} />
                   <Ib title="Split here" onClick={(e) => { e.stopPropagation(); setActiveSegId(seg.id); setTimeout(handleSplit, 0); }} style={{ width: 20, height: 20, fontSize: 11 }}>⌇</Ib>
                   <Ib title="Delete segment" onClick={(e) => { e.stopPropagation(); handleDelete(seg.id); }} style={{ width: 20, height: 20, fontSize: 11 }}>✕</Ib>
                 </div>
@@ -157,7 +137,7 @@ export default function EditSubsPanel() {
                           e.stopPropagation();
                           setSelectedWordInfo({ segId: seg.id, wordIdx: wi });
                           setActiveSegId(seg.id);
-                          seekTo(wordStart);
+                          seekTo(wordStart + 0.01);
                         }}
                         onDoubleClick={() => setEditingWordKey(wKey)}
                         style={{

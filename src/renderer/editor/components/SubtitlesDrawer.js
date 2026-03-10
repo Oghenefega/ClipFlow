@@ -40,10 +40,7 @@ export default function SubtitlesDrawer() {
   const setEmojiOn = useSubtitleStore((s) => s.setEmojiOn);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const setSyncOffset = useSubtitleStore((s) => s.setSyncOffset);
-  const s1Open = useSubtitleStore((s) => s.s1Open);
-  const setS1Open = useSubtitleStore((s) => s.setS1Open);
-  const s2Open = useSubtitleStore((s) => s.s2Open);
-  const setS2Open = useSubtitleStore((s) => s.setS2Open);
+
 
   return (
     <div>
@@ -244,100 +241,6 @@ export default function SubtitlesDrawer() {
         </div>
       </div>
 
-      {/* ── Sub 1 accordion ── */}
-      <div style={{ borderBottom: `1px solid ${BD}` }}>
-        <div onClick={() => setS1Open(!s1Open)} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 13px", cursor: "pointer", userSelect: "none",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#90b8e0" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>Sub 1</span>
-            <span style={{ fontSize: 10, color: T.accentLight, background: T.accentDim, borderRadius: 10, padding: "1px 7px" }}>1 override</span>
-          </div>
-          <span style={{ fontSize: 14, color: T.textTertiary, transform: s1Open ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>›</span>
-        </div>
-        {s1Open && (
-          <div style={{ borderTop: `1px solid ${BD}` }}>
-            <div style={{ padding: "7px 13px", fontSize: 10, color: T.textTertiary, background: "rgba(139,92,246,0.06)", borderBottom: `1px solid ${BD}` }}>
-              Changes here override Global for Sub 1 only.
-            </div>
-            <div style={{ padding: "10px 13px" }}>
-              <SectionLabel>Size <span style={{ fontSize: 9, color: T.accentLight, fontWeight: 500, marginLeft: 4 }}>overriding global (52)</span></SectionLabel>
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                <NumBox value={64} onChange={() => {}} />
-                <button style={{ fontSize: 10, color: T.accentLight, background: "transparent", border: `1px solid ${T.accentBorder}`, borderRadius: 5, padding: "2px 7px", cursor: "pointer", fontFamily: T.font }}>↺</button>
-              </div>
-            </div>
-            <Divider />
-            <div style={{ padding: "10px 13px" }}>
-              <SectionLabel>Highlight</SectionLabel>
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                {HIGHLIGHT_COLORS.map(c => <SwatchBtn key={c} color={c} size={22} style={{ borderRadius: "50%", border: c === "#ffffff" ? "1px solid #555" : undefined }} selected={c === "#f4c430"} />)}
-              </div>
-            </div>
-            <div style={{ padding: "10px 13px", borderTop: `1px solid ${BD}` }}>
-              <button style={{
-                width: "100%", background: "transparent", border: `1px solid ${BDH}`, borderRadius: 5,
-                padding: 6, fontSize: 11, color: T.textSecondary, cursor: "pointer", fontFamily: T.font,
-              }}>
-                ↺ Reset all Sub 1 overrides
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Sub 2 accordion ── */}
-      <div style={{ borderBottom: `1px solid ${BD}` }}>
-        <div onClick={() => setS2Open(!s2Open)} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 13px", cursor: "pointer", userSelect: "none",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#d4b94a" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>Sub 2</span>
-            <span style={{ fontSize: 10, color: T.accentLight, background: T.accentDim, borderRadius: 10, padding: "1px 7px" }}>2 overrides</span>
-          </div>
-          <span style={{ fontSize: 14, color: T.textTertiary, transform: s2Open ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>›</span>
-        </div>
-        {s2Open && (
-          <div style={{ borderTop: `1px solid ${BD}` }}>
-            <div style={{ padding: "7px 13px", fontSize: 10, color: T.textTertiary, background: "rgba(139,92,246,0.06)", borderBottom: `1px solid ${BD}` }}>
-              Changes here override Global for Sub 2 only.
-            </div>
-            <div style={{ padding: "10px 13px" }}>
-              <SectionLabel>Mode <span style={{ fontSize: 9, color: T.accentLight, fontWeight: 500, marginLeft: 4 }}>overriding global (Karaoke)</span></SectionLabel>
-              <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
-                <Pill label="Karaoke" active={false} onClick={() => {}} />
-                <Pill label="Word" active onClick={() => {}} />
-                <Pill label="Phrase" active={false} onClick={() => {}} />
-              </div>
-              <div style={{ marginTop: 6 }}>
-                <button style={{ fontSize: 10, color: T.accentLight, background: "transparent", border: `1px solid ${T.accentBorder}`, borderRadius: 5, padding: "2px 7px", cursor: "pointer", fontFamily: T.font }}>↺ Reset</button>
-              </div>
-            </div>
-            <Divider />
-            <div style={{ padding: "10px 13px" }}>
-              <SectionLabel>Highlight <span style={{ fontSize: 9, color: T.accentLight, fontWeight: 500, marginLeft: 4 }}>overriding global (Green)</span></SectionLabel>
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                {HIGHLIGHT_COLORS.map(c => <SwatchBtn key={c} color={c} size={22} style={{ borderRadius: "50%", border: c === "#ffffff" ? "1px solid #555" : undefined }} selected={c === "#e63946"} />)}
-              </div>
-              <div style={{ marginTop: 6 }}>
-                <button style={{ fontSize: 10, color: T.accentLight, background: "transparent", border: `1px solid ${T.accentBorder}`, borderRadius: 5, padding: "2px 7px", cursor: "pointer", fontFamily: T.font }}>↺ Reset</button>
-              </div>
-            </div>
-            <div style={{ padding: "10px 13px", borderTop: `1px solid ${BD}` }}>
-              <button style={{
-                width: "100%", background: "transparent", border: `1px solid ${BDH}`, borderRadius: 5,
-                padding: 6, fontSize: 11, color: T.textSecondary, cursor: "pointer", fontFamily: T.font,
-              }}>
-                ↺ Reset all Sub 2 overrides
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
       <div style={{ height: 20 }} />
     </div>
   );

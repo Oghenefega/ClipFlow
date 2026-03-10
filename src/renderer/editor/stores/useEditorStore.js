@@ -2,6 +2,7 @@ import { create } from "zustand";
 import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
+import { extractWaveformPeaks } from "../utils/waveformUtils";
 
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
@@ -10,6 +11,7 @@ const useEditorStore = create((set, get) => ({
   clipTitle: "",
   editingTitle: false,
   dirty: false,
+  waveformPeaks: null,
 
   // ── Actions ──
   initFromContext: (editorContext, localProjects) => {
@@ -33,6 +35,14 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().initSegments(project, clip);
     usePlaybackStore.getState().reset();
 
+    // Extract waveform data asynchronously
+    set({ waveformPeaks: null });
+    if (clip?.filePath) {
+      extractWaveformPeaks(clip.filePath).then(peaks => {
+        if (peaks) set({ waveformPeaks: peaks });
+      });
+    }
+
     // Set AI game from project data
     if (project?.game) {
       // Defer to avoid import cycle — useAIStore imported lazily
@@ -49,6 +59,7 @@ const useEditorStore = create((set, get) => ({
   setEditingTitle: (v) => set({ editingTitle: v }),
   setDirty: (v) => set({ dirty: v }),
   markDirty: () => set({ dirty: true }),
+  setWaveformPeaks: (peaks) => set({ waveformPeaks: peaks }),
 
   handleSave: async () => {
     const { clip, project, clipTitle } = get();
@@ -59,10 +70,7 @@ const useEditorStore = create((set, get) => ({
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
         caption: captionText,
-        subtitles: {
-          sub1: editSegments.filter((s) => s.track === "s1"),
-          sub2: editSegments.filter((s) => s.track === "s2"),
-        },
+        subtitles: editSegments,
       });
       set({ dirty: false });
     } catch (e) {
