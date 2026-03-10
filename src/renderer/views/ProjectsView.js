@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 
@@ -33,26 +33,7 @@ const getClipTranscript = (clip, project) => {
 // ============ PROJECT LIST ============
 export function ProjectsListView({ localProjects = [], onSelect, onDeleteProjects, mainGame, gamesDb = [] }) {
   const [selected, setSelected] = useState({});
-  const [collapsed, setCollapsed] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  // Load collapsed state from store on mount
-  useEffect(() => {
-    (async () => {
-      if (window.clipflow?.storeGet) {
-        const saved = await window.clipflow.storeGet("projectsCollapsed");
-        if (saved && typeof saved === "object") setCollapsed(saved);
-      }
-    })();
-  }, []);
-
-  const toggleCollapse = useCallback((tag) => {
-    setCollapsed((p) => {
-      const next = { ...p, [tag]: !p[tag] };
-      if (window.clipflow?.storeSet) window.clipflow.storeSet("projectsCollapsed", next);
-      return next;
-    });
-  }, []);
 
   if (localProjects.length === 0) {
     return (
@@ -67,46 +48,18 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
     );
   }
 
-  // --- Group by gameTag ---
-  const grouped = {};
-  for (const p of localProjects) {
-    const tag = p.gameTag || "?";
-    if (!grouped[tag]) grouped[tag] = [];
-    grouped[tag].push(p);
-  }
-
-  // Sort groups alphabetically
-  const groupKeys = Object.keys(grouped).sort((a, b) => {
-    if (a === "?") return 1;
-    if (b === "?") return -1;
-    return a.localeCompare(b);
+  // Sort: processing first, then ready, then done, then error — within same status by date (newest first)
+  const sorted = [...localProjects].sort((a, b) => {
+    const order = { processing: 0, ready: 1, done: 2, error: 3 };
+    const sa = order[getProjectStatus(a)] ?? 1;
+    const sb = order[getProjectStatus(b)] ?? 1;
+    if (sa !== sb) return sa - sb;
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
-
-  // Sort projects within each group: processing first, then by creation date (newest first)
-  for (const key of groupKeys) {
-    grouped[key].sort((a, b) => {
-      const order = { processing: 0, ready: 1, done: 2, error: 3 };
-      const sa = order[getProjectStatus(a)] ?? 1;
-      const sb = order[getProjectStatus(b)] ?? 1;
-      if (sa !== sb) return sa - sb;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }
 
   // --- Selection helpers ---
   const toggle = (id) => {
     setSelected((p) => ({ ...p, [id]: !p[id] }));
-    setConfirmDelete(false);
-  };
-
-  const selectAllInGroup = (tag) => {
-    const items = grouped[tag] || [];
-    const allSel = items.every((p) => selected[p.id]);
-    setSelected((prev) => {
-      const next = { ...prev };
-      items.forEach((p) => { next[p.id] = !allSel; });
-      return next;
-    });
     setConfirmDelete(false);
   };
 
@@ -166,138 +119,88 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
         </button>
       </div>
 
-      {/* Grouped project list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {groupKeys.map((tag) => {
-          const items = grouped[tag];
-          const isCollapsed = collapsed[tag];
-          const game = gamesDb.find((g) => g.tag === tag);
-          const gameColor = game?.color || T.accent;
-          const gameName = game?.name || tag;
-          const groupSelCount = items.filter((p) => selected[p.id]).length;
-          const allGroupSel = items.length > 0 && items.every((p) => selected[p.id]);
+      {/* Flat project list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {sorted.map((p) => {
+          const st = getProjectStatus(p);
+          const pColor = getGameColor(p, gamesDb);
+          const clipCount = p.clips ? p.clips.length : 0;
+          const isSel = !!selected[p.id];
 
           return (
-            <div key={tag}>
-              {/* Group header */}
-              <div
-                onClick={() => toggleCollapse(tag)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 14px", borderRadius: T.radius.md,
-                  background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
-                  cursor: "pointer", marginBottom: isCollapsed ? 0 : 10,
-                }}
-              >
-                <span style={{
-                  color: T.textTertiary, fontSize: 14, transition: "transform 0.2s",
-                  transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                }}>{"\u25bc"}</span>
-                <span style={{
-                  display: "inline-flex", padding: "2px 6px",
-                  background: `${gameColor}18`, border: `1px solid ${gameColor}44`,
-                  borderRadius: 4, fontSize: 10, fontWeight: 700, color: gameColor,
-                  fontFamily: T.mono,
-                }}>{tag}</span>
-                <span style={{ color: T.text, fontSize: 14, fontWeight: 700, flex: 1 }}>
-                  {gameName}
-                </span>
-                <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
-                  {items.length} project{items.length !== 1 ? "s" : ""}
-                </span>
-                {groupSelCount > 0 && (
-                  <span style={{ color: T.accent, fontSize: 11, fontWeight: 700 }}>
-                    {groupSelCount} selected
-                  </span>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); selectAllInGroup(tag); }}
-                  style={{
-                    background: "none", border: `1px solid ${T.border}`, borderRadius: 6,
-                    padding: "4px 10px", color: T.textSecondary, fontSize: 11,
-                    fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-                  }}
-                >
-                  {allGroupSel ? "Deselect" : "Select All"}
-                </button>
+            <div
+              key={p.id}
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "14px 16px", borderRadius: T.radius.md,
+                background: isSel ? T.accentDim : T.surface,
+                border: `1px solid ${isSel ? T.accentBorder : st === "done" ? T.greenBorder : st === "error" ? T.redBorder : T.border}`,
+                opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
+                cursor: "pointer",
+              }}
+            >
+              {/* Checkbox */}
+              <div onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
+                <Checkbox checked={isSel} size={18} />
               </div>
 
-              {/* Projects in this group */}
-              {!isCollapsed && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {items.map((p) => {
-                    const st = getProjectStatus(p);
-                    const pColor = getGameColor(p, gamesDb);
-                    const clipCount = p.clips ? p.clips.length : 0;
-                    const isSel = !!selected[p.id];
-
-                    return (
-                      <div
-                        key={p.id}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 12,
-                          padding: "14px 16px", borderRadius: T.radius.md,
-                          background: isSel ? T.accentDim : T.surface,
-                          border: `1px solid ${isSel ? T.accentBorder : st === "done" ? T.greenBorder : st === "error" ? T.redBorder : T.border}`,
-                          opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {/* Checkbox */}
-                        <div onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
-                          <Checkbox checked={isSel} size={18} />
-                        </div>
-
-                        {/* Main content — click to open */}
-                        <div
-                          onClick={() => (st === "ready" || st === "done") && onSelect(p)}
-                          style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, overflow: "hidden" }}
-                        >
-                          <div style={{
-                            width: 38, height: 38, borderRadius: T.radius.sm,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 18, flexShrink: 0,
-                            background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${pColor}18`,
-                          }}>
-                            {st === "done" ? "\u2705" : st === "error" ? "\u274c" : st === "processing" ? "\u23f3" : "\ud83c\udfac"}
-                          </div>
-                          <div style={{ flex: 1, overflow: "hidden" }}>
-                            <div style={{ color: T.text, fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {p.name}
-                            </div>
-                            <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>
-                              {st === "processing" ? (
-                                <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>
-                              ) : st === "error" ? (
-                                <span style={{ color: T.red }}>{p.error || "Failed"}</span>
-                              ) : (
-                                <><span style={{ fontFamily: T.mono }}>{clipCount}</span> clip{clipCount !== 1 ? "s" : ""}</>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Status badge */}
-                        <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
-                          {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
-                        </Badge>
-
-                        {/* Delete icon */}
-                        <span
-                          onClick={(e) => handleSingleDelete(e, p.id)}
-                          title="Delete project"
-                          style={{
-                            color: T.textMuted, fontSize: 16, cursor: "pointer", padding: "4px 6px",
-                            borderRadius: 4, flexShrink: 0, lineHeight: 1,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                        >{"\ud83d\uddd1"}</span>
-                      </div>
-                    );
-                  })}
+              {/* Main content — click to open */}
+              <div
+                onClick={() => (st === "ready" || st === "done") && onSelect(p)}
+                style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, overflow: "hidden" }}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: T.radius.sm,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 18, flexShrink: 0,
+                  background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${pColor}18`,
+                }}>
+                  {st === "done" ? "\u2705" : st === "error" ? "\u274c" : st === "processing" ? "\u23f3" : "\ud83c\udfac"}
                 </div>
-              )}
+                <div style={{ flex: 1, overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: T.text, fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {p.name}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+                    {p.gameTag && p.gameTag !== "?" && (
+                      <span style={{
+                        display: "inline-flex", padding: "1px 5px",
+                        background: `${pColor}18`, border: `1px solid ${pColor}44`,
+                        borderRadius: 4, fontSize: 9, fontWeight: 700, color: pColor,
+                        fontFamily: T.mono,
+                      }}>{p.gameTag}</span>
+                    )}
+                    <span style={{ color: T.textTertiary, fontSize: 12 }}>
+                      {st === "processing" ? (
+                        <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>
+                      ) : st === "error" ? (
+                        <span style={{ color: T.red }}>{p.error || "Failed"}</span>
+                      ) : (
+                        <><span style={{ fontFamily: T.mono }}>{clipCount}</span> clip{clipCount !== 1 ? "s" : ""}</>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status badge */}
+              <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
+                {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
+              </Badge>
+
+              {/* Delete icon */}
+              <span
+                onClick={(e) => handleSingleDelete(e, p.id)}
+                title="Delete project"
+                style={{
+                  color: T.textMuted, fontSize: 16, cursor: "pointer", padding: "4px 6px",
+                  borderRadius: 4, flexShrink: 0, lineHeight: 1,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+              >{"\ud83d\uddd1"}</span>
             </div>
           );
         })}
@@ -309,7 +212,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
           <button
             onClick={handleDelete}
             style={{
-              padding: "10px 18px", borderRadius: T.radius.md, border: "none",
+              padding: "10px 18px", borderRadius: T.radius.md,
               background: confirmDelete ? T.red : T.redDim,
               color: confirmDelete ? "#fff" : T.red,
               fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
