@@ -208,9 +208,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Output Folder */}
-      <SectionLabel>Output Folder</SectionLabel>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16 }}>
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Output Folder</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: outputFolder ? T.text : T.textTertiary }}>
             {outputFolder || "Not set \u2014 rendered clips will be saved here"}
           </span>
@@ -222,9 +222,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Sound Effects Folder */}
-      <SectionLabel>Sound Effects Folder</SectionLabel>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16 }}>
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Sound Effects Folder</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: sfxFolder ? T.text : T.textTertiary }}>
             {sfxFolder || "Not set \u2014 browse your sound effects folder"}
           </span>
@@ -236,8 +236,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Local Tools Status */}
-      <SectionLabel>Local Tools</SectionLabel>
       <Card style={{ marginBottom: 16, padding: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Local Tools</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <PulseDot color={ffmpegStatus?.installed ? T.green : T.red} />
           <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>ffmpeg</span>
@@ -263,8 +263,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       </Card>
 
       {/* Whisper Configuration */}
-      <SectionLabel>Whisper Configuration</SectionLabel>
       <Card style={{ marginBottom: 16, padding: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Whisper Configuration</div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Binary Path</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

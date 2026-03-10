@@ -154,6 +154,55 @@ const fmtTime = (sec) => {
   return `${String(m).padStart(2, "0")}:${s.toFixed(1).padStart(4, "0")}`;
 };
 
+// Parse "MM:SS.d" or "SS.d" back to seconds
+const parseTime = (str) => {
+  if (!str) return 0;
+  const parts = str.split(":");
+  if (parts.length === 2) {
+    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+  }
+  return parseFloat(str) || 0;
+};
+
+// Editable timecode component
+const EditableTC = ({ value, onChange }) => {
+  const [editing, setEditing] = React.useState(false);
+  const [val, setVal] = React.useState(value);
+  React.useEffect(() => { setVal(value); }, [value]);
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={() => { setEditing(false); onChange(val); }}
+        onKeyDown={e => { if (e.key === "Enter") { setEditing(false); onChange(val); } if (e.key === "Escape") { setEditing(false); setVal(value); } }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 58, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#a78bfa",
+          background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.4)",
+          borderRadius: 3, padding: "2px 4px", outline: "none", textAlign: "center",
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      onClick={e => { e.stopPropagation(); setEditing(true); }}
+      style={{
+        fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: T.textSecondary,
+        padding: "2px 5px", borderRadius: 3, cursor: "pointer",
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.1)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+      title="Click to edit timecode"
+    >
+      {value}
+    </span>
+  );
+};
+
 // ============ EDITOR VIEW ============
 export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", styleGuide = "" }) {
   // ── Resolve real project/clip data from editorContext ──
@@ -299,6 +348,13 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     if (playing) video.play().catch(() => setPlaying(false));
     else video.pause();
   }, [playing]);
+
+  // ── Speed sync ──
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = tlSpeed === "2x" ? 2 : 1;
+  }, [tlSpeed]);
 
   // ── Save handler ──
   const handleSave = useCallback(async () => {
@@ -495,6 +551,67 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     setRendering(false);
   }, [clip, project, rendering, fontSize, highlightColor, strokeOn, strokeWidth, subPos]);
 
+  // ── Subtitle editing handlers ──
+  const handleSplitSegment = useCallback(() => {
+    if (!activeSegId) return;
+    const idx = editSegments.findIndex(s => s.id === activeSegId);
+    if (idx < 0) return;
+    const seg = editSegments[idx];
+    const midSec = (seg.startSec + seg.endSec) / 2;
+    const words = seg.text.split(" ");
+    const midWord = Math.max(1, Math.floor(words.length / 2));
+    const seg1 = { ...seg, endSec: midSec, end: fmtTime(midSec), dur: (midSec - seg.startSec).toFixed(1) + "s", text: words.slice(0, midWord).join(" ") };
+    const seg2 = { ...seg, id: Date.now(), startSec: midSec, start: fmtTime(midSec), dur: (seg.endSec - midSec).toFixed(1) + "s", text: words.slice(midWord).join(" ") };
+    const next = [...editSegments];
+    next.splice(idx, 1, seg1, seg2);
+    setEditSegments(next);
+    setDirty(true);
+  }, [activeSegId, editSegments]);
+
+  const handleMergeSegment = useCallback(() => {
+    if (!activeSegId) return;
+    const idx = editSegments.findIndex(s => s.id === activeSegId);
+    if (idx < 0 || idx >= editSegments.length - 1) return;
+    const seg = editSegments[idx];
+    const next = editSegments[idx + 1];
+    const merged = { ...seg, endSec: next.endSec, end: fmtTime(next.endSec), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text };
+    const arr = [...editSegments];
+    arr.splice(idx, 2, merged);
+    setEditSegments(arr);
+    setDirty(true);
+  }, [activeSegId, editSegments]);
+
+  const handleSplitToWords = useCallback(() => {
+    if (!activeSegId) return;
+    const idx = editSegments.findIndex(s => s.id === activeSegId);
+    if (idx < 0) return;
+    const seg = editSegments[idx];
+    const words = seg.text.split(/\s+/).filter(Boolean);
+    if (words.length <= 1) return;
+    const totalDur = seg.endSec - seg.startSec;
+    const perWord = totalDur / words.length;
+    const wordSegs = words.map((w, i) => ({
+      ...seg,
+      id: Date.now() + i,
+      startSec: seg.startSec + i * perWord,
+      endSec: seg.startSec + (i + 1) * perWord,
+      start: fmtTime(seg.startSec + i * perWord),
+      end: fmtTime(seg.startSec + (i + 1) * perWord),
+      dur: perWord.toFixed(1) + "s",
+      text: w,
+    }));
+    const arr = [...editSegments];
+    arr.splice(idx, 1, ...wordSegs);
+    setEditSegments(arr);
+    setActiveSegId(wordSegs[0].id);
+    setDirty(true);
+  }, [activeSegId, editSegments]);
+
+  const handleDeleteSegment = useCallback((segId) => {
+    setEditSegments(prev => prev.filter(s => s.id !== segId));
+    setDirty(true);
+  }, []);
+
   // ── Brand presets (static for now) ──
   const brandPresets = [
     { id: "gaming", name: "Gaming Default", detail: "Montserrat · 52 · Green", tracks: ["Sub 1", "Sub 2"] },
@@ -637,22 +754,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // ═══════════════════════════════════════
   const renderTranscript = () => (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-      {/* Mode pills */}
-      <div style={{ display: "flex", gap: 4, padding: "8px 10px", borderBottom: `1px solid ${BD}`, flexShrink: 0 }}>
-        <Pill label="Karaoke" active={transcriptMode === "karaoke"} onClick={() => setTranscriptMode("karaoke")} icon={<span style={{ color: T.green, fontSize: 10, fontWeight: 800 }}>the</span>} />
-        <Pill label="Word×Word" active={transcriptMode === "word"} onClick={() => setTranscriptMode("word")} icon={<span style={{ fontWeight: 800, fontSize: 11 }}>the</span>} />
-        <Pill label="Phrase" active={transcriptMode === "phrase"} onClick={() => setTranscriptMode("phrase")} />
-      </div>
-
-      {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 10px", borderBottom: `1px solid ${BD}` }}>
-        <ToolBtn>⌇ Split</ToolBtn>
-        <ToolBtn>⇔ Merge</ToolBtn>
-        <div style={{ width: 1, height: 16, background: BD, margin: "0 2px" }} />
-        <ToolBtn>≈ Words</ToolBtn>
-      </div>
-
-      {/* Search + rows */}
+      {/* Search + full text */}
       <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8, background: S2, border: `1px solid ${BD}`,
@@ -671,33 +773,38 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
           />
         </div>
 
-        {transcriptRows.map(row => {
-          const isActive = row.id === activeRow;
-          return (
-            <div
-              key={row.id}
-              onClick={() => {
-                setActiveRow(row.id);
-                // Seek video to this segment's start time
-                if (videoRef.current && row.startSec !== undefined) {
-                  videoRef.current.currentTime = row.startSec;
-                  setCurrentTime(row.startSec);
-                }
-              }}
-              style={{
-                padding: "10px 8px", borderBottom: `1px solid ${BD}`,
-                borderLeft: `2px solid ${isActive ? T.accent : "transparent"}`,
-                borderRadius: 5, cursor: "pointer", transition: "background 0.1s",
-                background: isActive ? T.accentDim : "transparent",
-              }}
-            >
-              <div style={{ fontSize: 10, fontFamily: T.mono, color: T.textSecondary, marginBottom: 3 }}>
-                {row.start} — {row.end} [{row.dur}]
-              </div>
-              <div style={{ fontSize: 12.5, color: T.text, lineHeight: 1.5 }}>{row.text}</div>
-            </div>
-          );
-        })}
+        {/* Full transcript as continuous text block */}
+        <div style={{
+          fontSize: 13, color: T.text, lineHeight: 1.8, whiteSpace: "pre-wrap",
+          fontFamily: T.font, letterSpacing: "0.2px",
+        }}>
+          {transcriptRows
+            .filter(row => !transcriptSearch || row.text.toLowerCase().includes(transcriptSearch.toLowerCase()))
+            .map((row, i) => (
+              <span
+                key={row.id}
+                onClick={() => {
+                  setActiveRow(row.id);
+                  if (videoRef.current && row.startSec !== undefined) {
+                    videoRef.current.currentTime = row.startSec;
+                    setCurrentTime(row.startSec);
+                  }
+                }}
+                style={{
+                  cursor: "pointer",
+                  padding: "1px 0",
+                  borderRadius: 2,
+                  background: row.id === activeRow ? T.accentDim : (
+                    currentTime >= row.startSec && currentTime <= row.endSec ? "rgba(139,92,246,0.12)" : "transparent"
+                  ),
+                  transition: "background 0.15s",
+                }}
+              >
+                {row.text}{i < transcriptRows.length - 1 ? " " : ""}
+              </span>
+            ))
+          }
+        </div>
       </div>
     </div>
   );
@@ -713,10 +820,10 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
         {/* Toolbar */}
         <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 10px", borderBottom: `1px solid ${BD}` }}>
-          <ToolBtn active>⌇ Split</ToolBtn>
-          <ToolBtn>⇔ Merge</ToolBtn>
+          <ToolBtn onClick={handleSplitSegment} active={!!activeSegId}>⌇ Split</ToolBtn>
+          <ToolBtn onClick={handleMergeSegment}>⇔ Merge</ToolBtn>
           <div style={{ width: 1, height: 16, background: BD, margin: "0 2px" }} />
-          <ToolBtn>↩</ToolBtn>
+          <ToolBtn onClick={handleSplitToWords}>≈ Words</ToolBtn>
           <div style={{ flex: 1 }} />
           {["all", "s1", "s2"].map(f => (
             <button
@@ -761,15 +868,23 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
                 {/* Header: timecodes + actions */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 9px 4px", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textSecondary, padding: "2px 5px", borderRadius: 3 }}>{seg.start}</span>
+                    <EditableTC value={seg.start} onChange={(newVal) => {
+                      const newSec = parseTime(newVal);
+                      setEditSegments(prev => prev.map(s => s.id === seg.id ? { ...s, startSec: newSec, start: fmtTime(newSec), dur: (s.endSec - newSec).toFixed(1) + "s" } : s));
+                      setDirty(true);
+                    }} />
                     <span style={{ fontSize: 9, color: T.textTertiary }}>→</span>
-                    <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textSecondary, padding: "2px 5px", borderRadius: 3 }}>{seg.end}</span>
+                    <EditableTC value={seg.end} onChange={(newVal) => {
+                      const newSec = parseTime(newVal);
+                      setEditSegments(prev => prev.map(s => s.id === seg.id ? { ...s, endSec: newSec, end: fmtTime(newSec), dur: (newSec - s.startSec).toFixed(1) + "s" } : s));
+                      setDirty(true);
+                    }} />
                     <span style={{ fontSize: 9, color: T.textTertiary, fontFamily: T.mono }}>[{seg.dur}]</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor }} title={seg.track === "s1" ? "Sub 1" : "Sub 2"} />
-                    <Ib title="Split here" style={{ width: 20, height: 20, fontSize: 11 }}>⌇</Ib>
-                    <Ib title="Delete segment" style={{ width: 20, height: 20, fontSize: 11 }}>✕</Ib>
+                    <Ib title="Split here" onClick={(e) => { e.stopPropagation(); setActiveSegId(seg.id); setTimeout(handleSplitSegment, 0); }} style={{ width: 20, height: 20, fontSize: 11 }}>⌇</Ib>
+                    <Ib title="Delete segment" onClick={(e) => { e.stopPropagation(); handleDeleteSegment(seg.id); }} style={{ width: 20, height: 20, fontSize: 11 }}>✕</Ib>
                   </div>
                 </div>
 
@@ -877,23 +992,35 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
   const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
 
+  const handlePreviewWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -10 : 10;
+    setZoom(prev => Math.max(50, Math.min(300, prev + delta)));
+  }, []);
+
   const renderPreview = () => (
-    <div style={{
-      flex: 1, background: T.bg, display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", overflow: "hidden", minWidth: 0,
-    }}>
+    <div
+      onWheel={handlePreviewWheel}
+      style={{
+        flex: 1, background: T.bg, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", overflow: "hidden", minWidth: 0,
+      }}
+    >
       {/* 9:16 preview */}
       <div style={{
-        height: "calc(100% - 44px)", aspectRatio: "9/16", maxHeight: 460, maxWidth: 258,
+        height: "calc(100% - 44px)", aspectRatio: "9/16", maxHeight: 600, maxWidth: 338,
         background: "#000", borderRadius: 6, position: "relative", overflow: "hidden",
         boxShadow: `0 0 0 1px ${BD}, 0 20px 60px rgba(0,0,0,0.7)`, flexShrink: 0,
+        transform: `scale(${zoom / 100})`, transformOrigin: "center center",
+        transition: "transform 0.1s ease-out",
       }}>
-        {/* Video element */}
+        {/* Video element — click to play/pause */}
         {videoSrc ? (
           <video
             ref={videoRef}
             src={videoSrc}
-            style={{ width: "100%", height: "calc(100% - 40px)", objectFit: "cover" }}
+            onClick={() => setPlaying(!playing)}
+            style={{ width: "100%", height: "calc(100% - 40px)", objectFit: "cover", cursor: "pointer" }}
             preload="auto"
             muted={false}
           />
@@ -906,17 +1033,35 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
           </>
         )}
 
-        {/* Subtitle overlay — synced to playback */}
-        {showSubs && activeSubtitle && (
-          <div style={{ position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center", padding: "0 14px", pointerEvents: "none" }}>
-            <div style={{
-              fontSize: 14, fontWeight: 800, color: "#fff",
-              textShadow: "0 2px 8px rgba(0,0,0,0.9)", lineHeight: 1.3,
-            }}>
-              {activeSubtitle.text}
+        {/* Subtitle overlay — synced to playback, mode-aware */}
+        {showSubs && activeSubtitle && (() => {
+          const words = activeSubtitle.text.split(/\s+/);
+          const segDur = activeSubtitle.endSec - activeSubtitle.startSec;
+          const elapsed = currentTime - activeSubtitle.startSec;
+          const progress = segDur > 0 ? Math.max(0, Math.min(1, elapsed / segDur)) : 0;
+          const activeWordIdx = Math.min(Math.floor(progress * words.length), words.length - 1);
+
+          return (
+            <div style={{ position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center", padding: "0 14px", pointerEvents: "none" }}>
+              <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3, textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}>
+                {subMode === "word" ? (
+                  /* Word×Word: show one word at a time */
+                  <span style={{ color: highlightColor }}>{words[activeWordIdx] || ""}</span>
+                ) : subMode === "karaoke" ? (
+                  /* Karaoke: highlight current word */
+                  words.map((w, i) => (
+                    <span key={i} style={{ color: i <= activeWordIdx ? highlightColor : "#fff" }}>
+                      {w}{i < words.length - 1 ? " " : ""}
+                    </span>
+                  ))
+                ) : (
+                  /* Phrase: show full text */
+                  <span style={{ color: "#fff" }}>{activeSubtitle.text}</span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Caption overlay */}
         {clipTitle && (
@@ -948,10 +1093,13 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
             {playing ? "⏸" : "▶"}
           </button>
           <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary, minWidth: 64, textAlign: "right" }}>{fmtTime(clipDuration)}</span>
-          <span style={{
-            fontSize: 10, fontWeight: 600, color: T.textSecondary, border: `1px solid ${BD}`,
-            borderRadius: 4, padding: "2px 5px", cursor: "pointer",
-          }}>
+          <span
+            onClick={() => setTlSpeed(tlSpeed === "1x" ? "2x" : "1x")}
+            style={{
+              fontSize: 10, fontWeight: 600, color: T.textSecondary, border: `1px solid ${BD}`,
+              borderRadius: 4, padding: "2px 5px", cursor: "pointer",
+            }}
+          >
             {tlSpeed}
           </span>
         </div>
@@ -1816,85 +1964,120 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
                   </div>
                 ));
               })()}
+              {/* Ruler playhead indicator */}
+              {clipDuration > 0 && (
+                <div style={{
+                  position: "absolute", bottom: 0, width: 2, height: "100%", background: T.accentLight,
+                  left: `${(currentTime / clipDuration) * 100}%`, pointerEvents: "none", zIndex: 5,
+                  transition: playing ? "none" : "left 0.1s",
+                }} />
+              )}
             </div>
 
-            {/* Track rows */}
-            <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-              {tracks.map(track => (
-                <div key={track.id} style={{
-                  display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`, flexShrink: 0,
-                  minHeight: track.type === "video" ? 30 : track.type === "audio" ? 32 : 26,
-                }}>
-                  {/* Label */}
-                  <div style={{
-                    width: 104, minWidth: 104, padding: "0 8px", fontSize: 9, fontWeight: 600,
-                    color: T.textTertiary, borderRight: `1px solid ${BD}`, height: "100%",
-                    display: "flex", alignItems: "center", background: S2, textTransform: "uppercase",
-                    letterSpacing: "0.3px", gap: 5, flexShrink: 0,
+            {/* Track rows + playhead overlay */}
+            <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
+              {tracks.map(track => {
+                const s1Segs = editSegments.filter(s => s.track === "s1");
+                const s2Segs = editSegments.filter(s => s.track === "s2");
+                const dur = clipDuration || 1;
+
+                return (
+                  <div key={track.id} style={{
+                    display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`, flexShrink: 0,
+                    minHeight: track.type === "video" ? 30 : track.type === "audio" ? 32 : 26,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: track.color, flexShrink: 0 }} />
-                    {track.label}
-                  </div>
+                    {/* Label */}
+                    <div style={{
+                      width: 104, minWidth: 104, padding: "0 8px", fontSize: 9, fontWeight: 600,
+                      color: T.textTertiary, borderRight: `1px solid ${BD}`, height: "100%",
+                      display: "flex", alignItems: "center", background: S2, textTransform: "uppercase",
+                      letterSpacing: "0.3px", gap: 5, flexShrink: 0,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: track.color, flexShrink: 0 }} />
+                      {track.label}
+                    </div>
 
-                  {/* Content */}
-                  <div style={{ flex: 1, height: "100%", position: "relative", minWidth: 500 }}>
-                    {/* Colored blocks (mock) */}
-                    {track.id === "v1" && (
-                      <div style={{
-                        position: "absolute", top: 4, left: 10, width: "90%", height: 22,
-                        borderRadius: 3, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
-                        color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
-                      }}>Source video</div>
-                    )}
-                    {track.id === "cap" && (
-                      <div style={{
-                        position: "absolute", top: 3, left: 10, width: "62%", height: 20,
-                        borderRadius: 3, background: "rgba(139,92,246,0.3)", border: `1px solid rgba(139,92,246,0.5)`,
-                        color: "#c4b0ef", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
-                      }}>Caption</div>
-                    )}
-                    {track.id === "s1" && (
-                      <div style={{
-                        position: "absolute", top: 3, left: 10, width: "88%", height: 20,
-                        borderRadius: 3, background: "rgba(76,130,200,0.25)", border: "1px solid rgba(76,130,200,0.4)",
-                        color: "#90b8e0", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
-                      }}>Sub 1</div>
-                    )}
-                    {track.id === "s2" && (
-                      <div style={{
-                        position: "absolute", top: 3, left: "28%", width: "55%", height: 20,
-                        borderRadius: 3, background: "rgba(210,170,40,0.2)", border: "1px solid rgba(210,170,40,0.4)",
-                        color: "#d4b94a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
-                      }}>Sub 2</div>
-                    )}
-                    {track.type === "audio" && (
-                      <div style={{ position: "absolute", left: 10, right: 10, top: 4, height: 24, display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
-                        {Array.from({ length: 60 }, (_, i) => (
-                          <span key={i} style={{
-                            flexShrink: 0, width: 2, borderRadius: 1, opacity: 0.65,
-                            height: Math.random() * 18 + 4, background: track.color,
-                          }} />
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Playhead — synced to currentTime */}
-                    {track.id === "cap" && (
-                      <div style={{
-                        position: "absolute", top: 0, bottom: 0, width: 1, background: T.accentLight,
-                        left: `${clipDuration > 0 ? (currentTime / clipDuration) * 100 : 0}%`,
-                        pointerEvents: "none", zIndex: 10, transition: playing ? "none" : "left 0.1s",
-                      }}>
+                    {/* Content — real data */}
+                    <div style={{ flex: 1, height: "100%", position: "relative", minWidth: 500 }}>
+                      {/* CAPTION: full-duration block */}
+                      {track.id === "cap" && (
                         <div style={{
-                          position: "absolute", top: 0, left: -4, width: 0, height: 0,
-                          borderLeft: "4px solid transparent", borderRight: "4px solid transparent",
-                          borderTop: `6px solid ${T.accentLight}`,
-                        }} />
-                      </div>
-                    )}
+                          position: "absolute", top: 3, left: 10, right: 10, height: 20,
+                          borderRadius: 3, background: "rgba(139,92,246,0.3)", border: "1px solid rgba(139,92,246,0.5)",
+                          color: "#c4b0ef", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
+                          padding: "0 7px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                        }}>{clipTitle || "Caption"}</div>
+                      )}
+
+                      {/* SUB 1: real segments */}
+                      {track.id === "s1" && s1Segs.map(seg => (
+                        <div key={seg.id} style={{
+                          position: "absolute", top: 3, height: 20, borderRadius: 3,
+                          left: `${(seg.startSec / dur) * 100}%`,
+                          width: `${Math.max(1, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
+                          background: "rgba(76,130,200,0.25)", border: seg.id === activeSegId ? "1px solid rgba(139,92,246,0.7)" : "1px solid rgba(76,130,200,0.4)",
+                          color: "#90b8e0", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
+                          padding: "0 4px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", cursor: "pointer",
+                        }} onClick={() => setActiveSegId(seg.id)} title={seg.text}>{seg.text}</div>
+                      ))}
+
+                      {/* SUB 2: real segments */}
+                      {track.id === "s2" && s2Segs.map(seg => (
+                        <div key={seg.id} style={{
+                          position: "absolute", top: 3, height: 20, borderRadius: 3,
+                          left: `${(seg.startSec / dur) * 100}%`,
+                          width: `${Math.max(1, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
+                          background: "rgba(210,170,40,0.2)", border: seg.id === activeSegId ? "1px solid rgba(139,92,246,0.7)" : "1px solid rgba(210,170,40,0.4)",
+                          color: "#d4b94a", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
+                          padding: "0 4px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", cursor: "pointer",
+                        }} onClick={() => setActiveSegId(seg.id)} title={seg.text}>{seg.text}</div>
+                      ))}
+
+                      {/* VIDEO: full-duration block */}
+                      {track.id === "v1" && (
+                        <div style={{
+                          position: "absolute", top: 4, left: 10, right: 10, height: 22,
+                          borderRadius: 3, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
+                          color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
+                        }}>Source video</div>
+                      )}
+
+                      {/* AUDIO: deterministic waveform */}
+                      {track.type === "audio" && (
+                        <div style={{ position: "absolute", left: 10, right: 10, top: 4, height: 24, display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
+                          {Array.from({ length: 60 }, (_, i) => {
+                            // Deterministic pseudo-random based on track + index
+                            const seed = (track.id === "a1" ? 7 : 13) * (i + 1);
+                            const h = ((seed * 2654435761 >>> 0) % 18) + 4;
+                            return (
+                              <span key={i} style={{
+                                flexShrink: 0, width: 2, borderRadius: 1, opacity: 0.65,
+                                height: h, background: track.color,
+                              }} />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+
+              {/* Global playhead — spans all tracks */}
+              {clipDuration > 0 && (
+                <div style={{
+                  position: "absolute", top: 0, bottom: 0,
+                  left: `calc(104px + ${(currentTime / clipDuration) * 100}% - ${(currentTime / clipDuration) * 104}px)`,
+                  width: 2, background: T.accentLight, pointerEvents: "none", zIndex: 10,
+                  transition: playing ? "none" : "left 0.1s",
+                }}>
+                  <div style={{
+                    position: "absolute", top: -2, left: -4, width: 0, height: 0,
+                    borderLeft: "5px solid transparent", borderRight: "5px solid transparent",
+                    borderTop: `7px solid ${T.accentLight}`,
+                  }} />
                 </div>
-              ))}
+              )}
 
               {/* Add track row */}
               <div style={{
