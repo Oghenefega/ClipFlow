@@ -4,142 +4,120 @@
 
 ---
 
-## Completed
+## 🔴 Up Next — Not Yet Built
 
-- [x] Electron main process with IPC handlers, file watcher, OBS log parser
-- [x] Preload bridge (`window.clipflow` API)
-- [x] Sidebar navigation with 6 tabs
-- [x] **RenameView** — file watcher, rename cards, history, manage tab
-- [x] Fix file watcher — root-only watching, skip subfolders/renamed files
-- [x] Add +Add Game button to Rename header
-- [x] Wire up OBS log parser for game detection
-- [x] **SettingsView** — game library CRUD, main game selector, watch folder, ignored processes
-- [x] **QueueView** — schedule/tracker tabs, manual logging, publish now, weekly template editor
-- [x] **ProjectsView** — project browser, clip review with approve/reject, inline title editing
-- [x] **CaptionsView** — YouTube descriptions per game, platform caption templates
-- [x] **UploadView** → **RecordingsView** — recordings browser with Generate Clips stub
-- [x] electron-store persistence for all settings/data
-- [x] Tracker source tagging (ClipFlow vs manual) with glow dots
-- [x] Time picker redesign (hour + minute split dropdowns)
-- [x] Scrollbar overflow fixes across all views
-- [x] **EditorView** — Full editor shell with topbar, left panel (transcript/subtitles), center preview, right rail+drawer (AI/Subtitles/Brand/Media), timeline, all resizable/collapsible
+### Phase 10: Editor Round 3 — Remaining Items
+- [ ] Draggable caption/subtitle on viewer with center alignment grid lines
+- [ ] Inline editing of caption/subtitle on viewer (double-click to edit)
+- [ ] Audio waveform analysis for word-level subtitle sync
+- [ ] Delete segments from timeline (context menu or Delete key)
+- [ ] Undo/redo stack for timeline edits
+- [ ] Timeline header length matches last audio track duration
 
----
+### Platform API Integrations (Future)
+- [ ] YouTube Data API — OAuth, Shorts upload, scheduling
+- [ ] TikTok API — OAuth, video upload, scheduling
+- [ ] Instagram Graph API — OAuth, Reels upload
+- [ ] Facebook Graph API — OAuth, Reels upload
+- [ ] 30-second stagger publishing across 6 accounts
 
-## Recently Completed
-
-### Phase 1: Remove Cloud Dependencies (Vizard + R2)
-
-**What changed:**
-- Removed `@aws-sdk/client-s3` and `@aws-sdk/lib-storage` dependencies
-- Cleaned `.env.example` to just `ANTHROPIC_API_KEY=`
-- Stripped ~212 lines from `main.js` (S3/Upload imports, R2 config, Vizard handlers, download handler)
-- Stripped ~25 lines from `preload.js` (10 cloud methods removed)
-- Stripped ~272 lines from `App.js` (cloud state, auto-import, Vizard callbacks, allClips derivation)
-- Rewrote `UploadView.js` as `RecordingsView` (380→184 lines) — recordings browser with "Generate Clips" stub
-- Stripped Vizard import modal + polling from `ProjectsView.js`
-- Replaced Vizard publish calls with stubs in `QueueView.js`, updated all UI text
-- Removed ~300 lines from `SettingsView.js` (R2 Config, Vizard AI, Downloads sections)
-- Added new settings: Output Folder, SFX Folder, Whisper Config (stub)
-- Added store defaults: `outputFolder`, `sfxFolder`, `whisperModel`, `localProjects`
-- Renamed nav item: Upload → Recordings
-
-**Verification:** ✅ Build passes, zero Vizard/R2/S3 references in src/
+### Polish & UX
+- [ ] Expanded font library for subtitle/caption panels
+- [ ] Error boundary in EditorView to catch crashes gracefully
+- [ ] Keyboard shortcuts (Space=play/pause, Delete=remove segment, Ctrl+Z=undo)
 
 ---
 
-## Recently Completed (Phases 2-4)
+## ✅ Completed — Phase 9: Editor Round 2 (21 fixes + 1 hotfix)
 
-### Phase 2: Local Infrastructure ✅
-- [x] Created `src/main/ffmpeg.js` — checkFfmpeg, probe, extractAudio, cutClip, generateThumbnail, analyzeLoudness
-- [x] Created `src/main/whisper.js` — checkWhisper, transcribe (whisper.cpp + CUDA)
-- [x] Created `src/main/projects.js` — Project file CRUD at `{watchFolder}/.clipflow/projects/{id}/`
-- [x] Wired 17 IPC handlers in main.js for all new modules
-- [x] Added bridge methods in preload.js
-- [x] Populated Settings: ffmpeg status, Whisper binary/model path pickers
+### Bug Fix: Blank Editor Screen
+- [x] **TDZ crash** — `clipDuration` declared at line 1223 but referenced in `useEffect`/`useCallback` deps at lines 508/560. Moved declarations above hooks. (`50e5cb4`)
 
-### Phase 3: Clip Generation Pipeline ✅
-- [x] Created `src/main/highlights.js` — audio energy (40%) + sentiment (30%) + keywords (20%) + pacing (10%)
-- [x] Wired `pipeline:generateClips` handler (extractAudio → transcribe → analyze → detect → cut → thumbnails → project)
-- [x] Connected RecordingsView "Generate Clips" button with progress overlay
+### Editor General
+- [x] Add back button (top-left of topbar) with auto-save on exit
+- [x] Separate title vs caption state (`clipTitle` for topbar, `captionText` for overlay)
 
-### Phase 4: Projects Revamp — Local Project Browser ✅
-- [x] Updated clip data model: `duration` → computed from startTime/endTime, `viralScore` → `highlightScore`, `transcript` → derived from project transcription
-- [x] Added `getClipTranscript` helper to extract clip-level transcript from project transcription segments
-- [x] Added "Open in Editor" button per clip (purple accent styling)
-- [x] Added `editorContext` state and `handleOpenInEditor` callback in App.js
-- [x] Added `handleSelectProject` to load full project data (with transcription) on click
-- [x] Persisted clip status/title changes to project JSON on disk via `projectUpdateClip`
-- [x] Passed `editorContext` and `localProjects` to EditorView for Phase 5
+### AI Tools (3 fixes)
+- [x] Context textarea auto-expand (dynamic rows + `resize: "vertical"`)
+- [x] Fix AI selection visual — only accepted card gets green border + "✓ Applied" badge
+- [x] Selecting title no longer overwrites caption text
 
-### Phase 5: Editor Core — Real Data + NLE ✅
-- [x] Replaced all EditorView mock data with real project/clip loading from `editorContext`
-- [x] HTML5 `<video>` element with `file://` protocol for local clip playback (inline, no separate component needed)
-- [x] Synced subtitle overlay from project transcription (filtered by clip time range)
-- [x] Video playback controls with real `currentTime` / `clipDuration` display
-- [x] Transcript panel built from Whisper data via `React.useMemo`
-- [x] Transcript row click → video seek to segment start time
-- [x] Subtitle segment click → video seek to segment start time
-- [x] Inline clip title editing in topbar with dirty state tracking
-- [x] Editable subtitle text in Edit Subtitles panel with dirty tracking
-- [x] Save handler persists title + subtitle edits to project JSON via `projectUpdateClip`
-- [x] Timeline ruler & playhead use real clip duration and synced `currentTime`
-- [x] SFX folder file loading for media panel
-- [x] Empty state when no clip loaded
+### CC Subtitles (4 fixes)
+- [x] Karaoke highlight — only current word green (`i === activeWordIdx`)
+- [x] Wire font/size/stroke/shadow/background to actual overlay CSS
+- [x] Wire 1L/2L line modes (1L = ~3 words around active word)
+- [x] Add sync offset slider (-1.0s to +1.0s)
 
-## Up Next — Pipeline Revamp (Continued)
-
-### Phase 6: AI Integration — Title/Caption Generation in Editor ✅
-- [x] Moved GenerationPanel from ProjectsView into Editor's AI Tools drawer
-- [x] Wired Anthropic API for real title/caption generation via `anthropicGenerate`
-- [x] Per-game context from gamesDb, voice mode (Hype/Chill) changes prompt tone
-- [x] Accept title → sets clipTitle + dirty, logs to history
-- [x] Accept caption → logs to history (for future render pipeline)
-- [x] Reject → tracks rejections, excluded from next generation
-- [x] Removed GenerationPanel + GameDropdown from ProjectsView (~260 lines stripped)
-- [x] Replaced "AI Titles" expand section with "Open in Editor" prompt
-
-### Phase 7: Render Pipeline — "Ready to Share" → Output ✅
-- [x] Created `src/main/render.js` — generateAssFile (ASS subtitle generation), renderClip (ffmpeg subtitle burn-in via -vf ass filter, H.264/AAC, progress tracking), batchRender (sequential multi-clip)
-- [x] Wired IPC handlers: `render:clip`, `render:batch` with progress events and automatic renderStatus/renderPath update in project JSON
-- [x] Added preload bridge: `renderClip()`, `batchRender()`, `onRenderProgress()`, `removeRenderProgressListener()`
-- [x] Added "🚀 Ready to Share" button in EditorView topbar with render progress overlay (progress bar, success with Open Folder, error display)
-- [x] Subtitle style passes through from editor settings (fontSize, highlightColor, strokeWidth, position)
-- [x] Added render status badges in ProjectsView: "✓ Rendered" (cyan) and "⏳ Rendering" (yellow)
-- [x] Added "Render All" batch button in ClipBrowser header for approved unrendered clips
-- [x] Project data auto-reloads after batch render to reflect updated renderStatus
-
-### Phase 8: Queue Rewiring — Local Rendered Clips ✅
-- [x] Created `src/main/publish.js` with platform API stubs (YouTube, TikTok, Instagram, Facebook)
-- [x] Rewired `allClips` in App.js to derive from `localProjects` (clips where `renderStatus === "rendered"`)
-- [x] Queue badge count derived from local rendered+approved clips via `React.useMemo`
-- [x] Replaced `clip.videoId` checks with `clip.renderPath` throughout QueueView
-- [x] Updated warning messages: "Not rendered" / "Open in Editor and click Ready to Share first"
-- [x] Added "Platform API coming soon" InfoBanner to QueueView header
-- [x] Publish Now / Schedule still logs to tracker for manual workflow tracking
-
-### Phase 9: Editor Round 2 — 31 Bug Fixes & Improvements ✅
-- [x] Fix karaoke highlight — only current word (was `i <= activeWordIdx`, now `i === activeWordIdx`)
+### Caption Panel (2 fixes)
 - [x] Rename "Headline" → "Caption" everywhere
-- [x] AI context textarea auto-expand
-- [x] Add back button (top-left of topbar) with auto-save
-- [x] Separate title vs caption state (`clipTitle` vs `captionText`)
-- [x] Fix AI title/caption selection visual (only accepted card green + "✓ Applied" badge)
-- [x] Build `renderCaptionPanel()` — text editing, font, color, B/I/U
-- [x] Wire subtitle styling to overlay (fontSize, font, stroke, shadow, background)
-- [x] Wire 1L/2L line modes (1L = ~3 words around active, 2L = full phrase)
-- [x] Add sync offset control for subtitle timing
-- [x] Unify data source — transcript/subs/overlay all from `editSegments`
-- [x] Word-level spans in transcript (click-to-seek, active highlight)
-- [x] Editable words in transcript (double-click → inline edit, syncs to subs)
-- [x] Word hover + click-to-seek in Edit Subtitles panel
-- [x] Split at selected word position
-- [x] Timecode click → popover with range slider (Apply/Cancel)
-- [x] Timeline zoom (0.5x–4x) wired to content width
-- [x] Fix ruler accuracy (absolute positioning, synced scroll with tracks)
-- [x] Draggable/scrubable playhead (click/drag on ruler or track area)
+- [x] Build full caption panel — text editing, font family/size, color swatches, B/I/U
+
+### Transcript (3 fixes)
+- [x] Word-level spans (click-to-seek, active word highlight)
+- [x] Editable words (double-click → inline edit)
+- [x] Unified data source — transcript/subtitles/overlay all from `editSegments`
+
+### Edit Subtitles (4 fixes)
+- [x] Per-word hover highlighting
+- [x] Click word → select + video seek
+- [x] Split at selected word position (not midpoint)
+- [x] Timecode click → popover with text input + range slider + Apply/Cancel
+
+### Timeline (5 fixes)
+- [x] Zoom (0.5x–4x) wired to track content width
+- [x] Ruler accuracy — absolute positioning, synced scroll with tracks
+- [x] Draggable/scrubable playhead (click/drag anywhere on ruler or tracks)
 - [x] Hide Sub 2 track when empty
-- [x] Selectable/draggable/resizable timeline segments (move + edge resize)
+- [x] Selectable/draggable/resizable subtitle segments (move center + edge resize)
+
+---
+
+## ✅ Completed — Phase 8: Queue Rewiring
+- [x] Created `src/main/publish.js` with platform API stubs
+- [x] Rewired `allClips` from `localProjects` (clips where `renderStatus === "rendered"`)
+- [x] Queue badge count from local rendered+approved clips
+- [x] Replaced `clip.videoId` with `clip.renderPath` throughout QueueView
+- [x] Updated warning messages for local pipeline
+- [x] Publish Now / Schedule logs to tracker for manual tracking
+
+## ✅ Completed — Phase 7: Render Pipeline
+- [x] `src/main/render.js` — ASS generation, ffmpeg burn-in, batch render
+- [x] IPC handlers: `render:clip`, `render:batch` with progress events
+- [x] "🚀 Ready to Share" button with render progress overlay
+- [x] Render status badges in ProjectsView
+- [x] "Render All" batch button for approved unrendered clips
+
+## ✅ Completed — Phase 6: AI Integration
+- [x] Anthropic API for title/caption generation in Editor's AI Tools drawer
+- [x] Per-game context, voice mode (Hype/Chill)
+- [x] Accept/reject with history tracking
+
+## ✅ Completed — Phase 5: Editor Core — Real Data + NLE
+- [x] Real project/clip loading, HTML5 video playback
+- [x] Synced subtitle overlay, transcript panel, video seek
+- [x] Inline title editing, editable subtitles, save to disk
+- [x] Real timeline ruler + playhead
+
+## ✅ Completed — Phase 4: Projects Revamp
+- [x] Local project browser, "Open in Editor" button, clip data model
+
+## ✅ Completed — Phase 3: Clip Generation Pipeline
+- [x] `src/main/highlights.js` — audio energy + sentiment + keywords + pacing
+- [x] `pipeline:generateClips` handler, RecordingsView progress overlay
+
+## ✅ Completed — Phase 2: Local Infrastructure
+- [x] `src/main/ffmpeg.js`, `src/main/whisper.js`, `src/main/projects.js`
+- [x] 17 IPC handlers, preload bridge, Settings UI
+
+## ✅ Completed — Phase 1: Remove Cloud Dependencies
+- [x] Stripped Vizard + R2 + S3 — zero cloud references in src/
+
+## ✅ Completed — Foundation
+- [x] Electron main process, preload bridge, sidebar nav
+- [x] RenameView, SettingsView, QueueView, ProjectsView, CaptionsView, RecordingsView
+- [x] electron-store persistence, scrollbar fixes, time picker redesign
+
+---
 
 ## Known Issues
 
