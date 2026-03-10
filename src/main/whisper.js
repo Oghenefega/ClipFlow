@@ -1,6 +1,35 @@
-const { execFile } = require("child_process");
+const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+
+/**
+ * Build a cmd /c command string that prepends the binary dir + CUDA dir to PATH.
+ * On Windows, DLLs (ggml.dll, ggml-cuda.dll, whisper.dll, cublas, cudart) must be
+ * discoverable via PATH. Using cmd /c "set PATH=...&& exe args" ensures the Windows
+ * DLL loader sees them.
+ */
+function buildCommand(binaryPath, args) {
+  const binDir = path.dirname(binaryPath);
+  // Find CUDA directory — check common locations
+  const cudaDirs = [];
+  const cudaBase = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA";
+  if (fs.existsSync(cudaBase)) {
+    try {
+      const versions = fs.readdirSync(cudaBase).filter((d) => d.startsWith("v")).sort().reverse();
+      for (const v of versions) {
+        const x64 = path.join(cudaBase, v, "bin", "x64");
+        const bin = path.join(cudaBase, v, "bin");
+        if (fs.existsSync(x64)) cudaDirs.push(x64);
+        if (fs.existsSync(bin)) cudaDirs.push(bin);
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  const pathDirs = [binDir, ...cudaDirs].join(";");
+  const quotedArgs = args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ");
+
+  return `cmd /c "set "PATH=${pathDirs};%PATH%" && "${binaryPath}" ${quotedArgs}"`;
+}
 
 /**
  * Check if whisper.cpp binary is available.
@@ -8,16 +37,30 @@ const fs = require("fs");
  * @returns {Promise<{installed: boolean, version?: string, error?: string}>}
  */
 function checkWhisper(binaryPath) {
-  const bin = binaryPath || "whisper";
   return new Promise((resolve) => {
-    execFile(bin, ["--help"], { timeout: 5000 }, (err, stdout, stderr) => {
+    if (!binaryPath || !fs.existsSync(binaryPath)) {
+      // Try bare "whisper" in PATH
+      exec("whisper-cli --help", { timeout: 10000 }, (err, stdout, stderr) => {
+        const output = (stdout || "") + (stderr || "");
+        if (err && !output.includes("usage")) {
+          return resolve({ installed: false, error: "Binary not found" });
+        }
+        const vMatch = output.match(/whisper[.\s-]*cpp\s*v?(\S+)/i);
+        resolve({ installed: true, version: vMatch ? vMatch[1] : "detected" });
+      });
+      return;
+    }
+
+    const cmd = buildCommand(binaryPath, ["--help"]);
+    exec(cmd, { timeout: 10000 }, (err, stdout, stderr) => {
       const output = (stdout || "") + (stderr || "");
       if (err && !output.includes("usage")) {
         return resolve({ installed: false, error: err.message });
       }
-      // whisper.cpp prints version info in help output
-      const vMatch = output.match(/whisper\.cpp\s+v?(\S+)/i);
-      resolve({ installed: true, version: vMatch ? vMatch[1] : "detected" });
+      // Check for CUDA
+      const hasCuda = output.includes("CUDA devices") || output.includes("ggml_cuda");
+      const version = hasCuda ? "CUDA" : "detected";
+      resolve({ installed: true, version });
     });
   });
 }
@@ -39,14 +82,13 @@ function checkWhisper(binaryPath) {
  */
 function transcribe(wavPath, opts = {}) {
   return new Promise((resolve, reject) => {
-    const bin = opts.binaryPath || "whisper";
+    const bin = opts.binaryPath || "whisper-cli";
 
     // Resolve model path
     let modelPath = opts.modelPath || "";
     if (modelPath && fs.existsSync(modelPath)) {
       const stat = fs.statSync(modelPath);
       if (stat.isDirectory()) {
-        // Look for model file in directory
         const modelName = opts.model || "large-v3";
         const candidates = [
           `ggml-${modelName}.bin`,
@@ -72,19 +114,15 @@ function transcribe(wavPath, opts = {}) {
       "-f", wavPath,
       "-l", opts.language || "en",
       "-t", String(opts.threads || 8),
-      "--output-json-full",   // full JSON with word-level timestamps
+      "--output-json-full",
       "--output-file", outBase,
-      "--no-prints",          // suppress progress to stdout (cleaner parsing)
-      "--print-progress",     // but do print percentage for progress tracking
+      "--no-prints",
+      "--print-progress",
     ];
 
-    // GPU flag
-    if (opts.useGpu !== false) {
-      // whisper.cpp CUDA builds use GPU by default, no extra flag needed
-      // But some builds accept --gpu flag
-    }
+    const cmd = buildCommand(bin, args);
 
-    const proc = execFile(bin, args, {
+    const proc = exec(cmd, {
       timeout: 1800000, // 30 minutes max
       maxBuffer: 100 * 1024 * 1024,
     }, (err, stdout, stderr) => {
@@ -142,7 +180,7 @@ function parseWhisperOutput(raw) {
     if (seg.tokens) {
       for (const token of seg.tokens) {
         const word = (token.text || "").trim();
-        if (!word || word.startsWith("[")) continue; // skip special tokens like [BLANK_AUDIO]
+        if (!word || word.startsWith("[")) continue;
 
         words.push({
           word,
