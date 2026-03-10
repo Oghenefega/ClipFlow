@@ -294,6 +294,19 @@ export default function App() {
     setView("editor");
   }, []);
 
+  // Delete projects by IDs
+  const handleDeleteProjects = useCallback(async (projectIds) => {
+    for (const id of projectIds) {
+      try { await window.clipflow.projectDelete(id); } catch (_) { /* ignore */ }
+    }
+    setLocalProjects((prev) => prev.filter((p) => !projectIds.includes(p.id)));
+    // If currently viewing a deleted project's clips, go back to list
+    if (selProj && projectIds.includes(selProj.id)) {
+      setSelProj(null);
+      setView("projects");
+    }
+  }, [selProj]);
+
   // Load full project data (with transcription + clips) when entering ClipBrowser
   const handleSelectProject = useCallback(async (project) => {
     try {
@@ -435,6 +448,7 @@ export default function App() {
           <ProjectsListView
             localProjects={localProjects}
             onSelect={handleSelectProject}
+            onDeleteProjects={handleDeleteProjects}
             mainGame={mainGame}
             gamesDb={gamesDb}
           />
@@ -463,6 +477,7 @@ export default function App() {
       <ProjectsListView
         localProjects={localProjects}
         onSelect={handleSelectProject}
+        onDeleteProjects={handleDeleteProjects}
         mainGame={mainGame}
         gamesDb={gamesDb}
       />

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import T from "../styles/theme";
-import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar } from "../components/shared";
+import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 
 // Pure helper — determine project game color
 const getGameColor = (p, gamesDb) => {
@@ -31,7 +31,28 @@ const getClipTranscript = (clip, project) => {
 };
 
 // ============ PROJECT LIST ============
-export function ProjectsListView({ localProjects = [], onSelect, mainGame, gamesDb = [] }) {
+export function ProjectsListView({ localProjects = [], onSelect, onDeleteProjects, mainGame, gamesDb = [] }) {
+  const [selected, setSelected] = useState({});
+  const [collapsed, setCollapsed] = useState({});
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Load collapsed state from store on mount
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.storeGet) {
+        const saved = await window.clipflow.storeGet("projectsCollapsed");
+        if (saved && typeof saved === "object") setCollapsed(saved);
+      }
+    })();
+  }, []);
+
+  const toggleCollapse = useCallback((tag) => {
+    setCollapsed((p) => {
+      const next = { ...p, [tag]: !p[tag] };
+      if (window.clipflow?.storeSet) window.clipflow.storeSet("projectsCollapsed", next);
+      return next;
+    });
+  }, []);
 
   if (localProjects.length === 0) {
     return (
@@ -46,82 +67,271 @@ export function ProjectsListView({ localProjects = [], onSelect, mainGame, games
     );
   }
 
-  // Sort: processing first, then ready, then done, then error
-  const sorted = [...localProjects].sort((a, b) => {
-    const order = { processing: 0, ready: 1, done: 2, error: 3 };
-    const sa = order[getProjectStatus(a)] ?? 1;
-    const sb = order[getProjectStatus(b)] ?? 1;
-    if (sa !== sb) return sa - sb;
-    return new Date(b.createdAt) - new Date(a.createdAt);
+  // --- Group by gameTag ---
+  const grouped = {};
+  for (const p of localProjects) {
+    const tag = p.gameTag || "?";
+    if (!grouped[tag]) grouped[tag] = [];
+    grouped[tag].push(p);
+  }
+
+  // Sort groups alphabetically
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === "?") return 1;
+    if (b === "?") return -1;
+    return a.localeCompare(b);
   });
 
-  const processingCount = sorted.filter((p) => p.status === "processing").length;
-  const readyCount = sorted.filter((p) => getProjectStatus(p) === "ready").length;
+  // Sort projects within each group: processing first, then by creation date (newest first)
+  for (const key of groupKeys) {
+    grouped[key].sort((a, b) => {
+      const order = { processing: 0, ready: 1, done: 2, error: 3 };
+      const sa = order[getProjectStatus(a)] ?? 1;
+      const sb = order[getProjectStatus(b)] ?? 1;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }
+
+  // --- Selection helpers ---
+  const toggle = (id) => {
+    setSelected((p) => ({ ...p, [id]: !p[id] }));
+    setConfirmDelete(false);
+  };
+
+  const selectAllInGroup = (tag) => {
+    const items = grouped[tag] || [];
+    const allSel = items.every((p) => selected[p.id]);
+    setSelected((prev) => {
+      const next = { ...prev };
+      items.forEach((p) => { next[p.id] = !allSel; });
+      return next;
+    });
+    setConfirmDelete(false);
+  };
+
+  const selectAll = () => {
+    const allSel = localProjects.length > 0 && localProjects.every((p) => selected[p.id]);
+    setSelected((prev) => {
+      const next = { ...prev };
+      localProjects.forEach((p) => { next[p.id] = !allSel; });
+      return next;
+    });
+    setConfirmDelete(false);
+  };
+
+  const selCount = Object.values(selected).filter(Boolean).length;
+  const processingCount = localProjects.filter((p) => p.status === "processing").length;
+  const readyCount = localProjects.filter((p) => getProjectStatus(p) === "ready").length;
+
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    const ids = Object.keys(selected).filter((id) => selected[id]);
+    if (ids.length > 0 && onDeleteProjects) {
+      onDeleteProjects(ids);
+    }
+    setSelected({});
+    setConfirmDelete(false);
+  };
+
+  const handleSingleDelete = (e, projectId) => {
+    e.stopPropagation();
+    if (onDeleteProjects) onDeleteProjects([projectId]);
+  };
 
   return (
     <div>
-      <PageHeader title="Projects" subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`} />
+      <PageHeader
+        title="Projects"
+        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`}
+      />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {sorted.map((p) => {
-          const st = getProjectStatus(p);
-          const gameColor = getGameColor(p, gamesDb);
-          const clipCount = p.clips ? p.clips.length : 0;
+      {/* Header row: select all */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {selCount > 0 && (
+            <span style={{ color: T.accent, fontSize: 13, fontWeight: 700 }}>
+              {selCount} selected
+            </span>
+          )}
+        </div>
+        <button
+          onClick={selectAll}
+          style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
+        >
+          {localProjects.length > 0 && localProjects.every((p) => selected[p.id]) ? "Deselect All" : "Select All"}
+        </button>
+      </div>
+
+      {/* Grouped project list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {groupKeys.map((tag) => {
+          const items = grouped[tag];
+          const isCollapsed = collapsed[tag];
+          const game = gamesDb.find((g) => g.tag === tag);
+          const gameColor = game?.color || T.accent;
+          const gameName = game?.name || tag;
+          const groupSelCount = items.filter((p) => selected[p.id]).length;
+          const allGroupSel = items.length > 0 && items.every((p) => selected[p.id]);
 
           return (
-            <Card
-              key={p.id}
-              onClick={() => (st === "ready" || st === "done") && onSelect(p)}
-              borderColor={st === "done" ? T.greenBorder : st === "error" ? T.redBorder : T.border}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: 20, opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
-                cursor: st === "ready" || st === "done" ? "pointer" : "default",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1 }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: T.radius.md,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, flexShrink: 0,
-                  background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${gameColor}18`,
-                }}>
-                  {st === "done" ? "\u2705" : st === "error" ? "\u274c" : st === "processing" ? "\u23f3" : "\ud83c\udfac"}
-                </div>
-                <div style={{ flex: 1, overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: T.text, fontSize: 16, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                    {p.game && p.game !== "Unknown" && p.gameTag !== "?" && (
-                      <span style={{
-                        display: "inline-flex", padding: "2px 6px",
-                        background: `${gameColor}18`, border: `1px solid ${gameColor}44`,
-                        borderRadius: 4, fontSize: 10, fontWeight: 700, color: gameColor,
-                        fontFamily: T.mono,
-                      }}>
-                        {p.gameTag || p.game}
-                      </span>
-                    )}
-                    <span style={{ color: T.textTertiary, fontSize: 13 }}>
-                      {st === "processing" ? (
-                        <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>
-                      ) : st === "error" ? (
-                        <span style={{ color: T.red }}>{p.error || "Failed"}</span>
-                      ) : (
-                        <><span style={{ fontFamily: T.mono }}>{clipCount}</span> clip{clipCount !== 1 ? "s" : ""}</>
-                      )}
-                    </span>
-                  </div>
-                </div>
+            <div key={tag}>
+              {/* Group header */}
+              <div
+                onClick={() => toggleCollapse(tag)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px", borderRadius: T.radius.md,
+                  background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
+                  cursor: "pointer", marginBottom: isCollapsed ? 0 : 10,
+                }}
+              >
+                <span style={{
+                  color: T.textTertiary, fontSize: 14, transition: "transform 0.2s",
+                  transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                }}>{"\u25bc"}</span>
+                <span style={{
+                  display: "inline-flex", padding: "2px 6px",
+                  background: `${gameColor}18`, border: `1px solid ${gameColor}44`,
+                  borderRadius: 4, fontSize: 10, fontWeight: 700, color: gameColor,
+                  fontFamily: T.mono,
+                }}>{tag}</span>
+                <span style={{ color: T.text, fontSize: 14, fontWeight: 700, flex: 1 }}>
+                  {gameName}
+                </span>
+                <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
+                  {items.length} project{items.length !== 1 ? "s" : ""}
+                </span>
+                {groupSelCount > 0 && (
+                  <span style={{ color: T.accent, fontSize: 11, fontWeight: 700 }}>
+                    {groupSelCount} selected
+                  </span>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); selectAllInGroup(tag); }}
+                  style={{
+                    background: "none", border: `1px solid ${T.border}`, borderRadius: 6,
+                    padding: "4px 10px", color: T.textSecondary, fontSize: 11,
+                    fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  }}
+                >
+                  {allGroupSel ? "Deselect" : "Select All"}
+                </button>
               </div>
-              <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
-                {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
-              </Badge>
-            </Card>
+
+              {/* Projects in this group */}
+              {!isCollapsed && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {items.map((p) => {
+                    const st = getProjectStatus(p);
+                    const pColor = getGameColor(p, gamesDb);
+                    const clipCount = p.clips ? p.clips.length : 0;
+                    const isSel = !!selected[p.id];
+
+                    return (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12,
+                          padding: "14px 16px", borderRadius: T.radius.md,
+                          background: isSel ? T.accentDim : T.surface,
+                          border: `1px solid ${isSel ? T.accentBorder : st === "done" ? T.greenBorder : st === "error" ? T.redBorder : T.border}`,
+                          opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {/* Checkbox */}
+                        <div onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
+                          <Checkbox checked={isSel} size={18} />
+                        </div>
+
+                        {/* Main content — click to open */}
+                        <div
+                          onClick={() => (st === "ready" || st === "done") && onSelect(p)}
+                          style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, overflow: "hidden" }}
+                        >
+                          <div style={{
+                            width: 38, height: 38, borderRadius: T.radius.sm,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 18, flexShrink: 0,
+                            background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${pColor}18`,
+                          }}>
+                            {st === "done" ? "\u2705" : st === "error" ? "\u274c" : st === "processing" ? "\u23f3" : "\ud83c\udfac"}
+                          </div>
+                          <div style={{ flex: 1, overflow: "hidden" }}>
+                            <div style={{ color: T.text, fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {p.name}
+                            </div>
+                            <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>
+                              {st === "processing" ? (
+                                <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>
+                              ) : st === "error" ? (
+                                <span style={{ color: T.red }}>{p.error || "Failed"}</span>
+                              ) : (
+                                <><span style={{ fontFamily: T.mono }}>{clipCount}</span> clip{clipCount !== 1 ? "s" : ""}</>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
+                          {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
+                        </Badge>
+
+                        {/* Delete icon */}
+                        <span
+                          onClick={(e) => handleSingleDelete(e, p.id)}
+                          title="Delete project"
+                          style={{
+                            color: T.textMuted, fontSize: 16, cursor: "pointer", padding: "4px 6px",
+                            borderRadius: 4, flexShrink: 0, lineHeight: 1,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                        >{"\ud83d\uddd1"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
+
+      {/* Footer actions */}
+      {selCount > 0 && (
+        <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+            onClick={handleDelete}
+            style={{
+              padding: "10px 18px", borderRadius: T.radius.md, border: "none",
+              background: confirmDelete ? T.red : T.redDim,
+              color: confirmDelete ? "#fff" : T.red,
+              fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+              border: `1px solid ${confirmDelete ? T.red : "rgba(248,113,113,0.25)"}`,
+            }}
+          >
+            {confirmDelete ? `Confirm Delete ${selCount}?` : `Delete (${selCount})`}
+          </button>
+          {confirmDelete && (
+            <button
+              onClick={() => setConfirmDelete(false)}
+              style={{
+                padding: "10px 18px", borderRadius: T.radius.md,
+                border: `1px solid ${T.border}`, background: "transparent",
+                color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
