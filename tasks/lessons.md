@@ -60,6 +60,10 @@
 - **Rule:** Always run `npx react-scripts build` after changes. Never mark a task complete without a successful build.
 - **Rule:** If a fix involves filtering/mapping data, trace through the logic with the actual problematic data to verify correctness.
 
+### Always run the app after building
+- **Mistake:** Built successfully but didn't launch the app to visually verify changes. User had to ask.
+- **Rule:** After EVERY build or code change, run `npm start` to launch the Electron app. Do not wait to be asked. Visual verification is mandatory before committing.
+
 ### When a fix doesn't work, change the approach entirely
 - **Mistake:** Tried to tweak the field-based source video heuristic when it failed.
 - **Rule:** If a heuristic fails once, the underlying assumption is wrong. Don't patch it — rethink the approach from scratch (which led to the duration-based solution).

@@ -124,6 +124,10 @@ When running the global verification checklist, use these project-specific comma
 3. **Electron dev:** `npx electronmon .` — for hot-reload testing
 4. **Full test:** Build → launch → verify changed feature → check adjacent features
 
+### Mandatory: Run the App After Every Change
+
+**After completing ANY build or code change, always run `npm start` to launch the Electron app.** Do not wait to be asked. This is a non-negotiable step — every change must be visually verified in the running app before marking a task done or committing.
+
 ## Design System
 
 The app uses a dark theme. Key tokens (from the v6.2 prototype and current theme.js):
