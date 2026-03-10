@@ -4,9 +4,58 @@
 
 ---
 
-## 🔴 Up Next — Not Yet Built
+## 🟡 In Progress — Phase 10: Editor Architecture Rewrite
 
-### Phase 10: Editor Round 3 — Remaining Items
+### Goal
+Decompose the 2654-line monolithic EditorView.js into ~22 modular files with Zustand state management. Zero feature regressions.
+
+### Phase 0: Scaffold
+- [ ] Install zustand
+- [ ] Create directory structure (`src/renderer/editor/`)
+- [ ] Extract constants to `utils/constants.js`
+- [ ] Extract time helpers to `utils/timeUtils.js`
+- [ ] Extract primitives to `primitives/editorPrimitives.js`
+
+### Phase 1: Zustand Stores
+- [ ] useLayoutStore (panel widths, collapse, drawer)
+- [ ] usePlaybackStore (playing, currentTime, seek)
+- [ ] useCaptionStore (caption text, font, color)
+- [ ] useSubtitleStore (editSegments, styling, split/merge)
+- [ ] useEditorStore (clip/project, dirty, save)
+- [ ] useAIStore (AI generation, accept/reject)
+
+### Phase 2: Shell + Layout
+- [ ] EditorShell.js (top-level grid + resize handlers)
+- [ ] EditorView.js thin wrapper (~30 lines)
+- [ ] App.js import path update
+
+### Phase 3: Components (14 files)
+- [ ] Topbar.js
+- [ ] PreviewPanel.js
+- [ ] TranscriptPanel.js
+- [ ] EditSubsPanel.js
+- [ ] LeftPanel.js
+- [ ] SubtitlesDrawer.js
+- [ ] CaptionDrawer.js
+- [ ] AIToolsDrawer.js
+- [ ] BrandDrawer.js
+- [ ] MediaDrawer.js
+- [ ] RightZone.js
+- [ ] Timeline.js
+- [ ] RenderOverlay.js
+- [ ] EditorShell.js (final assembly)
+
+### Phase 4: Integration + Cleanup
+- [ ] Delete old monolith
+- [ ] Build with zero errors
+- [ ] Launch and test all 21 Phase 9 features
+- [ ] Verify cross-store data flow
+
+---
+
+## 🔴 Up Next — Future Items
+
+### Editor Round 3 — Remaining Items
 - [ ] Draggable caption/subtitle on viewer with center alignment grid lines
 - [ ] Inline editing of caption/subtitle on viewer (double-click to edit)
 - [ ] Audio waveform analysis for word-level subtitle sync

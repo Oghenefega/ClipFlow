@@ -8,7 +8,7 @@ import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
 import SettingsView from "./views/SettingsView";
-import EditorView from "./views/EditorView";
+import EditorView from "./editor/EditorView";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
