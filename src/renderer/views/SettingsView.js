@@ -10,7 +10,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
@@ -22,6 +22,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [anthropicVal, setAnthropicVal] = useState(anthropicApiKey || "");
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showAnthropicKeyEdit, setShowAnthropicKeyEdit] = useState(false);
+  // YouTube OAuth
+  const [showYouTube, setShowYouTube] = useState(false);
+  const [editYouTube, setEditYouTube] = useState(false);
+  const [ytClientIdVal, setYtClientIdVal] = useState(youtubeClientId || "");
+  const [ytClientSecretVal, setYtClientSecretVal] = useState(youtubeClientSecret || "");
+  const [showYtId, setShowYtId] = useState(false);
+  const [showYtSecret, setShowYtSecret] = useState(false);
+  const [showYtIdEdit, setShowYtIdEdit] = useState(false);
+  const [showYtSecretEdit, setShowYtSecretEdit] = useState(false);
   const [editGuide, setEditGuide] = useState(false);
   const [guideVal, setGuideVal] = useState(styleGuide || "");
   const [ffmpegStatus, setFfmpegStatus] = useState(null); // { installed, version } or null
@@ -74,6 +83,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
   const anthropicConfigured = Boolean(anthropicApiKey);
+  const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
 
   const collapsibleHeaderStyle = {
     display: "flex",
@@ -346,6 +356,97 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Status</span>
                   <PulseDot color={anthropicConfigured ? T.green : T.red} size={6} />
                   <span style={{ color: anthropicConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{anthropicConfigured ? "Configured" : "Not set"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* YouTube OAuth 2.0 — Collapsible */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div
+          onClick={() => { if (!editYouTube) setShowYouTube(!showYouTube); }}
+          style={collapsibleHeaderStyle}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>YouTube API</div>
+            <span style={{ color: T.textTertiary, fontSize: 14, transition: "transform 0.2s", display: "inline-block", transform: showYouTube ? "rotate(90deg)" : "none" }}>{"\u25b8"}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {!showYouTube && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <PulseDot color={youtubeConfigured ? T.green : T.red} size={6} />
+                <span style={{ color: youtubeConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>
+                  {youtubeConfigured ? "Configured" : "Not set"}
+                </span>
+              </div>
+            )}
+            {showYouTube && !editYouTube && (
+              <button onClick={(e) => { e.stopPropagation(); setEditYouTube(true); setYtClientIdVal(youtubeClientId || ""); setYtClientSecretVal(youtubeClientSecret || ""); setShowYouTube(true); }} style={btnSecondary}>Edit</button>
+            )}
+            {editYouTube && (
+              <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => setEditYouTube(false)} style={btnSecondary}>Cancel</button>
+                <button onClick={() => { setYoutubeClientId(ytClientIdVal); setYoutubeClientSecret(ytClientSecretVal); setEditYouTube(false); }} style={btnSave}>Save</button>
+              </div>
+            )}
+          </div>
+        </div>
+        {(showYouTube || editYouTube) && (
+          <div style={{ marginTop: 14 }}>
+            {editYouTube ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <SectionLabel>Client ID</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={ytClientIdVal} onChange={(e) => setYtClientIdVal(e.target.value)} type={showYtIdEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Client ID" />
+                    <button onClick={() => setShowYtIdEdit(!showYtIdEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtIdEdit ? "Hide" : "Show"}>{showYtIdEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <div>
+                  <SectionLabel>Client Secret</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={ytClientSecretVal} onChange={(e) => setYtClientSecretVal(e.target.value)} type={showYtSecretEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Client Secret" />
+                    <button onClick={() => setShowYtSecretEdit(!showYtSecretEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtSecretEdit ? "Hide" : "Show"}>{showYtSecretEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>OAuth 2.0 credentials for publishing clips to YouTube.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client ID</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {!youtubeClientId ? "Not set" : showYtId ? youtubeClientId : maskKey(youtubeClientId)}
+                  </span>
+                  {youtubeClientId && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowYtId(!showYtId)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtId ? "Hide" : "Show"}>{showYtId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(youtubeClientId, "yt-client-id")} style={{ ...iconBtn, color: copiedField === "yt-client-id" ? T.green : T.textTertiary }}>
+                        {copiedField === "yt-client-id" ? "\u2713" : "\ud83d\udccb"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Secret</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {!youtubeClientSecret ? "Not set" : showYtSecret ? youtubeClientSecret : maskKey(youtubeClientSecret)}
+                  </span>
+                  {youtubeClientSecret && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowYtSecret(!showYtSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtSecret ? "Hide" : "Show"}>{showYtSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(youtubeClientSecret, "yt-client-secret")} style={{ ...iconBtn, color: copiedField === "yt-client-secret" ? T.green : T.textTertiary }}>
+                        {copiedField === "yt-client-secret" ? "\u2713" : "\ud83d\udccb"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
+                  <PulseDot color={youtubeConfigured ? T.green : T.red} size={6} />
+                  <span style={{ color: youtubeConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{youtubeConfigured ? "Configured" : "Not set"}</span>
                 </div>
               </div>
             )}

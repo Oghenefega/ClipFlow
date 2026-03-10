@@ -117,6 +117,10 @@ export default function App() {
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [styleGuide, setStyleGuide] = useState("");
 
+  // YouTube OAuth 2.0
+  const [youtubeClientId, setYoutubeClientId] = useState("");
+  const [youtubeClientSecret, setYoutubeClientSecret] = useState("");
+
   // Captions
   const [captionTemplates, setCaptionTemplates] = useState({
     tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
@@ -163,6 +167,8 @@ export default function App() {
         if (all.sfxFolder) setSfxFolder(all.sfxFolder);
         if (all.renameHistory) setRenameHistory(all.renameHistory);
         if (all.anthropicApiKey) setAnthropicApiKey(all.anthropicApiKey);
+        if (all.youtubeClientId) setYoutubeClientId(all.youtubeClientId);
+        if (all.youtubeClientSecret) setYoutubeClientSecret(all.youtubeClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         // For ytDescriptions: merge real defaults with any saved overrides
         if (all.ytDescriptions && Object.keys(all.ytDescriptions).length > 0) {
@@ -228,6 +234,8 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("sfxFolder", sfxFolder); }, [sfxFolder]);
   useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("anthropicApiKey", anthropicApiKey); }, [anthropicApiKey]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientId", youtubeClientId); }, [youtubeClientId]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientSecret", youtubeClientSecret); }, [youtubeClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
 
   // ============ MAIN GAME SWITCH LOGGING ============
@@ -434,6 +442,10 @@ export default function App() {
           setSfxFolder={setSfxFolder}
           anthropicApiKey={anthropicApiKey}
           setAnthropicApiKey={setAnthropicApiKey}
+          youtubeClientId={youtubeClientId}
+          setYoutubeClientId={setYoutubeClientId}
+          youtubeClientSecret={youtubeClientSecret}
+          setYoutubeClientSecret={setYoutubeClientSecret}
           styleGuide={styleGuide}
           setStyleGuide={setStyleGuide}
         />

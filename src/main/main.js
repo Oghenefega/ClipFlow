@@ -58,6 +58,8 @@ const store = new Store({
     localProjects: [],
     renameHistory: [],
     anthropicApiKey: "",
+    youtubeClientId: "",
+    youtubeClientSecret: "",
     styleGuide: "",
     titleCaptionHistory: [],
   },
