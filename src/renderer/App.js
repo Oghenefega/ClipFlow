@@ -317,13 +317,15 @@ export default function App() {
 
   // Load full project data (with transcription + clips) when entering ClipBrowser
   const handleSelectProject = useCallback(async (project) => {
+    let loaded = project; // fallback to summary
     try {
       const full = await window.clipflow.projectLoad(project.id);
-      if (full && !full.error) {
-        setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? full : p)));
+      if (full && !full.error && full.project) {
+        loaded = full.project;
+        setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? full.project : p)));
       }
     } catch (e) { /* use summary data as fallback */ }
-    setSelProj(project);
+    setSelProj(loaded);
     setView("clips");
   }, []);
 
