@@ -473,7 +473,7 @@ export default function App() {
       }
       return (
         <ClipBrowser
-          project={fullProj}
+          project={proj}
           onBack={() => { setSelProj(null); setView("projects"); }}
           onUpdateClip={handleUpdateClip}
           onTranscript={setTranscript}
