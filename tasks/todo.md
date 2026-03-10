@@ -118,6 +118,29 @@
 - [x] Added "Platform API coming soon" InfoBanner to QueueView header
 - [x] Publish Now / Schedule still logs to tracker for manual workflow tracking
 
+### Phase 9: Editor Round 2 — 31 Bug Fixes & Improvements ✅
+- [x] Fix karaoke highlight — only current word (was `i <= activeWordIdx`, now `i === activeWordIdx`)
+- [x] Rename "Headline" → "Caption" everywhere
+- [x] AI context textarea auto-expand
+- [x] Add back button (top-left of topbar) with auto-save
+- [x] Separate title vs caption state (`clipTitle` vs `captionText`)
+- [x] Fix AI title/caption selection visual (only accepted card green + "✓ Applied" badge)
+- [x] Build `renderCaptionPanel()` — text editing, font, color, B/I/U
+- [x] Wire subtitle styling to overlay (fontSize, font, stroke, shadow, background)
+- [x] Wire 1L/2L line modes (1L = ~3 words around active, 2L = full phrase)
+- [x] Add sync offset control for subtitle timing
+- [x] Unify data source — transcript/subs/overlay all from `editSegments`
+- [x] Word-level spans in transcript (click-to-seek, active highlight)
+- [x] Editable words in transcript (double-click → inline edit, syncs to subs)
+- [x] Word hover + click-to-seek in Edit Subtitles panel
+- [x] Split at selected word position
+- [x] Timecode click → popover with range slider (Apply/Cancel)
+- [x] Timeline zoom (0.5x–4x) wired to content width
+- [x] Fix ruler accuracy (absolute positioning, synced scroll with tracks)
+- [x] Draggable/scrubable playhead (click/drag on ruler or track area)
+- [x] Hide Sub 2 track when empty
+- [x] Selectable/draggable/resizable timeline segments (move + edge resize)
+
 ## Known Issues
 
 - None currently reported

@@ -406,7 +406,7 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} />;
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("projects"); }} />;
     }
     if (view === "queue") {
       return (

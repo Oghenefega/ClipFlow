@@ -165,46 +165,76 @@ const parseTime = (str) => {
 };
 
 // Editable timecode component
-const EditableTC = ({ value, onChange }) => {
-  const [editing, setEditing] = React.useState(false);
+const EditableTC = ({ value, onChange, clipDuration }) => {
+  const [open, setOpen] = React.useState(false);
   const [val, setVal] = React.useState(value);
-  React.useEffect(() => { setVal(value); }, [value]);
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        onBlur={() => { setEditing(false); onChange(val); }}
-        onKeyDown={e => { if (e.key === "Enter") { setEditing(false); onChange(val); } if (e.key === "Escape") { setEditing(false); setVal(value); } }}
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: 58, fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#a78bfa",
-          background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.4)",
-          borderRadius: 3, padding: "2px 4px", outline: "none", textAlign: "center",
-        }}
-      />
-    );
-  }
+  const [secVal, setSecVal] = React.useState(0);
+  const containerRef = React.useRef(null);
+  React.useEffect(() => { setVal(value); setSecVal(parseTime(value)); }, [value]);
+
+  // Close on outside click
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setVal(value); } };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, value]);
+
   return (
-    <span
-      onClick={e => { e.stopPropagation(); setEditing(true); }}
-      style={{
-        fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: T.textSecondary,
-        padding: "2px 5px", borderRadius: 3, cursor: "pointer",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.1)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-      title="Click to edit timecode"
-    >
-      {value}
+    <span ref={containerRef} style={{ position: "relative", display: "inline-block" }}>
+      <span
+        onClick={e => { e.stopPropagation(); setOpen(!open); }}
+        style={{
+          fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: open ? "#a78bfa" : T.textSecondary,
+          padding: "2px 5px", borderRadius: 3, cursor: "pointer",
+          background: open ? "rgba(139,92,246,0.1)" : "transparent",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = "rgba(139,92,246,0.1)"; }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.background = "transparent"; }}
+        title="Click to adjust timecode"
+      >
+        {value}
+      </span>
+      {open && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position: "absolute", top: "100%", left: -10, zIndex: 50,
+          background: "#1a1b22", border: "1px solid rgba(139,92,246,0.4)",
+          borderRadius: 6, padding: "8px 10px", minWidth: 180, marginTop: 4,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+            <input
+              value={val}
+              onChange={e => { setVal(e.target.value); setSecVal(parseTime(e.target.value)); }}
+              style={{
+                width: 60, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#a78bfa",
+                background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)",
+                borderRadius: 3, padding: "3px 5px", outline: "none", textAlign: "center",
+              }}
+            />
+            <span style={{ fontSize: 10, color: T.textTertiary }}>{secVal.toFixed(1)}s</span>
+          </div>
+          <input
+            type="range" min={0} max={(clipDuration || 60) * 10} step={1}
+            value={secVal * 10}
+            onChange={e => { const s = Number(e.target.value) / 10; setSecVal(s); setVal(fmtTime(s)); }}
+            style={{ width: "100%", height: 3, accentColor: "#a78bfa", cursor: "pointer" }}
+          />
+          <div style={{ display: "flex", gap: 4, marginTop: 6, justifyContent: "flex-end" }}>
+            <button onClick={() => { setOpen(false); setVal(value); }}
+              style={{ padding: "3px 8px", fontSize: 10, borderRadius: 3, border: `1px solid ${BD}`, background: "transparent", color: T.textSecondary, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+            <button onClick={() => { setOpen(false); onChange(fmtTime(secVal)); }}
+              style={{ padding: "3px 8px", fontSize: 10, borderRadius: 3, border: "1px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.15)", color: "#a78bfa", cursor: "pointer", fontFamily: T.font }}>Apply</button>
+          </div>
+        </div>
+      )}
     </span>
   );
 };
 
 // ============ EDITOR VIEW ============
-export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", styleGuide = "" }) {
+export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", styleGuide = "", onBack }) {
   // ── Resolve real project/clip data from editorContext ──
   const project = editorContext ? localProjects.find((p) => p.id === editorContext.projectId) : null;
   const clip = project ? (project.clips || []).find((c) => c.id === editorContext.clipId) : null;
@@ -244,6 +274,17 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   const [aiError, setAiError] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState(null); // { titles: [], captions: [] }
   const [aiRejections, setAiRejections] = useState([]); // rejected text strings this session
+  const [acceptedTitleIdx, setAcceptedTitleIdx] = useState(null);
+  const [acceptedCaptionIdx, setAcceptedCaptionIdx] = useState(null);
+
+  // ── Caption (separate from title) ──
+  const [captionText, setCaptionText] = useState("");
+  const [captionFontFamily, setCaptionFontFamily] = useState("Montserrat");
+  const [captionFontSize, setCaptionFontSize] = useState(12);
+  const [captionColor, setCaptionColor] = useState("#ffffff");
+  const [captionBold, setCaptionBold] = useState(true);
+  const [captionItalic, setCaptionItalic] = useState(false);
+  const [captionUnderline, setCaptionUnderline] = useState(false);
 
   // ── Subtitles drawer ──
   const [subMode, setSubMode] = useState("karaoke");
@@ -261,6 +302,15 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   const [emojiOn, setEmojiOn] = useState(false);
   const [s1Open, setS1Open] = useState(false);
   const [s2Open, setS2Open] = useState(false);
+  const [subFontFamily, setSubFontFamily] = useState("Montserrat");
+  const [lineMode, setLineMode] = useState("2L");
+  const [syncOffset, setSyncOffset] = useState(0); // seconds offset for subtitle sync
+
+  // ── Transcript ──
+  const [editingWordKey, setEditingWordKey] = useState(null); // "segId-wordIdx" for inline editing
+
+  // ── Edit Subtitles ──
+  const [selectedWordInfo, setSelectedWordInfo] = useState(null); // { segId, wordIdx }
 
   // ── Editable subtitle segments ──
   const [editSegments, setEditSegments] = useState([]);
@@ -282,6 +332,10 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
 
   // ── Timeline ──
   const [tlSpeed, setTlSpeed] = useState("1x");
+  const [tlZoom, setTlZoom] = useState(1); // 1 = 100%
+  const [tlScrubbing, setTlScrubbing] = useState(false);
+  const timelineContentRef = useRef(null);
+  const tlDragRef = useRef(null); // { segId, mode: "move"|"resize-l"|"resize-r", startX, origStart, origEnd }
 
   // ── Playback ──
   const [playing, setPlaying] = useState(false);
@@ -297,6 +351,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   useEffect(() => {
     if (!clip) return;
     setClipTitle(clip.title || "Untitled Clip");
+    setCaptionText(clip.caption || clip.title || "");
     setActiveRow(0);
     setActiveSegId(null);
     setCurrentTime(0);
@@ -362,31 +417,22 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     try {
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
+        caption: captionText,
         subtitles: { sub1: editSegments.filter((s) => s.track === "s1"), sub2: editSegments.filter((s) => s.track === "s2") },
       });
       setDirty(false);
     } catch (e) {
       console.error("Save failed:", e);
     }
-  }, [clip, project, clipTitle, editSegments]);
+  }, [clip, project, clipTitle, captionText, editSegments]);
 
-  // ── Build transcript rows from clip data ──
+  // ── Transcript rows — derived from editSegments for bidirectional sync ──
   const transcriptRows = React.useMemo(() => {
-    if (!project?.transcription?.segments || !clip) return [];
-    const clipStart = clip.startTime || 0;
-    const clipEnd = clip.endTime || 0;
-    return project.transcription.segments
-      .filter((s) => s.start >= clipStart && s.end <= clipEnd)
-      .map((s, i) => ({
-        id: i,
-        start: fmtTime(s.start - clipStart),
-        end: fmtTime(s.end - clipStart),
-        dur: ((s.end - s.start).toFixed(1)) + "s",
-        text: s.text,
-        startSec: s.start - clipStart,
-        endSec: s.end - clipStart,
-      }));
-  }, [project?.transcription, clip?.startTime, clip?.endTime]);
+    return editSegments.map(s => ({
+      id: s.id, start: s.start, end: s.end, dur: s.dur,
+      text: s.text, startSec: s.startSec, endSec: s.endSec,
+    }));
+  }, [editSegments]);
 
   // ── Use editSegments as the subtitle segments ──
   const segments = editSegments;
@@ -439,6 +485,80 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     window.addEventListener("mouseup", onUp);
   }, [tlHeight]);
 
+  // ── Timeline scrub (draggable playhead) ──
+  useEffect(() => {
+    if (!tlScrubbing) return;
+    const dur = clipDuration || 1;
+    const contentW = Math.max(500, 500 * tlZoom);
+    const onMove = (e) => {
+      const scrollEl = timelineContentRef.current;
+      if (!scrollEl) return;
+      const rect = scrollEl.getBoundingClientRect();
+      const scrollLeft = scrollEl.scrollLeft;
+      const xInContent = e.clientX - rect.left + scrollLeft - 104;
+      const ratio = Math.max(0, Math.min(1, xInContent / contentW));
+      const newTime = ratio * dur;
+      if (videoRef.current) videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    };
+    const onUp = () => setTlScrubbing(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [tlScrubbing, clipDuration, tlZoom]);
+
+  // ── Timeline segment drag/resize ──
+  const handleSegMouseDown = useCallback((e, segId, mode) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const seg = editSegments.find(s => s.id === segId);
+    if (!seg) return;
+    setActiveSegId(segId);
+    tlDragRef.current = { segId, mode, startX: e.clientX, origStart: seg.startSec, origEnd: seg.endSec };
+
+    const dur = clipDuration || 1;
+    const contentW = Math.max(500, 500 * tlZoom);
+    const pxPerSec = contentW / dur;
+
+    const onMove = (ev) => {
+      const drag = tlDragRef.current;
+      if (!drag) return;
+      const dx = ev.clientX - drag.startX;
+      const dtSec = dx / pxPerSec;
+
+      setEditSegments(prev => prev.map(s => {
+        if (s.id !== drag.segId) return s;
+        let newStart = drag.origStart;
+        let newEnd = drag.origEnd;
+        if (drag.mode === "move") {
+          const segDur = drag.origEnd - drag.origStart;
+          newStart = Math.max(0, Math.min(dur - segDur, drag.origStart + dtSec));
+          newEnd = newStart + segDur;
+        } else if (drag.mode === "resize-l") {
+          newStart = Math.max(0, Math.min(drag.origEnd - 0.1, drag.origStart + dtSec));
+        } else if (drag.mode === "resize-r") {
+          newEnd = Math.max(drag.origStart + 0.1, Math.min(dur, drag.origEnd + dtSec));
+        }
+        const fmtTC = (sec) => {
+          const m = Math.floor(sec / 60);
+          const s2 = Math.floor(sec % 60);
+          const ms = Math.round((sec % 1) * 100);
+          return `${String(m).padStart(2, "0")}:${String(s2).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+        };
+        return { ...s, startSec: newStart, endSec: newEnd, start: fmtTC(newStart), end: fmtTC(newEnd), dur: fmtTC(newEnd - newStart) };
+      }));
+      setDirty(true);
+    };
+
+    const onUp = () => {
+      tlDragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [editSegments, clipDuration, tlZoom]);
+
   // ── Drawer toggle ──
   const togglePanel = (panel) => {
     if (activePanel === panel && drawerOpen) {
@@ -488,23 +608,23 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   }, [clip, project, aiGenerating, anthropicApiKey, aiGame, aiContext, voiceMode, gamesDb, aiRejections]);
 
   // ── AI accept/reject handlers ──
-  const handleAiAcceptTitle = useCallback((titleObj) => {
+  const handleAiAcceptTitle = useCallback((titleObj, idx) => {
     const newTitle = titleObj.title || titleObj.text || "";
     setClipTitle(newTitle);
+    setAcceptedTitleIdx(idx);
     setDirty(true);
-    // Log to history
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", titleChosen: newTitle, game: aiGame, timestamp: Date.now(),
     });
   }, [aiGame]);
 
-  const handleAiAcceptCaption = useCallback((captionObj) => {
-    // Store caption on clip for render pipeline
-    const captionText = captionObj.caption || captionObj.text || "";
-    // Mark dirty — caption will be saved with next save
+  const handleAiAcceptCaption = useCallback((captionObj, idx) => {
+    const text = captionObj.caption || captionObj.text || "";
+    setCaptionText(text);
+    setAcceptedCaptionIdx(idx);
     setDirty(true);
     window.clipflow?.anthropicLogHistory?.({
-      type: "pick", captionChosen: captionText, game: aiGame, timestamp: Date.now(),
+      type: "pick", captionChosen: text, game: aiGame, timestamp: Date.now(),
     });
   }, [aiGame]);
 
@@ -557,16 +677,23 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     const idx = editSegments.findIndex(s => s.id === activeSegId);
     if (idx < 0) return;
     const seg = editSegments[idx];
-    const midSec = (seg.startSec + seg.endSec) / 2;
     const words = seg.text.split(" ");
-    const midWord = Math.max(1, Math.floor(words.length / 2));
-    const seg1 = { ...seg, endSec: midSec, end: fmtTime(midSec), dur: (midSec - seg.startSec).toFixed(1) + "s", text: words.slice(0, midWord).join(" ") };
-    const seg2 = { ...seg, id: Date.now(), startSec: midSec, start: fmtTime(midSec), dur: (seg.endSec - midSec).toFixed(1) + "s", text: words.slice(midWord).join(" ") };
+    // Use selected word position if available, otherwise midpoint
+    let splitWordIdx = Math.max(1, Math.floor(words.length / 2));
+    let splitSec = (seg.startSec + seg.endSec) / 2;
+    if (selectedWordInfo && selectedWordInfo.segId === activeSegId && selectedWordInfo.wordIdx > 0) {
+      splitWordIdx = selectedWordInfo.wordIdx;
+      const segDur = seg.endSec - seg.startSec;
+      splitSec = seg.startSec + (splitWordIdx / words.length) * segDur;
+    }
+    const seg1 = { ...seg, endSec: splitSec, end: fmtTime(splitSec), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: words.slice(0, splitWordIdx).join(" ") };
+    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: fmtTime(splitSec), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: words.slice(splitWordIdx).join(" ") };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     setEditSegments(next);
+    setSelectedWordInfo(null);
     setDirty(true);
-  }, [activeSegId, editSegments]);
+  }, [activeSegId, editSegments, selectedWordInfo]);
 
   const handleMergeSegment = useCallback(() => {
     if (!activeSegId) return;
@@ -659,7 +786,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   const railItems = [
     { id: "ai", icon: "✦", label: "AI Tools", group: 1 },
     { id: "subs", icon: "CC", label: "Subtitles", group: 2 },
-    { id: "head", icon: "T", label: "Headline", group: 2 },
+    { id: "head", icon: "T", label: "Caption", group: 2 },
     { id: "brand", icon: "◈", label: "Brand Kit", group: 2 },
     { id: "audio", icon: "♫", label: "Audio", group: 3 },
     { id: "media", icon: "⊞", label: "Media", group: 3 },
@@ -676,8 +803,9 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
       height: TOPBAR_H, minHeight: TOPBAR_H, background: T.surface, borderBottom: `1px solid ${BD}`,
       display: "flex", alignItems: "center", padding: "0 16px", gap: 12, zIndex: 9, flexShrink: 0,
     }}>
-      {/* Left: Undo/Redo/AutoSave */}
+      {/* Left: Back + Undo/Redo/AutoSave */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {onBack && <Ib title="Back to clips" onClick={async () => { if (dirty) await handleSave(); onBack(); }} style={{ fontSize: 14 }}>←</Ib>}
         <Ib title="Undo">↩</Ib>
         <Ib title="Redo">↪</Ib>
         <Ib title="Auto-save">◎</Ib>
@@ -780,29 +908,72 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         }}>
           {transcriptRows
             .filter(row => !transcriptSearch || row.text.toLowerCase().includes(transcriptSearch.toLowerCase()))
-            .map((row, i) => (
-              <span
-                key={row.id}
-                onClick={() => {
-                  setActiveRow(row.id);
-                  if (videoRef.current && row.startSec !== undefined) {
-                    videoRef.current.currentTime = row.startSec;
-                    setCurrentTime(row.startSec);
-                  }
-                }}
-                style={{
-                  cursor: "pointer",
-                  padding: "1px 0",
-                  borderRadius: 2,
-                  background: row.id === activeRow ? T.accentDim : (
-                    currentTime >= row.startSec && currentTime <= row.endSec ? "rgba(139,92,246,0.12)" : "transparent"
-                  ),
-                  transition: "background 0.15s",
-                }}
-              >
-                {row.text}{i < transcriptRows.length - 1 ? " " : ""}
-              </span>
-            ))
+            .map((row) => {
+              const words = row.text.split(/\s+/);
+              const segDur = row.endSec - row.startSec;
+              const isActiveRow = currentTime >= row.startSec && currentTime <= row.endSec;
+              return words.map((word, wi) => {
+                const wordStart = row.startSec + (wi / words.length) * segDur;
+                const wordEnd = row.startSec + ((wi + 1) / words.length) * segDur;
+                const isActiveWord = isActiveRow && currentTime >= wordStart && currentTime < wordEnd;
+                const wKey = `${row.id}-${wi}`;
+                const isEditing = editingWordKey === wKey;
+
+                if (isEditing) {
+                  return (
+                    <input
+                      key={wKey}
+                      autoFocus
+                      defaultValue={word}
+                      onBlur={e => {
+                        const newWord = e.target.value.trim();
+                        if (newWord && newWord !== word) {
+                          const newWords = [...words];
+                          newWords[wi] = newWord;
+                          const newText = newWords.join(" ");
+                          setEditSegments(prev => prev.map(s => s.id === row.id ? { ...s, text: newText } : s));
+                          setDirty(true);
+                        }
+                        setEditingWordKey(null);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") e.target.blur();
+                        if (e.key === "Escape") setEditingWordKey(null);
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        width: Math.max(30, word.length * 8), fontSize: 13, fontFamily: T.font,
+                        color: T.accentLight, background: "rgba(139,92,246,0.15)",
+                        border: `1px solid ${T.accentBorder}`, borderRadius: 3,
+                        padding: "1px 3px", outline: "none", display: "inline",
+                      }}
+                    />
+                  );
+                }
+
+                return (
+                  <span
+                    key={wKey}
+                    onClick={() => {
+                      setActiveRow(row.id);
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = wordStart;
+                        setCurrentTime(wordStart);
+                      }
+                    }}
+                    onDoubleClick={() => setEditingWordKey(wKey)}
+                    style={{
+                      cursor: "pointer", padding: "1px 0", borderRadius: 2,
+                      background: isActiveWord ? T.accentDim : "transparent",
+                      color: isActiveWord ? T.accentLight : T.text,
+                      transition: "background 0.1s",
+                    }}
+                  >
+                    {word}{" "}
+                  </span>
+                );
+              });
+            })
           }
         </div>
       </div>
@@ -868,13 +1039,13 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
                 {/* Header: timecodes + actions */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 9px 4px", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0 }}>
-                    <EditableTC value={seg.start} onChange={(newVal) => {
+                    <EditableTC value={seg.start} clipDuration={clipDuration} onChange={(newVal) => {
                       const newSec = parseTime(newVal);
                       setEditSegments(prev => prev.map(s => s.id === seg.id ? { ...s, startSec: newSec, start: fmtTime(newSec), dur: (s.endSec - newSec).toFixed(1) + "s" } : s));
                       setDirty(true);
                     }} />
                     <span style={{ fontSize: 9, color: T.textTertiary }}>→</span>
-                    <EditableTC value={seg.end} onChange={(newVal) => {
+                    <EditableTC value={seg.end} clipDuration={clipDuration} onChange={(newVal) => {
                       const newSec = parseTime(newVal);
                       setEditSegments(prev => prev.map(s => s.id === seg.id ? { ...s, endSec: newSec, end: fmtTime(newSec), dur: (newSec - s.startSec).toFixed(1) + "s" } : s));
                       setDirty(true);
@@ -888,24 +1059,79 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
                   </div>
                 </div>
 
-                {/* Text + confidence — editable */}
+                {/* Text as word spans — hover highlight, click to seek, double-click to edit */}
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "0 9px 8px" }}>
-                  <input
-                    value={seg.text}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      const newText = e.target.value;
-                      setEditSegments((prev) => prev.map((s) => s.id === seg.id ? { ...s, text: newText } : s));
-                      setDirty(true);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
+                  <div
                     style={{
-                      flex: 1, fontSize: 12.5, color: T.text, lineHeight: 1.5, minHeight: 18,
+                      flex: 1, fontSize: 12.5, color: T.text, lineHeight: 1.8, minHeight: 18,
                       borderRadius: 3, padding: "2px 4px", background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
-                      border: isActive ? `1px solid ${BD}` : "1px solid transparent", outline: "none",
-                      fontFamily: T.font, width: "100%",
+                      border: isActive ? `1px solid ${BD}` : "1px solid transparent",
+                      fontFamily: T.font, cursor: "text",
                     }}
-                  />
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {seg.text.split(/\s+/).map((word, wi, arr) => {
+                      const segDur = seg.endSec - seg.startSec;
+                      const wordStart = seg.startSec + (wi / arr.length) * segDur;
+                      const isSelected = selectedWordInfo && selectedWordInfo.segId === seg.id && selectedWordInfo.wordIdx === wi;
+                      const wKey = `es-${seg.id}-${wi}`;
+                      const isEditing = editingWordKey === wKey;
+
+                      if (isEditing) {
+                        return (
+                          <input
+                            key={wKey}
+                            autoFocus
+                            defaultValue={word}
+                            onBlur={e => {
+                              const newWord = e.target.value.trim();
+                              if (newWord && newWord !== word) {
+                                const newWords = seg.text.split(/\s+/);
+                                newWords[wi] = newWord;
+                                setEditSegments(prev => prev.map(s => s.id === seg.id ? { ...s, text: newWords.join(" ") } : s));
+                                setDirty(true);
+                              }
+                              setEditingWordKey(null);
+                            }}
+                            onKeyDown={e => { if (e.key === "Enter") e.target.blur(); if (e.key === "Escape") setEditingWordKey(null); }}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              width: Math.max(30, word.length * 8), fontSize: 12.5, fontFamily: T.font,
+                              color: T.accentLight, background: "rgba(139,92,246,0.15)",
+                              border: `1px solid ${T.accentBorder}`, borderRadius: 3,
+                              padding: "1px 3px", outline: "none", display: "inline",
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <span
+                          key={wKey}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWordInfo({ segId: seg.id, wordIdx: wi });
+                            setActiveSegId(seg.id);
+                            if (videoRef.current) {
+                              videoRef.current.currentTime = wordStart;
+                              setCurrentTime(wordStart);
+                            }
+                          }}
+                          onDoubleClick={() => setEditingWordKey(wKey)}
+                          style={{
+                            cursor: "pointer", padding: "1px 2px", borderRadius: 2,
+                            background: isSelected ? T.accentDim : "transparent",
+                            color: isSelected ? T.accentLight : T.text,
+                            transition: "background 0.1s",
+                          }}
+                          onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(139,92,246,0.08)"; }}
+                          onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+                        >
+                          {word}{wi < arr.length - 1 ? " " : ""}
+                        </span>
+                      );
+                    })}
+                  </div>
                   <div style={{
                     width: 6, height: 6, borderRadius: "50%", flexShrink: 0, marginTop: 6,
                     background: confColor[seg.conf],
@@ -988,7 +1214,8 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // RENDER: CENTER PREVIEW
   // ═══════════════════════════════════════
   // ── Find active subtitle at current time ──
-  const activeSubtitle = segments.find((s) => s.startSec !== undefined && currentTime >= s.startSec && currentTime <= s.endSec);
+  const adjustedPlayTime = currentTime - syncOffset;
+  const activeSubtitle = segments.find((s) => s.startSec !== undefined && adjustedPlayTime >= s.startSec && adjustedPlayTime <= s.endSec);
   const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
   const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
 
@@ -1037,26 +1264,58 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         {showSubs && activeSubtitle && (() => {
           const words = activeSubtitle.text.split(/\s+/);
           const segDur = activeSubtitle.endSec - activeSubtitle.startSec;
-          const elapsed = currentTime - activeSubtitle.startSec;
+          const adjustedTime = currentTime - syncOffset;
+          const elapsed = adjustedTime - activeSubtitle.startSec;
           const progress = segDur > 0 ? Math.max(0, Math.min(1, elapsed / segDur)) : 0;
           const activeWordIdx = Math.min(Math.floor(progress * words.length), words.length - 1);
 
+          // Build dynamic text shadow from stroke/shadow settings
+          const shadows = [];
+          if (strokeOn) {
+            const sw = Math.max(1, strokeWidth * 0.3);
+            shadows.push(`-${sw}px -${sw}px 0 #000`, `${sw}px -${sw}px 0 #000`, `-${sw}px ${sw}px 0 #000`, `${sw}px ${sw}px 0 #000`);
+          }
+          shadows.push(shadowOn ? `0 2px ${shadowBlur}px rgba(0,0,0,0.9)` : "0 2px 8px rgba(0,0,0,0.9)");
+          const subTextShadow = shadows.join(", ");
+
+          // 1L mode: show only ~3 words around active word
+          const visibleWords = lineMode === "1L"
+            ? words.slice(Math.max(0, activeWordIdx - 1), Math.min(words.length, activeWordIdx + 2))
+            : words;
+          const visibleOffset = lineMode === "1L" ? Math.max(0, activeWordIdx - 1) : 0;
+
           return (
-            <div style={{ position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center", padding: "0 14px", pointerEvents: "none" }}>
-              <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3, textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}>
+            <div style={{
+              position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center",
+              padding: bgOn ? "4px 14px" : "0 14px", pointerEvents: "none",
+              background: bgOn ? `rgba(0,0,0,${bgOpacity / 100})` : "transparent",
+              borderRadius: bgOn ? 4 : 0,
+            }}>
+              <div style={{
+                fontSize: Math.max(10, fontSize * 0.27), fontWeight: 800, lineHeight: 1.3,
+                textShadow: subTextShadow, fontFamily: `'${subFontFamily}', sans-serif`,
+              }}>
                 {subMode === "word" ? (
                   /* Word×Word: show one word at a time */
                   <span style={{ color: highlightColor }}>{words[activeWordIdx] || ""}</span>
                 ) : subMode === "karaoke" ? (
-                  /* Karaoke: highlight current word */
-                  words.map((w, i) => (
-                    <span key={i} style={{ color: i <= activeWordIdx ? highlightColor : "#fff" }}>
-                      {w}{i < words.length - 1 ? " " : ""}
+                  /* Karaoke: highlight only the current word */
+                  visibleWords.map((w, i) => (
+                    <span key={i + visibleOffset} style={{ color: (i + visibleOffset) === activeWordIdx ? highlightColor : "#fff" }}>
+                      {w}{i < visibleWords.length - 1 ? " " : ""}
                     </span>
                   ))
                 ) : (
-                  /* Phrase: show full text */
-                  <span style={{ color: "#fff" }}>{activeSubtitle.text}</span>
+                  /* Phrase: show full text (or 1L subset) */
+                  lineMode === "1L" ? (
+                    visibleWords.map((w, i) => (
+                      <span key={i + visibleOffset} style={{ color: "#fff" }}>
+                        {w}{i < visibleWords.length - 1 ? " " : ""}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ color: "#fff" }}>{activeSubtitle.text}</span>
+                  )
                 )}
               </div>
             </div>
@@ -1064,13 +1323,16 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         })()}
 
         {/* Caption overlay */}
-        {clipTitle && (
+        {captionText && (
           <div style={{ position: "absolute", bottom: videoSrc ? "12%" : "9%", left: 0, right: 0, textAlign: "center", padding: "0 10px", pointerEvents: "none" }}>
             <div style={{
-              fontSize: 12, fontWeight: 800, color: "#fff",
+              fontSize: captionFontSize, fontWeight: captionBold ? 800 : 400,
+              fontStyle: captionItalic ? "italic" : "normal",
+              textDecoration: captionUnderline ? "underline" : "none",
+              color: captionColor, fontFamily: `'${captionFontFamily}', sans-serif`,
               textShadow: "0 2px 6px rgba(0,0,0,0.95)", lineHeight: 1.3,
             }}>
-              {clipTitle}
+              {captionText}
             </div>
           </div>
         )}
@@ -1151,11 +1413,11 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
             value={aiContext}
             onChange={e => setAiContext(e.target.value)}
             placeholder="Additional context (optional)…"
-            rows={2}
+            rows={Math.max(2, aiContext.split('\n').length + 1)}
             style={{
               width: "100%", background: S2, border: `1px solid ${BD}`, borderRadius: 5,
               padding: "6px 9px", color: T.text, fontSize: 11, fontFamily: T.font,
-              outline: "none", resize: "none", minHeight: 30, lineHeight: 1.5,
+              outline: "none", resize: "vertical", minHeight: 30, lineHeight: 1.5,
             }}
           />
         </div>
@@ -1220,22 +1482,25 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
             {titles.map((t, i) => {
               const text = t.title || t.text || "";
               const isRejected = aiRejections.includes(text);
+              const isAccepted = acceptedTitleIdx === i;
               return (
                 <div key={i} style={{
-                  background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+                  background: S2, border: `1px solid ${isAccepted ? T.green : BD}`, borderRadius: 5,
                   padding: "9px 10px", position: "relative", opacity: isRejected ? 0.35 : 1,
-                  transition: "opacity 0.2s",
+                  transition: "opacity 0.2s, border 0.2s",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: isAccepted ? T.green : T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
                     {text}
                   </div>
                   <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{t.why}</div>
-                  {!isRejected && (
+                  {isAccepted ? (
+                    <div style={{ position: "absolute", top: 8, right: 8, fontSize: 10, color: T.green, fontWeight: 600 }}>✓ Applied</div>
+                  ) : !isRejected ? (
                     <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
-                      <Ib title="Apply as title" onClick={() => handleAiAcceptTitle(t)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
+                      <Ib title="Apply as title" onClick={() => handleAiAcceptTitle(t, i)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
                       <Ib title="Dismiss" onClick={() => handleAiReject(text)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })}
@@ -1245,22 +1510,25 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
             {captions.map((c, i) => {
               const text = c.caption || c.text || "";
               const isRejected = aiRejections.includes(text);
+              const isAccepted = acceptedCaptionIdx === i;
               return (
                 <div key={i} style={{
-                  background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+                  background: S2, border: `1px solid ${isAccepted ? T.green : BD}`, borderRadius: 5,
                   padding: "9px 10px", position: "relative", opacity: isRejected ? 0.35 : 1,
-                  transition: "opacity 0.2s",
+                  transition: "opacity 0.2s, border 0.2s",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: isAccepted ? T.green : T.text, lineHeight: 1.4, paddingRight: 50, marginBottom: 4 }}>
                     {text}
                   </div>
                   <div style={{ fontSize: 10, color: T.textSecondary, lineHeight: 1.4 }}>{c.why}</div>
-                  {!isRejected && (
+                  {isAccepted ? (
+                    <div style={{ position: "absolute", top: 8, right: 8, fontSize: 10, color: T.green, fontWeight: 600 }}>✓ Applied</div>
+                  ) : !isRejected ? (
                     <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 3 }}>
-                      <Ib title="Apply caption" onClick={() => handleAiAcceptCaption(c)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
+                      <Ib title="Apply caption" onClick={() => handleAiAcceptCaption(c, i)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${T.green}`, background: "rgba(52,211,153,0.1)", color: T.green }}>✓</Ib>
                       <Ib title="Dismiss" onClick={() => handleAiReject(text)} style={{ width: 22, height: 22, fontSize: 10, border: `1px solid ${BD}`, background: S3 }}>✕</Ib>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })}
@@ -1309,14 +1577,19 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         <div style={{ padding: "10px 13px" }}>
           <SectionLabel>Basic</SectionLabel>
           <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8, marginBottom: 7 }}>
-            <div style={{
-              flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: S2, border: `1px solid ${BD}`, borderRadius: 5, padding: "5px 9px",
-              fontSize: 11, color: T.text, cursor: "pointer",
-            }}>
-              <span style={{ fontStyle: "italic", fontWeight: 700 }}>Montserrat Bold</span>
-              <span style={{ opacity: 0.4, fontSize: 9 }}>▾</span>
-            </div>
+            <select
+              value={subFontFamily}
+              onChange={e => setSubFontFamily(e.target.value)}
+              style={{
+                flex: 1, background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+                padding: "6px 9px", fontSize: 11, color: T.text, cursor: "pointer",
+                fontFamily: T.font, outline: "none",
+              }}
+            >
+              {["Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Georgia"].map(f =>
+                <option key={f} value={f}>{f}</option>
+              )}
+            </select>
             <NumBox value={fontSize} onChange={setFontSize} min={8} max={120} />
           </div>
 
@@ -1336,8 +1609,8 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
 
           {/* Format toolbar row 2 */}
           <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 5 }}>
-            <Ib title="1 line" active style={{ fontSize: 9, fontWeight: 700 }}>1L</Ib>
-            <Ib title="2 lines" style={{ fontSize: 9, fontWeight: 700 }}>2L</Ib>
+            <Ib title="1 line (~3 words)" active={lineMode === "1L"} onClick={() => setLineMode("1L")} style={{ fontSize: 9, fontWeight: 700 }}>1L</Ib>
+            <Ib title="2 lines (full phrase)" active={lineMode === "2L"} onClick={() => setLineMode("2L")} style={{ fontSize: 9, fontWeight: 700 }}>2L</Ib>
             <div style={{ width: 1, height: 16, background: BD, margin: "0 2px" }} />
             <SwatchBtn color="#fff" size={18} style={{ border: "1px solid #555" }} />
             <SwatchBtn color={highlightColor} size={18} style={{ marginLeft: 4 }} />
@@ -1450,6 +1723,21 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
                 </label>
               ))}
             </div>
+          </div>
+        </div>
+        <Divider />
+
+        {/* Sync offset */}
+        <div style={{ padding: "10px 13px" }}>
+          <SectionLabel>Sync Offset</SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <input type="range" min={-10} max={10} step={1} value={syncOffset * 10}
+              onChange={e => setSyncOffset(Number(e.target.value) / 10)}
+              style={{ flex: 1, height: 3, accentColor: T.accent, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textSecondary, minWidth: 40, textAlign: "right" }}>
+              {syncOffset > 0 ? "+" : ""}{syncOffset.toFixed(1)}s
+            </span>
           </div>
         </div>
         <Divider />
@@ -1798,12 +2086,83 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   };
 
   // ═══════════════════════════════════════
+  // RENDER: CAPTION PANEL
+  // ═══════════════════════════════════════
+  const renderCaptionPanel = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Caption text editing */}
+      <div style={{ padding: "10px 13px", borderBottom: `1px solid ${BD}` }}>
+        <SectionLabel>Caption Text</SectionLabel>
+        <textarea
+          value={captionText}
+          onChange={e => { setCaptionText(e.target.value); setDirty(true); }}
+          placeholder="Enter caption text…"
+          rows={3}
+          style={{
+            width: "100%", background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+            padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font,
+            outline: "none", resize: "vertical", marginTop: 8, lineHeight: 1.5,
+            boxSizing: "border-box",
+          }}
+        />
+      </div>
+
+      {/* Font family + size */}
+      <div style={{ padding: "10px 13px", borderBottom: `1px solid ${BD}` }}>
+        <SectionLabel>Font</SectionLabel>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+          <select
+            value={captionFontFamily}
+            onChange={e => { setCaptionFontFamily(e.target.value); setDirty(true); }}
+            style={{
+              flex: 1, background: S2, border: `1px solid ${BD}`, borderRadius: 5,
+              padding: "6px 10px", fontSize: 11, color: T.text, cursor: "pointer",
+              fontFamily: T.font, outline: "none",
+            }}
+          >
+            {["Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Georgia", "Courier New"].map(f =>
+              <option key={f} value={f}>{f}</option>
+            )}
+          </select>
+          <NumBox value={captionFontSize} onChange={v => { setCaptionFontSize(v); setDirty(true); }} min={8} max={72} />
+        </div>
+      </div>
+
+      {/* Color */}
+      <div style={{ padding: "10px 13px", borderBottom: `1px solid ${BD}` }}>
+        <SectionLabel>Color</SectionLabel>
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          {["#ffffff", "#f4c430", "#4cce8a", "#e63946", T.accent, "#22d3ee"].map(c => (
+            <SwatchBtn key={c} color={c} size={22} selected={captionColor === c}
+              onClick={() => { setCaptionColor(c); setDirty(true); }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Format: B/I/U */}
+      <div style={{ padding: "10px 13px" }}>
+        <SectionLabel>Format</SectionLabel>
+        <div style={{ display: "flex", gap: 2, marginTop: 8 }}>
+          <Ib title="Bold" active={captionBold} onClick={() => { setCaptionBold(!captionBold); setDirty(true); }}
+            style={{ fontSize: 12, fontWeight: 800 }}>B</Ib>
+          <Ib title="Italic" active={captionItalic} onClick={() => { setCaptionItalic(!captionItalic); setDirty(true); }}
+            style={{ fontSize: 12, fontStyle: "italic" }}>I</Ib>
+          <Ib title="Underline" active={captionUnderline} onClick={() => { setCaptionUnderline(!captionUnderline); setDirty(true); }}
+            style={{ fontSize: 12, textDecoration: "underline" }}>U</Ib>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════
   // RENDER: RIGHT ZONE (DRAWER + RAIL)
   // ═══════════════════════════════════════
   const renderDrawerContent = () => {
     switch (activePanel) {
       case "ai": return renderAIPanel();
       case "subs": return renderSubsPanel();
+      case "head": return renderCaptionPanel();
       case "brand": return renderBrandPanel();
       case "media": return renderMediaPanel();
       default: return (
@@ -1814,7 +2173,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
     }
   };
 
-  const panelLabels = { ai: "AI Tools", subs: "Subtitles", head: "Headline", brand: "Brand Kit", audio: "Audio", media: "Media", text: "Text" };
+  const panelLabels = { ai: "AI Tools", subs: "Subtitles", head: "Caption", brand: "Brand Kit", audio: "Audio", media: "Media", text: "Text" };
 
   const renderRightZone = () => (
     <div style={{ display: "flex", alignItems: "stretch", borderLeft: `1px solid ${BD}`, position: "relative" }}>
@@ -1921,12 +2280,14 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
             <Ib title="Split">⌇</Ib>
             <Ib title="Select">A</Ib>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <Ib>−</Ib>
-            <div style={{ width: 60, height: 3, background: BDH, borderRadius: 2, position: "relative", cursor: "pointer" }}>
-              <div style={{ position: "absolute", left: "35%", top: "50%", transform: "translate(-50%,-50%)", width: 11, height: 11, background: T.accent, borderRadius: "50%" }} />
-            </div>
-            <Ib>+</Ib>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <Ib onClick={() => setTlZoom(Math.max(0.5, tlZoom - 0.25))}>−</Ib>
+            <input type="range" min={50} max={400} value={tlZoom * 100}
+              onChange={e => setTlZoom(Number(e.target.value) / 100)}
+              style={{ width: 60, height: 3, accentColor: T.accent, cursor: "pointer" }}
+            />
+            <Ib onClick={() => setTlZoom(Math.min(4, tlZoom + 0.25))}>+</Ib>
+            <span style={{ fontSize: 9, color: T.textTertiary, fontFamily: T.mono }}>{Math.round(tlZoom * 100)}%</span>
           </div>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textSecondary }}>{fmtTime(currentTime)} / {fmtTime(clipDuration)}</span>
@@ -1945,157 +2306,256 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
         </div>
 
         {/* Timeline area (hidden when collapsed) */}
-        {!tlCollapsed && (
-          <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {/* Ruler — real clip duration */}
-            <div style={{
-              height: 20, minHeight: 20, background: S2, borderBottom: `1px solid ${BD}`,
-              display: "flex", alignItems: "flex-end", paddingLeft: 104, overflow: "hidden", position: "relative",
-            }}>
-              {(() => {
-                const dur = clipDuration || 30;
-                const step = dur <= 15 ? 2 : dur <= 30 ? 4 : dur <= 60 ? 8 : 16;
-                const marks = [];
-                for (let t = 0; t <= dur; t += step) marks.push(t);
-                return marks.map(t => (
-                  <div key={t} style={{ width: 80, flexShrink: 0, position: "relative", height: "100%" }}>
-                    <span style={{ fontSize: 9, fontFamily: T.mono, color: T.textTertiary, position: "absolute", left: 0, bottom: 3 }}>{t}s</span>
-                    <div style={{ width: 1, height: 5, background: BDH, position: "absolute", left: 0, bottom: 0 }} />
+        {!tlCollapsed && (() => {
+          const dur = clipDuration || 1;
+          const contentW = Math.max(500, 500 * tlZoom);
+          const s1Segs = editSegments.filter(s => s.track === "s1");
+          const s2Segs = editSegments.filter(s => s.track === "s2");
+          const hasSub2 = s2Segs.length > 0;
+          const visibleTracks = tracks.filter(t => t.id !== "s2" || hasSub2);
+
+          // Ruler marks — adaptive step based on zoom + duration
+          const rulerStep = dur <= 10 ? 1 : dur <= 30 ? 2 : dur <= 60 ? 5 : 10;
+          const rulerMarks = [];
+          for (let t = 0; t <= dur; t += rulerStep) rulerMarks.push(t);
+
+          // Scrub handler — calculates time from mouse X position in content area
+          const scrubFromEvent = (e) => {
+            const scrollEl = timelineContentRef.current;
+            if (!scrollEl) return;
+            const rect = scrollEl.getBoundingClientRect();
+            const scrollLeft = scrollEl.scrollLeft;
+            const xInContent = e.clientX - rect.left + scrollLeft - 104; // subtract label width
+            const ratio = Math.max(0, Math.min(1, xInContent / contentW));
+            const newTime = ratio * dur;
+            if (videoRef.current) videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+          };
+
+          const handleTimelineMouseDown = (e) => {
+            e.preventDefault();
+            setTlScrubbing(true);
+            setPlaying(false);
+            scrubFromEvent(e);
+          };
+
+          return (
+            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              {/* Shared scrollable container for ruler + tracks */}
+              <div
+                ref={timelineContentRef}
+                style={{ flex: 1, overflowX: "auto", overflowY: "auto", position: "relative" }}
+              >
+                {/* Ruler row — sticky at top */}
+                <div
+                  onMouseDown={handleTimelineMouseDown}
+                  style={{
+                    display: "flex", height: 22, minHeight: 22, background: S2,
+                    borderBottom: `1px solid ${BD}`, position: "sticky", top: 0, zIndex: 6,
+                    cursor: "crosshair",
+                  }}
+                >
+                  {/* Ruler label area */}
+                  <div style={{
+                    width: 104, minWidth: 104, borderRight: `1px solid ${BD}`, background: S2,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 8, color: T.textTertiary, fontFamily: T.mono, flexShrink: 0,
+                  }}>TIME</div>
+                  {/* Ruler marks — absolute positioned */}
+                  <div style={{ flex: 1, position: "relative", minWidth: contentW, height: "100%" }}>
+                    {rulerMarks.map(t => (
+                      <div key={t} style={{
+                        position: "absolute", left: `${(t / dur) * 100}%`, bottom: 0, height: "100%",
+                        display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start",
+                      }}>
+                        <span style={{
+                          fontSize: 9, fontFamily: T.mono, color: T.textTertiary,
+                          position: "absolute", top: 3, left: 3, whiteSpace: "nowrap",
+                        }}>{t}s</span>
+                        <div style={{ width: 1, height: 6, background: BDH }} />
+                      </div>
+                    ))}
+                    {/* Ruler playhead */}
+                    {dur > 0 && (
+                      <div style={{
+                        position: "absolute", left: `${(currentTime / dur) * 100}%`, top: 0, bottom: 0,
+                        width: 2, background: T.accentLight, pointerEvents: "none", zIndex: 5,
+                        transform: "translateX(-1px)",
+                      }}>
+                        <div style={{
+                          position: "absolute", bottom: -2, left: -4, width: 0, height: 0,
+                          borderLeft: "5px solid transparent", borderRight: "5px solid transparent",
+                          borderBottom: `5px solid ${T.accentLight}`,
+                        }} />
+                      </div>
+                    )}
                   </div>
-                ));
-              })()}
-              {/* Ruler playhead indicator */}
-              {clipDuration > 0 && (
-                <div style={{
-                  position: "absolute", bottom: 0, width: 2, height: "100%", background: T.accentLight,
-                  left: `${(currentTime / clipDuration) * 100}%`, pointerEvents: "none", zIndex: 5,
-                  transition: playing ? "none" : "left 0.1s",
-                }} />
-              )}
-            </div>
+                </div>
 
-            {/* Track rows + playhead overlay */}
-            <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
-              {tracks.map(track => {
-                const s1Segs = editSegments.filter(s => s.track === "s1");
-                const s2Segs = editSegments.filter(s => s.track === "s2");
-                const dur = clipDuration || 1;
+                {/* Track rows */}
+                <div style={{ position: "relative" }}>
+                  {visibleTracks.map(track => (
+                    <div key={track.id} style={{
+                      display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`, flexShrink: 0,
+                      minHeight: track.type === "video" ? 30 : track.type === "audio" ? 32 : 26,
+                    }}>
+                      {/* Label */}
+                      <div style={{
+                        width: 104, minWidth: 104, padding: "0 8px", fontSize: 9, fontWeight: 600,
+                        color: T.textTertiary, borderRight: `1px solid ${BD}`, height: "100%",
+                        display: "flex", alignItems: "center", background: S2, textTransform: "uppercase",
+                        letterSpacing: "0.3px", gap: 5, flexShrink: 0,
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: track.color, flexShrink: 0 }} />
+                        {track.label}
+                      </div>
 
-                return (
-                  <div key={track.id} style={{
-                    display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`, flexShrink: 0,
-                    minHeight: track.type === "video" ? 30 : track.type === "audio" ? 32 : 26,
+                      {/* Content — real data */}
+                      <div
+                        onMouseDown={handleTimelineMouseDown}
+                        style={{ flex: 1, height: "100%", position: "relative", minWidth: contentW, cursor: "crosshair" }}
+                      >
+                        {/* CAPTION: full-duration block */}
+                        {track.id === "cap" && (
+                          <div style={{
+                            position: "absolute", top: 3, left: 4, right: 4, height: 20,
+                            borderRadius: 3, background: "rgba(139,92,246,0.3)", border: "1px solid rgba(139,92,246,0.5)",
+                            color: "#c4b0ef", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
+                            padding: "0 7px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                            cursor: "default", pointerEvents: "none",
+                          }}>{captionText || clipTitle || "Caption"}</div>
+                        )}
+
+                        {/* SUB 1: draggable segments */}
+                        {track.id === "s1" && s1Segs.map(seg => {
+                          const isActive = seg.id === activeSegId;
+                          return (
+                            <div key={seg.id}
+                              onMouseDown={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const xInSeg = e.clientX - rect.left;
+                                const mode = xInSeg < 6 ? "resize-l" : xInSeg > rect.width - 6 ? "resize-r" : "move";
+                                handleSegMouseDown(e, seg.id, mode);
+                              }}
+                              style={{
+                                position: "absolute", top: 3, height: 20, borderRadius: 3,
+                                left: `${(seg.startSec / dur) * 100}%`,
+                                width: `${Math.max(0.5, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
+                                background: isActive ? "rgba(139,92,246,0.3)" : "rgba(76,130,200,0.25)",
+                                border: isActive ? "1.5px solid rgba(139,92,246,0.8)" : "1px solid rgba(76,130,200,0.4)",
+                                color: "#90b8e0", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
+                                padding: "0 6px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                                cursor: "grab", zIndex: isActive ? 3 : 2, userSelect: "none",
+                              }}
+                              title={seg.text}
+                            >
+                              {/* Left resize handle */}
+                              <div style={{ position: "absolute", left: 0, top: 0, width: 6, height: "100%", cursor: "ew-resize", zIndex: 4 }} />
+                              <span style={{ pointerEvents: "none" }}>{seg.text}</span>
+                              {/* Right resize handle */}
+                              <div style={{ position: "absolute", right: 0, top: 0, width: 6, height: "100%", cursor: "ew-resize", zIndex: 4 }} />
+                            </div>
+                          );
+                        })}
+
+                        {/* SUB 2: draggable segments */}
+                        {track.id === "s2" && s2Segs.map(seg => {
+                          const isActive = seg.id === activeSegId;
+                          return (
+                            <div key={seg.id}
+                              onMouseDown={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const xInSeg = e.clientX - rect.left;
+                                const mode = xInSeg < 6 ? "resize-l" : xInSeg > rect.width - 6 ? "resize-r" : "move";
+                                handleSegMouseDown(e, seg.id, mode);
+                              }}
+                              style={{
+                                position: "absolute", top: 3, height: 20, borderRadius: 3,
+                                left: `${(seg.startSec / dur) * 100}%`,
+                                width: `${Math.max(0.5, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
+                                background: isActive ? "rgba(139,92,246,0.3)" : "rgba(210,170,40,0.2)",
+                                border: isActive ? "1.5px solid rgba(139,92,246,0.8)" : "1px solid rgba(210,170,40,0.4)",
+                                color: "#d4b94a", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
+                                padding: "0 6px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
+                                cursor: "grab", zIndex: isActive ? 3 : 2, userSelect: "none",
+                              }}
+                              title={seg.text}
+                            >
+                              <div style={{ position: "absolute", left: 0, top: 0, width: 6, height: "100%", cursor: "ew-resize", zIndex: 4 }} />
+                              <span style={{ pointerEvents: "none" }}>{seg.text}</span>
+                              <div style={{ position: "absolute", right: 0, top: 0, width: 6, height: "100%", cursor: "ew-resize", zIndex: 4 }} />
+                            </div>
+                          );
+                        })}
+
+                        {/* VIDEO: full-duration block */}
+                        {track.id === "v1" && (
+                          <div style={{
+                            position: "absolute", top: 4, left: 4, right: 4, height: 22,
+                            borderRadius: 3, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
+                            color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
+                            padding: "0 7px", pointerEvents: "none",
+                          }}>Source video</div>
+                        )}
+
+                        {/* AUDIO: deterministic waveform */}
+                        {track.type === "audio" && (
+                          <div style={{
+                            position: "absolute", left: 4, right: 4, top: 4, height: 24,
+                            display: "flex", alignItems: "center", gap: 1, overflow: "hidden", pointerEvents: "none",
+                          }}>
+                            {Array.from({ length: Math.max(60, Math.round(60 * tlZoom)) }, (_, i) => {
+                              const seed = (track.id === "a1" ? 7 : 13) * (i + 1);
+                              const h = ((seed * 2654435761 >>> 0) % 18) + 4;
+                              return (
+                                <span key={i} style={{
+                                  flexShrink: 0, width: 2, borderRadius: 1, opacity: 0.65,
+                                  height: h, background: track.color,
+                                }} />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Global playhead — spans all tracks */}
+                  {dur > 0 && (
+                    <div style={{
+                      position: "absolute", top: 0, bottom: 0,
+                      left: `calc(104px + ${(currentTime / dur) * 100}% - ${(currentTime / dur) * 104}px)`,
+                      width: 2, background: T.accentLight, pointerEvents: "none", zIndex: 10,
+                      transition: (playing || tlScrubbing) ? "none" : "left 0.1s",
+                      transform: "translateX(-1px)",
+                    }}>
+                      <div style={{
+                        position: "absolute", top: -2, left: -4, width: 0, height: 0,
+                        borderLeft: "5px solid transparent", borderRight: "5px solid transparent",
+                        borderTop: `7px solid ${T.accentLight}`,
+                      }} />
+                    </div>
+                  )}
+
+                  {/* Add track row */}
+                  <div style={{
+                    display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`,
+                    minHeight: 22, cursor: "pointer", opacity: 0.5, transition: "opacity 0.15s",
                   }}>
-                    {/* Label */}
                     <div style={{
                       width: 104, minWidth: 104, padding: "0 8px", fontSize: 9, fontWeight: 600,
                       color: T.textTertiary, borderRight: `1px solid ${BD}`, height: "100%",
-                      display: "flex", alignItems: "center", background: S2, textTransform: "uppercase",
-                      letterSpacing: "0.3px", gap: 5, flexShrink: 0,
+                      display: "flex", alignItems: "center", background: S2, gap: 5,
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: track.color, flexShrink: 0 }} />
-                      {track.label}
+                      + Add track
                     </div>
-
-                    {/* Content — real data */}
-                    <div style={{ flex: 1, height: "100%", position: "relative", minWidth: 500 }}>
-                      {/* CAPTION: full-duration block */}
-                      {track.id === "cap" && (
-                        <div style={{
-                          position: "absolute", top: 3, left: 10, right: 10, height: 20,
-                          borderRadius: 3, background: "rgba(139,92,246,0.3)", border: "1px solid rgba(139,92,246,0.5)",
-                          color: "#c4b0ef", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
-                          padding: "0 7px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
-                        }}>{clipTitle || "Caption"}</div>
-                      )}
-
-                      {/* SUB 1: real segments */}
-                      {track.id === "s1" && s1Segs.map(seg => (
-                        <div key={seg.id} style={{
-                          position: "absolute", top: 3, height: 20, borderRadius: 3,
-                          left: `${(seg.startSec / dur) * 100}%`,
-                          width: `${Math.max(1, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
-                          background: "rgba(76,130,200,0.25)", border: seg.id === activeSegId ? "1px solid rgba(139,92,246,0.7)" : "1px solid rgba(76,130,200,0.4)",
-                          color: "#90b8e0", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
-                          padding: "0 4px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", cursor: "pointer",
-                        }} onClick={() => setActiveSegId(seg.id)} title={seg.text}>{seg.text}</div>
-                      ))}
-
-                      {/* SUB 2: real segments */}
-                      {track.id === "s2" && s2Segs.map(seg => (
-                        <div key={seg.id} style={{
-                          position: "absolute", top: 3, height: 20, borderRadius: 3,
-                          left: `${(seg.startSec / dur) * 100}%`,
-                          width: `${Math.max(1, ((seg.endSec - seg.startSec) / dur) * 100)}%`,
-                          background: "rgba(210,170,40,0.2)", border: seg.id === activeSegId ? "1px solid rgba(139,92,246,0.7)" : "1px solid rgba(210,170,40,0.4)",
-                          color: "#d4b94a", fontSize: 8, fontWeight: 500, display: "flex", alignItems: "center",
-                          padding: "0 4px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", cursor: "pointer",
-                        }} onClick={() => setActiveSegId(seg.id)} title={seg.text}>{seg.text}</div>
-                      ))}
-
-                      {/* VIDEO: full-duration block */}
-                      {track.id === "v1" && (
-                        <div style={{
-                          position: "absolute", top: 4, left: 10, right: 10, height: 22,
-                          borderRadius: 3, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
-                          color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center", padding: "0 7px",
-                        }}>Source video</div>
-                      )}
-
-                      {/* AUDIO: deterministic waveform */}
-                      {track.type === "audio" && (
-                        <div style={{ position: "absolute", left: 10, right: 10, top: 4, height: 24, display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
-                          {Array.from({ length: 60 }, (_, i) => {
-                            // Deterministic pseudo-random based on track + index
-                            const seed = (track.id === "a1" ? 7 : 13) * (i + 1);
-                            const h = ((seed * 2654435761 >>> 0) % 18) + 4;
-                            return (
-                              <span key={i} style={{
-                                flexShrink: 0, width: 2, borderRadius: 1, opacity: 0.65,
-                                height: h, background: track.color,
-                              }} />
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <div style={{ flex: 1, minWidth: contentW }} />
                   </div>
-                );
-              })}
-
-              {/* Global playhead — spans all tracks */}
-              {clipDuration > 0 && (
-                <div style={{
-                  position: "absolute", top: 0, bottom: 0,
-                  left: `calc(104px + ${(currentTime / clipDuration) * 100}% - ${(currentTime / clipDuration) * 104}px)`,
-                  width: 2, background: T.accentLight, pointerEvents: "none", zIndex: 10,
-                  transition: playing ? "none" : "left 0.1s",
-                }}>
-                  <div style={{
-                    position: "absolute", top: -2, left: -4, width: 0, height: 0,
-                    borderLeft: "5px solid transparent", borderRight: "5px solid transparent",
-                    borderTop: `7px solid ${T.accentLight}`,
-                  }} />
                 </div>
-              )}
-
-              {/* Add track row */}
-              <div style={{
-                display: "flex", alignItems: "center", borderBottom: `1px solid ${BD}`,
-                minHeight: 22, cursor: "pointer", opacity: 0.5, transition: "opacity 0.15s",
-              }}>
-                <div style={{
-                  width: 104, minWidth: 104, padding: "0 8px", fontSize: 9, fontWeight: 600,
-                  color: T.textTertiary, borderRight: `1px solid ${BD}`, height: "100%",
-                  display: "flex", alignItems: "center", background: S2, gap: 5,
-                }}>
-                  + Add track
-                </div>
-                <div style={{ flex: 1 }} />
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   };
