@@ -121,6 +121,14 @@ export default function App() {
   const [youtubeClientId, setYoutubeClientId] = useState("");
   const [youtubeClientSecret, setYoutubeClientSecret] = useState("");
 
+  // Meta (Facebook/Instagram)
+  const [metaAppId, setMetaAppId] = useState("");
+  const [metaAppSecret, setMetaAppSecret] = useState("");
+
+  // TikTok
+  const [tiktokClientKey, setTiktokClientKey] = useState("");
+  const [tiktokClientSecret, setTiktokClientSecret] = useState("");
+
   // Captions
   const [captionTemplates, setCaptionTemplates] = useState({
     tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
@@ -169,6 +177,10 @@ export default function App() {
         if (all.anthropicApiKey) setAnthropicApiKey(all.anthropicApiKey);
         if (all.youtubeClientId) setYoutubeClientId(all.youtubeClientId);
         if (all.youtubeClientSecret) setYoutubeClientSecret(all.youtubeClientSecret);
+        if (all.metaAppId) setMetaAppId(all.metaAppId);
+        if (all.metaAppSecret) setMetaAppSecret(all.metaAppSecret);
+        if (all.tiktokClientKey) setTiktokClientKey(all.tiktokClientKey);
+        if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         // For ytDescriptions: merge real defaults with any saved overrides
         if (all.ytDescriptions && Object.keys(all.ytDescriptions).length > 0) {
@@ -236,6 +248,10 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("anthropicApiKey", anthropicApiKey); }, [anthropicApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientId", youtubeClientId); }, [youtubeClientId]);
   useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientSecret", youtubeClientSecret); }, [youtubeClientSecret]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("metaAppId", metaAppId); }, [metaAppId]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("metaAppSecret", metaAppSecret); }, [metaAppSecret]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientKey", tiktokClientKey); }, [tiktokClientKey]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
 
   // ============ MAIN GAME SWITCH LOGGING ============
@@ -448,6 +464,14 @@ export default function App() {
           setYoutubeClientId={setYoutubeClientId}
           youtubeClientSecret={youtubeClientSecret}
           setYoutubeClientSecret={setYoutubeClientSecret}
+          metaAppId={metaAppId}
+          setMetaAppId={setMetaAppId}
+          metaAppSecret={metaAppSecret}
+          setMetaAppSecret={setMetaAppSecret}
+          tiktokClientKey={tiktokClientKey}
+          setTiktokClientKey={setTiktokClientKey}
+          tiktokClientSecret={tiktokClientSecret}
+          setTiktokClientSecret={setTiktokClientSecret}
           styleGuide={styleGuide}
           setStyleGuide={setStyleGuide}
         />

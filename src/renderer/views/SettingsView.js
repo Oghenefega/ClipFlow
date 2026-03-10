@@ -10,20 +10,21 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
   const [showAddMain, setShowAddMain] = useState(false);
   const [selGameLib, setSelGameLib] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
-  const [showAnthropic, setShowAnthropic] = useState(false);
+  // API Credentials — pill bar
+  const [activeApi, setActiveApi] = useState(null); // "anthropic" | "youtube" | "meta" | "tiktok" | null
+  // Anthropic
   const [editAnthropic, setEditAnthropic] = useState(false);
   const [anthropicVal, setAnthropicVal] = useState(anthropicApiKey || "");
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showAnthropicKeyEdit, setShowAnthropicKeyEdit] = useState(false);
-  // YouTube OAuth
-  const [showYouTube, setShowYouTube] = useState(false);
+  // YouTube
   const [editYouTube, setEditYouTube] = useState(false);
   const [ytClientIdVal, setYtClientIdVal] = useState(youtubeClientId || "");
   const [ytClientSecretVal, setYtClientSecretVal] = useState(youtubeClientSecret || "");
@@ -31,6 +32,22 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [showYtSecret, setShowYtSecret] = useState(false);
   const [showYtIdEdit, setShowYtIdEdit] = useState(false);
   const [showYtSecretEdit, setShowYtSecretEdit] = useState(false);
+  // Meta
+  const [editMeta, setEditMeta] = useState(false);
+  const [metaIdVal, setMetaIdVal] = useState(metaAppId || "");
+  const [metaSecretVal, setMetaSecretVal] = useState(metaAppSecret || "");
+  const [showMetaId, setShowMetaId] = useState(false);
+  const [showMetaSecret, setShowMetaSecret] = useState(false);
+  const [showMetaIdEdit, setShowMetaIdEdit] = useState(false);
+  const [showMetaSecretEdit, setShowMetaSecretEdit] = useState(false);
+  // TikTok
+  const [editTiktok, setEditTiktok] = useState(false);
+  const [ttClientKeyVal, setTtClientKeyVal] = useState(tiktokClientKey || "");
+  const [ttClientSecretVal, setTtClientSecretVal] = useState(tiktokClientSecret || "");
+  const [showTtKey, setShowTtKey] = useState(false);
+  const [showTtSecret, setShowTtSecret] = useState(false);
+  const [showTtKeyEdit, setShowTtKeyEdit] = useState(false);
+  const [showTtSecretEdit, setShowTtSecretEdit] = useState(false);
   const [editGuide, setEditGuide] = useState(false);
   const [guideVal, setGuideVal] = useState(styleGuide || "");
   const [ffmpegStatus, setFfmpegStatus] = useState(null); // { installed, version } or null
@@ -84,6 +101,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
   const anthropicConfigured = Boolean(anthropicApiKey);
   const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
+  const metaConfigured = Boolean(metaAppId && metaAppSecret);
+  const tiktokConfigured = Boolean(tiktokClientKey && tiktokClientSecret);
+
+  const apiServices = [
+    { id: "anthropic", label: "Anthropic", configured: anthropicConfigured },
+    { id: "youtube", label: "YouTube", configured: youtubeConfigured },
+    { id: "meta", label: "Meta", configured: metaConfigured },
+    { id: "tiktok", label: "TikTok", configured: tiktokConfigured },
+  ];
 
   const collapsibleHeaderStyle = {
     display: "flex",
@@ -295,38 +321,42 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
-      {/* Anthropic API — Collapsible */}
+      {/* API Credentials — Pill Bar */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div
-          onClick={() => { if (!editAnthropic) setShowAnthropic(!showAnthropic); }}
-          style={collapsibleHeaderStyle}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Anthropic AI</div>
-            <span style={{ color: T.textTertiary, fontSize: 14, transition: "transform 0.2s", display: "inline-block", transform: showAnthropic ? "rotate(90deg)" : "none" }}>{"\u25b8"}</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {!showAnthropic && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <PulseDot color={anthropicConfigured ? T.green : T.red} size={6} />
-                <span style={{ color: anthropicConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>
-                  {anthropicConfigured ? "Configured" : "Not set"}
-                </span>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>API Credentials</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeApi ? 16 : 0 }}>
+          {apiServices.map((svc) => {
+            const isSel = activeApi === svc.id;
+            const isEditing = svc.id === "anthropic" ? editAnthropic : svc.id === "youtube" ? editYouTube : svc.id === "meta" ? editMeta : editTiktok;
+            return (
+              <div key={svc.id} onClick={() => { if (!isEditing) setActiveApi(isSel ? null : svc.id); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md,
+                  border: `1px solid ${isSel ? T.accentBorder : T.border}`,
+                  background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)",
+                  cursor: isEditing ? "default" : "pointer", transition: "all 0.15s",
+                }}>
+                <PulseDot color={svc.configured ? T.green : T.red} size={6} />
+                <span style={{ color: isSel ? T.text : T.textSecondary, fontSize: 13, fontWeight: 600 }}>{svc.label}</span>
               </div>
-            )}
-            {showAnthropic && !editAnthropic && (
-              <button onClick={(e) => { e.stopPropagation(); setEditAnthropic(true); setAnthropicVal(anthropicApiKey || ""); setShowAnthropic(true); }} style={btnSecondary}>Edit</button>
-            )}
-            {editAnthropic && (
-              <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => setEditAnthropic(false)} style={btnSecondary}>Cancel</button>
-                <button onClick={() => { setAnthropicApiKey(anthropicVal); setEditAnthropic(false); }} style={btnSave}>Save</button>
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
-        {(showAnthropic || editAnthropic) && (
-          <div style={{ marginTop: 14 }}>
+
+        {/* Anthropic detail panel */}
+        {activeApi === "anthropic" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Anthropic AI</span>
+              {!editAnthropic ? (
+                <button onClick={() => { setEditAnthropic(true); setAnthropicVal(anthropicApiKey || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditAnthropic(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setAnthropicApiKey(anthropicVal); setEditAnthropic(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
             {editAnthropic ? (
               <div>
                 <SectionLabel>API Key</SectionLabel>
@@ -346,9 +376,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   {anthropicApiKey && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowAnthropicKey(!showAnthropicKey)} style={{ ...iconBtn, color: T.textTertiary }} title={showAnthropicKey ? "Hide" : "Show"}>{showAnthropicKey ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
-                      <button onClick={() => copyToClipboard(anthropicApiKey, "anthropic-key")} style={{ ...iconBtn, color: copiedField === "anthropic-key" ? T.green : T.textTertiary }}>
-                        {copiedField === "anthropic-key" ? "\u2713" : "\ud83d\udccb"}
-                      </button>
+                      <button onClick={() => copyToClipboard(anthropicApiKey, "anthropic-key")} style={{ ...iconBtn, color: copiedField === "anthropic-key" ? T.green : T.textTertiary }}>{copiedField === "anthropic-key" ? "\u2713" : "\ud83d\udccb"}</button>
                     </div>
                   )}
                 </div>
@@ -361,40 +389,21 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             )}
           </div>
         )}
-      </Card>
 
-      {/* YouTube OAuth 2.0 — Collapsible */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div
-          onClick={() => { if (!editYouTube) setShowYouTube(!showYouTube); }}
-          style={collapsibleHeaderStyle}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>YouTube API</div>
-            <span style={{ color: T.textTertiary, fontSize: 14, transition: "transform 0.2s", display: "inline-block", transform: showYouTube ? "rotate(90deg)" : "none" }}>{"\u25b8"}</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {!showYouTube && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <PulseDot color={youtubeConfigured ? T.green : T.red} size={6} />
-                <span style={{ color: youtubeConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>
-                  {youtubeConfigured ? "Configured" : "Not set"}
-                </span>
-              </div>
-            )}
-            {showYouTube && !editYouTube && (
-              <button onClick={(e) => { e.stopPropagation(); setEditYouTube(true); setYtClientIdVal(youtubeClientId || ""); setYtClientSecretVal(youtubeClientSecret || ""); setShowYouTube(true); }} style={btnSecondary}>Edit</button>
-            )}
-            {editYouTube && (
-              <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => setEditYouTube(false)} style={btnSecondary}>Cancel</button>
-                <button onClick={() => { setYoutubeClientId(ytClientIdVal); setYoutubeClientSecret(ytClientSecretVal); setEditYouTube(false); }} style={btnSave}>Save</button>
-              </div>
-            )}
-          </div>
-        </div>
-        {(showYouTube || editYouTube) && (
-          <div style={{ marginTop: 14 }}>
+        {/* YouTube detail panel */}
+        {activeApi === "youtube" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>YouTube OAuth 2.0</span>
+              {!editYouTube ? (
+                <button onClick={() => { setEditYouTube(true); setYtClientIdVal(youtubeClientId || ""); setYtClientSecretVal(youtubeClientSecret || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditYouTube(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setYoutubeClientId(ytClientIdVal); setYoutubeClientSecret(ytClientSecretVal); setEditYouTube(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
             {editYouTube ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
@@ -417,29 +426,21 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client ID</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {!youtubeClientId ? "Not set" : showYtId ? youtubeClientId : maskKey(youtubeClientId)}
-                  </span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientId ? "Not set" : showYtId ? youtubeClientId : maskKey(youtubeClientId)}</span>
                   {youtubeClientId && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowYtId(!showYtId)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtId ? "Hide" : "Show"}>{showYtId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
-                      <button onClick={() => copyToClipboard(youtubeClientId, "yt-client-id")} style={{ ...iconBtn, color: copiedField === "yt-client-id" ? T.green : T.textTertiary }}>
-                        {copiedField === "yt-client-id" ? "\u2713" : "\ud83d\udccb"}
-                      </button>
+                      <button onClick={() => copyToClipboard(youtubeClientId, "yt-client-id")} style={{ ...iconBtn, color: copiedField === "yt-client-id" ? T.green : T.textTertiary }}>{copiedField === "yt-client-id" ? "\u2713" : "\ud83d\udccb"}</button>
                     </div>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Secret</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {!youtubeClientSecret ? "Not set" : showYtSecret ? youtubeClientSecret : maskKey(youtubeClientSecret)}
-                  </span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientSecret ? "Not set" : showYtSecret ? youtubeClientSecret : maskKey(youtubeClientSecret)}</span>
                   {youtubeClientSecret && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowYtSecret(!showYtSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtSecret ? "Hide" : "Show"}>{showYtSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
-                      <button onClick={() => copyToClipboard(youtubeClientSecret, "yt-client-secret")} style={{ ...iconBtn, color: copiedField === "yt-client-secret" ? T.green : T.textTertiary }}>
-                        {copiedField === "yt-client-secret" ? "\u2713" : "\ud83d\udccb"}
-                      </button>
+                      <button onClick={() => copyToClipboard(youtubeClientSecret, "yt-client-secret")} style={{ ...iconBtn, color: copiedField === "yt-client-secret" ? T.green : T.textTertiary }}>{copiedField === "yt-client-secret" ? "\u2713" : "\ud83d\udccb"}</button>
                     </div>
                   )}
                 </div>
@@ -447,6 +448,134 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
                   <PulseDot color={youtubeConfigured ? T.green : T.red} size={6} />
                   <span style={{ color: youtubeConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{youtubeConfigured ? "Configured" : "Not set"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Meta detail panel */}
+        {activeApi === "meta" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Meta (Facebook & Instagram)</span>
+              {!editMeta ? (
+                <button onClick={() => { setEditMeta(true); setMetaIdVal(metaAppId || ""); setMetaSecretVal(metaAppSecret || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditMeta(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setMetaAppId(metaIdVal); setMetaAppSecret(metaSecretVal); setEditMeta(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
+            {editMeta ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <SectionLabel>App ID</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={metaIdVal} onChange={(e) => setMetaIdVal(e.target.value)} type={showMetaIdEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="App ID" />
+                    <button onClick={() => setShowMetaIdEdit(!showMetaIdEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaIdEdit ? "Hide" : "Show"}>{showMetaIdEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <div>
+                  <SectionLabel>App Secret</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={metaSecretVal} onChange={(e) => setMetaSecretVal(e.target.value)} type={showMetaSecretEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="App Secret" />
+                    <button onClick={() => setShowMetaSecretEdit(!showMetaSecretEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaSecretEdit ? "Hide" : "Show"}>{showMetaSecretEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>Meta App credentials for publishing to Facebook & Instagram.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App ID</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppId ? "Not set" : showMetaId ? metaAppId : maskKey(metaAppId)}</span>
+                  {metaAppId && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowMetaId(!showMetaId)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaId ? "Hide" : "Show"}>{showMetaId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(metaAppId, "meta-app-id")} style={{ ...iconBtn, color: copiedField === "meta-app-id" ? T.green : T.textTertiary }}>{copiedField === "meta-app-id" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App Secret</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppSecret ? "Not set" : showMetaSecret ? metaAppSecret : maskKey(metaAppSecret)}</span>
+                  {metaAppSecret && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowMetaSecret(!showMetaSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaSecret ? "Hide" : "Show"}>{showMetaSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(metaAppSecret, "meta-app-secret")} style={{ ...iconBtn, color: copiedField === "meta-app-secret" ? T.green : T.textTertiary }}>{copiedField === "meta-app-secret" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
+                  <PulseDot color={metaConfigured ? T.green : T.red} size={6} />
+                  <span style={{ color: metaConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{metaConfigured ? "Configured" : "Not set"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TikTok detail panel */}
+        {activeApi === "tiktok" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>TikTok Content API</span>
+              {!editTiktok ? (
+                <button onClick={() => { setEditTiktok(true); setTtClientKeyVal(tiktokClientKey || ""); setTtClientSecretVal(tiktokClientSecret || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditTiktok(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setTiktokClientKey(ttClientKeyVal); setTiktokClientSecret(ttClientSecretVal); setEditTiktok(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
+            {editTiktok ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <SectionLabel>Client Key</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={ttClientKeyVal} onChange={(e) => setTtClientKeyVal(e.target.value)} type={showTtKeyEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Client Key" />
+                    <button onClick={() => setShowTtKeyEdit(!showTtKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtKeyEdit ? "Hide" : "Show"}>{showTtKeyEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <div>
+                  <SectionLabel>Client Secret</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={ttClientSecretVal} onChange={(e) => setTtClientSecretVal(e.target.value)} type={showTtSecretEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Client Secret" />
+                    <button onClick={() => setShowTtSecretEdit(!showTtSecretEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtSecretEdit ? "Hide" : "Show"}>{showTtSecretEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>TikTok API credentials for publishing clips to TikTok.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Key</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientKey ? "Not set" : showTtKey ? tiktokClientKey : maskKey(tiktokClientKey)}</span>
+                  {tiktokClientKey && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowTtKey(!showTtKey)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtKey ? "Hide" : "Show"}>{showTtKey ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(tiktokClientKey, "tt-client-key")} style={{ ...iconBtn, color: copiedField === "tt-client-key" ? T.green : T.textTertiary }}>{copiedField === "tt-client-key" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Secret</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientSecret ? "Not set" : showTtSecret ? tiktokClientSecret : maskKey(tiktokClientSecret)}</span>
+                  {tiktokClientSecret && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowTtSecret(!showTtSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtSecret ? "Hide" : "Show"}>{showTtSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(tiktokClientSecret, "tt-client-secret")} style={{ ...iconBtn, color: copiedField === "tt-client-secret" ? T.green : T.textTertiary }}>{copiedField === "tt-client-secret" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
+                  <PulseDot color={tiktokConfigured ? T.green : T.red} size={6} />
+                  <span style={{ color: tiktokConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{tiktokConfigured ? "Configured" : "Not set"}</span>
                 </div>
               </div>
             )}
