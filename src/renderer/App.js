@@ -455,7 +455,10 @@ export default function App() {
     }
     // Projects / Clips view
     if (view === "clips" && selProj) {
-      const proj = localProjects.find((p) => p.id === selProj.id);
+      // Use selProj directly — handleSelectProject loads full data into it
+      // Fall back to localProjects lookup if selProj doesn't have clips
+      const fromList = localProjects.find((p) => p.id === selProj.id);
+      const proj = (selProj.clips?.length > 0) ? selProj : (fromList?.clips?.length > 0 ? fromList : selProj);
       if (!proj) {
         // Project not found, fall back to list
         return (
@@ -470,7 +473,7 @@ export default function App() {
       }
       return (
         <ClipBrowser
-          project={proj}
+          project={fullProj}
           onBack={() => { setSelProj(null); setView("projects"); }}
           onUpdateClip={handleUpdateClip}
           onTranscript={setTranscript}

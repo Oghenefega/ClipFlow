@@ -124,7 +124,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
         {sorted.map((p) => {
           const st = getProjectStatus(p);
           const pColor = getGameColor(p, gamesDb);
-          const clipCount = p.clips ? p.clips.length : 0;
+          const clipCount = p.clips ? p.clips.length : (p.clipCount || 0);
           const isSel = !!selected[p.id];
 
           return (
