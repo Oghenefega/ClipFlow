@@ -161,10 +161,16 @@ export default function PreviewPanel() {
           shadows.push(shadowOn ? `0 ${2 * pxScale}px ${shadowBlur * pxScale}px rgba(0,0,0,0.9)` : `0 ${2 * pxScale}px ${8 * pxScale}px rgba(0,0,0,0.9)`);
           const subTextShadow = shadows.join(", ");
 
+          // For 1L mode: show fixed 3-word chunks, highlight moves within each chunk
+          const CHUNK = 3;
+          const chunkIndex = Math.floor(activeWordIdx / CHUNK);
+          const chunkStart = chunkIndex * CHUNK;
+          const chunkEnd = Math.min(words.length, chunkStart + CHUNK);
+
           const visibleWords = lineMode === "1L"
-            ? words.slice(Math.max(0, activeWordIdx - 1), Math.min(words.length, activeWordIdx + 2))
+            ? words.slice(chunkStart, chunkEnd)
             : words;
-          const visibleOffset = lineMode === "1L" ? Math.max(0, activeWordIdx - 1) : 0;
+          const visibleOffset = lineMode === "1L" ? chunkStart : 0;
 
           return (
             <div style={{
