@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import T from "../../styles/theme";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
@@ -19,6 +19,11 @@ export default function Timeline({ onTlResizeStart }) {
   const tlScrubbing = usePlaybackStore((s) => s.tlScrubbing);
   const setTlScrubbing = usePlaybackStore((s) => s.setTlScrubbing);
 
+  const trimIn = usePlaybackStore((s) => s.trimIn);
+  const trimOut = usePlaybackStore((s) => s.trimOut);
+  const setTrimIn = usePlaybackStore((s) => s.setTrimIn);
+  const setTrimOut = usePlaybackStore((s) => s.setTrimOut);
+
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
@@ -29,6 +34,8 @@ export default function Timeline({ onTlResizeStart }) {
   const tlHeight = useLayoutStore((s) => s.tlHeight);
   const tlOverlay = useLayoutStore((s) => s.tlOverlay);
   const setTlOverlay = useLayoutStore((s) => s.setTlOverlay);
+  const tlZoom = useLayoutStore((s) => s.tlZoom);
+  const setTlZoom = useLayoutStore((s) => s.setTlZoom);
 
   const clip = useEditorStore((s) => s.clip);
   const clipTitle = useEditorStore((s) => s.clipTitle);
@@ -38,9 +45,9 @@ export default function Timeline({ onTlResizeStart }) {
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
 
   // ── Local state ──
-  const [tlZoom, setTlZoom] = useState(1);
   const timelineContentRef = useRef(null);
   const tlDragRef = useRef(null);
+  const trimDragRef = useRef(null);
 
   // ── Derived ──
   const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
@@ -58,8 +65,9 @@ export default function Timeline({ onTlResizeStart }) {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.25 : 1 / 1.25;
-    setTlZoom(prev => Math.max(0.1, Math.min(50, prev * factor)));
-  }, []);
+    const cur = useLayoutStore.getState().tlZoom;
+    setTlZoom(Math.max(0.1, Math.min(50, cur * factor)));
+  }, [setTlZoom]);
 
   // ── Timeline scrub (draggable playhead) with auto-scroll ──
   useEffect(() => {
@@ -158,6 +166,38 @@ export default function Timeline({ onTlResizeStart }) {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, [clipDuration, tlZoom, getContentW, setActiveSegId, setEditSegments, markDirty]);
+
+  // ── Video trim drag ──
+  const handleTrimMouseDown = useCallback((e, mode) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const dur = clipDuration || 1;
+    const contentW = getContentW(tlZoom);
+    const pxPerSec = contentW / dur;
+    const currentTrimIn = usePlaybackStore.getState().trimIn;
+    const currentTrimOut = usePlaybackStore.getState().trimOut ?? dur;
+    trimDragRef.current = { mode, startX: e.clientX, origIn: currentTrimIn, origOut: currentTrimOut };
+
+    const onMove = (ev) => {
+      const drag = trimDragRef.current;
+      if (!drag) return;
+      const dx = ev.clientX - drag.startX;
+      const dtSec = dx / pxPerSec;
+      if (drag.mode === "trim-l") {
+        setTrimIn(Math.max(0, Math.min(drag.origOut - 0.5, drag.origIn + dtSec)));
+      } else {
+        setTrimOut(Math.max(drag.origIn + 0.5, Math.min(dur, drag.origOut + dtSec)));
+      }
+      markDirty();
+    };
+    const onUp = () => {
+      trimDragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [clipDuration, tlZoom, getContentW, setTrimIn, setTrimOut, markDirty]);
 
   // ── Scrub from click ──
   const scrubFromEvent = useCallback((e) => {
@@ -351,15 +391,60 @@ export default function Timeline({ onTlResizeStart }) {
                         );
                       })}
 
-                      {/* VIDEO block */}
-                      {track.id === "v1" && (
-                        <div style={{
-                          position: "absolute", top: 4, left: 4, right: 4, height: 22,
-                          borderRadius: 3, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
-                          color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
-                          padding: "0 7px", pointerEvents: "none",
-                        }}>Source video</div>
-                      )}
+                      {/* VIDEO block with trim handles */}
+                      {track.id === "v1" && (() => {
+                        const effTrimOut = trimOut ?? dur;
+                        const leftPct = (trimIn / dur) * 100;
+                        const widthPct = ((effTrimOut - trimIn) / dur) * 100;
+                        return (
+                          <>
+                            {/* Dimmed out-of-trim regions */}
+                            {trimIn > 0.01 && (
+                              <div style={{
+                                position: "absolute", top: 4, left: 4, height: 22,
+                                width: `${leftPct}%`, background: "rgba(0,0,0,0.5)",
+                                borderRadius: "3px 0 0 3px", pointerEvents: "none",
+                              }} />
+                            )}
+                            {effTrimOut < dur - 0.01 && (
+                              <div style={{
+                                position: "absolute", top: 4, height: 22,
+                                left: `${(effTrimOut / dur) * 100}%`,
+                                right: 4, background: "rgba(0,0,0,0.5)",
+                                borderRadius: "0 3px 3px 0", pointerEvents: "none",
+                              }} />
+                            )}
+                            {/* Active trim region */}
+                            <div style={{
+                              position: "absolute", top: 4, height: 22, borderRadius: 3,
+                              left: `${leftPct}%`, width: `${widthPct}%`,
+                              background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)",
+                              color: "#7dc49a", fontSize: 9.5, fontWeight: 500, display: "flex", alignItems: "center",
+                              padding: "0 12px", cursor: "default", userSelect: "none",
+                            }}>
+                              {/* Left trim handle */}
+                              <div
+                                onMouseDown={(e) => handleTrimMouseDown(e, "trim-l")}
+                                style={{
+                                  position: "absolute", left: 0, top: 0, width: 8, height: "100%",
+                                  cursor: "ew-resize", zIndex: 4, borderRadius: "3px 0 0 3px",
+                                  background: "rgba(52,211,153,0.6)",
+                                }}
+                              />
+                              <span style={{ pointerEvents: "none" }}>Source video</span>
+                              {/* Right trim handle */}
+                              <div
+                                onMouseDown={(e) => handleTrimMouseDown(e, "trim-r")}
+                                style={{
+                                  position: "absolute", right: 0, top: 0, width: 8, height: "100%",
+                                  cursor: "ew-resize", zIndex: 4, borderRadius: "0 3px 3px 0",
+                                  background: "rgba(52,211,153,0.6)",
+                                }}
+                              />
+                            </div>
+                          </>
+                        );
+                      })()}
 
                       {/* AUDIO waveform — real peaks if available, fake bars as fallback */}
                       {track.type === "audio" && (() => {
@@ -428,6 +513,31 @@ export default function Timeline({ onTlResizeStart }) {
                   <div style={{ flex: 1, minWidth: contentW }} />
                 </div>
               </div>
+            </div>
+
+            {/* Zoom controls bar */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "4px 10px",
+              borderTop: `1px solid ${BD}`, height: 28, minHeight: 28, flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 9, color: T.textTertiary, fontFamily: T.mono, flexShrink: 0, minWidth: 28 }}>
+                {tlZoom < 1 ? tlZoom.toFixed(1) : tlZoom < 10 ? tlZoom.toFixed(1) : Math.round(tlZoom)}x
+              </span>
+              <Ib onClick={() => { const cur = useLayoutStore.getState().tlZoom; setTlZoom(Math.max(0.1, cur / 1.25)); }}
+                title="Zoom out" style={{ width: 22, height: 22 }}>{"\u2212"}</Ib>
+              <input
+                type="range"
+                min={-10}
+                max={39}
+                step={1}
+                value={Math.round(Math.log(tlZoom) / Math.log(1.25))}
+                onChange={(e) => setTlZoom(Math.pow(1.25, Number(e.target.value)))}
+                style={{ flex: 1, height: 3, accentColor: T.accent, cursor: "pointer" }}
+              />
+              <Ib onClick={() => { const cur = useLayoutStore.getState().tlZoom; setTlZoom(Math.min(50, cur * 1.25)); }}
+                title="Zoom in" style={{ width: 22, height: 22 }}>+</Ib>
+              <Ib onClick={() => setTlZoom(1)} title="Reset zoom"
+                style={{ width: 22, height: 22, fontSize: 9, fontFamily: T.mono }}>1x</Ib>
             </div>
           </div>
         );

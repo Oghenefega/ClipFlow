@@ -151,7 +151,24 @@ export default function PreviewPanel() {
           const adjustedTime = currentTime - syncOffset;
           const elapsed = adjustedTime - activeSubtitle.startSec;
           const progress = segDur > 0 ? Math.max(0, Math.min(1, elapsed / segDur)) : 0;
-          const activeWordIdx = Math.min(Math.floor(progress * words.length), words.length - 1);
+
+          // Use word-level timestamps when available, fall back to even-split
+          let activeWordIdx;
+          if (activeSubtitle.words && activeSubtitle.words.length > 0) {
+            activeWordIdx = activeSubtitle.words.findIndex(
+              (w) => adjustedTime >= w.start && adjustedTime < w.end
+            );
+            if (activeWordIdx < 0) {
+              // Between words or past last — find nearest word whose start <= adjustedTime
+              for (let i = activeSubtitle.words.length - 1; i >= 0; i--) {
+                if (activeSubtitle.words[i].start <= adjustedTime) { activeWordIdx = i; break; }
+              }
+              if (activeWordIdx < 0) activeWordIdx = 0;
+            }
+            activeWordIdx = Math.min(activeWordIdx, words.length - 1);
+          } else {
+            activeWordIdx = Math.min(Math.floor(progress * words.length), words.length - 1);
+          }
 
           const shadows = [];
           if (strokeOn) {

@@ -62,6 +62,12 @@ const useSubtitleStore = create((set, get) => ({
         startSec: s.start - clipStart,
         endSec: s.end - clipStart,
         warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
+        words: (s.words || []).map(w => ({
+          word: w.word,
+          start: Math.max(0, (w.start || 0) - clipStart),
+          end: Math.max(0, (w.end || 0) - clipStart),
+          probability: w.probability ?? 1,
+        })),
       }));
     set({
       editSegments: segs,
@@ -110,16 +116,27 @@ const useSubtitleStore = create((set, get) => ({
     const idx = editSegments.findIndex(s => s.id === activeSegId);
     if (idx < 0) return;
     const seg = editSegments[idx];
-    const words = seg.text.split(" ");
-    let splitWordIdx = Math.max(1, Math.floor(words.length / 2));
+    const textWords = seg.text.split(" ");
+    let splitWordIdx = Math.max(1, Math.floor(textWords.length / 2));
     let splitSec = (seg.startSec + seg.endSec) / 2;
     if (selectedWordInfo && selectedWordInfo.segId === activeSegId && selectedWordInfo.wordIdx > 0) {
       splitWordIdx = selectedWordInfo.wordIdx;
-      const segDur = seg.endSec - seg.startSec;
-      splitSec = seg.startSec + (splitWordIdx / words.length) * segDur;
+      // Use actual word boundary if words array available
+      if (seg.words && seg.words.length > 0 && splitWordIdx < seg.words.length) {
+        splitSec = seg.words[splitWordIdx].start;
+      } else {
+        const segDur = seg.endSec - seg.startSec;
+        splitSec = seg.startSec + (splitWordIdx / textWords.length) * segDur;
+      }
+    } else if (seg.words && seg.words.length > 1) {
+      const midWordIdx = Math.max(1, Math.floor(seg.words.length / 2));
+      splitWordIdx = midWordIdx;
+      splitSec = seg.words[midWordIdx].start;
     }
-    const seg1 = { ...seg, endSec: splitSec, end: fmtTime(splitSec), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: words.slice(0, splitWordIdx).join(" ") };
-    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: fmtTime(splitSec), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: words.slice(splitWordIdx).join(" ") };
+    const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec) : [];
+    const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec) : [];
+    const seg1 = { ...seg, endSec: splitSec, end: fmtTime(splitSec), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
+    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: fmtTime(splitSec), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     set({ editSegments: next, selectedWordInfo: null });
@@ -132,7 +149,7 @@ const useSubtitleStore = create((set, get) => ({
     if (idx < 0 || idx >= editSegments.length - 1) return;
     const seg = editSegments[idx];
     const next = editSegments[idx + 1];
-    const merged = { ...seg, endSec: next.endSec, end: fmtTime(next.endSec), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text };
+    const merged = { ...seg, endSec: next.endSec, end: fmtTime(next.endSec), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [...(seg.words || []), ...(next.words || [])] };
     const arr = [...editSegments];
     arr.splice(idx, 2, merged);
     set({ editSegments: arr });
@@ -144,20 +161,39 @@ const useSubtitleStore = create((set, get) => ({
     const idx = editSegments.findIndex(s => s.id === activeSegId);
     if (idx < 0) return;
     const seg = editSegments[idx];
-    const words = seg.text.split(/\s+/).filter(Boolean);
-    if (words.length <= 1) return;
-    const totalDur = seg.endSec - seg.startSec;
-    const perWord = totalDur / words.length;
-    const wordSegs = words.map((w, i) => ({
-      ...seg,
-      id: Date.now() + i,
-      startSec: seg.startSec + i * perWord,
-      endSec: seg.startSec + (i + 1) * perWord,
-      start: fmtTime(seg.startSec + i * perWord),
-      end: fmtTime(seg.startSec + (i + 1) * perWord),
-      dur: perWord.toFixed(1) + "s",
-      text: w,
-    }));
+    const textWords = seg.text.split(/\s+/).filter(Boolean);
+    if (textWords.length <= 1) return;
+
+    let wordSegs;
+    if (seg.words && seg.words.length > 0) {
+      // Use actual word-level timestamps
+      wordSegs = seg.words.map((w, i) => ({
+        ...seg,
+        id: Date.now() + i,
+        startSec: w.start,
+        endSec: w.end,
+        start: fmtTime(w.start),
+        end: fmtTime(w.end),
+        dur: (w.end - w.start).toFixed(1) + "s",
+        text: w.word,
+        words: [w],
+      }));
+    } else {
+      // Fallback: even-split
+      const totalDur = seg.endSec - seg.startSec;
+      const perWord = totalDur / textWords.length;
+      wordSegs = textWords.map((w, i) => ({
+        ...seg,
+        id: Date.now() + i,
+        startSec: seg.startSec + i * perWord,
+        endSec: seg.startSec + (i + 1) * perWord,
+        start: fmtTime(seg.startSec + i * perWord),
+        end: fmtTime(seg.startSec + (i + 1) * perWord),
+        dur: perWord.toFixed(1) + "s",
+        text: w,
+        words: [],
+      }));
+    }
     const arr = [...editSegments];
     arr.splice(idx, 1, ...wordSegs);
     set({ editSegments: arr, activeSegId: wordSegs[0].id });
