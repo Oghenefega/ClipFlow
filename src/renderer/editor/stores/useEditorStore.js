@@ -2,8 +2,6 @@ import { create } from "zustand";
 import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
-import { extractWaveformPeaks } from "../utils/waveformUtils";
-
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
   project: null,
@@ -35,13 +33,8 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().initSegments(project, clip);
     usePlaybackStore.getState().reset();
 
-    // Extract waveform data asynchronously
+    // Reset waveform (real extraction via FFmpeg in main process — TODO)
     set({ waveformPeaks: null });
-    if (clip?.filePath) {
-      extractWaveformPeaks(clip.filePath).then(peaks => {
-        if (peaks) set({ waveformPeaks: peaks });
-      });
-    }
 
     // Set AI game from project data
     if (project?.game) {
