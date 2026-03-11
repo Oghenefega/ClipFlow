@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import T from "../../styles/theme";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
@@ -9,6 +9,8 @@ import { BD } from "../utils/constants";
 
 export default function PreviewPanel() {
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(338);
 
   // ── Store selectors ──
   const playing = usePlaybackStore((s) => s.playing);
@@ -49,6 +51,18 @@ export default function PreviewPanel() {
   // ── Derived ──
   const clipDuration = clip ? ((clip.endTime || 0) - (clip.startTime || 0)) : 0;
   const videoSrc = clip?.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
+  const pxScale = containerWidth / 338;
+
+  // ── Track container width for proportional scaling ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // ── Init video ref in playback store ──
   useEffect(() => {
@@ -104,7 +118,7 @@ export default function PreviewPanel() {
       }}
     >
       {/* 9:16 preview */}
-      <div style={{
+      <div ref={containerRef} style={{
         height: "100%", aspectRatio: "9/16", maxHeight: 600, maxWidth: 338,
         background: "#000", borderRadius: 6, position: "relative", overflow: "hidden",
         boxShadow: `0 0 0 1px ${BD}, 0 20px 60px rgba(0,0,0,0.7)`, flexShrink: 0,
@@ -141,10 +155,10 @@ export default function PreviewPanel() {
 
           const shadows = [];
           if (strokeOn) {
-            const sw = Math.max(1, strokeWidth * 0.3);
+            const sw = Math.max(1, strokeWidth * 0.3 * pxScale);
             shadows.push(`-${sw}px -${sw}px 0 #000`, `${sw}px -${sw}px 0 #000`, `-${sw}px ${sw}px 0 #000`, `${sw}px ${sw}px 0 #000`);
           }
-          shadows.push(shadowOn ? `0 2px ${shadowBlur}px rgba(0,0,0,0.9)` : "0 2px 8px rgba(0,0,0,0.9)");
+          shadows.push(shadowOn ? `0 ${2 * pxScale}px ${shadowBlur * pxScale}px rgba(0,0,0,0.9)` : `0 ${2 * pxScale}px ${8 * pxScale}px rgba(0,0,0,0.9)`);
           const subTextShadow = shadows.join(", ");
 
           const visibleWords = lineMode === "1L"
@@ -155,12 +169,12 @@ export default function PreviewPanel() {
           return (
             <div style={{
               position: "absolute", bottom: "40%", left: 0, right: 0, textAlign: "center",
-              padding: bgOn ? "4px 14px" : "0 14px", pointerEvents: "none",
+              padding: bgOn ? `${4 * pxScale}px ${14 * pxScale}px` : `0 ${14 * pxScale}px`, pointerEvents: "none",
               background: bgOn ? `rgba(0,0,0,${bgOpacity / 100})` : "transparent",
               borderRadius: bgOn ? 4 : 0,
             }}>
               <div style={{
-                fontSize: Math.max(10, fontSize * 0.27), fontWeight: 800, lineHeight: 1.3,
+                fontSize: Math.max(6, fontSize * 0.27 * pxScale), fontWeight: 800, lineHeight: 1.3,
                 textShadow: subTextShadow, fontFamily: `'${subFontFamily}', sans-serif`,
               }}>
                 {subMode === "word" ? (
@@ -189,13 +203,13 @@ export default function PreviewPanel() {
 
         {/* Caption overlay */}
         {captionText && (
-          <div style={{ position: "absolute", bottom: videoSrc ? "12%" : "9%", left: 0, right: 0, textAlign: "center", padding: "0 10px", pointerEvents: "none" }}>
+          <div style={{ position: "absolute", bottom: videoSrc ? "12%" : "9%", left: 0, right: 0, textAlign: "center", padding: `0 ${10 * pxScale}px`, pointerEvents: "none" }}>
             <div style={{
-              fontSize: captionFontSize, fontWeight: captionBold ? 800 : 400,
+              fontSize: Math.max(6, captionFontSize * pxScale), fontWeight: captionBold ? 800 : 400,
               fontStyle: captionItalic ? "italic" : "normal",
               textDecoration: captionUnderline ? "underline" : "none",
               color: captionColor, fontFamily: `'${captionFontFamily}', sans-serif`,
-              textShadow: "0 2px 6px rgba(0,0,0,0.95)", lineHeight: 1.3,
+              textShadow: `0 ${2 * pxScale}px ${6 * pxScale}px rgba(0,0,0,0.95)`, lineHeight: 1.3,
             }}>
               {captionText}
             </div>
