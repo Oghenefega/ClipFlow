@@ -115,12 +115,15 @@ function mapVizardClips(videos, existingClips = []) {
   }
 
   // Merge with existing clips to preserve user edits (status, title)
+  // Only preserve local title if user explicitly edited it (titleEdited flag)
+  // Otherwise accept the fresh title from Vizard (allows Vizard-side edits to sync)
   return clipsOnly.map((clip) => {
     const existing = existingClips.find((c) => String(c.videoId) === String(clip.videoId));
     if (existing) {
       return {
         ...clip,
-        title: existing.title,
+        title: existing.titleEdited ? existing.title : clip.title,
+        titleEdited: existing.titleEdited || false,
         status: existing.status,
       };
     }
@@ -480,7 +483,7 @@ export default function App() {
       if (p.id !== projectId) return p;
       return {
         ...p,
-        clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, title } : c)),
+        clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, title, titleEdited: true } : c)),
       };
     }));
   }, []);
@@ -629,6 +632,7 @@ export default function App() {
           onUpdateClip={handleUpdateClip}
           onTranscript={setTranscript}
           onEditClipTitle={handleEditClipTitle}
+          onRefreshProject={handlePollProject}
           gamesDb={gamesDb}
           anthropicApiKey={anthropicApiKey}
           styleGuide={styleGuide}

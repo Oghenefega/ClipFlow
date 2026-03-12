@@ -615,7 +615,7 @@ Your job is to generate 5 title options and 5 caption options for a gaming clip 
 
 **TITLE** = The video's title on the platform (YouTube Shorts, TikTok, Instagram Reels). This is what shows in the feed listing and search results. Titles should:
 - Be short, punchy, and optimized for discoverability
-- Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders") — NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
+- Include ONLY the game's exact hashtag at the end — the correct hashtag will be provided in the user message as "Game Hashtag". Use it EXACTLY as given (e.g. if hashtag is "arcraiders", end title with #arcraiders). NEVER abbreviate or shorten the hashtag. NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
 - Work as standalone text that makes someone want to click/watch
 
 **CAPTION** = Scroll-stopping hook text that is BAKED INTO the video as a visible text overlay. This is the FIRST thing viewers read while scrolling through their feed. Captions must:
@@ -648,6 +648,7 @@ Return ONLY valid JSON in this exact structure:
 
     let userMessage = `## Clip Transcript:\n${params.transcript || "(no transcript available)"}`;
     if (params.projectName) userMessage += `\n\n## Project/Game: ${params.projectName}`;
+    if (params.gameHashtag) userMessage += `\n\n## Game Hashtag: #${params.gameHashtag}\nIMPORTANT: Use EXACTLY #${params.gameHashtag} at the end of every title. Do NOT abbreviate or modify it.`;
     if (params.userContext) userMessage += `\n\n## Additional Context from Creator:\n${params.userContext}`;
     if (params.rejectedSuggestions && params.rejectedSuggestions.length > 0) {
       userMessage += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;

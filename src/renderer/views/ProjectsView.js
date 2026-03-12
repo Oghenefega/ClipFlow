@@ -302,6 +302,7 @@ const GenerationPanel = ({ clip, project, gamesDb = [], anthropicApiKey, styleGu
         transcript: clip.transcript,
         userContext: userContext.trim(),
         gameName: activeGameName,
+        gameHashtag: activeGame?.hashtag || "",
         gameContextAuto: activeGame?.aiContextAuto || "",
         gameContextUser: activeGame?.aiContextUser || "",
         projectName: project.name || "",
@@ -538,12 +539,13 @@ const GenerationPanel = ({ clip, project, gamesDb = [], anthropicApiKey, styleGu
 };
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, gamesDb, anthropicApiKey, styleGuide }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onRefreshProject, gamesDb, anthropicApiKey, styleGuide }) {
   const [filter, setFilter] = useState("all");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [titleHistory, setTitleHistory] = useState([]); // [{clipId, oldTitle, newTitle}]
   const [expandedClip, setExpandedClip] = useState(null); // clipId or null
+  const [refreshing, setRefreshing] = useState(false);
 
   const clips = project.clips || [];
   const isApproved = (c) => c.status === "approved" || c.status === "ready";
@@ -555,6 +557,20 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
     <div>
       <PageHeader title={project.name} subtitle={`${approved} approved \u00b7 ${pending} pending`} backAction={onBack}>
         <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
+        {onRefreshProject && (
+          <button
+            onClick={async () => {
+              setRefreshing(true);
+              try { await onRefreshProject(project.id); } catch (_) {}
+              setTimeout(() => setRefreshing(false), 600);
+            }}
+            disabled={refreshing}
+            title="Refresh clips from Vizard"
+            style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: refreshing ? T.textMuted : T.textSecondary, fontSize: 11, fontWeight: 600, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.2s" }}
+          >
+            <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>{"\uD83D\uDD04"}</span> {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        )}
         {titleHistory.length > 0 && (
           <button onClick={() => {
             const last = titleHistory[titleHistory.length - 1];

@@ -25,6 +25,8 @@
 - [x] Time picker redesign (hour + minute split dropdowns)
 - [x] Scrollbar overflow fixes across all views
 - [x] Clip download support with progress tracking
+- [x] Fix AI hashtag generation — pass game hashtag explicitly to Anthropic prompt
+- [x] Vizard title sync — smart merge with titleEdited flag + refresh button on ClipBrowser
 
 ## In Progress
 

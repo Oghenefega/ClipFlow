@@ -16,6 +16,16 @@
 - **Mistake:** Initially tried to access `result.data.videos` — the API returns data at the TOP level: `{ code: 2000, videos: [...], projectName, projectId }`.
 - **Rule:** Always use `result.videos`, `result.projectId`, etc. directly. No `.data` nesting.
 
+### Always pass explicit data to AI — never let it guess
+- **Mistake:** AI prompt said "include the game's hashtag" but only sent `gameName`, not the actual `hashtag` field. Claude inferred `#eo` for "Egging On" instead of `#eggingon`.
+- **Fix:** Pass `gameHashtag` explicitly in the user message with a strong instruction to use it exactly.
+- **Rule:** When asking AI to include specific data (hashtags, tags, codes), always pass the exact value. Never rely on AI inferring structured data from a name.
+
+### Title sync needs edit-tracking, not blanket preservation
+- **Mistake:** `mapVizardClips` always preserved `existing.title` over fresh API titles. This prevented Vizard-side edits from syncing to ClipFlow.
+- **Fix:** Added `titleEdited: true` flag set only when user manually edits in ClipFlow. Merge logic now only preserves local title if `titleEdited === true`.
+- **Rule:** When merging local state with remote API data, track which fields the user explicitly changed. Unchanged fields should accept fresh remote values.
+
 ### videoId is THE unique identifier
 - **Mistake:** Earlier code used auto-generated IDs for clips, causing deduplication bugs.
 - **Rule:** Always use `v.videoId` from the API as the clip's primary identifier. Cast to string with `String(v.videoId)`.
