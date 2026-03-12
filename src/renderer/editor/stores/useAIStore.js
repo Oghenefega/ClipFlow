@@ -44,6 +44,7 @@ const useAIStore = create((set, get) => ({
         transcript,
         userContext: `${voiceMode === "hype" ? "Use HYPE energy — punchy, exciting, gaming energy." : "Use CHILL tone — laid-back, conversational, relatable."} ${aiContext}`.trim(),
         gameName: aiGame,
+        gameHashtag: activeGame?.hashtag || aiGame.toLowerCase().replace(/\s+/g, ""),
         gameContextAuto: activeGame?.aiContextAuto || "",
         gameContextUser: activeGame?.aiContextUser || "",
         projectName: project.name || "",

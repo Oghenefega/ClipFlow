@@ -747,7 +747,7 @@ Your job is to generate 5 title options and 5 caption options for a gaming clip 
 
 **TITLE** = The video's title on the platform (YouTube Shorts, TikTok, Instagram Reels). This is what shows in the feed listing and search results. Titles should:
 - Be short, punchy, and optimized for discoverability
-- Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders") — NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
+- Include ONLY the game's hashtag #${params.gameHashtag || "game"} at the end of every title — NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
 - Work as standalone text that makes someone want to click/watch
 
 **CAPTION** = Scroll-stopping hook text that is BAKED INTO the video as a visible text overlay. This is the FIRST thing viewers read while scrolling through their feed. Captions must:
@@ -769,7 +769,7 @@ ${styleGuide ? `## Creator's Style Guide:\n${styleGuide}` : ""}${gameContext}${s
 Return ONLY valid JSON in this exact structure:
 {
   "titles": [
-    { "title": "the video title #gamehashtag", "why": "why this title works for discovery" },
+    { "title": "the video title #${params.gameHashtag || "game"}", "why": "why this title works for discovery" },
     ...5 total
   ],
   "captions": [
