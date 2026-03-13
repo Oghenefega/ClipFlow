@@ -519,10 +519,6 @@ export default function App() {
         localProjects={localProjects}
         onSelect={handleSelectProject}
         onDeleteProjects={handleDeleteProjects}
-        onRefresh={async () => {
-          const result = await window.clipflow?.projectList();
-          if (result?.projects) setLocalProjects(result.projects);
-        }}
         mainGame={mainGame}
         gamesDb={gamesDb}
       />

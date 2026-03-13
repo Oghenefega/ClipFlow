@@ -31,7 +31,7 @@ const getClipTranscript = (clip, project) => {
 };
 
 // ============ PROJECT LIST ============
-export function ProjectsListView({ localProjects = [], onSelect, onDeleteProjects, onRefresh, mainGame, gamesDb = [] }) {
+export function ProjectsListView({ localProjects = [], onSelect, onDeleteProjects, mainGame, gamesDb = [] }) {
   const [selected, setSelected] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -97,20 +97,10 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <PageHeader
-          title="Projects"
-          subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`}
-        />
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
-          >
-            {"\ud83d\udd04"} Refresh
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Projects"
+        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`}
+      />
 
       {/* Header row: select all */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 16 }}>
