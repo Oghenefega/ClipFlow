@@ -5,6 +5,7 @@ import {
   ResizableHandle,
 } from "../../../components/ui/resizable";
 import { Separator } from "../../../components/ui/separator";
+import LeftPanelNew from "./LeftPanelNew";
 import {
   Sparkles,
   Palette,
@@ -26,7 +27,6 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
 import {
@@ -93,52 +93,7 @@ function Topbar() {
   );
 }
 
-// ── Left Panel ──
-function LeftPanel() {
-  return (
-    <div className="flex flex-col h-full bg-card">
-      {/* Tabs header */}
-      <div className="px-3 pt-3 pb-1">
-        <Tabs defaultValue="transcript" className="w-full">
-          <TabsList className="w-full h-9 bg-secondary/50 p-0.5">
-            <TabsTrigger value="transcript" className="flex-1 text-xs h-full data-[state=active]:bg-card data-[state=active]:shadow-sm">
-              Transcript
-            </TabsTrigger>
-            <TabsTrigger value="subtitles" className="flex-1 text-xs h-full data-[state=active]:bg-card data-[state=active]:shadow-sm">
-              Edit subtitles
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Search bar */}
-      <div className="px-3 py-2">
-        <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-secondary/50 border border-transparent focus-within:border-primary/30">
-          <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="text-xs text-muted-foreground">Search</span>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Transcript content placeholder */}
-      <ScrollArea className="flex-1">
-        <div className="px-3 py-3 space-y-3">
-          {/* Simulated transcript lines */}
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="space-y-1.5">
-              <div className="h-2.5 rounded bg-secondary/60" style={{ width: `${70 + Math.sin(i) * 25}%` }} />
-              <div className="h-2.5 rounded bg-secondary/40" style={{ width: `${50 + Math.cos(i) * 30}%` }} />
-              {i % 3 === 0 && (
-                <div className="h-2.5 rounded bg-secondary/30" style={{ width: `${40 + Math.sin(i * 2) * 20}%` }} />
-              )}
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
+// ── Left Panel (imported from LeftPanelNew) ──
 
 // ── Center Preview ──
 function PreviewPanel() {
@@ -440,7 +395,7 @@ export default function EditorLayout() {
             <ResizablePanelGroup direction="horizontal">
               {/* Left panel */}
               <ResizablePanel defaultSize={22} minSize={14} maxSize={35}>
-                <LeftPanel />
+                <LeftPanelNew />
               </ResizablePanel>
 
               <ResizableHandle />
