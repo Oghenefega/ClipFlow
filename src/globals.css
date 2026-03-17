@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Latina Essential font family ── */
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-LightIt.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-MediumIt.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-BoldIt.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-Heavy.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Latina Essential';
+  src: url('./fonts/LatinaEssential-HeavyIt.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

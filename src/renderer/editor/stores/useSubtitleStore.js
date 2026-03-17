@@ -29,7 +29,7 @@ const useSubtitleStore = create((set, get) => ({
   punctOn: false,
   showSubs: true,
   emojiOn: false,
-  subFontFamily: "Montserrat",
+  subFontFamily: "Latina Essential",
   lineMode: "2L",
   syncOffset: 0,
 

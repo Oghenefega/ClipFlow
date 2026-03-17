@@ -173,7 +173,7 @@ function ColorPickerPopover({ color, onChange, children }) {
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Font/Style toolbar row
 // ════════════════════════════════════════════════════════════════
-const FONT_OPTIONS = ["Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
+const FONT_OPTIONS = ["Latina Essential", "Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
 
 function FontToolbar({ fontFamily, setFontFamily, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
   return (

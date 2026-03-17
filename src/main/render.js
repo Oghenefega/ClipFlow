@@ -11,7 +11,7 @@ const fs = require("fs");
 function generateAssFile(segments, outPath, style = {}) {
   const {
     fontSize = 52,
-    fontName = "Montserrat",
+    fontName = "Latina Essential",
     primaryColor = "&H00FFFFFF", // white
     highlightColor = "&H008ACE4C", // green (#4cce8a in BGR)
     strokeColor = "&H00000000", // black

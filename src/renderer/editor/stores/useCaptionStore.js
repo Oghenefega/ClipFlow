@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 const useCaptionStore = create((set) => ({
   captionText: "",
-  captionFontFamily: "Montserrat",
+  captionFontFamily: "Latina Essential",
   captionFontSize: 12,
   captionColor: "#ffffff",
   captionBold: true,
@@ -29,7 +29,7 @@ const useCaptionStore = create((set) => ({
 
   reset: () => set({
     captionText: "",
-    captionFontFamily: "Montserrat",
+    captionFontFamily: "Latina Essential",
     captionFontSize: 12,
     captionColor: "#ffffff",
     captionBold: true,
