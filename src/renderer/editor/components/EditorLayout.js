@@ -307,21 +307,28 @@ function Topbar({ onBack }) {
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           />
         ) : (
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors"
-            onClick={() => setNavOpen(!navOpen)}
-          >
+          <div className="flex items-center gap-0 rounded-md hover:bg-secondary/40 transition-colors">
+            {/* Title text — click to edit */}
             <span
-              className="text-sm font-medium text-foreground truncate max-w-[300px] cursor-text"
-              onDoubleClick={(e) => {
+              className="text-sm font-medium text-foreground truncate max-w-[300px] cursor-text px-3 py-1.5"
+              onClick={(e) => {
                 e.stopPropagation();
                 setEditingTitle(true);
               }}
             >
               {clipTitle || "Untitled Clip"}
             </span>
-            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${navOpen ? "rotate-180" : ""}`} />
-          </button>
+            {/* Chevron — click to open clip navigator */}
+            <button
+              className="flex items-center px-1.5 py-1.5 rounded-r-md hover:bg-secondary/80 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNavOpen(!navOpen);
+              }}
+            >
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${navOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         )}
 
         {/* Dirty indicator dot */}

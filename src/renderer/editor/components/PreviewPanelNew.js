@@ -28,7 +28,7 @@ import { Separator } from "../../../components/ui/separator";
 // ── Constants ──
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 200, 400];
 const FONT_OPTIONS = [
-  "Montserrat", "Roboto", "Arial", "DM Sans", "Inter",
+  "Latina Essential", "Montserrat", "Roboto", "Arial", "DM Sans", "Inter",
   "Oswald", "Poppins", "Lato", "Bebas Neue", "Playfair Display",
 ];
 
@@ -330,6 +330,19 @@ export default function PreviewPanelNew() {
   const containerRef = useRef(null);
   const captionInputRef = useRef(null);
 
+  // Track canvas size for proportional text scaling
+  const [canvasWidth, setCanvasWidth] = useState(360);
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setCanvasWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(canvasRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // Register video ref with playback store
   useEffect(() => {
     initVideoRef(videoRef);
@@ -440,17 +453,22 @@ export default function PreviewPanelNew() {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  // Build subtitle text style (scales with preview)
+  // Scale factor: text sizes are authored for 1080px canvas width (9:16 portrait)
+  // Scale proportionally to actual canvas width
+  const scaleFactor = canvasWidth / 1080;
+
+  // Build subtitle text style (scales proportionally with preview canvas)
   const subTextStyle = useMemo(() => {
+    const scaledFontSize = fontSize * scaleFactor;
     const style = {
       fontFamily: `'${subFontFamily}', sans-serif`,
-      fontSize: `${fontSize * 0.55}px`, // Scale down for preview (base ~52px → ~28px)
+      fontSize: `${scaledFontSize}px`,
       fontWeight: 700,
       color: "#ffffff",
       textAlign: "center",
       lineHeight: 1.3,
-      padding: "4px 10px",
-      borderRadius: 4,
+      padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
+      borderRadius: 4 * scaleFactor,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       maxWidth: "90%",
@@ -459,31 +477,36 @@ export default function PreviewPanelNew() {
       style.background = `rgba(0,0,0,${bgOpacity / 100})`;
     }
     if (strokeOn) {
-      style.WebkitTextStroke = `${Math.max(1, strokeWidth * 0.3)}px rgba(0,0,0,0.8)`;
+      const scaledStroke = Math.max(0.5, strokeWidth * scaleFactor * 0.5);
+      style.WebkitTextStroke = `${scaledStroke}px rgba(0,0,0,0.8)`;
       style.paintOrder = "stroke fill";
     }
     if (shadowOn) {
-      style.textShadow = `0 2px ${shadowBlur * 0.4}px rgba(0,0,0,0.7)`;
+      const scaledBlur = shadowBlur * scaleFactor * 0.5;
+      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(0,0,0,0.7)`;
     }
     return style;
-  }, [subFontFamily, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur]);
+  }, [subFontFamily, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
 
-  // Build caption text style
-  const capTextStyle = useMemo(() => ({
-    fontFamily: `'${captionFontFamily}', sans-serif`,
-    fontSize: `${captionFontSize * 1.2}px`,
-    fontWeight: captionBold ? 700 : 400,
-    fontStyle: captionItalic ? "italic" : "normal",
-    textDecoration: captionUnderline ? "underline" : "none",
-    color: captionColor,
-    textAlign: "center",
-    lineHeight: 1.3,
-    padding: "4px 10px",
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-    maxWidth: "90%",
-    textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-  }), [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor]);
+  // Build caption text style (scales proportionally with preview canvas)
+  const capTextStyle = useMemo(() => {
+    const scaledFontSize = captionFontSize * 2.4 * scaleFactor;
+    return {
+      fontFamily: `'${captionFontFamily}', sans-serif`,
+      fontSize: `${scaledFontSize}px`,
+      fontWeight: captionBold ? 700 : 400,
+      fontStyle: captionItalic ? "italic" : "normal",
+      textDecoration: captionUnderline ? "underline" : "none",
+      color: captionColor,
+      textAlign: "center",
+      lineHeight: 1.3,
+      padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+      maxWidth: "90%",
+      textShadow: `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`,
+    };
+  }, [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor, scaleFactor]);
 
   // Render subtitle words with karaoke highlight
   const renderSubtitleText = () => {
