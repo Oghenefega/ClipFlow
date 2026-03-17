@@ -3,6 +3,7 @@ import { create } from "zustand";
 const useCaptionStore = create((set) => ({
   captionText: "",
   captionFontFamily: "Latina Essential",
+  captionFontWeight: 700,
   captionFontSize: 12,
   captionColor: "#ffffff",
   captionBold: true,
@@ -12,6 +13,7 @@ const useCaptionStore = create((set) => ({
   // ── Actions ──
   setCaptionText: (text) => set({ captionText: text }),
   setCaptionFontFamily: (f) => set({ captionFontFamily: f }),
+  setCaptionFontWeight: (w) => set({ captionFontWeight: w }),
   setCaptionFontSize: (s) => set({ captionFontSize: s }),
   setCaptionColor: (c) => set({ captionColor: c }),
   setCaptionBold: (b) => set({ captionBold: b }),
@@ -30,6 +32,7 @@ const useCaptionStore = create((set) => ({
   reset: () => set({
     captionText: "",
     captionFontFamily: "Latina Essential",
+    captionFontWeight: 700,
     captionFontSize: 12,
     captionColor: "#ffffff",
     captionBold: true,

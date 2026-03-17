@@ -3,6 +3,7 @@ import usePlaybackStore from "../stores/usePlaybackStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
+import useLayoutStore from "../stores/useLayoutStore";
 import {
   Maximize,
   ChevronDown,
@@ -30,6 +31,13 @@ const ZOOM_PRESETS = [10, 25, 50, 75, 100, 200, 400];
 const FONT_OPTIONS = [
   "Latina Essential", "Montserrat", "Roboto", "Arial", "DM Sans", "Inter",
   "Oswald", "Poppins", "Lato", "Bebas Neue", "Playfair Display",
+];
+const FONT_WEIGHT_OPTIONS = [
+  { label: "Light", value: 300 },
+  { label: "Regular", value: 400 },
+  { label: "Medium", value: 500 },
+  { label: "Bold", value: 700 },
+  { label: "Heavy", value: 900 },
 ];
 
 // ── Zoom Menu ──
@@ -119,9 +127,10 @@ function FontDropdown({ value, onChange, onClose }) {
   );
 }
 
-// ── Inline Editing Toolbar (below preview when text selected) ──
-function InlineToolbar({ target, fontFamily, fontSize, onFontFamily, onFontSize, onAlign, onBold, onItalic, onUnderline, bold, italic, underline }) {
+// ── Inline Editing Toolbar (positioned below text element) ──
+function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily, onFontSize, onFontWeight, onAlign, onBold, onItalic, onUnderline, bold, italic, underline }) {
   const [fontOpen, setFontOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
 
   return (
     <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border bg-card shadow-lg">
@@ -140,6 +149,40 @@ function InlineToolbar({ target, fontFamily, fontSize, onFontFamily, onFontSize,
       </div>
 
       <Separator orientation="vertical" className="h-5" />
+
+      {/* Font weight */}
+      {onFontWeight && (
+        <>
+          <div className="relative">
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[60px]"
+              onClick={() => setWeightOpen(!weightOpen)}
+            >
+              <span className="truncate" style={{ fontWeight: fontWeight || 400 }}>
+                {FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular"}
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            </button>
+            {weightOpen && (
+              <div className="absolute top-full left-0 mt-1 w-[120px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
+                {FONT_WEIGHT_OPTIONS.map((w) => (
+                  <button
+                    key={w.value}
+                    className={`w-full flex items-center px-3 py-1.5 text-xs transition-colors ${
+                      fontWeight === w.value ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary/60"
+                    }`}
+                    style={{ fontWeight: w.value }}
+                    onClick={() => { onFontWeight(w.value); setWeightOpen(false); }}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <Separator orientation="vertical" className="h-5" />
+        </>
+      )}
 
       {/* Font size */}
       <div className="flex items-center gap-0.5">
@@ -211,28 +254,40 @@ function InlineToolbar({ target, fontFamily, fontSize, onFontFamily, onFontSize,
   );
 }
 
-// ── Draggable Text Overlay ──
+// ── Draggable Text Overlay with optional horizontal resize ──
 function DraggableOverlay({
   children,
   yPercent,
   onYChange,
+  widthPercent,
+  onWidthChange,
   selected,
   onSelect,
   overlayId,
   canvasRef,
+  overlayRef,
 }) {
   const [dragging, setDragging] = useState(false);
+  const [resizeSide, setResizeSide] = useState(null); // "left" | "right" | null
   const startY = useRef(0);
   const startPct = useRef(0);
+  const resizeStart = useRef({ x: 0, width: 0 });
+  const elRef = useRef(null);
+
+  // Expose ref for toolbar positioning
+  useEffect(() => {
+    if (overlayRef) overlayRef.current = elRef.current;
+  });
 
   const onPointerDown = useCallback((e) => {
+    if (resizeSide) return; // Don't drag while resizing
     e.stopPropagation();
     onSelect(overlayId);
     setDragging(true);
     startY.current = e.clientY;
     startPct.current = yPercent;
     e.target.setPointerCapture(e.pointerId);
-  }, [yPercent, onSelect, overlayId]);
+  }, [yPercent, onSelect, overlayId, resizeSide]);
 
   const onPointerMove = useCallback((e) => {
     if (!dragging || !canvasRef.current) return;
@@ -246,24 +301,76 @@ function DraggableOverlay({
     setDragging(false);
   }, []);
 
+  // Horizontal resize via edge handles
+  const onResizeDown = useCallback((side, e) => {
+    if (!onWidthChange || !canvasRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setResizeSide(side);
+    resizeStart.current = { x: e.clientX, width: widthPercent || 90 };
+
+    const onMove = (ev) => {
+      const canvasW = canvasRef.current.getBoundingClientRect().width;
+      const dx = ev.clientX - resizeStart.current.x;
+      const dPct = (dx / canvasW) * 100;
+      let newWidth;
+      if (side === "right") {
+        newWidth = resizeStart.current.width + dPct * 2; // *2 because centered
+      } else {
+        newWidth = resizeStart.current.width - dPct * 2;
+      }
+      onWidthChange(Math.max(20, Math.min(100, newWidth)));
+    };
+    const onUp = () => {
+      setResizeSide(null);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [onWidthChange, canvasRef, widthPercent]);
+
   return (
     <div
+      ref={elRef}
       className="absolute left-0 right-0 flex justify-center"
-      style={{ top: `${yPercent}%`, transform: "translateY(-50%)", zIndex: selected ? 20 : 10 }}
+      style={{
+        top: `${yPercent}%`,
+        transform: "translateY(-50%)",
+        zIndex: selected ? 20 : 10,
+      }}
     >
       <div
-        className={`relative group cursor-move ${selected ? "" : ""}`}
+        className="relative group cursor-move"
+        style={{ maxWidth: widthPercent ? `${widthPercent}%` : "90%" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
         {/* Selection frame */}
         {selected && (
-          <div className="absolute -inset-1.5 border-2 border-primary/60 rounded pointer-events-none">
-            {/* Drag handles */}
-            <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow" />
-            <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow" />
-          </div>
+          <div className="absolute -inset-1.5 border-2 border-primary/60 rounded pointer-events-none" />
+        )}
+        {/* Left resize handle */}
+        {selected && onWidthChange && (
+          <div
+            className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 rounded-full bg-primary border-2 border-white shadow cursor-ew-resize z-30 pointer-events-auto"
+            onPointerDown={(e) => onResizeDown("left", e)}
+          />
+        )}
+        {/* Right resize handle */}
+        {selected && onWidthChange && (
+          <div
+            className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 rounded-full bg-primary border-2 border-white shadow cursor-ew-resize z-30 pointer-events-auto"
+            onPointerDown={(e) => onResizeDown("right", e)}
+          />
+        )}
+        {/* Drag-only handles (no resize) */}
+        {selected && !onWidthChange && (
+          <>
+            <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow pointer-events-none" />
+            <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow pointer-events-none" />
+          </>
         )}
         {children}
       </div>
@@ -289,6 +396,7 @@ export default function PreviewPanelNew() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
+  const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
   const fontSize = useSubtitleStore((s) => s.fontSize);
   const strokeWidth = useSubtitleStore((s) => s.strokeWidth);
   const strokeOn = useSubtitleStore((s) => s.strokeOn);
@@ -298,12 +406,15 @@ export default function PreviewPanelNew() {
   const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const subMode = useSubtitleStore((s) => s.subMode);
+  const lineMode = useSubtitleStore((s) => s.lineMode);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
+  const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
 
   // Caption
   const captionText = useCaptionStore((s) => s.captionText);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
+  const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
   const captionColor = useCaptionStore((s) => s.captionColor);
   const captionBold = useCaptionStore((s) => s.captionBold);
@@ -311,10 +422,15 @@ export default function PreviewPanelNew() {
   const captionUnderline = useCaptionStore((s) => s.captionUnderline);
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
+  const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
   const setCaptionFontSize = useCaptionStore((s) => s.setCaptionFontSize);
   const toggleBold = useCaptionStore((s) => s.toggleBold);
   const toggleItalic = useCaptionStore((s) => s.toggleItalic);
   const toggleUnderline = useCaptionStore((s) => s.toggleUnderline);
+
+  // Layout — for switching right panel on double-click
+  const setActivePanel = useLayoutStore((s) => s.setActivePanel);
+  const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
 
   // Local state
   const [zoom, setZoomState] = useState(-1); // -1 = fit
@@ -324,11 +440,14 @@ export default function PreviewPanelNew() {
   const [capYPercent, setCapYPercent] = useState(15); // caption position %
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
+  const [capWidthPercent, setCapWidthPercent] = useState(90);
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const captionInputRef = useRef(null);
+  const capOverlayRef = useRef(null);
+  const subOverlayRef = useRef(null);
 
   // Track canvas size for proportional text scaling
   const [canvasWidth, setCanvasWidth] = useState(360);
@@ -463,7 +582,7 @@ export default function PreviewPanelNew() {
     const style = {
       fontFamily: `'${subFontFamily}', sans-serif`,
       fontSize: `${scaledFontSize}px`,
-      fontWeight: 700,
+      fontWeight: subFontWeight || 700,
       color: "#ffffff",
       textAlign: "center",
       lineHeight: 1.3,
@@ -486,7 +605,7 @@ export default function PreviewPanelNew() {
       style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(0,0,0,0.7)`;
     }
     return style;
-  }, [subFontFamily, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
+  }, [subFontFamily, subFontWeight, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -494,7 +613,7 @@ export default function PreviewPanelNew() {
     return {
       fontFamily: `'${captionFontFamily}', sans-serif`,
       fontSize: `${scaledFontSize}px`,
-      fontWeight: captionBold ? 700 : 400,
+      fontWeight: captionFontWeight || (captionBold ? 700 : 400),
       fontStyle: captionItalic ? "italic" : "normal",
       textDecoration: captionUnderline ? "underline" : "none",
       color: captionColor,
@@ -508,31 +627,93 @@ export default function PreviewPanelNew() {
     };
   }, [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor, scaleFactor]);
 
-  // Render subtitle words with karaoke highlight
+  // Render subtitle words with karaoke highlight + 1L/2L line mode
   const renderSubtitleText = () => {
     if (!currentSeg) return null;
-    if (subMode === "karaoke" && currentSeg.words?.length > 0) {
+    const words = currentSeg.words || [];
+    const CHUNK = 3; // words per line for 1L mode
+
+    if (words.length > 0) {
+      // Determine which words to show based on lineMode
+      let visibleWords = words;
+      let visibleOffset = 0;
+
+      if (lineMode === "1L") {
+        // Show chunks of ~3 words around the active word
+        const activeIdx = currentWordIdx >= 0 ? currentWordIdx : 0;
+        const chunkIndex = Math.floor(activeIdx / CHUNK);
+        const chunkStart = chunkIndex * CHUNK;
+        const chunkEnd = Math.min(words.length, chunkStart + CHUNK);
+        visibleWords = words.slice(chunkStart, chunkEnd);
+        visibleOffset = chunkStart;
+      }
+
       return (
         <span style={subTextStyle}>
-          {currentSeg.words.map((w, i) => (
-            <span
-              key={i}
-              style={{
-                color: i === currentWordIdx ? highlightColor : "#ffffff",
-                transition: "color 0.1s",
-              }}
-            >
-              {w.word}{i < currentSeg.words.length - 1 ? " " : ""}
-            </span>
-          ))}
+          {visibleWords.map((w, i) => {
+            const globalIdx = i + visibleOffset;
+            const isActive = subMode === "karaoke" && globalIdx === currentWordIdx;
+            return (
+              <span
+                key={globalIdx}
+                style={{
+                  color: isActive ? highlightColor : "#ffffff",
+                  transition: "color 0.1s",
+                }}
+              >
+                {w.word}{i < visibleWords.length - 1 ? " " : ""}
+              </span>
+            );
+          })}
         </span>
       );
     }
+
+    // Fallback: no word-level data, use segment text
+    if (lineMode === "1L") {
+      // Split text into ~3-word chunks and show the chunk matching current time position
+      const textWords = currentSeg.text.split(/\s+/);
+      const segDuration = currentSeg.endSec - currentSeg.startSec;
+      const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
+      const totalChunks = Math.ceil(textWords.length / CHUNK);
+      const chunkIdx = Math.min(Math.floor(progress * totalChunks), totalChunks - 1);
+      const chunkStart = chunkIdx * CHUNK;
+      const visibleText = textWords.slice(chunkStart, chunkStart + CHUNK).join(" ");
+      return <span style={subTextStyle}>{visibleText}</span>;
+    }
+
     return <span style={subTextStyle}>{currentSeg.text}</span>;
   };
 
-  // Determine which toolbar to show based on selection
-  const toolbarTarget = selectedOverlay;
+  // Double-click handler for caption — switch right panel to Text tab
+  const onCaptionDoubleClick = useCallback((e) => {
+    e.stopPropagation();
+    setSelectedOverlay("cap");
+    setEditingCaption(true);
+    setActivePanel("text");
+    setDrawerOpen(true);
+  }, [setActivePanel, setDrawerOpen]);
+
+  // Double-click handler for subtitle — switch right panel to Subtitles tab
+  const onSubtitleDoubleClick = useCallback((e) => {
+    e.stopPropagation();
+    setSelectedOverlay("sub");
+    setActivePanel("sub");
+    setDrawerOpen(true);
+  }, [setActivePanel, setDrawerOpen]);
+
+  // Compute toolbar position relative to canvas
+  const [toolbarPos, setToolbarPos] = useState({ bottom: 8 });
+  useEffect(() => {
+    if (!selectedOverlay || !canvasRef.current) return;
+    const overlayRef = selectedOverlay === "cap" ? capOverlayRef : subOverlayRef;
+    if (!overlayRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const overlayRect = overlayRef.current.getBoundingClientRect();
+    // Position toolbar just below the overlay element, relative to canvas
+    const bottomOfOverlay = overlayRect.bottom - canvasRect.top;
+    setToolbarPos({ top: bottomOfOverlay + 6 });
+  }, [selectedOverlay, currentTime, capYPercent, subYPercent, canvasWidth]);
 
   return (
     <div
@@ -578,19 +759,24 @@ export default function PreviewPanelNew() {
         </div>
       </div>
 
-      {/* Video canvas area */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+      {/* Video canvas area — scrollable when zoomed in */}
+      <div className="flex-1 flex items-center justify-center overflow-auto p-4">
         <div
           ref={canvasRef}
-          className="relative overflow-hidden rounded-lg"
+          className="relative overflow-hidden rounded-lg shrink-0"
           style={{
             aspectRatio: "9 / 16",
-            height: zoom === -1 ? "100%" : "auto",
-            width: zoom === -1 ? "auto" : undefined,
-            maxHeight: zoom === -1 ? "100%" : undefined,
-            maxWidth: zoom === -1 ? "100%" : undefined,
-            transform: zoom === -1 ? undefined : `scale(${zoomScale})`,
-            transformOrigin: "center center",
+            ...(zoom === -1
+              ? {
+                  // Fit mode: fill available height, auto width from aspect ratio
+                  height: "100%",
+                  maxHeight: "100%",
+                  maxWidth: "100%",
+                }
+              : {
+                  // Zoom mode: fixed height based on percentage of container
+                  height: `${zoom}%`,
+                }),
             background: "hsl(240 6% 6%)",
             border: "1px solid hsl(240 4% 14% / 0.4)",
           }}
@@ -621,15 +807,18 @@ export default function PreviewPanelNew() {
             </div>
           )}
 
-          {/* Caption overlay (independent position) */}
+          {/* Caption overlay with resize handles */}
           {captionText && (
             <DraggableOverlay
               yPercent={capYPercent}
               onYChange={setCapYPercent}
+              widthPercent={capWidthPercent}
+              onWidthChange={setCapWidthPercent}
               selected={selectedOverlay === "cap"}
               onSelect={setSelectedOverlay}
               overlayId="cap"
               canvasRef={canvasRef}
+              overlayRef={capOverlayRef}
             >
               {editingCaption && selectedOverlay === "cap" ? (
                 <textarea
@@ -641,7 +830,7 @@ export default function PreviewPanelNew() {
                   className="bg-transparent border-none outline-none resize-none text-center w-full"
                   style={{
                     ...capTextStyle,
-                    minWidth: 120,
+                    minWidth: 60,
                     cursor: "text",
                   }}
                   rows={Math.max(1, captionText.split("\n").length)}
@@ -650,11 +839,7 @@ export default function PreviewPanelNew() {
               ) : (
                 <div
                   style={capTextStyle}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedOverlay("cap");
-                    setEditingCaption(true);
-                  }}
+                  onDoubleClick={onCaptionDoubleClick}
                 >
                   {captionText}
                 </div>
@@ -662,7 +847,7 @@ export default function PreviewPanelNew() {
             </DraggableOverlay>
           )}
 
-          {/* Subtitle overlay */}
+          {/* Subtitle overlay (no width resize, just move) */}
           {showSubs && currentSeg && (
             <DraggableOverlay
               yPercent={subYPercent}
@@ -671,49 +856,59 @@ export default function PreviewPanelNew() {
               onSelect={setSelectedOverlay}
               overlayId="sub"
               canvasRef={canvasRef}
+              overlayRef={subOverlayRef}
             >
-              {renderSubtitleText()}
+              <div onDoubleClick={onSubtitleDoubleClick}>
+                {renderSubtitleText()}
+              </div>
             </DraggableOverlay>
+          )}
+
+          {/* Inline editing toolbar — positioned inside canvas, below the selected element */}
+          {selectedOverlay && (
+            <div
+              className="absolute left-0 right-0 flex justify-center z-40 pointer-events-auto"
+              style={{ top: toolbarPos.top || "auto", bottom: toolbarPos.bottom }}
+            >
+              {selectedOverlay === "sub" ? (
+                <InlineToolbar
+                  target="sub"
+                  fontFamily={subFontFamily}
+                  fontSize={fontSize}
+                  fontWeight={subFontWeight}
+                  onFontFamily={setSubFontFamily}
+                  onFontSize={setFontSize}
+                  onFontWeight={setSubFontWeight}
+                  onAlign={() => {}}
+                  onBold={() => {}}
+                  onItalic={() => {}}
+                  onUnderline={() => {}}
+                  bold={false}
+                  italic={false}
+                  underline={false}
+                />
+              ) : (
+                <InlineToolbar
+                  target="cap"
+                  fontFamily={captionFontFamily}
+                  fontSize={captionFontSize}
+                  fontWeight={captionFontWeight}
+                  onFontFamily={setCaptionFontFamily}
+                  onFontSize={setCaptionFontSize}
+                  onFontWeight={setCaptionFontWeight}
+                  onAlign={() => {}}
+                  onBold={toggleBold}
+                  onItalic={toggleItalic}
+                  onUnderline={toggleUnderline}
+                  bold={captionBold}
+                  italic={captionItalic}
+                  underline={captionUnderline}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Inline editing toolbar (shown when text overlay is selected) */}
-      {selectedOverlay && (
-        <div className="flex justify-center pb-2 px-4">
-          {selectedOverlay === "sub" ? (
-            <InlineToolbar
-              target="sub"
-              fontFamily={subFontFamily}
-              fontSize={fontSize}
-              onFontFamily={setSubFontFamily}
-              onFontSize={setFontSize}
-              onAlign={() => {}} // Subtitles are always centered
-              onBold={() => {}}
-              onItalic={() => {}}
-              onUnderline={() => {}}
-              bold={false}
-              italic={false}
-              underline={false}
-            />
-          ) : (
-            <InlineToolbar
-              target="cap"
-              fontFamily={captionFontFamily}
-              fontSize={captionFontSize}
-              onFontFamily={setCaptionFontFamily}
-              onFontSize={setCaptionFontSize}
-              onAlign={() => {}}
-              onBold={toggleBold}
-              onItalic={toggleItalic}
-              onUnderline={toggleUnderline}
-              bold={captionBold}
-              italic={captionItalic}
-              underline={captionUnderline}
-            />
-          )}
-        </div>
-      )}
     </div>
   );
 }

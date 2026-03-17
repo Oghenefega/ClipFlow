@@ -175,10 +175,10 @@ function ColorPickerPopover({ color, onChange, children }) {
 // ════════════════════════════════════════════════════════════════
 const FONT_OPTIONS = ["Latina Essential", "Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
 
-function FontToolbar({ fontFamily, setFontFamily, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
+function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
   return (
     <div className="space-y-2">
-      {/* Font + size */}
+      {/* Font + weight + size */}
       <div className="flex gap-1.5">
         <div className="relative flex-1">
           <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}
@@ -188,6 +188,20 @@ function FontToolbar({ fontFamily, setFontFamily, fontSize, setFontSize, align, 
           </select>
           <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         </div>
+        {setFontWeight && (
+          <div className="relative w-20">
+            <select value={fontWeight || 400} onChange={(e) => setFontWeight(parseInt(e.target.value))}
+              className="w-full h-8 px-2 pr-5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
+            >
+              <option value={300}>Light</option>
+              <option value={400}>Regular</option>
+              <option value={500}>Medium</option>
+              <option value={700}>Bold</option>
+              <option value={900}>Heavy</option>
+            </select>
+            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          </div>
+        )}
         <div className="relative w-16">
           <select value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))}
             className="w-full h-8 px-2 pr-5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
@@ -655,6 +669,8 @@ function SubtitlesPanel() {
 
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
+  const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
+  const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const fontSize = useSubtitleStore((s) => s.fontSize);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
   const lineMode = useSubtitleStore((s) => s.lineMode);
@@ -720,6 +736,7 @@ function SubtitlesPanel() {
             {/* Font toolbar */}
             <FontToolbar
               fontFamily={subFontFamily} setFontFamily={setSubFontFamily}
+              fontWeight={subFontWeight} setFontWeight={setSubFontWeight}
               fontSize={fontSize} setFontSize={setFontSize}
               align={align} setAlign={setAlign}
               bold={bold} setBold={setBold}
@@ -819,6 +836,8 @@ function TextPanel() {
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
+  const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
+  const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
   const setCaptionFontSize = useCaptionStore((s) => s.setCaptionFontSize);
   const captionColor = useCaptionStore((s) => s.captionColor);
@@ -893,6 +912,7 @@ function TextPanel() {
             {/* Font toolbar */}
             <FontToolbar
               fontFamily={captionFontFamily} setFontFamily={(f) => { setCaptionFontFamily(f); markDirty(); }}
+              fontWeight={captionFontWeight} setFontWeight={(w) => { setCaptionFontWeight(w); markDirty(); }}
               fontSize={captionFontSize} setFontSize={(s) => { setCaptionFontSize(s); markDirty(); }}
               align={align} setAlign={setAlign}
               bold={captionBold} setBold={() => { toggleBold(); markDirty(); }}

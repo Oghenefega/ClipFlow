@@ -30,6 +30,7 @@ const useSubtitleStore = create((set, get) => ({
   showSubs: true,
   emojiOn: false,
   subFontFamily: "Latina Essential",
+  subFontWeight: 700,
   lineMode: "2L",
   syncOffset: 0,
 
@@ -219,6 +220,7 @@ const useSubtitleStore = create((set, get) => ({
   toggleShowSubs: () => set((s) => ({ showSubs: !s.showSubs })),
   setEmojiOn: (v) => set({ emojiOn: v }),
   setSubFontFamily: (f) => set({ subFontFamily: f }),
+  setSubFontWeight: (w) => set({ subFontWeight: w }),
   setLineMode: (m) => set({ lineMode: m }),
   setSyncOffset: (o) => set({ syncOffset: o }),
 }));
