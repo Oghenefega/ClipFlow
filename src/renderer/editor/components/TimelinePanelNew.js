@@ -39,6 +39,7 @@ const RULER_H = 24;
 const TRACK_H = 36;
 const AUDIO_TRACK_H = 64;
 const LABEL_W = 72;
+const END_PADDING = 120; // px of empty space after the clip ends
 
 // ── Speed Dropdown ──
 function SpeedDropdown({ value, onChange, onClose }) {
@@ -97,7 +98,7 @@ function AudioContextMenu({ x, y, onClose, onDelete, onCreateClip, onDuplicate }
 
 // ── Segment Block (caption or subtitle) ──
 function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize }) {
-  const [resizing, setResizing] = useState(null); // "left" | "right" | null
+  const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
   const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
 
@@ -145,7 +146,6 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Text label */}
       <span
         className="absolute inset-0 flex items-center px-1.5 text-[9px] font-medium truncate pointer-events-none select-none"
         style={{ color: trackColor.text }}
@@ -153,7 +153,6 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         {seg.text}
       </span>
 
-      {/* Left handle */}
       {(selected || hovered) && (
         <div
           className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
@@ -162,7 +161,6 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
           <div className="w-1 h-4 rounded-full bg-white/60" />
         </div>
       )}
-      {/* Right handle */}
       {(selected || hovered) && (
         <div
           className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
@@ -175,7 +173,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
   );
 }
 
-// ── Waveform Track ──
+// ── Waveform Track — continuous filled polygon, NOT bars ──
 function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu }) {
   const canvasRef = useRef(null);
 
@@ -202,22 +200,73 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       return;
     }
 
-    // Normalize peaks: find max peak to scale relative to it
+    // Normalize peaks relative to loudest
     const maxPeak = Math.max(...peaks, 0.01);
-    const barWidth = Math.max(1, w / peaks.length);
     const centerY = h / 2;
+    const maxAmp = h * 0.45; // max half-height
 
-    for (let i = 0; i < peaks.length; i++) {
-      const normalized = peaks[i] / maxPeak; // 0–1 relative to loudest peak
-      // Apply slight curve to boost quiet parts visibility
-      const amp = Math.pow(normalized, 0.7);
-      const barH = Math.max(1, amp * h * 0.92);
-      const x = i * barWidth;
+    // Resample peaks to match pixel width for smooth polygon
+    const pointCount = Math.min(peaks.length, Math.floor(w));
+    const samplesPerPoint = peaks.length / pointCount;
 
-      // Draw mirrored waveform (top and bottom from center)
-      ctx.fillStyle = selected ? "hsl(200 55% 60% / 0.65)" : "hsl(200 45% 55% / 0.45)";
-      ctx.fillRect(x, centerY - barH / 2, Math.max(1, barWidth - 0.5), barH);
+    // Build points array with normalized amplitudes
+    const points = [];
+    for (let i = 0; i < pointCount; i++) {
+      const sampleIdx = Math.floor(i * samplesPerPoint);
+      const endIdx = Math.min(Math.floor((i + 1) * samplesPerPoint), peaks.length);
+      // Take max in this bucket for peak representation
+      let max = 0;
+      for (let j = sampleIdx; j < endIdx; j++) {
+        if (peaks[j] > max) max = peaks[j];
+      }
+      const normalized = max / maxPeak;
+      // Power curve to boost quiet sections
+      const amp = Math.pow(normalized, 0.65) * maxAmp;
+      points.push({ x: (i / pointCount) * w, amp: Math.max(1, amp) });
     }
+
+    // Draw filled polygon — mirrored waveform (like a pro DAW)
+    ctx.beginPath();
+    // Top half (going left to right)
+    ctx.moveTo(points[0].x, centerY - points[0].amp);
+    for (let i = 1; i < points.length; i++) {
+      // Use quadratic curves for smooth shape
+      const prevPt = points[i - 1];
+      const pt = points[i];
+      const cpX = (prevPt.x + pt.x) / 2;
+      ctx.quadraticCurveTo(prevPt.x, centerY - prevPt.amp, cpX, centerY - (prevPt.amp + pt.amp) / 2);
+    }
+    // End at last point top
+    const lastPt = points[points.length - 1];
+    ctx.lineTo(lastPt.x, centerY - lastPt.amp);
+
+    // Bottom half (going right to left, mirrored)
+    ctx.lineTo(lastPt.x, centerY + lastPt.amp);
+    for (let i = points.length - 2; i >= 0; i--) {
+      const nextPt = points[i + 1];
+      const pt = points[i];
+      const cpX = (nextPt.x + pt.x) / 2;
+      ctx.quadraticCurveTo(nextPt.x, centerY + nextPt.amp, cpX, centerY + (nextPt.amp + pt.amp) / 2);
+    }
+    ctx.lineTo(points[0].x, centerY + points[0].amp);
+    ctx.closePath();
+
+    // Fill with semi-transparent color
+    ctx.fillStyle = selected ? "hsl(200 55% 58% / 0.55)" : "hsl(200 45% 55% / 0.35)";
+    ctx.fill();
+
+    // Stroke outline for definition
+    ctx.strokeStyle = selected ? "hsl(200 55% 60% / 0.7)" : "hsl(200 45% 55% / 0.5)";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Draw center line
+    ctx.strokeStyle = "hsl(200 40% 50% / 0.15)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(w, centerY);
+    ctx.stroke();
   }, [peaks, timelineWidth, selected]);
 
   return (
@@ -230,7 +279,6 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e); }}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
-      {/* Resize handles when selected */}
       {selected && (
         <>
           <div className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10">
@@ -260,7 +308,6 @@ export default function TimelinePanelNew() {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
-  const activeSegId = useSubtitleStore((s) => s.activeSegId);
 
   const captionText = useCaptionStore((s) => s.captionText);
 
@@ -273,15 +320,15 @@ export default function TimelinePanelNew() {
 
   // Local state
   const [speedOpen, setSpeedOpen] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState(null); // "cap" | "sub" | "audio" | null
+  const [selectedTrack, setSelectedTrack] = useState(null);
   const [selectedSegId, setSelectedSegId] = useState(null);
-  const [contextMenu, setContextMenu] = useState(null); // { x, y }
+  const [contextMenu, setContextMenu] = useState(null);
   const [scrubbing, setScrubbing] = useState(false);
 
-  const tracksRef = useRef(null);
-  const rulerRef = useRef(null);
+  // Single scroll container ref for ruler + all tracks
+  const scrollRef = useRef(null);
 
-  // Timeline pixel width based on zoom
+  // Measure visible area width
   const trackAreaRef = useRef(null);
   const [trackAreaWidth, setTrackAreaWidth] = useState(600);
 
@@ -296,50 +343,55 @@ export default function TimelinePanelNew() {
     return () => observer.disconnect();
   }, []);
 
-  const timelineWidth = Math.max(trackAreaWidth, trackAreaWidth * tlZoom);
+  // Available space for clip content (visible area minus label column)
+  const visibleContentWidth = trackAreaWidth - LABEL_W;
 
-  // Effective timeline content width (excluding label column)
-  const contentWidth = timelineWidth - LABEL_W;
+  // Clip content width = visible area * zoom factor
+  // At zoom 0.25 → clip takes 25% of visible → lots of room
+  // At zoom 1.0 → clip fills visible area
+  // At zoom 4.0 → clip is 4x wider, scrolls
+  const clipContentWidth = visibleContentWidth * tlZoom;
 
-  // Playhead position (relative to content area, after label column)
-  const playheadPx = duration > 0 ? LABEL_W + (currentTime / duration) * contentWidth : LABEL_W;
+  // Total scrollable width = label column + clip content + end padding
+  const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
 
-  // Ruler tick marks — offset by LABEL_W to align with track content
+  // Playhead pixel position
+  const playheadPx = duration > 0 ? LABEL_W + (currentTime / duration) * clipContentWidth : LABEL_W;
+
+  // Ruler tick marks
   const rulerTicks = useMemo(() => {
     if (duration <= 0) return [];
-    // Target ~60px between major ticks
-    const majorInterval = Math.max(0.5, Math.round((duration / (contentWidth / 60)) * 2) / 2);
+    const majorInterval = Math.max(0.5, Math.round((duration / (clipContentWidth / 60)) * 2) / 2);
     const ticks = [];
     for (let t = 0; t <= duration; t += majorInterval / 2) {
       const isMajor = Math.abs(t % majorInterval) < 0.01 || Math.abs(t % majorInterval - majorInterval) < 0.01;
-      ticks.push({ time: t, px: LABEL_W + (t / duration) * contentWidth, major: isMajor });
+      ticks.push({ time: t, px: LABEL_W + (t / duration) * clipContentWidth, major: isMajor });
     }
     return ticks;
-  }, [duration, contentWidth]);
+  }, [duration, clipContentWidth]);
 
-  // Scrub / seek on ruler click — account for LABEL_W offset
-  const handleRulerClick = useCallback((e) => {
-    if (!rulerRef.current || duration <= 0) return;
-    const rect = rulerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left + rulerRef.current.scrollLeft - LABEL_W;
-    if (x < 0) return; // clicked in label area
-    const t = Math.max(0, Math.min(duration, (x / contentWidth) * duration));
+  // Scrub / seek — works on entire scroll container
+  const handleScrub = useCallback((e) => {
+    if (!scrollRef.current || duration <= 0) return;
+    const rect = scrollRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
+    if (x < 0) return;
+    const t = Math.max(0, Math.min(duration, (x / clipContentWidth) * duration));
     seekTo(t);
-  }, [duration, contentWidth, seekTo]);
+  }, [duration, clipContentWidth, seekTo]);
 
-  // Scrubbing
   const handleScrubStart = useCallback((e) => {
     setScrubbing(true);
-    handleRulerClick(e);
-  }, [handleRulerClick]);
+    handleScrub(e);
+  }, [handleScrub]);
 
   useEffect(() => {
     if (!scrubbing) return;
     const onMove = (e) => {
-      if (!rulerRef.current || duration <= 0) return;
-      const rect = rulerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left + rulerRef.current.scrollLeft - LABEL_W;
-      const t = Math.max(0, Math.min(duration, (x / contentWidth) * duration));
+      if (!scrollRef.current || duration <= 0) return;
+      const rect = scrollRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
+      const t = Math.max(0, Math.min(duration, (x / clipContentWidth) * duration));
       seekTo(t);
     };
     const onUp = () => setScrubbing(false);
@@ -349,7 +401,7 @@ export default function TimelinePanelNew() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [scrubbing, duration, contentWidth, seekTo]);
+  }, [scrubbing, duration, clipContentWidth, seekTo]);
 
   // Track click on empty area deselects
   const handleTrackBgClick = useCallback(() => {
@@ -357,7 +409,7 @@ export default function TimelinePanelNew() {
     setSelectedSegId(null);
   }, []);
 
-  // Caption segments (treat caption as a single block spanning full duration)
+  // Caption segments
   const captionSegs = useMemo(() => {
     if (!captionText) return [];
     return [{ id: "cap-1", text: captionText, startSec: 0, endSec: duration }];
@@ -372,7 +424,6 @@ export default function TimelinePanelNew() {
 
   // Subtitle resize with neighbor pushing — prevents overlaps
   const handleSubtitleResize = useCallback((segId, newStart, newEnd) => {
-    // Sort segments by startSec to find neighbors
     const sorted = [...editSegments].sort((a, b) => a.startSec - b.startSec);
     const idx = sorted.findIndex((s) => s.id === segId);
     if (idx < 0) return;
@@ -380,36 +431,25 @@ export default function TimelinePanelNew() {
     const seg = sorted[idx];
     const prevSeg = idx > 0 ? sorted[idx - 1] : null;
     const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
-    const minDur = 0.1; // minimum segment duration
+    const minDur = 0.1;
 
-    // Dragging left handle (changing startSec)
     if (newStart !== seg.startSec) {
-      // Clamp: can't go before 0
       newStart = Math.max(0, newStart);
-      // Can't make segment shorter than minDur
       newStart = Math.min(newStart, newEnd - minDur);
-
-      // Push previous segment if overlapping
       if (prevSeg && newStart < prevSeg.endSec) {
         const pushEnd = newStart;
         const pushStart = Math.max(0, Math.min(prevSeg.startSec, pushEnd - minDur));
         if (pushEnd - pushStart >= minDur) {
           updateSegmentTimes(prevSeg.id, pushStart, pushEnd);
         } else {
-          // Can't push further — clamp our start
           newStart = prevSeg.endSec;
         }
       }
     }
 
-    // Dragging right handle (changing endSec)
     if (newEnd !== seg.endSec) {
-      // Clamp: can't exceed duration
       newEnd = Math.min(duration, newEnd);
-      // Can't make segment shorter than minDur
       newEnd = Math.max(newEnd, newStart + minDur);
-
-      // Push next segment if overlapping
       if (nextSeg && newEnd > nextSeg.startSec) {
         const pushStart = newEnd;
         const pushEnd = Math.max(nextSeg.endSec, pushStart + minDur);
@@ -417,7 +457,6 @@ export default function TimelinePanelNew() {
         if (clampedEnd - pushStart >= minDur) {
           updateSegmentTimes(nextSeg.id, pushStart, clampedEnd);
         } else {
-          // Can't push further — clamp our end
           newEnd = nextSeg.startSec;
         }
       }
@@ -430,7 +469,6 @@ export default function TimelinePanelNew() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key === " " && !e.ctrlKey && !e.metaKey) {
-        // Only if not in an input
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         e.preventDefault();
         togglePlay();
@@ -447,36 +485,27 @@ export default function TimelinePanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, [togglePlay, splitSegment, toggleTlCollapse]);
 
-  // Zoom keyboard shortcuts
+  // Smooth auto-scroll to keep playhead visible during playback
+  const lastScrollRef = useRef(0);
   useEffect(() => {
-    const handler = (e) => {
-      // Ctrl+Shift+= for timeline zoom in, Ctrl+Shift+- for timeline zoom out
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    if (!playing || !scrollRef.current || duration <= 0) return;
+    const container = scrollRef.current;
+    const viewWidth = container.clientWidth;
+    const playheadX = LABEL_W + (currentTime / duration) * clipContentWidth;
+    const scrollLeft = container.scrollLeft;
 
-  // Sync scroll between ruler and tracks
-  const handleScroll = useCallback((e) => {
-    if (rulerRef.current) rulerRef.current.scrollLeft = e.target.scrollLeft;
-  }, []);
-  const handleRulerScroll = useCallback((e) => {
-    if (tracksRef.current) tracksRef.current.scrollLeft = e.target.scrollLeft;
-  }, []);
-
-  // Auto-scroll to keep playhead visible during playback
-  useEffect(() => {
-    if (!playing || !tracksRef.current || !rulerRef.current || duration <= 0) return;
-    const scrollContainer = tracksRef.current;
-    const viewWidth = scrollContainer.clientWidth;
-    const playheadX = LABEL_W + (currentTime / duration) * contentWidth;
-    const scrollLeft = scrollContainer.scrollLeft;
-    if (playheadX > scrollLeft + viewWidth - 40 || playheadX < scrollLeft) {
-      const newScroll = Math.max(0, playheadX - viewWidth * 0.3);
-      scrollContainer.scrollLeft = newScroll;
-      rulerRef.current.scrollLeft = newScroll;
+    // Only scroll when playhead goes past 70% of visible area
+    if (playheadX > scrollLeft + viewWidth * 0.7) {
+      const target = playheadX - viewWidth * 0.3;
+      // Smooth interpolation instead of jumping
+      const current = container.scrollLeft;
+      container.scrollLeft = current + (target - current) * 0.15;
+    } else if (playheadX < scrollLeft + LABEL_W + 20) {
+      const target = Math.max(0, playheadX - LABEL_W - 20);
+      const current = container.scrollLeft;
+      container.scrollLeft = current + (target - current) * 0.15;
     }
-  }, [playing, currentTime, duration, contentWidth]);
+  }, [playing, currentTime, duration, clipContentWidth]);
 
   // Apply playback speed to video
   useEffect(() => {
@@ -486,7 +515,7 @@ export default function TimelinePanelNew() {
     }
   }, [tlSpeed]);
 
-  // ── Collapsed mode: just controls bar ──
+  // ── Collapsed mode ──
   if (tlCollapsed) {
     return (
       <div className="flex items-center h-full bg-card select-none px-3 border-t">
@@ -494,35 +523,23 @@ export default function TimelinePanelNew() {
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-foreground"
-                  onClick={togglePlay}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" onClick={togglePlay}>
                   {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">{playing ? "Pause" : "Play"} (Space)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
           <div className="flex items-center gap-1.5 text-xs font-mono">
             <span className="text-foreground">{fmtTime(currentTime)}</span>
             <span className="text-muted-foreground">/</span>
             <span className="text-muted-foreground">{fmtTime(duration)}</span>
           </div>
         </div>
-
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={toggleTlCollapse}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={toggleTlCollapse}>
                 <PanelBottomOpen className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -532,6 +549,9 @@ export default function TimelinePanelNew() {
       </div>
     );
   }
+
+  // Total height of all tracks + ruler
+  const totalTrackHeight = RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H + 32; // +32 for add audio row
 
   // ── Full timeline ──
   return (
@@ -544,10 +564,9 @@ export default function TimelinePanelNew() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="ghost" size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={() => setTlZoom(Math.max(0.5, tlZoom - 0.25))}
+                  onClick={() => setTlZoom(Math.max(0.25, tlZoom - 0.25))}
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </Button>
@@ -559,7 +578,7 @@ export default function TimelinePanelNew() {
           <div className="w-[100px]">
             <Slider
               value={[tlZoom * 100]}
-              min={50}
+              min={25}
               max={400}
               step={25}
               onValueChange={([v]) => setTlZoom(v / 100)}
@@ -571,8 +590,7 @@ export default function TimelinePanelNew() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="ghost" size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                   onClick={() => setTlZoom(Math.min(4, tlZoom + 0.25))}
                 >
@@ -589,23 +607,16 @@ export default function TimelinePanelNew() {
           <div className="flex items-center gap-1.5 text-xs font-mono">
             <span className="text-foreground">{fmtTime(currentTime)}</span>
           </div>
-
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-foreground"
-                  onClick={togglePlay}
-                >
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground" onClick={togglePlay}>
                   {playing ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">{playing ? "Pause" : "Play"} (Space)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
           <div className="flex items-center gap-1.5 text-xs font-mono">
             <span className="text-muted-foreground">{fmtTime(duration)}</span>
           </div>
@@ -616,19 +627,13 @@ export default function TimelinePanelNew() {
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={splitSegment}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={splitSegment}>
                   <Scissors className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Split (S)</TooltipContent>
             </Tooltip>
 
-            {/* Speed dropdown */}
             <div className="relative">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -649,12 +654,7 @@ export default function TimelinePanelNew() {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={toggleTlCollapse}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={toggleTlCollapse}>
                   <PanelBottomClose className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -664,156 +664,134 @@ export default function TimelinePanelNew() {
         </div>
       </div>
 
-      {/* Ruler + Tracks area */}
-      <div className="flex-1 flex flex-col overflow-hidden" ref={trackAreaRef}>
-        {/* Time ruler */}
-        <div
-          ref={rulerRef}
-          className="flex-shrink-0 border-b relative overflow-x-auto overflow-y-hidden cursor-pointer"
-          style={{ height: RULER_H }}
-          onPointerDown={handleScrubStart}
-          onScroll={handleRulerScroll}
-        >
-          <div className="relative" style={{ width: timelineWidth, height: RULER_H }}>
-            {/* Tick marks */}
-            {rulerTicks.map((tick, i) => (
-              <div
-                key={i}
-                className="absolute bottom-0 flex flex-col items-center"
-                style={{ left: tick.px }}
-              >
-                {tick.major && (
-                  <span className="text-[9px] font-mono text-muted-foreground/60 leading-none mb-0.5 -translate-x-1/2 whitespace-nowrap">
-                    {tick.time < 60
-                      ? `${tick.time.toFixed(tick.time % 1 === 0 ? 0 : 1)}s`
-                      : fmtTime(tick.time)
-                    }
-                  </span>
-                )}
-                <div
-                  className="bg-border/60"
-                  style={{ width: 1, height: tick.major ? 8 : 4 }}
-                />
-              </div>
-            ))}
+      {/* ── Unified scroll container: ruler + tracks + playhead as ONE unit ── */}
+      <div
+        ref={(el) => { scrollRef.current = el; trackAreaRef.current = el; }}
+        className="flex-1 overflow-x-auto overflow-y-hidden relative"
+        onPointerDown={handleScrubStart}
+        onClick={handleTrackBgClick}
+        style={{ cursor: scrubbing ? "grabbing" : "default" }}
+      >
+        {/* Inner content — sets scroll width */}
+        <div className="relative" style={{ width: totalWidth, minHeight: "100%" }}>
 
-            {/* Playhead on ruler */}
+          {/* ── SINGLE PLAYHEAD LINE — spans from ruler through all tracks ── */}
+          <div
+            className="absolute z-30 pointer-events-none"
+            style={{
+              left: playheadPx,
+              top: 0,
+              bottom: 0,
+              transform: "translateX(-50%)",
+            }}
+          >
+            {/* Triangle head at top */}
             <div
-              className="absolute top-0 bottom-0 z-20 pointer-events-none"
-              style={{ left: playheadPx, transform: "translateX(-50%)" }}
-            >
-              <div className="w-0.5 h-full bg-primary" />
-              {/* Playhead head (triangle) */}
-              <div
-                className="absolute -top-0.5 left-1/2 -translate-x-1/2"
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeft: "5px solid transparent",
-                  borderRight: "5px solid transparent",
-                  borderTop: "6px solid hsl(263 70% 58%)",
-                }}
+              className="absolute -top-0.5 left-1/2 -translate-x-1/2"
+              style={{
+                width: 0, height: 0,
+                borderLeft: "5px solid transparent",
+                borderRight: "5px solid transparent",
+                borderTop: "6px solid hsl(263 70% 58%)",
+              }}
+            />
+            {/* Vertical line — full height */}
+            <div className="w-0.5 h-full bg-primary" />
+          </div>
+
+          {/* ── Ruler row ── */}
+          <div
+            className="flex items-stretch border-b border-border/60"
+            style={{ height: RULER_H }}
+          >
+            {/* Ruler label area (matches track labels) */}
+            <div
+              className="shrink-0 bg-card z-10"
+              style={{ width: LABEL_W, position: "sticky", left: 0 }}
+            />
+            {/* Tick marks */}
+            <div className="relative flex-1" style={{ width: clipContentWidth + END_PADDING }}>
+              {rulerTicks.map((tick, i) => {
+                const x = tick.px - LABEL_W; // position relative to content area
+                return (
+                  <div
+                    key={i}
+                    className="absolute bottom-0 flex flex-col items-center"
+                    style={{ left: x }}
+                  >
+                    {tick.major && (
+                      <span className="text-[9px] font-mono text-muted-foreground/60 leading-none mb-0.5 -translate-x-1/2 whitespace-nowrap">
+                        {tick.time < 60
+                          ? `${tick.time.toFixed(tick.time % 1 === 0 ? 0 : 1)}s`
+                          : fmtTime(tick.time)
+                        }
+                      </span>
+                    )}
+                    <div className="bg-border/60" style={{ width: 1, height: tick.major ? 8 : 4 }} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Caption track ── */}
+          <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+              <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(263 70% 58%)" }}>T</span>
+              <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
+            </div>
+            <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+              {captionSegs.map((seg) => (
+                <SegmentBlock
+                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
+                  duration={duration} timelineWidth={clipContentWidth}
+                  selected={selectedTrack === "cap" && selectedSegId === seg.id}
+                  onSelect={(id) => handleSegSelect("cap", id)}
+                  onResize={() => {}}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Subtitle track ── */}
+          <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+              <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
+            </div>
+            <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+              {editSegments.map((seg) => (
+                <SegmentBlock
+                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
+                  duration={duration} timelineWidth={clipContentWidth}
+                  selected={selectedTrack === "sub" && selectedSegId === seg.id}
+                  onSelect={(id) => handleSegSelect("sub", id)}
+                  onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Audio/Video track ── */}
+          <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+              <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
+            </div>
+            <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+              <WaveformTrack
+                peaks={waveformPeaks} duration={duration}
+                timelineWidth={clipContentWidth} currentTime={currentTime}
+                selected={selectedTrack === "audio"}
+                onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(null); }}
+                onContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY })}
               />
             </div>
           </div>
-        </div>
 
-        {/* Tracks */}
-        <div
-          ref={tracksRef}
-          className="flex-1 overflow-x-auto overflow-y-auto"
-          onScroll={handleScroll}
-          onClick={handleTrackBgClick}
-        >
-          <div style={{ width: timelineWidth, minHeight: "100%" }}>
-            {/* Caption track */}
-            <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
-                <span
-                  className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white"
-                  style={{ background: "hsl(263 70% 58%)" }}
-                >
-                  T
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
-              </div>
-              <div className="flex-1 relative" style={{ width: contentWidth }}>
-                {captionSegs.map((seg) => (
-                  <SegmentBlock
-                    key={seg.id}
-                    seg={seg}
-                    trackColor={TRACK_COLORS.cap}
-                    duration={duration}
-                    timelineWidth={contentWidth}
-                    selected={selectedTrack === "cap" && selectedSegId === seg.id}
-                    onSelect={(id) => handleSegSelect("cap", id)}
-                    onResize={() => {}} // Caption spans full duration
-                  />
-                ))}
-                {/* Playhead line */}
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
-                />
-              </div>
-            </div>
-
-            {/* Subtitle track */}
-            <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
-                <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
-              </div>
-              <div className="flex-1 relative" style={{ width: contentWidth }}>
-                {editSegments.map((seg) => (
-                  <SegmentBlock
-                    key={seg.id}
-                    seg={seg}
-                    trackColor={TRACK_COLORS.sub}
-                    duration={duration}
-                    timelineWidth={contentWidth}
-                    selected={selectedTrack === "sub" && selectedSegId === seg.id}
-                    onSelect={(id) => handleSegSelect("sub", id)}
-                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
-                  />
-                ))}
-                {/* Playhead line */}
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
-                />
-              </div>
-            </div>
-
-            {/* Audio/Video track */}
-            <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
-                <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
-              </div>
-              <div className="flex-1 relative" style={{ width: contentWidth }}>
-                <WaveformTrack
-                  peaks={waveformPeaks}
-                  duration={duration}
-                  timelineWidth={timelineWidth - LABEL_W}
-                  currentTime={currentTime}
-                  selected={selectedTrack === "audio"}
-                  onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(null); }}
-                  onContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY })}
-                />
-                {/* Playhead line */}
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
-                />
-              </div>
-            </div>
-
-            {/* Add audio row */}
-            <div className="flex items-center px-2 h-8">
-              <button className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground flex items-center gap-1 transition-colors ml-1">
-                <Music className="h-3 w-3" />
-                Add audio
-              </button>
-            </div>
+          {/* ── Add audio row ── */}
+          <div className="flex items-center px-2 h-8">
+            <button className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground flex items-center gap-1 transition-colors ml-1">
+              <Music className="h-3 w-3" /> Add audio
+            </button>
           </div>
         </div>
       </div>
@@ -821,12 +799,11 @@ export default function TimelinePanelNew() {
       {/* Audio context menu */}
       {contextMenu && (
         <AudioContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
+          x={contextMenu.x} y={contextMenu.y}
           onClose={() => setContextMenu(null)}
-          onDelete={() => { /* TODO: delete scene */ }}
-          onCreateClip={() => { /* TODO: create as new clip */ }}
-          onDuplicate={() => { /* TODO: duplicate original */ }}
+          onDelete={() => { /* TODO */ }}
+          onCreateClip={() => { /* TODO */ }}
+          onDuplicate={() => { /* TODO */ }}
         />
       )}
     </div>
