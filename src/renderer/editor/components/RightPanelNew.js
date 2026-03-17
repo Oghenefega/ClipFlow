@@ -1,0 +1,1079 @@
+import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { Separator } from "../../../components/ui/separator";
+import { ScrollArea } from "../../../components/ui/scroll-area";
+import { Button } from "../../../components/ui/button";
+import { Slider } from "../../../components/ui/slider";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../../components/ui/tooltip";
+import {
+  Sparkles, Palette, Captions, Type, Music, Upload, ImagePlus,
+  X, Search, Play, Star, Plus, Minus, ChevronDown, ChevronRight,
+  Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
+  Bold, Italic, Underline, Pipette, Heart,
+  UploadCloud, FolderOpen, FileImage, Film, Volume2,
+} from "lucide-react";
+import useSubtitleStore from "../stores/useSubtitleStore";
+import useCaptionStore from "../stores/useCaptionStore";
+import useAIStore from "../stores/useAIStore";
+import useEditorStore from "../stores/useEditorStore";
+import useLayoutStore from "../stores/useLayoutStore";
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Color Palette (matches Vizard predefined palette)
+// ════════════════════════════════════════════════════════════════
+const PALETTE_COLORS = [
+  "#ffffff","#4cce8a","#000000","#333333","#555555","#777777","#999999","#bbbbbb",
+  "#e8e87a","#cccc00","#a0a000","#808000","#606000","#404000","#e0e0e0","#c0c0c0",
+  "#f87171","#ef4444","#dc2626","#ff8c00","#ffa500","#ffbf00","#ffd700","#ffec8b",
+  "#d946ef","#c026d3","#f87171","#fb923c","#fbbf24","#a3e635","#34d399","#22d3ee",
+  "#818cf8","#a78bfa","#c084fc","#e879f9","#f472b6","#fb7185","#6366f1","#8b5cf6",
+];
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Section Label
+// ════════════════════════════════════════════════════════════════
+function SectionLabel({ children, className = "" }) {
+  return <div className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 ${className}`}>{children}</div>;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Toggle Switch
+// ════════════════════════════════════════════════════════════════
+function ToggleSwitch({ value, onChange, size = "default" }) {
+  const w = size === "sm" ? "w-8 h-4" : "w-9 h-5";
+  const dot = size === "sm" ? "w-3 h-3" : "w-4 h-4";
+  const off = size === "sm" ? "left-0.5" : "left-0.5";
+  const on = size === "sm" ? "left-[16px]" : "left-[18px]";
+  return (
+    <button onClick={() => onChange(!value)} className={`relative ${w} rounded-full transition-colors duration-200 cursor-pointer shrink-0 ${value ? "bg-primary" : "bg-secondary"}`}>
+      <span className={`absolute top-0.5 ${dot} rounded-full bg-white shadow-sm transition-transform duration-200 ${value ? on : off}`} />
+    </button>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Color Picker Popover
+// ════════════════════════════════════════════════════════════════
+function ColorPickerPopover({ color, onChange, children }) {
+  const [hex, setHex] = useState(color || "#ffffff");
+  const [r, setR] = useState(255);
+  const [g, setG] = useState(255);
+  const [b, setB] = useState(255);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open && color) {
+      setHex(color);
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
+      if (result) { setR(parseInt(result[1], 16)); setG(parseInt(result[2], 16)); setB(parseInt(result[3], 16)); }
+    }
+  }, [open, color]);
+
+  const updateFromRGB = (nr, ng, nb) => {
+    setR(nr); setG(ng); setB(nb);
+    const h = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
+    setHex(h);
+    onChange(h);
+  };
+
+  const handlePaletteClick = (c) => {
+    setHex(c); onChange(c);
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+    if (result) { setR(parseInt(result[1], 16)); setG(parseInt(result[2], 16)); setB(parseInt(result[3], 16)); }
+  };
+
+  const handleHexInput = (val) => {
+    setHex(val);
+    if (/^#[0-9a-f]{6}$/i.test(val)) {
+      const result = /^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(val);
+      if (result) { setR(parseInt(result[1],16)); setG(parseInt(result[2],16)); setB(parseInt(result[3],16)); onChange(val); }
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent className="w-[260px] p-3 bg-card border-border" side="left" align="start" sideOffset={8}>
+        {/* Gradient area */}
+        <div
+          className="w-full h-[140px] rounded-md mb-3 cursor-crosshair relative overflow-hidden"
+          style={{
+            background: `linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, ${hex})`,
+          }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            const nr = Math.round(255 * (1 - x) * (1 - y));
+            const ng = Math.round(255 * (1 - x) * (1 - y));
+            const nb = Math.round(255 * (1 - x) * (1 - y));
+            updateFromRGB(nr, ng, nb);
+          }}
+        />
+
+        {/* Hue spectrum bar */}
+        <div
+          className="w-full h-3 rounded-full mb-3 cursor-pointer"
+          style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const hue = x * 360;
+            // Simple hue-to-rgb
+            const c = 1, xx = c * (1 - Math.abs((hue / 60) % 2 - 1));
+            let rr=0, gg=0, bb=0;
+            if (hue < 60) { rr=c; gg=xx; } else if (hue < 120) { rr=xx; gg=c; }
+            else if (hue < 180) { gg=c; bb=xx; } else if (hue < 240) { gg=xx; bb=c; }
+            else if (hue < 300) { rr=xx; bb=c; } else { rr=c; bb=xx; }
+            updateFromRGB(Math.round(rr*255), Math.round(gg*255), Math.round(bb*255));
+          }}
+        />
+
+        {/* RGB inputs */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="text-[10px] text-muted-foreground w-7 shrink-0">RGB</span>
+          {[
+            { val: r, set: (v) => updateFromRGB(v, g, b) },
+            { val: g, set: (v) => updateFromRGB(r, v, b) },
+            { val: b, set: (v) => updateFromRGB(r, g, v) },
+          ].map((ch, i) => (
+            <input key={i} type="number" min={0} max={255} value={ch.val}
+              onChange={(e) => ch.set(Math.max(0, Math.min(255, parseInt(e.target.value) || 0)))}
+              className="w-12 h-6 text-[10px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+            />
+          ))}
+          <input value={hex} onChange={(e) => handleHexInput(e.target.value)}
+            className="flex-1 h-6 text-[10px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+          />
+        </div>
+
+        {/* Predefined palette */}
+        <div className="grid grid-cols-8 gap-1">
+          {PALETTE_COLORS.map((c, i) => (
+            <button key={i} onClick={() => handlePaletteClick(c)}
+              className={`w-6 h-6 rounded-full border cursor-pointer transition-transform hover:scale-110 ${hex === c ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : ""}`}
+              style={{ background: c, borderColor: c === "#ffffff" ? "hsl(240 4% 30%)" : "transparent" }}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Font/Style toolbar row
+// ════════════════════════════════════════════════════════════════
+const FONT_OPTIONS = ["Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
+
+function FontToolbar({ fontFamily, setFontFamily, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
+  return (
+    <div className="space-y-2">
+      {/* Font + size */}
+      <div className="flex gap-1.5">
+        <div className="relative flex-1">
+          <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}
+            className="w-full h-8 px-2 pr-6 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
+          >
+            {FONT_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        </div>
+        <div className="relative w-16">
+          <select value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))}
+            className="w-full h-8 px-2 pr-5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
+          >
+            {[8,10,12,14,16,18,20,24,28,32,36,42,48,52,60,72].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Alignment + B/I/U */}
+      <div className="flex gap-1">
+        {[
+          { icon: AlignLeft, val: "left" }, { icon: AlignCenter, val: "center" }, { icon: AlignRight, val: "right" },
+        ].map(({ icon: Icon, val }) => (
+          <button key={val} onClick={() => setAlign?.(val)}
+            className={`h-8 w-8 rounded-md flex items-center justify-center text-xs transition-colors ${align === val ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}>
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        ))}
+        <Separator orientation="vertical" className="h-6 self-center mx-0.5" />
+        <button onClick={() => setBold?.(!bold)} className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${bold ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}>
+          <Bold className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={() => setItalic?.(!italic)} className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${italic ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}>
+          <Italic className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={() => setUnderline?.(!underline)} className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${underline ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}>
+          <Underline className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Casing + size + color */}
+      <div className="flex items-center gap-1">
+        <button className="h-8 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors">Aa</button>
+        <button className="h-8 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors">AB</button>
+        <Separator orientation="vertical" className="h-5 mx-0.5" />
+        <span className="text-xs text-muted-foreground px-1">{fontSize}</span>
+        {color !== undefined && setColor && (
+          <ColorPickerPopover color={color} onChange={setColor}>
+            <button className="w-6 h-6 rounded-full border border-border/60 cursor-pointer ml-auto shrink-0" style={{ background: color }} />
+          </ColorPickerPopover>
+        )}
+      </div>
+
+      {/* Line mode (optional) */}
+      {lineMode !== undefined && setLineMode && (
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[10px] text-muted-foreground">—</span>
+          <div className="relative flex-1">
+            <select value={lineMode} onChange={(e) => setLineMode(e.target.value)}
+              className="w-full h-8 px-2 pr-6 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer">
+              <option value="1L">1 line per screen</option>
+              <option value="2L">2 lines per screen</option>
+            </select>
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Expandable effect section (Shadow, Stroke, Background)
+// ════════════════════════════════════════════════════════════════
+function EffectSection({ label, enabled, onToggle, color, onColorChange, children }) {
+  return (
+    <div className="border-t border-border/40">
+      <div className="flex items-center justify-between py-3 px-1">
+        <span className="text-xs text-foreground font-medium">{label}</span>
+        <div className="flex items-center gap-2">
+          {enabled && color && (
+            <ColorPickerPopover color={color} onChange={onColorChange}>
+              <button className="w-5 h-5 rounded-full border border-border/60 cursor-pointer" style={{ background: color }} />
+            </ColorPickerPopover>
+          )}
+          <button onClick={() => onToggle(!enabled)} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors">
+            {enabled ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </div>
+      {enabled && children && <div className="pb-3 px-1">{children}</div>}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Drop Zone
+// ════════════════════════════════════════════════════════════════
+function DropZone({ accept, label, icon: Icon = UploadCloud }) {
+  const [dragOver, setDragOver] = useState(false);
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
+      className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+        dragOver ? "border-primary/50 bg-primary/5" : "border-border/40 hover:border-border/60"
+      }`}
+    >
+      <Icon className="h-6 w-6 text-muted-foreground/50" />
+      <div className="text-[11px] text-muted-foreground text-center">
+        Drop {accept || "files"}<br />
+        or <span className="text-primary cursor-pointer hover:underline">browse</span>
+      </div>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 1: AI TOOLS
+// ════════════════════════════════════════════════════════════════
+function AIToolsPanel({ gamesDb, anthropicApiKey }) {
+  const voiceMode = useAIStore((s) => s.voiceMode);
+  const setVoiceMode = useAIStore((s) => s.setVoiceMode);
+  const aiContext = useAIStore((s) => s.aiContext);
+  const setAiContext = useAIStore((s) => s.setAiContext);
+  const aiGame = useAIStore((s) => s.aiGame);
+  const setAiGame = useAIStore((s) => s.setAiGame);
+  const aiGenerating = useAIStore((s) => s.aiGenerating);
+  const aiError = useAIStore((s) => s.aiError);
+  const aiSuggestions = useAIStore((s) => s.aiSuggestions);
+  const aiRejections = useAIStore((s) => s.aiRejections);
+  const acceptedTitleIdx = useAIStore((s) => s.acceptedTitleIdx);
+  const acceptedCaptionIdx = useAIStore((s) => s.acceptedCaptionIdx);
+  const generate = useAIStore((s) => s.generate);
+  const acceptTitle = useAIStore((s) => s.acceptTitle);
+  const acceptCaption = useAIStore((s) => s.acceptCaption);
+  const reject = useAIStore((s) => s.reject);
+
+  return (
+    <div className="p-3 space-y-3">
+      {/* Voice mode */}
+      <div>
+        <SectionLabel>Voice</SectionLabel>
+        <div className="flex gap-1.5">
+          {["hype", "chill"].map((m) => (
+            <button key={m} onClick={() => setVoiceMode(m)}
+              className={`flex-1 h-8 rounded-md text-xs font-medium transition-colors ${voiceMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary/50 text-muted-foreground border border-transparent hover:bg-secondary"}`}>
+              {m === "hype" ? "🔥 Hype" : "😎 Chill"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Context */}
+      <div>
+        <SectionLabel>Context (optional)</SectionLabel>
+        <textarea value={aiContext} onChange={(e) => setAiContext(e.target.value)} rows={2} placeholder="Add context for better titles..."
+          className="w-full px-2.5 py-2 text-xs rounded-md bg-secondary/50 border border-border text-foreground outline-none resize-y placeholder:text-muted-foreground focus:border-primary/30" />
+      </div>
+
+      {/* Game + Generate */}
+      <div className="flex gap-1.5">
+        <div className="relative flex-1">
+          <select value={aiGame} onChange={(e) => setAiGame(e.target.value)}
+            className="w-full h-8 px-2 pr-6 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer">
+            <option value="">Auto-detect</option>
+            {(gamesDb || []).map(g => <option key={g.tag} value={g.name}>{g.name}</option>)}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        </div>
+        <Button size="sm" onClick={() => generate(anthropicApiKey, gamesDb)} disabled={aiGenerating}
+          className="h-8 px-3 text-xs bg-primary text-primary-foreground disabled:opacity-50">
+          {aiGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Sparkles className="h-3 w-3 mr-1" />Generate</>}
+        </Button>
+      </div>
+
+      {/* Error */}
+      {aiError && <div className="text-[11px] text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{aiError}</div>}
+
+      {/* Results */}
+      {aiSuggestions && (
+        <div className="space-y-3">
+          {/* Titles */}
+          <div>
+            <SectionLabel>Titles</SectionLabel>
+            <div className="space-y-1.5">
+              {(aiSuggestions.titles || []).map((t, i) => {
+                const isAccepted = acceptedTitleIdx === i;
+                const isRejected = aiRejections.includes(t.title);
+                return (
+                  <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
+                    <div className="text-xs text-foreground font-medium mb-1">{t.title}</div>
+                    {t.why && <div className="text-[10px] text-muted-foreground mb-2">{t.why}</div>}
+                    <div className="flex gap-1">
+                      {isAccepted ? (
+                        <span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
+                      ) : !isRejected && (
+                        <>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10" onClick={() => acceptTitle(t, i)}>Apply</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => reject(t.title)}>Skip</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Captions */}
+          <div>
+            <SectionLabel>Captions</SectionLabel>
+            <div className="space-y-1.5">
+              {(aiSuggestions.captions || []).map((c, i) => {
+                const isAccepted = acceptedCaptionIdx === i;
+                const isRejected = aiRejections.includes(c.caption);
+                return (
+                  <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
+                    <div className="text-xs text-foreground mb-1">{c.caption}</div>
+                    {c.why && <div className="text-[10px] text-muted-foreground mb-2">{c.why}</div>}
+                    <div className="flex gap-1">
+                      {isAccepted ? (
+                        <span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
+                      ) : !isRejected && (
+                        <>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10" onClick={() => acceptCaption(c, i)}>Apply</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => reject(c.caption)}>Skip</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Regenerate */}
+          {aiRejections.length > 0 && (
+            <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => generate(anthropicApiKey, gamesDb)} disabled={aiGenerating}>
+              <RefreshCw className="h-3 w-3 mr-1.5" /> Regenerate
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 2: AUDIO
+// ════════════════════════════════════════════════════════════════
+const AUDIO_FILTERS = ["All", "Ambient", "Chill", "Happy", "Inspiring", "Cinematic", "Pop", "Instrumental", "Celebrations"];
+
+const DEMO_TRACKS = [
+  { id: 1, name: "Cinematic ambient", dur: "03:10", filter: "Cinematic", gradient: "from-purple-400/40 to-purple-600/20" },
+  { id: 2, name: "Water stream river", dur: "01:47", filter: "Ambient", gradient: "from-blue-300/30 to-blue-500/20" },
+  { id: 3, name: "Spiritual healing", dur: "03:13", filter: "Chill", gradient: "from-pink-300/30 to-orange-300/20" },
+  { id: 4, name: "Space", dur: "02:26", filter: "Ambient", gradient: "from-indigo-400/30 to-violet-500/20" },
+  { id: 5, name: "Soothing ocean waves", dur: "02:13", filter: "Ambient", gradient: "from-cyan-300/30 to-blue-400/20" },
+  { id: 6, name: "Nature meditation", dur: "09:11", filter: "Chill", gradient: "from-amber-300/30 to-yellow-400/20" },
+  { id: 7, name: "Epic battle", dur: "04:22", filter: "Cinematic", gradient: "from-red-400/30 to-orange-500/20" },
+  { id: 8, name: "Happy morning", dur: "02:45", filter: "Happy", gradient: "from-yellow-300/30 to-green-300/20" },
+];
+
+function AudioPanel() {
+  const [subTab, setSubTab] = useState("music");
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [hoveredId, setHoveredId] = useState(null);
+
+  const filteredTracks = useMemo(() => {
+    let t = DEMO_TRACKS;
+    if (activeFilter !== "All") t = t.filter(tr => tr.filter === activeFilter);
+    if (search) t = t.filter(tr => tr.name.toLowerCase().includes(search.toLowerCase()));
+    return t;
+  }, [activeFilter, search]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Sub tabs */}
+      <div className="flex gap-4 px-3 pt-2 pb-1 border-b border-border/40">
+        {["music", "sfx"].map((t) => (
+          <button key={t} onClick={() => setSubTab(t)}
+            className={`text-xs font-medium pb-2 border-b-2 transition-colors ${subTab === t ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}`}>
+            {t === "music" ? "Music" : "Sound effect"}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + upload */}
+      <div className="flex items-center gap-1.5 px-3 py-2">
+        <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-secondary/50 border border-border/40 flex-1">
+          <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
+            className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground" />
+        </div>
+        <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+          <Upload className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Filter pills */}
+      <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto">
+        <button className="shrink-0 h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary/60">
+          <span className="text-sm">≡</span>
+        </button>
+        {AUDIO_FILTERS.map((f) => (
+          <button key={f} onClick={() => setActiveFilter(f)}
+            className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-medium transition-colors ${
+              activeFilter === f ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
+            }`}>
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <Separator />
+
+      {/* Track list */}
+      <ScrollArea className="flex-1">
+        <div className="py-1">
+          {filteredTracks.map((track) => (
+            <div key={track.id}
+              onMouseEnter={() => setHoveredId(track.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className="flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/30 transition-colors cursor-pointer group">
+              {/* Thumbnail */}
+              <div className={`w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br ${track.gradient} shrink-0`}>
+                <Play className="h-3.5 w-3.5 text-foreground/70" />
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-foreground font-medium truncate">{track.name}</div>
+                <div className="text-[10px] text-muted-foreground">{track.dur}</div>
+              </div>
+              {/* Hover actions */}
+              {hoveredId === track.id && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                          <Star className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-[10px]">Favorite</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors">
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-[10px]">Add to timeline</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              )}
+            </div>
+          ))}
+          {filteredTracks.length === 0 && (
+            <div className="py-8 text-center text-xs text-muted-foreground">No tracks found</div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 3: BRAND KIT
+// ════════════════════════════════════════════════════════════════
+function BrandKitPanel() {
+  const [applyAll, setApplyAll] = useState(false);
+
+  return (
+    <div className="p-3 space-y-4">
+      {/* Templates */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <SectionLabel className="mb-0">Templates</SectionLabel>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${applyAll ? "bg-primary border-primary" : "border-border"}`}
+                onClick={() => setApplyAll(!applyAll)}>
+                {applyAll && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+              </div>
+              <span className="text-[10px] text-muted-foreground">Apply to all</span>
+            </label>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {["ClipFlow Default", "Gaming Bold"].map((name, i) => (
+            <div key={i} className="aspect-[4/5] rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-end p-2">
+              <span className="text-[10px] text-muted-foreground">{name}</span>
+            </div>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" className="w-full h-7 text-[10px] mt-2">
+          <Plus className="h-3 w-3 mr-1" /> Save as template
+        </Button>
+      </div>
+
+      <Separator />
+
+      {/* Logos */}
+      <div>
+        <SectionLabel>Logos</SectionLabel>
+        <DropZone accept="JPG, PNG, JPEG" icon={ImagePlus} />
+      </div>
+
+      <Separator />
+
+      {/* Subtitles */}
+      <div>
+        <SectionLabel>Subtitles</SectionLabel>
+        <div className="flex gap-2">
+          <div className="w-16 h-16 rounded-lg bg-secondary/60 border border-border/40 flex items-center justify-center">
+            <span className="text-[9px] text-muted-foreground font-semibold italic">The five</span>
+          </div>
+          <button className="w-16 h-16 rounded-lg border-2 border-dashed border-border/40 hover:border-border/60 flex items-center justify-center transition-colors">
+            <Plus className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Text styles */}
+      <div>
+        <SectionLabel>Text styles</SectionLabel>
+        <div className="flex gap-2">
+          <div className="w-16 h-16 rounded-lg bg-secondary/60 border border-border/40 flex items-center justify-center">
+            <span className="text-[8px] text-muted-foreground leading-tight text-center">Lorem ipsum<br/>dolor sit</span>
+          </div>
+          <button className="w-16 h-16 rounded-lg border-2 border-dashed border-border/40 hover:border-border/60 flex items-center justify-center transition-colors">
+            <Type className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Images */}
+      <div>
+        <SectionLabel>Images</SectionLabel>
+        <DropZone accept="JPG, PNG, JPEG" icon={FileImage} />
+      </div>
+
+      <Separator />
+
+      {/* Outros */}
+      <div>
+        <SectionLabel>Outros</SectionLabel>
+        <DropZone accept="MP4, MOV, 3GP" icon={Film} />
+      </div>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 4: SUBTITLES
+// ════════════════════════════════════════════════════════════════
+const HIGHLIGHT_COLORS = ["#4cce8a", "#ffffff", "#f87171", "#fbbf24", "#a78bfa"];
+
+function SubtitlesPanel() {
+  const [subTab, setSubTab] = useState("settings");
+
+  const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
+  const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
+  const fontSize = useSubtitleStore((s) => s.fontSize);
+  const setFontSize = useSubtitleStore((s) => s.setFontSize);
+  const lineMode = useSubtitleStore((s) => s.lineMode);
+  const setLineMode = useSubtitleStore((s) => s.setLineMode);
+  const highlightColor = useSubtitleStore((s) => s.highlightColor);
+  const setHighlightColor = useSubtitleStore((s) => s.setHighlightColor);
+  const strokeOn = useSubtitleStore((s) => s.strokeOn);
+  const setStrokeOn = useSubtitleStore((s) => s.setStrokeOn);
+  const strokeWidth = useSubtitleStore((s) => s.strokeWidth);
+  const setStrokeWidth = useSubtitleStore((s) => s.setStrokeWidth);
+  const shadowOn = useSubtitleStore((s) => s.shadowOn);
+  const setShadowOn = useSubtitleStore((s) => s.setShadowOn);
+  const shadowBlur = useSubtitleStore((s) => s.shadowBlur);
+  const setShadowBlur = useSubtitleStore((s) => s.setShadowBlur);
+  const bgOn = useSubtitleStore((s) => s.bgOn);
+  const setBgOn = useSubtitleStore((s) => s.setBgOn);
+  const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
+  const setBgOpacity = useSubtitleStore((s) => s.setBgOpacity);
+  const showSubs = useSubtitleStore((s) => s.showSubs);
+  const setShowSubs = useSubtitleStore((s) => s.setShowSubs);
+  const syncOffset = useSubtitleStore((s) => s.syncOffset);
+  const setSyncOffset = useSubtitleStore((s) => s.setSyncOffset);
+
+  // local state for alignment/B/I/U (not in store yet)
+  const [align, setAlign] = useState("center");
+  const [bold, setBold] = useState(false);
+  const [italic, setItalic] = useState(false);
+  const [underline, setUnderline] = useState(false);
+  const [fontColor, setFontColor] = useState("#ffffff");
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Sub tabs */}
+      <div className="flex items-center gap-3 px-3 pt-2 pb-1 border-b border-border/40">
+        {["presets", "settings"].map((t) => (
+          <button key={t} onClick={() => setSubTab(t)}
+            className={`text-xs font-medium pb-2 border-b-2 transition-colors ${subTab === t ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}`}>
+            {t === "presets" ? "Presets" : "Settings"}
+          </button>
+        ))}
+        <div className="flex-1" />
+        <label className="flex items-center gap-1.5 cursor-pointer pb-1">
+          <div className="w-4 h-4 rounded border border-primary bg-primary flex items-center justify-center">
+            <Check className="h-2.5 w-2.5 text-primary-foreground" />
+          </div>
+          <span className="text-[10px] text-muted-foreground">Apply to all</span>
+        </label>
+      </div>
+
+      <ScrollArea className="flex-1">
+        {subTab === "presets" ? (
+          /* Presets grid */
+          <div className="p-3 grid grid-cols-2 gap-2">
+            {["Bold Impact", "Clean White", "Neon Glow", "Shadow Pop", "Minimal", "Gaming"].map((name, i) => (
+              <div key={i} className="aspect-video rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-center justify-center">
+                <span className="text-[10px] text-muted-foreground font-medium">{name}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Settings */
+          <div className="p-3 space-y-3">
+            {/* Font toolbar */}
+            <FontToolbar
+              fontFamily={subFontFamily} setFontFamily={setSubFontFamily}
+              fontSize={fontSize} setFontSize={setFontSize}
+              align={align} setAlign={setAlign}
+              bold={bold} setBold={setBold}
+              italic={italic} setItalic={setItalic}
+              underline={underline} setUnderline={setUnderline}
+              color={fontColor} setColor={setFontColor}
+              lineMode={lineMode} setLineMode={setLineMode}
+            />
+
+            <Separator />
+
+            {/* Highlight */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-foreground font-medium">Highlight</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {HIGHLIGHT_COLORS.map((c) => (
+                  <ColorPickerPopover key={c} color={c} onChange={setHighlightColor}>
+                    <button
+                      className={`w-7 h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${
+                        highlightColor === c ? "border-foreground scale-110" : "border-transparent"
+                      }`}
+                      style={{ background: c }}
+                    />
+                  </ColorPickerPopover>
+                ))}
+                <button className="w-7 h-7 rounded-full border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-border hover:text-foreground transition-colors">
+                  <Minus className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Stroke */}
+            <EffectSection label="Stroke" enabled={strokeOn} onToggle={setStrokeOn} color="#000000" onColorChange={() => {}}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-10">Width</span>
+                <Slider value={[strokeWidth]} onValueChange={([v]) => setStrokeWidth(v)} min={0} max={20} step={1} className="flex-1" />
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{strokeWidth}</span>
+              </div>
+            </EffectSection>
+
+            {/* Shadow */}
+            <EffectSection label="Shadow" enabled={shadowOn} onToggle={setShadowOn} color="#000000" onColorChange={() => {}}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-10">Blur</span>
+                <Slider value={[shadowBlur]} onValueChange={([v]) => setShadowBlur(v)} min={0} max={30} step={1} className="flex-1" />
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{shadowBlur}</span>
+              </div>
+            </EffectSection>
+
+            {/* Background */}
+            <EffectSection label="Background" enabled={bgOn} onToggle={setBgOn} color="#000000" onColorChange={() => {}}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-10">Opacity</span>
+                <Slider value={[bgOpacity]} onValueChange={([v]) => setBgOpacity(v)} min={0} max={100} step={1} className="flex-1" />
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{bgOpacity}%</span>
+              </div>
+            </EffectSection>
+
+            <Separator />
+
+            {/* Sync offset */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-foreground font-medium">Sync offset</span>
+                <span className="text-[10px] text-muted-foreground font-mono">{syncOffset > 0 ? "+" : ""}{syncOffset.toFixed(1)}s</span>
+              </div>
+              <Slider value={[syncOffset]} onValueChange={([v]) => setSyncOffset(v)} min={-10} max={10} step={0.1} />
+            </div>
+
+            <Separator />
+
+            {/* Quick toggles */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-foreground">Show subtitles</span>
+                <ToggleSwitch value={showSubs} onChange={setShowSubs} />
+              </div>
+            </div>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 5: TEXT / HEADLINES
+// ════════════════════════════════════════════════════════════════
+function TextPanel() {
+  const [subTab, setSubTab] = useState("settings");
+  const captionText = useCaptionStore((s) => s.captionText);
+  const setCaptionText = useCaptionStore((s) => s.setCaptionText);
+  const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
+  const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
+  const captionFontSize = useCaptionStore((s) => s.captionFontSize);
+  const setCaptionFontSize = useCaptionStore((s) => s.setCaptionFontSize);
+  const captionColor = useCaptionStore((s) => s.captionColor);
+  const setCaptionColor = useCaptionStore((s) => s.setCaptionColor);
+  const captionBold = useCaptionStore((s) => s.captionBold);
+  const captionItalic = useCaptionStore((s) => s.captionItalic);
+  const captionUnderline = useCaptionStore((s) => s.captionUnderline);
+  const toggleBold = useCaptionStore((s) => s.toggleBold);
+  const toggleItalic = useCaptionStore((s) => s.toggleItalic);
+  const toggleUnderline = useCaptionStore((s) => s.toggleUnderline);
+  const markDirty = useEditorStore((s) => s.markDirty);
+
+  // Local effect state
+  const [shadowEnabled, setShadowEnabled] = useState(false);
+  const [shadowColor, setShadowColor] = useState("#000000");
+  const [shadowBlur, setShadowBlur] = useState(4);
+  const [strokeEnabled, setStrokeEnabled] = useState(false);
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [bgEnabled, setBgEnabled] = useState(false);
+  const [bgColor, setBgColor] = useState("#000000");
+  const [bgOpacity, setBgOpacity] = useState(80);
+  const [align, setAlign] = useState("center");
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Sub tabs */}
+      <div className="flex gap-3 px-3 pt-2 pb-1 border-b border-border/40">
+        {["presets", "settings"].map((t) => (
+          <button key={t} onClick={() => setSubTab(t)}
+            className={`text-xs font-medium pb-2 border-b-2 transition-colors ${subTab === t ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}`}>
+            {t === "presets" ? "Presets" : "Settings"}
+          </button>
+        ))}
+      </div>
+
+      <ScrollArea className="flex-1">
+        {subTab === "presets" ? (
+          <div className="p-3 space-y-3">
+            {/* Add buttons */}
+            <div className="space-y-1.5">
+              <Button variant="outline" className="w-full h-9 text-xs justify-start gap-2">
+                <Type className="h-3.5 w-3.5" /> Add a headline
+              </Button>
+              <Button variant="outline" className="w-full h-9 text-xs justify-start gap-2">
+                <AlignLeft className="h-3.5 w-3.5" /> Add body text
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Preset grid */}
+            <div>
+              <SectionLabel>Recommended</SectionLabel>
+              <div className="grid grid-cols-2 gap-2">
+                {["Bold Title", "Clean Sans", "Neon", "Retro", "Outline", "Gradient"].map((name, i) => (
+                  <div key={i} className="aspect-[3/2] rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-center justify-center">
+                    <span className="text-[10px] text-muted-foreground">{name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 space-y-3">
+            {/* Text content */}
+            <div>
+              <textarea value={captionText} onChange={(e) => { setCaptionText(e.target.value); markDirty(); }} rows={3} placeholder="Enter caption text..."
+                className="w-full px-3 py-2.5 text-sm rounded-md bg-secondary/30 border border-border/40 text-foreground outline-none resize-none placeholder:text-muted-foreground focus:border-primary/30" />
+            </div>
+
+            {/* Font toolbar */}
+            <FontToolbar
+              fontFamily={captionFontFamily} setFontFamily={(f) => { setCaptionFontFamily(f); markDirty(); }}
+              fontSize={captionFontSize} setFontSize={(s) => { setCaptionFontSize(s); markDirty(); }}
+              align={align} setAlign={setAlign}
+              bold={captionBold} setBold={() => { toggleBold(); markDirty(); }}
+              italic={captionItalic} setItalic={() => { toggleItalic(); markDirty(); }}
+              underline={captionUnderline} setUnderline={() => { toggleUnderline(); markDirty(); }}
+              color={captionColor} setColor={(c) => { setCaptionColor(c); markDirty(); }}
+            />
+
+            {/* Shadow */}
+            <EffectSection label="Shadow" enabled={shadowEnabled} onToggle={setShadowEnabled} color={shadowColor} onColorChange={setShadowColor}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-14">Intensity</span>
+                <Slider value={[shadowBlur]} onValueChange={([v]) => setShadowBlur(v)} min={0} max={20} step={1} className="flex-1" />
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{shadowBlur}</span>
+              </div>
+            </EffectSection>
+
+            {/* Stroke */}
+            <EffectSection label="Stroke" enabled={strokeEnabled} onToggle={setStrokeEnabled} color={strokeColor} onColorChange={setStrokeColor}>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-14">Width</span>
+                  <Slider value={[strokeWidth]} onValueChange={([v]) => setStrokeWidth(v)} min={0} max={20} step={1} className="flex-1" />
+                  <span className="text-[10px] text-muted-foreground w-6 text-right">{strokeWidth}</span>
+                </div>
+              </div>
+            </EffectSection>
+
+            {/* Background */}
+            <EffectSection label="Background" enabled={bgEnabled} onToggle={setBgEnabled} color={bgColor} onColorChange={setBgColor}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-14">Opacity</span>
+                <Slider value={[bgOpacity]} onValueChange={([v]) => setBgOpacity(v)} min={0} max={100} step={1} className="flex-1" />
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{bgOpacity}%</span>
+              </div>
+            </EffectSection>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWER 6: UPLOAD
+// ════════════════════════════════════════════════════════════════
+function UploadPanel() {
+  const [dragOver, setDragOver] = useState(false);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Upload button */}
+      <div className="px-3 pt-3 pb-2">
+        <Button variant="outline" className="w-full h-10 text-xs gap-2">
+          <Upload className="h-4 w-4" /> Upload
+        </Button>
+      </div>
+
+      {/* Drop zone */}
+      <div className="flex-1 flex items-center justify-center px-3 pb-3">
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
+          className={`w-full h-full min-h-[200px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${
+            dragOver ? "border-primary/50 bg-primary/5" : "border-border/30"
+          }`}
+        >
+          {/* Folder illustration */}
+          <div className="relative">
+            <FolderOpen className="h-16 w-16 text-primary/20" />
+            <div className="absolute -top-1 -right-2 w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+              <FileImage className="h-3 w-3 text-primary/40" />
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground text-center">
+            Drop images, videos<br />or audio here
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  ICON RAIL CONFIG
+// ════════════════════════════════════════════════════════════════
+const RAIL_ICONS = [
+  { id: "ai", icon: Sparkles, label: "AI Tools", group: 1 },
+  { id: "brand", icon: Palette, label: "Brand Kit", group: 1 },
+  { id: "subs", icon: Captions, label: "Subtitles", group: 2 },
+  { id: "text", icon: Type, label: "Text", group: 2 },
+  { id: "audio", icon: Music, label: "Audio", group: 3 },
+  { id: "upload", icon: Upload, label: "Upload", group: 3 },
+];
+
+const DRAWER_LABELS = {
+  ai: "AI Tools", brand: "Brand Kit", subs: "Subtitles", text: "Text", audio: "Audio", upload: "Upload",
+};
+
+
+// ════════════════════════════════════════════════════════════════
+//  MAIN EXPORT: RIGHT PANEL
+// ════════════════════════════════════════════════════════════════
+export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
+  const drawerOpen = useLayoutStore((s) => s.drawerOpen);
+  const activePanel = useLayoutStore((s) => s.activePanel);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
+
+  const renderDrawer = () => {
+    switch (activePanel) {
+      case "ai": return <AIToolsPanel gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />;
+      case "audio": return <AudioPanel />;
+      case "brand": return <BrandKitPanel />;
+      case "subs": return <SubtitlesPanel />;
+      case "text": return <TextPanel />;
+      case "upload": return <UploadPanel />;
+      default: return (
+        <div className="p-4 flex items-center justify-center h-[200px] text-muted-foreground">
+          <span className="text-xs opacity-60">{DRAWER_LABELS[activePanel] || activePanel} — coming soon</span>
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className="flex h-full">
+      {/* Drawer (conditional) */}
+      {drawerOpen && (
+        <div className="w-[320px] border-l bg-card flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="h-11 min-h-[44px] flex items-center justify-between px-3 border-b shrink-0">
+            <span className="text-xs font-semibold text-foreground">{DRAWER_LABELS[activePanel] || activePanel}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setDrawerOpen(false)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {/* Body */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {activePanel === "audio" || activePanel === "subs" || activePanel === "text" ? (
+              renderDrawer()
+            ) : (
+              <ScrollArea className="h-full">{renderDrawer()}</ScrollArea>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Icon rail (always visible) */}
+      <div className="w-12 min-w-[48px] border-l bg-card flex flex-col items-center py-2 gap-0.5">
+        <TooltipProvider delayDuration={300}>
+          {RAIL_ICONS.map((item, i) => {
+            const Icon = item.icon;
+            const prevGroup = i > 0 ? RAIL_ICONS[i - 1].group : item.group;
+            const isActive = drawerOpen && activePanel === item.id;
+
+            return (
+              <React.Fragment key={item.id}>
+                {i > 0 && item.group !== prevGroup && <Separator className="w-7 my-1" />}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => togglePanel(item.id)}
+                      className={`w-10 h-10 rounded-md flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+                        isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[9px] leading-none font-medium">{item.label}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">{item.label}</TooltipContent>
+                </Tooltip>
+              </React.Fragment>
+            );
+          })}
+        </TooltipProvider>
+      </div>
+    </div>
+  );
+}

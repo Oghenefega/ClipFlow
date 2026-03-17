@@ -6,26 +6,21 @@ import {
 } from "../../../components/ui/resizable";
 import { Separator } from "../../../components/ui/separator";
 import LeftPanelNew from "./LeftPanelNew";
+import RightPanelNew from "./RightPanelNew";
 import {
-  Sparkles,
-  Palette,
-  Captions,
-  Type,
-  Music,
-  Upload,
-  ImagePlus,
   Undo2,
   Redo2,
   ChevronLeft,
   ChevronDown,
   Play,
-  Pause,
   ZoomIn,
   ZoomOut,
   PanelBottomClose,
   Scissors,
   Search,
   SlidersHorizontal,
+  Music,
+  Type,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -35,18 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../../components/ui/tooltip";
-import { ScrollArea } from "../../../components/ui/scroll-area";
 
-// ── Right rail icon definitions (matches Vizard sidebar order) ──
-const RAIL_ICONS = [
-  { id: "ai", icon: Sparkles, label: "AI Tools", group: 1 },
-  { id: "brand", icon: Palette, label: "Brand Kit", group: 1 },
-  { id: "subs", icon: Captions, label: "Subtitles", group: 2 },
-  { id: "head", icon: Type, label: "Caption", group: 2 },
-  { id: "audio", icon: Music, label: "Audio", group: 3 },
-  { id: "media", icon: ImagePlus, label: "Media", group: 3 },
-  { id: "upload", icon: Upload, label: "Upload", group: 3 },
-];
 
 // ── Timeline track definitions ──
 const TRACKS = [
@@ -138,83 +122,6 @@ function PreviewPanel() {
         <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
           <span className="opacity-60">◻</span> Layouts
         </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Right Icon Rail ──
-function RightRail() {
-  const [activeId, setActiveId] = React.useState(null);
-
-  return (
-    <div className="flex h-full">
-      {/* Drawer placeholder — shown when an icon is active */}
-      {activeId && (
-        <div className="w-[300px] border-l bg-card flex flex-col">
-          {/* Drawer header */}
-          <div className="h-11 flex items-center justify-between px-3 border-b">
-            <span className="text-xs font-semibold text-foreground">
-              {RAIL_ICONS.find((r) => r.id === activeId)?.label}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              onClick={() => setActiveId(null)}
-            >
-              <span className="text-xs">✕</span>
-            </Button>
-          </div>
-          {/* Drawer body placeholder */}
-          <ScrollArea className="flex-1">
-            <div className="p-4 flex flex-col items-center justify-center h-[200px] text-muted-foreground">
-              <span className="text-xs opacity-60">
-                {RAIL_ICONS.find((r) => r.id === activeId)?.label} panel
-              </span>
-            </div>
-          </ScrollArea>
-        </div>
-      )}
-
-      {/* Icon rail — always visible */}
-      <div className="w-12 min-w-[48px] border-l bg-card flex flex-col items-center py-2 gap-0.5">
-        <TooltipProvider delayDuration={300}>
-          {RAIL_ICONS.map((item, i) => {
-            const Icon = item.icon;
-            const prevGroup = i > 0 ? RAIL_ICONS[i - 1].group : item.group;
-            const isActive = activeId === item.id;
-
-            return (
-              <React.Fragment key={item.id}>
-                {i > 0 && item.group !== prevGroup && (
-                  <Separator className="w-7 my-1" />
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setActiveId(isActive ? null : item.id)}
-                      className={`
-                        w-10 h-10 rounded-md flex flex-col items-center justify-center gap-0.5
-                        transition-colors cursor-pointer
-                        ${isActive
-                          ? "bg-primary/15 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                        }
-                      `}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-[9px] leading-none font-medium">{item.label}</span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="text-xs">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              </React.Fragment>
-            );
-          })}
-        </TooltipProvider>
       </div>
     </div>
   );
@@ -379,7 +286,7 @@ function TimelinePanel() {
 }
 
 // ── Main Layout Shell ──
-export default function EditorLayout() {
+export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
   return (
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
@@ -407,7 +314,7 @@ export default function EditorLayout() {
             </ResizablePanelGroup>
 
             {/* Right icon rail + drawer (not in resizable — fixed width) */}
-            <RightRail />
+            <RightPanelNew gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
           </div>
         </ResizablePanel>
 

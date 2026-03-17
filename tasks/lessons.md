@@ -46,6 +46,17 @@
 
 ---
 
+### Always pass explicit data fields, never let AI infer from names
+- **Mistake:** AI title generation didn't receive the game's `hashtag` field. It saw game name "Egging On" and inferred `#eo` (the tag code) instead of `#eggingon` (the actual hashtag).
+- **Fix:** Pass `gameHashtag` explicitly from the store to the IPC handler, and inject the exact hashtag into the system prompt.
+- **Rule:** When an AI prompt needs a specific value (hashtag, tag, ID), pass it as an explicit parameter. Never rely on the AI to derive it from a name or context.
+
+### Always verify data shapes before writing filters
+- **Mistake:** Queue filter used `trackerData.map(t => t.clipId)` but tracker entries had no `clipId` field — filter matched nothing.
+- **Rule:** Before filtering on a field, verify it exists in the data creation code, not just the reading code.
+
+---
+
 ## Data / Persistence
 
 ### Always add migration paths for schema changes
