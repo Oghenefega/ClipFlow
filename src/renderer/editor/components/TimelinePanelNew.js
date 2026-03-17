@@ -192,16 +192,13 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
+    // NEVER draw a fake/generic waveform. Only render real audio data.
     if (!peaks || peaks.length === 0) {
-      // Draw placeholder waveform
-      const barCount = Math.floor(w / 3);
-      for (let i = 0; i < barCount; i++) {
-        const amp = 0.15 + Math.abs(Math.sin(i * 0.35)) * 0.6;
-        const barH = amp * h * 0.8;
-        const x = (i / barCount) * w;
-        ctx.fillStyle = selected ? "hsl(200 50% 60% / 0.5)" : "hsl(200 40% 50% / 0.35)";
-        ctx.fillRect(x, (h - barH) / 2, 2, barH);
-      }
+      // Show "Extracting waveform..." text if no data yet
+      ctx.fillStyle = "hsl(200 40% 50% / 0.3)";
+      ctx.font = "10px 'DM Sans', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Extracting waveform...", w / 2, h / 2 + 3);
       return;
     }
 
@@ -245,6 +242,7 @@ export default function TimelinePanelNew() {
   // Store subscriptions
   const playing = usePlaybackStore((s) => s.playing);
   const currentTime = usePlaybackStore((s) => s.currentTime);
+  const duration = usePlaybackStore((s) => s.duration);
   const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
   const togglePlay = usePlaybackStore((s) => s.togglePlay);
   const seekTo = usePlaybackStore((s) => s.seekTo);
@@ -263,7 +261,6 @@ export default function TimelinePanelNew() {
   const toggleTlCollapse = useLayoutStore((s) => s.toggleTlCollapse);
   const setTlZoom = useLayoutStore((s) => s.setTlZoom);
 
-  const clip = useEditorStore((s) => s.clip);
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
 
   // Local state
@@ -275,9 +272,6 @@ export default function TimelinePanelNew() {
 
   const tracksRef = useRef(null);
   const rulerRef = useRef(null);
-
-  // Video duration
-  const duration = clip?.duration || 0;
 
   // Timeline pixel width based on zoom
   const trackAreaRef = useRef(null);
@@ -401,6 +395,21 @@ export default function TimelinePanelNew() {
   const handleRulerScroll = useCallback((e) => {
     if (tracksRef.current) tracksRef.current.scrollLeft = e.target.scrollLeft;
   }, []);
+
+  // Auto-scroll to keep playhead visible during playback
+  useEffect(() => {
+    if (!playing || !tracksRef.current || !rulerRef.current || duration <= 0) return;
+    const scrollContainer = tracksRef.current;
+    const viewWidth = scrollContainer.clientWidth;
+    const playheadX = (currentTime / duration) * timelineWidth;
+    const scrollLeft = scrollContainer.scrollLeft;
+    // If playhead is near the right edge or off-screen, scroll to follow
+    if (playheadX > scrollLeft + viewWidth - 40 || playheadX < scrollLeft) {
+      const newScroll = Math.max(0, playheadX - viewWidth * 0.3);
+      scrollContainer.scrollLeft = newScroll;
+      rulerRef.current.scrollLeft = newScroll;
+    }
+  }, [playing, currentTime, duration, timelineWidth]);
 
   // Apply playback speed to video
   useEffect(() => {
@@ -652,7 +661,7 @@ export default function TimelinePanelNew() {
           <div style={{ width: timelineWidth, minHeight: "100%" }}>
             {/* Caption track */}
             <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30" style={{ width: LABEL_W }}>
+              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
                 <span
                   className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white"
                   style={{ background: "hsl(263 70% 58%)" }}
@@ -684,7 +693,7 @@ export default function TimelinePanelNew() {
 
             {/* Subtitle track */}
             <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30" style={{ width: LABEL_W }}>
+              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
                 <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
               </div>
               <div className="flex-1 relative" style={{ width: timelineWidth - LABEL_W }}>
@@ -710,7 +719,7 @@ export default function TimelinePanelNew() {
 
             {/* Audio/Video track */}
             <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30" style={{ width: LABEL_W }}>
+              <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
                 <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
               </div>
               <div className="flex-1 relative" style={{ width: timelineWidth - LABEL_W }}>

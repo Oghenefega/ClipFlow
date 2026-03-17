@@ -3,6 +3,7 @@ import { create } from "zustand";
 const usePlaybackStore = create((set, get) => ({
   playing: false,
   currentTime: 0,
+  duration: 0,
   tlSpeed: "1x",
   tlScrubbing: false,
   trimIn: 0,
@@ -23,6 +24,7 @@ const usePlaybackStore = create((set, get) => ({
   },
 
   setCurrentTime: (t) => set({ currentTime: t }),
+  setDuration: (d) => set({ duration: d }),
 
   seekTo: (sec) => {
     const ref = get()._videoRef;
@@ -35,7 +37,7 @@ const usePlaybackStore = create((set, get) => ({
   setTrimIn: (t) => set({ trimIn: t }),
   setTrimOut: (t) => set({ trimOut: t }),
 
-  reset: () => set({ playing: false, currentTime: 0, tlScrubbing: false, trimIn: 0, trimOut: null }),
+  reset: () => set({ playing: false, currentTime: 0, duration: 0, tlScrubbing: false, trimIn: 0, trimOut: null }),
 }));
 
 export default usePlaybackStore;

@@ -280,8 +280,10 @@ export default function PreviewPanelNew() {
   const playing = usePlaybackStore((s) => s.playing);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const setCurrentTime = usePlaybackStore((s) => s.setCurrentTime);
+  const setDuration = usePlaybackStore((s) => s.setDuration);
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
   const initVideoRef = usePlaybackStore((s) => s.initVideoRef);
+  const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
 
   // Subtitles
   const editSegments = useSubtitleStore((s) => s.editSegments);
@@ -383,6 +385,23 @@ export default function PreviewPanelNew() {
       setCurrentTime(videoRef.current.currentTime);
     }
   }, [setCurrentTime]);
+
+  const onLoadedMetadata = useCallback(() => {
+    if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
+      setDuration(videoRef.current.duration);
+
+      // Extract real waveform peaks via FFmpeg in main process
+      if (clip?.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
+        window.clipflow.ffmpegExtractWaveformPeaks(clip.filePath, 400).then((result) => {
+          if (result?.peaks?.length > 0) {
+            setWaveformPeaks(result.peaks);
+          }
+        }).catch((err) => {
+          console.warn("Waveform extraction failed:", err);
+        });
+      }
+    }
+  }, [setDuration, clip?.filePath, setWaveformPeaks]);
 
   const onVideoEnd = useCallback(() => {
     setPlaying(false);
@@ -562,6 +581,7 @@ export default function PreviewPanelNew() {
               src={videoSrc}
               className="absolute inset-0 w-full h-full object-contain"
               onTimeUpdate={onTimeUpdate}
+              onLoadedMetadata={onLoadedMetadata}
               onEnded={onVideoEnd}
               preload="auto"
               data-canvas-bg="true"

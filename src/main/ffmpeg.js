@@ -197,6 +197,57 @@ function analyzeLoudness(audioPath, segmentDuration = 1) {
   });
 }
 
+/**
+ * Extract waveform peaks from a video/audio file using FFmpeg.
+ * Runs entirely in the main process — no renderer memory issues.
+ * Returns an array of normalized amplitude values (0–1).
+ * @param {string} filePath - Source video or audio file
+ * @param {number} peakCount - Number of peaks to extract (default 400)
+ * @returns {Promise<{peaks: number[]}>}
+ */
+function extractWaveformPeaks(filePath, peakCount = 400) {
+  return new Promise((resolve, reject) => {
+    // Use FFmpeg to downsample audio and output raw PCM to stdout
+    // Then parse the samples to compute peaks
+    const args = [
+      "-i", filePath,
+      "-vn",                    // no video
+      "-ac", "1",               // mono
+      "-ar", String(peakCount * 10), // sample rate: ~peakCount*10 samples
+      "-f", "s16le",            // raw 16-bit signed little-endian PCM
+      "-acodec", "pcm_s16le",
+      "pipe:1",                 // output to stdout
+    ];
+
+    const child = require("child_process").execFile("ffmpeg", args, {
+      timeout: 60000,
+      maxBuffer: 50 * 1024 * 1024,
+      encoding: "buffer",
+    }, (err, stdout) => {
+      if (err) return reject(new Error(`Waveform extraction failed: ${err.message}`));
+      if (!stdout || stdout.length < 2) return resolve({ peaks: [] });
+
+      // Parse 16-bit samples
+      const sampleCount = Math.floor(stdout.length / 2);
+      const samplesPerPeak = Math.max(1, Math.floor(sampleCount / peakCount));
+      const peaks = [];
+
+      for (let i = 0; i < peakCount && i * samplesPerPeak < sampleCount; i++) {
+        let max = 0;
+        const start = i * samplesPerPeak;
+        const end = Math.min(start + samplesPerPeak, sampleCount);
+        for (let j = start; j < end; j++) {
+          const sample = Math.abs(stdout.readInt16LE(j * 2));
+          if (sample > max) max = sample;
+        }
+        peaks.push(max / 32768); // normalize to 0–1
+      }
+
+      resolve({ peaks });
+    });
+  });
+}
+
 module.exports = {
   checkFfmpeg,
   probe,
@@ -204,4 +255,5 @@ module.exports = {
   cutClip,
   generateThumbnail,
   analyzeLoudness,
+  extractWaveformPeaks,
 };

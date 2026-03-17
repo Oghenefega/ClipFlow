@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   ffmpegCutClip: (srcPath, outPath, startTime, endTime) => ipcRenderer.invoke("ffmpeg:cutClip", srcPath, outPath, startTime, endTime),
   ffmpegThumbnail: (videoPath, outPath, time) => ipcRenderer.invoke("ffmpeg:thumbnail", videoPath, outPath, time),
   ffmpegAnalyzeLoudness: (audioPath, segmentDuration) => ipcRenderer.invoke("ffmpeg:analyzeLoudness", audioPath, segmentDuration),
+  ffmpegExtractWaveformPeaks: (filePath, peakCount) => ipcRenderer.invoke("ffmpeg:extractWaveformPeaks", filePath, peakCount),
 
   // Whisper
   whisperCheck: (binaryPath) => ipcRenderer.invoke("whisper:checkInstalled", binaryPath),

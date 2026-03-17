@@ -406,6 +406,11 @@ ipcMain.handle("ffmpeg:analyzeLoudness", async (_, audioPath, segmentDuration) =
   catch (err) { return { error: err.message }; }
 });
 
+ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => {
+  try { return await ffmpeg.extractWaveformPeaks(filePath, peakCount || 400); }
+  catch (err) { return { error: err.message, peaks: [] }; }
+});
+
 // ============ WHISPER ============
 ipcMain.handle("whisper:checkInstalled", async (_, binaryPath) => {
   try { return await whisper.checkWhisper(binaryPath); }
