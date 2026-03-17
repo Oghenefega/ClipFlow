@@ -26,26 +26,27 @@
     --radius: 0.5rem;
   }
 
+  /* ClipFlow dark theme — matched to Vizard structure with dark palette */
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 240 8% 4%;
+    --foreground: 240 5% 96%;
+    --card: 240 6% 7%;
+    --card-foreground: 240 5% 96%;
+    --popover: 240 6% 9%;
+    --popover-foreground: 240 5% 96%;
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 12%;
+    --secondary-foreground: 240 5% 80%;
+    --muted: 240 5% 10%;
+    --muted-foreground: 240 4% 55%;
+    --accent: 263 70% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 240 4% 14%;
+    --input: 240 4% 16%;
+    --ring: 263 70% 58%;
   }
 }
 
@@ -53,7 +54,29 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+}
+
+/* ── Editor-specific utilities ── */
+
+/* Scrollbars in dark editor */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(240 4% 22%);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 4% 30%);
+}
+
+/* Resizable handle hover — purple highlight on drag */
+.dark [data-resize-handle]:hover,
+.dark [data-resize-handle][data-resize-handle-active] {
+  background-color: hsl(263 70% 58% / 0.4) !important;
+  transition: background-color 0.15s;
 }

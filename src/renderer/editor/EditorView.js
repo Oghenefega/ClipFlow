@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import useEditorStore from "./stores/useEditorStore";
-import EditorShell from "./components/EditorShell";
+import EditorLayout from "./components/EditorLayout";
 
 class EditorErrorBoundary extends React.Component {
   constructor(props) {
@@ -42,7 +42,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
 
   return (
     <EditorErrorBoundary>
-      <EditorShell onBack={onBack} gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
+      <EditorLayout onBack={onBack} gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
     </EditorErrorBoundary>
   );
 }
