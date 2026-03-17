@@ -1,7 +1,7 @@
 # ClipFlow — Desktop App for Gaming Content Pipeline
 
 ## Git Workflow
-Always commit and push directly to main. Do not create pull requests or feature branches.
+Always commit and push directly to master. Do not create pull requests or feature branches.
 
 ## Workflow Orchestration
 
@@ -41,7 +41,7 @@ Always commit and push directly to main. Do not create pull requests or feature 
 
 ClipFlow is an **Electron + React** desktop app for a gaming content creator named **Fega**. It automates the full pipeline from OBS recording to published short-form clips across YouTube Shorts, TikTok, Instagram Reels, and Facebook Reels.
 
-**The pipeline:** Record gameplay (OBS) → Detect & rename files → Upload to Cloudflare R2 → Send to Vizard AI for clipping → Review/approve clips → Schedule & publish to 6 platform accounts.
+**The pipeline:** Record gameplay (OBS) → Detect & rename files → Generate clips locally (FFmpeg + Whisper + highlight detection) → Edit clips in built-in editor (subtitles, captions, AI titles) → Render with FFmpeg → Schedule & publish to 6 platform accounts.
 
 ## Owner / User
 
@@ -57,10 +57,15 @@ ClipFlow is an **Electron + React** desktop app for a gaming content creator nam
 |-----------|-----------|
 | Desktop shell | Electron 28 |
 | UI | React 18 (CRA build) |
-| File watching | chokidar |
-| Persistence | electron-store (planned) |
-| File operations | Node.js fs via IPC |
-| OBS log parsing | Custom parser in main process |
+| CSS | Tailwind CSS 3 + shadcn/ui (Radix primitives) |
+| State (app-level) | React useState/useEffect in App.js, passed as props |
+| State (editor) | Zustand 5 (6 isolated stores) |
+| Persistence | electron-store 8 |
+| File watching | chokidar 3 |
+| Video processing | FFmpeg (local binary) |
+| Transcription | whisper.cpp (local binary) |
+| AI generation | Anthropic API (Claude Sonnet 4 / Opus 4) |
+| Icons | lucide-react |
 | Fonts | DM Sans (UI) + JetBrains Mono (code/filenames) via Google Fonts CDN |
 
 ## Project Structure
@@ -68,27 +73,81 @@ ClipFlow is an **Electron + React** desktop app for a gaming content creator nam
 ```
 ClipFlow/
 ├── public/
-│   └── index.html
+│   ├── index.html
+│   └── icon.png
 ├── src/
 │   ├── main/
-│   │   ├── main.js          ← Electron main process, IPC handlers, file watcher
-│   │   └── preload.js        ← Context bridge (window.clipflow API)
+│   │   ├── main.js              ← Electron main process, 31 IPC handlers, file watcher
+│   │   ├── preload.js            ← Context bridge (window.clipflow API)
+│   │   ├── projects.js           ← Project/clip CRUD on disk (JSON files)
+│   │   ├── ffmpeg.js             ← FFmpeg wrappers (probe, extract, cut, render)
+│   │   ├── whisper.js            ← Whisper transcription wrapper
+│   │   ├── highlights.js         ← Audio analysis + highlight detection
+│   │   ├── render.js             ← Video rendering pipeline (ASS subtitle burn-in)
+│   │   └── publish.js            ← Platform API stubs (future)
 │   ├── renderer/
-│   │   ├── App.js             ← Shell with sidebar nav, view routing, global state
+│   │   ├── App.js                ← Shell: sidebar nav, view routing, global state, persistence
 │   │   ├── components/
-│   │   │   └── Sidebar.js     ← Navigation component
+│   │   │   ├── Sidebar.js        ← Navigation component (7 tabs)
+│   │   │   ├── shared.js         ← Reusable UI components
+│   │   │   └── modals.js         ← AddGameModal, TranscriptModal, GameEditModal
 │   │   ├── views/
-│   │   │   ├── RenameView.js  ← FULLY FUNCTIONAL — file watcher, rename cards, history
-│   │   │   └── PlaceholderView.js ← Stub for remaining 5 tabs
+│   │   │   ├── RenameView.js     ← File watcher, rename cards, pending/history/manage tabs
+│   │   │   ├── UploadView.js     ← Recording scanner + local clip generation pipeline
+│   │   │   ├── ProjectsView.js   ← Project browser + clip details (ClipBrowser)
+│   │   │   ├── QueueView.js      ← Publishing schedule + weekly tracker grid
+│   │   │   ├── CaptionsView.js   ← YouTube descriptions + platform caption templates
+│   │   │   ├── SettingsView.js   ← Game library, watch folder, API keys, tool status
+│   │   │   └── EditorView.js     ← Thin wrapper that loads editor/EditorView
+│   │   ├── editor/
+│   │   │   ├── EditorView.js     ← Error boundary + shell loader
+│   │   │   ├── components/
+│   │   │   │   ├── EditorShell.js    ← Main grid layout (preview, timeline, drawers)
+│   │   │   │   ├── Topbar.js         ← Title editing + back button + render button
+│   │   │   │   ├── PreviewPanel.js   ← HTML5 video player + subtitle overlay
+│   │   │   │   ├── Timeline.js       ← Ruler + playhead + subtitle segment tracks
+│   │   │   │   ├── TranscriptPanel.js ← Word-level transcript with seek/edit
+│   │   │   │   ├── EditSubsPanel.js  ← Segment editor with timecode popover
+│   │   │   │   ├── LeftPanel.js      ← Tab switcher (transcript/edit subs)
+│   │   │   │   ├── RightZone.js      ← Right panel shell
+│   │   │   │   ├── SubtitlesDrawer.js ← CC subtitle styling controls
+│   │   │   │   ├── CaptionDrawer.js  ← Caption text/font/color editing
+│   │   │   │   ├── AIToolsDrawer.js  ← AI generation (Anthropic titles/captions)
+│   │   │   │   ├── BrandDrawer.js    ← Brand/SFX placeholders
+│   │   │   │   ├── MediaDrawer.js    ← Media placeholder
+│   │   │   │   └── RenderOverlay.js  ← Render progress overlay
+│   │   │   ├── stores/
+│   │   │   │   ├── useEditorStore.js   ← Project/clip data, save handler
+│   │   │   │   ├── useLayoutStore.js   ← Panel widths, collapse states, zoom
+│   │   │   │   ├── usePlaybackStore.js ← Video playback state (playing, time)
+│   │   │   │   ├── useSubtitleStore.js ← Editable segments, styling, split/merge
+│   │   │   │   ├── useCaptionStore.js  ← Caption text + formatting
+│   │   │   │   └── useAIStore.js       ← AI generation state
+│   │   │   ├── primitives/
+│   │   │   │   └── editorPrimitives.js ← Shared editor UI components
+│   │   │   └── utils/
+│   │   │       ├── constants.js        ← Layout defaults, colors, UI sizes
+│   │   │       ├── timeUtils.js        ← Time formatting (mm:ss.ms)
+│   │   │       └── waveformUtils.js    ← Waveform peak calculation
 │   │   └── styles/
-│   │       └── theme.js       ← Design tokens
-│   └── index.js
+│   │       └── theme.js          ← Design tokens (T object)
+│   ├── components/
+│   │   └── ui/                   ← shadcn/ui components (15 installed)
+│   ├── lib/
+│   │   └── utils.ts              ← cn() utility (clsx + tailwind-merge)
+│   ├── globals.css               ← Tailwind directives + CSS variables
+│   └── index.js                  ← React entry point
+├── reference/
+│   └── vizard-ref/               ← Editor UI reference screenshots + notes
 ├── tasks/
-│   ├── todo.md                ← Task tracker (plan, progress, review)
-│   └── lessons.md             ← Lessons learned from corrections
+│   ├── todo.md                   ← Task tracker (plan, progress, review)
+│   └── lessons.md                ← Lessons learned from corrections
+├── tailwind.config.js            ← Tailwind CSS 3 config with shadcn theme
+├── tsconfig.json                 ← TypeScript config (for .tsx shadcn components)
+├── components.json               ← shadcn/ui config
 ├── package.json
 ├── .gitignore
-└── CLAUDE.md                  ← THIS FILE
+└── CLAUDE.md                     ← THIS FILE
 ```
 
 ## How to Build & Run
@@ -110,10 +169,11 @@ npm start
 
 | Command | Purpose |
 |---------|---------|
-| `npm start` | Dev mode (Electron loads from build/) |
+| `npm start` | Launch Electron (loads from build/) |
 | `npx react-scripts build` | Production build (React → build/ folder) |
-| `npx electronmon .` | Electron dev mode with auto-reload |
-| `npm run make` | Package for distribution |
+| `npm run dev` | Dev mode with React hot reload + Electron auto-reload |
+| `npm run build` | Full build with electron-builder |
+| `npm run pack` | Package without signing |
 
 ### ClipFlow Verification Commands
 
@@ -121,8 +181,7 @@ When running the global verification checklist, use these project-specific comma
 
 1. **Build check:** `npx react-scripts build` — must complete with no errors
 2. **Dev launch:** `npm start` — app window must open
-3. **Electron dev:** `npx electronmon .` — for hot-reload testing
-4. **Full test:** Build → launch → verify changed feature → check adjacent features
+3. **Full test:** Build → launch → verify changed feature → check adjacent features
 
 ### Mandatory: Run the App After Every Change
 
@@ -130,7 +189,7 @@ When running the global verification checklist, use these project-specific comma
 
 ## Design System
 
-The app uses a dark theme. Key tokens (from the v6.2 prototype and current theme.js):
+The app uses a dark theme. Key tokens (from theme.js):
 
 - **Background:** `#0a0b10` (app bg), `#111218` (surface/cards)
 - **Accent:** `#8b5cf6` (purple), `#a78bfa` (light purple)
@@ -139,72 +198,191 @@ The app uses a dark theme. Key tokens (from the v6.2 prototype and current theme
 - **Border radius:** sm=6px, md=10px, lg=14px, xl=20px
 - **Fonts:** `'DM Sans', sans-serif` for UI, `'JetBrains Mono', monospace` for filenames/code
 
-## Current State (What's Built)
+**UI approach:** Existing views use inline styles via the `T` (theme) object from `theme.js`. The editor is being rebuilt with shadcn/ui + Tailwind CSS. New UI work should use shadcn/ui components wherever possible.
 
-### ✅ Fully Working
-- **Electron main process** with 12 IPC handlers (file ops, dialogs, watcher, OBS log parser, shell)
-- **Preload bridge** exposing `window.clipflow` API to renderer
-- **Sidebar navigation** with 6 tabs and active state indicators
-- **RenameView** — watches OBS folder, shows pending files, rename cards with game/day/part controls, history with undo
+## Current State — All 7 Views + Editor Built
 
-### ⚠️ Known Bugs to Fix
-1. **File watcher picks up files from subfolders** (2025-12, 2026-01, 2026-02, 2026-03). It should ONLY watch the ROOT of the watch folder, not recurse into monthly subfolders. Only raw unrenamed files like `2026-03-02 18-23-40.mp4` should appear as pending. Already-renamed files like `2026-02-06 AR Day25 Pt18.mp4` should be skipped.
-2. **No +Add Game button** next to the Refresh button in the Rename header
-3. **Game detection defaults everything to Arc Raiders** — needs OBS log parser integration for real detection
-4. **TOTAL and DAY stat cards show dashes** instead of real values
-
-### 🔴 Not Built Yet (Placeholder Views)
-- **Upload** — Select renamed files → upload to Cloudflare R2 → trigger Vizard AI clipping
-- **Projects** — Browse Vizard projects, review clips (approve/reject), edit titles, view transcripts
-- **Queue** — Schedule approved clips, publish to platforms, weekly tracker grid
-- **Captions** — YouTube descriptions per game, TikTok/IG/FB caption templates
-- **Settings** — Game library CRUD, main game selector, platform connections, watch folder config, ignored processes
-
-## The 6 Views (Full Spec from v6.2 Prototype)
-
-### 1. Rename View
+### 1. Rename View (RenameView.js)
 - **Watch status bar:** Green dot + "WATCHING" + folder path. Cyan dot + "OBS LOG" on right.
-- **Stats cards:** Total (all renamed files ever), Today (pending count), Games (game count), Day (current main game day count)
+- **Stats cards:** Total, Today, Games, Day — all show real calculated values.
 - **Sub-tabs:** Pending | History | Manage
-- **Pending tab:** File cards showing original OBS filename, proposed new name in yellow (`→ 2026-03-03 AR Day25 Pt1.mp4`), game dropdown, Day/Part spinboxes with hold-to-increment, RENAME and HIDE buttons. "Rename All" button at bottom.
-- **History tab:** Shows old→new name pairs with UNDO/REDO. Undo moves file BACK to pending queue.
-- **Manage tab:** Browse renamed files by monthly subfolder. Select multiple → batch change part/day/tag.
-- **Header buttons:** 🔄 Refresh (re-scan folder) + ✨ Add Game (opens AddGame modal)
-- **Auto-correction:** Files sorted by timestamp, grouped by tag+day, sequential parts assigned silently within conflict batches.
+- **Pending tab:** File cards showing OBS filename → proposed rename in yellow. Game dropdown, Day/Part spinboxes with hold-to-increment, RENAME and HIDE buttons. "Rename All" at bottom.
+- **History tab:** Old→new name pairs with UNDO (moves file back to pending).
+- **Manage tab:** Browse renamed files by monthly subfolder. Batch change part/day/tag.
+- **Header buttons:** Refresh (re-scan folder) + Add Game (opens AddGameModal).
+- File watcher uses `depth: 0` (root only) and `RAW_OBS_PATTERN` to skip subfolders and already-renamed files.
 
-### 2. Upload View
-- List renamed files ready for upload
-- Checkbox selection with Select All
-- Upload progress bars per file
-- Upload to Cloudflare R2, then trigger Vizard AI project creation
-- Status: selected → uploading (progress %) → done ✅
+### 2. Upload View (UploadView.js / RecordingsView)
+- Scans watch folder for renamed files organized by monthly subfolder.
+- "Generate Clips" button triggers full local pipeline per file:
+  1. Probe source (FFmpeg → duration/metadata)
+  2. Create project + clips directory
+  3. Extract audio to WAV (FFmpeg)
+  4. Transcribe with Whisper (streaming progress)
+  5. Analyze loudness (1-second segments)
+  6. Detect highlights (audio energy + sentiment + keywords + pacing)
+  7. Cut highlight clips (FFmpeg)
+  8. Generate thumbnails
+  9. Save project JSON with transcription + clips
+- Progress overlay with 8-stage feedback.
+- Collapsed folder state persisted to electron-store.
 
-### 3. Projects View
-- List Vizard projects with status badges (Processing %, Review, Done)
-- Click project → ClipBrowser showing all clips
-- Each clip: title (editable inline), viral score bar, duration, transcript button
-- Approve (👍) / Reject (👎) buttons always visible, both shown even when dimmed
-- Rejected clips shown at 35% opacity
-- Clips without hashtags hidden with warning banner
+### 3. Projects View (ProjectsView.js)
+- Grid of local projects sorted by status (processing > ready > done > error).
+- **ProjectsListView:** Status badges, batch delete with confirmation.
+- **ClipBrowser:** Full project with all clips.
+  - Render All button (batch render unrendered clips)
+  - Each clip: title (editable inline), viral score bar, duration, transcript button
+  - Status dropdown (none/approved/rejected)
+  - "Open in Editor" button → launches EditorView
+  - Rendered clips show "Ready to Share" button
 
-### 4. Queue View
-- **Schedule sub-tab:** List approved clips. Click clip → "⚡ Publish Now" or "📅 Schedule" (pick date up to 2 weeks + time in 5min increments). No auto-slotting.
-- **Tracker sub-tab:** Weekly grid (Mon–Sat × 8 time slots). Cells show M (main game) or O (other game). Filled cells = published. Template is editable in Settings.
-- Stats: total published/48, main game count, other count
-- Publishing order: YT-Fega → IG → FB → TT-fega → YT-ThatGuy → TT-thatguyfega (30s stagger)
+### 4. Queue View (QueueView.js)
+- **Schedule tab:** Approved + rendered clips from local projects.
+  - "Publish Now" → logs to tracker. "Schedule" → date picker (14 days) + time dropdowns.
+- **Tracker tab:** Weekly grid (Mon–Sat × 8 time slots).
+  - Cells: M (main game) / O (other game). Filled = published.
+  - Template editable per week. Stats: total/48, main/other breakdown.
+- Publishing order: YT-Fega → IG → FB → TT-fega → YT-ThatGuy → TT-thatguyfega (30s stagger).
 
-### 5. Captions View
-- **YouTube tab:** Per-game description templates (Fega has full descriptions with affiliate links, social links, etc.)
-- **Other Platforms tab:** Template strings for TikTok, Instagram, Facebook. Uses `{title}` and `#{gametitle}` placeholders.
+### 5. Captions View (CaptionsView.js)
+- **YouTube tab:** Per-game description templates with real Fega content (affiliate links, social links, stream setup).
+- **Other Platforms tab:** TikTok/Instagram/Facebook templates with `{title}` and `#{gametitle}` placeholders.
+- Templates persisted to electron-store.
 
-### 6. Settings View
-- **Watch Folder:** Editable path (default: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards`)
-- **Main Game:** Horizontal pill selector from game library. Each pill has ✕ delete button.
-- **Game Library:** Horizontal pills showing tag, name, hashtag, edit icon. Click → GameEditModal (edit tag, hashtag, color with color picker)
-- **Connected Platforms:** Toggle pills with green/red pulse dots
-- **Ignored Processes:** List of exe names to skip during OBS log detection
-- **Downloads:** Section for downloading Vizard clips locally
-- **+Add Game modal:** Game name, tag (max 4 chars), hashtag, color picker with 10 presets + hue slider + hex input. Preview shows `2026-03-03 {TAG} Day1 Pt1.mp4`. Confirm → generating animation → success screen.
+### 6. Settings View (SettingsView.js)
+- **Watch Folder:** Browse button + path input.
+- **Main Game:** Pill selector from mainPool.
+- **Game Library:** Horizontal pills (tag, name, hashtag, color, edit icon). Click → GameEditModal with color picker.
+- **Ignored Processes:** List of EXEs to skip in OBS detection.
+- **Connected Platforms:** Toggle pills with green/red pulse dots.
+- **API Credentials:** Anthropic, YouTube OAuth, Meta (FB/IG), TikTok — masked display + copy buttons.
+- **Output Folder:** Where rendered clips are saved.
+- **FFmpeg/Whisper Status:** Shows installed version or error.
+
+### 7. Editor (editor/ directory — modular architecture)
+A full video editor for clip review/editing, split into 14 components + 6 Zustand stores:
+
+**Components:**
+- **Topbar:** Clip title editing, back button (auto-save), "Ready to Share" render button.
+- **PreviewPanel:** HTML5 video player with synced subtitle + caption overlay. Karaoke highlight.
+- **Timeline:** Ruler with zoom (0.5x–4x), draggable/scrubable playhead, Sub1/Sub2 tracks. Segments are selectable, draggable, resizable. Sub2 hidden when empty.
+- **LeftPanel:** Two tabs — Transcript (word-level click-to-seek, active word highlight, inline editing) and Edit Subtitles (per-word hover, split/merge, timecode popover with range slider).
+- **Right Drawers:**
+  - AI Tools — Anthropic title/caption generation, accept/reject with history.
+  - Subtitles — Font, size, color, stroke, shadow, background, position, karaoke highlight color, 1L/2L modes, sync offset slider.
+  - Caption — Text editing, font family/size, color swatches, B/I/U formatting.
+  - Brand/Media — Placeholders for future SFX and media overlays.
+- **RenderOverlay:** FFmpeg ASS subtitle generation + burn-in with progress feedback.
+
+**Zustand Stores:**
+- `useEditorStore` — project/clip data, clipTitle, dirty flag, waveform peaks, save handler.
+- `useLayoutStore` — panel widths/heights, collapse states, drawer tab selection, zoom level.
+- `usePlaybackStore` — playing, currentTime, duration, seek.
+- `useSubtitleStore` — editSegments array, subtitle styling (font/color/stroke/shadow/bg/position), split/merge/delete operations.
+- `useCaptionStore` — captionText, font family/size, color, B/I/U formatting.
+- `useAIStore` — title/caption generation results, history, accept/reject.
+
+## Local Clip Generation Pipeline
+
+The pipeline runs entirely locally — no cloud dependencies. Located in `src/main/`:
+
+### Pipeline Stages (`pipeline:generateClips` IPC handler)
+1. **Probe** (`ffmpeg.js`) — Extract video duration, codec, resolution.
+2. **Create Project** (`projects.js`) — Project directory + clips subdirectory on disk.
+3. **Extract Audio** (`ffmpeg.js`) — Source video → WAV file.
+4. **Transcribe** (`whisper.js`) — WAV → word-level segments with timestamps via whisper.cpp.
+5. **Analyze Loudness** (`ffmpeg.js`) — Per-second loudness levels for highlight detection.
+6. **Detect Highlights** (`highlights.js`) — Scoring: audio energy + sentiment + keywords + pacing → ranked highlight candidates.
+7. **Cut Clips** (`ffmpeg.js`) — Extract highlight segments as individual video files.
+8. **Save Project** (`projects.js`) — Write project JSON with all metadata, clips, and transcription.
+
+Each clip gets: title, caption, sub1/sub2 subtitle tracks, SFX slots, media slots, status, renderStatus.
+
+### Render Pipeline (`render.js`)
+1. Generate ASS subtitle file from `editSegments` + styling.
+2. FFmpeg burn-in: overlay ASS subtitles onto source clip video.
+3. Output to configured output folder.
+4. Progress events via IPC (`render:progress`).
+
+## IPC API (window.clipflow)
+
+The preload bridge exposes 31+ methods to React:
+
+### File System
+```javascript
+window.clipflow.pickFolder()                  // Native folder picker dialog
+window.clipflow.readDir(dirPath)              // List files with metadata
+window.clipflow.scanWatchFolder(folderPath)   // Scan monthly subfolders for renamed files
+window.clipflow.renameFile(oldPath, newPath)  // Move/rename file (creates parent dir)
+window.clipflow.exists(filePath)              // Check file exists
+window.clipflow.readFile(filePath)            // Read text file
+window.clipflow.writeFile(filePath, content)  // Write text file
+```
+
+### File Watcher
+```javascript
+window.clipflow.startWatcher(folderPath)      // Start chokidar (depth: 0, raw OBS pattern only)
+window.clipflow.stopWatcher()                 // Stop watcher
+window.clipflow.onFileAdded(callback)         // File added event
+window.clipflow.onFileRemoved(callback)       // File removed event
+```
+
+### OBS, Shell, Dialogs
+```javascript
+window.clipflow.parseOBSLog(logPath)          // Parse OBS log for game detection
+window.clipflow.openFolder(folderPath)        // Open in Windows Explorer
+window.clipflow.saveFileDialog(options)       // Save file dialog
+window.clipflow.openFileDialog(options)       // Open file dialog
+window.clipflow.platform                      // 'win32' | 'darwin' | 'linux'
+```
+
+### FFmpeg & Whisper
+```javascript
+window.clipflow.ffmpegCheck()                 // Check FFmpeg installed (returns version)
+window.clipflow.ffmpegProbe(filePath)         // Video metadata (duration, codec, resolution)
+window.clipflow.ffmpegExtractAudio(src, dst)  // Extract audio to WAV
+window.clipflow.ffmpegCutClip(src, dst, start, end)  // Trim video
+window.clipflow.ffmpegThumbnail(src, dst, time)      // Generate JPEG thumbnail
+window.clipflow.ffmpegAnalyzeLoudness(filePath)      // Per-segment loudness
+window.clipflow.whisperCheck()                // Check Whisper installed
+window.clipflow.whisperTranscribe(wavPath, opts)     // Transcribe → segments + words
+```
+
+### Projects
+```javascript
+window.clipflow.projectCreate(name, sourceFile)   // New project + clips dir
+window.clipflow.projectLoad(projectId)             // Load full project JSON
+window.clipflow.projectSave(projectId, data)       // Save project JSON
+window.clipflow.projectList()                      // List all projects (summaries)
+window.clipflow.projectDelete(projectId)           // Delete project + files
+window.clipflow.projectUpdateClip(projId, clipId, updates)  // Merge updates into clip
+window.clipflow.projectAddClip(projId, clip)       // Add clip to project
+window.clipflow.projectDeleteClip(projId, clipId)  // Delete clip ± file
+```
+
+### Pipeline & Render
+```javascript
+window.clipflow.generateClips(filePath, projectName)   // Full pipeline (8 stages)
+window.clipflow.onPipelineProgress(callback)           // Pipeline progress events
+window.clipflow.renderClip(projectId, clipId, opts)    // Single clip render
+window.clipflow.renderBatch(projectId, clipIds, opts)  // Batch render
+window.clipflow.onRenderProgress(callback)             // Render progress events
+```
+
+### Anthropic AI
+```javascript
+window.clipflow.anthropicGenerate(opts)        // Title/caption generation (Sonnet 4)
+window.clipflow.anthropicResearchGame(opts)    // Game description via web search (Opus 4)
+window.clipflow.anthropicLogHistory(opts)      // Log AI picks/rejections
+```
+
+### Electron Store
+```javascript
+window.clipflow.storeGet(key)                  // Read persisted value
+window.clipflow.storeSet(key, value)           // Write persisted value
+window.clipflow.storeGetAll()                  // Read entire config
+```
 
 ## Game Data Model
 
@@ -215,6 +393,7 @@ The app uses a dark theme. Key tokens (from the v6.2 prototype and current theme
   exe: ["ArcRaiders.exe"],   // OBS-detected process names
   color: "#ff6b35",          // Brand color for pills/badges
   dayCount: 24,              // How many unique days recorded
+  lastDayDate: "2026-03-15", // Last date dayCount was incremented
   hashtag: "arcraiders"      // Used in clip titles and captions
 }
 ```
@@ -243,28 +422,6 @@ The parser reads the most recent log to find which game exe was hooked by OBS's 
 - Known system processes (explorer.exe, steamwebhelper.exe, dwm.exe, etc.) are ignored
 - Unknown exe triggers AddGame modal for user to configure
 
-## IPC API (window.clipflow)
-
-The preload bridge exposes these methods to React:
-
-```javascript
-window.clipflow.pickFolder()           // Native folder picker dialog
-window.clipflow.readDir(dirPath)       // Read directory contents
-window.clipflow.renameFile(oldPath, newPath)  // Rename/move file
-window.clipflow.exists(filePath)       // Check if file exists
-window.clipflow.readFile(filePath)     // Read text file
-window.clipflow.writeFile(filePath, content)  // Write text file
-window.clipflow.startWatcher(folderPath)      // Start chokidar watcher
-window.clipflow.stopWatcher()          // Stop watcher
-window.clipflow.onFileAdded(callback)  // File watcher event
-window.clipflow.onFileRemoved(callback) // File watcher event
-window.clipflow.parseOBSLog(logPath)   // Parse OBS log for game detection
-window.clipflow.openFolder(folderPath) // Open in Windows Explorer
-window.clipflow.saveFileDialog(options) // Save file dialog
-window.clipflow.openFileDialog(options) // Open file dialog
-window.clipflow.platform               // 'win32' | 'darwin' | 'linux'
-```
-
 ## Weekly Publishing Template
 
 8 slots per day (Mon–Sat), each slot is "main" or "other":
@@ -291,41 +448,35 @@ M = main game clip, O = other game clip. Template is editable in Settings.
 5. YouTube — ThatGuy (second channel)
 6. TikTok — thatguyfega (second account)
 
-Published with 30-second stagger between platforms.
-
-## YouTube Description Template (Arc Raiders example)
-
-Each game has its own YouTube Shorts description. Fega's descriptions include:
-- Live streaming schedule
-- Subscribe/member links
-- Multi-streaming links (Twitch, Kick, TikTok)
-- Best videos playlist
-- Social media links
-- Stream setup with affiliate links (camera, lens, mic, etc.)
-- Content/editing essentials with affiliate links
+Published with 30-second stagger between platforms. Publishing APIs are stubbed in `src/main/publish.js` — not yet implemented.
 
 ## Key Design Decisions
 
 1. **Files are NEVER auto-renamed.** User must review game/day/part and click Rename.
 2. **Close = quit.** No minimize-to-tray. Closing the window exits the app.
 3. **Windows-only.** Built for Windows (NTFS paths, Windows file behavior).
-4. **Electron + React chosen over Python/CustomTkinter** because the 407-line React prototype already has complete UX. Python handles system-level operations only if needed.
+4. **Fully local pipeline.** No cloud dependencies for clip generation — FFmpeg + Whisper run locally. Only Anthropic API is external (for AI title/caption generation).
 5. **Checkbox component is purely visual** — parent element handles all click events. This prevents double-toggle bugs.
-6. **Rejected clips stay visible at 35% opacity** with both 👍/👎 buttons visible. No separate Undo button.
-7. **Queue scheduling is manual** — user picks clip → Publish Now or Schedule (date + time). No auto-slotting into template.
+6. **Queue scheduling is manual** — user picks clip → Publish Now or Schedule (date + time). No auto-slotting into template.
+7. **Editor state is isolated in Zustand stores** — 6 stores with selector subscriptions for precise re-renders.
 
-## What Needs to Be Built Next (Priority Order)
+## What's In Progress / Next
 
-1. **Fix file watcher** — only watch root folder, skip subfolders and already-renamed files
-2. **Add +Add Game button** to Rename view header (next to Refresh)
-3. **Wire up OBS log parser** for automatic game detection on pending files
-4. **Build Upload view** — file selection, R2 upload with progress, Vizard API trigger
-5. **Build Projects view** — Vizard project browser, clip review with approve/reject
-6. **Build Queue view** — scheduling UI, publish now, weekly tracker grid
-7. **Build Captions view** — YouTube descriptions per game, platform caption templates
-8. **Build Settings view** — game library CRUD, main game, platforms, watch folder, ignored processes
-9. **Add electron-store** for persistent settings/game library/tracker data
-10. **Implement real API integrations** — Vizard API, YouTube Data API, TikTok API, Instagram Graph API, Facebook Graph API
+### Current: Editor UI Rebuild (Phase 10)
+- Rebuilding editor UI to closely match Vizard's web editor. Reference screenshots in `/reference/vizard-ref/`.
+- Using shadcn/ui components + Tailwind CSS.
+- Each section: overview, left-panel, right-panel, preview, timeline, top-toolbar has annotated screenshots and notes.txt.
+- **Rule:** When building/modifying any editor UI section, always read the corresponding reference folder first — look at every screenshot and read notes.txt before writing any code. Build one section at a time.
+
+### Future Items
+- Draggable caption/subtitle on preview viewer
+- Inline editing on preview viewer (double-click to edit)
+- Audio waveform analysis for word-level subtitle sync
+- Delete segments from timeline (context menu or Delete key)
+- Undo/redo stack for timeline edits
+- Platform API integrations (YouTube, TikTok, Instagram, Facebook)
+- Expanded font library for subtitle/caption panels
+- Keyboard shortcuts (Space=play/pause, Delete=remove segment, Ctrl+Z=undo)
 
 ## Schema Migration Requirement
 
@@ -355,109 +506,17 @@ These rules prevent recurring UI issues. Follow them for every component:
 ## Coding Conventions
 
 - React functional components with hooks
-- Inline styles matching the design token system (T object)
-- No CSS files — all styling via JavaScript objects
+- **Existing views:** Inline styles via the `T` (theme) object from `theme.js`. No CSS files.
+- **New editor UI:** shadcn/ui components + Tailwind CSS utility classes
 - IPC communication through `window.clipflow` bridge
 - File paths use Windows backslashes internally
 - Component names: PascalCase. Functions: camelCase.
-- State management: React useState/useEffect at App level, passed as props
-
-## Reference Prototypes
-
-The `ClipFlow-v3.jsx` and `ClipFlow-v4.jsx` files in the project root are the **complete React prototypes** (each ~1100 lines) that show exactly how every view should look and behave. These are the UI spec — use them as reference when building real views. v4 is the latest.
-
-## Vizard API Integration
-
-**Base URL:** `https://elb-api.vizard.ai/hvizard-server-front/open-api/v1`
-**Auth Header:** `VIZARDAI_API_KEY: {apiKey}` (exact capitalization required)
-
-### Response Codes
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| `200` | Legacy success (project created) | Poll for completion |
-| `1000` | Processing (clips generating) | Poll again, check `progress` field (0-100) |
-| `2000` | Complete (clips ready) | Read `videos` array |
-| Other | Error | Show `msg` field to user |
-
-### Project Query Response Shape (`/project/query/{projectId}`)
-
-```javascript
-{
-  code: 2000,                    // status code
-  projectId: "28647499",         // string
-  projectName: "2026-03-03 AR Day25 Pt1",
-  progress: 100,                 // 0-100 (only meaningful when code === 1000)
-  videos: [{
-    videoId: 12345,              // NUMERIC — always String() for comparisons
-    title: "AI-generated title",
-    videoMsDuration: 45000,      // milliseconds (÷1000 for seconds)
-    viralScore: 85,              // 0-100+
-    viralReason: "text",
-    transcript: "speech text",
-    videoUrl: "https://...",     // expires after ~7 days
-    clipEditorUrl: "https://...?id=12345"  // editor link
-  }]
-}
-```
-
-### Source Video Filtering (Duration Heuristic)
-
-Located in `src/renderer/App.js` → `mapVizardClips()`:
-
-1. **Deduplicate re-edits:** Group by `clipEditorId` (regex `/id=(\d+)/` from URL), keep highest `videoId`
-2. **Identify source video:** Longest video that is both >180 seconds AND >3× the second-longest
-3. **Remove source video** from the clips array
-
-**Known fragility:** Fails if source video is short or if a clip exceeds 180 seconds.
-
-### Known Error Patterns
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| "Project not found" | `code !== 2000` or missing `projectId` | Verify project ID, check if still processing |
-| Clip duplication (18 entries for 2 clips) | Re-edits not deduplicated | `clipEditorId` grouping handles this |
-| videoUrl expired | URLs expire ~7 days after generation | Re-query the project for fresh URLs |
-| Parse failure | Non-JSON response from Vizard | Check API key, rate limits |
-
-### Clip State Merging
-
-When re-importing clips from Vizard, existing user edits (title, approval status) are preserved:
-```javascript
-// Existing clip data takes priority for user-edited fields
-{ ...freshClipFromAPI, title: existing.title, status: existing.status }
-```
-
-## Cloudflare R2 Configuration
-
-**Environment variables** (from `.env`):
-- `R2_ACCOUNT_ID` — Cloudflare account ID
-- `R2_ACCESS_KEY_ID` — S3-compatible access key
-- `R2_SECRET_ACCESS_KEY` — S3-compatible secret
-- `R2_BUCKET_NAME` — R2 bucket name
-- `R2_PUBLIC_BASE_URL` — Public URL prefix for uploaded files
-
-### Upload Pipeline
-
-1. File selected in UploadView → `window.clipflow.r2Upload(filePath, fileName)`
-2. Main process creates `S3Client` with R2 endpoint: `https://{accountId}.r2.cloudflarestorage.com`
-3. Multipart upload: 10MB parts, 4 concurrent, progress events via IPC
-4. Returns `{ success: true, url: publicUrl, fileName }`
-5. **Auto-handoff to Vizard:** `vizardCreateProject(publicUrl, projectName)`
-6. On Vizard success → project added to state with `status: "processing"`
-7. On Vizard failure → file stays at "uploaded" stage, error displayed
-
-### Upload Config
-
-```javascript
-// AWS SDK v3 Upload settings
-queueSize: 4,              // concurrent part uploads
-partSize: 1024 * 1024 * 10 // 10MB per part
-ContentType: "video/mp4"   // or "video/x-matroska" for .mkv
-```
+- App-level state: React useState/useEffect in App.js, passed as props
+- Editor state: Zustand stores with selector subscriptions (never use `getState()` in render paths)
+- Always subscribe to Zustand stores with selectors for re-render control
 
 ## GitHub
 
 - Repo: https://github.com/Oghenefega/ClipFlow.git
-- Branch: main
+- Branch: master
 - Private repository
