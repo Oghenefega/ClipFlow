@@ -8,6 +8,7 @@ import { Separator } from "../../../components/ui/separator";
 import { ScrollArea } from "../../../components/ui/scroll-area";
 import LeftPanelNew from "./LeftPanelNew";
 import RightPanelNew from "./RightPanelNew";
+import PreviewPanelNew from "./PreviewPanelNew";
 import useEditorStore from "../stores/useEditorStore";
 import {
   Undo2,
@@ -416,54 +417,7 @@ function Topbar({ onBack }) {
 }
 
 // ── Left Panel (imported from LeftPanelNew) ──
-
-// ── Center Preview ──
-function PreviewPanel() {
-  return (
-    <div className="flex flex-col h-full items-center justify-center" style={{ background: "hsl(240 8% 3%)" }}>
-      {/* 9:16 video canvas */}
-      <div className="relative flex items-center justify-center flex-1 w-full">
-        <div
-          className="rounded-lg border border-border/40 flex items-center justify-center overflow-hidden"
-          style={{
-            aspectRatio: "9 / 16",
-            maxHeight: "calc(100% - 48px)",
-            width: "auto",
-            height: "100%",
-            maxWidth: "100%",
-            background: "hsl(240 6% 6%)",
-          }}
-        >
-          {/* Placeholder video area */}
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Play className="h-10 w-10 opacity-30" />
-            <span className="text-xs opacity-50">Video Preview</span>
-          </div>
-
-          {/* Subtitle overlay placeholder */}
-          <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 px-3 py-1.5 rounded" style={{ background: "rgba(0,0,0,0.6)" }}>
-            <span className="text-sm font-semibold text-white whitespace-nowrap">
-              subtitle preview area
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom controls bar (Ratio, Background, Layouts) */}
-      <div className="h-10 w-full flex items-center justify-center gap-4 border-t border-border/30 bg-card/30">
-        <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-          <span className="opacity-60">◻</span> Ratio (9:16)
-        </button>
-        <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-          <span className="opacity-60">◻</span> Background
-        </button>
-        <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-          <span className="opacity-60">◻</span> Layouts
-        </button>
-      </div>
-    </div>
-  );
-}
+// ── Center Preview (imported from PreviewPanelNew) ──
 
 // ── Timeline ──
 function TimelinePanel() {
@@ -647,7 +601,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
 
               {/* Center preview */}
               <ResizablePanel defaultSize={78}>
-                <PreviewPanel />
+                <PreviewPanelNew />
               </ResizablePanel>
             </ResizablePanelGroup>
 
