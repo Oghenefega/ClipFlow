@@ -22,10 +22,13 @@ import {
   Copy,
   Download,
   Settings2,
-  Plus,
   ChevronRight,
   AlignLeft,
   AlignJustify,
+  Scissors,
+  Merge,
+  Type,
+  Check,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
@@ -39,6 +42,24 @@ const WORD_COLORS = [
   { id: "red", color: "#f87171", label: "Red" },
   { id: "yellow", color: "#fbbf24", label: "Yellow" },
   { id: "green", color: "#4cce8a", label: "Green" },
+];
+
+// ── Punctuation options ──
+const PUNCTUATION_OPTIONS = [
+  { key: "period", label: "Period (.)", char: "." },
+  { key: "comma", label: "Comma (,)", char: "," },
+  { key: "question", label: "Question (?)", char: "?" },
+  { key: "exclamation", label: "Exclamation (!)", char: "!" },
+  { key: "semicolon", label: "Semicolon (;)", char: ";" },
+  { key: "colon", label: "Colon (:)", char: ":" },
+  { key: "ellipsis", label: "Ellipsis (...)", char: "..." },
+];
+
+// ── Segment mode options ──
+const SEGMENT_MODES = [
+  { id: "sentence", label: "Sentence" },
+  { id: "3word", label: "3 Words" },
+  { id: "1word", label: "1 Word" },
 ];
 
 // ════════════════════════════════════════════════════════════════
@@ -93,54 +114,78 @@ function SubtitleSearch({ searchText, setSearchText, matchCount, matchIdx, onPre
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SUBTITLE SETTINGS POPOVER
+//  SUBTITLE SETTINGS POPOVER (no emoji, enhanced punctuation)
 // ════════════════════════════════════════════════════════════════
 function SubtitleSettingsPopover() {
   const showSubs = useSubtitleStore((s) => s.showSubs);
-  const punctOn = useSubtitleStore((s) => s.punctOn);
-  const emojiOn = useSubtitleStore((s) => s.emojiOn);
   const setShowSubs = useSubtitleStore((s) => s.setShowSubs);
+  const punctOn = useSubtitleStore((s) => s.punctOn);
   const setPunctOn = useSubtitleStore((s) => s.setPunctOn);
-  const setEmojiOn = useSubtitleStore((s) => s.setEmojiOn);
+  const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
+  const setPunctuationRemove = useSubtitleStore((s) => s.setPunctuationRemove);
 
-  const toggles = [
-    { label: "Subtitle display", value: showSubs, onChange: (v) => setShowSubs(v) },
-    { label: "Punctuation", value: punctOn, onChange: (v) => setPunctOn(v) },
-    { label: "Emoji", value: emojiOn, onChange: (v) => setEmojiOn(v) },
-  ];
+  const togglePunct = (key) => {
+    setPunctuationRemove({ ...punctuationRemove, [key]: !punctuationRemove[key] });
+  };
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1">
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
           <Settings2 className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Settings</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[260px] p-0 bg-card border-border" align="end" sideOffset={6}>
-        <div className="px-3 py-2.5 border-b">
+      <PopoverContent className="w-[280px] p-0 bg-card border-border" align="end" sideOffset={6}>
+        <div className="px-3 py-2.5 border-b border-border">
           <span className="text-xs font-semibold text-foreground">Subtitle settings</span>
         </div>
         <div className="py-1">
-          {toggles.map((t, i) => (
-            <div key={i} className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-xs text-foreground">{t.label}</span>
-              <button
-                onClick={() => t.onChange(!t.value)}
-                className={`
-                  relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer
-                  ${t.value ? "bg-primary" : "bg-secondary"}
-                `}
-              >
-                <span
-                  className={`
-                    absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
-                    ${t.value ? "left-[18px]" : "left-0.5"}
-                  `}
-                />
-              </button>
+          {/* Subtitle display toggle */}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <span className="text-xs text-foreground">Subtitle display</span>
+            <button
+              onClick={() => setShowSubs(!showSubs)}
+              className={`relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer ${showSubs ? "bg-primary" : "bg-secondary"}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${showSubs ? "left-[18px]" : "left-0.5"}`} />
+            </button>
+          </div>
+
+          {/* Punctuation master toggle */}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <span className="text-xs text-foreground">Punctuation</span>
+            <button
+              onClick={() => setPunctOn(!punctOn)}
+              className={`relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer ${punctOn ? "bg-primary" : "bg-secondary"}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${punctOn ? "left-[18px]" : "left-0.5"}`} />
+            </button>
+          </div>
+
+          {/* Per-punctuation removal controls (shown when punctuation is ON) */}
+          {punctOn && (
+            <div className="px-3 pb-2">
+              <span className="text-[10px] text-muted-foreground mb-1.5 block">Remove specific punctuation:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PUNCTUATION_OPTIONS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => togglePunct(p.key)}
+                    className={`
+                      h-6 px-2 rounded text-[10px] font-medium border transition-colors cursor-pointer
+                      ${punctuationRemove[p.key]
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "bg-secondary/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+                      }
+                    `}
+                  >
+                    {punctuationRemove[p.key] && <Check className="h-2.5 w-2.5 inline mr-0.5" />}
+                    {p.char}
+                  </button>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -148,17 +193,17 @@ function SubtitleSettingsPopover() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TIMECODE POPOVER  (adjust start/end time)
+//  TIMECODE POPOVER — single dual-thumb slider
 // ════════════════════════════════════════════════════════════════
 function TimecodePopover({ segment, children }) {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
+  const duration = usePlaybackStore((s) => s.duration);
   const [localStart, setLocalStart] = useState(segment.startSec);
   const [localEnd, setLocalEnd] = useState(segment.endSec);
   const [open, setOpen] = useState(false);
 
-  // Get the clip duration from context — use a reasonable max
-  const maxTime = Math.max(segment.endSec + 10, 30);
-  const minGap = 0.1; // minimum segment length
+  const maxTime = duration > 0 ? duration : Math.max(segment.endSec + 10, 30);
+  const minGap = 0.1;
 
   useEffect(() => {
     if (open) {
@@ -167,14 +212,18 @@ function TimecodePopover({ segment, children }) {
     }
   }, [open, segment.startSec, segment.endSec]);
 
-  const handleStartChange = (val) => {
-    const v = Math.min(val, localEnd - minGap);
-    setLocalStart(Math.max(0, v));
-  };
-
-  const handleEndChange = (val) => {
-    const v = Math.max(val, localStart + minGap);
-    setLocalEnd(Math.min(maxTime, v));
+  const handleRangeChange = (values) => {
+    let [newStart, newEnd] = values;
+    // Enforce minimum gap
+    if (newEnd - newStart < minGap) {
+      if (newStart !== localStart) {
+        newStart = Math.max(0, newEnd - minGap);
+      } else {
+        newEnd = Math.min(maxTime, newStart + minGap);
+      }
+    }
+    setLocalStart(Math.max(0, newStart));
+    setLocalEnd(Math.min(maxTime, newEnd));
   };
 
   const handleApply = () => {
@@ -187,36 +236,21 @@ function TimecodePopover({ segment, children }) {
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4}>
-        <div className="px-3 py-2.5 border-b">
+      <PopoverContent className="w-[300px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4}>
+        <div className="px-3 py-2.5 border-b border-border">
           <span className="text-xs font-semibold text-foreground">Adjust start and end time</span>
         </div>
         <div className="px-3 py-3 space-y-3">
-          {/* Dual-thumb range slider */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground w-8 shrink-0">Start</span>
-              <Slider
-                value={[localStart]}
-                onValueChange={([v]) => handleStartChange(v)}
-                min={0}
-                max={maxTime}
-                step={0.1}
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground w-8 shrink-0">End</span>
-              <Slider
-                value={[localEnd]}
-                onValueChange={([v]) => handleEndChange(v)}
-                min={0}
-                max={maxTime}
-                step={0.1}
-                className="flex-1"
-              />
-            </div>
-          </div>
+          {/* Single dual-thumb range slider */}
+          <Slider
+            value={[localStart, localEnd]}
+            onValueChange={handleRangeChange}
+            min={0}
+            max={maxTime}
+            step={0.05}
+            minStepsBetweenThumbs={1}
+            className="w-full"
+          />
 
           {/* Time inputs */}
           <div className="flex items-center gap-2">
@@ -224,7 +258,7 @@ function TimecodePopover({ segment, children }) {
               value={fmtTime(localStart)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
-                if (!isNaN(sec)) handleStartChange(sec);
+                if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
               }}
               className="flex-1 h-7 px-2 text-xs font-mono text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
             />
@@ -233,7 +267,7 @@ function TimecodePopover({ segment, children }) {
               value={fmtTime(localEnd)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
-                if (!isNaN(sec)) handleEndChange(sec);
+                if (!isNaN(sec)) handleRangeChange([localStart, sec]);
               }}
               className="flex-1 h-7 px-2 text-xs font-mono text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
             />
@@ -291,12 +325,59 @@ function WordColorPicker({ segId, wordIdx, onSelect }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TRANSCRIPT TAB
+//  SEGMENT MODE POPOVER (sentence / 3-word / 1-word)
+// ════════════════════════════════════════════════════════════════
+function SegmentModePopover() {
+  const segmentMode = useSubtitleStore((s) => s.segmentMode);
+  const setSegmentMode = useSubtitleStore((s) => s.setSegmentMode);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                <Type className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-[10px]">Segment mode</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </PopoverTrigger>
+      <PopoverContent className="w-[180px] p-0 bg-card border-border" align="end" sideOffset={6}>
+        <div className="px-3 py-2 border-b border-border">
+          <span className="text-[11px] font-semibold text-foreground">Break subtitles into</span>
+        </div>
+        <div className="py-1">
+          {SEGMENT_MODES.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setSegmentMode(m.id)}
+              className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer ${
+                segmentMode === m.id
+                  ? "text-primary bg-primary/8"
+                  : "text-foreground hover:bg-secondary/40"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {segmentMode === m.id && <Check className="h-3 w-3 text-primary shrink-0" />}
+                <span className={segmentMode !== m.id ? "ml-5" : ""}>{m.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TRANSCRIPT TAB — one continuous body of text
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
-  const activeRow = useSubtitleStore((s) => s.activeRow);
-  const setActiveRow = useSubtitleStore((s) => s.setActiveRow);
+  const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
@@ -304,63 +385,134 @@ function TranscriptTab() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
 
-  // Find all search matches
+  // Build flat word list from all segments for continuous paragraph
+  const allWords = useMemo(() => {
+    const words = [];
+    editSegments.forEach((seg) => {
+      if (seg.words && seg.words.length > 0) {
+        seg.words.forEach((w) => {
+          words.push({ ...w, segId: seg.id });
+        });
+      } else {
+        // Fallback: split text, evenly distribute timing
+        const textWords = seg.text.split(/\s+/).filter(Boolean);
+        const dur = seg.endSec - seg.startSec;
+        const perWord = dur / Math.max(1, textWords.length);
+        textWords.forEach((tw, i) => {
+          words.push({
+            word: tw,
+            start: seg.startSec + i * perWord,
+            end: seg.startSec + (i + 1) * perWord,
+            segId: seg.id,
+          });
+        });
+      }
+    });
+    return words;
+  }, [editSegments]);
+
+  // Full transcript text for search
+  const fullText = useMemo(() => allWords.map((w) => w.word).join(" "), [allWords]);
+
+  // Search matches on full text
   const matches = useMemo(() => {
     if (!transcriptSearch) return [];
     const q = transcriptSearch.toLowerCase();
+    const lower = fullText.toLowerCase();
     const result = [];
-    editSegments.forEach((seg, segIdx) => {
-      const text = seg.text.toLowerCase();
-      let pos = 0;
-      while ((pos = text.indexOf(q, pos)) !== -1) {
-        result.push({ segIdx, pos, len: q.length });
-        pos += 1;
-      }
-    });
+    let pos = 0;
+    while ((pos = lower.indexOf(q, pos)) !== -1) {
+      result.push({ pos, len: q.length });
+      pos += 1;
+    }
     return result;
-  }, [editSegments, transcriptSearch]);
+  }, [fullText, transcriptSearch]);
 
   const navMatch = useCallback((dir) => {
     if (matches.length === 0) return;
     setMatchIdx((prev) => {
       const next = (prev + dir + matches.length) % matches.length;
-      // Scroll to & seek to segment
+      // Find which word this match starts in and seek there
       const m = matches[next];
-      setActiveRow(m.segIdx);
-      if (editSegments[m.segIdx]) seekTo(editSegments[m.segIdx].startSec);
+      let charCount = 0;
+      for (const w of allWords) {
+        const wordEnd = charCount + w.word.length;
+        if (m.pos >= charCount && m.pos < wordEnd) {
+          seekTo(w.start);
+          break;
+        }
+        charCount = wordEnd + 1; // +1 for space
+      }
       return next;
     });
-  }, [matches, editSegments, setActiveRow, seekTo]);
+  }, [matches, allWords, seekTo]);
 
-  // Highlight matching text in a segment
-  const renderHighlightedText = useCallback((text, segIdx) => {
-    if (!transcriptSearch) return text;
-    const q = transcriptSearch.toLowerCase();
-    const lower = text.toLowerCase();
-    const parts = [];
-    let last = 0;
-    let pos = 0;
-    while ((pos = lower.indexOf(q, last)) !== -1) {
-      if (pos > last) parts.push(<span key={last}>{text.slice(last, pos)}</span>);
-      parts.push(
-        <span key={pos} className="bg-primary/25 text-primary-foreground rounded px-0.5">
-          {text.slice(pos, pos + q.length)}
-        </span>
-      );
-      last = pos + q.length;
+  // Find currently active word based on playback time
+  const activeWordIdx = useMemo(() => {
+    for (let i = allWords.length - 1; i >= 0; i--) {
+      if (currentTime >= allWords[i].start) return i;
     }
-    if (last < text.length) parts.push(<span key={last}>{text.slice(last)}</span>);
-    return parts.length > 0 ? parts : text;
-  }, [transcriptSearch]);
+    return -1;
+  }, [allWords, currentTime]);
 
-  const handleRowClick = (seg, idx) => {
-    setActiveRow(idx);
-    seekTo(seg.startSec);
+  const handleWordClick = (word) => {
+    seekTo(word.start);
   };
 
   const handleCopyAll = () => {
-    const text = editSegments.map(s => s.text).join(" ");
-    navigator.clipboard?.writeText(text);
+    navigator.clipboard?.writeText(fullText);
+  };
+
+  // Render transcript words with search highlighting
+  const renderWords = () => {
+    if (allWords.length === 0) {
+      return (
+        <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+          No transcript data
+        </div>
+      );
+    }
+
+    // Build character position map for search highlighting
+    let searchHighlightRanges = [];
+    if (transcriptSearch) {
+      const q = transcriptSearch.toLowerCase();
+      const lower = fullText.toLowerCase();
+      let pos = 0;
+      while ((pos = lower.indexOf(q, pos)) !== -1) {
+        searchHighlightRanges.push({ start: pos, end: pos + q.length });
+        pos += 1;
+      }
+    }
+
+    let charOffset = 0;
+    return allWords.map((w, idx) => {
+      const wordStart = charOffset;
+      const wordEnd = charOffset + w.word.length;
+      charOffset = wordEnd + 1; // +1 for space
+
+      const isActive = idx === activeWordIdx;
+      const isSearchHit = searchHighlightRanges.some(
+        (r) => wordStart < r.end && wordEnd > r.start
+      );
+
+      return (
+        <React.Fragment key={idx}>
+          <span
+            onClick={() => handleWordClick(w)}
+            className={`
+              inline cursor-pointer rounded-sm px-0.5 transition-colors
+              ${isActive ? "bg-primary/20 text-primary font-medium" : ""}
+              ${isSearchHit ? "bg-yellow-500/25" : ""}
+              ${!isActive && !isSearchHit ? "hover:bg-secondary/50" : ""}
+            `}
+          >
+            {w.word}
+          </span>
+          {idx < allWords.length - 1 && " "}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
@@ -410,33 +562,10 @@ function TranscriptTab() {
 
       <Separator />
 
-      {/* Transcript rows */}
+      {/* Continuous flowing paragraph */}
       <ScrollArea className="flex-1">
-        <div className="py-1">
-          {editSegments.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-muted-foreground">
-              No transcript data
-            </div>
-          )}
-          {editSegments.map((seg, idx) => (
-            <button
-              key={seg.id}
-              onClick={() => handleRowClick(seg, idx)}
-              className={`
-                w-full text-left px-3 py-2 transition-colors cursor-pointer
-                ${activeRow === idx ? "bg-primary/8" : "hover:bg-secondary/40"}
-              `}
-            >
-              <div className="flex gap-2 items-start">
-                <span className="text-[10px] font-mono text-amber-500/70 whitespace-nowrap shrink-0 pt-0.5 min-w-[80px]">
-                  {seg.start} – {seg.end}
-                </span>
-                <span className="text-xs text-foreground/90 leading-relaxed break-words">
-                  {renderHighlightedText(seg.text, idx)}
-                </span>
-              </div>
-            </button>
-          ))}
+        <div className="px-3 py-3 text-xs text-foreground/90 leading-relaxed">
+          {renderWords()}
         </div>
       </ScrollArea>
     </div>
@@ -457,11 +586,13 @@ function EditSubtitlesTab() {
   const setHighlightColor = useSubtitleStore((s) => s.setHighlightColor);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
+  const splitSegment = useSubtitleStore((s) => s.splitSegment);
+  const mergeSegment = useSubtitleStore((s) => s.mergeSegment);
   const seekTo = usePlaybackStore((s) => s.seekTo);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
-  const [hoveredWord, setHoveredWord] = useState(null); // { segId, wordIdx }
+  const [hoveredWord, setHoveredWord] = useState(null);
 
   // ── Search matches ──
   const matches = useMemo(() => {
@@ -490,13 +621,11 @@ function EditSubtitlesTab() {
     });
   }, [matches, editSegments, setActiveSegId, seekTo]);
 
-  // ── Segment click ──
   const handleSegClick = (seg) => {
     setActiveSegId(seg.id);
     seekTo(seg.startSec);
   };
 
-  // ── Word click → seek ──
   const handleWordClick = (seg, wordIdx) => {
     setActiveSegId(seg.id);
     setSelectedWordInfo({ segId: seg.id, wordIdx });
@@ -505,12 +634,17 @@ function EditSubtitlesTab() {
     }
   };
 
-  // ── Word color selection ──
   const handleWordColorSelect = (segId, wordIdx, color) => {
-    // Store word-level highlight in segment data
-    // For now, just set the global highlight color when a word is tagged
     if (color) setHighlightColor(color);
     setHoveredWord(null);
+  };
+
+  const handleSplit = () => {
+    splitSegment();
+  };
+
+  const handleMerge = () => {
+    mergeSegment();
   };
 
   // ── Render segment text with per-word interaction ──
@@ -519,7 +653,6 @@ function EditSubtitlesTab() {
     let wordIdx = 0;
 
     return textWords.map((token, i) => {
-      // Whitespace tokens
       if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
 
       const currentWordIdx = wordIdx;
@@ -539,7 +672,6 @@ function EditSubtitlesTab() {
           onMouseLeave={() => setHoveredWord(null)}
         >
           {token}
-          {/* Color picker on hover */}
           {isHovered && (
             <WordColorPicker
               segId={seg.id}
@@ -552,54 +684,90 @@ function EditSubtitlesTab() {
     });
   };
 
-  // ── Highlight search matches in text ──
-  const renderSearchHighlight = (text) => {
-    if (!transcriptSearch) return null;
-    const q = transcriptSearch.toLowerCase();
-    const lower = text.toLowerCase();
-    if (!lower.includes(q)) return null;
-    // If there's a search match, we overlay highlighting via the word rendering
-    return true;
-  };
-
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar: view mode + settings */}
+      {/* Toolbar: search far left, Sentence/Paragraph + split/merge + segment mode + settings on right */}
       <div className="flex items-center gap-1 px-3 py-1.5 min-h-[36px]">
-        {/* CC icon + mode toggle */}
-        <div className="flex items-center gap-1 flex-1">
-          <span className="text-[10px] font-bold text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">CC</span>
-
-          {/* Sentence / Paragraph toggle */}
-          <div className="flex items-center rounded-md bg-secondary/40 p-0.5">
-            <button
-              onClick={() => setEsFilter("all")}
-              className={`h-6 px-2 rounded text-[10px] font-medium transition-colors ${
-                esFilter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <AlignLeft className="h-3 w-3" />
-            </button>
-            <button
-              onClick={() => setEsFilter("paragraph")}
-              className={`h-6 px-2 rounded text-[10px] font-medium transition-colors ${
-                esFilter === "paragraph" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <AlignJustify className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* Search toggle + Settings */}
+        {/* Search toggle — far left */}
         <button
           onClick={() => setSearchOpen(!searchOpen)}
-          className={`h-7 w-7 flex items-center justify-center rounded transition-colors ${
+          className={`h-7 w-7 flex items-center justify-center rounded transition-colors shrink-0 ${
             searchOpen ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
           }`}
         >
           <Search className="h-3.5 w-3.5" />
         </button>
+
+        <div className="flex-1" />
+
+        {/* Sentence / Paragraph toggle — beside settings */}
+        <div className="flex items-center rounded-md bg-secondary/40 p-0.5">
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setEsFilter("all")}
+                  className={`h-6 px-2 rounded text-[10px] font-medium transition-colors ${
+                    esFilter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Sentence
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-[10px]">Sentence view</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setEsFilter("paragraph")}
+                  className={`h-6 px-2 rounded text-[10px] font-medium transition-colors ${
+                    esFilter === "paragraph" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Paragraph
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-[10px]">Paragraph view</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        {/* Split button */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                onClick={handleSplit}
+                disabled={!activeSegId}
+              >
+                <Scissors className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-[10px]">Split segment at selected word</TooltipContent>
+          </Tooltip>
+
+          {/* Merge button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                onClick={handleMerge}
+                disabled={!activeSegId}
+              >
+                <Merge className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-[10px]">Merge with next segment</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Segment mode selector */}
+        <SegmentModePopover />
+
+        {/* Settings */}
         <SubtitleSettingsPopover />
       </div>
 
@@ -620,7 +788,7 @@ function EditSubtitlesTab() {
 
       <Separator />
 
-      {/* Segment list */}
+      {/* Segment list — timecodes ABOVE each segment */}
       <ScrollArea className="flex-1">
         <div className="py-1">
           {editSegments.length === 0 && (
@@ -636,48 +804,38 @@ function EditSubtitlesTab() {
                 key={seg.id}
                 onClick={() => handleSegClick(seg)}
                 className={`
-                  group relative px-3 py-2.5 cursor-pointer transition-colors border-b border-border/30
+                  group relative px-3 py-2 cursor-pointer transition-colors border-b border-border/30
                   ${isActive ? "bg-primary/8" : "hover:bg-secondary/30"}
                 `}
               >
-                <div className="flex gap-2 items-start">
-                  {/* Timecode (clickable → opens popover) */}
+                {/* Timecode row — ABOVE the text */}
+                <div className="flex items-center justify-between mb-1">
                   <TimecodePopover segment={seg}>
                     <button
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-mono text-amber-500/70 hover:text-amber-400 whitespace-nowrap shrink-0 pt-0.5 min-w-[80px] text-left transition-colors"
+                      className="text-[10px] font-mono text-muted-foreground hover:text-amber-400 transition-colors cursor-pointer"
                     >
-                      {seg.start}
-                      <br />
-                      {seg.end}
+                      {seg.start} — {seg.end}
                     </button>
                   </TimecodePopover>
 
-                  {/* Segment text with per-word hover */}
-                  <div className="flex-1 text-xs text-foreground/90 leading-relaxed break-words">
-                    {renderWords(seg)}
-                  </div>
-
-                  {/* Add / action button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); }}
-                    className="shrink-0 w-6 h-6 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border opacity-0 group-hover:opacity-100 transition-all mt-0.5"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
+                  {/* Duration badge inline with timecode */}
+                  <span className="text-[9px] text-muted-foreground">
+                    {seg.dur}
+                  </span>
                 </div>
 
-                {/* Duration badge */}
-                {isActive && (
-                  <div className="mt-1.5 ml-[84px]">
-                    <span className="text-[9px] text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded">
-                      {seg.dur}
+                {/* Segment text with per-word hover */}
+                <div className="text-xs text-foreground/90 leading-relaxed break-words">
+                  {renderWords(seg)}
+                </div>
+
+                {/* Warning if present */}
+                {isActive && seg.warning && (
+                  <div className="mt-1">
+                    <span className="text-[9px] text-amber-500/70">
+                      {seg.warning}
                     </span>
-                    {seg.warning && (
-                      <span className="text-[9px] text-amber-500/70 ml-1.5">
-                        ⚠ {seg.warning}
-                      </span>
-                    )}
                   </div>
                 )}
               </div>

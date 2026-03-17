@@ -4,12 +4,14 @@ import { fmtTime } from "../utils/timeUtils";
 const useSubtitleStore = create((set, get) => ({
   // ── Editable segments (source of truth for transcript, edit subs, overlay, timeline) ──
   editSegments: [],
+  originalSegments: [], // preserved for segment mode switching
 
   // ── Edit Subtitles panel ──
   esFilter: "all",
   activeSegId: null,
   selectedWordInfo: null, // { segId, wordIdx }
   editingWordKey: null,   // "segId-wordIdx" for inline transcript editing
+  segmentMode: "sentence", // "sentence" | "3word" | "1word"
 
   // ── Transcript ──
   transcriptSearch: "",
@@ -33,6 +35,8 @@ const useSubtitleStore = create((set, get) => ({
   subFontWeight: 700,
   lineMode: "2L",
   syncOffset: 0,
+  // Per-punctuation removal config
+  punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
 
   // ── Derived getter ──
   getTranscriptRows: () => {
@@ -72,10 +76,12 @@ const useSubtitleStore = create((set, get) => ({
       }));
     set({
       editSegments: segs,
+      originalSegments: segs, // preserve for segment mode switching
       activeSegId: segs.length > 0 ? segs[0].id : null,
       activeRow: 0,
       selectedWordInfo: null,
       editingWordKey: null,
+      segmentMode: "sentence",
     });
   },
 
@@ -223,6 +229,65 @@ const useSubtitleStore = create((set, get) => ({
   setSubFontWeight: (w) => set({ subFontWeight: w }),
   setLineMode: (m) => set({ lineMode: m }),
   setSyncOffset: (o) => set({ syncOffset: o }),
+  setPunctuationRemove: (config) => set({ punctuationRemove: config }),
+
+  // ── Segment mode switching ──
+  setSegmentMode: (mode) => {
+    const { originalSegments } = get();
+    if (!originalSegments || originalSegments.length === 0) {
+      set({ segmentMode: mode });
+      return;
+    }
+
+    if (mode === "sentence") {
+      set({ editSegments: originalSegments, segmentMode: mode, activeSegId: originalSegments[0]?.id });
+      return;
+    }
+
+    // Gather all words from all original segments
+    const allWords = [];
+    originalSegments.forEach((seg) => {
+      if (seg.words && seg.words.length > 0) {
+        seg.words.forEach((w) => allWords.push({ ...w, track: seg.track }));
+      } else {
+        // Fallback: split text evenly
+        const textWords = seg.text.split(/\s+/).filter(Boolean);
+        const dur = seg.endSec - seg.startSec;
+        const perWord = dur / textWords.length;
+        textWords.forEach((tw, i) => {
+          allWords.push({
+            word: tw,
+            start: seg.startSec + i * perWord,
+            end: seg.startSec + (i + 1) * perWord,
+            probability: 1,
+            track: seg.track,
+          });
+        });
+      }
+    });
+
+    const chunkSize = mode === "1word" ? 1 : 3;
+    const newSegs = [];
+    for (let i = 0; i < allWords.length; i += chunkSize) {
+      const chunk = allWords.slice(i, i + chunkSize);
+      const startSec = chunk[0].start;
+      const endSec = chunk[chunk.length - 1].end;
+      newSegs.push({
+        id: Date.now() + i,
+        start: fmtTime(startSec),
+        end: fmtTime(endSec),
+        dur: (endSec - startSec).toFixed(1) + "s",
+        text: chunk.map((w) => w.word).join(" "),
+        track: chunk[0].track || "s1",
+        conf: "high",
+        startSec,
+        endSec,
+        warning: null,
+        words: chunk,
+      });
+    }
+    set({ editSegments: newSegs, segmentMode: mode, activeSegId: newSegs[0]?.id });
+  },
 }));
 
 export default useSubtitleStore;
