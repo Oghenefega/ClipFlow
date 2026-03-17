@@ -37,6 +37,7 @@ const TRACK_COLORS = {
 };
 const RULER_H = 24;
 const TRACK_H = 36;
+const AUDIO_TRACK_H = 64;
 const LABEL_W = 72;
 
 // ── Speed Dropdown ──
@@ -184,7 +185,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
     const w = timelineWidth;
-    const h = TRACK_H - 4;
+    const h = AUDIO_TRACK_H - 4;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     canvas.style.width = `${w}px`;
@@ -194,7 +195,6 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 
     // NEVER draw a fake/generic waveform. Only render real audio data.
     if (!peaks || peaks.length === 0) {
-      // Show "Extracting waveform..." text if no data yet
       ctx.fillStyle = "hsl(200 40% 50% / 0.3)";
       ctx.font = "10px 'DM Sans', sans-serif";
       ctx.textAlign = "center";
@@ -202,13 +202,21 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       return;
     }
 
+    // Normalize peaks: find max peak to scale relative to it
+    const maxPeak = Math.max(...peaks, 0.01);
     const barWidth = Math.max(1, w / peaks.length);
+    const centerY = h / 2;
+
     for (let i = 0; i < peaks.length; i++) {
-      const amp = peaks[i];
-      const barH = amp * h * 0.85;
+      const normalized = peaks[i] / maxPeak; // 0–1 relative to loudest peak
+      // Apply slight curve to boost quiet parts visibility
+      const amp = Math.pow(normalized, 0.7);
+      const barH = Math.max(1, amp * h * 0.92);
       const x = i * barWidth;
-      ctx.fillStyle = selected ? "hsl(200 50% 60% / 0.55)" : "hsl(200 40% 50% / 0.35)";
-      ctx.fillRect(x, (h - barH) / 2, Math.max(1, barWidth - 0.5), barH);
+
+      // Draw mirrored waveform (top and bottom from center)
+      ctx.fillStyle = selected ? "hsl(200 55% 60% / 0.65)" : "hsl(200 45% 55% / 0.45)";
+      ctx.fillRect(x, centerY - barH / 2, Math.max(1, barWidth - 0.5), barH);
     }
   }, [peaks, timelineWidth, selected]);
 
@@ -290,30 +298,34 @@ export default function TimelinePanelNew() {
 
   const timelineWidth = Math.max(trackAreaWidth, trackAreaWidth * tlZoom);
 
-  // Playhead position
-  const playheadPx = duration > 0 ? (currentTime / duration) * timelineWidth : 0;
+  // Effective timeline content width (excluding label column)
+  const contentWidth = timelineWidth - LABEL_W;
 
-  // Ruler tick marks
+  // Playhead position (relative to content area, after label column)
+  const playheadPx = duration > 0 ? LABEL_W + (currentTime / duration) * contentWidth : LABEL_W;
+
+  // Ruler tick marks — offset by LABEL_W to align with track content
   const rulerTicks = useMemo(() => {
     if (duration <= 0) return [];
     // Target ~60px between major ticks
-    const majorInterval = Math.max(0.5, Math.round((duration / (timelineWidth / 60)) * 2) / 2);
+    const majorInterval = Math.max(0.5, Math.round((duration / (contentWidth / 60)) * 2) / 2);
     const ticks = [];
     for (let t = 0; t <= duration; t += majorInterval / 2) {
       const isMajor = Math.abs(t % majorInterval) < 0.01 || Math.abs(t % majorInterval - majorInterval) < 0.01;
-      ticks.push({ time: t, px: (t / duration) * timelineWidth, major: isMajor });
+      ticks.push({ time: t, px: LABEL_W + (t / duration) * contentWidth, major: isMajor });
     }
     return ticks;
-  }, [duration, timelineWidth]);
+  }, [duration, contentWidth]);
 
-  // Scrub / seek on ruler click
+  // Scrub / seek on ruler click — account for LABEL_W offset
   const handleRulerClick = useCallback((e) => {
     if (!rulerRef.current || duration <= 0) return;
     const rect = rulerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left + rulerRef.current.scrollLeft;
-    const t = Math.max(0, Math.min(duration, (x / timelineWidth) * duration));
+    const x = e.clientX - rect.left + rulerRef.current.scrollLeft - LABEL_W;
+    if (x < 0) return; // clicked in label area
+    const t = Math.max(0, Math.min(duration, (x / contentWidth) * duration));
     seekTo(t);
-  }, [duration, timelineWidth, seekTo]);
+  }, [duration, contentWidth, seekTo]);
 
   // Scrubbing
   const handleScrubStart = useCallback((e) => {
@@ -326,8 +338,8 @@ export default function TimelinePanelNew() {
     const onMove = (e) => {
       if (!rulerRef.current || duration <= 0) return;
       const rect = rulerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left + rulerRef.current.scrollLeft;
-      const t = Math.max(0, Math.min(duration, (x / timelineWidth) * duration));
+      const x = e.clientX - rect.left + rulerRef.current.scrollLeft - LABEL_W;
+      const t = Math.max(0, Math.min(duration, (x / contentWidth) * duration));
       seekTo(t);
     };
     const onUp = () => setScrubbing(false);
@@ -337,7 +349,7 @@ export default function TimelinePanelNew() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [scrubbing, duration, timelineWidth, seekTo]);
+  }, [scrubbing, duration, contentWidth, seekTo]);
 
   // Track click on empty area deselects
   const handleTrackBgClick = useCallback(() => {
@@ -357,6 +369,62 @@ export default function TimelinePanelNew() {
     setSelectedSegId(segId);
     if (track === "sub") setActiveSegId(segId);
   }, [setActiveSegId]);
+
+  // Subtitle resize with neighbor pushing — prevents overlaps
+  const handleSubtitleResize = useCallback((segId, newStart, newEnd) => {
+    // Sort segments by startSec to find neighbors
+    const sorted = [...editSegments].sort((a, b) => a.startSec - b.startSec);
+    const idx = sorted.findIndex((s) => s.id === segId);
+    if (idx < 0) return;
+
+    const seg = sorted[idx];
+    const prevSeg = idx > 0 ? sorted[idx - 1] : null;
+    const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+    const minDur = 0.1; // minimum segment duration
+
+    // Dragging left handle (changing startSec)
+    if (newStart !== seg.startSec) {
+      // Clamp: can't go before 0
+      newStart = Math.max(0, newStart);
+      // Can't make segment shorter than minDur
+      newStart = Math.min(newStart, newEnd - minDur);
+
+      // Push previous segment if overlapping
+      if (prevSeg && newStart < prevSeg.endSec) {
+        const pushEnd = newStart;
+        const pushStart = Math.max(0, Math.min(prevSeg.startSec, pushEnd - minDur));
+        if (pushEnd - pushStart >= minDur) {
+          updateSegmentTimes(prevSeg.id, pushStart, pushEnd);
+        } else {
+          // Can't push further — clamp our start
+          newStart = prevSeg.endSec;
+        }
+      }
+    }
+
+    // Dragging right handle (changing endSec)
+    if (newEnd !== seg.endSec) {
+      // Clamp: can't exceed duration
+      newEnd = Math.min(duration, newEnd);
+      // Can't make segment shorter than minDur
+      newEnd = Math.max(newEnd, newStart + minDur);
+
+      // Push next segment if overlapping
+      if (nextSeg && newEnd > nextSeg.startSec) {
+        const pushStart = newEnd;
+        const pushEnd = Math.max(nextSeg.endSec, pushStart + minDur);
+        const clampedEnd = Math.min(pushEnd, duration);
+        if (clampedEnd - pushStart >= minDur) {
+          updateSegmentTimes(nextSeg.id, pushStart, clampedEnd);
+        } else {
+          // Can't push further — clamp our end
+          newEnd = nextSeg.startSec;
+        }
+      }
+    }
+
+    updateSegmentTimes(segId, newStart, newEnd);
+  }, [editSegments, duration, updateSegmentTimes]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -401,15 +469,14 @@ export default function TimelinePanelNew() {
     if (!playing || !tracksRef.current || !rulerRef.current || duration <= 0) return;
     const scrollContainer = tracksRef.current;
     const viewWidth = scrollContainer.clientWidth;
-    const playheadX = (currentTime / duration) * timelineWidth;
+    const playheadX = LABEL_W + (currentTime / duration) * contentWidth;
     const scrollLeft = scrollContainer.scrollLeft;
-    // If playhead is near the right edge or off-screen, scroll to follow
     if (playheadX > scrollLeft + viewWidth - 40 || playheadX < scrollLeft) {
       const newScroll = Math.max(0, playheadX - viewWidth * 0.3);
       scrollContainer.scrollLeft = newScroll;
       rulerRef.current.scrollLeft = newScroll;
     }
-  }, [playing, currentTime, duration, timelineWidth]);
+  }, [playing, currentTime, duration, contentWidth]);
 
   // Apply playback speed to video
   useEffect(() => {
@@ -670,14 +737,14 @@ export default function TimelinePanelNew() {
                 </span>
                 <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
               </div>
-              <div className="flex-1 relative" style={{ width: timelineWidth - LABEL_W }}>
+              <div className="flex-1 relative" style={{ width: contentWidth }}>
                 {captionSegs.map((seg) => (
                   <SegmentBlock
                     key={seg.id}
                     seg={seg}
                     trackColor={TRACK_COLORS.cap}
                     duration={duration}
-                    timelineWidth={timelineWidth - LABEL_W}
+                    timelineWidth={contentWidth}
                     selected={selectedTrack === "cap" && selectedSegId === seg.id}
                     onSelect={(id) => handleSegSelect("cap", id)}
                     onResize={() => {}} // Caption spans full duration
@@ -686,7 +753,7 @@ export default function TimelinePanelNew() {
                 {/* Playhead line */}
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * (timelineWidth - LABEL_W)) : 0 }}
+                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
                 />
               </div>
             </div>
@@ -696,33 +763,33 @@ export default function TimelinePanelNew() {
               <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
                 <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
               </div>
-              <div className="flex-1 relative" style={{ width: timelineWidth - LABEL_W }}>
+              <div className="flex-1 relative" style={{ width: contentWidth }}>
                 {editSegments.map((seg) => (
                   <SegmentBlock
                     key={seg.id}
                     seg={seg}
                     trackColor={TRACK_COLORS.sub}
                     duration={duration}
-                    timelineWidth={timelineWidth - LABEL_W}
+                    timelineWidth={contentWidth}
                     selected={selectedTrack === "sub" && selectedSegId === seg.id}
                     onSelect={(id) => handleSegSelect("sub", id)}
-                    onResize={(id, start, end) => updateSegmentTimes(id, start, end)}
+                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
                   />
                 ))}
                 {/* Playhead line */}
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * (timelineWidth - LABEL_W)) : 0 }}
+                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
                 />
               </div>
             </div>
 
             {/* Audio/Video track */}
-            <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
+            <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
               <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
                 <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
               </div>
-              <div className="flex-1 relative" style={{ width: timelineWidth - LABEL_W }}>
+              <div className="flex-1 relative" style={{ width: contentWidth }}>
                 <WaveformTrack
                   peaks={waveformPeaks}
                   duration={duration}
@@ -735,7 +802,7 @@ export default function TimelinePanelNew() {
                 {/* Playhead line */}
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-primary z-20 pointer-events-none"
-                  style={{ left: duration > 0 ? ((currentTime / duration) * (timelineWidth - LABEL_W)) : 0 }}
+                  style={{ left: duration > 0 ? ((currentTime / duration) * contentWidth) : 0 }}
                 />
               </div>
             </div>
