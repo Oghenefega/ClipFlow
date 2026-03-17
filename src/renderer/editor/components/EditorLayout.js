@@ -9,6 +9,7 @@ import { ScrollArea } from "../../../components/ui/scroll-area";
 import LeftPanelNew from "./LeftPanelNew";
 import RightPanelNew from "./RightPanelNew";
 import PreviewPanelNew from "./PreviewPanelNew";
+import TimelinePanelNew from "./TimelinePanelNew";
 import useEditorStore from "../stores/useEditorStore";
 import {
   Undo2,
@@ -16,20 +17,11 @@ import {
   ChevronLeft,
   ChevronDown,
   Play,
-  ZoomIn,
-  ZoomOut,
-  PanelBottomClose,
-  Scissors,
-  Search,
-  SlidersHorizontal,
-  Music,
-  Type,
   Clock,
   Settings,
   Check,
   Send,
 } from "lucide-react";
-import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
 import {
   Tooltip,
@@ -416,167 +408,6 @@ function Topbar({ onBack }) {
   );
 }
 
-// ── Left Panel (imported from LeftPanelNew) ──
-// ── Center Preview (imported from PreviewPanelNew) ──
-
-// ── Timeline ──
-function TimelinePanel() {
-  return (
-    <div className="flex flex-col h-full bg-card select-none">
-      {/* Controls bar */}
-      <div className="h-10 min-h-[40px] flex items-center px-3 border-b gap-2">
-        {/* Left: filter/text/search icons + zoom */}
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <Type className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <Search className="h-3.5 w-3.5" />
-          </Button>
-          <Separator orientation="vertical" className="h-4 mx-1" />
-          <div className="flex items-center gap-1.5 w-[120px]">
-            <ZoomOut className="h-3 w-3 text-muted-foreground shrink-0" />
-            <Slider defaultValue={[50]} max={100} step={1} className="flex-1" />
-            <ZoomIn className="h-3 w-3 text-muted-foreground shrink-0" />
-          </div>
-        </div>
-
-        {/* Center: play + timecodes */}
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground">
-            <Play className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <span className="text-foreground">00:05.0</span>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground">00:16.7</span>
-          </div>
-        </div>
-
-        {/* Right: hide/speed/split */}
-        <div className="flex items-center gap-1">
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                  <PanelBottomClose className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Hide timeline</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground font-mono">
-                  1x
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Speed</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                  <Scissors className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Split (S)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
-
-      {/* Time ruler */}
-      <div className="h-6 min-h-[24px] border-b flex items-end px-2 relative overflow-hidden">
-        {/* Ruler tick marks */}
-        <div className="flex items-end gap-0 w-full h-full relative">
-          {[...Array(22)].map((_, i) => (
-            <div key={i} className="flex flex-col items-start" style={{ position: "absolute", left: `${(i / 21) * 100}%` }}>
-              <span className="text-[9px] font-mono text-muted-foreground/60 leading-none mb-0.5">
-                {i % 2 === 0 ? `${Math.floor(i * 0.8)}s` : ""}
-              </span>
-              <div
-                className="bg-border"
-                style={{ width: 1, height: i % 2 === 0 ? 8 : 4 }}
-              />
-            </div>
-          ))}
-          {/* Playhead */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-primary z-10"
-            style={{ left: "30%" }}
-          >
-            <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-primary rounded-sm rotate-45" />
-          </div>
-        </div>
-      </div>
-
-      {/* Tracks area */}
-      <div className="flex-1 overflow-hidden">
-        {TRACKS.map((track) => (
-          <div key={track.id} className="h-10 flex items-center border-b border-border/50 px-2 gap-2">
-            {/* Track label */}
-            <div className="w-16 shrink-0 flex items-center gap-1.5">
-              {track.icon && (
-                <span className="text-[10px] font-bold w-4 h-4 rounded flex items-center justify-center"
-                  style={{ background: track.color, color: "white" }}>
-                  {track.icon}
-                </span>
-              )}
-              <span className="text-[10px] text-muted-foreground font-medium truncate">{track.label}</span>
-            </div>
-
-            {/* Track content placeholder */}
-            <div className="flex-1 h-6 relative rounded overflow-hidden">
-              {track.id === "cap" && (
-                <div className="absolute inset-y-0 left-[5%] right-[40%] rounded"
-                  style={{ background: `${track.color}22`, border: `1px solid ${track.color}44` }}>
-                  <span className="text-[9px] px-1.5 leading-[24px] text-muted-foreground truncate">
-                    Caption text here...
-                  </span>
-                </div>
-              )}
-              {track.id === "sub" && (
-                <div className="absolute inset-y-0 left-[2%] right-[5%] rounded"
-                  style={{ background: `${track.color}22`, border: `1px solid ${track.color}44` }}>
-                  <span className="text-[9px] px-1.5 leading-[24px] text-muted-foreground truncate">
-                    Subtitle segments
-                  </span>
-                </div>
-              )}
-              {track.id === "audio" && (
-                /* Waveform placeholder */
-                <div className="flex items-center h-full gap-px px-1">
-                  {[...Array(80)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-full"
-                      style={{
-                        background: `${track.color}66`,
-                        height: `${20 + Math.abs(Math.sin(i * 0.4)) * 70}%`,
-                        minWidth: 1,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Add audio row */}
-        <div className="h-8 flex items-center px-2">
-          <button className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground flex items-center gap-1 transition-colors">
-            <Music className="h-3 w-3" />
-            Add audio
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
   return (
@@ -614,7 +445,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
 
         {/* Timeline */}
         <ResizablePanel defaultSize={28} minSize={8} maxSize={50}>
-          <TimelinePanel />
+          <TimelinePanelNew />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
