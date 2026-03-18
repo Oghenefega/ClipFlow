@@ -266,7 +266,7 @@ function TimecodePopover({ segment, children }) {
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4}>
+      <PopoverContent className="w-[280px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4} collisionPadding={12}>
         <div className="px-3 py-2 border-b border-border">
           <span className="text-sm font-semibold text-foreground">Adjust start and end time</span>
         </div>
@@ -577,7 +577,7 @@ function TranscriptTab() {
       </div>
       <Separator />
       <ScrollArea className="flex-1">
-        <div className="px-4 py-4 text-sm text-foreground/90 leading-relaxed">
+        <div className="px-5 py-4 text-sm text-foreground/90 leading-relaxed">
           {renderWords()}
         </div>
       </ScrollArea>
@@ -647,11 +647,6 @@ function EditSubtitlesTab() {
     }
   };
 
-  const handleWordDoubleClick = (e, seg, wordIdx) => {
-    e.stopPropagation();
-    setEditingWord({ segId: seg.id, wordIdx });
-  };
-
   const handleEditConfirm = (segId, wordIdx, newText) => {
     updateWordInSegment(segId, wordIdx, newText);
     setEditingWord(null);
@@ -702,12 +697,11 @@ function EditSubtitlesTab() {
           key={i}
           className={`
             relative inline-block cursor-pointer rounded px-0.5 transition-colors
-            ${isPlaybackActive ? "bg-green-500/20 text-green-400 font-semibold" : ""}
-            ${isSelected && !isPlaybackActive ? "bg-primary/20 text-primary" : ""}
+            ${isPlaybackActive ? "bg-primary/20 text-primary font-semibold" : ""}
+            ${isSelected && !isPlaybackActive ? "bg-primary/15 text-primary" : ""}
             ${!isSelected && !isPlaybackActive ? "hover:bg-secondary/60" : ""}
           `}
-          onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); }}
-          onDoubleClick={(e) => handleWordDoubleClick(e, seg, currentWordIdx)}
+          onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx }); }}
           onMouseEnter={() => setHoveredWord({ segId: seg.id, wordIdx: currentWordIdx })}
           onMouseLeave={() => setHoveredWord(null)}
         >
