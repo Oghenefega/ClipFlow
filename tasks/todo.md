@@ -4,6 +4,176 @@
 
 ---
 
+## 🟡 In Progress — Deep Text Effects System (Resolve-inspired)
+
+### Goal
+Upgrade subtitle/caption effects from basic (stroke width/opacity, shadow blur/opacity) to deep, layered effects: **Stroke** (+ blur, offsetX/Y), **Glow** (new — color, opacity, intensity, blur, blend), **Shadow** (+ offsetX/Y), **Background** (+ color, paddingX/Y, border radius). Reproduce the "Yellow Pop" DaVinci Resolve look (thick stroke, yellow glow halo, blurred drop shadow). Ship 5-8 built-in effect presets.
+
+### Architecture Decision: EffectSection Redesign
+**Current:** Plus/Minus toggle, no collapse state — content only shows when enabled.
+**New:** Toggle switch (on/off) + chevron (expand/collapse). When disabled, section is dimmed but expandable (can see/tweak values before enabling). When collapsed + enabled, a colored dot shows active state. This is a **better choice** because:
+1. Users can preview settings before enabling an effect
+2. Disabling doesn't lose settings (just hides the effect)
+3. Matches Resolve and Vizard patterns
+
+### Step 1: Data Model — Expand Stores
+
+**useSubtitleStore.js** — add new properties:
+```
+// Stroke additions (existing: strokeOn, strokeColor, strokeWidth, strokeOpacity)
+strokeBlur: 0,           // 0-20px softness
+strokeOffsetX: 0,        // -20 to +20px
+strokeOffsetY: 0,        // -20 to +20px
+
+// Glow (NEW section)
+glowOn: false,
+glowColor: "#ffffff",    // defaults to text fill color
+glowOpacity: 25,         // 0-100%
+glowIntensity: 80,       // 0-100%
+glowBlur: 15,            // 0-50px
+glowBlend: 20,           // 0-100%
+glowOffsetX: 0,          // -20 to +20px
+glowOffsetY: 0,          // -20 to +20px
+
+// Shadow additions (existing: shadowOn, shadowColor, shadowBlur, shadowOpacity)
+shadowOffsetX: 4,        // -30 to +30px
+shadowOffsetY: 4,        // -30 to +30px
+
+// Background additions (existing: bgOn, bgOpacity)
+bgColor: "#000000",
+bgPaddingX: 12,          // 0-40px
+bgPaddingY: 8,           // 0-20px
+bgRadius: 6,             // 0-20px
+```
+
+**useCaptionStore.js** — add matching caption properties:
+```
+// Stroke additions
+captionStrokeBlur: 0,
+captionStrokeOffsetX: 0,
+captionStrokeOffsetY: 0,
+
+// Glow
+captionGlowOn: false,
+captionGlowColor: "#ffffff",
+captionGlowOpacity: 25,
+captionGlowIntensity: 80,
+captionGlowBlur: 15,
+captionGlowBlend: 20,
+captionGlowOffsetX: 0,
+captionGlowOffsetY: 0,
+
+// Shadow additions
+captionShadowOffsetX: 4,
+captionShadowOffsetY: 4,
+
+// Background
+captionBgOn: false,
+captionBgColor: "#000000",
+captionBgOpacity: 70,
+captionBgPaddingX: 12,
+captionBgPaddingY: 8,
+captionBgRadius: 6,
+```
+
+**Files:** `useSubtitleStore.js`, `useCaptionStore.js`
+- [ ] Add all new state properties + setters (with `_pushStyleUndo` / `_pushCrossUndo`)
+- [ ] Add to cross-store undo snapshot keys in `SUB_STYLE_KEYS`
+- [ ] Add to caption snapshot in `_snapshotStyling`
+
+### Step 2: EffectSection Component Redesign
+
+**File:** `RightPanelNew.js`
+
+Replace current `EffectSection` (Plus/Minus toggle) with new version:
+- [ ] Toggle switch (green on/gray off) for enable/disable
+- [ ] Chevron (▼/▶) for expand/collapse — independent of enable
+- [ ] When collapsed + enabled: show small color dot indicator
+- [ ] When expanded + disabled: controls are visible but dimmed (opacity: 0.4)
+- [ ] Section header click toggles expand; toggle switch toggles enable
+
+### Step 3: Deepen Stroke Section
+
+**Files:** `RightPanelNew.js` (both SubtitlesPanel and TextPanel)
+- [ ] Rename "Width" → "Thickness"
+- [ ] Add Blur slider (0-20, labeled "Softness")
+- [ ] Add Offset X slider (-20 to +20)
+- [ ] Add Offset Y slider (-20 to +20)
+
+### Step 4: Add Glow Section (NEW)
+
+**File:** `RightPanelNew.js` — insert between Stroke and Shadow
+- [ ] Color picker (default: matches text fill color)
+- [ ] Opacity slider (0-100%, default 25%)
+- [ ] Intensity slider (0-100%, default 80%)
+- [ ] Blur / Softness slider (0-50px, default 15)
+- [ ] Blend slider (0-100%, default 20%)
+- [ ] Offset X slider (-20 to +20)
+- [ ] Offset Y slider (-20 to +20)
+
+### Step 5: Deepen Shadow Section
+
+**File:** `RightPanelNew.js`
+- [ ] Add Offset X slider (-30 to +30, default 4)
+- [ ] Add Offset Y slider (-30 to +30, default 4)
+- [ ] Keep existing: color, blur/softness, opacity
+
+### Step 6: Deepen Background Section
+
+**File:** `RightPanelNew.js`
+- [ ] Add Color picker (default #000000) — currently hardcoded
+- [ ] Add Padding X slider (0-40px, default 12)
+- [ ] Add Padding Y slider (0-20px, default 8)
+- [ ] Add Border Radius slider (0-20px, default 6)
+- [ ] Keep existing: opacity
+
+### Step 7: Preview Rendering — Update `buildStrokeShadows` + text styles
+
+**File:** `PreviewPanelNew.js`
+
+Update `subTextStyle` and `capTextStyle` to use new properties:
+- [ ] Stroke: add blur parameter to shadow generation, apply offsetX/Y
+- [ ] Glow: render as large, soft, semi-transparent text-shadow with intensity controlling spread
+- [ ] Shadow: use offsetX/Y instead of hardcoded `0 2px`
+- [ ] Background: use bgColor, bgPaddingX/Y, bgRadius
+- [ ] Render order: Background → Shadow → Glow (below) → Stroke → Glow (above) → Fill
+
+### Step 8: Built-in Effect Presets
+
+**File:** `templateUtils.js` (or new `effectPresets.js`)
+- [ ] "Clean White" — white text, black stroke, no glow/shadow
+- [ ] "Yellow Pop" — yellow text, thick black stroke, yellow glow, drop shadow (the Resolve reference look)
+- [ ] "Neon Glow" — white text, no stroke, vibrant colored glow
+- [ ] "Frosted" — white text, slight stroke, background box
+- [ ] "Shadow Bold" — white text, heavy drop shadow, no stroke
+- [ ] "Gaming" — uppercase, thick stroke, colored glow, strong shadow
+- [ ] "Minimal" — white text, thin stroke, nothing else
+- [ ] "Outlined" — colored stroke, transparent fill
+
+### Step 9: Update Template System
+
+**File:** `templateUtils.js`
+- [ ] Add new properties to `snapshotTemplate` and `applyTemplate`
+- [ ] Ensure effect presets integrate with existing template save/load
+
+### Verification
+- [ ] Build with zero errors
+- [ ] Launch app, open editor
+- [ ] Toggle each effect section on/off — preview updates live
+- [ ] Reproduce "Yellow Pop" look from screenshots
+- [ ] Undo/redo works for all new properties
+- [ ] Save template with deep effects → reload → all restored
+- [ ] No regressions in existing subtitle/caption rendering
+
+### Files Impacted
+1. `src/renderer/editor/stores/useSubtitleStore.js` — new state + setters + undo keys
+2. `src/renderer/editor/stores/useCaptionStore.js` — new state + setters
+3. `src/renderer/editor/components/RightPanelNew.js` — EffectSection redesign, new controls
+4. `src/renderer/editor/components/PreviewPanelNew.js` — text style rendering
+5. `src/renderer/editor/utils/templateUtils.js` — template snapshot/apply + effect presets
+
+---
+
 ## 🟡 In Progress — Whisper Migration: whisper.cpp → BetterWhisperX
 
 ### Goal
@@ -56,6 +226,13 @@ Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Sam
 - [ ] List all whisper.cpp files/deps to remove — present to user
 - [ ] Wait for user approval before deleting anything
 - [ ] Remove approved items only
+
+---
+
+## 📋 Misc Changes (batch when 10 accumulated)
+
+1. **Timeline end marker**: The timeline should have a visible end line/marker so the timeline stops before it (or the content goes under it). Currently it just fades off to the right.
+2. **Punctuation dropdown text**: Remove the "Hide" label — just the arrow chevron is enough. "Remove" label can stay or also be removed, arrow alone is obvious.
 
 ---
 

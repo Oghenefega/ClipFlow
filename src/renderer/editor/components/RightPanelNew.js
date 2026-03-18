@@ -26,6 +26,7 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
+import { EFFECT_PRESETS, applyEffectPreset } from "../utils/templateUtils";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Color Palette (matches Vizard predefined palette)
@@ -383,25 +384,45 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SHARED: Expandable effect section (Shadow, Stroke, Background)
+//  SHARED: Expandable effect section with toggle + chevron
 // ════════════════════════════════════════════════════════════════
-function EffectSection({ label, enabled, onToggle, color, onColorChange, children }) {
+function EffectSection({ label, enabled, onToggle, color, onColorChange, defaultExpanded = false, children }) {
+  const [expanded, setExpanded] = useState(defaultExpanded || enabled);
   return (
     <div className="border-t border-border/40">
-      <div className="flex items-center justify-between py-3 px-1">
-        <span className="text-xs text-foreground font-medium">{label}</span>
+      <div className="flex items-center justify-between py-2.5 px-1">
+        <button className="flex items-center gap-1.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+          {expanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+          <span className="text-xs text-foreground font-medium">{label}</span>
+          {!expanded && enabled && color && (
+            <span className="w-2.5 h-2.5 rounded-full ml-1" style={{ background: color, boxShadow: `0 0 4px ${color}` }} />
+          )}
+        </button>
         <div className="flex items-center gap-2">
-          {enabled && color && (
+          {color && (
             <ColorPickerPopover color={color} onChange={onColorChange}>
-              <button className="w-5 h-5 rounded-full border border-border/60 cursor-pointer" style={{ background: color }} />
+              <button className={`w-5 h-5 rounded-full border border-border/60 cursor-pointer transition-opacity ${enabled ? "opacity-100" : "opacity-40"}`} style={{ background: color }} />
             </ColorPickerPopover>
           )}
-          <button onClick={() => onToggle(!enabled)} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors">
-            {enabled ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-          </button>
+          <ToggleSwitch value={enabled} onChange={onToggle} />
         </div>
       </div>
-      {enabled && children && <div className="pb-3 px-1">{children}</div>}
+      {expanded && children && (
+        <div className={`pb-3 px-1 transition-opacity ${enabled ? "opacity-100" : "opacity-30 pointer-events-none"}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Shared slider row for effect sections
+function EffectSlider({ label, value, onChange, min, max, step = 1, suffix = "", labelWidth = "w-14" }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-[10px] text-muted-foreground ${labelWidth}`}>{label}</span>
+      <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="flex-1" />
+      <span className="text-[10px] text-muted-foreground w-8 text-right">{typeof value === "number" && value % 1 !== 0 ? value.toFixed(1) : value}{suffix}</span>
     </div>
   );
 }
@@ -913,10 +934,44 @@ function SubtitlesPanel() {
   const setShadowColor = useSubtitleStore((s) => s.setShadowColor);
   const shadowOpacity = useSubtitleStore((s) => s.shadowOpacity);
   const setShadowOpacity = useSubtitleStore((s) => s.setShadowOpacity);
+  const strokeBlur = useSubtitleStore((s) => s.strokeBlur);
+  const setStrokeBlur = useSubtitleStore((s) => s.setStrokeBlur);
+  const strokeOffsetX = useSubtitleStore((s) => s.strokeOffsetX);
+  const setStrokeOffsetX = useSubtitleStore((s) => s.setStrokeOffsetX);
+  const strokeOffsetY = useSubtitleStore((s) => s.strokeOffsetY);
+  const setStrokeOffsetY = useSubtitleStore((s) => s.setStrokeOffsetY);
+  const glowOn = useSubtitleStore((s) => s.glowOn);
+  const setGlowOn = useSubtitleStore((s) => s.setGlowOn);
+  const glowColor = useSubtitleStore((s) => s.glowColor);
+  const setGlowColor = useSubtitleStore((s) => s.setGlowColor);
+  const glowOpacity = useSubtitleStore((s) => s.glowOpacity);
+  const setGlowOpacity = useSubtitleStore((s) => s.setGlowOpacity);
+  const glowIntensity = useSubtitleStore((s) => s.glowIntensity);
+  const setGlowIntensity = useSubtitleStore((s) => s.setGlowIntensity);
+  const glowBlur = useSubtitleStore((s) => s.glowBlur);
+  const setGlowBlur = useSubtitleStore((s) => s.setGlowBlur);
+  const glowBlend = useSubtitleStore((s) => s.glowBlend);
+  const setGlowBlend = useSubtitleStore((s) => s.setGlowBlend);
+  const glowOffsetX = useSubtitleStore((s) => s.glowOffsetX);
+  const setGlowOffsetX = useSubtitleStore((s) => s.setGlowOffsetX);
+  const glowOffsetY = useSubtitleStore((s) => s.glowOffsetY);
+  const setGlowOffsetY = useSubtitleStore((s) => s.setGlowOffsetY);
+  const shadowOffsetX = useSubtitleStore((s) => s.shadowOffsetX);
+  const setShadowOffsetX = useSubtitleStore((s) => s.setShadowOffsetX);
+  const shadowOffsetY = useSubtitleStore((s) => s.shadowOffsetY);
+  const setShadowOffsetY = useSubtitleStore((s) => s.setShadowOffsetY);
   const bgOn = useSubtitleStore((s) => s.bgOn);
   const setBgOn = useSubtitleStore((s) => s.setBgOn);
   const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
   const setBgOpacity = useSubtitleStore((s) => s.setBgOpacity);
+  const bgColor = useSubtitleStore((s) => s.bgColor);
+  const setBgColor = useSubtitleStore((s) => s.setBgColor);
+  const bgPaddingX = useSubtitleStore((s) => s.bgPaddingX);
+  const setBgPaddingX = useSubtitleStore((s) => s.setBgPaddingX);
+  const bgPaddingY = useSubtitleStore((s) => s.bgPaddingY);
+  const setBgPaddingY = useSubtitleStore((s) => s.setBgPaddingY);
+  const bgRadius = useSubtitleStore((s) => s.bgRadius);
+  const setBgRadius = useSubtitleStore((s) => s.setBgRadius);
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const setShowSubs = useSubtitleStore((s) => s.setShowSubs);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
@@ -953,12 +1008,13 @@ function SubtitlesPanel() {
 
       <ScrollArea className="flex-1">
         {subTab === "presets" ? (
-          /* Presets grid */
+          /* Effect presets grid */
           <div className="p-3 grid grid-cols-2 gap-2">
-            {["Bold Impact", "Clean White", "Neon Glow", "Shadow Pop", "Minimal", "Gaming"].map((name, i) => (
-              <div key={i} className="aspect-video rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-center justify-center">
-                <span className="text-[10px] text-muted-foreground font-medium">{name}</span>
-              </div>
+            {EFFECT_PRESETS.map((preset) => (
+              <button key={preset.id} onClick={() => applyEffectPreset(preset)}
+                className="aspect-video rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/40 hover:bg-secondary/80 cursor-pointer transition-all flex items-center justify-center">
+                <span className="text-[10px] text-foreground font-medium">{preset.name}</span>
+              </button>
             ))}
           </div>
         ) : (
@@ -1004,43 +1060,45 @@ function SubtitlesPanel() {
             <Separator />
 
             {/* Stroke */}
-            <EffectSection label="Stroke" enabled={strokeOn} onToggle={setStrokeOn} color={strokeColor} onColorChange={setStrokeColor}>
+            <EffectSection label="Stroke" enabled={strokeOn} onToggle={setStrokeOn} color={strokeColor} onColorChange={setStrokeColor} defaultExpanded>
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Width</span>
-                  <Slider value={[strokeWidth]} onValueChange={([v]) => setStrokeWidth(v)} min={0} max={20} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{strokeWidth}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Opacity</span>
-                  <Slider value={[strokeOpacity]} onValueChange={([v]) => setStrokeOpacity(v)} min={0} max={100} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{strokeOpacity}%</span>
-                </div>
+                <EffectSlider label="Thickness" value={strokeWidth} onChange={setStrokeWidth} min={0} max={20} />
+                <EffectSlider label="Opacity" value={strokeOpacity} onChange={setStrokeOpacity} min={0} max={100} suffix="%" />
+                <EffectSlider label="Softness" value={strokeBlur} onChange={setStrokeBlur} min={0} max={20} />
+                <EffectSlider label="Offset X" value={strokeOffsetX} onChange={setStrokeOffsetX} min={-20} max={20} />
+                <EffectSlider label="Offset Y" value={strokeOffsetY} onChange={setStrokeOffsetY} min={-20} max={20} />
+              </div>
+            </EffectSection>
+
+            {/* Glow */}
+            <EffectSection label="Glow" enabled={glowOn} onToggle={setGlowOn} color={glowColor} onColorChange={setGlowColor}>
+              <div className="space-y-2">
+                <EffectSlider label="Opacity" value={glowOpacity} onChange={setGlowOpacity} min={0} max={100} suffix="%" />
+                <EffectSlider label="Intensity" value={glowIntensity} onChange={setGlowIntensity} min={0} max={100} suffix="%" />
+                <EffectSlider label="Softness" value={glowBlur} onChange={setGlowBlur} min={0} max={50} />
+                <EffectSlider label="Blend" value={glowBlend} onChange={setGlowBlend} min={0} max={100} suffix="%" />
+                <EffectSlider label="Offset X" value={glowOffsetX} onChange={setGlowOffsetX} min={-20} max={20} />
+                <EffectSlider label="Offset Y" value={glowOffsetY} onChange={setGlowOffsetY} min={-20} max={20} />
               </div>
             </EffectSection>
 
             {/* Shadow */}
             <EffectSection label="Shadow" enabled={shadowOn} onToggle={setShadowOn} color={shadowColor} onColorChange={setShadowColor}>
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Blur</span>
-                  <Slider value={[shadowBlur]} onValueChange={([v]) => setShadowBlur(v)} min={0} max={30} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{shadowBlur}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Opacity</span>
-                  <Slider value={[shadowOpacity]} onValueChange={([v]) => setShadowOpacity(v)} min={0} max={100} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{shadowOpacity}%</span>
-                </div>
+                <EffectSlider label="Softness" value={shadowBlur} onChange={setShadowBlur} min={0} max={30} />
+                <EffectSlider label="Opacity" value={shadowOpacity} onChange={setShadowOpacity} min={0} max={100} suffix="%" />
+                <EffectSlider label="Offset X" value={shadowOffsetX} onChange={setShadowOffsetX} min={-30} max={30} />
+                <EffectSlider label="Offset Y" value={shadowOffsetY} onChange={setShadowOffsetY} min={-30} max={30} />
               </div>
             </EffectSection>
 
             {/* Background */}
-            <EffectSection label="Background" enabled={bgOn} onToggle={setBgOn} color="#000000" onColorChange={() => {}}>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground w-10">Opacity</span>
-                <Slider value={[bgOpacity]} onValueChange={([v]) => setBgOpacity(v)} min={0} max={100} step={1} className="flex-1" />
-                <span className="text-[10px] text-muted-foreground w-6 text-right">{bgOpacity}%</span>
+            <EffectSection label="Background" enabled={bgOn} onToggle={setBgOn} color={bgColor} onColorChange={setBgColor}>
+              <div className="space-y-2">
+                <EffectSlider label="Opacity" value={bgOpacity} onChange={setBgOpacity} min={0} max={100} suffix="%" />
+                <EffectSlider label="Padding X" value={bgPaddingX} onChange={setBgPaddingX} min={0} max={40} />
+                <EffectSlider label="Padding Y" value={bgPaddingY} onChange={setBgPaddingY} min={0} max={20} />
+                <EffectSlider label="Radius" value={bgRadius} onChange={setBgRadius} min={0} max={20} />
               </div>
             </EffectSection>
 
@@ -1111,6 +1169,44 @@ function TextPanel() {
   const setCaptionStrokeWidth = useCaptionStore((s) => s.setCaptionStrokeWidth);
   const captionStrokeOpacity = useCaptionStore((s) => s.captionStrokeOpacity);
   const setCaptionStrokeOpacity = useCaptionStore((s) => s.setCaptionStrokeOpacity);
+  const captionStrokeBlur = useCaptionStore((s) => s.captionStrokeBlur);
+  const setCaptionStrokeBlur = useCaptionStore((s) => s.setCaptionStrokeBlur);
+  const captionStrokeOffsetX = useCaptionStore((s) => s.captionStrokeOffsetX);
+  const setCaptionStrokeOffsetX = useCaptionStore((s) => s.setCaptionStrokeOffsetX);
+  const captionStrokeOffsetY = useCaptionStore((s) => s.captionStrokeOffsetY);
+  const setCaptionStrokeOffsetY = useCaptionStore((s) => s.setCaptionStrokeOffsetY);
+  const captionGlowOn = useCaptionStore((s) => s.captionGlowOn);
+  const setCaptionGlowOn = useCaptionStore((s) => s.setCaptionGlowOn);
+  const captionGlowColor = useCaptionStore((s) => s.captionGlowColor);
+  const setCaptionGlowColor = useCaptionStore((s) => s.setCaptionGlowColor);
+  const captionGlowOpacity = useCaptionStore((s) => s.captionGlowOpacity);
+  const setCaptionGlowOpacity = useCaptionStore((s) => s.setCaptionGlowOpacity);
+  const captionGlowIntensity = useCaptionStore((s) => s.captionGlowIntensity);
+  const setCaptionGlowIntensity = useCaptionStore((s) => s.setCaptionGlowIntensity);
+  const captionGlowBlur = useCaptionStore((s) => s.captionGlowBlur);
+  const setCaptionGlowBlur = useCaptionStore((s) => s.setCaptionGlowBlur);
+  const captionGlowBlend = useCaptionStore((s) => s.captionGlowBlend);
+  const setCaptionGlowBlend = useCaptionStore((s) => s.setCaptionGlowBlend);
+  const captionGlowOffsetX = useCaptionStore((s) => s.captionGlowOffsetX);
+  const setCaptionGlowOffsetX = useCaptionStore((s) => s.setCaptionGlowOffsetX);
+  const captionGlowOffsetY = useCaptionStore((s) => s.captionGlowOffsetY);
+  const setCaptionGlowOffsetY = useCaptionStore((s) => s.setCaptionGlowOffsetY);
+  const captionShadowOffsetX = useCaptionStore((s) => s.captionShadowOffsetX);
+  const setCaptionShadowOffsetX = useCaptionStore((s) => s.setCaptionShadowOffsetX);
+  const captionShadowOffsetY = useCaptionStore((s) => s.captionShadowOffsetY);
+  const setCaptionShadowOffsetY = useCaptionStore((s) => s.setCaptionShadowOffsetY);
+  const captionBgOn = useCaptionStore((s) => s.captionBgOn);
+  const setCaptionBgOn = useCaptionStore((s) => s.setCaptionBgOn);
+  const captionBgColor = useCaptionStore((s) => s.captionBgColor);
+  const setCaptionBgColor = useCaptionStore((s) => s.setCaptionBgColor);
+  const captionBgOpacity = useCaptionStore((s) => s.captionBgOpacity);
+  const setCaptionBgOpacity = useCaptionStore((s) => s.setCaptionBgOpacity);
+  const captionBgPaddingX = useCaptionStore((s) => s.captionBgPaddingX);
+  const setCaptionBgPaddingX = useCaptionStore((s) => s.setCaptionBgPaddingX);
+  const captionBgPaddingY = useCaptionStore((s) => s.captionBgPaddingY);
+  const setCaptionBgPaddingY = useCaptionStore((s) => s.setCaptionBgPaddingY);
+  const captionBgRadius = useCaptionStore((s) => s.captionBgRadius);
+  const setCaptionBgRadius = useCaptionStore((s) => s.setCaptionBgRadius);
   const markDirty = useEditorStore((s) => s.markDirty);
 
   const [align, setAlign] = useState("center");
@@ -1183,35 +1279,46 @@ function TextPanel() {
               </div>
             </div>
 
-            {/* Shadow */}
-            <EffectSection label="Shadow" enabled={captionShadowOn} onToggle={(v) => { setCaptionShadowOn(v); markDirty(); }} color={captionShadowColor} onColorChange={(c) => { setCaptionShadowColor(c); markDirty(); }}>
+            {/* Stroke */}
+            <EffectSection label="Stroke" enabled={captionStrokeOn} onToggle={(v) => { setCaptionStrokeOn(v); markDirty(); }} color={captionStrokeColor} onColorChange={(c) => { setCaptionStrokeColor(c); markDirty(); }} defaultExpanded>
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Blur</span>
-                  <Slider value={[captionShadowBlur]} onValueChange={([v]) => { setCaptionShadowBlur(v); markDirty(); }} min={0} max={30} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{captionShadowBlur}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Opacity</span>
-                  <Slider value={[captionShadowOpacity]} onValueChange={([v]) => { setCaptionShadowOpacity(v); markDirty(); }} min={0} max={100} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{captionShadowOpacity}%</span>
-                </div>
+                <EffectSlider label="Thickness" value={captionStrokeWidth} onChange={(v) => { setCaptionStrokeWidth(v); markDirty(); }} min={0} max={20} />
+                <EffectSlider label="Opacity" value={captionStrokeOpacity} onChange={(v) => { setCaptionStrokeOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Softness" value={captionStrokeBlur} onChange={(v) => { setCaptionStrokeBlur(v); markDirty(); }} min={0} max={20} />
+                <EffectSlider label="Offset X" value={captionStrokeOffsetX} onChange={(v) => { setCaptionStrokeOffsetX(v); markDirty(); }} min={-20} max={20} />
+                <EffectSlider label="Offset Y" value={captionStrokeOffsetY} onChange={(v) => { setCaptionStrokeOffsetY(v); markDirty(); }} min={-20} max={20} />
               </div>
             </EffectSection>
 
-            {/* Stroke */}
-            <EffectSection label="Stroke" enabled={captionStrokeOn} onToggle={(v) => { setCaptionStrokeOn(v); markDirty(); }} color={captionStrokeColor} onColorChange={(c) => { setCaptionStrokeColor(c); markDirty(); }}>
+            {/* Glow */}
+            <EffectSection label="Glow" enabled={captionGlowOn} onToggle={(v) => { setCaptionGlowOn(v); markDirty(); }} color={captionGlowColor} onColorChange={(c) => { setCaptionGlowColor(c); markDirty(); }}>
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Width</span>
-                  <Slider value={[captionStrokeWidth]} onValueChange={([v]) => { setCaptionStrokeWidth(v); markDirty(); }} min={0} max={20} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{captionStrokeWidth}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-14">Opacity</span>
-                  <Slider value={[captionStrokeOpacity]} onValueChange={([v]) => { setCaptionStrokeOpacity(v); markDirty(); }} min={0} max={100} step={1} className="flex-1" />
-                  <span className="text-[10px] text-muted-foreground w-6 text-right">{captionStrokeOpacity}%</span>
-                </div>
+                <EffectSlider label="Opacity" value={captionGlowOpacity} onChange={(v) => { setCaptionGlowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Intensity" value={captionGlowIntensity} onChange={(v) => { setCaptionGlowIntensity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Softness" value={captionGlowBlur} onChange={(v) => { setCaptionGlowBlur(v); markDirty(); }} min={0} max={50} />
+                <EffectSlider label="Blend" value={captionGlowBlend} onChange={(v) => { setCaptionGlowBlend(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Offset X" value={captionGlowOffsetX} onChange={(v) => { setCaptionGlowOffsetX(v); markDirty(); }} min={-20} max={20} />
+                <EffectSlider label="Offset Y" value={captionGlowOffsetY} onChange={(v) => { setCaptionGlowOffsetY(v); markDirty(); }} min={-20} max={20} />
+              </div>
+            </EffectSection>
+
+            {/* Shadow */}
+            <EffectSection label="Shadow" enabled={captionShadowOn} onToggle={(v) => { setCaptionShadowOn(v); markDirty(); }} color={captionShadowColor} onColorChange={(c) => { setCaptionShadowColor(c); markDirty(); }}>
+              <div className="space-y-2">
+                <EffectSlider label="Softness" value={captionShadowBlur} onChange={(v) => { setCaptionShadowBlur(v); markDirty(); }} min={0} max={30} />
+                <EffectSlider label="Opacity" value={captionShadowOpacity} onChange={(v) => { setCaptionShadowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Offset X" value={captionShadowOffsetX} onChange={(v) => { setCaptionShadowOffsetX(v); markDirty(); }} min={-30} max={30} />
+                <EffectSlider label="Offset Y" value={captionShadowOffsetY} onChange={(v) => { setCaptionShadowOffsetY(v); markDirty(); }} min={-30} max={30} />
+              </div>
+            </EffectSection>
+
+            {/* Background */}
+            <EffectSection label="Background" enabled={captionBgOn} onToggle={(v) => { setCaptionBgOn(v); markDirty(); }} color={captionBgColor} onColorChange={(c) => { setCaptionBgColor(c); markDirty(); }}>
+              <div className="space-y-2">
+                <EffectSlider label="Opacity" value={captionBgOpacity} onChange={(v) => { setCaptionBgOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                <EffectSlider label="Padding X" value={captionBgPaddingX} onChange={(v) => { setCaptionBgPaddingX(v); markDirty(); }} min={0} max={40} />
+                <EffectSlider label="Padding Y" value={captionBgPaddingY} onChange={(v) => { setCaptionBgPaddingY(v); markDirty(); }} min={0} max={20} />
+                <EffectSlider label="Radius" value={captionBgRadius} onChange={(v) => { setCaptionBgRadius(v); markDirty(); }} min={0} max={20} />
               </div>
             </EffectSection>
           </div>

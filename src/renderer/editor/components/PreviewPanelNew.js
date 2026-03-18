@@ -436,8 +436,25 @@ export default function PreviewPanelNew() {
   const shadowOpacity = useSubtitleStore((s) => s.shadowOpacity);
   const strokeColor = useSubtitleStore((s) => s.strokeColor);
   const strokeOpacity = useSubtitleStore((s) => s.strokeOpacity);
+  const strokeBlur = useSubtitleStore((s) => s.strokeBlur);
+  const strokeOffsetX = useSubtitleStore((s) => s.strokeOffsetX);
+  const strokeOffsetY = useSubtitleStore((s) => s.strokeOffsetY);
+  const shadowOffsetX = useSubtitleStore((s) => s.shadowOffsetX);
+  const shadowOffsetY = useSubtitleStore((s) => s.shadowOffsetY);
+  const glowOn = useSubtitleStore((s) => s.glowOn);
+  const glowColor = useSubtitleStore((s) => s.glowColor);
+  const glowOpacity = useSubtitleStore((s) => s.glowOpacity);
+  const glowIntensity = useSubtitleStore((s) => s.glowIntensity);
+  const glowBlur = useSubtitleStore((s) => s.glowBlur);
+  const glowBlend = useSubtitleStore((s) => s.glowBlend);
+  const glowOffsetX = useSubtitleStore((s) => s.glowOffsetX);
+  const glowOffsetY = useSubtitleStore((s) => s.glowOffsetY);
   const bgOn = useSubtitleStore((s) => s.bgOn);
   const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
+  const bgColor = useSubtitleStore((s) => s.bgColor);
+  const bgPaddingX = useSubtitleStore((s) => s.bgPaddingX);
+  const bgPaddingY = useSubtitleStore((s) => s.bgPaddingY);
+  const bgRadius = useSubtitleStore((s) => s.bgRadius);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const subMode = useSubtitleStore((s) => s.subMode);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
@@ -469,6 +486,25 @@ export default function PreviewPanelNew() {
   const captionStrokeColor = useCaptionStore((s) => s.captionStrokeColor);
   const captionStrokeWidth = useCaptionStore((s) => s.captionStrokeWidth);
   const captionStrokeOpacity = useCaptionStore((s) => s.captionStrokeOpacity);
+  const captionStrokeBlur = useCaptionStore((s) => s.captionStrokeBlur);
+  const captionStrokeOffsetX = useCaptionStore((s) => s.captionStrokeOffsetX);
+  const captionStrokeOffsetY = useCaptionStore((s) => s.captionStrokeOffsetY);
+  const captionGlowOn = useCaptionStore((s) => s.captionGlowOn);
+  const captionGlowColor = useCaptionStore((s) => s.captionGlowColor);
+  const captionGlowOpacity = useCaptionStore((s) => s.captionGlowOpacity);
+  const captionGlowIntensity = useCaptionStore((s) => s.captionGlowIntensity);
+  const captionGlowBlur = useCaptionStore((s) => s.captionGlowBlur);
+  const captionGlowBlend = useCaptionStore((s) => s.captionGlowBlend);
+  const captionGlowOffsetX = useCaptionStore((s) => s.captionGlowOffsetX);
+  const captionGlowOffsetY = useCaptionStore((s) => s.captionGlowOffsetY);
+  const captionShadowOffsetX = useCaptionStore((s) => s.captionShadowOffsetX);
+  const captionShadowOffsetY = useCaptionStore((s) => s.captionShadowOffsetY);
+  const captionBgOn = useCaptionStore((s) => s.captionBgOn);
+  const captionBgColor = useCaptionStore((s) => s.captionBgColor);
+  const captionBgOpacity = useCaptionStore((s) => s.captionBgOpacity);
+  const captionBgPaddingX = useCaptionStore((s) => s.captionBgPaddingX);
+  const captionBgPaddingY = useCaptionStore((s) => s.captionBgPaddingY);
+  const captionBgRadius = useCaptionStore((s) => s.captionBgRadius);
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
@@ -640,25 +676,72 @@ export default function PreviewPanelNew() {
   // Scale proportionally to actual canvas width
   const scaleFactor = canvasWidth / 1080;
 
-  // Generate outside stroke via text-shadow (WebkitTextStroke paints inward)
-  const buildStrokeShadows = useCallback((width, colorHex, opacity) => {
+  // ── Helper: parse hex to rgba string ──
+  const hexToRgba = useCallback((hex, opacity) => {
+    const c = hex || "#000000";
+    const r = parseInt(c.slice(1, 3), 16) || 0;
+    const g = parseInt(c.slice(3, 5), 16) || 0;
+    const b = parseInt(c.slice(5, 7), 16) || 0;
+    return `rgba(${r},${g},${b},${opacity / 100})`;
+  }, []);
+
+  // Generate outside stroke via text-shadow (16 directions around text)
+  const buildStrokeShadows = useCallback((width, colorHex, opacity, blur = 0, offX = 0, offY = 0) => {
     if (width <= 0) return "";
-    const sc = colorHex || "#000000";
-    const r = parseInt(sc.slice(1, 3), 16) || 0;
-    const g = parseInt(sc.slice(3, 5), 16) || 0;
-    const b = parseInt(sc.slice(5, 7), 16) || 0;
-    const rgba = `rgba(${r},${g},${b},${opacity / 100})`;
+    const rgba = hexToRgba(colorHex, opacity);
     const shadows = [];
-    // 16 directions around the text at the specified width
     const steps = 16;
     for (let i = 0; i < steps; i++) {
       const angle = (i / steps) * Math.PI * 2;
-      const x = (Math.cos(angle) * width).toFixed(1);
-      const y = (Math.sin(angle) * width).toFixed(1);
-      shadows.push(`${x}px ${y}px 0 ${rgba}`);
+      const x = (Math.cos(angle) * width + offX).toFixed(1);
+      const y = (Math.sin(angle) * width + offY).toFixed(1);
+      shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
     }
     return shadows.join(", ");
-  }, []);
+  }, [hexToRgba]);
+
+  // Generate glow via text-shadow (large soft halo)
+  const buildGlowShadow = useCallback((colorHex, opacity, intensity, blur, blend, offX, offY, sf) => {
+    const scaledBlur = blur * sf * 0.5;
+    const scaledIntensity = intensity / 100;
+    const effectiveOpacity = (opacity / 100) * (blend / 100 + (1 - blend / 100) * scaledIntensity);
+    const rgba = hexToRgba(colorHex, effectiveOpacity * 100);
+    const ox = (offX * sf * 0.5).toFixed(1);
+    const oy = (offY * sf * 0.5).toFixed(1);
+    // Multiple shadow layers for glow intensity
+    const layers = Math.max(1, Math.round(scaledIntensity * 3));
+    const parts = [];
+    for (let i = 0; i < layers; i++) {
+      parts.push(`${ox}px ${oy}px ${scaledBlur}px ${rgba}`);
+    }
+    return parts.join(", ");
+  }, [hexToRgba]);
+
+  // ── Build unified text-shadow from all effects ──
+  const buildAllShadows = useCallback((opts) => {
+    const { sf, stroke, glow: glowOpts, shadow: shadowOpts } = opts;
+    const parts = [];
+    // 1. Shadow (renders behind everything)
+    if (shadowOpts.on) {
+      const scaledBlur = shadowOpts.blur * sf * 0.5;
+      const ox = (shadowOpts.offX * sf * 0.5).toFixed(1);
+      const oy = (shadowOpts.offY * sf * 0.5).toFixed(1);
+      parts.push(`${ox}px ${oy}px ${scaledBlur}px ${hexToRgba(shadowOpts.color, shadowOpts.opacity)}`);
+    }
+    // 2. Glow
+    if (glowOpts.on) {
+      parts.push(buildGlowShadow(glowOpts.color, glowOpts.opacity, glowOpts.intensity, glowOpts.blur, glowOpts.blend, glowOpts.offX, glowOpts.offY, sf));
+    }
+    // 3. Stroke (renders closest to text)
+    if (stroke.on) {
+      const scaledW = Math.max(0.5, stroke.width * sf * 0.5);
+      const scaledBlur = stroke.blur * sf * 0.3;
+      const sOffX = stroke.offX * sf * 0.5;
+      const sOffY = stroke.offY * sf * 0.5;
+      parts.push(buildStrokeShadows(scaledW, stroke.color, stroke.opacity, scaledBlur, sOffX, sOffY));
+    }
+    return parts.filter(Boolean).join(", ");
+  }, [hexToRgba, buildStrokeShadows, buildGlowShadow]);
 
   // Build subtitle text style (scales proportionally with preview canvas)
   const subTextStyle = useMemo(() => {
@@ -672,35 +755,35 @@ export default function PreviewPanelNew() {
       color: subColor || "#ffffff",
       textAlign: "center",
       lineHeight: 1.3,
-      padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
-      borderRadius: 4 * scaleFactor,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       width: "100%",
     };
+    // Background
     if (bgOn) {
-      style.background = `rgba(0,0,0,${bgOpacity / 100})`;
+      const bgRgba = hexToRgba(bgColor, bgOpacity);
+      style.background = bgRgba;
+      style.padding = `${bgPaddingY * scaleFactor * 0.5}px ${bgPaddingX * scaleFactor * 0.5}px`;
+      style.borderRadius = bgRadius * scaleFactor * 0.5;
+    } else {
+      style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
+      style.borderRadius = 4 * scaleFactor;
     }
-    // Build text-shadow: combine stroke (outside) + shadow
-    const shadowParts = [];
-    if (strokeOn) {
-      const scaledStroke = Math.max(0.5, strokeWidth * scaleFactor * 0.5);
-      const strokeShadows = buildStrokeShadows(scaledStroke, strokeColor, strokeOpacity);
-      if (strokeShadows) shadowParts.push(strokeShadows);
-    }
-    if (shadowOn) {
-      const scaledBlur = shadowBlur * scaleFactor * 0.5;
-      const shc = shadowColor || "#000000";
-      const shr = parseInt(shc.slice(1, 3), 16) || 0;
-      const shg = parseInt(shc.slice(3, 5), 16) || 0;
-      const shb = parseInt(shc.slice(5, 7), 16) || 0;
-      shadowParts.push(`0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${shr},${shg},${shb},${shadowOpacity / 100})`);
-    }
-    if (shadowParts.length > 0) {
-      style.textShadow = shadowParts.join(", ");
-    }
+    // Text shadows (stroke + glow + shadow)
+    const allShadows = buildAllShadows({
+      sf: scaleFactor,
+      stroke: { on: strokeOn, width: strokeWidth, color: strokeColor, opacity: strokeOpacity, blur: strokeBlur, offX: strokeOffsetX, offY: strokeOffsetY },
+      glow: { on: glowOn, color: glowColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
+      shadow: { on: shadowOn, color: shadowColor, opacity: shadowOpacity, blur: shadowBlur, offX: shadowOffsetX, offY: shadowOffsetY },
+    });
+    if (allShadows) style.textShadow = allShadows;
     return style;
-  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, strokeColor, strokeOpacity, shadowOn, shadowBlur, shadowColor, shadowOpacity, scaleFactor, buildStrokeShadows]);
+  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor,
+    bgOn, bgOpacity, bgColor, bgPaddingX, bgPaddingY, bgRadius,
+    strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
+    glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
+    shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
+    scaleFactor, hexToRgba, buildAllShadows]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -714,34 +797,37 @@ export default function PreviewPanelNew() {
       color: captionColor,
       textAlign: "center",
       lineHeight: captionLineSpacing,
-      padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       width: "100%",
     };
-    // Build text-shadow: combine stroke (outside) + shadow
-    const shadowParts = [];
-    if (captionStrokeOn) {
-      const scaledStroke = Math.max(0.5, captionStrokeWidth * scaleFactor * 0.5);
-      const strokeShadows = buildStrokeShadows(scaledStroke, captionStrokeColor, captionStrokeOpacity);
-      if (strokeShadows) shadowParts.push(strokeShadows);
-    }
-    if (captionShadowOn) {
-      const scaledBlur = captionShadowBlur * scaleFactor * 0.5;
-      const sc = captionShadowColor || "#000000";
-      const r = parseInt(sc.slice(1, 3), 16) || 0;
-      const g = parseInt(sc.slice(3, 5), 16) || 0;
-      const b = parseInt(sc.slice(5, 7), 16) || 0;
-      shadowParts.push(`0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${r},${g},${b},${captionShadowOpacity / 100})`);
-    }
-    if (shadowParts.length > 0) {
-      style.textShadow = shadowParts.join(", ");
+    // Background
+    if (captionBgOn) {
+      style.background = hexToRgba(captionBgColor, captionBgOpacity);
+      style.padding = `${captionBgPaddingY * scaleFactor * 0.5}px ${captionBgPaddingX * scaleFactor * 0.5}px`;
+      style.borderRadius = captionBgRadius * scaleFactor * 0.5;
     } else {
-      // Default subtle shadow for readability when no effects enabled
+      style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
+    }
+    // Text shadows (stroke + glow + shadow)
+    const allShadows = buildAllShadows({
+      sf: scaleFactor,
+      stroke: { on: captionStrokeOn, width: captionStrokeWidth, color: captionStrokeColor, opacity: captionStrokeOpacity, blur: captionStrokeBlur, offX: captionStrokeOffsetX, offY: captionStrokeOffsetY },
+      glow: { on: captionGlowOn, color: captionGlowColor, opacity: captionGlowOpacity, intensity: captionGlowIntensity, blur: captionGlowBlur, blend: captionGlowBlend, offX: captionGlowOffsetX, offY: captionGlowOffsetY },
+      shadow: { on: captionShadowOn, color: captionShadowColor, opacity: captionShadowOpacity, blur: captionShadowBlur, offX: captionShadowOffsetX, offY: captionShadowOffsetY },
+    });
+    if (allShadows) {
+      style.textShadow = allShadows;
+    } else {
       style.textShadow = `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
     }
     return style;
-  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing, captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, scaleFactor, buildStrokeShadows]);
+  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing,
+    captionBgOn, captionBgColor, captionBgOpacity, captionBgPaddingX, captionBgPaddingY, captionBgRadius,
+    captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur, captionStrokeOffsetX, captionStrokeOffsetY,
+    captionGlowOn, captionGlowColor, captionGlowOpacity, captionGlowIntensity, captionGlowBlur, captionGlowBlend, captionGlowOffsetX, captionGlowOffsetY,
+    captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionShadowOffsetX, captionShadowOffsetY,
+    scaleFactor, hexToRgba, buildAllShadows]);
 
   // Strip punctuation from a word based on punctOn toggle + per-character config
   const stripPunct = useCallback((word) => {
