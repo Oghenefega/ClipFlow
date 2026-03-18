@@ -171,6 +171,16 @@
 - **Fix:** Modified slider.tsx to dynamically render N thumbs based on the `value` array length.
 - **Rule:** When using shadcn components with features beyond their defaults (multi-thumb, etc.), always check the component source — they are minimal wrappers and may not expose all Radix capabilities.
 
+### Whisper word tokens need post-processing — merge subword splits
+- **Mistake:** Used whisper's raw word-level tokens directly. Whisper tokenizes at subword level: "I'm" becomes ["I", "'m"], "raiders" becomes ["ra", "iders"]. In 1-word segment mode, these appeared as separate segments ("i" and "'m").
+- **Fix:** Added `mergeWordTokens()` that joins tokens starting with apostrophe (contractions) or with <20ms gap (subword splits from the same word).
+- **Rule:** ALWAYS post-process whisper word tokens before using them. Merge tokens that start with `'` or have near-zero gaps with the previous token. Never assume whisper tokens = real words.
+
+### Slider range should be local to the context, not global
+- **Mistake:** Time adjustment slider ranged from 0 to full video duration. For a 30-second video with a 0.5s subtitle segment, the slider was nearly useless — the segment occupied < 2% of the track.
+- **Fix:** Slider range is now ±5s around the segment, clamped to neighbor segment boundaries (no overlap allowed).
+- **Rule:** Range sliders must be scoped to the relevant context. For segment timing, use neighboring boundaries as limits, not the full duration.
+
 ### Text must be readable — minimum sizes on dark backgrounds
 - **Mistake:** Used `text-[10px]` and `text-[9px]` for timecodes and labels. User said they could barely read things on screen.
 - **Fix:** Bumped to `text-xs` (12px) minimum for timecodes, `text-sm` (14px) for segment body text.
