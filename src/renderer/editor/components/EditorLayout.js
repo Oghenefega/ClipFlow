@@ -171,11 +171,10 @@ function Topbar({ onBack }) {
   const redoStack = useSubtitleStore((s) => s._redoStack);
 
   const [navOpen, setNavOpen] = useState(false);
-  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [hashtagWarning, setHashtagWarning] = useState(false);
   const [, forceUpdate] = useState(0);
   const titleInputRef = useRef(null);
-  const saveMenuRef = useRef(null);
   const navChevronRef = useRef(null);
 
   // Update "last saved" display periodically
@@ -184,18 +183,6 @@ function Topbar({ onBack }) {
     const interval = setInterval(() => forceUpdate((n) => n + 1), 10000);
     return () => clearInterval(interval);
   }, [lastSaved]);
-
-  // Close save menu on outside click
-  useEffect(() => {
-    if (!saveMenuOpen) return;
-    const handler = (e) => {
-      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target)) {
-        setSaveMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [saveMenuOpen]);
 
   // Focus title input when editing starts
   useEffect(() => {
@@ -208,8 +195,35 @@ function Topbar({ onBack }) {
   const onSave = useCallback(async () => {
     await handleSave();
     setLastSaved(Date.now());
-    setSaveMenuOpen(false);
   }, [handleSave]);
+
+  const onSendToQueue = useCallback(async () => {
+    // Warn if title has no hashtag
+    if (!clipTitle || !clipTitle.includes("#")) {
+      setHashtagWarning(true);
+      return;
+    }
+    await handleSave();
+    setLastSaved(Date.now());
+    if (clip && project) {
+      window.clipflow?.projectUpdateClip(project.id, clip.id, {
+        status: "approved",
+        renderStatus: "pending",
+      });
+    }
+  }, [handleSave, clipTitle, clip, project]);
+
+  const onConfirmQueue = useCallback(async () => {
+    setHashtagWarning(false);
+    await handleSave();
+    setLastSaved(Date.now());
+    if (clip && project) {
+      window.clipflow?.projectUpdateClip(project.id, clip.id, {
+        status: "approved",
+        renderStatus: "pending",
+      });
+    }
+  }, [handleSave, clip, project]);
 
   const onTitleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -370,58 +384,56 @@ function Topbar({ onBack }) {
         )}
       </div>
 
-      {/* Right: Save with dropdown */}
-      <div className="flex items-center gap-1.5">
-        {/* Save button group */}
-        <div className="relative flex items-center" ref={saveMenuRef}>
-          <Button
-            size="sm"
-            className="h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium rounded-r-none"
-            onClick={onSave}
-          >
-            <Check className="h-3.5 w-3.5 mr-1.5" />
-            Save
-          </Button>
-          <Button
-            size="sm"
-            className="h-8 w-6 px-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-l-none border-l border-primary-foreground/20"
-            onClick={() => setSaveMenuOpen(!saveMenuOpen)}
-          >
-            <ChevronDown className={`h-3 w-3 transition-transform ${saveMenuOpen ? "rotate-180" : ""}`} />
-          </Button>
+      {/* Right: Save + Queue buttons */}
+      <div className="relative flex items-center gap-2">
+        <Button
+          size="sm"
+          className="h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium"
+          onClick={onSave}
+        >
+          <Check className="h-3.5 w-3.5 mr-1.5" />
+          Save
+        </Button>
+        <Button
+          size="sm"
+          className="h-8 px-4 bg-green-600 text-white hover:bg-green-500 text-xs font-medium"
+          onClick={onSendToQueue}
+        >
+          <Send className="h-3.5 w-3.5 mr-1.5" />
+          Queue
+        </Button>
 
-          {/* Save dropdown menu */}
-          {saveMenuOpen && (
-            <div className="absolute top-full right-0 mt-1 w-[180px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
-                onClick={onSave}
-              >
-                <Check className="h-3.5 w-3.5 text-primary" />
-                Save changes
-              </button>
-              <Separator />
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
-                onClick={() => {
-                  setSaveMenuOpen(false);
-                  // Save then mark as ready for publish queue
-                  handleSave().then(() => {
-                    if (clip && project) {
-                      window.clipflow?.projectUpdateClip(project.id, clip.id, {
-                        status: "approved",
-                        renderStatus: "pending",
-                      });
-                    }
-                  });
-                }}
-              >
-                <Send className="h-3.5 w-3.5 text-green-400" />
-                Send to publish queue
-              </button>
+        {/* Hashtag warning popup */}
+        {hashtagWarning && (
+          <div className="absolute top-full right-0 mt-2 w-[280px] rounded-lg border border-yellow-500/40 bg-popover shadow-xl z-50 p-3">
+            <div className="flex items-start gap-2 mb-2.5">
+              <span className="text-yellow-400 text-base leading-none mt-0.5">⚠</span>
+              <div>
+                <p className="text-xs font-medium text-foreground">No hashtag in title</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  This clip's title doesn't contain a hashtag. Queue anyway?
+                </p>
+              </div>
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setHashtagWarning(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 px-3 bg-yellow-500 text-black hover:bg-yellow-400 text-xs font-medium"
+                onClick={onConfirmQueue}
+              >
+                Queue anyway
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
