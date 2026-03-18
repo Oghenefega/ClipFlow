@@ -471,9 +471,7 @@ export default function PreviewPanelNew() {
   // B/I/U toggles are in the right panel settings, not inline toolbar
 
   // Caption
-  const captionText = useCaptionStore((s) => s.captionText);
-  const captionStartSec = useCaptionStore((s) => s.captionStartSec);
-  const captionEndSec = useCaptionStore((s) => s.captionEndSec);
+  const captionSegments = useCaptionStore((s) => s.captionSegments);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
@@ -1138,9 +1136,12 @@ export default function PreviewPanelNew() {
             </div>
           )}
 
-          {/* Caption overlay with resize handles — only visible within timeline range */}
-          {captionText && currentTime >= captionStartSec && currentTime <= (captionEndSec ?? Infinity) && (
+          {/* Caption overlay(s) — render all active caption segments at current time */}
+          {captionSegments
+            .filter((seg) => seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity))
+            .map((seg, idx) => (
             <DraggableOverlay
+              key={seg.id}
               yPercent={capYPercent}
               onYChange={setCapYPercent}
               widthPercent={capWidthPercent}
@@ -1149,22 +1150,20 @@ export default function PreviewPanelNew() {
               onSelect={setSelectedOverlay}
               overlayId="cap"
               canvasRef={canvasRef}
-              overlayRef={capOverlayRef}
+              overlayRef={idx === 0 ? capOverlayRef : undefined}
             >
-              {editingCaption && selectedOverlay === "cap" ? (
+              {editingCaption && selectedOverlay === "cap" && idx === 0 ? (
                 <textarea
                   ref={(el) => {
                     captionInputRef.current = el;
-                    // Auto-size height to match visual wrapping
                     if (el) {
                       el.style.height = "auto";
                       el.style.height = el.scrollHeight + "px";
                     }
                   }}
-                  value={captionText}
+                  value={seg.text}
                   onChange={(e) => {
-                    setCaptionText(e.target.value);
-                    // Re-auto-size on content change
+                    useCaptionStore.getState().updateCaptionSegmentText(seg.id, e.target.value);
                     if (captionInputRef.current) {
                       captionInputRef.current.style.height = "auto";
                       captionInputRef.current.style.height = captionInputRef.current.scrollHeight + "px";
@@ -1186,11 +1185,11 @@ export default function PreviewPanelNew() {
                   style={capTextStyle}
                   onDoubleClick={onCaptionDoubleClick}
                 >
-                  {captionText}
+                  {seg.text}
                 </div>
               )}
               {/* Inline toolbar below caption when selected */}
-              {selectedOverlay === "cap" && (
+              {selectedOverlay === "cap" && idx === 0 && (
                 <div className="absolute left-1/2 -translate-x-1/2 mt-1 pointer-events-auto z-40" style={{ top: "100%" }} onClick={(e) => e.stopPropagation()}>
                   <InlineToolbar
                     target="cap"
@@ -1206,7 +1205,7 @@ export default function PreviewPanelNew() {
                 </div>
               )}
             </DraggableOverlay>
-          )}
+          ))}
 
           {/* Subtitle overlay (no width resize, just move) */}
           {showSubs && currentSeg && (

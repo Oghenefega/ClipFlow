@@ -69,8 +69,8 @@ function SpeedDropdown({ value, onChange, onClose }) {
   );
 }
 
-// ── Audio Context Menu ──
-function AudioContextMenu({ x, y, onClose, onDelete, onCreateClip, onDuplicate }) {
+// ── Track Context Menu (all tracks) ──
+function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onDuplicate }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -78,21 +78,31 @@ function AudioContextMenu({ x, y, onClose, onDelete, onCreateClip, onDuplicate }
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
+  const trackLabel = track === "cap" ? "caption" : track === "sub" ? "subtitle" : "scene";
+
   return (
     <div
       ref={ref}
       className="fixed rounded-lg border bg-popover shadow-xl z-[100] overflow-hidden w-[200px]"
       style={{ left: x, top: y }}
     >
-      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onDelete(); onClose(); }}>
-        <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete scene
+      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onSplit(); onClose(); }}>
+        <Scissors className="h-3.5 w-3.5 text-primary" /> Split at playhead
       </button>
       <Separator />
-      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onCreateClip(); onClose(); }}>
-        <FilePlus className="h-3.5 w-3.5 text-green-400" /> Create as new clip
-      </button>
-      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onDuplicate(); onClose(); }}>
-        <Copy className="h-3.5 w-3.5 text-blue-400" /> Duplicate original video
+      {track === "audio" && (
+        <>
+          <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { /* TODO */ onClose(); }}>
+            <FilePlus className="h-3.5 w-3.5 text-green-400" /> Create as new clip
+          </button>
+          <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onDuplicate(); onClose(); }}>
+            <Copy className="h-3.5 w-3.5 text-blue-400" /> Duplicate original video
+          </button>
+          <Separator />
+        </>
+      )}
+      <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onDelete(); onClose(); }}>
+        <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete {trackLabel}
       </button>
     </div>
   );
@@ -360,11 +370,10 @@ export default function TimelinePanelNew() {
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
 
-  const captionText = useCaptionStore((s) => s.captionText);
-  const captionStartSec = useCaptionStore((s) => s.captionStartSec);
-  const captionEndSec = useCaptionStore((s) => s.captionEndSec);
-  const setCaptionStartSec = useCaptionStore((s) => s.setCaptionStartSec);
-  const setCaptionEndSec = useCaptionStore((s) => s.setCaptionEndSec);
+  const captionSegments = useCaptionStore((s) => s.captionSegments);
+  const updateCaptionSegmentTimes = useCaptionStore((s) => s.updateCaptionSegmentTimes);
+  const splitCaptionAtPlayhead = useCaptionStore((s) => s.splitCaptionAtPlayhead);
+  const deleteCaptionSegment = useCaptionStore((s) => s.deleteCaptionSegment);
 
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
   const tlZoom = useLayoutStore((s) => s.tlZoom);
@@ -377,7 +386,7 @@ export default function TimelinePanelNew() {
   const [speedOpen, setSpeedOpen] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [selectedSegId, setSelectedSegId] = useState(null);
-  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, track, segId }
   const [scrubbing, setScrubbing] = useState(false);
   const [audioStartSec, setAudioStartSec] = useState(0);
   const [audioEndSec, setAudioEndSec] = useState(null); // null = full duration
@@ -438,6 +447,7 @@ export default function TimelinePanelNew() {
   }, [duration, clipContentWidth, seekTo]);
 
   const handleScrubStart = useCallback((e) => {
+    if (e.button !== 0) return; // Only left-click seeks
     setScrubbing(true);
     handleScrub(e);
   }, [handleScrub]);
@@ -466,22 +476,23 @@ export default function TimelinePanelNew() {
     setSelectedSegId(null);
   }, []);
 
-  // Caption segments (resizable via store)
+  // Caption segments — resolve null endSec to duration for rendering
   const captionSegs = useMemo(() => {
-    if (!captionText) return [];
-    return [{ id: "cap-1", text: captionText, startSec: captionStartSec, endSec: captionEndSec ?? duration }];
-  }, [captionText, captionStartSec, captionEndSec, duration]);
+    return captionSegments.map((seg) => ({
+      ...seg,
+      endSec: seg.endSec ?? duration,
+    }));
+  }, [captionSegments, duration]);
 
   // Audio segment (resizable via local state)
   const audioSeg = useMemo(() => {
     return { id: "audio-1", startSec: audioStartSec, endSec: audioEndSec ?? duration };
   }, [audioStartSec, audioEndSec, duration]);
 
-  // Caption resize handler
+  // Caption resize handler — no neighbor pushing (overlap allowed)
   const handleCaptionResize = useCallback((id, newStart, newEnd) => {
-    setCaptionStartSec(Math.max(0, newStart));
-    setCaptionEndSec(Math.min(duration, newEnd));
-  }, [duration, setCaptionStartSec, setCaptionEndSec]);
+    updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
+  }, [duration, updateCaptionSegmentTimes]);
 
   // Audio resize handler
   const handleAudioResize = useCallback((id, newStart, newEnd) => {
@@ -546,6 +557,24 @@ export default function TimelinePanelNew() {
     updateSegmentTimes(segId, newStart, newEnd);
   }, [editSegments, duration, updateSegmentTimes]);
 
+  // Unified split — dispatches to the correct store based on selected track
+  const handleSplit = useCallback(() => {
+    const time = usePlaybackStore.getState().currentTime;
+    if (selectedTrack === "cap") {
+      splitCaptionAtPlayhead(time);
+    } else if (selectedTrack === "audio") {
+      // Split audio segment at playhead
+      if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
+        // For now, audio split creates a visual gap — trim end of current, create new start
+        setAudioEndSec(time);
+        // TODO: support multiple audio segments
+      }
+    } else {
+      // Default: split subtitle
+      splitSegment();
+    }
+  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, audioStartSec, audioEndSec, duration]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -556,15 +585,24 @@ export default function TimelinePanelNew() {
       } else if (e.key === "s" && !e.ctrlKey && !e.metaKey) {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         e.preventDefault();
-        splitSegment();
+        handleSplit();
       } else if ((e.ctrlKey || e.metaKey) && e.key === ".") {
         e.preventDefault();
         toggleTlCollapse();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        // Delete selected segment
+        if (selectedTrack === "cap" && selectedSegId) {
+          e.preventDefault();
+          deleteCaptionSegment(selectedSegId);
+          setSelectedTrack(null);
+          setSelectedSegId(null);
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [togglePlay, splitSegment, toggleTlCollapse]);
+  }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, deleteCaptionSegment]);
 
   // Smooth auto-scroll to keep playhead visible during playback
   const lastScrollRef = useRef(0);
@@ -708,7 +746,7 @@ export default function TimelinePanelNew() {
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={splitSegment}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleSplit}>
                   <Scissors className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -828,7 +866,24 @@ export default function TimelinePanelNew() {
           </div>
 
           {/* ── Caption track ── */}
-          <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
+          <div
+            className="flex items-stretch border-b border-border/40"
+            style={{ height: TRACK_H }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              // Find which caption segment was right-clicked
+              const rect = e.currentTarget.querySelector(".flex-1")?.getBoundingClientRect();
+              if (rect) {
+                const x = e.clientX - rect.left;
+                const clickTime = (x / clipContentWidth) * duration;
+                const seg = captionSegs.find((s) => clickTime >= s.startSec && clickTime <= s.endSec);
+                if (seg) {
+                  handleSegSelect("cap", seg.id);
+                  setContextMenu({ x: e.clientX, y: e.clientY, track: "cap", segId: seg.id });
+                }
+              }
+            }}
+          >
             <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(263 70% 58%)" }}>T</span>
               <span className="text-xs text-muted-foreground font-medium">Caption</span>
@@ -847,7 +902,23 @@ export default function TimelinePanelNew() {
           </div>
 
           {/* ── Subtitle track ── */}
-          <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
+          <div
+            className="flex items-stretch border-b border-border/40"
+            style={{ height: TRACK_H }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              const rect = e.currentTarget.querySelector(".flex-1")?.getBoundingClientRect();
+              if (rect) {
+                const x = e.clientX - rect.left;
+                const clickTime = (x / clipContentWidth) * duration;
+                const seg = editSegments.find((s) => clickTime >= s.startSec && clickTime <= s.endSec);
+                if (seg) {
+                  handleSegSelect("sub", seg.id);
+                  setContextMenu({ x: e.clientX, y: e.clientY, track: "sub", segId: seg.id });
+                }
+              }
+            }}
+          >
             <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(120 60% 45%)" }}>S</span>
               <span className="text-xs text-muted-foreground font-medium">Subtitle</span>
@@ -896,7 +967,7 @@ export default function TimelinePanelNew() {
                 timelineWidth={clipContentWidth} currentTime={currentTime}
                 selected={selectedTrack === "audio"}
                 onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(null); }}
-                onContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY })}
+                onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: "audio-1" }); }}
                 audioSeg={audioSeg}
                 onResize={handleAudioResize}
               />
@@ -912,13 +983,35 @@ export default function TimelinePanelNew() {
         </div>
       </div>
 
-      {/* Audio context menu */}
+      {/* Track context menu */}
       {contextMenu && (
-        <AudioContextMenu
+        <TrackContextMenu
           x={contextMenu.x} y={contextMenu.y}
+          track={contextMenu.track}
           onClose={() => setContextMenu(null)}
-          onDelete={() => { /* TODO */ }}
-          onCreateClip={() => { /* TODO */ }}
+          onSplit={() => {
+            const time = usePlaybackStore.getState().currentTime;
+            if (contextMenu.track === "cap") {
+              splitCaptionAtPlayhead(time);
+            } else if (contextMenu.track === "sub") {
+              splitSegment();
+            } else if (contextMenu.track === "audio") {
+              if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
+                setAudioEndSec(time);
+              }
+            }
+          }}
+          onDelete={() => {
+            if (contextMenu.track === "cap" && contextMenu.segId) {
+              deleteCaptionSegment(contextMenu.segId);
+              setSelectedTrack(null);
+              setSelectedSegId(null);
+            } else if (contextMenu.track === "sub" && contextMenu.segId) {
+              useSubtitleStore.getState().deleteSegment(contextMenu.segId);
+              setSelectedTrack(null);
+              setSelectedSegId(null);
+            }
+          }}
           onDuplicate={() => { /* TODO */ }}
         />
       )}

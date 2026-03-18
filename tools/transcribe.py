@@ -421,19 +421,80 @@ def main():
             if text:
                 aligned_by_text[text] = seg
 
-        # Use aligned where available, fall back to raw for dropped segments
+        # Merge strategy: ANCHOR segment boundaries to whisper's raw timestamps
+        # (which are reliable) and take word-level data from alignment.
+        # If alignment drifts (word times significantly outside segment range),
+        # fall back to raw segment without word timestamps.
+        DRIFT_THRESHOLD = 2.0  # seconds — if aligned words drift >2s from raw segment, discard alignment
+
         merged_segs = []
         for raw_seg in raw_segs:
             text = (raw_seg.get("text") or "").strip()
             if not text:
                 continue
-            # Prefer aligned version (has word-level timestamps)
+
+            raw_start = raw_seg.get("start", 0)
+            raw_end = raw_seg.get("end", 0)
+
             if text in aligned_by_text:
-                merged_segs.append(aligned_by_text[text])
+                aligned_seg = aligned_by_text[text]
+                aligned_words = aligned_seg.get("words", [])
+
+                # Check for drift: do aligned words fall within raw segment boundaries?
+                if aligned_words:
+                    word_starts = [w.get("start", 0) for w in aligned_words if w.get("start") is not None]
+                    word_ends = [w.get("end", 0) for w in aligned_words if w.get("end") is not None]
+
+                    if word_starts and word_ends:
+                        min_word_start = min(word_starts)
+                        max_word_end = max(word_ends)
+
+                        # Drift = how far words have shifted from raw segment boundaries
+                        start_drift = abs(min_word_start - raw_start)
+                        end_drift = abs(max_word_end - raw_end)
+
+                        if start_drift > DRIFT_THRESHOLD or end_drift > DRIFT_THRESHOLD:
+                            # Alignment drifted — use raw segment, discard alignment words
+                            print(f"[WARN] Alignment drift at {raw_start:.1f}s: words shifted by {start_drift:.1f}s/{end_drift:.1f}s — using raw timestamps", file=sys.stderr)
+                            merged_segs.append(raw_seg)
+                            continue
+
+                # Alignment looks OK — use aligned words but anchor to raw segment times
+                merged_seg = {
+                    **aligned_seg,
+                    "start": raw_start,  # Anchor to whisper's segment time
+                    "end": raw_end,      # Anchor to whisper's segment time
+                }
+
+                # Rescale word timestamps to fit within raw segment boundaries
+                if aligned_words:
+                    aw_start = aligned_seg.get("start", raw_start)
+                    aw_end = aligned_seg.get("end", raw_end)
+                    aw_dur = max(0.01, aw_end - aw_start)
+                    raw_dur = max(0.01, raw_end - raw_start)
+
+                    rescaled_words = []
+                    for w in aligned_words:
+                        ws = w.get("start")
+                        we = w.get("end")
+                        if ws is not None and we is not None:
+                            # Linear rescale from aligned time range to raw time range
+                            t_start = raw_start + ((ws - aw_start) / aw_dur) * raw_dur
+                            t_end = raw_start + ((we - aw_start) / aw_dur) * raw_dur
+                            rescaled_words.append({
+                                **w,
+                                "start": round(max(raw_start, min(raw_end, t_start)), 3),
+                                "end": round(max(raw_start, min(raw_end, t_end)), 3),
+                            })
+                        else:
+                            rescaled_words.append(w)
+                    merged_seg["words"] = rescaled_words
+
+                merged_segs.append(merged_seg)
             else:
                 # Alignment dropped this segment — use the raw version
                 merged_segs.append(raw_seg)
-                print(f"[WARN] Alignment dropped segment at {raw_seg.get('start', '?')}s: {text[:60]}...", file=sys.stderr)
+                print(f"[WARN] Alignment dropped segment at {raw_start:.1f}s: {text[:60]}...", file=sys.stderr)
 
         # Also add any aligned segments that weren't in raw (shouldn't happen but safety)
         raw_texts = {(s.get("text") or "").strip() for s in raw_segs}

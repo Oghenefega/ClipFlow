@@ -4,7 +4,85 @@
 
 ---
 
-## 🟡 In Progress — Deep Text Effects System (Resolve-inspired)
+## 🟡 In Progress — Timeline Core Operations + Whisper Fix
+
+### Goal
+Make the timeline work like a real NLE: cut/splice segments, trim audio, independent caption segments with overlap support, proper right-click behavior, and fix whisper alignment drift after ~30s.
+
+### Issue 1: Right-click moves playhead (quick fix)
+**Root cause:** `onPointerDown={handleScrubStart}` on scroll container fires on ALL mouse buttons.
+**Fix:** Add `if (e.button !== 0) return;` to `handleScrubStart` — only left-click seeks.
+**File:** `TimelinePanelNew.js`
+
+### Issue 2: Caption store → array of segments (architectural change)
+**Root cause:** `useCaptionStore` stores ONE caption (`captionText`, `captionStartSec`, `captionEndSec`). Can't cut, can't have multiple, can't overlap.
+**Fix:** Refactor to `captionSegments[]` array, each with `{ id, text, startSec, endSec }` + all styling inherited from store defaults. Add `splitCaptionAtPlayhead()`, `deleteCaptionSegment()`, `updateCaptionSegmentTimes()`, `updateCaptionSegmentText()`.
+
+**Files:**
+- [ ] `useCaptionStore.js` — add `captionSegments` array + CRUD + split operations
+- [ ] `TimelinePanelNew.js` — render multiple caption segments, no neighbor-push (allow overlap)
+- [ ] `PreviewPanelNew.js` — render all active caption segments at current time (overlap OK)
+- [ ] `EditSubsPanel.js` / `CaptionDrawer.js` — update to work with selected caption segment
+- [ ] `useEditorStore.js` — update save/load to persist caption segments
+
+### Issue 3: Split/cut at playhead for all tracks
+**Current:** Only subtitle has `splitSegment()` (S key). Caption and audio have no split.
+**Fix:** Unified split: S key or split button splits the **selected** track's segment at the playhead.
+- Subtitle: already works
+- Caption: split selected caption segment at playhead → two independent segments
+- Audio: split audio segment at playhead → two audio segments (visual only for now)
+
+**Files:**
+- [ ] `TimelinePanelNew.js` — split logic checks `selectedTrack` and dispatches to correct store
+- [ ] `useCaptionStore.js` — `splitCaptionAtPlayhead(time)` implementation
+- [ ] Timeline context menu — add "Split" option on right-click
+
+### Issue 4: Right-click context menu for all tracks
+**Current:** Only audio track has a context menu. Caption and subtitle tracks have none.
+**Fix:** Add context menu for caption + subtitle tracks with: Split at playhead, Delete segment, Duplicate segment.
+- [ ] `TimelinePanelNew.js` — generic context menu component, track-aware options
+
+### Issue 5: Audio track trim/resize
+**Current:** Audio has resize handles but uses local state (`audioStartSec`/`audioEndSec`). Works for trimming ends.
+**Status:** Already functional for shrink/extend. Split is the missing piece (Issue 3).
+
+### Issue 6: Whisper alignment drift after ~30s
+**Hypothesis:** WhisperX's wav2vec2 alignment loses accuracy on longer clips. The repair function may not catch gradual drift.
+**Investigation plan:**
+- [ ] Add debug logging to `transcribe.py` — dump raw whisper timestamps vs aligned timestamps per segment
+- [ ] Test: compare raw (pre-alignment) segment times to aligned times for a clip where drift occurs
+- [ ] If alignment is the problem: test with `return_char_alignments=True` or try chunk-based alignment
+- [ ] If raw whisper is the problem: investigate batch_size / model settings
+
+### Verification
+- [ ] Build with zero errors
+- [ ] Right-click on timeline does NOT move playhead
+- [ ] Can split caption at playhead → two independent text segments
+- [ ] Can edit each side of a split caption independently
+- [ ] Overlapping captions render correctly in preview
+- [ ] Can split audio at playhead
+- [ ] Context menu appears on right-click for all tracks
+- [ ] Whisper re-transcription stays aligned past 30s
+- [ ] No regressions in existing subtitle operations
+
+### Files Impacted
+1. `src/renderer/editor/components/TimelinePanelNew.js` — right-click fix, context menus, multi-caption rendering, split dispatch
+2. `src/renderer/editor/stores/useCaptionStore.js` — array refactor, split/delete/update operations
+3. `src/renderer/editor/components/PreviewPanelNew.js` — render multiple overlapping captions
+4. `src/renderer/editor/stores/useEditorStore.js` — save/load caption segments
+5. `tools/transcribe.py` — debug logging, potential alignment fix
+
+### Implementation Order
+1. Right-click fix (5 min, standalone)
+2. Caption store refactor → array (core architectural change, everything depends on this)
+3. Timeline multi-caption rendering + overlap
+4. Split operations for caption + audio
+5. Context menus for all tracks
+6. Whisper investigation (independent track)
+
+---
+
+## ✅ Completed — Deep Text Effects System (Resolve-inspired)
 
 ### Goal
 Upgrade subtitle/caption effects from basic (stroke width/opacity, shadow blur/opacity) to deep, layered effects: **Stroke** (+ blur, offsetX/Y), **Glow** (new — color, opacity, intensity, blur, blend), **Shadow** (+ offsetX/Y), **Background** (+ color, paddingX/Y, border radius). Reproduce the "Yellow Pop" DaVinci Resolve look (thick stroke, yellow glow halo, blurred drop shadow). Ship 5-8 built-in effect presets.
@@ -229,18 +307,24 @@ Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Sam
 
 ---
 
+## ✅ Completed — Misc Changes Batch #1 (10 items)
+
+1. ~~Timeline end marker~~ ✅
+2. ~~Punctuation dropdown — removed labels~~ ✅
+3. ~~Title bar centering~~ ✅
+4. ~~Preview toolbar — larger, clearer text~~ ✅
+5. ~~Preset tooltip — clearer wording~~ ✅
+6. ~~Active preset indicator~~ ✅
+7. ~~Timeline expand crash fix~~ ✅
+8. ~~Highlight swatches — editable + persisted~~ ✅
+9. ~~Audio placeholder songs removed~~ ✅
+10. ~~Zoomed preview pan + scroll fix~~ ✅
+
+---
+
 ## 📋 Misc Changes (batch when 10 accumulated)
 
-1. **Timeline end marker**: The timeline should have a visible end line/marker so the timeline stops before it (or the content goes under it). Currently it just fades off to the right.
-2. **Punctuation dropdown text**: Remove the "Hide" label — just the arrow chevron is enough. "Remove" label can stay or also be removed, arrow alone is obvious.
-3. **Title bar centering**: The clip title dropdown in the editor topbar is shifted left — should be centered horizontally.
-4. **Preview toolbar text blurry + too small**: The font/size/weight controls under the subtitle preview are blurry and hard to read. Fix rendering clarity and increase size by ~20%.
-5. **Remove "Update with current" header in presets**: The top-level "Update with current" text above MY PRESETS is confusing — it's not tied to any specific preset. Remove it. The per-preset update icon (🔄) on each card row is sufficient.
-6. **Active preset indicator**: There's no way to tell which preset is currently active. Add a visual indicator (e.g., highlighted border, checkmark, or "Active" badge) on the preset that matches the current settings.
-7. **Timeline expand crash**: Clicking the timeline expand button (bottom-right icon) crashes with "Cannot read properties of undefined (reading 'x')". Needs null-safety check in timeline expand logic.
-8. **Highlight color swatches not editable**: The 5 highlight color circles are static — clicking one sets the highlight color but you can't customize the swatch colors themselves. Need: click a swatch to select it, then picking a new color from the color wheel/palette should update THAT swatch. The swatches should be user-configurable preset colors (persisted to electron-store) so the user doesn't have to find the same color in the wheel every time.
-9. **Remove placeholder songs from Audio panel**: The Music tab has fake placeholder songs (Cinematic ambient, Water stream river, etc.) that aren't real files. Remove all placeholder data — leave the panel structure intact but empty until real audio integration is built.
-10. **Zoomed preview can't scroll to top + needs middle-click drag**: When preview is zoomed in (e.g. 230%), scroll is clamped and you can't see the top of the video. Fix overflow/scroll constraints so the full video is reachable. Also add middle-mouse-button drag (pan) so the user can hold middle click and drag to pan around the zoomed preview.
+_(empty — log new items here)_
 
 ---
 

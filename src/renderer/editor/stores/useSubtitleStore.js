@@ -29,7 +29,8 @@ function _snapshotStyling(subState) {
     const capStore = require("./useCaptionStore").default;
     const cs = capStore.getState();
     const CAP_KEYS = [
-      "captionText", "captionFontFamily", "captionFontWeight", "captionFontSize",
+      "captionText", "captionSegments",
+      "captionFontFamily", "captionFontWeight", "captionFontSize",
       "captionColor", "captionBold", "captionItalic", "captionUnderline",
       "captionLineSpacing",
       "captionShadowOn", "captionShadowColor", "captionShadowBlur", "captionShadowOpacity",
@@ -44,7 +45,12 @@ function _snapshotStyling(subState) {
     cap = {};
     for (const k of CAP_KEYS) {
       const val = cs[k];
-      cap[k] = Array.isArray(val) ? [...val] : val;
+      // Deep-copy captionSegments array of objects
+      if (k === "captionSegments" && Array.isArray(val)) {
+        cap[k] = val.map((seg) => ({ ...seg }));
+      } else {
+        cap[k] = Array.isArray(val) ? [...val] : val;
+      }
     }
   } catch (_) {}
 

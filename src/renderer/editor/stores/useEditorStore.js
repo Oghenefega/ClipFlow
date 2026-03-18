@@ -83,10 +83,11 @@ const useEditorStore = create((set, get) => ({
     if (!clip || !project) return;
     try {
       const editSegments = useSubtitleStore.getState().editSegments;
-      const captionText = useCaptionStore.getState().captionText;
+      const { captionText, captionSegments } = useCaptionStore.getState();
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
         caption: captionText,
+        captionSegments: captionSegments,
         subtitles: editSegments,
       });
       set({ dirty: false });
