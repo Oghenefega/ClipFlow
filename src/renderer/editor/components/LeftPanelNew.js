@@ -277,14 +277,14 @@ function TimecodePopover({ segment, children }) {
           />
 
           {/* Time inputs */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5">
             <input
               value={fmtTime(localStart)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
               }}
-              className="flex-1 h-7 px-1 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
             <span className="text-[hsl(240_5%_50%)] text-xs">–</span>
             <input
@@ -293,7 +293,7 @@ function TimecodePopover({ segment, children }) {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([localStart, sec]);
               }}
-              className="flex-1 h-7 px-1 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
           </div>
 
