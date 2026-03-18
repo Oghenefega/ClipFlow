@@ -977,6 +977,8 @@ export default function PreviewPanelNew() {
               color: isActive ? highlightColor : (subColor || "#ffffff"),
               textShadow: wordShadow || undefined,
               display: "inline-block", // required for transform
+              transformOrigin: "center bottom", // anchor at bottom so pop goes upward
+              verticalAlign: "baseline",
               transition: `color ${speed}s, transform ${speed}s ease-out`,
             };
 
@@ -1031,7 +1033,7 @@ export default function PreviewPanelNew() {
 
 
   // Dynamic CSS for single-word grow animation
-  const growKeyframes = animateOn ? `@keyframes subGrow { from { transform: scale(${animateGrowFrom}); } to { transform: scale(1); } }` : "";
+  const growKeyframes = animateOn ? `@keyframes subGrow { from { transform: scale(${animateGrowFrom}); transform-origin: center bottom; } to { transform: scale(1); transform-origin: center bottom; } }` : "";
 
   return (
     <div
