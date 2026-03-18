@@ -606,6 +606,7 @@ const BUILTIN_TEMPLATE = {
   subtitle: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, underline: false, strokeOn: true, strokeWidth: 7, shadowOn: false, shadowBlur: 8, bgOn: false, bgOpacity: 80, highlightColor: "#4cce8a", lineMode: "2L", subMode: "karaoke", yPercent: 80 },
 };
 const WEIGHT_LABELS = { 300: "Light", 400: "Regular", 500: "Medium", 700: "Bold", 900: "Heavy" };
+const DEFAULT_TEMPLATE_KEY = "defaultTemplateId";
 
 function snapshotTemplate(name) {
   const sub = useSubtitleStore.getState();
@@ -634,6 +635,8 @@ function applyTemplate(tpl) {
 function BrandKitPanel() {
   const [templates, setTemplates] = useState([]);
   const [activeId, setActiveId] = useState("fega-default");
+  const [defaultId, setDefaultId] = useState("fega-default");
+  const [builtInDeleted, setBuiltInDeleted] = useState(false);
   const [naming, setNaming] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -641,6 +644,8 @@ function BrandKitPanel() {
     if (window.clipflow?.storeGet) {
       window.clipflow.storeGet("layoutTemplates").then((saved) => { if (Array.isArray(saved)) setTemplates(saved); });
       window.clipflow.storeGet("activeTemplateId").then((id) => { if (id) setActiveId(id); });
+      window.clipflow.storeGet(DEFAULT_TEMPLATE_KEY).then((id) => { if (id) setDefaultId(id); });
+      window.clipflow.storeGet("builtInTemplateDeleted").then((v) => { if (v) setBuiltInDeleted(true); });
     }
   }, []);
 
@@ -652,8 +657,12 @@ function BrandKitPanel() {
     setActiveId(id);
     window.clipflow?.storeSet?.("activeTemplateId", id);
   }, []);
+  const persistDefault = useCallback((id) => {
+    setDefaultId(id);
+    window.clipflow?.storeSet?.(DEFAULT_TEMPLATE_KEY, id);
+  }, []);
 
-  const allTemplates = [BUILTIN_TEMPLATE, ...templates];
+  const allTemplates = builtInDeleted ? templates : [BUILTIN_TEMPLATE, ...templates];
 
   const handleSave = useCallback(() => {
     const name = newName.trim();
@@ -674,15 +683,40 @@ function BrandKitPanel() {
     const existing = templates.find((t) => t.id === id);
     if (!existing) return;
     const updated = snapshotTemplate(existing.name);
-    updated.id = id; // keep same id
+    updated.id = id;
     persist(templates.map((t) => t.id === id ? updated : t));
     persistActive(id);
   }, [templates, persist, persistActive]);
 
   const handleDelete = useCallback((id) => {
-    persist(templates.filter((t) => t.id !== id));
-    if (activeId === id) persistActive("fega-default");
-  }, [templates, activeId, persist, persistActive]);
+    if (id === "fega-default") {
+      setBuiltInDeleted(true);
+      window.clipflow?.storeSet?.("builtInTemplateDeleted", true);
+      if (activeId === id) {
+        const first = templates[0];
+        if (first) persistActive(first.id);
+      }
+      if (defaultId === id) {
+        const first = templates[0];
+        if (first) persistDefault(first.id);
+      }
+      return;
+    }
+    const updated = templates.filter((t) => t.id !== id);
+    persist(updated);
+    if (activeId === id) {
+      const remaining = builtInDeleted ? updated : [BUILTIN_TEMPLATE, ...updated];
+      if (remaining.length > 0) persistActive(remaining[0].id);
+    }
+    if (defaultId === id) {
+      const remaining = builtInDeleted ? updated : [BUILTIN_TEMPLATE, ...updated];
+      if (remaining.length > 0) persistDefault(remaining[0].id);
+    }
+  }, [templates, activeId, defaultId, builtInDeleted, persist, persistActive, persistDefault]);
+
+  const handleSetDefault = useCallback((id) => {
+    persistDefault(id);
+  }, [persistDefault]);
 
   return (
     <div className="p-3 space-y-4">
@@ -704,10 +738,18 @@ function BrandKitPanel() {
           </div>
         )}
 
+        {/* No templates warning */}
+        {allTemplates.length === 0 && (
+          <div className="text-center py-4 text-xs text-muted-foreground">
+            No templates yet. Save your current layout to create one.
+          </div>
+        )}
+
         {/* Template cards */}
         <div className="space-y-1.5">
           {allTemplates.map((tpl) => {
             const isActive = tpl.id === activeId;
+            const isDefault = tpl.id === defaultId;
             const s = tpl.subtitle;
             const c = tpl.caption;
             return (
@@ -719,22 +761,27 @@ function BrandKitPanel() {
                   <div className="absolute left-1.5 right-1.5 h-[2px] rounded-full" style={{ top: `${s.yPercent}%`, transform: "translateY(-50%)", background: s.highlightColor || "#4cce8a", opacity: 0.9 }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
                     <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
-                    {isActive && <span className="text-[9px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0 ml-1">Active</span>}
+                    {isDefault && <span className="text-[8px] font-bold text-yellow-400 bg-yellow-400/15 px-1 py-0.5 rounded shrink-0">★ DEFAULT</span>}
+                    {isActive && <span className="text-[9px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
                   </div>
                   <span className="text-[10px] text-muted-foreground block mt-0.5">
                     {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
                   </span>
                 </div>
-                {!tpl.builtIn && (
-                  <div className="flex flex-col gap-0.5 shrink-0">
+                <div className="flex flex-col gap-0.5 shrink-0">
+                  {!isDefault && (
+                    <button onClick={(e) => { e.stopPropagation(); handleSetDefault(tpl.id); }}
+                      className="text-[9px] text-muted-foreground hover:text-yellow-400 px-1.5 py-0.5 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
+                  )}
+                  {!tpl.builtIn && (
                     <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
                       className="text-[9px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
-                      className="text-[9px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
-                  </div>
-                )}
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
+                    className="text-[9px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
+                </div>
               </div>
             );
           })}

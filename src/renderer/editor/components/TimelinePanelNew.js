@@ -31,15 +31,15 @@ import {
 // ── Constants ──
 const SPEED_OPTIONS = ["0.25x", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"];
 const TRACK_COLORS = {
-  cap: { bg: "hsl(263 70% 58% / 0.15)", border: "hsl(263 70% 58% / 0.5)", selected: "hsl(263 70% 58% / 0.35)", text: "hsl(263 70% 80%)" },
-  sub: { bg: "hsl(220 50% 72% / 0.15)", border: "hsl(220 50% 72% / 0.5)", selected: "hsl(220 50% 72% / 0.35)", text: "hsl(220 50% 85%)" },
-  audio: { bg: "hsl(200 40% 50% / 0.12)", border: "hsl(200 40% 50% / 0.4)", selected: "hsl(200 40% 50% / 0.3)", text: "hsl(200 40% 70%)" },
+  cap: { bg: "hsl(263 70% 58% / 0.18)", border: "hsl(263 70% 58% / 0.6)", selected: "hsl(263 70% 58% / 0.4)", text: "hsl(263 70% 85%)" },
+  sub: { bg: "hsl(120 60% 50% / 0.20)", border: "hsl(120 60% 50% / 0.6)", selected: "hsl(120 60% 50% / 0.4)", text: "hsl(120 60% 90%)" },
+  audio: { bg: "hsl(25 90% 55% / 0.12)", border: "hsl(25 90% 55% / 0.4)", selected: "hsl(25 90% 55% / 0.3)", text: "hsl(25 90% 70%)" },
 };
 const RULER_H = 24;
-const TRACK_H = 36;
+const TRACK_H = 44;
 const AUDIO_TRACK_H = 64;
 const LABEL_W = 72;
-const END_PADDING = 120; // px of empty space after the clip ends
+const END_PADDING = 200; // px of empty space after the clip ends
 
 // ── Speed Dropdown ──
 function SpeedDropdown({ value, onChange, onClose }) {
@@ -138,7 +138,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         left: leftPx,
         width: Math.max(widthPx, 4),
         background: selected ? trackColor.selected : trackColor.bg,
-        border: `1.5px solid ${selected ? "hsl(263 70% 58%)" : trackColor.border}`,
+        border: `2px solid ${selected ? trackColor.text : trackColor.border}`,
         zIndex: selected ? 5 : 1,
         transition: resizing ? "none" : "background 0.15s, border-color 0.15s",
       }}
@@ -147,7 +147,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       onMouseLeave={() => setHovered(false)}
     >
       <span
-        className="absolute inset-0 flex items-center px-1.5 text-[9px] font-medium truncate pointer-events-none select-none"
+        className="absolute inset-0 flex items-center px-2 text-xs font-medium truncate pointer-events-none select-none"
         style={{ color: trackColor.text }}
       >
         {seg.text}
@@ -193,7 +193,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 
     // NEVER draw a fake/generic waveform. Only render real audio data.
     if (!peaks || peaks.length === 0) {
-      ctx.fillStyle = "hsl(200 40% 50% / 0.3)";
+      ctx.fillStyle = "hsl(25 90% 55% / 0.4)";
       ctx.font = "10px 'DM Sans', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Extracting waveform...", w / 2, h / 2 + 3);
@@ -252,16 +252,16 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     ctx.closePath();
 
     // Fill with semi-transparent color
-    ctx.fillStyle = selected ? "hsl(200 55% 58% / 0.55)" : "hsl(200 45% 55% / 0.35)";
+    ctx.fillStyle = selected ? "hsl(25 90% 55% / 0.6)" : "hsl(25 90% 55% / 0.4)";
     ctx.fill();
 
     // Stroke outline for definition
-    ctx.strokeStyle = selected ? "hsl(200 55% 60% / 0.7)" : "hsl(200 45% 55% / 0.5)";
+    ctx.strokeStyle = selected ? "hsl(25 90% 58% / 0.8)" : "hsl(25 90% 55% / 0.55)";
     ctx.lineWidth = 0.8;
     ctx.stroke();
 
     // Draw center line
-    ctx.strokeStyle = "hsl(200 40% 50% / 0.15)";
+    ctx.strokeStyle = "hsl(25 90% 55% / 0.15)";
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(0, centerY);
@@ -673,7 +673,7 @@ export default function TimelinePanelNew() {
         style={{ cursor: scrubbing ? "grabbing" : "default" }}
       >
         {/* Inner content — sets scroll width */}
-        <div className="relative" style={{ width: totalWidth, minHeight: "100%" }}>
+        <div className="relative" style={{ width: totalWidth, minWidth: totalWidth, minHeight: "100%" }}>
 
           {/* ── SINGLE PLAYHEAD LINE — spans from ruler through all tracks ── */}
           <div
@@ -756,6 +756,7 @@ export default function TimelinePanelNew() {
           {/* ── Subtitle track ── */}
           <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
             <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+              <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(120 60% 45%)" }}>S</span>
               <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
