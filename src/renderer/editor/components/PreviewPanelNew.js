@@ -638,6 +638,26 @@ export default function PreviewPanelNew() {
   // Scale proportionally to actual canvas width
   const scaleFactor = canvasWidth / 1080;
 
+  // Generate outside stroke via text-shadow (WebkitTextStroke paints inward)
+  const buildStrokeShadows = useCallback((width, colorHex, opacity) => {
+    if (width <= 0) return "";
+    const sc = colorHex || "#000000";
+    const r = parseInt(sc.slice(1, 3), 16) || 0;
+    const g = parseInt(sc.slice(3, 5), 16) || 0;
+    const b = parseInt(sc.slice(5, 7), 16) || 0;
+    const rgba = `rgba(${r},${g},${b},${opacity / 100})`;
+    const shadows = [];
+    // 16 directions around the text at the specified width
+    const steps = 16;
+    for (let i = 0; i < steps; i++) {
+      const angle = (i / steps) * Math.PI * 2;
+      const x = (Math.cos(angle) * width).toFixed(1);
+      const y = (Math.sin(angle) * width).toFixed(1);
+      shadows.push(`${x}px ${y}px 0 ${rgba}`);
+    }
+    return shadows.join(", ");
+  }, []);
+
   // Build subtitle text style (scales proportionally with preview canvas)
   const subTextStyle = useMemo(() => {
     const scaledFontSize = fontSize * scaleFactor;
@@ -659,15 +679,12 @@ export default function PreviewPanelNew() {
     if (bgOn) {
       style.background = `rgba(0,0,0,${bgOpacity / 100})`;
     }
+    // Build text-shadow: combine stroke (outside) + shadow
+    const shadowParts = [];
     if (strokeOn) {
       const scaledStroke = Math.max(0.5, strokeWidth * scaleFactor * 0.5);
-      // Parse strokeColor hex to RGB for opacity
-      const sc = strokeColor || "#000000";
-      const sr = parseInt(sc.slice(1, 3), 16) || 0;
-      const sg = parseInt(sc.slice(3, 5), 16) || 0;
-      const sb = parseInt(sc.slice(5, 7), 16) || 0;
-      style.WebkitTextStroke = `${scaledStroke}px rgba(${sr},${sg},${sb},${strokeOpacity / 100})`;
-      style.paintOrder = "stroke fill";
+      const strokeShadows = buildStrokeShadows(scaledStroke, strokeColor, strokeOpacity);
+      if (strokeShadows) shadowParts.push(strokeShadows);
     }
     if (shadowOn) {
       const scaledBlur = shadowBlur * scaleFactor * 0.5;
@@ -675,10 +692,13 @@ export default function PreviewPanelNew() {
       const shr = parseInt(shc.slice(1, 3), 16) || 0;
       const shg = parseInt(shc.slice(3, 5), 16) || 0;
       const shb = parseInt(shc.slice(5, 7), 16) || 0;
-      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${shr},${shg},${shb},${shadowOpacity / 100})`;
+      shadowParts.push(`0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${shr},${shg},${shb},${shadowOpacity / 100})`);
+    }
+    if (shadowParts.length > 0) {
+      style.textShadow = shadowParts.join(", ");
     }
     return style;
-  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, strokeColor, strokeOpacity, shadowOn, shadowBlur, shadowColor, shadowOpacity, scaleFactor]);
+  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, strokeColor, strokeOpacity, shadowOn, shadowBlur, shadowColor, shadowOpacity, scaleFactor, buildStrokeShadows]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -697,30 +717,29 @@ export default function PreviewPanelNew() {
       wordBreak: "break-word",
       width: "100%",
     };
-    // Shadow
+    // Build text-shadow: combine stroke (outside) + shadow
+    const shadowParts = [];
+    if (captionStrokeOn) {
+      const scaledStroke = Math.max(0.5, captionStrokeWidth * scaleFactor * 0.5);
+      const strokeShadows = buildStrokeShadows(scaledStroke, captionStrokeColor, captionStrokeOpacity);
+      if (strokeShadows) shadowParts.push(strokeShadows);
+    }
     if (captionShadowOn) {
       const scaledBlur = captionShadowBlur * scaleFactor * 0.5;
       const sc = captionShadowColor || "#000000";
       const r = parseInt(sc.slice(1, 3), 16) || 0;
       const g = parseInt(sc.slice(3, 5), 16) || 0;
       const b = parseInt(sc.slice(5, 7), 16) || 0;
-      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${r},${g},${b},${captionShadowOpacity / 100})`;
+      shadowParts.push(`0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${r},${g},${b},${captionShadowOpacity / 100})`);
+    }
+    if (shadowParts.length > 0) {
+      style.textShadow = shadowParts.join(", ");
     } else {
-      // Default subtle shadow for readability
+      // Default subtle shadow for readability when no effects enabled
       style.textShadow = `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
     }
-    // Stroke
-    if (captionStrokeOn) {
-      const scaledStroke = Math.max(0.5, captionStrokeWidth * scaleFactor * 0.5);
-      const sc = captionStrokeColor || "#000000";
-      const r = parseInt(sc.slice(1, 3), 16) || 0;
-      const g = parseInt(sc.slice(3, 5), 16) || 0;
-      const b = parseInt(sc.slice(5, 7), 16) || 0;
-      style.WebkitTextStroke = `${scaledStroke}px rgba(${r},${g},${b},${captionStrokeOpacity / 100})`;
-      style.paintOrder = "stroke fill";
-    }
     return style;
-  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing, captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, scaleFactor]);
+  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing, captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, scaleFactor, buildStrokeShadows]);
 
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.

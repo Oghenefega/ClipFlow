@@ -83,90 +83,191 @@ function ToggleSwitch({ value, onChange, size = "default" }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SHARED: Color Picker Popover
+//  SHARED: HSV ↔ RGB helpers
+// ════════════════════════════════════════════════════════════════
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0, s = max === 0 ? 0 : d / max, v = max;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
+  }
+  return [h, s, v];
+}
+
+function rgbToHex(r, g, b) {
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [255, 255, 255];
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Color Picker Popover (proper HSV model)
 // ════════════════════════════════════════════════════════════════
 function ColorPickerPopover({ color, onChange, children }) {
   const [hex, setHex] = useState(color || "#ffffff");
   const [r, setR] = useState(255);
   const [g, setG] = useState(255);
   const [b, setB] = useState(255);
+  const [hue, setHue] = useState(0);
+  const [sat, setSat] = useState(0);
+  const [val, setVal] = useState(1);
   const [open, setOpen] = useState(false);
+  const gradientRef = useRef(null);
+  const hueRef = useRef(null);
 
+  // Sync state from prop when popover opens
   useEffect(() => {
     if (open && color) {
-      setHex(color);
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
-      if (result) { setR(parseInt(result[1], 16)); setG(parseInt(result[2], 16)); setB(parseInt(result[3], 16)); }
+      const [cr, cg, cb] = hexToRgb(color);
+      setR(cr); setG(cg); setB(cb); setHex(color);
+      const [ch, cs, cv] = rgbToHsv(cr, cg, cb);
+      setHue(ch); setSat(cs); setVal(cv);
     }
   }, [open, color]);
 
-  const updateFromRGB = (nr, ng, nb) => {
+  const applyHSV = (h, s, v) => {
+    setHue(h); setSat(s); setVal(v);
+    const [nr, ng, nb] = hsvToRgb(h, s, v);
     setR(nr); setG(ng); setB(nb);
-    const h = `#${nr.toString(16).padStart(2,"0")}${ng.toString(16).padStart(2,"0")}${nb.toString(16).padStart(2,"0")}`;
-    setHex(h);
-    onChange(h);
+    const nh = rgbToHex(nr, ng, nb);
+    setHex(nh);
+    onChange(nh);
+  };
+
+  const applyRGB = (nr, ng, nb) => {
+    setR(nr); setG(ng); setB(nb);
+    const nh = rgbToHex(nr, ng, nb);
+    setHex(nh); onChange(nh);
+    const [ch, cs, cv] = rgbToHsv(nr, ng, nb);
+    setHue(ch); setSat(cs); setVal(cv);
   };
 
   const handlePaletteClick = (c) => {
-    setHex(c); onChange(c);
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
-    if (result) { setR(parseInt(result[1], 16)); setG(parseInt(result[2], 16)); setB(parseInt(result[3], 16)); }
+    const [cr, cg, cb] = hexToRgb(c);
+    setR(cr); setG(cg); setB(cb); setHex(c); onChange(c);
+    const [ch, cs, cv] = rgbToHsv(cr, cg, cb);
+    setHue(ch); setSat(cs); setVal(cv);
   };
 
   const handleHexInput = (val) => {
     setHex(val);
     if (/^#[0-9a-f]{6}$/i.test(val)) {
-      const result = /^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(val);
-      if (result) { setR(parseInt(result[1],16)); setG(parseInt(result[2],16)); setB(parseInt(result[3],16)); onChange(val); }
+      const [cr, cg, cb] = hexToRgb(val);
+      applyRGB(cr, cg, cb);
     }
   };
+
+  // Gradient drag support
+  const onGradientInteract = useCallback((e) => {
+    const rect = (gradientRef.current || e.currentTarget).getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    applyHSV(hue, x, 1 - y);
+  }, [hue]);
+
+  const onGradientDown = useCallback((e) => {
+    onGradientInteract(e);
+    const onMove = (ev) => {
+      const rect = gradientRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+      applyHSV(hue, x, 1 - y);
+    };
+    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [hue, onGradientInteract]);
+
+  // Hue bar drag support
+  const onHueInteract = useCallback((e) => {
+    const rect = (hueRef.current || e.currentTarget).getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    applyHSV(x * 360, sat, val);
+  }, [sat, val]);
+
+  const onHueDown = useCallback((e) => {
+    onHueInteract(e);
+    const onMove = (ev) => {
+      const rect = hueRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      applyHSV(x * 360, sat, val);
+    };
+    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [sat, val, onHueInteract]);
+
+  // Pure hue color for gradient background
+  const pureHueHex = useMemo(() => rgbToHex(...hsvToRgb(hue, 1, 1)), [hue]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[260px] p-3 bg-card border-border" side="left" align="start" sideOffset={8}>
-        {/* Gradient area */}
+        {/* SV gradient area */}
         <div
+          ref={gradientRef}
           className="w-full h-[140px] rounded-md mb-3 cursor-crosshair relative overflow-hidden"
           style={{
-            background: `linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, ${hex})`,
+            background: `linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, ${pureHueHex})`,
           }}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-            const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-            const nr = Math.round(255 * (1 - x) * (1 - y));
-            const ng = Math.round(255 * (1 - x) * (1 - y));
-            const nb = Math.round(255 * (1 - x) * (1 - y));
-            updateFromRGB(nr, ng, nb);
-          }}
-        />
+          onPointerDown={onGradientDown}
+        >
+          {/* Picker dot */}
+          <div
+            className="absolute w-3.5 h-3.5 rounded-full border-2 border-white shadow-md pointer-events-none"
+            style={{
+              left: `${sat * 100}%`, top: `${(1 - val) * 100}%`,
+              transform: "translate(-50%, -50%)",
+              background: hex,
+            }}
+          />
+        </div>
 
         {/* Hue spectrum bar */}
         <div
-          className="w-full h-3 rounded-full mb-3 cursor-pointer"
+          ref={hueRef}
+          className="w-full h-3 rounded-full mb-3 cursor-pointer relative"
           style={{ background: "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-            const hue = x * 360;
-            // Simple hue-to-rgb
-            const c = 1, xx = c * (1 - Math.abs((hue / 60) % 2 - 1));
-            let rr=0, gg=0, bb=0;
-            if (hue < 60) { rr=c; gg=xx; } else if (hue < 120) { rr=xx; gg=c; }
-            else if (hue < 180) { gg=c; bb=xx; } else if (hue < 240) { gg=xx; bb=c; }
-            else if (hue < 300) { rr=xx; bb=c; } else { rr=c; bb=xx; }
-            updateFromRGB(Math.round(rr*255), Math.round(gg*255), Math.round(bb*255));
-          }}
-        />
+          onPointerDown={onHueDown}
+        >
+          <div
+            className="absolute top-1/2 w-3 h-3 rounded-full border-2 border-white shadow pointer-events-none"
+            style={{ left: `${(hue / 360) * 100}%`, transform: "translate(-50%, -50%)", background: pureHueHex }}
+          />
+        </div>
 
         {/* RGB inputs */}
         <div className="flex items-center gap-1.5 mb-3">
           <span className="text-[10px] text-muted-foreground w-7 shrink-0">RGB</span>
           {[
-            { val: r, set: (v) => updateFromRGB(v, g, b) },
-            { val: g, set: (v) => updateFromRGB(r, v, b) },
-            { val: b, set: (v) => updateFromRGB(r, g, v) },
+            { val: r, set: (v) => applyRGB(v, g, b) },
+            { val: g, set: (v) => applyRGB(r, v, b) },
+            { val: b, set: (v) => applyRGB(r, g, v) },
           ].map((ch, i) => (
             <input key={i} type="number" min={0} max={255} value={ch.val}
               onChange={(e) => ch.set(Math.max(0, Math.min(255, parseInt(e.target.value) || 0)))}
