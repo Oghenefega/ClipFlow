@@ -21,54 +21,17 @@ function mergeWordTokens(words) {
   return merged;
 }
 
-// ── JS-side word timestamp repair (fallback for already-transcribed clips) ──
-// The main repair happens in Python (transcribe.py) using audio energy.
-// This is a lightweight fallback for clips transcribed before that fix.
-function repairWordTimestamps(words, segStart, segEnd) {
+// ── Pass through word timestamps as-is ──
+// Real timestamp repair happens in Python (transcribe.py) using audio energy.
+// No JS-side fallbacks — if timestamps are bad, they stay bad so the root
+// cause is visible and gets fixed at the source (re-generate clips).
+function validateWords(words, segStart, segEnd) {
   if (!words || words.length === 0) return words;
-  const segDur = segEnd - segStart;
-  const n = words.length;
-
-  // Detect broken timestamps
-  let isBroken = segDur < 0.05;
-  if (!isBroken && n > 1) {
-    // Check bunching: >50% of words share a start time (within 50ms)
-    const rounded = words.map(w => Math.round(w.start * 20) / 20);
-    if (new Set(rounded).size / n < 0.5) isBroken = true;
-    // Check coverage: words span <30% of segment
-    if (!isBroken) {
-      const span = Math.max(...words.map(w => w.end)) - Math.min(...words.map(w => w.start));
-      if (segDur > 0 && span / segDur < 0.3) isBroken = true;
-    }
-    // Check zero-duration words (>40%)
-    if (!isBroken) {
-      const zeroDur = words.filter(w => (w.end - w.start) < 0.02).length;
-      if (zeroDur / n > 0.4) isBroken = true;
-    }
-    // Check monotonicity
-    if (!isBroken) {
-      for (let i = 1; i < n; i++) {
-        if (words[i].start < words[i-1].start - 0.01) { isBroken = true; break; }
-      }
-    }
-  }
-
-  if (isBroken) {
-    // Even distribution fallback
-    const dur = Math.max(0.05, segDur);
-    const perWord = dur / n;
-    return words.map((w, i) => ({
-      ...w,
-      start: segStart + i * perWord,
-      end: segStart + (i + 1) * perWord,
-    }));
-  }
-
-  // Timestamps look OK — clamp to segment boundaries + enforce min duration
+  // Only clamp to segment boundaries — no fabrication
   return words.map(w => ({
     ...w,
     start: Math.max(segStart, Math.min(segEnd, w.start)),
-    end: Math.max(Math.max(segStart, w.start) + 0.02, Math.min(segEnd, w.end)),
+    end: Math.max(segStart, Math.min(segEnd, w.end)),
   }));
 }
 
@@ -137,7 +100,7 @@ const useSubtitleStore = create((set, get) => ({
           end: Math.max(0, (w.end || 0) - clipStart),
           probability: w.probability ?? 1,
         })));
-        const repairedWords = repairWordTimestamps(rawWords, segStartSec, segEndSec);
+        const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
         return {
           id: i + 1,
           start: fmtTime(segStartSec),
