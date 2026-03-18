@@ -130,138 +130,162 @@ function FontDropdown({ value, onChange, onClose }) {
   );
 }
 
-// ── Inline Editing Toolbar (positioned below text element) ──
+// ── Hold-to-repeat button helper ──
+function RepeatButton({ onClick, children, className }) {
+  const intervalRef = useRef(null);
+  const onDown = useCallback(() => {
+    onClick();
+    let delay = 400;
+    const repeat = () => {
+      intervalRef.current = setTimeout(() => { onClick(); delay = Math.max(50, delay * 0.85); repeat(); }, delay);
+    };
+    repeat();
+  }, [onClick]);
+  const onUp = useCallback(() => { clearTimeout(intervalRef.current); }, []);
+  useEffect(() => () => clearTimeout(intervalRef.current), []);
+  return (
+    <button className={className} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp}>
+      {children}
+    </button>
+  );
+}
+
+// ── Inline Editing Toolbar (2 rows: font row + formatting row) ──
 function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily, onFontSize, onFontWeight, onAlign, onBold, onItalic, onUnderline, bold, italic, underline }) {
   const [fontOpen, setFontOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
 
+  const handleSizeWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    onFontSize(Math.max(1, Math.min(999, fontSize + delta)));
+  }, [fontSize, onFontSize]);
+
   return (
-    <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border bg-card shadow-lg">
-      {/* Font family */}
-      <div className="relative">
-        <button
-          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[100px]"
-          onClick={() => setFontOpen(!fontOpen)}
-        >
-          <span className="truncate" style={{ fontFamily }}>{fontFamily}</span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-        </button>
-        {fontOpen && (
-          <FontDropdown value={fontFamily} onChange={onFontFamily} onClose={() => setFontOpen(false)} />
-        )}
-      </div>
-
-      <Separator orientation="vertical" className="h-5" />
-
-      {/* Font weight */}
-      {onFontWeight && (
-        <>
-          <div className="relative">
-            <button
-              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[60px]"
-              onClick={() => setWeightOpen(!weightOpen)}
-            >
-              <span className="truncate" style={{ fontWeight: fontWeight || 400 }}>
-                {FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular"}
-              </span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-            </button>
-            {weightOpen && (
-              <div className="absolute top-full left-0 mt-1 w-[120px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
-                {FONT_WEIGHT_OPTIONS.map((w) => (
-                  <button
-                    key={w.value}
-                    className={`w-full flex items-center px-3 py-1.5 text-xs transition-colors ${
-                      fontWeight === w.value ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary/60"
-                    }`}
-                    style={{ fontWeight: w.value }}
-                    onClick={() => { onFontWeight(w.value); setWeightOpen(false); }}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <Separator orientation="vertical" className="h-5" />
-        </>
-      )}
-
-      {/* Font size */}
-      <div className="flex items-center gap-0.5">
-        <button
-          className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => onFontSize(Math.max(8, fontSize - 1))}
-        >
-          <Minus className="h-3 w-3" />
-        </button>
-        <input
-          type="text"
-          value={fontSize}
-          onChange={(e) => {
-            const v = parseInt(e.target.value);
-            if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
-          }}
-          onFocus={(e) => e.target.select()}
-          className="w-8 h-6 text-xs text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none"
-        />
-        <button
-          className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => onFontSize(Math.min(120, fontSize + 1))}
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-      </div>
-
-      <Separator orientation="vertical" className="h-5" />
-
-      {/* Alignment */}
-      <div className="flex items-center gap-0.5">
-        {[
-          { icon: AlignLeft, val: "left" },
-          { icon: AlignCenter, val: "center" },
-          { icon: AlignRight, val: "right" },
-        ].map(({ icon: Icon, val }) => (
+    <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg border bg-card shadow-lg">
+      {/* Row 1: Font family, weight, size */}
+      <div className="flex items-center gap-1">
+        {/* Font family */}
+        <div className="relative">
           <button
-            key={val}
-            className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => onAlign(val)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[100px]"
+            onClick={() => setFontOpen(!fontOpen)}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <span className="truncate" style={{ fontFamily }}>{fontFamily}</span>
+            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
           </button>
-        ))}
+          {fontOpen && (
+            <FontDropdown value={fontFamily} onChange={onFontFamily} onClose={() => setFontOpen(false)} />
+          )}
+        </div>
+
+        <Separator orientation="vertical" className="h-5" />
+
+        {/* Font weight */}
+        {onFontWeight && (
+          <>
+            <div className="relative">
+              <button
+                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[60px]"
+                onClick={() => setWeightOpen(!weightOpen)}
+              >
+                <span className="truncate" style={{ fontWeight: fontWeight || 400 }}>
+                  {FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular"}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              </button>
+              {weightOpen && (
+                <div className="absolute top-full left-0 mt-1 w-[120px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
+                  {FONT_WEIGHT_OPTIONS.map((w) => (
+                    <button
+                      key={w.value}
+                      className={`w-full flex items-center px-3 py-1.5 text-xs transition-colors ${
+                        fontWeight === w.value ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary/60"
+                      }`}
+                      style={{ fontWeight: w.value }}
+                      onClick={() => { onFontWeight(w.value); setWeightOpen(false); }}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Separator orientation="vertical" className="h-5" />
+          </>
+        )}
+
+        {/* Font size with scroll + hold-to-repeat */}
+        <div className="flex items-center gap-0.5">
+          <RepeatButton
+            onClick={() => onFontSize(Math.max(1, fontSize - 1))}
+            className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Minus className="h-3 w-3" />
+          </RepeatButton>
+          <input
+            type="text"
+            value={fontSize}
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
+            }}
+            onFocus={(e) => e.target.select()}
+            onWheel={handleSizeWheel}
+            className="w-8 h-6 text-xs text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none"
+          />
+          <RepeatButton
+            onClick={() => onFontSize(Math.min(999, fontSize + 1))}
+            className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+          </RepeatButton>
+        </div>
       </div>
 
-      <Separator orientation="vertical" className="h-5" />
+      {/* Row 2: Alignment + B/I/U */}
+      <div className="flex items-center gap-1 justify-center">
+        {/* Alignment */}
+        <div className="flex items-center gap-0.5">
+          {[
+            { icon: AlignLeft, val: "left" },
+            { icon: AlignCenter, val: "center" },
+            { icon: AlignRight, val: "right" },
+          ].map(({ icon: Icon, val }) => (
+            <button
+              key={val}
+              className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => onAlign(val)}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
 
-      {/* Text formatting */}
-      <div className="flex items-center gap-0.5">
-        <button
-          className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${bold ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-          onClick={onBold}
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </button>
-        <button
-          className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${italic ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-          onClick={onItalic}
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </button>
-        <button
-          className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${underline ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-          onClick={onUnderline}
-        >
-          <Underline className="h-3.5 w-3.5" />
-        </button>
+        <Separator orientation="vertical" className="h-5" />
+
+        {/* B/I/U */}
+        <div className="flex items-center gap-0.5">
+          <button
+            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${bold ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+            onClick={onBold}
+          >
+            <Bold className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${italic ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+            onClick={onItalic}
+          >
+            <Italic className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${underline ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+            onClick={onUnderline}
+          >
+            <Underline className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-
-      <Separator orientation="vertical" className="h-5" />
-
-      {/* More options */}
-      <button className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-        <MoreHorizontal className="h-3.5 w-3.5" />
-      </button>
     </div>
   );
 }

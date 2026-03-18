@@ -46,6 +46,28 @@ function SectionLabel({ children, className = "" }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+//  SHARED: Hold-to-repeat button
+// ════════════════════════════════════════════════════════════════
+function RepeatButton({ onClick, children, className }) {
+  const intervalRef = useRef(null);
+  const onDown = useCallback(() => {
+    onClick();
+    let delay = 400;
+    const repeat = () => {
+      intervalRef.current = setTimeout(() => { onClick(); delay = Math.max(50, delay * 0.85); repeat(); }, delay);
+    };
+    repeat();
+  }, [onClick]);
+  const onUp = useCallback(() => { clearTimeout(intervalRef.current); }, []);
+  useEffect(() => () => clearTimeout(intervalRef.current), []);
+  return (
+    <button className={className} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp}>
+      {children}
+    </button>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 //  SHARED: Toggle Switch
 // ════════════════════════════════════════════════════════════════
 function ToggleSwitch({ value, onChange, size = "default" }) {
@@ -203,18 +225,19 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
           </div>
         )}
         <div className="flex items-center w-20">
-          <button onClick={() => setFontSize(Math.max(1, fontSize - 1))}
+          <RepeatButton onClick={() => setFontSize(Math.max(1, fontSize - 1))}
             className="w-6 h-8 rounded-l-md bg-secondary border border-border border-r-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
             <Minus className="h-3 w-3" />
-          </button>
+          </RepeatButton>
           <input type="text" value={fontSize}
             onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 999) setFontSize(v); }}
             onFocus={(e) => e.target.select()}
+            onWheel={(e) => { e.preventDefault(); setFontSize(Math.max(1, Math.min(999, fontSize + (e.deltaY < 0 ? 1 : -1)))); }}
             className="w-8 h-8 text-xs text-center bg-secondary border-y border-border text-foreground outline-none focus:border-primary/40" />
-          <button onClick={() => setFontSize(Math.min(999, fontSize + 1))}
+          <RepeatButton onClick={() => setFontSize(Math.min(999, fontSize + 1))}
             className="w-6 h-8 rounded-r-md bg-secondary border border-border border-l-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
             <Plus className="h-3 w-3" />
-          </button>
+          </RepeatButton>
         </div>
       </div>
 
@@ -647,6 +670,15 @@ function BrandKitPanel() {
     persistActive(tpl.id);
   }, [persistActive]);
 
+  const handleUpdate = useCallback((id) => {
+    const existing = templates.find((t) => t.id === id);
+    if (!existing) return;
+    const updated = snapshotTemplate(existing.name);
+    updated.id = id; // keep same id
+    persist(templates.map((t) => t.id === id ? updated : t));
+    persistActive(id);
+  }, [templates, persist, persistActive]);
+
   const handleDelete = useCallback((id) => {
     persist(templates.filter((t) => t.id !== id));
     if (activeId === id) persistActive("fega-default");
@@ -695,9 +727,13 @@ function BrandKitPanel() {
                     {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
                   </span>
                 </div>
-                {!tpl.builtIn && !isActive && (
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
-                    className="text-muted-foreground hover:text-destructive text-sm px-1 transition-colors" title="Delete">×</button>
+                {!tpl.builtIn && (
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
+                      className="text-[9px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
+                      className="text-[9px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
+                  </div>
                 )}
               </div>
             );
@@ -772,11 +808,14 @@ function SubtitlesPanel() {
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const setSyncOffset = useSubtitleStore((s) => s.setSyncOffset);
 
-  // local state for alignment/B/I/U (not in store yet)
+  // B/I/U wired to subtitle store
+  const subBold = useSubtitleStore((s) => s.subBold);
+  const toggleSubBold = useSubtitleStore((s) => s.toggleSubBold);
+  const subItalic = useSubtitleStore((s) => s.subItalic);
+  const toggleSubItalic = useSubtitleStore((s) => s.toggleSubItalic);
+  const subUnderline = useSubtitleStore((s) => s.subUnderline);
+  const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
   const [align, setAlign] = useState("center");
-  const [bold, setBold] = useState(false);
-  const [italic, setItalic] = useState(false);
-  const [underline, setUnderline] = useState(false);
   const [fontColor, setFontColor] = useState("#ffffff");
 
   return (
@@ -817,9 +856,9 @@ function SubtitlesPanel() {
               fontWeight={subFontWeight} setFontWeight={setSubFontWeight}
               fontSize={fontSize} setFontSize={setFontSize}
               align={align} setAlign={setAlign}
-              bold={bold} setBold={setBold}
-              italic={italic} setItalic={setItalic}
-              underline={underline} setUnderline={setUnderline}
+              bold={subBold} setBold={toggleSubBold}
+              italic={subItalic} setItalic={toggleSubItalic}
+              underline={subUnderline} setUnderline={toggleSubUnderline}
               color={fontColor} setColor={setFontColor}
               lineMode={lineMode} setLineMode={setLineMode}
             />
