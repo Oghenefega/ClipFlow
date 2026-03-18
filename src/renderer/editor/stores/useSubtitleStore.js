@@ -318,6 +318,15 @@ const useSubtitleStore = create((set, get) => ({
         text: w.word,
         words: [w],
       }));
+      // Close gaps between word segments (continuous speech)
+      for (let j = 0; j < wordSegs.length - 1; j++) {
+        const gap = wordSegs[j + 1].startSec - wordSegs[j].endSec;
+        if (gap > 0 && gap < 1.0) {
+          wordSegs[j].endSec = wordSegs[j + 1].startSec;
+          wordSegs[j].end = fmtTime(wordSegs[j].endSec);
+          wordSegs[j].dur = (wordSegs[j].endSec - wordSegs[j].startSec).toFixed(1) + "s";
+        }
+      }
     } else {
       // Fallback: even-split
       const totalDur = seg.endSec - seg.startSec;
@@ -401,13 +410,14 @@ const useSubtitleStore = create((set, get) => ({
       }
     });
 
+    const SILENCE_GAP_THRESHOLD = 1.0; // seconds — only show gaps when silence > 1s
     const chunkSize = mode === "1word" ? 1 : 3;
-    const newSegs = [];
+    const rawSegs = [];
     for (let i = 0; i < allWords.length; i += chunkSize) {
       const chunk = allWords.slice(i, i + chunkSize);
       const startSec = chunk[0].start;
       const endSec = chunk[chunk.length - 1].end;
-      newSegs.push({
+      rawSegs.push({
         id: Date.now() + i,
         start: fmtTime(startSec),
         end: fmtTime(endSec),
@@ -421,7 +431,22 @@ const useSubtitleStore = create((set, get) => ({
         words: chunk,
       });
     }
-    set({ editSegments: newSegs, segmentMode: mode, activeSegId: newSegs[0]?.id });
+
+    // Close gaps between segments during continuous speech.
+    // If gap between seg[i].end and seg[i+1].start is < 1s, extend seg[i]
+    // to touch seg[i+1] — pills should be continuous when speech is flowing.
+    // Only leave a visible gap when silence exceeds 1 second.
+    for (let i = 0; i < rawSegs.length - 1; i++) {
+      const gap = rawSegs[i + 1].startSec - rawSegs[i].endSec;
+      if (gap > 0 && gap < SILENCE_GAP_THRESHOLD) {
+        // Extend current segment's end to meet the next segment's start
+        rawSegs[i].endSec = rawSegs[i + 1].startSec;
+        rawSegs[i].end = fmtTime(rawSegs[i].endSec);
+        rawSegs[i].dur = (rawSegs[i].endSec - rawSegs[i].startSec).toFixed(1) + "s";
+      }
+    }
+
+    set({ editSegments: rawSegs, segmentMode: mode, activeSegId: rawSegs[0]?.id });
   },
 }));
 
