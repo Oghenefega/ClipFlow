@@ -1,23 +1,56 @@
 import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 
-// ── Merge whisper subword tokens into real words ──
-// Whisper tokenizes at subword level: "I'm" → ["I", "'m"], "raiders" → ["ra","iders"]
-// Merge tokens starting with apostrophe (contractions)
-function mergeWordTokens(words) {
-  if (!words || words.length <= 1) return words;
-  const merged = [{ ...words[0] }];
-  for (let i = 1; i < words.length; i++) {
-    const prev = merged[merged.length - 1];
-    const curr = words[i];
-    const isContraction = curr.word.startsWith("'") || curr.word.startsWith("\u2019");
-    if (isContraction) {
-      prev.word += curr.word;
-      prev.end = curr.end;
-    } else {
-      merged.push({ ...curr });
+// ── Merge whisper subword tokens into real words using segment text as ground truth ──
+// Whisper/whisperx tokenizes at subword level: "raiders" → ["ra","iders"],
+// "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"]
+// We use the segment's .text field (which has correct words) to guide merging.
+function mergeWordTokens(words, segmentText) {
+  if (!words || words.length === 0) return words;
+  if (!segmentText) return words;
+
+  // Get the real words from the segment text
+  const realWords = segmentText.trim().split(/\s+/).filter(Boolean);
+  if (realWords.length === 0) return words;
+
+  const merged = [];
+  let tokenIdx = 0;
+
+  for (const realWord of realWords) {
+    if (tokenIdx >= words.length) break;
+
+    // Start building the merged word from current token
+    const mergedWord = { ...words[tokenIdx] };
+    let built = words[tokenIdx].word.trim();
+    tokenIdx++;
+
+    // Keep consuming tokens until we've built the full real word
+    // Compare case-insensitively and strip punctuation for matching
+    const realClean = realWord.replace(/[.,!?;:'"]/g, "").toLowerCase();
+    let builtClean = built.replace(/[.,!?;:'"]/g, "").toLowerCase();
+    let safety = 0;
+
+    while (builtClean !== realClean && tokenIdx < words.length && safety < 10) {
+      const nextToken = words[tokenIdx];
+      built += nextToken.word.trim();
+      builtClean = built.replace(/[.,!?;:'"]/g, "").toLowerCase();
+      mergedWord.end = nextToken.end;
+      tokenIdx++;
+      safety++;
     }
+
+    // Use the real word text (preserves original casing/punctuation)
+    mergedWord.word = realWord;
+    merged.push(mergedWord);
   }
+
+  // If there are leftover tokens not matched to any real word, append them
+  // (shouldn't happen with correct data, but don't lose anything)
+  while (tokenIdx < words.length) {
+    merged.push({ ...words[tokenIdx] });
+    tokenIdx++;
+  }
+
   return merged;
 }
 
@@ -49,7 +82,7 @@ const useSubtitleStore = create((set, get) => ({
   activeSegId: null,
   selectedWordInfo: null, // { segId, wordIdx }
   editingWordKey: null,   // "segId-wordIdx" for inline transcript editing
-  segmentMode: "sentence", // "sentence" | "3word" | "1word"
+  segmentMode: "3word", // "3word" | "1word"
 
   // ── Transcript ──
   transcriptSearch: "",
@@ -97,13 +130,13 @@ const useSubtitleStore = create((set, get) => ({
       .map((s, i) => {
         const segStartSec = s.start - clipStart;
         const segEndSec = s.end - clipStart;
-        // Merge subword tokens, then repair broken timestamps
+        // Merge subword tokens using segment text as ground truth, then clamp timestamps
         const rawWords = mergeWordTokens((s.words || []).map(w => ({
           word: w.word,
           start: Math.max(0, (w.start || 0) - clipStart),
           end: Math.max(0, (w.end || 0) - clipStart),
           probability: w.probability ?? 1,
-        })));
+        })), s.text);
         const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
         return {
           id: i + 1,
@@ -119,15 +152,15 @@ const useSubtitleStore = create((set, get) => ({
           words: repairedWords,
         };
       });
+    // Store original sentence-level segments for transcript tab and mode switching
     set({
-      editSegments: segs,
-      originalSegments: segs, // preserve for segment mode switching
-      activeSegId: segs.length > 0 ? segs[0].id : null,
+      originalSegments: segs,
       activeRow: 0,
       selectedWordInfo: null,
       editingWordKey: null,
-      segmentMode: "sentence",
     });
+    // Default to 3-word chunking for edit subtitles
+    get().setSegmentMode("3word");
   },
 
   // ── Undo/Redo actions ──
@@ -334,11 +367,6 @@ const useSubtitleStore = create((set, get) => ({
     const { originalSegments } = get();
     if (!originalSegments || originalSegments.length === 0) {
       set({ segmentMode: mode });
-      return;
-    }
-
-    if (mode === "sentence") {
-      set({ editSegments: originalSegments, segmentMode: mode, activeSegId: originalSegments[0]?.id });
       return;
     }
 

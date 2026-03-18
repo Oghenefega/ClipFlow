@@ -171,11 +171,16 @@
 - **Fix:** Modified slider.tsx to dynamically render N thumbs based on the `value` array length.
 - **Rule:** When using shadcn components with features beyond their defaults (multi-thumb, etc.), always check the component source — they are minimal wrappers and may not expose all Radix capabilities.
 
-### Whisper word tokens need post-processing — but only merge contractions
+### Whisper word tokens need text-guided merging — use segment text as ground truth
 - **Mistake (round 1):** Used whisper's raw word-level tokens directly. Whisper tokenizes at subword level: "I'm" becomes ["I", "'m"]. In 1-word segment mode, these appeared as separate segments.
-- **Mistake (round 2):** Added `mergeWordTokens()` with TWO heuristics: apostrophe-starts (contractions) AND gap < 20ms + starts-with-lowercase (subwords). The second heuristic was way too aggressive — nearly ALL whisper words start lowercase and have tiny gaps in fast speech, so entire sentences got merged into single giant "words" like "boomwhat'supguys".
-- **Fix:** Removed the gap-based subword heuristic entirely. Only merge tokens that start with `'` or `'` (contractions: "I" + "'m" → "I'm").
-- **Rule:** When merging whisper tokens, ONLY merge on clear syntactic signals (apostrophe-starts for contractions). NEVER use timing-gap heuristics — whisper's inter-word gaps are too inconsistent and vary wildly with speech pace. If it looks like subword splitting is needed in the future, require a much stricter condition (e.g., gap exactly 0ms AND previous token has no trailing space in the raw output).
+- **Mistake (round 2):** Added `mergeWordTokens()` with apostrophe-only heuristic. This only caught contractions but missed ALL other subword splits: "raiders" → ["ra","iders"], "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"], "Sentinel" → ["sent","inel"].
+- **Fix:** Use the segment's `.text` field (which has correct whole words from whisper's sentence-level output) as ground truth. Split `.text` into real words, then consume tokens greedily to match each real word by concatenation.
+- **Rule:** Whisper segments have TWO word sources: `.text` (correct sentence) and `.words` (subword tokens with timestamps). ALWAYS use `.text` to guide token merging. The approach: split text into words, then for each word, consume tokens until the concatenation matches. This handles contractions, compound words, and any subword splitting pattern.
+
+### Transcript and Edit Subtitles are independent views — don't couple their data
+- **Mistake:** TranscriptTab read from `editSegments` (which changes with segment mode). Switching Edit Subtitles to "1 Word" mode also broke the transcript into 1-word fragments, destroying readability.
+- **Fix:** TranscriptTab reads from `originalSegments` (sentence-level, never modified by segment mode). Only text edits carry over (they update both).
+- **Rule:** The Transcript is a reading view — it always shows well-formatted paragraphs from the original sentence segments. Edit Subtitles controls how subtitles are *displayed/chunked* on screen. These are separate concerns with separate data sources.
 
 ### Don't add redundant visual indicators
 - **Mistake:** Added green highlight for the active word in Edit Subtitles when purple highlight already served the same purpose in the Transcript tab.

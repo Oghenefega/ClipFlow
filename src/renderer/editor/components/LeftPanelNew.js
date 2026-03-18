@@ -22,7 +22,6 @@ import {
   Copy,
   Download,
   Settings2,
-  ChevronRight,
   Scissors,
   Merge,
   Check,
@@ -31,15 +30,6 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { fmtTime, parseTime } from "../utils/timeUtils";
-
-// ── Highlight color palette ──
-const WORD_COLORS = [
-  { id: "none", color: "transparent", label: "No highlight", border: "hsl(240 4% 30%)" },
-  { id: "white", color: "#ffffff", label: "White" },
-  { id: "red", color: "#f87171", label: "Red" },
-  { id: "yellow", color: "#fbbf24", label: "Yellow" },
-  { id: "green", color: "#4cce8a", label: "Green" },
-];
 
 const PUNCTUATION_OPTIONS = [
   { key: "period", char: "." },
@@ -52,7 +42,6 @@ const PUNCTUATION_OPTIONS = [
 ];
 
 const SEGMENT_MODES = [
-  { id: "sentence", label: "Sentence" },
   { id: "3word", label: "3 Words" },
   { id: "1word", label: "1 Word" },
 ];
@@ -282,23 +271,23 @@ function TimecodePopover({ segment, children }) {
           />
 
           {/* Time inputs */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <input
               value={fmtTime(localStart)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
               }}
-              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="flex-1 h-7 px-1 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
-            <span className="text-[hsl(240_5%_50%)] text-sm">-</span>
+            <span className="text-[hsl(240_5%_50%)] text-xs">–</span>
             <input
               value={fmtTime(localEnd)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([localStart, sec]);
               }}
-              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
+              className="flex-1 h-7 px-1 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
           </div>
 
@@ -314,36 +303,6 @@ function TimecodePopover({ segment, children }) {
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════
-//  WORD COLOR PICKER
-// ════════════════════════════════════════════════════════════════
-function WordColorPicker({ segId, wordIdx, onSelect }) {
-  return (
-    <div
-      className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-full z-30 flex items-center gap-1 px-1.5 py-1 rounded-md bg-popover border border-border shadow-lg"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {WORD_COLORS.map((c) => (
-        <TooltipProvider key={c.id} delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => onSelect(segId, wordIdx, c.id === "none" ? null : c.color)}
-                className="w-5 h-5 rounded-full border transition-transform hover:scale-125 cursor-pointer shrink-0"
-                style={{ background: c.color, borderColor: c.border || c.color, borderWidth: c.id === "none" ? 2 : 1 }}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[11px] py-0.5 px-1.5">{c.label}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ))}
-      <button className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-        <ChevronRight className="h-3 w-3" />
-      </button>
-    </div>
   );
 }
 
@@ -389,7 +348,7 @@ function SegmentModeDropdown() {
 //  TRANSCRIPT TAB — continuous paragraph with inline editing
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
-  const editSegments = useSubtitleStore((s) => s.editSegments);
+  const originalSegments = useSubtitleStore((s) => s.originalSegments);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
@@ -406,13 +365,13 @@ function TranscriptTab() {
   // Each word carries segId + segWordIdx for editing, plus segBreakAfter for paragraph breaks
   const allWords = useMemo(() => {
     const words = [];
-    editSegments.forEach((seg, segIndex) => {
+    originalSegments.forEach((seg, segIndex) => {
       let segWordIdx = 0;
       if (seg.words && seg.words.length > 0) {
         seg.words.forEach((w, wi) => {
           words.push({
             ...w, segId: seg.id, segWordIdx: segWordIdx++,
-            segBreakAfter: wi === seg.words.length - 1 && segIndex < editSegments.length - 1,
+            segBreakAfter: wi === seg.words.length - 1 && segIndex < originalSegments.length - 1,
           });
         });
       } else {
@@ -426,13 +385,13 @@ function TranscriptTab() {
             end: seg.startSec + (i + 1) * perWord,
             segId: seg.id,
             segWordIdx: segWordIdx++,
-            segBreakAfter: i === textWords.length - 1 && segIndex < editSegments.length - 1,
+            segBreakAfter: i === textWords.length - 1 && segIndex < originalSegments.length - 1,
           });
         });
       }
     });
     return words;
-  }, [editSegments]);
+  }, [originalSegments]);
 
   const fullText = useMemo(() => allWords.map((w) => w.word).join(" "), [allWords]);
 
@@ -601,7 +560,6 @@ function EditSubtitlesTab() {
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
   const setSelectedWordInfo = useSubtitleStore((s) => s.setSelectedWordInfo);
-  const setHighlightColor = useSubtitleStore((s) => s.setHighlightColor);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
@@ -614,7 +572,6 @@ function EditSubtitlesTab() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
-  const [hoveredWord, setHoveredWord] = useState(null);
   const [editingWord, setEditingWord] = useState(null); // { segId, wordIdx }
 
   const matches = useMemo(() => {
@@ -661,11 +618,6 @@ function EditSubtitlesTab() {
     setEditingWord(null);
   };
 
-  const handleWordColorSelect = (segId, wordIdx, color) => {
-    if (color) setHighlightColor(color);
-    setHoveredWord(null);
-  };
-
   // Find active word index within a segment based on playback time
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
@@ -686,7 +638,6 @@ function EditSubtitlesTab() {
       const currentWordIdx = wordIdx;
       wordIdx++;
       const isSelected = selectedWordInfo?.segId === seg.id && selectedWordInfo?.wordIdx === currentWordIdx;
-      const isHovered = hoveredWord?.segId === seg.id && hoveredWord?.wordIdx === currentWordIdx;
       const isPlaybackActive = currentWordIdx === activeWordInSeg;
       const isEditing = editingWord?.segId === seg.id && editingWord?.wordIdx === currentWordIdx;
 
@@ -705,19 +656,14 @@ function EditSubtitlesTab() {
         <span
           key={i}
           className={`
-            relative inline-block cursor-pointer rounded px-0.5 transition-colors
+            inline-block cursor-pointer rounded px-0.5 transition-colors
             ${isPlaybackActive ? "bg-primary/20 text-primary font-semibold" : ""}
             ${isSelected && !isPlaybackActive ? "bg-primary/15 text-primary" : ""}
             ${!isSelected && !isPlaybackActive ? "hover:bg-secondary/60" : ""}
           `}
           onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx }); }}
-          onMouseEnter={() => setHoveredWord({ segId: seg.id, wordIdx: currentWordIdx })}
-          onMouseLeave={() => setHoveredWord(null)}
         >
           {token}
-          {isHovered && !isEditing && (
-            <WordColorPicker segId={seg.id} wordIdx={currentWordIdx} onSelect={handleWordColorSelect} />
-          )}
         </span>
       );
     });
