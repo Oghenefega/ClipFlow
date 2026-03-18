@@ -137,10 +137,9 @@ function SubtitleSearch({ searchText, setSearchText, matchCount, matchIdx, onPre
 function SubtitleSettingsPopover() {
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const setShowSubs = useSubtitleStore((s) => s.setShowSubs);
-  const punctOn = useSubtitleStore((s) => s.punctOn);
-  const setPunctOn = useSubtitleStore((s) => s.setPunctOn);
   const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
   const setPunctuationRemove = useSubtitleStore((s) => s.setPunctuationRemove);
+  const [punctDropOpen, setPunctDropOpen] = useState(false);
 
   const togglePunct = (key) => {
     setPunctuationRemove({ ...punctuationRemove, [key]: !punctuationRemove[key] });
@@ -171,14 +170,14 @@ function SubtitleSettingsPopover() {
           <div className="flex items-center justify-between px-3 py-2.5">
             <span className="text-sm text-foreground">Punctuation</span>
             <button
-              onClick={() => setPunctOn(!punctOn)}
+              onClick={() => setPunctDropOpen(!punctDropOpen)}
               className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
             >
-              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${punctOn ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${punctDropOpen ? "rotate-180" : ""}`} />
             </button>
           </div>
 
-          {punctOn && (
+          {punctDropOpen && (
             <div className="px-3 pb-2.5">
               <span className="text-xs text-muted-foreground mb-2 block">Tap to remove:</span>
               <div className="flex flex-wrap gap-1.5">

@@ -460,7 +460,6 @@ export default function PreviewPanelNew() {
   const subMode = useSubtitleStore((s) => s.subMode);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const lineMode = useSubtitleStore((s) => s.lineMode);
-  const punctOn = useSubtitleStore((s) => s.punctOn);
   const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
   const animateOn = useSubtitleStore((s) => s.animateOn);
   const animateScale = useSubtitleStore((s) => s.animateScale);
@@ -886,10 +885,13 @@ export default function PreviewPanelNew() {
     captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionShadowOffsetX, captionShadowOffsetY,
     scaleFactor, hexToRgba, buildAllShadows, captionEffectOrder]);
 
-  // Strip punctuation from a word based on punctOn toggle + per-character config
+  // Strip punctuation from a word based on per-character config
   const stripPunct = useCallback((word) => {
-    if (!punctOn || !word) return word;
+    if (!word) return word;
     const rm = punctuationRemove || {};
+    // Check if any removal is active
+    const hasAny = Object.values(rm).some(Boolean);
+    if (!hasAny) return word;
     let result = word;
     if (rm.ellipsis) result = result.replace(/\.\.\./g, "");
     if (rm.period) result = result.replace(/\./g, "");
@@ -899,7 +901,7 @@ export default function PreviewPanelNew() {
     if (rm.semicolon) result = result.replace(/;/g, "");
     if (rm.colon) result = result.replace(/:/g, "");
     return result;
-  }, [punctOn, punctuationRemove]);
+  }, [punctuationRemove]);
 
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.
