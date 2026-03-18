@@ -22,12 +22,6 @@ export const BD = T.border;
 export const BDH = T.borderHover;
 
 // ============ STATIC DATA ============
-export const BRAND_PRESETS = [
-  { id: "gaming", name: "Gaming Default", detail: "Montserrat · 52 · Green", tracks: ["Sub 1", "Sub 2"] },
-  { id: "chill", name: "Chill Vlog", detail: "DM Sans · 42 · Blue", tracks: ["Sub 1"] },
-  { id: "bold", name: "Bold Impact", detail: "Impact · 64 · Red", tracks: ["Caption"] },
-];
-
 export const HIGHLIGHT_COLORS = ["#4cce8a", "#f4c430", "#ffffff", "#e63946", T.accent];
 
 export const RAIL_ITEMS = [

@@ -438,19 +438,22 @@ export default function PreviewPanelNew() {
   const toggleItalic = useCaptionStore((s) => s.toggleItalic);
   const toggleUnderline = useCaptionStore((s) => s.toggleUnderline);
 
-  // Layout — for switching right panel on double-click
+  // Layout — for switching right panel on double-click + overlay positions
   const setActivePanel = useLayoutStore((s) => s.setActivePanel);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
+  const subYPercent = useLayoutStore((s) => s.subYPercent);
+  const setSubYPercent = useLayoutStore((s) => s.setSubYPercent);
+  const capYPercent = useLayoutStore((s) => s.capYPercent);
+  const setCapYPercent = useLayoutStore((s) => s.setCapYPercent);
+  const capWidthPercent = useLayoutStore((s) => s.capWidthPercent);
+  const setCapWidthPercent = useLayoutStore((s) => s.setCapWidthPercent);
 
   // Local state
   const [zoom, setZoomState] = useState(-1); // -1 = fit
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [selectedOverlay, setSelectedOverlay] = useState(null); // "sub" | "cap" | null
-  const [subYPercent, setSubYPercent] = useState(80); // subtitle position %
-  const [capYPercent, setCapYPercent] = useState(15); // caption position %
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
-  const [capWidthPercent, setCapWidthPercent] = useState(90);
 
   const canvasRef = useRef(null);
   const videoRef = useRef(null);

@@ -23,6 +23,11 @@ const useLayoutStore = create((set, get) => ({
   // ── Preview zoom ──
   zoom: 100,
 
+  // ── Overlay positions (persisted in templates) ──
+  subYPercent: 80,
+  capYPercent: 15,
+  capWidthPercent: 90,
+
   // ── Actions ──
   setLpTab: (tab) => set({ lpTab: tab }),
   toggleLpCollapse: () => set((s) => ({ lpCollapsed: !s.lpCollapsed })),
@@ -47,6 +52,11 @@ const useLayoutStore = create((set, get) => ({
   setTlZoom: (z) => set({ tlZoom: z }),
 
   setZoom: (z) => set({ zoom: z }),
+
+  // ── Overlay position actions ──
+  setSubYPercent: (p) => set({ subYPercent: p }),
+  setCapYPercent: (p) => set({ capYPercent: p }),
+  setCapWidthPercent: (w) => set({ capWidthPercent: w }),
 }));
 
 export default useLayoutStore;
