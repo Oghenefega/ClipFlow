@@ -257,3 +257,28 @@
 ### Text-shadow must be per-word, not per-container, when karaoke highlighting is active
 - **Mistake:** Glow was applied at the parent div level, so the active (highlighted) word had its color changed but kept the same glow color as non-active words.
 - **Rule:** When words can have independent visual states (karaoke), all text-shadow effects must be per-span, not per-container. The active word's glow should match highlightColor.
+
+## Never Dual-Purpose Store State for UI Visibility
+
+### Store state must not control both feature logic AND UI visibility
+- **Mistake:** `punctOn` in the subtitle store controlled both "show the punctuation dropdown" AND "strip punctuation in the preview." Closing the dropdown toggled the store value, re-enabling all punctuation marks in the preview.
+- **Why:** Reused a store boolean for dropdown open/close instead of using local component state.
+- **Rule:** UI visibility (dropdown open, panel expanded) must ALWAYS use local `useState`. Store state must ONLY control feature behavior (what gets stripped, what gets shown). If a single boolean serves two purposes, it WILL break one of them.
+
+## Timeline Split Operations
+
+### Always handle null/undefined endSec in time comparisons
+- **Mistake:** `splitCaptionAtPlayhead` compared `time < s.endSec - 0.05` but endSec was null for legacy full-duration captions. `null - 0.05 = NaN`, so the find() never matched.
+- **Rule:** Any time comparison involving endSec MUST resolve null to Infinity (or actual duration). Never assume endSec is always a number.
+
+### Split operations must use playhead time, not just word boundaries
+- **Mistake:** `splitSegment()` required `activeSegId` and split at word boundaries. Users pressing S expected split at playhead position regardless of selection.
+- **Rule:** Split functions must accept a time parameter and auto-find the segment containing that time. Don't require the user to first select a segment before splitting.
+
+### Merged/simplified track views must not break interactions
+- **Mistake:** When zoomed out, subtitle track merged all segments into one bar with `onResize={() => {}}` — an empty handler that made resize impossible.
+- **Rule:** Never replace interactive segments with non-functional merged views. Always render actual segments. If they're too small to see, that's a zoom UX issue, not a reason to remove functionality.
+
+### Right-click on timeline must not move playhead
+- **Mistake:** Right-click events could propagate to the scroll container's `onPointerDown` handler, which triggered seeking despite the button check, due to event ordering.
+- **Rule:** All track rows must `stopPropagation()` on `onPointerDown` for right-click (button === 2) AND on `onContextMenu` to prevent seek events from reaching the scroll container.

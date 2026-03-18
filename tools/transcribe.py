@@ -318,11 +318,18 @@ def postprocess_timestamps(segments, audio_np, sr=16000):
         seg_start = seg.get("start", 0)
         seg_end = seg.get("end", 0)
         words = seg.get("words", [])
+        text = (seg.get("text") or "").strip()
 
         if words:
             repaired_words = repair_segment_words(
                 words, seg_start, seg_end, energy, frame_ms
             )
+        elif text:
+            # No word timestamps — create synthetic words from text and distribute
+            # using energy-weighted allocation for natural timing
+            text_words = text.split()
+            synthetic_words = [{"word": w, "start": seg_start, "end": seg_end, "probability": 0.5} for w in text_words]
+            repaired_words = energy_weighted_distribute(synthetic_words, seg_start, seg_end, energy, frame_ms)
         else:
             repaired_words = words
 
@@ -425,7 +432,7 @@ def main():
         # (which are reliable) and take word-level data from alignment.
         # If alignment drifts (word times significantly outside segment range),
         # fall back to raw segment without word timestamps.
-        DRIFT_THRESHOLD = 2.0  # seconds — if aligned words drift >2s from raw segment, discard alignment
+        DRIFT_THRESHOLD = 0.8  # seconds — if aligned words drift >0.8s from raw segment, discard alignment
 
         merged_segs = []
         for raw_seg in raw_segs:
@@ -474,10 +481,12 @@ def main():
                     raw_dur = max(0.01, raw_end - raw_start)
 
                     rescaled_words = []
+                    has_valid_words = False
                     for w in aligned_words:
                         ws = w.get("start")
                         we = w.get("end")
                         if ws is not None and we is not None:
+                            has_valid_words = True
                             # Linear rescale from aligned time range to raw time range
                             t_start = raw_start + ((ws - aw_start) / aw_dur) * raw_dur
                             t_end = raw_start + ((we - aw_start) / aw_dur) * raw_dur
@@ -488,6 +497,21 @@ def main():
                             })
                         else:
                             rescaled_words.append(w)
+
+                    # Per-word validation: check if rescaled words are monotonic and
+                    # don't bunch up (>50% of words with near-zero duration)
+                    if has_valid_words and len(rescaled_words) > 1:
+                        valid_rw = [w for w in rescaled_words if w.get("start") is not None and w.get("end") is not None]
+                        if valid_rw:
+                            zero_dur = sum(1 for w in valid_rw if (w["end"] - w["start"]) < 0.02)
+                            if zero_dur / len(valid_rw) > 0.4:
+                                # Words are bunched — alignment failed for this segment
+                                # Fall back to no word timestamps (let postprocess fix it)
+                                print(f"[WARN] Word timestamps bunched at {raw_start:.1f}s — discarding alignment words", file=sys.stderr)
+                                merged_seg["words"] = []
+                                merged_segs.append(merged_seg)
+                                continue
+
                     merged_seg["words"] = rescaled_words
 
                 merged_segs.append(merged_seg)

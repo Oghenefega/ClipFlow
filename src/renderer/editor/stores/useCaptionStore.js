@@ -101,7 +101,11 @@ const useCaptionStore = create((set, get) => ({
   splitCaptionAtPlayhead: (time) => {
     const { captionSegments } = get();
     // Find the segment that contains the playhead
-    const seg = captionSegments.find((s) => time > s.startSec + 0.05 && time < s.endSec - 0.05);
+    // Resolve null endSec to Infinity for comparison (null = spans full duration)
+    const seg = captionSegments.find((s) => {
+      const effectiveEnd = s.endSec ?? Infinity;
+      return time > s.startSec + 0.05 && time < effectiveEnd - 0.05;
+    });
     if (!seg) return;
 
     _pushCrossUndo();
@@ -109,7 +113,7 @@ const useCaptionStore = create((set, get) => ({
     set((s) => ({
       captionSegments: s.captionSegments.flatMap((s2) => {
         if (s2.id !== seg.id) return [s2];
-        // Split into two independent segments
+        // Split into two independent segments with independent text copies
         return [
           { ...s2, endSec: time },
           { id: newId, text: s2.text, startSec: time, endSec: s2.endSec },

@@ -384,19 +384,46 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
-  splitSegment: () => {
+  splitSegment: (atTime) => {
     const { activeSegId, editSegments, selectedWordInfo, _pushUndo } = get();
-    if (!activeSegId) return;
-    _pushUndo();
-    const idx = editSegments.findIndex(s => s.id === activeSegId);
+
+    // If a specific time is given, find the segment containing that time
+    // Otherwise fall back to activeSegId
+    let targetSegId = activeSegId;
+    if (atTime != null) {
+      const found = editSegments.find(s => atTime >= s.startSec + 0.01 && atTime <= s.endSec - 0.01);
+      if (found) targetSegId = found.id;
+    }
+    if (!targetSegId) return;
+
+    const idx = editSegments.findIndex(s => s.id === targetSegId);
     if (idx < 0) return;
+    _pushUndo();
     const seg = editSegments[idx];
-    const textWords = seg.text.split(" ");
-    let splitWordIdx = Math.max(1, Math.floor(textWords.length / 2));
-    let splitSec = (seg.startSec + seg.endSec) / 2;
-    if (selectedWordInfo && selectedWordInfo.segId === activeSegId && selectedWordInfo.wordIdx > 0) {
+    const textWords = seg.text.split(/\s+/).filter(Boolean);
+    if (textWords.length === 0) return;
+
+    // Determine split time and word boundary
+    let splitSec;
+    let splitWordIdx;
+
+    if (atTime != null && atTime > seg.startSec + 0.01 && atTime < seg.endSec - 0.01) {
+      // Split at the given time — find the nearest word boundary
+      splitSec = atTime;
+      if (seg.words && seg.words.length > 0) {
+        // Find the word index where the split falls
+        splitWordIdx = seg.words.findIndex(w => w.start >= splitSec);
+        if (splitWordIdx <= 0) splitWordIdx = Math.max(1, Math.floor(seg.words.length / 2));
+        // Map word index back to text word index
+        const textWordIdx = Math.min(splitWordIdx, textWords.length - 1);
+        splitWordIdx = Math.max(1, textWordIdx);
+      } else {
+        // No word timestamps — estimate by position in segment
+        const frac = (splitSec - seg.startSec) / (seg.endSec - seg.startSec);
+        splitWordIdx = Math.max(1, Math.min(textWords.length - 1, Math.round(frac * textWords.length)));
+      }
+    } else if (selectedWordInfo && selectedWordInfo.segId === targetSegId && selectedWordInfo.wordIdx > 0) {
       splitWordIdx = selectedWordInfo.wordIdx;
-      // Use actual word boundary if words array available
       if (seg.words && seg.words.length > 0 && splitWordIdx < seg.words.length) {
         splitSec = seg.words[splitWordIdx].start;
       } else {
@@ -407,14 +434,18 @@ const useSubtitleStore = create((set, get) => ({
       const midWordIdx = Math.max(1, Math.floor(seg.words.length / 2));
       splitWordIdx = midWordIdx;
       splitSec = seg.words[midWordIdx].start;
+    } else {
+      splitWordIdx = Math.max(1, Math.floor(textWords.length / 2));
+      splitSec = (seg.startSec + seg.endSec) / 2;
     }
-    const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec) : [];
-    const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec) : [];
+
+    const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec + 0.01) : [];
+    const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec - 0.01) : [];
     const seg1 = { ...seg, endSec: splitSec, end: fmtTime(splitSec), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
     const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: fmtTime(splitSec), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
-    set({ editSegments: next, selectedWordInfo: null });
+    set({ editSegments: next, selectedWordInfo: null, activeSegId: seg1.id });
   },
 
   mergeSegment: () => {

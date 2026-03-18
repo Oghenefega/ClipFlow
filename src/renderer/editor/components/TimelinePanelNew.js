@@ -35,8 +35,6 @@ const TRACK_COLORS = {
   sub: { bg: "hsl(120 60% 45% / 0.25)", border: "hsl(120 60% 50% / 0.6)", selected: "hsl(120 60% 45% / 0.4)", text: "hsl(120 60% 90%)" },
   audio: { bg: "transparent", border: "hsl(25 90% 55% / 0.4)", selected: "hsl(25 90% 55% / 0.15)", text: "hsl(25 90% 70%)" },
 };
-// Minimum pill width (px) below which pills merge into one continuous bar
-const MERGE_THRESHOLD = 30;
 const RULER_H = 24;
 const TRACK_H = 44;
 const AUDIO_TRACK_H = 64;
@@ -500,13 +498,6 @@ export default function TimelinePanelNew() {
     setAudioEndSec(Math.min(duration, newEnd));
   }, [duration]);
 
-  // Determine if pills should merge (Vizard-style): when average pill width < MERGE_THRESHOLD
-  const shouldMerge = useMemo(() => {
-    if (!editSegments || editSegments.length === 0 || duration <= 0) return false;
-    const avgPillWidth = clipContentWidth / editSegments.length;
-    return avgPillWidth < MERGE_THRESHOLD;
-  }, [editSegments, clipContentWidth, duration]);
-
   // Segment selection handler
   const handleSegSelect = useCallback((track, segId) => {
     setSelectedTrack(track);
@@ -558,20 +549,34 @@ export default function TimelinePanelNew() {
   }, [editSegments, duration, updateSegmentTimes]);
 
   // Unified split — dispatches to the correct store based on selected track
+  // If no track is selected, auto-detect: try caption first, then subtitle
   const handleSplit = useCallback(() => {
     const time = usePlaybackStore.getState().currentTime;
-    if (selectedTrack === "cap") {
+    let track = selectedTrack;
+
+    // Auto-detect track if none selected — check which tracks have a segment at playhead
+    if (!track) {
+      const capSegsNow = useCaptionStore.getState().captionSegments;
+      const hasCap = capSegsNow.some(s => {
+        const end = s.endSec ?? Infinity;
+        return time >= s.startSec + 0.01 && time <= end - 0.01;
+      });
+      const subSegsNow = useSubtitleStore.getState().editSegments;
+      const hasSub = subSegsNow.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
+      // Prefer subtitle split (more common), fall back to caption
+      if (hasSub) track = "sub";
+      else if (hasCap) track = "cap";
+    }
+
+    if (track === "cap") {
       splitCaptionAtPlayhead(time);
-    } else if (selectedTrack === "audio") {
-      // Split audio segment at playhead
+    } else if (track === "audio") {
       if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
-        // For now, audio split creates a visual gap — trim end of current, create new start
         setAudioEndSec(time);
-        // TODO: support multiple audio segments
       }
     } else {
-      // Default: split subtitle
-      splitSegment();
+      // Default: split subtitle at playhead time
+      splitSegment(time);
     }
   }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, audioStartSec, audioEndSec, duration]);
 
@@ -834,6 +839,8 @@ export default function TimelinePanelNew() {
           <div
             className="flex items-stretch border-b border-border/60"
             style={{ height: RULER_H }}
+            onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
+            onContextMenu={(e) => e.preventDefault()}
           >
             {/* Ruler label area (matches track labels) */}
             <div
@@ -869,8 +876,10 @@ export default function TimelinePanelNew() {
           <div
             className="flex items-stretch border-b border-border/40"
             style={{ height: TRACK_H }}
+            onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
             onContextMenu={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               // Find which caption segment was right-clicked
               const rect = e.currentTarget.querySelector(".flex-1")?.getBoundingClientRect();
               if (rect) {
@@ -905,8 +914,10 @@ export default function TimelinePanelNew() {
           <div
             className="flex items-stretch border-b border-border/40"
             style={{ height: TRACK_H }}
+            onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
             onContextMenu={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               const rect = e.currentTarget.querySelector(".flex-1")?.getBoundingClientRect();
               if (rect) {
                 const x = e.clientX - rect.left;
@@ -924,39 +935,20 @@ export default function TimelinePanelNew() {
               <span className="text-xs text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
-              {shouldMerge ? (
-                /* Zoom-merged: one continuous bar showing "Subtitle" */
-                (() => {
-                  const first = editSegments[0];
-                  const last = editSegments[editSegments.length - 1];
-                  if (!first || !last) return null;
-                  const mergedSeg = { id: "merged-sub", text: "Subtitle", startSec: first.startSec, endSec: last.endSec };
-                  return (
-                    <SegmentBlock
-                      seg={mergedSeg} trackColor={TRACK_COLORS.sub}
-                      duration={duration} timelineWidth={clipContentWidth}
-                      selected={selectedTrack === "sub"}
-                      onSelect={() => handleSegSelect("sub", "merged-sub")}
-                      onResize={() => {}}
-                    />
-                  );
-                })()
-              ) : (
-                editSegments.map((seg) => (
-                  <SegmentBlock
-                    key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
-                    duration={duration} timelineWidth={clipContentWidth}
-                    selected={selectedTrack === "sub" && selectedSegId === seg.id}
-                    onSelect={(id) => handleSegSelect("sub", id)}
-                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
-                  />
-                ))
-              )}
+              {editSegments.map((seg) => (
+                <SegmentBlock
+                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
+                  duration={duration} timelineWidth={clipContentWidth}
+                  selected={selectedTrack === "sub" && selectedSegId === seg.id}
+                  onSelect={(id) => handleSegSelect("sub", id)}
+                  onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                />
+              ))}
             </div>
           </div>
 
           {/* ── Audio/Video track ── */}
-          <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
+          <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }} onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}>
             <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(25 90% 50%)" }}>♫</span>
               <span className="text-xs text-muted-foreground font-medium">Audio</span>
@@ -994,7 +986,7 @@ export default function TimelinePanelNew() {
             if (contextMenu.track === "cap") {
               splitCaptionAtPlayhead(time);
             } else if (contextMenu.track === "sub") {
-              splitSegment();
+              splitSegment(time);
             } else if (contextMenu.track === "audio") {
               if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
                 setAudioEndSec(time);
