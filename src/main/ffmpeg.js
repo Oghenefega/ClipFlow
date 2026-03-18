@@ -101,16 +101,21 @@ function cutClip(srcPath, outPath, startTime, endTime) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     const duration = endTime - startTime;
+    // Re-encode for frame-accurate cuts. Stream copy (-c copy) seeks to
+    // the nearest keyframe which can be 2-10s before startTime, causing
+    // subtitle timestamps to be ahead of the actual audio.
     const args = [
       "-ss", String(startTime),
       "-i", srcPath,
       "-t", String(duration),
-      "-c", "copy",           // stream copy (fast, no re-encode)
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+      "-c:a", "aac", "-b:a", "192k",
       "-avoid_negative_ts", "make_zero",
       "-y",
       outPath,
     ];
-    execFile("ffmpeg", args, { timeout: 120000 }, (err) => {
+    // Allow longer timeout for re-encoding (10 minutes)
+    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
       if (err) return reject(new Error(`Clip cut failed: ${err.message}`));
       resolve({ success: true, path: outPath, duration });
     });

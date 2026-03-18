@@ -171,10 +171,16 @@
 - **Fix:** Modified slider.tsx to dynamically render N thumbs based on the `value` array length.
 - **Rule:** When using shadcn components with features beyond their defaults (multi-thumb, etc.), always check the component source — they are minimal wrappers and may not expose all Radix capabilities.
 
-### Whisper word tokens need post-processing — merge subword splits
-- **Mistake:** Used whisper's raw word-level tokens directly. Whisper tokenizes at subword level: "I'm" becomes ["I", "'m"], "raiders" becomes ["ra", "iders"]. In 1-word segment mode, these appeared as separate segments ("i" and "'m").
-- **Fix:** Added `mergeWordTokens()` that joins tokens starting with apostrophe (contractions) or with <20ms gap (subword splits from the same word).
-- **Rule:** ALWAYS post-process whisper word tokens before using them. Merge tokens that start with `'` or have near-zero gaps with the previous token. Never assume whisper tokens = real words.
+### Whisper word tokens need post-processing — but only merge contractions
+- **Mistake (round 1):** Used whisper's raw word-level tokens directly. Whisper tokenizes at subword level: "I'm" becomes ["I", "'m"]. In 1-word segment mode, these appeared as separate segments.
+- **Mistake (round 2):** Added `mergeWordTokens()` with TWO heuristics: apostrophe-starts (contractions) AND gap < 20ms + starts-with-lowercase (subwords). The second heuristic was way too aggressive — nearly ALL whisper words start lowercase and have tiny gaps in fast speech, so entire sentences got merged into single giant "words" like "boomwhat'supguys".
+- **Fix:** Removed the gap-based subword heuristic entirely. Only merge tokens that start with `'` or `'` (contractions: "I" + "'m" → "I'm").
+- **Rule:** When merging whisper tokens, ONLY merge on clear syntactic signals (apostrophe-starts for contractions). NEVER use timing-gap heuristics — whisper's inter-word gaps are too inconsistent and vary wildly with speech pace. If it looks like subword splitting is needed in the future, require a much stricter condition (e.g., gap exactly 0ms AND previous token has no trailing space in the raw output).
+
+### Don't add redundant visual indicators
+- **Mistake:** Added green highlight for the active word in Edit Subtitles when purple highlight already served the same purpose in the Transcript tab.
+- **Fix:** Use the same purple (`bg-primary/20 text-primary`) for active word across both tabs.
+- **Rule:** Before adding a new visual indicator color, check if an existing indicator already communicates the same information. One consistent color for one concept.
 
 ### Slider range should be local to the context, not global
 - **Mistake:** Time adjustment slider ranged from 0 to full video duration. For a 30-second video with a 0.5s subtitle segment, the slider was nearly useless — the segment occupied < 2% of the track.
@@ -185,3 +191,8 @@
 - **Mistake:** Used `text-[10px]` and `text-[9px]` for timecodes and labels. User said they could barely read things on screen.
 - **Fix:** Bumped to `text-xs` (12px) minimum for timecodes, `text-sm` (14px) for segment body text.
 - **Rule:** Minimum readable text on a dark background: 12px for labels/metadata, 14px for body content. Never go below 11px for anything a user needs to read.
+
+### Left panel default width must be generous — don't squish content
+- **Mistake:** Left panel `defaultSize={25}` (25% of horizontal space). On initial load, the transcript/edit subtitles text was squished into a narrow column, forcing heavy line wrapping and making it hard to read.
+- **Fix:** Increase `defaultSize` to ~35% so the left panel starts at a comfortable reading width. The preview panel has a 9:16 video that doesn't need as much horizontal room.
+- **Rule:** Text-heavy panels (transcript, subtitles) need enough default width to display at least ~8-10 words per line. A narrow default forces the user to manually resize every time they open the editor.

@@ -406,6 +406,7 @@ export default function PreviewPanelNew() {
   const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const subMode = useSubtitleStore((s) => s.subMode);
+  const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const lineMode = useSubtitleStore((s) => s.lineMode);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
@@ -495,21 +496,22 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Current subtitle segment
+  // Current subtitle segment (adjusted for sync offset)
+  const adjustedTime = currentTime - syncOffset;
   const currentSeg = useMemo(() => {
     if (!showSubs || editSegments.length === 0) return null;
     return editSegments.find(
-      (s) => currentTime >= s.startSec && currentTime <= s.endSec
+      (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
     ) || null;
-  }, [editSegments, currentTime, showSubs]);
+  }, [editSegments, adjustedTime, showSubs]);
 
   // Current word for karaoke highlighting
   const currentWordIdx = useMemo(() => {
     if (!currentSeg || subMode !== "karaoke" || !currentSeg.words?.length) return -1;
     return currentSeg.words.findIndex(
-      (w) => currentTime >= w.start && currentTime <= w.end
+      (w) => adjustedTime >= w.start && adjustedTime <= w.end
     );
-  }, [currentSeg, currentTime, subMode]);
+  }, [currentSeg, adjustedTime, subMode]);
 
   // Video event handlers
   const onTimeUpdate = useCallback(() => {

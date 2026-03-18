@@ -395,6 +395,8 @@ function TranscriptTab() {
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
   const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
+  const syncOffset = useSubtitleStore((s) => s.syncOffset);
+  const adjustedTime = currentTime - syncOffset;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
@@ -464,10 +466,10 @@ function TranscriptTab() {
 
   const activeWordIdx = useMemo(() => {
     for (let i = allWords.length - 1; i >= 0; i--) {
-      if (currentTime >= allWords[i].start) return i;
+      if (adjustedTime >= allWords[i].start) return i;
     }
     return -1;
-  }, [allWords, currentTime]);
+  }, [allWords, adjustedTime]);
 
   const handleWordClick = (word) => { seekTo(word.start); };
 
@@ -605,8 +607,10 @@ function EditSubtitlesTab() {
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const mergeSegment = useSubtitleStore((s) => s.mergeSegment);
   const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
+  const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
+  const adjustedTime = currentTime - syncOffset;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
@@ -666,10 +670,10 @@ function EditSubtitlesTab() {
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
     for (let i = seg.words.length - 1; i >= 0; i--) {
-      if (currentTime >= seg.words[i].start && currentTime < seg.words[i].end + 0.05) return i;
+      if (adjustedTime >= seg.words[i].start && adjustedTime < seg.words[i].end + 0.05) return i;
     }
     return -1;
-  }, [currentTime]);
+  }, [adjustedTime]);
 
   const renderWords = (seg) => {
     const textWords = seg.text.split(/(\s+)/);
