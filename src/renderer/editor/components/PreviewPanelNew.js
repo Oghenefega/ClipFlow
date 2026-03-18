@@ -7,15 +7,8 @@ import useLayoutStore from "../stores/useLayoutStore";
 import {
   Maximize,
   ChevronDown,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Bold,
-  Italic,
-  Underline,
-  MoreHorizontal,
-  Plus,
   Minus,
+  Plus,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -131,29 +124,59 @@ function FontDropdown({ value, onChange, onClose }) {
 }
 
 // ── Hold-to-repeat button helper ──
-function RepeatButton({ onClick, children, className }) {
-  const intervalRef = useRef(null);
-  const onDown = useCallback(() => {
-    onClick();
-    let delay = 400;
-    const repeat = () => {
-      intervalRef.current = setTimeout(() => { onClick(); delay = Math.max(50, delay * 0.85); repeat(); }, delay);
+// ── Compact Inline Toolbar (Vizard-style, single row) ──
+// ── Color picker popover for inline toolbar ──
+function InlineColorPicker({ color, onChange, onClose }) {
+  const ref = useRef(null);
+  const SWATCHES = [
+    "#ffffff", "#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00",
+    "#ff6b6b", "#ffa500", "#a4ff00", "#00e5ff", "#8b5cf6", "#ff69b4",
+    "#4cce8a", "#fbbf24", "#22d3ee", "#f87171", "#34d399", "#c084fc",
+  ];
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
     };
-    repeat();
-  }, [onClick]);
-  const onUp = useCallback(() => { clearTimeout(intervalRef.current); }, []);
-  useEffect(() => () => clearTimeout(intervalRef.current), []);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
   return (
-    <button className={className} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp}>
-      {children}
-    </button>
+    <div ref={ref} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-lg border bg-popover shadow-xl z-50">
+      <div className="grid grid-cols-6 gap-1.5">
+        {SWATCHES.map((c) => (
+          <button
+            key={c}
+            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? "border-primary ring-1 ring-primary" : "border-transparent"}`}
+            style={{ background: c }}
+            onClick={() => { onChange(c); onClose(); }}
+          />
+        ))}
+      </div>
+      {/* Custom color input */}
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/40">
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
+        />
+        <input
+          type="text"
+          value={color}
+          onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) onChange(e.target.value); }}
+          className="flex-1 h-6 px-1.5 text-[10px] font-mono text-foreground rounded bg-secondary border border-border outline-none"
+        />
+      </div>
+    </div>
   );
 }
 
-// ── Inline Editing Toolbar (2 rows: font row + formatting row) ──
-function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily, onFontSize, onFontWeight, onAlign, onBold, onItalic, onUnderline, bold, italic, underline }) {
+function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily, onFontSize, onFontWeight, color, onColor }) {
   const [fontOpen, setFontOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
 
   const handleSizeWheel = useCallback((e) => {
     e.preventDefault();
@@ -161,130 +184,84 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
     onFontSize(Math.max(1, Math.min(999, fontSize + delta)));
   }, [fontSize, onFontSize]);
 
+  // Truncated font name (first word only if long)
+  const shortFont = fontFamily.length > 10 ? fontFamily.split(" ")[0] + "..." : fontFamily;
+  const weightLabel = FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular";
+
   return (
-    <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg border bg-card shadow-lg">
-      {/* Row 1: Font family, weight, size */}
-      <div className="flex items-center gap-1">
-        {/* Font family */}
-        <div className="relative">
-          <button
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[100px]"
-            onClick={() => setFontOpen(!fontOpen)}
-          >
-            <span className="truncate" style={{ fontFamily }}>{fontFamily}</span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-          </button>
-          {fontOpen && (
-            <FontDropdown value={fontFamily} onChange={onFontFamily} onClose={() => setFontOpen(false)} />
-          )}
-        </div>
-
-        <Separator orientation="vertical" className="h-5" />
-
-        {/* Font weight */}
-        {onFontWeight && (
-          <>
-            <div className="relative">
-              <button
-                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-secondary/60 text-xs text-foreground transition-colors min-w-[60px]"
-                onClick={() => setWeightOpen(!weightOpen)}
-              >
-                <span className="truncate" style={{ fontWeight: fontWeight || 400 }}>
-                  {FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular"}
-                </span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-              </button>
-              {weightOpen && (
-                <div className="absolute top-full left-0 mt-1 w-[120px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
-                  {FONT_WEIGHT_OPTIONS.map((w) => (
-                    <button
-                      key={w.value}
-                      className={`w-full flex items-center px-3 py-1.5 text-xs transition-colors ${
-                        fontWeight === w.value ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary/60"
-                      }`}
-                      style={{ fontWeight: w.value }}
-                      onClick={() => { onFontWeight(w.value); setWeightOpen(false); }}
-                    >
-                      {w.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Separator orientation="vertical" className="h-5" />
-          </>
+    <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg border bg-card/95 backdrop-blur-sm shadow-lg">
+      {/* Font family (truncated) */}
+      <div className="relative">
+        <button
+          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-secondary/60 text-[11px] text-foreground transition-colors"
+          onClick={() => { setFontOpen(!fontOpen); setWeightOpen(false); setColorOpen(false); }}
+        >
+          <span className="truncate max-w-[60px]" style={{ fontFamily }}>{shortFont}</span>
+          <ChevronDown className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+        </button>
+        {fontOpen && (
+          <FontDropdown value={fontFamily} onChange={(f) => { onFontFamily(f); setFontOpen(false); }} onClose={() => setFontOpen(false)} />
         )}
-
-        {/* Font size with scroll + hold-to-repeat */}
-        <div className="flex items-center gap-0.5">
-          <RepeatButton
-            onClick={() => onFontSize(Math.max(1, fontSize - 1))}
-            className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Minus className="h-3 w-3" />
-          </RepeatButton>
-          <input
-            type="text"
-            value={fontSize}
-            onChange={(e) => {
-              const v = parseInt(e.target.value);
-              if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
-            }}
-            onFocus={(e) => e.target.select()}
-            onWheel={handleSizeWheel}
-            className="w-8 h-6 text-xs text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none"
-          />
-          <RepeatButton
-            onClick={() => onFontSize(Math.min(999, fontSize + 1))}
-            className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Plus className="h-3 w-3" />
-          </RepeatButton>
-        </div>
       </div>
 
-      {/* Row 2: Alignment + B/I/U */}
-      <div className="flex items-center gap-1 justify-center">
-        {/* Alignment */}
-        <div className="flex items-center gap-0.5">
-          {[
-            { icon: AlignLeft, val: "left" },
-            { icon: AlignCenter, val: "center" },
-            { icon: AlignRight, val: "right" },
-          ].map(({ icon: Icon, val }) => (
-            <button
-              key={val}
-              className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => onAlign(val)}
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </button>
-          ))}
-        </div>
+      <Separator orientation="vertical" className="h-4" />
 
-        <Separator orientation="vertical" className="h-5" />
+      {/* Font size (scroll to change, click to edit) */}
+      <input
+        type="text"
+        value={fontSize}
+        onChange={(e) => {
+          const v = parseInt(e.target.value);
+          if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
+        }}
+        onFocus={(e) => e.target.select()}
+        onWheel={handleSizeWheel}
+        className="w-7 h-6 text-[11px] text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none cursor-ns-resize"
+      />
 
-        {/* B/I/U */}
-        <div className="flex items-center gap-0.5">
+      <Separator orientation="vertical" className="h-4" />
+
+      {/* Font weight */}
+      {onFontWeight && (
+        <div className="relative">
           <button
-            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${bold ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-            onClick={onBold}
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-secondary/60 text-[11px] text-foreground transition-colors"
+            onClick={() => { setWeightOpen(!weightOpen); setFontOpen(false); setColorOpen(false); }}
           >
-            <Bold className="h-3.5 w-3.5" />
+            <span style={{ fontWeight: fontWeight || 400 }}>{weightLabel}</span>
+            <ChevronDown className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
           </button>
-          <button
-            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${italic ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-            onClick={onItalic}
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </button>
-          <button
-            className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${underline ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-            onClick={onUnderline}
-          >
-            <Underline className="h-3.5 w-3.5" />
-          </button>
+          {weightOpen && (
+            <div className="absolute top-full left-0 mt-1 w-[110px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
+              {FONT_WEIGHT_OPTIONS.map((w) => (
+                <button
+                  key={w.value}
+                  className={`w-full flex items-center px-3 py-1.5 text-xs transition-colors ${
+                    fontWeight === w.value ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary/60"
+                  }`}
+                  style={{ fontWeight: w.value }}
+                  onClick={() => { onFontWeight(w.value); setWeightOpen(false); }}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+      )}
+
+      <Separator orientation="vertical" className="h-4" />
+
+      {/* Color dot */}
+      <div className="relative">
+        <button
+          className="w-5 h-5 rounded-full border-2 border-white/30 hover:border-white/60 transition-colors shadow-sm"
+          style={{ background: color || "#ffffff" }}
+          onClick={() => { setColorOpen(!colorOpen); setFontOpen(false); setWeightOpen(false); }}
+        />
+        {colorOpen && (
+          <InlineColorPicker color={color || "#ffffff"} onChange={onColor} onClose={() => setColorOpen(false)} />
+        )}
       </div>
     </div>
   );
@@ -432,6 +409,8 @@ export default function PreviewPanelNew() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const segmentMode = useSubtitleStore((s) => s.segmentMode);
   const showSubs = useSubtitleStore((s) => s.showSubs);
+  const subColor = useSubtitleStore((s) => s.subColor);
+  const setSubColor = useSubtitleStore((s) => s.setSubColor);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
   const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
   const subItalic = useSubtitleStore((s) => s.subItalic);
@@ -451,9 +430,7 @@ export default function PreviewPanelNew() {
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
-  const toggleSubBold = useSubtitleStore((s) => s.toggleSubBold);
-  const toggleSubItalic = useSubtitleStore((s) => s.toggleSubItalic);
-  const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
+  // B/I/U toggles are in the right panel settings, not inline toolbar
 
   // Caption
   const captionText = useCaptionStore((s) => s.captionText);
@@ -470,9 +447,7 @@ export default function PreviewPanelNew() {
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
   const setCaptionFontSize = useCaptionStore((s) => s.setCaptionFontSize);
-  const toggleBold = useCaptionStore((s) => s.toggleBold);
-  const toggleItalic = useCaptionStore((s) => s.toggleItalic);
-  const toggleUnderline = useCaptionStore((s) => s.toggleUnderline);
+  // Caption B/I/U toggles are in the right panel settings
 
   // Layout — for switching right panel on double-click + overlay positions
   const setActivePanel = useLayoutStore((s) => s.setActivePanel);
@@ -648,7 +623,7 @@ export default function PreviewPanelNew() {
       fontWeight: subFontWeight || 700,
       fontStyle: subItalic ? "italic" : "normal",
       textDecoration: subUnderline ? "underline" : "none",
-      color: "#ffffff",
+      color: subColor || "#ffffff",
       textAlign: "center",
       lineHeight: 1.3,
       padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
@@ -670,7 +645,7 @@ export default function PreviewPanelNew() {
       style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(0,0,0,0.7)`;
     }
     return style;
-  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
+  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -748,7 +723,7 @@ export default function PreviewPanelNew() {
               <span
                 key={globalIdx}
                 style={{
-                  color: isActive ? highlightColor : "#ffffff",
+                  color: isActive ? highlightColor : (subColor || "#ffffff"),
                   transition: "color 0.1s",
                 }}
               >
@@ -933,6 +908,22 @@ export default function PreviewPanelNew() {
                   {captionText}
                 </div>
               )}
+              {/* Inline toolbar below caption when selected */}
+              {selectedOverlay === "cap" && (
+                <div className="flex justify-center mt-1.5 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                  <InlineToolbar
+                    target="cap"
+                    fontFamily={captionFontFamily}
+                    fontSize={captionFontSize}
+                    fontWeight={captionFontWeight}
+                    onFontFamily={setCaptionFontFamily}
+                    onFontSize={setCaptionFontSize}
+                    onFontWeight={setCaptionFontWeight}
+                    color={captionColor}
+                    onColor={(c) => useCaptionStore.getState().setCaptionColor(c)}
+                  />
+                </div>
+              )}
             </DraggableOverlay>
           )}
 
@@ -950,52 +941,29 @@ export default function PreviewPanelNew() {
               <div onDoubleClick={onSubtitleDoubleClick}>
                 {renderSubtitleText()}
               </div>
+              {/* Inline toolbar below subtitle when selected */}
+              {selectedOverlay === "sub" && (
+                <div className="flex justify-center mt-1.5 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                  <InlineToolbar
+                    target="sub"
+                    fontFamily={subFontFamily}
+                    fontSize={fontSize}
+                    fontWeight={subFontWeight}
+                    onFontFamily={setSubFontFamily}
+                    onFontSize={setFontSize}
+                    onFontWeight={setSubFontWeight}
+                    color={subColor}
+                    onColor={setSubColor}
+                  />
+                </div>
+              )}
             </DraggableOverlay>
           )}
 
         </div>
       </div>
 
-      {/* Inline editing toolbar — positioned outside canvas to avoid clipping */}
-      {selectedOverlay && (
-        <div className="flex justify-center py-1.5 px-2 z-40 shrink-0">
-          {selectedOverlay === "sub" ? (
-            <InlineToolbar
-              target="sub"
-              fontFamily={subFontFamily}
-              fontSize={fontSize}
-              fontWeight={subFontWeight}
-              onFontFamily={setSubFontFamily}
-              onFontSize={setFontSize}
-              onFontWeight={setSubFontWeight}
-              onAlign={() => {}}
-              onBold={toggleSubBold}
-              onItalic={toggleSubItalic}
-              onUnderline={toggleSubUnderline}
-              bold={subBold}
-              italic={subItalic}
-              underline={subUnderline}
-            />
-          ) : (
-            <InlineToolbar
-              target="cap"
-              fontFamily={captionFontFamily}
-              fontSize={captionFontSize}
-              fontWeight={captionFontWeight}
-              onFontFamily={setCaptionFontFamily}
-              onFontSize={setCaptionFontSize}
-              onFontWeight={setCaptionFontWeight}
-              onAlign={() => {}}
-              onBold={toggleBold}
-              onItalic={toggleItalic}
-              onUnderline={toggleUnderline}
-              bold={captionBold}
-              italic={captionItalic}
-              underline={captionUnderline}
-            />
-          )}
-        </div>
-      )}
+      {/* Toolbar spacer — toolbar is now inside canvas overlays */}
     </div>
   );
 }
