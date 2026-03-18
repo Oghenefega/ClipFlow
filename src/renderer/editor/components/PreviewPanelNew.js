@@ -614,7 +614,7 @@ export default function PreviewPanelNew() {
       borderRadius: 4 * scaleFactor,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      maxWidth: "90%",
+      width: "100%",
     };
     if (bgOn) {
       style.background = `rgba(0,0,0,${bgOpacity / 100})`;
@@ -646,7 +646,7 @@ export default function PreviewPanelNew() {
       padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      maxWidth: "90%",
+      width: "100%",
       textShadow: `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`,
     };
   }, [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor, scaleFactor]);

@@ -108,6 +108,55 @@ Decompose the 2654-line monolithic EditorView.js into ~22 modular files with Zus
 
 ---
 
+## 🟡 Queued — Layout Templates (Save/Load/Apply)
+
+### Goal
+Let users save the current caption + subtitle layout (positions, fonts, sizes, styling) as a named template in the Brand Kit drawer, and apply saved templates to any clip.
+
+### What gets saved in a template
+- **Caption:** Y position (%), width (%), font family, font weight, font size, color, bold, italic, underline
+- **Subtitle:** Y position (%), font family, font weight, font size, italic, bold, underline, stroke (on/width), shadow (on/blur), background (on/opacity), highlight color, line mode (1L/2L), sub mode (karaoke/word/full)
+
+### Implementation Plan
+
+**Step 1: Data model + persistence** (`useSubtitleStore.js`, `useCaptionStore.js`, `electron-store`)
+- Add `layoutTemplates` array to electron-store: `[{ id, name, createdAt, caption: {...}, subtitle: {...} }]`
+- Add IPC or store helpers to save/load/delete templates
+- Default template: "Fega Default" with current defaults (Latina Essential, Heavy, Italic, size 30/52, positions 15%/80%)
+
+**Step 2: Expose position state** (`PreviewPanelNew.js`)
+- `subYPercent` and `capYPercent` are currently local `useState` — need to either:
+  - Move to a store (so BrandDrawer can read/write them), OR
+  - Pass a `getLayoutState()` callback up
+- Move `subYPercent`, `capYPercent`, `capWidthPercent` to `useLayoutStore` so they're accessible from BrandDrawer
+
+**Step 3: "Save current layout" button** (`BrandDrawer.js`)
+- Wire the existing "+ Save current" button in Style Presets section
+- On click: prompt for template name, snapshot all caption + subtitle state, persist to electron-store
+- Show saved templates in the preset list (replace hardcoded `BRAND_PRESETS`)
+
+**Step 4: "Apply" button** (`BrandDrawer.js`)
+- Click a saved template → apply all its values to the caption store, subtitle store, and layout store
+- Existing "↳ Apply to clip" button at top applies the active preset
+
+**Step 5: Delete templates**
+- Right-click or X button on custom templates to delete (keep built-in "Fega Default")
+
+### Files impacted
+1. `src/renderer/editor/stores/useLayoutStore.js` — add subYPercent, capYPercent, capWidthPercent
+2. `src/renderer/editor/components/PreviewPanelNew.js` — read positions from store instead of local state
+3. `src/renderer/editor/components/BrandDrawer.js` — wire save/load/apply/delete
+4. `src/main/main.js` — electron-store key for templates (if needed)
+5. `src/renderer/editor/utils/constants.js` — remove hardcoded BRAND_PRESETS
+
+### Verification
+- [ ] Save a template with custom positions + fonts → persists across app restart
+- [ ] Apply template → all styling + positions update instantly
+- [ ] Delete custom template → removed from list, built-in remains
+- [ ] Build with zero errors, app launches
+
+---
+
 ## 🔴 Up Next — Future Items
 
 ### Editor Round 3 — Remaining Items
