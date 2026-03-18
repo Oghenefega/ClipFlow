@@ -197,8 +197,15 @@ export function applyEffectPreset(preset, target = "both") {
       ["shadowBlur", "setShadowBlur"], ["shadowOffsetX", "setShadowOffsetX"], ["shadowOffsetY", "setShadowOffsetY"],
       ["bgOn", "setBgOn"], ["bgColor", "setBgColor"], ["bgOpacity", "setBgOpacity"],
       ["bgPaddingX", "setBgPaddingX"], ["bgPaddingY", "setBgPaddingY"], ["bgRadius", "setBgRadius"],
+      // Animation
+      ["animateOn", "setAnimateOn"], ["animateScale", "setAnimateScale"],
+      ["animateGrowFrom", "setAnimateGrowFrom"], ["animateSpeed", "setAnimateSpeed"],
     ]) {
       if (s[key] !== undefined) ss[setter](s[key]);
+    }
+    // Segment mode (1-word vs 3-word) — only apply if preset captured it
+    if (s.segmentMode !== undefined && typeof ss.setSegmentMode === "function") {
+      ss.setSegmentMode(s.segmentMode);
     }
   }
 
@@ -240,6 +247,9 @@ export function snapshotEffectPreset(name) {
       shadowOpacity: sub.shadowOpacity, shadowOffsetX: sub.shadowOffsetX, shadowOffsetY: sub.shadowOffsetY,
       bgOn: sub.bgOn, bgOpacity: sub.bgOpacity, bgColor: sub.bgColor,
       bgPaddingX: sub.bgPaddingX, bgPaddingY: sub.bgPaddingY, bgRadius: sub.bgRadius,
+      // Animation + segment mode
+      animateOn: sub.animateOn, animateScale: sub.animateScale, animateGrowFrom: sub.animateGrowFrom, animateSpeed: sub.animateSpeed,
+      segmentMode: sub.segmentMode,
     },
     caption: {
       color: cap.captionColor,

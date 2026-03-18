@@ -234,6 +234,10 @@ Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Sam
 1. **Timeline end marker**: The timeline should have a visible end line/marker so the timeline stops before it (or the content goes under it). Currently it just fades off to the right.
 2. **Punctuation dropdown text**: Remove the "Hide" label — just the arrow chevron is enough. "Remove" label can stay or also be removed, arrow alone is obvious.
 3. **Title bar centering**: The clip title dropdown in the editor topbar is shifted left — should be centered horizontally.
+4. **Preview toolbar text blurry + too small**: The font/size/weight controls under the subtitle preview are blurry and hard to read. Fix rendering clarity and increase size by ~20%.
+5. **Remove "Update with current" header in presets**: The top-level "Update with current" text above MY PRESETS is confusing — it's not tied to any specific preset. Remove it. The per-preset update icon (🔄) on each card row is sufficient.
+6. **Active preset indicator**: There's no way to tell which preset is currently active. Add a visual indicator (e.g., highlighted border, checkmark, or "Active" badge) on the preset that matches the current settings.
+7. **Timeline expand crash**: Clicking the timeline expand button (bottom-right icon) crashes with "Cannot read properties of undefined (reading 'x')". Needs null-safety check in timeline expand logic.
 
 ---
 
