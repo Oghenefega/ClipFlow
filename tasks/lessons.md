@@ -181,6 +181,17 @@
 - **Fix:** Modified slider.tsx to dynamically render N thumbs based on the `value` array length.
 - **Rule:** When using shadcn components with features beyond their defaults (multi-thumb, etc.), always check the component source — they are minimal wrappers and may not expose all Radix capabilities.
 
+### CUDA version must match between torch and ctranslate2
+- **Mistake:** torch was installed with cu118 (CUDA 11.8) but ctranslate2 4.7.1 requires cublas64_12.dll (CUDA 12). Transcription crashed with `cublas64_12.dll not found`.
+- **Root cause:** `torch.version.cuda` returned `11.8` — torch ships its own CUDA DLLs (cublas64_11.dll in torch/lib/), and ctranslate2 needs the matching version.
+- **Fix:** Installed torch 2.7.1+cu126 (CUDA 12.6) which ships cublas64_12.dll. System CUDA version (13.2) is irrelevant — torch bundles its own.
+- **Rule:** When using ctranslate2 + torch together, verify `torch.version.cuda` matches ctranslate2's CUDA requirement. Always check the actual DLL files in the venv's `torch/lib/` directory.
+
+### whisperx.align() silently drops segments — always merge with raw
+- **Mistake:** Used `aligned.get("segments", result.get("segments", []))` which only falls back if alignment returns nothing at all. In reality, whisperx.align() (wav2vec2) drops individual segments it can't align — the rest come through fine, so the fallback never triggers.
+- **Fix:** Merge aligned segments with raw transcription by text matching. For each raw segment, use the aligned version if available, otherwise keep the raw version. Log warnings for dropped segments.
+- **Rule:** whisperx alignment is lossy. ALWAYS merge aligned output with raw transcription segments to prevent silent data loss. Never trust alignment output as complete.
+
 ### Whisper word tokens need text-guided merging — use segment text as ground truth
 - **Mistake (round 1):** Used whisper's raw word-level tokens directly. Whisper tokenizes at subword level: "I'm" becomes ["I", "'m"]. In 1-word segment mode, these appeared as separate segments.
 - **Mistake (round 2):** Added `mergeWordTokens()` with apostrophe-only heuristic. This only caught contractions but missed ALL other subword splits: "raiders" → ["ra","iders"], "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"], "Sentinel" → ["sent","inel"].

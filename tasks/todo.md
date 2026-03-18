@@ -272,6 +272,19 @@ Let users save the current caption + subtitle layout (positions, fonts, sizes, s
 
 ---
 
+## 🔵 Queued — Re-Transcribe Specific Clip
+
+### Goal
+Allow re-running WhisperX transcription on a single clip without regenerating the entire project. Useful when a clip's transcript/subtitles are bad and need a fresh pass.
+
+### Implementation Ideas
+- Add "Re-transcribe" button to clip context menu in ProjectsView and/or Editor topbar
+- Re-run whisperx on the clip's source video segment (using clip start/end times)
+- Replace the clip's segments/words in the project JSON
+- Reload in editor if open
+
+---
+
 ## Known Issues
 
 - None currently reported

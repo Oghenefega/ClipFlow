@@ -408,10 +408,52 @@ def main():
         print_progress(85, "Alignment complete")
 
         # ── Step 5: Format output ──
+        # Merge aligned segments with unaligned ones to prevent dropouts.
+        # Alignment can fail/drop segments — we keep the unaligned version
+        # for any segment that got lost during alignment.
+        raw_segs = result.get("segments", [])
+        aligned_segs = aligned.get("segments", [])
+
+        # Build a lookup of aligned segments by their text (approximate match)
+        aligned_by_text = {}
+        for seg in aligned_segs:
+            text = (seg.get("text") or "").strip()
+            if text:
+                aligned_by_text[text] = seg
+
+        # Use aligned where available, fall back to raw for dropped segments
+        merged_segs = []
+        for raw_seg in raw_segs:
+            text = (raw_seg.get("text") or "").strip()
+            if not text:
+                continue
+            # Prefer aligned version (has word-level timestamps)
+            if text in aligned_by_text:
+                merged_segs.append(aligned_by_text[text])
+            else:
+                # Alignment dropped this segment — use the raw version
+                merged_segs.append(raw_seg)
+                print(f"[WARN] Alignment dropped segment at {raw_seg.get('start', '?')}s: {text[:60]}...", file=sys.stderr)
+
+        # Also add any aligned segments that weren't in raw (shouldn't happen but safety)
+        raw_texts = {(s.get("text") or "").strip() for s in raw_segs}
+        for seg in aligned_segs:
+            text = (seg.get("text") or "").strip()
+            if text and text not in raw_texts:
+                merged_segs.append(seg)
+
+        # Sort by start time
+        merged_segs.sort(key=lambda s: s.get("start", 0))
+
+        n_raw = len(raw_segs)
+        n_aligned = len(aligned_segs)
+        n_merged = len(merged_segs)
+        print(f"Segments: {n_raw} transcribed, {n_aligned} aligned, {n_merged} merged", file=sys.stderr)
+
         segments = []
         full_text_parts = []
 
-        for seg in aligned.get("segments", result.get("segments", [])):
+        for seg in merged_segs:
             text = (seg.get("text") or "").strip()
             if not text:
                 continue
