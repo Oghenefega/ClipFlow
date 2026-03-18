@@ -221,3 +221,13 @@
   - Even-distribution word timestamps when alignment fails (just show segment-level, no word highlighting)
   - Placeholder images when thumbnail generation fails
   - Default/random values when a computation returns null
+
+---
+
+### Lesson: Always verify which component is ACTUALLY rendering
+
+**Mistake:** Modified `BrandDrawer.js` and assumed it was being used, but `EditorLayout.js` imports `RightPanelNew.js` (not `RightZone.js`), which has its own inline `BrandKitPanel`. My changes never appeared in the app.
+
+**Why it happened:** Trusted the `RightZone.js` import path without tracing the ACTUAL import chain from `EditorLayout.js`. Two parallel implementations existed.
+
+**Rule:** Before modifying any component, trace the import chain from the entry point (`EditorLayout.js`) to verify the component is actually mounted. `grep` for the import in the layout file, not just in any file.
