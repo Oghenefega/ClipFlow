@@ -1,6 +1,28 @@
 import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 
+// ── Merge whisper subword tokens into real words ──
+// Whisper tokenizes at subword level: "I'm" → ["I", "'m"], "raiders" → ["ra","iders"]
+// Merge tokens with <20ms gap (subword splits) or starting with apostrophe (contractions)
+function mergeWordTokens(words) {
+  if (!words || words.length <= 1) return words;
+  const merged = [{ ...words[0] }];
+  for (let i = 1; i < words.length; i++) {
+    const prev = merged[merged.length - 1];
+    const curr = words[i];
+    const gap = curr.start - prev.end;
+    const isContraction = curr.word.startsWith("'") || curr.word.startsWith("\u2019");
+    const isSubword = gap < 0.02 && /^[a-z]/.test(curr.word);
+    if (isContraction || isSubword) {
+      prev.word += curr.word;
+      prev.end = curr.end;
+    } else {
+      merged.push({ ...curr });
+    }
+  }
+  return merged;
+}
+
 const useSubtitleStore = create((set, get) => ({
   // ── Editable segments (source of truth for transcript, edit subs, overlay, timeline) ──
   editSegments: [],
@@ -67,12 +89,12 @@ const useSubtitleStore = create((set, get) => ({
         startSec: s.start - clipStart,
         endSec: s.end - clipStart,
         warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
-        words: (s.words || []).map(w => ({
+        words: mergeWordTokens((s.words || []).map(w => ({
           word: w.word,
           start: Math.max(0, (w.start || 0) - clipStart),
           end: Math.max(0, (w.end || 0) - clipStart),
           probability: w.probability ?? 1,
-        })),
+        }))),
       }));
     set({
       editSegments: segs,
@@ -99,6 +121,24 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: s.editSegments.map(seg =>
         seg.id === segId ? { ...seg, text } : seg
       ),
+    }));
+  },
+
+  updateWordInSegment: (segId, wordIdx, newText) => {
+    set((s) => ({
+      editSegments: s.editSegments.map(seg => {
+        if (seg.id !== segId) return seg;
+        const textWords = seg.text.split(/\s+/).filter(Boolean);
+        if (wordIdx < 0 || wordIdx >= textWords.length) return seg;
+        textWords[wordIdx] = newText;
+        const updatedSeg = { ...seg, text: textWords.join(" ") };
+        // Also update words array if present
+        if (updatedSeg.words && updatedSeg.words[wordIdx]) {
+          updatedSeg.words = [...updatedSeg.words];
+          updatedSeg.words[wordIdx] = { ...updatedSeg.words[wordIdx], word: newText };
+        }
+        return updatedSeg;
+      }),
     }));
   },
 
@@ -244,7 +284,7 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Gather all words from all original segments
+    // Gather all words from all original segments (already merged during init)
     const allWords = [];
     originalSegments.forEach((seg) => {
       if (seg.words && seg.words.length > 0) {

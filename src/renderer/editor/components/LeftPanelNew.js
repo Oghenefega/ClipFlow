@@ -41,7 +41,6 @@ const WORD_COLORS = [
   { id: "green", color: "#4cce8a", label: "Green" },
 ];
 
-// ── Punctuation options ──
 const PUNCTUATION_OPTIONS = [
   { key: "period", char: "." },
   { key: "comma", char: "," },
@@ -52,12 +51,48 @@ const PUNCTUATION_OPTIONS = [
   { key: "ellipsis", char: "..." },
 ];
 
-// ── Segment mode options (replaces old Sentence/Paragraph) ──
 const SEGMENT_MODES = [
   { id: "sentence", label: "Sentence" },
   { id: "3word", label: "3 Words" },
   { id: "1word", label: "1 Word" },
 ];
+
+// ════════════════════════════════════════════════════════════════
+//  INLINE WORD EDITOR — shown on double-click
+// ════════════════════════════════════════════════════════════════
+function InlineWordEditor({ initialText, onConfirm, onCancel }) {
+  const inputRef = useRef(null);
+  const [text, setText] = useState(initialText);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, []);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (text.trim()) onConfirm(text.trim());
+    } else if (e.key === "Escape") {
+      onCancel();
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={() => { if (text.trim()) onConfirm(text.trim()); else onCancel(); }}
+      className="inline bg-primary/15 text-primary border border-primary/30 rounded px-1 py-0 text-sm outline-none min-w-[30px]"
+      style={{ width: `${Math.max(30, text.length * 9)}px` }}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
 
 // ════════════════════════════════════════════════════════════════
 //  SEARCH BAR
@@ -102,7 +137,7 @@ function SubtitleSearch({ searchText, setSearchText, matchCount, matchIdx, onPre
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SUBTITLE SETTINGS POPOVER (no emoji, enhanced punctuation)
+//  SUBTITLE SETTINGS POPOVER
 // ════════════════════════════════════════════════════════════════
 function SubtitleSettingsPopover() {
   const showSubs = useSubtitleStore((s) => s.showSubs);
@@ -128,7 +163,6 @@ function SubtitleSettingsPopover() {
           <span className="text-sm font-semibold text-foreground">Subtitle settings</span>
         </div>
         <div className="py-1">
-          {/* Subtitle display toggle */}
           <div className="flex items-center justify-between px-3 py-2.5">
             <span className="text-sm text-foreground">Subtitle display</span>
             <button
@@ -139,7 +173,6 @@ function SubtitleSettingsPopover() {
             </button>
           </div>
 
-          {/* Punctuation master toggle */}
           <div className="flex items-center justify-between px-3 py-2.5">
             <span className="text-sm text-foreground">Punctuation</span>
             <button
@@ -150,7 +183,6 @@ function SubtitleSettingsPopover() {
             </button>
           </div>
 
-          {/* Per-punctuation removal controls */}
           {punctOn && (
             <div className="px-3 pb-2.5">
               <span className="text-xs text-muted-foreground mb-2 block">Remove specific punctuation:</span>
@@ -181,16 +213,27 @@ function SubtitleSettingsPopover() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TIMECODE POPOVER — single dual-thumb slider (matching Vizard)
+//  TIMECODE POPOVER — local ±5s range slider, not full video
 // ════════════════════════════════════════════════════════════════
 function TimecodePopover({ segment, children }) {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
+  const editSegments = useSubtitleStore((s) => s.editSegments);
   const duration = usePlaybackStore((s) => s.duration);
   const [localStart, setLocalStart] = useState(segment.startSec);
   const [localEnd, setLocalEnd] = useState(segment.endSec);
   const [open, setOpen] = useState(false);
 
-  const maxTime = duration > 0 ? duration : Math.max(segment.endSec + 10, 30);
+  // Find neighbor boundaries to prevent overlap
+  const segIdx = editSegments.findIndex((s) => s.id === segment.id);
+  const prevSeg = segIdx > 0 ? editSegments[segIdx - 1] : null;
+  const nextSeg = segIdx < editSegments.length - 1 ? editSegments[segIdx + 1] : null;
+
+  // Slider range: ±5s around current segment, clamped to neighbors and video bounds
+  const sliderMin = Math.max(0, prevSeg ? prevSeg.endSec : segment.startSec - 5);
+  const sliderMax = Math.min(
+    duration > 0 ? duration : segment.endSec + 10,
+    nextSeg ? nextSeg.startSec : segment.endSec + 5
+  );
   const minGap = 0.1;
 
   useEffect(() => {
@@ -204,13 +247,13 @@ function TimecodePopover({ segment, children }) {
     let [newStart, newEnd] = values;
     if (newEnd - newStart < minGap) {
       if (newStart !== localStart) {
-        newStart = Math.max(0, newEnd - minGap);
+        newStart = Math.max(sliderMin, newEnd - minGap);
       } else {
-        newEnd = Math.min(maxTime, newStart + minGap);
+        newEnd = Math.min(sliderMax, newStart + minGap);
       }
     }
-    setLocalStart(Math.max(0, newStart));
-    setLocalEnd(Math.min(maxTime, newEnd));
+    setLocalStart(Math.max(sliderMin, newStart));
+    setLocalEnd(Math.min(sliderMax, newEnd));
   };
 
   const handleApply = () => {
@@ -223,47 +266,45 @@ function TimecodePopover({ segment, children }) {
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4}>
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border">
+      <PopoverContent className="w-[300px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4}>
+        <div className="px-3 py-2 border-b border-border">
           <span className="text-sm font-semibold text-foreground">Adjust start and end time</span>
         </div>
-
-        <div className="px-4 py-4 space-y-4">
-          {/* Dual-thumb range slider */}
+        <div className="px-3 py-3 space-y-3">
+          {/* Dual-thumb range slider — local range only */}
           <Slider
             value={[localStart, localEnd]}
             onValueChange={handleRangeChange}
-            min={0}
-            max={maxTime}
+            min={sliderMin}
+            max={sliderMax}
             step={0.05}
             className="w-full"
           />
 
           {/* Time inputs */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <input
               value={fmtTime(localStart)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
               }}
-              className="flex-1 h-9 px-3 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
+              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
             />
-            <span className="text-muted-foreground text-sm font-medium">—</span>
+            <span className="text-muted-foreground text-sm">—</span>
             <input
               value={fmtTime(localEnd)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([localStart, sec]);
               }}
-              className="flex-1 h-9 px-3 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
+              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
             />
           </div>
 
           {/* Cancel / Apply */}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" size="sm" className="h-8 px-4 text-sm" onClick={() => setOpen(false)}>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" className="h-8 px-3 text-sm" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button size="sm" className="h-8 px-4 text-sm bg-primary text-primary-foreground" onClick={handleApply}>
@@ -277,7 +318,7 @@ function TimecodePopover({ segment, children }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  WORD COLOR PICKER (hover palette)
+//  WORD COLOR PICKER
 // ════════════════════════════════════════════════════════════════
 function WordColorPicker({ segId, wordIdx, onSelect }) {
   return (
@@ -292,16 +333,10 @@ function WordColorPicker({ segId, wordIdx, onSelect }) {
               <button
                 onClick={() => onSelect(segId, wordIdx, c.id === "none" ? null : c.color)}
                 className="w-5 h-5 rounded-full border transition-transform hover:scale-125 cursor-pointer shrink-0"
-                style={{
-                  background: c.color,
-                  borderColor: c.border || c.color,
-                  borderWidth: c.id === "none" ? 2 : 1,
-                }}
+                style={{ background: c.color, borderColor: c.border || c.color, borderWidth: c.id === "none" ? 2 : 1 }}
               />
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[11px] py-0.5 px-1.5">
-              {c.label}
-            </TooltipContent>
+            <TooltipContent side="bottom" className="text-[11px] py-0.5 px-1.5">{c.label}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       ))}
@@ -313,8 +348,7 @@ function WordColorPicker({ segId, wordIdx, onSelect }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SEGMENT MODE DROPDOWN (Sentence / 3-Word / 1-Word)
-//  Replaces old Sentence/Paragraph toggle
+//  SEGMENT MODE DROPDOWN
 // ════════════════════════════════════════════════════════════════
 function SegmentModeDropdown() {
   const segmentMode = useSubtitleStore((s) => s.segmentMode);
@@ -338,9 +372,7 @@ function SegmentModeDropdown() {
               key={m.id}
               onClick={() => { setSegmentMode(m.id); setOpen(false); }}
               className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer flex items-center gap-2 ${
-                segmentMode === m.id
-                  ? "text-primary bg-primary/8"
-                  : "text-foreground hover:bg-secondary/40"
+                segmentMode === m.id ? "text-primary bg-primary/8" : "text-foreground hover:bg-secondary/40"
               }`}
             >
               {segmentMode === m.id && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
@@ -354,7 +386,7 @@ function SegmentModeDropdown() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TRANSCRIPT TAB — one continuous body of text
+//  TRANSCRIPT TAB — continuous paragraph with inline editing
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
@@ -362,17 +394,20 @@ function TranscriptTab() {
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
+  const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
+  const [editingWord, setEditingWord] = useState(null); // { globalIdx }
 
-  // Build flat word list from all segments for continuous paragraph
+  // Build flat word list with segment context for editing
   const allWords = useMemo(() => {
     const words = [];
     editSegments.forEach((seg) => {
+      let segWordIdx = 0;
       if (seg.words && seg.words.length > 0) {
         seg.words.forEach((w) => {
-          words.push({ ...w, segId: seg.id });
+          words.push({ ...w, segId: seg.id, segWordIdx: segWordIdx++ });
         });
       } else {
         const textWords = seg.text.split(/\s+/).filter(Boolean);
@@ -384,6 +419,7 @@ function TranscriptTab() {
             start: seg.startSec + i * perWord,
             end: seg.startSec + (i + 1) * perWord,
             segId: seg.id,
+            segWordIdx: segWordIdx++,
           });
         });
       }
@@ -414,10 +450,7 @@ function TranscriptTab() {
       let charCount = 0;
       for (const w of allWords) {
         const wordEnd = charCount + w.word.length;
-        if (m.pos >= charCount && m.pos < wordEnd) {
-          seekTo(w.start);
-          break;
-        }
+        if (m.pos >= charCount && m.pos < wordEnd) { seekTo(w.start); break; }
         charCount = wordEnd + 1;
       }
       return next;
@@ -431,21 +464,24 @@ function TranscriptTab() {
     return -1;
   }, [allWords, currentTime]);
 
-  const handleWordClick = (word) => {
-    seekTo(word.start);
+  const handleWordClick = (word) => { seekTo(word.start); };
+
+  const handleWordDoubleClick = (e, idx) => {
+    e.stopPropagation();
+    setEditingWord({ globalIdx: idx });
   };
 
-  const handleCopyAll = () => {
-    navigator.clipboard?.writeText(fullText);
+  const handleEditConfirm = (idx, newText) => {
+    const w = allWords[idx];
+    updateWordInSegment(w.segId, w.segWordIdx, newText);
+    setEditingWord(null);
   };
+
+  const handleCopyAll = () => { navigator.clipboard?.writeText(fullText); };
 
   const renderWords = () => {
     if (allWords.length === 0) {
-      return (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          No transcript data
-        </div>
-      );
+      return <div className="py-8 text-center text-sm text-muted-foreground">No transcript data</div>;
     }
 
     let searchHighlightRanges = [];
@@ -466,14 +502,27 @@ function TranscriptTab() {
       charOffset = wordEnd + 1;
 
       const isActive = idx === activeWordIdx;
-      const isSearchHit = searchHighlightRanges.some(
-        (r) => wordStart < r.end && wordEnd > r.start
-      );
+      const isSearchHit = searchHighlightRanges.some((r) => wordStart < r.end && wordEnd > r.start);
+      const isEditing = editingWord?.globalIdx === idx;
+
+      if (isEditing) {
+        return (
+          <React.Fragment key={idx}>
+            <InlineWordEditor
+              initialText={w.word}
+              onConfirm={(t) => handleEditConfirm(idx, t)}
+              onCancel={() => setEditingWord(null)}
+            />
+            {idx < allWords.length - 1 && " "}
+          </React.Fragment>
+        );
+      }
 
       return (
         <React.Fragment key={idx}>
           <span
             onClick={() => handleWordClick(w)}
+            onDoubleClick={(e) => handleWordDoubleClick(e, idx)}
             className={`
               inline cursor-pointer rounded-sm px-0.5 transition-colors
               ${isActive ? "bg-primary/20 text-primary font-semibold" : ""}
@@ -491,26 +540,19 @@ function TranscriptTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
       <div className="flex items-center gap-1.5 px-3 py-2 min-h-[40px]">
         <div className="flex-1">
           {searchOpen ? (
             <SubtitleSearch
-              searchText={transcriptSearch}
-              setSearchText={setTranscriptSearch}
-              matchCount={matches.length}
-              matchIdx={matchIdx}
-              onPrev={() => navMatch(-1)}
-              onNext={() => navMatch(1)}
+              searchText={transcriptSearch} setSearchText={setTranscriptSearch}
+              matchCount={matches.length} matchIdx={matchIdx}
+              onPrev={() => navMatch(-1)} onNext={() => navMatch(1)}
               onClose={() => { setSearchOpen(false); setTranscriptSearch(""); setMatchIdx(0); }}
             />
           ) : (
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 h-8 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-            >
-              <Search className="h-4 w-4" />
-              Search
+            <button onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 h-8 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors">
+              <Search className="h-4 w-4" /> Search
             </button>
           )}
         </div>
@@ -533,10 +575,7 @@ function TranscriptTab() {
           </Tooltip>
         </TooltipProvider>
       </div>
-
       <Separator />
-
-      {/* Continuous flowing paragraph */}
       <ScrollArea className="flex-1">
         <div className="px-4 py-4 text-sm text-foreground/90 leading-relaxed">
           {renderWords()}
@@ -547,7 +586,7 @@ function TranscriptTab() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  EDIT SUBTITLES TAB
+//  EDIT SUBTITLES TAB — with playback-following active word
 // ════════════════════════════════════════════════════════════════
 function EditSubtitlesTab() {
   const editSegments = useSubtitleStore((s) => s.editSegments);
@@ -560,11 +599,14 @@ function EditSubtitlesTab() {
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const mergeSegment = useSubtitleStore((s) => s.mergeSegment);
+  const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
+  const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
   const [hoveredWord, setHoveredWord] = useState(null);
+  const [editingWord, setEditingWord] = useState(null); // { segId, wordIdx }
 
   const matches = useMemo(() => {
     if (!transcriptSearch) return [];
@@ -605,14 +647,34 @@ function EditSubtitlesTab() {
     }
   };
 
+  const handleWordDoubleClick = (e, seg, wordIdx) => {
+    e.stopPropagation();
+    setEditingWord({ segId: seg.id, wordIdx });
+  };
+
+  const handleEditConfirm = (segId, wordIdx, newText) => {
+    updateWordInSegment(segId, wordIdx, newText);
+    setEditingWord(null);
+  };
+
   const handleWordColorSelect = (segId, wordIdx, color) => {
     if (color) setHighlightColor(color);
     setHoveredWord(null);
   };
 
+  // Find active word index within a segment based on playback time
+  const getActiveWordInSeg = useCallback((seg) => {
+    if (!seg.words || seg.words.length === 0) return -1;
+    for (let i = seg.words.length - 1; i >= 0; i--) {
+      if (currentTime >= seg.words[i].start && currentTime < seg.words[i].end + 0.05) return i;
+    }
+    return -1;
+  }, [currentTime]);
+
   const renderWords = (seg) => {
     const textWords = seg.text.split(/(\s+)/);
     let wordIdx = 0;
+    const activeWordInSeg = getActiveWordInSeg(seg);
 
     return textWords.map((token, i) => {
       if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
@@ -621,25 +683,37 @@ function EditSubtitlesTab() {
       wordIdx++;
       const isSelected = selectedWordInfo?.segId === seg.id && selectedWordInfo?.wordIdx === currentWordIdx;
       const isHovered = hoveredWord?.segId === seg.id && hoveredWord?.wordIdx === currentWordIdx;
+      const isPlaybackActive = currentWordIdx === activeWordInSeg;
+      const isEditing = editingWord?.segId === seg.id && editingWord?.wordIdx === currentWordIdx;
+
+      if (isEditing) {
+        return (
+          <InlineWordEditor
+            key={i}
+            initialText={token}
+            onConfirm={(t) => handleEditConfirm(seg.id, currentWordIdx, t)}
+            onCancel={() => setEditingWord(null)}
+          />
+        );
+      }
 
       return (
         <span
           key={i}
           className={`
             relative inline-block cursor-pointer rounded px-0.5 transition-colors
-            ${isSelected ? "bg-primary/20 text-primary" : "hover:bg-secondary/60"}
+            ${isPlaybackActive ? "bg-green-500/20 text-green-400 font-semibold" : ""}
+            ${isSelected && !isPlaybackActive ? "bg-primary/20 text-primary" : ""}
+            ${!isSelected && !isPlaybackActive ? "hover:bg-secondary/60" : ""}
           `}
           onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); }}
+          onDoubleClick={(e) => handleWordDoubleClick(e, seg, currentWordIdx)}
           onMouseEnter={() => setHoveredWord({ segId: seg.id, wordIdx: currentWordIdx })}
           onMouseLeave={() => setHoveredWord(null)}
         >
           {token}
-          {isHovered && (
-            <WordColorPicker
-              segId={seg.id}
-              wordIdx={currentWordIdx}
-              onSelect={handleWordColorSelect}
-            />
+          {isHovered && !isEditing && (
+            <WordColorPicker segId={seg.id} wordIdx={currentWordIdx} onSelect={handleWordColorSelect} />
           )}
         </span>
       );
@@ -648,9 +722,8 @@ function EditSubtitlesTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar: search far left | segment mode dropdown + split + merge + settings on right */}
+      {/* Toolbar */}
       <div className="flex items-center gap-1.5 px-3 py-2 min-h-[40px]">
-        {/* Search toggle — far left */}
         <button
           onClick={() => setSearchOpen(!searchOpen)}
           className={`h-8 w-8 flex items-center justify-center rounded transition-colors shrink-0 ${
@@ -660,33 +733,27 @@ function EditSubtitlesTab() {
           <Search className="h-4 w-4" />
         </button>
 
-        {/* Segment mode dropdown (replaces old Sentence/Paragraph toggle) */}
         <SegmentModeDropdown />
 
         <div className="flex-1" />
 
-        {/* Split button */}
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30"
-                onClick={() => splitSegment()}
-                disabled={!activeSegId}
+                onClick={() => splitSegment()} disabled={!activeSegId}
               >
                 <Scissors className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="text-xs">Split at selected word</TooltipContent>
           </Tooltip>
-
-          {/* Merge button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30"
-                onClick={() => mergeSegment()}
-                disabled={!activeSegId}
+                onClick={() => mergeSegment()} disabled={!activeSegId}
               >
                 <Merge className="h-4 w-4" />
               </button>
@@ -695,20 +762,15 @@ function EditSubtitlesTab() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Settings */}
         <SubtitleSettingsPopover />
       </div>
 
-      {/* Search bar (conditional) */}
       {searchOpen && (
         <div className="px-3 pb-2">
           <SubtitleSearch
-            searchText={transcriptSearch}
-            setSearchText={setTranscriptSearch}
-            matchCount={matches.length}
-            matchIdx={matchIdx}
-            onPrev={() => navMatch(-1)}
-            onNext={() => navMatch(1)}
+            searchText={transcriptSearch} setSearchText={setTranscriptSearch}
+            matchCount={matches.length} matchIdx={matchIdx}
+            onPrev={() => navMatch(-1)} onNext={() => navMatch(1)}
             onClose={() => { setSearchOpen(false); setTranscriptSearch(""); setMatchIdx(0); }}
           />
         </div>
@@ -716,13 +778,11 @@ function EditSubtitlesTab() {
 
       <Separator />
 
-      {/* Segment list — timecodes ABOVE each segment, active = left purple border */}
+      {/* Segments with compact timecodes above text + active word tracking */}
       <ScrollArea className="flex-1">
         <div className="py-1">
           {editSegments.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No subtitle segments
-            </div>
+            <div className="px-3 py-8 text-center text-sm text-muted-foreground">No subtitle segments</div>
           )}
           {editSegments.map((seg) => {
             const isActive = activeSegId === seg.id;
@@ -731,19 +791,14 @@ function EditSubtitlesTab() {
               <div
                 key={seg.id}
                 onClick={() => handleSegClick(seg)}
-                className={`
-                  group relative cursor-pointer transition-colors border-b border-border/30
-                  ${isActive ? "bg-primary/8" : "hover:bg-secondary/30"}
-                `}
+                className={`group relative cursor-pointer transition-colors border-b border-border/30 ${isActive ? "bg-primary/8" : "hover:bg-secondary/30"}`}
               >
-                {/* Active segment indicator — left purple border */}
-                {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />
-                )}
+                {/* Active segment left border */}
+                {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-r" />}
 
-                <div className={`px-4 py-3 ${isActive ? "pl-5" : ""}`}>
-                  {/* Timecode row — ABOVE the text */}
-                  <div className="flex items-center justify-between mb-1.5">
+                <div className="px-3 py-2.5">
+                  {/* Compact timecode row */}
+                  <div className="flex items-center gap-2 mb-1">
                     <TimecodePopover segment={seg}>
                       <button
                         onClick={(e) => e.stopPropagation()}
@@ -752,24 +807,16 @@ function EditSubtitlesTab() {
                         {seg.start} — {seg.end}
                       </button>
                     </TimecodePopover>
-
-                    <span className="text-xs text-muted-foreground">
-                      {seg.dur}
-                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">{seg.dur}</span>
                   </div>
 
-                  {/* Segment text with per-word hover */}
+                  {/* Segment text */}
                   <div className="text-sm text-foreground/90 leading-relaxed break-words">
                     {renderWords(seg)}
                   </div>
 
-                  {/* Warning if present */}
                   {isActive && seg.warning && (
-                    <div className="mt-1.5">
-                      <span className="text-xs text-amber-500/70">
-                        {seg.warning}
-                      </span>
-                    </div>
+                    <div className="mt-1"><span className="text-xs text-amber-500/70">{seg.warning}</span></div>
                   )}
                 </div>
               </div>
@@ -782,7 +829,7 @@ function EditSubtitlesTab() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  LEFT PANEL (main export)
+//  LEFT PANEL
 // ════════════════════════════════════════════════════════════════
 export default function LeftPanelNew() {
   const lpTab = useLayoutStore((s) => s.lpTab);
@@ -790,15 +837,12 @@ export default function LeftPanelNew() {
 
   return (
     <div className="flex flex-col h-full bg-card overflow-hidden">
-      {/* Tab header */}
       <div className="px-3 pt-3 pb-1.5 shrink-0">
         <div className="flex rounded-lg bg-secondary/40 p-0.5">
           <button
             onClick={() => setLpTab("transcript")}
             className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
-              lpTab === "transcript"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              lpTab === "transcript" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Transcript
@@ -806,17 +850,13 @@ export default function LeftPanelNew() {
           <button
             onClick={() => setLpTab("edit-subtitles")}
             className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
-              lpTab === "edit-subtitles"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              lpTab === "edit-subtitles" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Edit subtitles
           </button>
         </div>
       </div>
-
-      {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {lpTab === "transcript" ? <TranscriptTab /> : <EditSubtitlesTab />}
       </div>
