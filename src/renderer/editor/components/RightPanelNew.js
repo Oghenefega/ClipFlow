@@ -1158,14 +1158,42 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
     }
   };
 
+  // Resizable drawer width
+  const [drawerWidth, setDrawerWidth] = useState(340);
+  const resizing = useRef(false);
+
+  const onResizeStart = useCallback((e) => {
+    e.preventDefault();
+    resizing.current = true;
+    const startX = e.clientX;
+    const startW = drawerWidth;
+    const onMove = (ev) => {
+      if (!resizing.current) return;
+      const delta = startX - ev.clientX; // dragging left = wider
+      setDrawerWidth(Math.max(260, Math.min(600, startW + delta)));
+    };
+    const onUp = () => {
+      resizing.current = false;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [drawerWidth]);
+
   return (
     <div className="flex h-full">
       {/* Drawer (conditional) */}
       {drawerOpen && (
-        <div className="w-[320px] border-l bg-card flex flex-col overflow-hidden">
+        <div className="border-l bg-card flex flex-col overflow-hidden relative" style={{ width: drawerWidth }}>
+          {/* Resize handle on left edge */}
+          <div
+            className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-30 hover:bg-primary/20 active:bg-primary/30 transition-colors"
+            onPointerDown={onResizeStart}
+          />
           {/* Header */}
           <div className="h-11 min-h-[44px] flex items-center justify-between px-3 border-b shrink-0">
-            <span className="text-xs font-semibold text-foreground">{DRAWER_LABELS[activePanel] || activePanel}</span>
+            <span className="text-sm font-semibold text-foreground">{DRAWER_LABELS[activePanel] || activePanel}</span>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setDrawerOpen(false)}>
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -1182,7 +1210,7 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
       )}
 
       {/* Icon rail (always visible) */}
-      <div className="w-12 min-w-[48px] border-l bg-card flex flex-col items-center py-2 gap-0.5">
+      <div className="w-16 min-w-[64px] border-l bg-card flex flex-col items-center py-3 gap-1">
         <TooltipProvider delayDuration={300}>
           {RAIL_ICONS.map((item, i) => {
             const Icon = item.icon;
@@ -1191,17 +1219,17 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
 
             return (
               <React.Fragment key={item.id}>
-                {i > 0 && item.group !== prevGroup && <Separator className="w-7 my-1" />}
+                {i > 0 && item.group !== prevGroup && <Separator className="w-10 my-1.5" />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => togglePanel(item.id)}
-                      className={`w-10 h-10 rounded-md flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+                      className={`w-14 h-14 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${
                         isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-[9px] leading-none font-medium">{item.label}</span>
+                      <Icon className="h-5 w-5" />
+                      <span className="text-[10px] leading-none font-medium">{item.label}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="text-xs">{item.label}</TooltipContent>
