@@ -246,6 +246,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 
     // Resample peaks to match pixel width for smooth polygon
     const pointCount = Math.min(peaks.length, Math.floor(w));
+    if (pointCount <= 0) return; // Guard: no points to draw if width is 0
     const samplesPerPoint = peaks.length / pointCount;
 
     // Build points array with normalized amplitudes
@@ -265,6 +266,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     }
 
     // Draw filled polygon — mirrored waveform (like a pro DAW)
+    if (points.length === 0) return;
     ctx.beginPath();
     // Top half (going left to right)
     ctx.moveTo(points[0].x, centerY - points[0].amp);
@@ -618,7 +620,7 @@ export default function TimelinePanelNew() {
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={toggleTlCollapse}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleTlCollapse(); }}>
                 <PanelBottomOpen className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -733,7 +735,7 @@ export default function TimelinePanelNew() {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={toggleTlCollapse}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleTlCollapse(); }}>
                   <PanelBottomClose className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
