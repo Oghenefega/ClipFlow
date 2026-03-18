@@ -178,11 +178,22 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
   const [weightOpen, setWeightOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
 
-  const handleSizeWheel = useCallback((e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 1 : -1;
-    onFontSize(Math.max(1, Math.min(999, fontSize + delta)));
-  }, [fontSize, onFontSize]);
+  // Font size scroll — use ref to attach non-passive wheel listener (preventDefault needs non-passive)
+  const sizeInputRef = useRef(null);
+  const fontSizeRef = useRef(fontSize);
+  fontSizeRef.current = fontSize;
+  useEffect(() => {
+    const el = sizeInputRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      onFontSize(Math.max(1, Math.min(999, fontSizeRef.current + delta)));
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [onFontSize]);
 
   // Truncated font name (first word only if long)
   const shortFont = fontFamily.length > 10 ? fontFamily.split(" ")[0] + "..." : fontFamily;
@@ -196,7 +207,7 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
           className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-secondary/60 text-[11px] text-foreground transition-colors"
           onClick={() => { setFontOpen(!fontOpen); setWeightOpen(false); setColorOpen(false); }}
         >
-          <span className="truncate max-w-[60px]" style={{ fontFamily }}>{shortFont}</span>
+          <span className="truncate max-w-[60px]" style={{ fontFamily, fontWeight: fontWeight || 900, fontStyle: "italic" }}>{shortFont}</span>
           <ChevronDown className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
         </button>
         {fontOpen && (
@@ -208,6 +219,7 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
 
       {/* Font size (scroll to change, click to edit) */}
       <input
+        ref={sizeInputRef}
         type="text"
         value={fontSize}
         onChange={(e) => {
@@ -215,7 +227,6 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
           if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
         }}
         onFocus={(e) => e.target.select()}
-        onWheel={handleSizeWheel}
         className="w-7 h-6 text-[11px] text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none cursor-ns-resize"
       />
 
@@ -421,6 +432,10 @@ export default function PreviewPanelNew() {
   const strokeOn = useSubtitleStore((s) => s.strokeOn);
   const shadowOn = useSubtitleStore((s) => s.shadowOn);
   const shadowBlur = useSubtitleStore((s) => s.shadowBlur);
+  const shadowColor = useSubtitleStore((s) => s.shadowColor);
+  const shadowOpacity = useSubtitleStore((s) => s.shadowOpacity);
+  const strokeColor = useSubtitleStore((s) => s.strokeColor);
+  const strokeOpacity = useSubtitleStore((s) => s.strokeOpacity);
   const bgOn = useSubtitleStore((s) => s.bgOn);
   const bgOpacity = useSubtitleStore((s) => s.bgOpacity);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
@@ -443,6 +458,15 @@ export default function PreviewPanelNew() {
   const captionBold = useCaptionStore((s) => s.captionBold);
   const captionItalic = useCaptionStore((s) => s.captionItalic);
   const captionUnderline = useCaptionStore((s) => s.captionUnderline);
+  const captionLineSpacing = useCaptionStore((s) => s.captionLineSpacing);
+  const captionShadowOn = useCaptionStore((s) => s.captionShadowOn);
+  const captionShadowColor = useCaptionStore((s) => s.captionShadowColor);
+  const captionShadowBlur = useCaptionStore((s) => s.captionShadowBlur);
+  const captionShadowOpacity = useCaptionStore((s) => s.captionShadowOpacity);
+  const captionStrokeOn = useCaptionStore((s) => s.captionStrokeOn);
+  const captionStrokeColor = useCaptionStore((s) => s.captionStrokeColor);
+  const captionStrokeWidth = useCaptionStore((s) => s.captionStrokeWidth);
+  const captionStrokeOpacity = useCaptionStore((s) => s.captionStrokeOpacity);
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
@@ -637,20 +661,29 @@ export default function PreviewPanelNew() {
     }
     if (strokeOn) {
       const scaledStroke = Math.max(0.5, strokeWidth * scaleFactor * 0.5);
-      style.WebkitTextStroke = `${scaledStroke}px rgba(0,0,0,0.8)`;
+      // Parse strokeColor hex to RGB for opacity
+      const sc = strokeColor || "#000000";
+      const sr = parseInt(sc.slice(1, 3), 16) || 0;
+      const sg = parseInt(sc.slice(3, 5), 16) || 0;
+      const sb = parseInt(sc.slice(5, 7), 16) || 0;
+      style.WebkitTextStroke = `${scaledStroke}px rgba(${sr},${sg},${sb},${strokeOpacity / 100})`;
       style.paintOrder = "stroke fill";
     }
     if (shadowOn) {
       const scaledBlur = shadowBlur * scaleFactor * 0.5;
-      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(0,0,0,0.7)`;
+      const shc = shadowColor || "#000000";
+      const shr = parseInt(shc.slice(1, 3), 16) || 0;
+      const shg = parseInt(shc.slice(3, 5), 16) || 0;
+      const shb = parseInt(shc.slice(5, 7), 16) || 0;
+      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${shr},${shg},${shb},${shadowOpacity / 100})`;
     }
     return style;
-  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
+  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor, bgOn, bgOpacity, strokeOn, strokeWidth, strokeColor, strokeOpacity, shadowOn, shadowBlur, shadowColor, shadowOpacity, scaleFactor]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
     const scaledFontSize = captionFontSize * 2.4 * scaleFactor;
-    return {
+    const style = {
       fontFamily: `'${captionFontFamily}', sans-serif`,
       fontSize: `${scaledFontSize}px`,
       fontWeight: captionFontWeight || (captionBold ? 700 : 400),
@@ -658,14 +691,36 @@ export default function PreviewPanelNew() {
       textDecoration: captionUnderline ? "underline" : "none",
       color: captionColor,
       textAlign: "center",
-      lineHeight: 1.3,
+      lineHeight: captionLineSpacing,
       padding: `${4 * scaleFactor}px ${10 * scaleFactor}px`,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       width: "100%",
-      textShadow: `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`,
     };
-  }, [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor, scaleFactor]);
+    // Shadow
+    if (captionShadowOn) {
+      const scaledBlur = captionShadowBlur * scaleFactor * 0.5;
+      const sc = captionShadowColor || "#000000";
+      const r = parseInt(sc.slice(1, 3), 16) || 0;
+      const g = parseInt(sc.slice(3, 5), 16) || 0;
+      const b = parseInt(sc.slice(5, 7), 16) || 0;
+      style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(${r},${g},${b},${captionShadowOpacity / 100})`;
+    } else {
+      // Default subtle shadow for readability
+      style.textShadow = `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
+    }
+    // Stroke
+    if (captionStrokeOn) {
+      const scaledStroke = Math.max(0.5, captionStrokeWidth * scaleFactor * 0.5);
+      const sc = captionStrokeColor || "#000000";
+      const r = parseInt(sc.slice(1, 3), 16) || 0;
+      const g = parseInt(sc.slice(3, 5), 16) || 0;
+      const b = parseInt(sc.slice(5, 7), 16) || 0;
+      style.WebkitTextStroke = `${scaledStroke}px rgba(${r},${g},${b},${captionStrokeOpacity / 100})`;
+      style.paintOrder = "stroke fill";
+    }
+    return style;
+  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing, captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, scaleFactor]);
 
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.

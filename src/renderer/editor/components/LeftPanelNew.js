@@ -440,7 +440,7 @@ function TranscriptTab() {
   const activeWordRef = useRef(null);
   useEffect(() => {
     if (activeWordRef.current) {
-      activeWordRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      activeWordRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [activeWordIdx]);
 
@@ -630,7 +630,7 @@ function EditSubtitlesTab() {
   // Auto-scroll active segment into view
   useEffect(() => {
     if (activeSegRef.current) {
-      activeSegRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      activeSegRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [activeSegId]);
 
