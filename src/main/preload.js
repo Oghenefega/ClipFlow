@@ -94,6 +94,16 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("render:progress");
   },
 
+  // Re-transcribe a specific clip
+  retranscribeClip: (projectId, clipId) =>
+    ipcRenderer.invoke("retranscribe:clip", projectId, clipId),
+  onRetranscribeProgress: (callback) => {
+    ipcRenderer.on("retranscribe:progress", (_, data) => callback(data));
+  },
+  removeRetranscribeProgressListener: () => {
+    ipcRenderer.removeAllListeners("retranscribe:progress");
+  },
+
   // Platform info
   platform: process.platform,
 });

@@ -695,7 +695,7 @@ export default function PreviewPanelNew() {
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.
   const buildCharChunks = useCallback((words) => {
-    const CHAR_LIMIT = 20;
+    const CHAR_LIMIT = 16;
     const chunks = [];
     let current = [];
     let currentLen = 0;
@@ -715,35 +715,29 @@ export default function PreviewPanelNew() {
     return chunks;
   }, []);
 
-  // Render subtitle words with karaoke highlight + 1L/2L line mode
+  // Render subtitle words with karaoke highlight (always 1 line per screen)
   const renderSubtitleText = () => {
     if (!currentSeg) return null;
     const words = currentSeg.words || [];
 
     if (words.length > 0) {
-      // Determine which words to show based on lineMode
-      let visibleWords = words;
-      let visibleOffset = 0;
-
-      if (lineMode === "1L") {
-        // Character-limit chunking instead of fixed 3-word
-        const chunks = buildCharChunks(words);
-        const activeIdx = currentWordIdx >= 0 ? currentWordIdx : 0;
-        // Find which chunk contains the active word
-        let cumulative = 0;
-        let chunkIdx = 0;
-        for (let c = 0; c < chunks.length; c++) {
-          if (activeIdx < cumulative + chunks[c].length) {
-            chunkIdx = c;
-            break;
-          }
-          cumulative += chunks[c].length;
+      // Character-limit chunking — group words until line exceeds char limit
+      const chunks = buildCharChunks(words);
+      const activeIdx = currentWordIdx >= 0 ? currentWordIdx : 0;
+      // Find which chunk contains the active word
+      let cumulative = 0;
+      let chunkIdx = 0;
+      for (let c = 0; c < chunks.length; c++) {
+        if (activeIdx < cumulative + chunks[c].length) {
+          chunkIdx = c;
+          break;
         }
-        visibleWords = chunks[chunkIdx] || chunks[0];
-        // Calculate offset for correct karaoke highlight index
-        visibleOffset = 0;
-        for (let c = 0; c < chunkIdx; c++) visibleOffset += chunks[c].length;
+        cumulative += chunks[c].length;
       }
+      const visibleWords = chunks[chunkIdx] || chunks[0];
+      // Calculate offset for correct karaoke highlight index
+      let visibleOffset = 0;
+      for (let c = 0; c < chunkIdx; c++) visibleOffset += chunks[c].length;
 
       return (
         <div style={{ ...subTextStyle, display: "block" }}>
@@ -766,18 +760,14 @@ export default function PreviewPanelNew() {
       );
     }
 
-    // Fallback: no word-level data, use segment text
-    if (lineMode === "1L") {
-      const textWords = currentSeg.text.split(/\s+/);
-      const chunks = buildCharChunks(textWords.map(w => ({ word: w })));
-      const segDuration = currentSeg.endSec - currentSeg.startSec;
-      const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
-      const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
-      const visibleText = (chunks[chunkIdx] || []).map(w => w.word).join(" ");
-      return <div style={{ ...subTextStyle, display: "block" }}>{visibleText}</div>;
-    }
-
-    return <div style={{ ...subTextStyle, display: "block" }}>{currentSeg.text}</div>;
+    // Fallback: no word-level data, use segment text with char-limit chunking
+    const textWords = currentSeg.text.split(/\s+/);
+    const chunks = buildCharChunks(textWords.map(w => ({ word: w })));
+    const segDuration = currentSeg.endSec - currentSeg.startSec;
+    const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
+    const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
+    const visibleText = (chunks[chunkIdx] || []).map(w => w.word).join(" ");
+    return <div style={{ ...subTextStyle, display: "block" }}>{visibleText}</div>;
   };
 
   // Double-click handler for caption — switch right panel to Text tab

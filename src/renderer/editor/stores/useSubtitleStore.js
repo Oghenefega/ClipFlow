@@ -107,7 +107,7 @@ const useSubtitleStore = create((set, get) => ({
   subItalic: true,
   subBold: true,
   subUnderline: false,
-  lineMode: "2L",
+  lineMode: "1L",
   syncOffset: 0,
   // Per-punctuation removal config
   punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
@@ -122,14 +122,18 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Init from project data ──
   initSegments: (project, clip) => {
-    if (!project?.transcription?.segments || !clip) {
+    // Prefer clip-level transcription (from re-transcribe) over project-level
+    const transcriptionSource = clip?.transcription || project?.transcription;
+    if (!transcriptionSource?.segments || !clip) {
       set({ editSegments: [], activeSegId: null });
       return;
     }
-    const clipStart = clip.startTime || 0;
-    const clipEnd = clip.endTime || 0;
-    const segs = project.transcription.segments
-      .filter((s) => s.start >= clipStart && s.end <= clipEnd)
+    // If clip has its own transcription, segments are already clip-relative (start from 0)
+    const hasClipTranscription = !!clip?.transcription;
+    const clipStart = hasClipTranscription ? 0 : (clip.startTime || 0);
+    const clipEnd = hasClipTranscription ? Infinity : (clip.endTime || 0);
+    const segs = transcriptionSource.segments
+      .filter((s) => s.start >= clipStart && (clipEnd === Infinity || s.end <= clipEnd))
       .map((s, i) => {
         const segStartSec = s.start - clipStart;
         const segEndSec = s.end - clipStart;

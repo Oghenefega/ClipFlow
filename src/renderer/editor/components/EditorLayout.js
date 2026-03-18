@@ -21,6 +21,8 @@ import {
   Clock,
   Check,
   Send,
+  Mic,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -173,6 +175,8 @@ function Topbar({ onBack }) {
   const [navOpen, setNavOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [hashtagWarning, setHashtagWarning] = useState(false);
+  const [retranscribing, setRetranscribing] = useState(false);
+  const [retranscribeStage, setRetranscribeStage] = useState("");
   const [, forceUpdate] = useState(0);
   const titleInputRef = useRef(null);
   const navChevronRef = useRef(null);
@@ -224,6 +228,45 @@ function Topbar({ onBack }) {
       });
     }
   }, [handleSave, clip, project]);
+
+  const onRetranscribe = useCallback(async () => {
+    if (!clip || !project || retranscribing) return;
+    setRetranscribing(true);
+    setRetranscribeStage("Starting...");
+
+    // Listen for progress
+    const progressHandler = (data) => {
+      const labels = { extracting: "Extracting audio...", transcribing: "Transcribing...", saving: "Saving...", done: "Done!" };
+      setRetranscribeStage(labels[data.stage] || data.stage);
+    };
+    window.clipflow?.onRetranscribeProgress?.(progressHandler);
+
+    try {
+      const result = await window.clipflow.retranscribeClip(project.id, clip.id);
+      if (result?.error) {
+        console.error("Re-transcribe failed:", result.error);
+        setRetranscribeStage("Failed");
+        setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 2000);
+      } else {
+        // Reload segments from the new clip-level transcription
+        const updatedClip = { ...clip, transcription: result.transcription };
+        useSubtitleStore.getState().initSegments(project, updatedClip);
+        // Update the clip in the editor store
+        useEditorStore.getState().initFromContext(
+          { projectId: project.id, clipId: clip.id },
+          [{ ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) }]
+        );
+        setRetranscribeStage("Done!");
+        setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 1500);
+      }
+    } catch (err) {
+      console.error("Re-transcribe error:", err);
+      setRetranscribeStage("Failed");
+      setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 2000);
+    } finally {
+      window.clipflow?.removeRetranscribeProgressListener?.();
+    }
+  }, [clip, project, retranscribing]);
 
   const onTitleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -384,8 +427,32 @@ function Topbar({ onBack }) {
         )}
       </div>
 
-      {/* Right: Save + Queue buttons */}
+      {/* Right: Re-transcribe + Save + Queue buttons */}
       <div className="relative flex items-center gap-2">
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 px-3 text-xs font-medium ${retranscribing ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={onRetranscribe}
+                disabled={retranscribing}
+              >
+                {retranscribing ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {retranscribing ? retranscribeStage : "Re-transcribe"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Re-run transcription on this clip</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <Separator orientation="vertical" className="h-5" />
+
         <Button
           size="sm"
           className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"

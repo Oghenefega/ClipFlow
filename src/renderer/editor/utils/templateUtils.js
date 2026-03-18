@@ -6,7 +6,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 export const BUILTIN_TEMPLATE = {
   id: "fega-default", name: "Fega Default", builtIn: true,
   caption: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff", bold: true, italic: true, underline: false, yPercent: 15, widthPercent: 90 },
-  subtitle: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, underline: false, strokeOn: true, strokeWidth: 7, shadowOn: false, shadowBlur: 8, bgOn: false, bgOpacity: 80, highlightColor: "#4cce8a", lineMode: "2L", subMode: "karaoke", yPercent: 80 },
+  subtitle: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, underline: false, strokeOn: true, strokeWidth: 7, shadowOn: false, shadowBlur: 8, bgOn: false, bgOpacity: 80, highlightColor: "#4cce8a", lineMode: "1L", subMode: "karaoke", yPercent: 80 },
 };
 
 export const DEFAULT_TEMPLATE_KEY = "defaultTemplateId";

@@ -448,6 +448,58 @@ ipcMain.handle("whisper:transcribe", async (_, wavPath, opts) => {
   }
 });
 
+// ============ RE-TRANSCRIBE CLIP ============
+ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+
+    // The clip has its own video file — transcribe it directly
+    const clipPath = clip.filePath;
+    if (!clipPath || !fs.existsSync(clipPath)) {
+      return { error: `Clip file not found: ${clipPath}` };
+    }
+
+    // Step 1: Extract audio from clip video
+    const wavPath = clipPath.replace(/\.[^.]+$/, "-retranscribe.wav");
+    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "extracting", pct: 10 });
+    await ffmpeg.extractAudio(clipPath, wavPath);
+
+    // Step 2: Transcribe with whisperx
+    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 });
+    const storeOpts = {
+      pythonPath: store.get("whisperPythonPath") || "",
+      model: store.get("whisperModel") || "large-v3-turbo",
+      language: "en",
+      batchSize: 16,
+      computeType: "float16",
+      hfToken: store.get("hfToken") || "",
+      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
+      onProgress: (pct) => {
+        if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 + Math.floor(pct * 0.6) });
+      },
+    };
+    const transcription = await whisper.transcribe(wavPath, storeOpts);
+
+    // Step 3: Clean up temp wav
+    try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
+
+    // Step 4: Save clip-level transcription to project
+    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "saving", pct: 95 });
+    const updates = { transcription };
+    await projects.updateClip(watchFolder, projectId, clipId, updates);
+
+    if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "done", pct: 100 });
+    return { success: true, transcription };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // ============ PROJECTS ============
 ipcMain.handle("project:create", async (_, data) => {
   try {
