@@ -3,17 +3,15 @@ import { fmtTime } from "../utils/timeUtils";
 
 // ── Merge whisper subword tokens into real words ──
 // Whisper tokenizes at subword level: "I'm" → ["I", "'m"], "raiders" → ["ra","iders"]
-// Merge tokens with <20ms gap (subword splits) or starting with apostrophe (contractions)
+// Merge tokens starting with apostrophe (contractions)
 function mergeWordTokens(words) {
   if (!words || words.length <= 1) return words;
   const merged = [{ ...words[0] }];
   for (let i = 1; i < words.length; i++) {
     const prev = merged[merged.length - 1];
     const curr = words[i];
-    const gap = curr.start - prev.end;
     const isContraction = curr.word.startsWith("'") || curr.word.startsWith("\u2019");
-    const isSubword = gap < 0.02 && /^[a-z]/.test(curr.word);
-    if (isContraction || isSubword) {
+    if (isContraction) {
       prev.word += curr.word;
       prev.end = curr.end;
     } else {
@@ -21,6 +19,60 @@ function mergeWordTokens(words) {
     }
   }
   return merged;
+}
+
+// ── Repair word timestamps within a segment ──
+// whisperx wav2vec2 alignment can produce unreliable word-level timestamps:
+// - Words bunched at the same time, 0-duration segments with words, etc.
+// When word timestamps are clearly wrong, evenly distribute words across
+// the segment's time range. Segment-level timestamps are reliable.
+function repairWordTimestamps(words, segStart, segEnd) {
+  if (!words || words.length === 0) return words;
+
+  const segDur = segEnd - segStart;
+
+  // Check if timestamps are valid:
+  // 1. Segment has meaningful duration
+  // 2. Words span a reasonable portion of the segment
+  // 3. Words are monotonically increasing
+  // 4. No words bunched at the exact same time
+  if (segDur < 0.05) {
+    // Segment has ~0 duration — evenly distribute
+    return evenlyDistribute(words, segStart, segEnd);
+  }
+
+  // Check how many words share the same start time (bunching)
+  const startTimes = words.map(w => Math.round(w.start * 20) / 20); // round to 50ms
+  const uniqueStarts = new Set(startTimes).size;
+  const bunchRatio = uniqueStarts / words.length;
+
+  // Check if words actually span the segment
+  const wordsStart = Math.min(...words.map(w => w.start));
+  const wordsEnd = Math.max(...words.map(w => w.end));
+  const wordSpan = wordsEnd - wordsStart;
+  const coverageRatio = segDur > 0 ? wordSpan / segDur : 0;
+
+  // If words are heavily bunched (<50% unique start times) or cover <30% of segment
+  if (bunchRatio < 0.5 || coverageRatio < 0.3) {
+    return evenlyDistribute(words, segStart, segEnd);
+  }
+
+  // Words look reasonable — keep them but clamp to segment boundaries
+  return words.map(w => ({
+    ...w,
+    start: Math.max(segStart, Math.min(segEnd, w.start)),
+    end: Math.max(segStart, Math.min(segEnd, w.end)),
+  }));
+}
+
+function evenlyDistribute(words, segStart, segEnd) {
+  const segDur = Math.max(0.1, segEnd - segStart);
+  const perWord = segDur / words.length;
+  return words.map((w, i) => ({
+    ...w,
+    start: segStart + i * perWord,
+    end: segStart + (i + 1) * perWord,
+  }));
 }
 
 const useSubtitleStore = create((set, get) => ({
@@ -78,24 +130,31 @@ const useSubtitleStore = create((set, get) => ({
     const clipEnd = clip.endTime || 0;
     const segs = project.transcription.segments
       .filter((s) => s.start >= clipStart && s.end <= clipEnd)
-      .map((s, i) => ({
-        id: i + 1,
-        start: fmtTime(s.start - clipStart),
-        end: fmtTime(s.end - clipStart),
-        dur: ((s.end - s.start).toFixed(1)) + "s",
-        text: s.text,
-        track: "s1",
-        conf: "high",
-        startSec: s.start - clipStart,
-        endSec: s.end - clipStart,
-        warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
-        words: mergeWordTokens((s.words || []).map(w => ({
+      .map((s, i) => {
+        const segStartSec = s.start - clipStart;
+        const segEndSec = s.end - clipStart;
+        // Merge subword tokens, then repair broken timestamps
+        const rawWords = mergeWordTokens((s.words || []).map(w => ({
           word: w.word,
           start: Math.max(0, (w.start || 0) - clipStart),
           end: Math.max(0, (w.end || 0) - clipStart),
           probability: w.probability ?? 1,
-        }))),
-      }));
+        })));
+        const repairedWords = repairWordTimestamps(rawWords, segStartSec, segEndSec);
+        return {
+          id: i + 1,
+          start: fmtTime(segStartSec),
+          end: fmtTime(segEndSec),
+          dur: ((s.end - s.start).toFixed(1)) + "s",
+          text: s.text,
+          track: "s1",
+          conf: "high",
+          startSec: segStartSec,
+          endSec: segEndSec,
+          warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
+          words: repairedWords,
+        };
+      });
     set({
       editSegments: segs,
       originalSegments: segs, // preserve for segment mode switching
