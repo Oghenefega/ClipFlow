@@ -67,6 +67,16 @@
 
 ## Process
 
+### NEVER pattern-match fixes — actually diagnose from the screenshot
+- **Mistake:** User sent screenshots showing timecode inputs stretching way past their text content. Instead of analyzing the screenshot and recognizing the inputs were filling the FULL container width (a layout issue), I pattern-matched "too wide" → "reduce padding" and kept tweaking `px-2` → `px-1` → `px-0.5` across MULTIPLE rounds. The real cause was `flex-1` forcing inputs to stretch. This wasted the user's entire afternoon on a 5-second fix.
+- **Root cause:** Laziness. Did not actually look at the screenshot carefully. Did not ask "what CSS property causes an element to fill its container?" — which immediately points to `flex-1`, not padding.
+- **Rule:** When the user sends a screenshot of a UI bug:
+  1. LOOK AT THE SCREENSHOT. Actually analyze what's wrong visually — don't skim it.
+  2. Ask: "What CSS property could cause THIS specific visual behavior?" — not "what's the most common fix for this category of problem?"
+  3. If a fix doesn't work on the first try, the diagnosis is WRONG. Stop tweaking the same property. Re-examine the screenshot and re-diagnose from scratch.
+  4. Never submit a fix without mentally simulating whether it actually addresses what the screenshot shows.
+- **This is non-negotiable.** Lazy debugging that wastes the user's time is unacceptable. One round max for trivial CSS issues.
+
 ### Build and verify before declaring done
 - **Rule:** Always run `npx react-scripts build` after changes. Never mark a task complete without a successful build.
 - **Rule:** If a fix involves filtering/mapping data, trace through the logic with the actual problematic data to verify correctness.
