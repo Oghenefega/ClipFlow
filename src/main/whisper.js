@@ -3,146 +3,110 @@ const path = require("path");
 const fs = require("fs");
 
 /**
- * Build a cmd /c command string that prepends the binary dir + CUDA dir to PATH.
- * On Windows, DLLs (ggml.dll, ggml-cuda.dll, whisper.dll, cublas, cudart) must be
- * discoverable via PATH. Using cmd /c "set PATH=...&& exe args" ensures the Windows
- * DLL loader sees them.
- */
-function buildCommand(binaryPath, args) {
-  const binDir = path.dirname(binaryPath);
-  // Find CUDA directory — check common locations
-  const cudaDirs = [];
-  const cudaBase = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA";
-  if (fs.existsSync(cudaBase)) {
-    try {
-      const versions = fs.readdirSync(cudaBase).filter((d) => d.startsWith("v")).sort().reverse();
-      for (const v of versions) {
-        const x64 = path.join(cudaBase, v, "bin", "x64");
-        const bin = path.join(cudaBase, v, "bin");
-        if (fs.existsSync(x64)) cudaDirs.push(x64);
-        if (fs.existsSync(bin)) cudaDirs.push(bin);
-      }
-    } catch (_) { /* ignore */ }
-  }
-
-  const pathDirs = [binDir, ...cudaDirs].join(";");
-  const quotedArgs = args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ");
-
-  return `cmd /c "set "PATH=${pathDirs};%PATH%" && "${binaryPath}" ${quotedArgs}"`;
-}
-
-/**
- * Check if whisper.cpp binary is available.
- * @param {string} binaryPath - Path to whisper binary (or "whisper" if in PATH)
+ * Check if BetterWhisperX (whisperx) is available via the Python venv.
+ * @param {string} pythonPath - Path to python.exe in the venv
  * @returns {Promise<{installed: boolean, version?: string, error?: string}>}
  */
-function checkWhisper(binaryPath) {
+function checkWhisper(pythonPath) {
   return new Promise((resolve) => {
-    if (!binaryPath || !fs.existsSync(binaryPath)) {
-      // Try bare "whisper" in PATH
-      exec("whisper-cli --help", { timeout: 10000 }, (err, stdout, stderr) => {
-        const output = (stdout || "") + (stderr || "");
-        if (err && !output.includes("usage")) {
-          return resolve({ installed: false, error: "Binary not found" });
-        }
-        const vMatch = output.match(/whisper[.\s-]*cpp\s*v?(\S+)/i);
-        resolve({ installed: true, version: vMatch ? vMatch[1] : "detected" });
-      });
-      return;
+    if (!pythonPath || !fs.existsSync(pythonPath)) {
+      return resolve({ installed: false, error: "Python path not found" });
     }
 
-    const cmd = buildCommand(binaryPath, ["--help"]);
-    exec(cmd, { timeout: 10000 }, (err, stdout, stderr) => {
-      const output = (stdout || "") + (stderr || "");
-      if (err && !output.includes("usage")) {
-        return resolve({ installed: false, error: err.message });
+    const cmd = `"${pythonPath}" -c "import whisperx; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__)"`;
+    exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
+      if (err) {
+        return resolve({ installed: false, error: `whisperx not importable: ${err.message}` });
       }
-      // Check for CUDA
-      const hasCuda = output.includes("CUDA devices") || output.includes("ggml_cuda");
-      const version = hasCuda ? "CUDA" : "detected";
+      const output = stdout.toString();
+      const hasCuda = output.includes("CUDA:True");
+      const torchMatch = output.match(/torch:(.+)/);
+      const torchVer = torchMatch ? torchMatch[1].trim() : "";
+      const version = hasCuda
+        ? `whisperx (CUDA) — torch ${torchVer}`
+        : `whisperx (CPU) — torch ${torchVer}`;
       resolve({ installed: true, version });
     });
   });
 }
 
 /**
- * Transcribe an audio file using whisper.cpp.
- * Returns word-level timestamps and segment data.
+ * Transcribe an audio file using BetterWhisperX via tools/transcribe.py.
+ * Returns word-level timestamps and segment data in the same format as before.
  *
- * @param {string} wavPath - Path to 16kHz mono WAV file
+ * @param {string} wavPath - Path to audio file (WAV)
  * @param {object} opts
- * @param {string} opts.binaryPath - Path to whisper binary
- * @param {string} opts.modelPath - Path to ggml model file
- * @param {string} opts.model - Model name (e.g. "large-v3") — used if modelPath is a directory
+ * @param {string} opts.pythonPath - Path to python.exe in the venv
+ * @param {string} [opts.model="large-v3-turbo"] - Whisper model name
  * @param {string} [opts.language="en"] - Language code
- * @param {number} [opts.threads=8] - CPU threads
- * @param {boolean} [opts.useGpu=true] - Use CUDA GPU acceleration
+ * @param {number} [opts.batchSize=16] - Batch size for inference
+ * @param {string} [opts.computeType="float16"] - Compute type
+ * @param {string} [opts.hfToken] - HuggingFace token (for wav2vec2 alignment)
  * @param {function} [opts.onProgress] - Progress callback(percentage)
  * @returns {Promise<{segments: Array, text: string}>}
  */
 function transcribe(wavPath, opts = {}) {
   return new Promise((resolve, reject) => {
-    const bin = opts.binaryPath || "whisper-cli";
-
-    // Resolve model path
-    let modelPath = opts.modelPath || "";
-    if (modelPath && fs.existsSync(modelPath)) {
-      const stat = fs.statSync(modelPath);
-      if (stat.isDirectory()) {
-        const modelName = opts.model || "large-v3";
-        const candidates = [
-          `ggml-${modelName}.bin`,
-          `ggml-model-whisper-${modelName}.bin`,
-        ];
-        for (const c of candidates) {
-          const p = path.join(modelPath, c);
-          if (fs.existsSync(p)) { modelPath = p; break; }
-        }
-      }
+    const pythonPath = opts.pythonPath;
+    if (!pythonPath || !fs.existsSync(pythonPath)) {
+      return reject(new Error(`Python not found at: ${pythonPath}`));
     }
 
-    if (!modelPath || !fs.existsSync(modelPath)) {
-      return reject(new Error(`Whisper model not found at: ${modelPath}`));
+    // Resolve transcribe.py path — in tools/ relative to project root
+    // From src/main/ we go up two levels to reach project root
+    const scriptPath = path.join(__dirname, "..", "..", "tools", "transcribe.py");
+    if (!fs.existsSync(scriptPath)) {
+      return reject(new Error(`Transcription script not found at: ${scriptPath}`));
     }
 
-    // Build output JSON path (whisper.cpp creates <basename>.json)
+    // Build output JSON path
     const outBase = wavPath.replace(/\.wav$/i, "");
-    const jsonOutPath = outBase + ".json";
+    const jsonOutPath = outBase + "-whisperx.json";
 
-    const args = [
-      "-m", modelPath,
-      "-f", wavPath,
-      "-l", opts.language || "en",
-      "-t", String(opts.threads || 8),
-      "--output-json-full",
-      "--output-file", outBase,
-      "--no-prints",
-      "--print-progress",
-    ];
+    const model = opts.model || "large-v3-turbo";
+    const language = opts.language || "en";
+    const batchSize = opts.batchSize || 16;
+    const computeType = opts.computeType || "float16";
 
-    const cmd = buildCommand(bin, args);
+    // Build command — set HF_HOME so models download to D: drive
+    const hfHome = opts.hfHome || "D:\\whisper\\hf_cache";
+    let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
+    cmd += ` --audio "${wavPath}"`;
+    cmd += ` --output "${jsonOutPath}"`;
+    cmd += ` --model ${model}`;
+    cmd += ` --language ${language}`;
+    cmd += ` --batch_size ${batchSize}`;
+    cmd += ` --compute_type ${computeType}`;
+    if (opts.hfToken) {
+      cmd += ` --hf_token ${opts.hfToken}`;
+    }
+    cmd += `"`;
 
     const proc = exec(cmd, {
-      timeout: 1800000, // 30 minutes max
+      timeout: 3600000, // 60 minutes max (large files)
       maxBuffer: 100 * 1024 * 1024,
     }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(`Whisper transcription failed: ${err.message}`));
+      if (err) {
+        // Include stderr for debugging
+        const errOutput = (stderr || "").slice(-2000);
+        return reject(new Error(`Transcription failed: ${err.message}\n${errOutput}`));
+      }
 
       // Read the JSON output file
       try {
         if (!fs.existsSync(jsonOutPath)) {
-          return reject(new Error(`Whisper output file not found: ${jsonOutPath}`));
+          return reject(new Error(`Transcription output file not found: ${jsonOutPath}`));
         }
 
         const raw = JSON.parse(fs.readFileSync(jsonOutPath, "utf-8"));
-        const result = parseWhisperOutput(raw);
 
         // Clean up the JSON file
         try { fs.unlinkSync(jsonOutPath); } catch (e) { /* ignore */ }
 
-        resolve(result);
+        // raw is already in our format: { segments: [...], text: "..." }
+        resolve(raw);
       } catch (e) {
-        reject(new Error(`Failed to parse Whisper output: ${e.message}`));
+        reject(new Error(`Failed to parse transcription output: ${e.message}`));
       }
     });
 
@@ -159,88 +123,7 @@ function transcribe(wavPath, opts = {}) {
   });
 }
 
-/**
- * Extract milliseconds from a whisper.cpp timestamp value.
- * Handles both numeric offsets (720) and string timestamps ("00:00:00,720").
- * @param {number|string|undefined} val
- * @returns {number} milliseconds
- */
-function toMs(val) {
-  if (typeof val === "number") return val;
-  if (typeof val === "string") {
-    // Parse "HH:MM:SS,mmm" format
-    const m = val.match(/(\d+):(\d+):(\d+)[,.](\d+)/);
-    if (m) {
-      return (
-        parseInt(m[1], 10) * 3600000 +
-        parseInt(m[2], 10) * 60000 +
-        parseInt(m[3], 10) * 1000 +
-        parseInt(m[4], 10)
-      );
-    }
-  }
-  return 0;
-}
-
-/**
- * Parse whisper.cpp JSON output into our standard format.
- *
- * whisper.cpp --output-json-full produces:
- *   timestamps.from / timestamps.to  = STRING "HH:MM:SS,mmm"
- *   offsets.from / offsets.to         = NUMBER (milliseconds)
- *
- * We prefer offsets (numeric) but safely handle either via toMs().
- *
- * @param {object} raw - Raw whisper.cpp JSON
- * @returns {{ segments: Array<{start, end, text, words}>, text: string }}
- */
-function parseWhisperOutput(raw) {
-  // raw.transcription is the segment array; raw.result is { language: "en" }, NOT an array
-  const transcription = Array.isArray(raw.transcription) ? raw.transcription : [];
-  const segments = [];
-  let fullText = "";
-
-  for (const seg of transcription) {
-    // Prefer numeric offsets, fall back to parsing string timestamps
-    const startMs = toMs(seg.offsets?.from) || toMs(seg.timestamps?.from);
-    const endMs = toMs(seg.offsets?.to) || toMs(seg.timestamps?.to);
-    const text = (seg.text || "").trim();
-
-    if (!text) continue;
-
-    const words = [];
-    if (seg.tokens) {
-      for (const token of seg.tokens) {
-        const word = (token.text || "").trim();
-        if (!word || word.startsWith("[")) continue;
-
-        const tStart = toMs(token.offsets?.from) || toMs(token.timestamps?.from) || startMs;
-        const tEnd = toMs(token.offsets?.to) || toMs(token.timestamps?.to) || endMs;
-
-        words.push({
-          word,
-          start: tStart / 1000,
-          end: tEnd / 1000,
-          probability: token.p ?? token.probability ?? 1.0,
-        });
-      }
-    }
-
-    segments.push({
-      start: startMs / 1000,
-      end: endMs / 1000,
-      text,
-      words,
-    });
-
-    fullText += (fullText ? " " : "") + text;
-  }
-
-  return { segments, text: fullText };
-}
-
 module.exports = {
   checkWhisper,
   transcribe,
-  parseWhisperOutput,
 };

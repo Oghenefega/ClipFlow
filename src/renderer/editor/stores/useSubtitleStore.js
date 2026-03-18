@@ -40,6 +40,10 @@ const useSubtitleStore = create((set, get) => ({
   editSegments: [],
   originalSegments: [], // preserved for segment mode switching
 
+  // ── Undo/Redo history ──
+  _undoStack: [],
+  _redoStack: [],
+
   // ── Edit Subtitles panel ──
   esFilter: "all",
   activeSegId: null,
@@ -126,6 +130,35 @@ const useSubtitleStore = create((set, get) => ({
     });
   },
 
+  // ── Undo/Redo actions ──
+  _pushUndo: () => {
+    const { editSegments, _undoStack } = get();
+    const snapshot = JSON.parse(JSON.stringify(editSegments));
+    set({ _undoStack: [..._undoStack.slice(-50), snapshot], _redoStack: [] });
+  },
+  undo: () => {
+    const { _undoStack, editSegments } = get();
+    if (_undoStack.length === 0) return;
+    const prev = _undoStack[_undoStack.length - 1];
+    set({
+      _undoStack: _undoStack.slice(0, -1),
+      _redoStack: [...get()._redoStack, JSON.parse(JSON.stringify(editSegments))],
+      editSegments: prev,
+    });
+  },
+  redo: () => {
+    const { _redoStack, editSegments } = get();
+    if (_redoStack.length === 0) return;
+    const next = _redoStack[_redoStack.length - 1];
+    set({
+      _redoStack: _redoStack.slice(0, -1),
+      _undoStack: [...get()._undoStack, JSON.parse(JSON.stringify(editSegments))],
+      editSegments: next,
+    });
+  },
+  canUndo: () => get()._undoStack.length > 0,
+  canRedo: () => get()._redoStack.length > 0,
+
   // ── Segment actions ──
   setEditSegments: (segs) => set({ editSegments: typeof segs === "function" ? segs(get().editSegments) : segs }),
   setActiveSegId: (id) => set({ activeSegId: id }),
@@ -136,6 +169,7 @@ const useSubtitleStore = create((set, get) => ({
   setActiveRow: (r) => set({ activeRow: r }),
 
   updateSegmentText: (segId, text) => {
+    get()._pushUndo();
     set((s) => ({
       editSegments: s.editSegments.map(seg =>
         seg.id === segId ? { ...seg, text } : seg
@@ -144,6 +178,7 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   updateWordInSegment: (segId, wordIdx, newText) => {
+    get()._pushUndo();
     set((s) => ({
       editSegments: s.editSegments.map(seg => {
         if (seg.id !== segId) return seg;
@@ -162,6 +197,7 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   updateSegmentTimes: (segId, startSec, endSec) => {
+    get()._pushUndo();
     set((s) => ({
       editSegments: s.editSegments.map(seg =>
         seg.id === segId ? {
@@ -177,8 +213,9 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   splitSegment: () => {
-    const { activeSegId, editSegments, selectedWordInfo } = get();
+    const { activeSegId, editSegments, selectedWordInfo, _pushUndo } = get();
     if (!activeSegId) return;
+    _pushUndo();
     const idx = editSegments.findIndex(s => s.id === activeSegId);
     if (idx < 0) return;
     const seg = editSegments[idx];
@@ -209,6 +246,7 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   mergeSegment: () => {
+    get()._pushUndo();
     const { activeSegId, editSegments } = get();
     if (!activeSegId) return;
     const idx = editSegments.findIndex(s => s.id === activeSegId);
@@ -266,6 +304,7 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   deleteSegment: (segId) => {
+    get()._pushUndo();
     set((s) => ({ editSegments: s.editSegments.filter(seg => seg.id !== segId) }));
   },
 

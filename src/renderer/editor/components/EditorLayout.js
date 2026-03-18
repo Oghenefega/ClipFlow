@@ -11,6 +11,7 @@ import RightPanelNew from "./RightPanelNew";
 import PreviewPanelNew from "./PreviewPanelNew";
 import TimelinePanelNew from "./TimelinePanelNew";
 import useEditorStore from "../stores/useEditorStore";
+import useSubtitleStore from "../stores/useSubtitleStore";
 import {
   Undo2,
   Redo2,
@@ -18,7 +19,6 @@ import {
   ChevronDown,
   Play,
   Clock,
-  Settings,
   Check,
   Send,
 } from "lucide-react";
@@ -57,18 +57,20 @@ function fmtDuration(sec) {
 }
 
 // ── Clip Navigator Dropdown ──
-function ClipNavigator({ clips, currentClipId, onSelect, onClose }) {
+function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
+      // Ignore clicks on the chevron button (it handles its own toggle)
+      if (chevronRef?.current && chevronRef.current.contains(e.target)) return;
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         onClose();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  }, [onClose, chevronRef]);
 
   if (!clips || clips.length === 0) {
     return (
@@ -163,12 +165,18 @@ function Topbar({ onBack }) {
   const handleSave = useEditorStore((s) => s.handleSave);
   const markDirty = useEditorStore((s) => s.markDirty);
 
+  const undo = useSubtitleStore((s) => s.undo);
+  const redo = useSubtitleStore((s) => s.redo);
+  const undoStack = useSubtitleStore((s) => s._undoStack);
+  const redoStack = useSubtitleStore((s) => s._redoStack);
+
   const [navOpen, setNavOpen] = useState(false);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [, forceUpdate] = useState(0);
   const titleInputRef = useRef(null);
   const saveMenuRef = useRef(null);
+  const navChevronRef = useRef(null);
 
   // Update "last saved" display periodically
   useEffect(() => {
@@ -263,19 +271,29 @@ function Topbar({ onBack }) {
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost" size="icon"
+                className={`h-8 w-8 ${undoStack.length > 0 ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
+                onClick={() => { undo(); markDirty(); }}
+                disabled={undoStack.length === 0}
+              >
                 <Undo2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="text-xs">Undo</TooltipContent>
+            <TooltipContent className="text-xs">Undo (Ctrl+Z)</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost" size="icon"
+                className={`h-8 w-8 ${redoStack.length > 0 ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"}`}
+                onClick={() => { redo(); markDirty(); }}
+                disabled={redoStack.length === 0}
+              >
                 <Redo2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="text-xs">Redo</TooltipContent>
+            <TooltipContent className="text-xs">Redo (Ctrl+Y)</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
@@ -303,14 +321,17 @@ function Topbar({ onBack }) {
               setEditingTitle(false);
               markDirty();
             }}
-            className="bg-secondary/60 border border-border rounded-md px-3 py-1.5 text-sm font-medium text-foreground text-center max-w-[400px] w-auto min-w-[200px] outline-none focus:ring-1 focus:ring-primary/50"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            className="bg-secondary/60 border border-border rounded-md px-3 py-1.5 text-sm font-medium text-foreground text-center outline-none focus:ring-1 focus:ring-primary/50"
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              width: `${Math.max(200, Math.min(600, clipTitle.length * 8.5 + 40))}px`,
+            }}
           />
         ) : (
           <div className="flex items-center gap-0 rounded-md hover:bg-secondary/40 transition-colors">
             {/* Title text — click to edit */}
             <span
-              className="text-sm font-medium text-foreground truncate max-w-[300px] cursor-text px-3 py-1.5"
+              className="text-sm font-medium text-foreground cursor-text px-3 py-1.5"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingTitle(true);
@@ -320,6 +341,7 @@ function Topbar({ onBack }) {
             </span>
             {/* Chevron — click to open clip navigator */}
             <button
+              ref={navChevronRef}
               className="flex items-center px-1.5 py-1.5 rounded-r-md hover:bg-secondary/80 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -343,23 +365,13 @@ function Topbar({ onBack }) {
             currentClipId={clip?.id}
             onSelect={handleClipSelect}
             onClose={() => setNavOpen(false)}
+            chevronRef={navChevronRef}
           />
         )}
       </div>
 
-      {/* Right: Settings + Save with dropdown */}
+      {/* Right: Save with dropdown */}
       <div className="flex items-center gap-1.5">
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Settings</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
         {/* Save button group */}
         <div className="relative flex items-center" ref={saveMenuRef}>
           <Button
@@ -417,6 +429,34 @@ function Topbar({ onBack }) {
 
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
+  // Global undo/redo keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      // Skip if user is typing in an input/textarea
+      const tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        const store = useSubtitleStore.getState();
+        if (store._undoStack.length > 0) {
+          store.undo();
+          useEditorStore.getState().markDirty();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z") || (e.shiftKey && e.key === "z"))) {
+        e.preventDefault();
+        const store = useSubtitleStore.getState();
+        if (store._redoStack.length > 0) {
+          store.redo();
+          useEditorStore.getState().markDirty();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>

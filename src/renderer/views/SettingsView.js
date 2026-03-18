@@ -52,8 +52,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [guideVal, setGuideVal] = useState(styleGuide || "");
   const [ffmpegStatus, setFfmpegStatus] = useState(null); // { installed, version } or null
   const [whisperStatus, setWhisperStatus] = useState(null);
-  const [whisperBinPath, setWhisperBinPath] = useState("");
-  const [whisperModelPath, setWhisperModelPath] = useState("");
+  const [whisperPythonPath, setWhisperPythonPath] = useState("");
+  const [whisperModel, setWhisperModel] = useState("large-v3-turbo");
 
   // Check ffmpeg + whisper on mount
   useEffect(() => {
@@ -62,15 +62,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         const r = await window.clipflow.ffmpegCheck();
         setFfmpegStatus(r);
       }
-      // Load whisper paths from store
+      // Load whisperx paths from store
       if (window.clipflow?.storeGet) {
-        const bp = await window.clipflow.storeGet("whisperBinaryPath");
-        const mp = await window.clipflow.storeGet("whisperModelPath");
-        if (bp) setWhisperBinPath(bp);
-        if (mp) setWhisperModelPath(mp);
-        // Check whisper with stored binary path
+        const pp = await window.clipflow.storeGet("whisperPythonPath");
+        const wm = await window.clipflow.storeGet("whisperModel");
+        if (pp) setWhisperPythonPath(pp);
+        if (wm) setWhisperModel(wm);
+        // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
-          const r = await window.clipflow.whisperCheck(bp || undefined);
+          const r = await window.clipflow.whisperCheck(pp || undefined);
           setWhisperStatus(r);
         }
       }
@@ -247,7 +247,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <PulseDot color={whisperStatus?.installed ? T.green : T.red} />
-          <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Whisper</span>
+          <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>BetterWhisperX</span>
           <span style={{ color: whisperStatus?.installed ? T.green : T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
             {whisperStatus?.installed ? whisperStatus.version : whisperStatus?.error ? "Not found" : "Checking..."}
           </span>
@@ -256,45 +256,28 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.yellow}15`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33` }}>
             <span style={{ color: T.yellow, fontSize: 11 }}>
               {!ffmpegStatus?.installed && "ffmpeg must be installed and in PATH. "}
-              {!whisperStatus?.installed && "Set Whisper binary path below."}
+              {!whisperStatus?.installed && "Set Python path below (BetterWhisperX venv)."}
             </span>
           </div>
         )}
       </Card>
 
-      {/* Whisper Configuration */}
+      {/* BetterWhisperX Configuration */}
       <Card style={{ marginBottom: 16, padding: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Whisper Configuration</div>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>BetterWhisperX Configuration</div>
         <div style={{ marginBottom: 14 }}>
-          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Binary Path</div>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Python Path (venv)</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: whisperBinPath ? T.text : T.textTertiary, padding: "6px 0" }}>
-              {whisperBinPath || "Not set — using PATH lookup"}
+            <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: whisperPythonPath ? T.text : T.textTertiary, padding: "6px 0" }}>
+              {whisperPythonPath || "Not set — browse to python.exe in BetterWhisperX venv"}
             </span>
             <button onClick={async () => {
-              const f = await window.clipflow?.openFileDialog({ filters: [{ name: "Executables", extensions: ["exe", "*"] }] });
+              const f = await window.clipflow?.openFileDialog({ filters: [{ name: "Python", extensions: ["exe"] }] });
               if (f) {
-                setWhisperBinPath(f);
-                await window.clipflow?.storeSet("whisperBinaryPath", f);
+                setWhisperPythonPath(f);
+                await window.clipflow?.storeSet("whisperPythonPath", f);
                 const r = await window.clipflow?.whisperCheck(f);
                 setWhisperStatus(r);
-              }
-            }} style={{ padding: "5px 12px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>
-              Browse
-            </button>
-          </div>
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Model Path</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: whisperModelPath ? T.text : T.textTertiary, padding: "6px 0" }}>
-              {whisperModelPath || "Not set — path to ggml model file or directory"}
-            </span>
-            <button onClick={async () => {
-              const f = await window.clipflow?.pickFolder();
-              if (f) {
-                setWhisperModelPath(f);
-                await window.clipflow?.storeSet("whisperModelPath", f);
               }
             }} style={{ padding: "5px 12px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>
               Browse
@@ -304,20 +287,23 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div>
           <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Model</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {["tiny", "base", "small", "medium", "large-v3"].map((m) => {
-              const isActive = (sfxFolder === "" ? "large-v3" : m) === m; // TODO: wire to whisperModel state
+            {["small", "medium", "large-v3", "large-v3-turbo"].map((m) => {
+              const isActive = whisperModel === m;
               return (
-                <button key={m} onClick={async () => { await window.clipflow?.storeSet("whisperModel", m); }}
+                <button key={m} onClick={async () => {
+                  setWhisperModel(m);
+                  await window.clipflow?.storeSet("whisperModel", m);
+                }}
                   style={{
                     padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.mono, cursor: "pointer",
-                    border: m === "large-v3" ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                    background: m === "large-v3" ? T.accentDim : "rgba(255,255,255,0.03)",
-                    color: m === "large-v3" ? T.accentLight : T.textSecondary,
+                    border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                    background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    color: isActive ? T.accentLight : T.textSecondary,
                   }}>{m}</button>
               );
             })}
           </div>
-          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>RTX 3090 recommended: large-v3 (~2 min per 30 min audio)</div>
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>RTX 3090: large-v3-turbo recommended (fastest with near-v3 quality). Models download automatically on first use.</div>
         </div>
       </Card>
 

@@ -4,7 +4,62 @@
 
 ---
 
-## 🟡 In Progress — Phase 10: Editor Architecture Rewrite
+## 🟡 In Progress — Whisper Migration: whisper.cpp → BetterWhisperX
+
+### Goal
+Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Same output format, better word-level timestamps, faster batch inference, large-v3-turbo model.
+
+### Phase 1: Python Environment + BetterWhisperX Install
+- [x] Verify Python 3.10+ is installed with CUDA-compatible PyTorch
+- [x] Install BetterWhisperX: `pip install whisperx` (v3.8.2 from PyPI)
+- [x] Verify import works: `python -c "import whisperx; print('OK')"`
+- [ ] Test basic transcription from CLI with large-v3-turbo model
+
+### Phase 2: Create Python Bridge Script
+- [x] Create `tools/transcribe.py` — standalone Python script that:
+  - Takes args: `--audio <path> --model <name> --output <path> --language <lang> --batch_size <n> --compute_type <type>`
+  - Loads BetterWhisperX model
+  - Transcribes with batch_size=16, compute_type=float16
+  - Runs wav2vec2 alignment for word-level timestamps
+  - Outputs JSON matching ClipFlow's expected format:
+    `{ segments: [{ start, end, text, words: [{ word, start, end, probability }] }], text: "..." }`
+  - Prints progress to stderr as `XX%` (parseable by existing progress handler)
+  - Exits 0 on success, non-zero on error
+
+### Phase 3: Swap whisper.js Integration
+- [x] Rewrite `src/main/whisper.js`:
+  - `checkWhisper()` → verify Python + whisperx importable
+  - `transcribe()` → spawn `python tools/transcribe.py` instead of whisper-cli
+  - `parseWhisperOutput()` → removed (Python script outputs our format directly)
+  - Removed whisper.cpp buildCommand/PATH/CUDA/DLL logic
+  - Kept same return signature: `{ segments, text }`
+- [x] Update `src/main/main.js` IPC handler:
+  - Changed store keys from whisperBinaryPath/whisperModelPath to whisperPythonPath/whisperModel
+  - Kept progress event forwarding (unchanged format)
+- [x] Update `src/main/preload.js` — no changes needed (same IPC methods)
+
+### Phase 4: Settings UI Update
+- [x] Update `src/renderer/views/SettingsView.js`:
+  - Replaced "Whisper Binary Path" with "Python Path (venv)" selector
+  - Removed "Model Path" (folder) — BetterWhisperX downloads models automatically
+  - Changed model options: large-v3-turbo (default), large-v3, medium, small
+  - Updated status check to show BetterWhisperX version + torch + CUDA
+
+### Phase 5: Verify End-to-End
+- [x] Build with zero errors
+- [ ] Generate clips from a recording (full pipeline test)
+- [ ] Verify word-level timestamps in editor (karaoke highlight, per-word seek)
+- [ ] Verify segment splitting/merging still works
+- [ ] Verify render pipeline (ASS subtitles) still works
+
+### Phase 6: Cleanup (REQUIRES EXPLICIT USER APPROVAL)
+- [ ] List all whisper.cpp files/deps to remove — present to user
+- [ ] Wait for user approval before deleting anything
+- [ ] Remove approved items only
+
+---
+
+## 🔵 Previous — Phase 10: Editor Architecture Rewrite
 
 ### Goal
 Decompose the 2654-line monolithic EditorView.js into ~22 modular files with Zustand state management. Zero feature regressions.
