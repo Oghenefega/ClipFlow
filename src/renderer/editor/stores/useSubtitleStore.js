@@ -21,57 +21,54 @@ function mergeWordTokens(words) {
   return merged;
 }
 
-// ── Repair word timestamps within a segment ──
-// whisperx wav2vec2 alignment can produce unreliable word-level timestamps:
-// - Words bunched at the same time, 0-duration segments with words, etc.
-// When word timestamps are clearly wrong, evenly distribute words across
-// the segment's time range. Segment-level timestamps are reliable.
+// ── JS-side word timestamp repair (fallback for already-transcribed clips) ──
+// The main repair happens in Python (transcribe.py) using audio energy.
+// This is a lightweight fallback for clips transcribed before that fix.
 function repairWordTimestamps(words, segStart, segEnd) {
   if (!words || words.length === 0) return words;
-
   const segDur = segEnd - segStart;
+  const n = words.length;
 
-  // Check if timestamps are valid:
-  // 1. Segment has meaningful duration
-  // 2. Words span a reasonable portion of the segment
-  // 3. Words are monotonically increasing
-  // 4. No words bunched at the exact same time
-  if (segDur < 0.05) {
-    // Segment has ~0 duration — evenly distribute
-    return evenlyDistribute(words, segStart, segEnd);
+  // Detect broken timestamps
+  let isBroken = segDur < 0.05;
+  if (!isBroken && n > 1) {
+    // Check bunching: >50% of words share a start time (within 50ms)
+    const rounded = words.map(w => Math.round(w.start * 20) / 20);
+    if (new Set(rounded).size / n < 0.5) isBroken = true;
+    // Check coverage: words span <30% of segment
+    if (!isBroken) {
+      const span = Math.max(...words.map(w => w.end)) - Math.min(...words.map(w => w.start));
+      if (segDur > 0 && span / segDur < 0.3) isBroken = true;
+    }
+    // Check zero-duration words (>40%)
+    if (!isBroken) {
+      const zeroDur = words.filter(w => (w.end - w.start) < 0.02).length;
+      if (zeroDur / n > 0.4) isBroken = true;
+    }
+    // Check monotonicity
+    if (!isBroken) {
+      for (let i = 1; i < n; i++) {
+        if (words[i].start < words[i-1].start - 0.01) { isBroken = true; break; }
+      }
+    }
   }
 
-  // Check how many words share the same start time (bunching)
-  const startTimes = words.map(w => Math.round(w.start * 20) / 20); // round to 50ms
-  const uniqueStarts = new Set(startTimes).size;
-  const bunchRatio = uniqueStarts / words.length;
-
-  // Check if words actually span the segment
-  const wordsStart = Math.min(...words.map(w => w.start));
-  const wordsEnd = Math.max(...words.map(w => w.end));
-  const wordSpan = wordsEnd - wordsStart;
-  const coverageRatio = segDur > 0 ? wordSpan / segDur : 0;
-
-  // If words are heavily bunched (<50% unique start times) or cover <30% of segment
-  if (bunchRatio < 0.5 || coverageRatio < 0.3) {
-    return evenlyDistribute(words, segStart, segEnd);
+  if (isBroken) {
+    // Even distribution fallback
+    const dur = Math.max(0.05, segDur);
+    const perWord = dur / n;
+    return words.map((w, i) => ({
+      ...w,
+      start: segStart + i * perWord,
+      end: segStart + (i + 1) * perWord,
+    }));
   }
 
-  // Words look reasonable — keep them but clamp to segment boundaries
+  // Timestamps look OK — clamp to segment boundaries + enforce min duration
   return words.map(w => ({
     ...w,
     start: Math.max(segStart, Math.min(segEnd, w.start)),
-    end: Math.max(segStart, Math.min(segEnd, w.end)),
-  }));
-}
-
-function evenlyDistribute(words, segStart, segEnd) {
-  const segDur = Math.max(0.1, segEnd - segStart);
-  const perWord = segDur / words.length;
-  return words.map((w, i) => ({
-    ...w,
-    start: segStart + i * perWord,
-    end: segStart + (i + 1) * perWord,
+    end: Math.max(Math.max(segStart, w.start) + 0.02, Math.min(segEnd, w.end)),
   }));
 }
 
