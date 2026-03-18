@@ -836,9 +836,23 @@ export default function PreviewPanelNew() {
             >
               {editingCaption && selectedOverlay === "cap" ? (
                 <textarea
-                  ref={captionInputRef}
+                  ref={(el) => {
+                    captionInputRef.current = el;
+                    // Auto-size height to match visual wrapping
+                    if (el) {
+                      el.style.height = "auto";
+                      el.style.height = el.scrollHeight + "px";
+                    }
+                  }}
                   value={captionText}
-                  onChange={(e) => setCaptionText(e.target.value)}
+                  onChange={(e) => {
+                    setCaptionText(e.target.value);
+                    // Re-auto-size on content change
+                    if (captionInputRef.current) {
+                      captionInputRef.current.style.height = "auto";
+                      captionInputRef.current.style.height = captionInputRef.current.scrollHeight + "px";
+                    }
+                  }}
                   onBlur={() => setEditingCaption(false)}
                   onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(false); }}
                   className="bg-transparent border-none outline-none resize-none text-center w-full"
@@ -846,8 +860,8 @@ export default function PreviewPanelNew() {
                     ...capTextStyle,
                     minWidth: 60,
                     cursor: "text",
+                    overflow: "hidden",
                   }}
-                  rows={Math.max(1, captionText.split("\n").length)}
                   autoFocus
                 />
               ) : (
