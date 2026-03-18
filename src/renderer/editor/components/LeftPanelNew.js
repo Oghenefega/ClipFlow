@@ -172,29 +172,30 @@ function SubtitleSettingsPopover() {
             <span className="text-sm text-foreground">Punctuation</span>
             <button
               onClick={() => setPunctOn(!punctOn)}
-              className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer ${punctOn ? "bg-primary" : "bg-secondary"}`}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${punctOn ? "left-[22px]" : "left-0.5"}`} />
+              <span>{punctOn ? "Hide" : "Remove"}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${punctOn ? "rotate-180" : ""}`} />
             </button>
           </div>
 
           {punctOn && (
             <div className="px-3 pb-2.5">
-              <span className="text-xs text-muted-foreground mb-2 block">Remove specific punctuation:</span>
+              <span className="text-xs text-muted-foreground mb-2 block">Tap to remove:</span>
               <div className="flex flex-wrap gap-1.5">
                 {PUNCTUATION_OPTIONS.map((p) => (
                   <button
                     key={p.key}
                     onClick={() => togglePunct(p.key)}
                     className={`
-                      h-7 px-2.5 rounded text-xs font-medium border transition-colors cursor-pointer
+                      h-7 px-2.5 rounded text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1
                       ${punctuationRemove[p.key]
-                        ? "bg-primary/15 border-primary/40 text-primary"
+                        ? "bg-red-500/10 border-red-500/30 text-red-400"
                         : "bg-secondary/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
                       }
                     `}
                   >
-                    {punctuationRemove[p.key] && <Check className="h-3 w-3 inline mr-1" />}
+                    {punctuationRemove[p.key] && <X className="h-3 w-3" />}
                     {p.char}
                   </button>
                 ))}
