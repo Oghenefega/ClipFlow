@@ -52,9 +52,8 @@ const store = new Store({
     ytDescriptions: {},
     outputFolder: "",
     sfxFolder: "",
-    whisperModel: "large-v3",
-    whisperBinaryPath: "",
-    whisperModelPath: "",
+    whisperModel: "large-v3-turbo",
+    whisperPythonPath: "",
     localProjects: [],
     renameHistory: [],
     anthropicApiKey: "",
@@ -68,6 +67,10 @@ const store = new Store({
     titleCaptionHistory: [],
   },
 });
+
+// ── Migration: remove stale whisper.cpp store keys ──
+if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
+if (store.has("whisperModelPath")) store.delete("whisperModelPath");
 
 let mainWindow;
 let watcher = null;
@@ -411,21 +414,25 @@ ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => 
   catch (err) { return { error: err.message, peaks: [] }; }
 });
 
-// ============ WHISPER ============
-ipcMain.handle("whisper:checkInstalled", async (_, binaryPath) => {
-  try { return await whisper.checkWhisper(binaryPath); }
+// ============ WHISPER (BetterWhisperX) ============
+ipcMain.handle("whisper:checkInstalled", async (_, pythonPath) => {
+  try {
+    const pp = pythonPath || store.get("whisperPythonPath") || "";
+    return await whisper.checkWhisper(pp);
+  }
   catch (err) { return { installed: false, error: err.message }; }
 });
 
 ipcMain.handle("whisper:transcribe", async (_, wavPath, opts) => {
   try {
     const storeOpts = {
-      binaryPath: store.get("whisperBinaryPath") || opts?.binaryPath || "whisper",
-      modelPath: store.get("whisperModelPath") || opts?.modelPath || "",
-      model: store.get("whisperModel") || opts?.model || "large-v3",
+      pythonPath: store.get("whisperPythonPath") || opts?.pythonPath || "",
+      model: store.get("whisperModel") || opts?.model || "large-v3-turbo",
       language: opts?.language || "en",
-      threads: opts?.threads || 8,
-      useGpu: opts?.useGpu !== false,
+      batchSize: opts?.batchSize || 16,
+      computeType: opts?.computeType || "float16",
+      hfToken: store.get("hfToken") || opts?.hfToken || "",
+      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
     };
 
     // Send progress events to renderer
@@ -541,15 +548,16 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
       return { error: `Audio extraction failed: ${audioResult.error}` };
     }
 
-    // Stage 3: Transcribe
-    sendProgress("transcribing", 20, "Transcribing with Whisper...");
+    // Stage 3: Transcribe (BetterWhisperX)
+    sendProgress("transcribing", 20, "Transcribing with BetterWhisperX...");
     const whisperOpts = {
-      binaryPath: store.get("whisperBinaryPath") || "whisper",
-      modelPath: store.get("whisperModelPath") || "",
-      model: store.get("whisperModel") || "large-v3",
+      pythonPath: store.get("whisperPythonPath") || "",
+      model: store.get("whisperModel") || "large-v3-turbo",
       language: "en",
-      threads: 8,
-      useGpu: true,
+      batchSize: 16,
+      computeType: "float16",
+      hfToken: store.get("hfToken") || "",
+      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
       onProgress: (pct) => {
         // Map whisper's 0-100 to our 20-60 range
         sendProgress("transcribing", 20 + Math.round(pct * 0.4), `Transcribing... ${pct}%`);
