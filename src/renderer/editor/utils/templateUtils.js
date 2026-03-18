@@ -22,6 +22,7 @@ export const BUILTIN_TEMPLATE = {
     shadowOn: false, shadowBlur: 8, shadowColor: "#000000", shadowOpacity: 70, shadowOffsetX: 4, shadowOffsetY: 4,
     bgOn: false, bgOpacity: 80, bgColor: "#000000", bgPaddingX: 12, bgPaddingY: 8, bgRadius: 6,
     highlightColor: "#4cce8a", lineMode: "1L", subMode: "karaoke", yPercent: 80,
+    animateOn: false, animateScale: 1.2, animateGrowFrom: 0.8, animateSpeed: 0.2,
   },
 };
 
@@ -164,6 +165,11 @@ export function applyTemplate(tpl) {
   _safeSet(ss, "setHighlightColor", s.highlightColor);
   _safeSet(ss, "setLineMode", s.lineMode);
   _safeSet(ss, "setSubMode", s.subMode);
+  // Animation
+  _safeSet(ss, "setAnimateOn", s.animateOn);
+  _safeSet(ss, "setAnimateScale", s.animateScale);
+  _safeSet(ss, "setAnimateGrowFrom", s.animateGrowFrom);
+  _safeSet(ss, "setAnimateSpeed", s.animateSpeed);
 
   // Layout positions
   if (c.yPercent !== undefined) ls.setCapYPercent(c.yPercent);
@@ -171,43 +177,48 @@ export function applyTemplate(tpl) {
   if (s.yPercent !== undefined) ls.setSubYPercent(s.yPercent);
 }
 
-export function applyEffectPreset(preset) {
+// target: "both" (default, legacy), "subtitle", or "caption"
+export function applyEffectPreset(preset, target = "both") {
   const ss = useSubtitleStore.getState();
   const cs = useCaptionStore.getState();
   const s = preset.subtitle || {};
   const c = preset.caption || {};
 
-  // Apply subtitle effects
-  if (s.subColor !== undefined) ss.setSubColor(s.subColor);
-  for (const [key, setter] of [
-    ["strokeOn", "setStrokeOn"], ["strokeWidth", "setStrokeWidth"], ["strokeColor", "setStrokeColor"],
-    ["strokeOpacity", "setStrokeOpacity"], ["strokeBlur", "setStrokeBlur"], ["strokeOffsetX", "setStrokeOffsetX"], ["strokeOffsetY", "setStrokeOffsetY"],
-    ["glowOn", "setGlowOn"], ["glowColor", "setGlowColor"], ["glowOpacity", "setGlowOpacity"],
-    ["glowIntensity", "setGlowIntensity"], ["glowBlur", "setGlowBlur"], ["glowBlend", "setGlowBlend"],
-    ["glowOffsetX", "setGlowOffsetX"], ["glowOffsetY", "setGlowOffsetY"],
-    ["shadowOn", "setShadowOn"], ["shadowColor", "setShadowColor"], ["shadowOpacity", "setShadowOpacity"],
-    ["shadowBlur", "setShadowBlur"], ["shadowOffsetX", "setShadowOffsetX"], ["shadowOffsetY", "setShadowOffsetY"],
-    ["bgOn", "setBgOn"], ["bgColor", "setBgColor"], ["bgOpacity", "setBgOpacity"],
-    ["bgPaddingX", "setBgPaddingX"], ["bgPaddingY", "setBgPaddingY"], ["bgRadius", "setBgRadius"],
-  ]) {
-    if (s[key] !== undefined) ss[setter](s[key]);
+  // Apply subtitle effects (only when target is "subtitle" or "both")
+  if (target === "subtitle" || target === "both") {
+    if (s.subColor !== undefined) ss.setSubColor(s.subColor);
+    for (const [key, setter] of [
+      ["strokeOn", "setStrokeOn"], ["strokeWidth", "setStrokeWidth"], ["strokeColor", "setStrokeColor"],
+      ["strokeOpacity", "setStrokeOpacity"], ["strokeBlur", "setStrokeBlur"], ["strokeOffsetX", "setStrokeOffsetX"], ["strokeOffsetY", "setStrokeOffsetY"],
+      ["glowOn", "setGlowOn"], ["glowColor", "setGlowColor"], ["glowOpacity", "setGlowOpacity"],
+      ["glowIntensity", "setGlowIntensity"], ["glowBlur", "setGlowBlur"], ["glowBlend", "setGlowBlend"],
+      ["glowOffsetX", "setGlowOffsetX"], ["glowOffsetY", "setGlowOffsetY"],
+      ["shadowOn", "setShadowOn"], ["shadowColor", "setShadowColor"], ["shadowOpacity", "setShadowOpacity"],
+      ["shadowBlur", "setShadowBlur"], ["shadowOffsetX", "setShadowOffsetX"], ["shadowOffsetY", "setShadowOffsetY"],
+      ["bgOn", "setBgOn"], ["bgColor", "setBgColor"], ["bgOpacity", "setBgOpacity"],
+      ["bgPaddingX", "setBgPaddingX"], ["bgPaddingY", "setBgPaddingY"], ["bgRadius", "setBgRadius"],
+    ]) {
+      if (s[key] !== undefined) ss[setter](s[key]);
+    }
   }
 
-  // Apply caption effects
-  if (c.color !== undefined) cs.setCaptionColor(c.color);
-  for (const [key, setter] of [
-    ["strokeOn", "setCaptionStrokeOn"], ["strokeWidth", "setCaptionStrokeWidth"], ["strokeColor", "setCaptionStrokeColor"],
-    ["strokeOpacity", "setCaptionStrokeOpacity"], ["strokeBlur", "setCaptionStrokeBlur"],
-    ["strokeOffsetX", "setCaptionStrokeOffsetX"], ["strokeOffsetY", "setCaptionStrokeOffsetY"],
-    ["glowOn", "setCaptionGlowOn"], ["glowColor", "setCaptionGlowColor"], ["glowOpacity", "setCaptionGlowOpacity"],
-    ["glowIntensity", "setCaptionGlowIntensity"], ["glowBlur", "setCaptionGlowBlur"], ["glowBlend", "setCaptionGlowBlend"],
-    ["glowOffsetX", "setCaptionGlowOffsetX"], ["glowOffsetY", "setCaptionGlowOffsetY"],
-    ["shadowOn", "setCaptionShadowOn"], ["shadowColor", "setCaptionShadowColor"], ["shadowOpacity", "setCaptionShadowOpacity"],
-    ["shadowBlur", "setCaptionShadowBlur"], ["shadowOffsetX", "setCaptionShadowOffsetX"], ["shadowOffsetY", "setCaptionShadowOffsetY"],
-    ["bgOn", "setCaptionBgOn"], ["bgColor", "setCaptionBgColor"], ["bgOpacity", "setCaptionBgOpacity"],
-    ["bgPaddingX", "setCaptionBgPaddingX"], ["bgPaddingY", "setCaptionBgPaddingY"], ["bgRadius", "setCaptionBgRadius"],
-  ]) {
-    if (c[key] !== undefined) cs[setter](c[key]);
+  // Apply caption effects (only when target is "caption" or "both")
+  if (target === "caption" || target === "both") {
+    if (c.color !== undefined) cs.setCaptionColor(c.color);
+    for (const [key, setter] of [
+      ["strokeOn", "setCaptionStrokeOn"], ["strokeWidth", "setCaptionStrokeWidth"], ["strokeColor", "setCaptionStrokeColor"],
+      ["strokeOpacity", "setCaptionStrokeOpacity"], ["strokeBlur", "setCaptionStrokeBlur"],
+      ["strokeOffsetX", "setCaptionStrokeOffsetX"], ["strokeOffsetY", "setCaptionStrokeOffsetY"],
+      ["glowOn", "setCaptionGlowOn"], ["glowColor", "setCaptionGlowColor"], ["glowOpacity", "setCaptionGlowOpacity"],
+      ["glowIntensity", "setCaptionGlowIntensity"], ["glowBlur", "setCaptionGlowBlur"], ["glowBlend", "setCaptionGlowBlend"],
+      ["glowOffsetX", "setCaptionGlowOffsetX"], ["glowOffsetY", "setCaptionGlowOffsetY"],
+      ["shadowOn", "setCaptionShadowOn"], ["shadowColor", "setCaptionShadowColor"], ["shadowOpacity", "setCaptionShadowOpacity"],
+      ["shadowBlur", "setCaptionShadowBlur"], ["shadowOffsetX", "setCaptionShadowOffsetX"], ["shadowOffsetY", "setCaptionShadowOffsetY"],
+      ["bgOn", "setCaptionBgOn"], ["bgColor", "setCaptionBgColor"], ["bgOpacity", "setCaptionBgOpacity"],
+      ["bgPaddingX", "setCaptionBgPaddingX"], ["bgPaddingY", "setCaptionBgPaddingY"], ["bgRadius", "setCaptionBgRadius"],
+    ]) {
+      if (c[key] !== undefined) cs[setter](c[key]);
+    }
   }
 }
 
@@ -282,6 +293,7 @@ export function snapshotTemplate(name) {
       bgOn: sub.bgOn, bgOpacity: sub.bgOpacity, bgColor: sub.bgColor,
       bgPaddingX: sub.bgPaddingX, bgPaddingY: sub.bgPaddingY, bgRadius: sub.bgRadius,
       highlightColor: sub.highlightColor, lineMode: sub.lineMode, subMode: sub.subMode,
+      animateOn: sub.animateOn, animateScale: sub.animateScale, animateGrowFrom: sub.animateGrowFrom, animateSpeed: sub.animateSpeed,
       yPercent: lay.subYPercent,
     },
   };

@@ -462,6 +462,10 @@ export default function PreviewPanelNew() {
   const lineMode = useSubtitleStore((s) => s.lineMode);
   const punctOn = useSubtitleStore((s) => s.punctOn);
   const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
+  const animateOn = useSubtitleStore((s) => s.animateOn);
+  const animateScale = useSubtitleStore((s) => s.animateScale);
+  const animateGrowFrom = useSubtitleStore((s) => s.animateGrowFrom);
+  const animateSpeed = useSubtitleStore((s) => s.animateSpeed);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
@@ -757,6 +761,7 @@ export default function PreviewPanelNew() {
   }, [hexToRgba, buildStrokeShadows, buildGlowShadow]);
 
   // Build subtitle text style (scales proportionally with preview canvas)
+  // textShadow is NOT included here — it's applied per-word so active word can have highlight-colored glow
   const subTextStyle = useMemo(() => {
     const scaledFontSize = fontSize * scaleFactor;
     const style = {
@@ -782,22 +787,30 @@ export default function PreviewPanelNew() {
       style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
       style.borderRadius = 4 * scaleFactor;
     }
-    // Text shadows (stroke + glow + shadow)
-    const allShadows = buildAllShadows({
-      sf: scaleFactor,
-      stroke: { on: strokeOn, width: strokeWidth, color: strokeColor, opacity: strokeOpacity, blur: strokeBlur, offX: strokeOffsetX, offY: strokeOffsetY },
-      glow: { on: glowOn, color: glowColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
-      shadow: { on: shadowOn, color: shadowColor, opacity: shadowOpacity, blur: shadowBlur, offX: shadowOffsetX, offY: shadowOffsetY },
-      order: effectOrder,
-    });
-    if (allShadows) style.textShadow = allShadows;
     return style;
   }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor,
     bgOn, bgOpacity, bgColor, bgPaddingX, bgPaddingY, bgRadius,
-    strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
+    scaleFactor, hexToRgba]);
+
+  // Per-word text-shadow: normal (subtitle glow color) + active (highlight glow color)
+  const subWordShadows = useMemo(() => {
+    const shadowOpts = { sf: scaleFactor,
+      stroke: { on: strokeOn, width: strokeWidth, color: strokeColor, opacity: strokeOpacity, blur: strokeBlur, offX: strokeOffsetX, offY: strokeOffsetY },
+      shadow: { on: shadowOn, color: shadowColor, opacity: shadowOpacity, blur: shadowBlur, offX: shadowOffsetX, offY: shadowOffsetY },
+      order: effectOrder,
+    };
+    const normal = buildAllShadows({ ...shadowOpts,
+      glow: { on: glowOn, color: glowColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
+    });
+    // Active word: use highlightColor for glow instead of glowColor
+    const active = buildAllShadows({ ...shadowOpts,
+      glow: { on: glowOn, color: highlightColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
+    });
+    return { normal, active };
+  }, [strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
     glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
     shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
-    scaleFactor, hexToRgba, buildAllShadows, effectOrder]);
+    scaleFactor, buildAllShadows, effectOrder, highlightColor]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -883,9 +896,15 @@ export default function PreviewPanelNew() {
   }, []);
 
   // Render subtitle words with karaoke highlight (always 1 line per screen)
+  // Track previous single-word segment for grow animation
+  const prevSingleWordRef = useRef(null);
+  const [singleWordKey, setSingleWordKey] = useState(0);
+
   const renderSubtitleText = () => {
     if (!currentSeg) return null;
     const words = currentSeg.words || [];
+    const isSingleWord = segmentMode === "1word";
+    const speed = animateOn ? animateSpeed : 0.1;
 
     if (words.length > 0) {
       // Character-limit chunking — group words until line exceeds char limit
@@ -906,19 +925,44 @@ export default function PreviewPanelNew() {
       let visibleOffset = 0;
       for (let c = 0; c < chunkIdx; c++) visibleOffset += chunks[c].length;
 
+      // Single-word grow animation: track segment changes
+      if (isSingleWord && animateOn) {
+        const segId = currentSeg.id;
+        if (prevSingleWordRef.current !== segId) {
+          prevSingleWordRef.current = segId;
+          setSingleWordKey(k => k + 1);
+        }
+      }
+
       return (
         <div style={{ ...subTextStyle, display: "block" }}>
           {visibleWords.map((w, i) => {
             const globalIdx = i + visibleOffset;
             const isActive = karaokeActive && globalIdx === currentWordIdx;
+            const wordShadow = isActive ? subWordShadows.active : subWordShadows.normal;
+
+            // Animation styles
+            const wordStyle = {
+              color: isActive ? highlightColor : (subColor || "#ffffff"),
+              textShadow: wordShadow || undefined,
+              display: "inline-block", // required for transform
+              transition: `color ${speed}s, transform ${speed}s ease-out`,
+            };
+
+            if (animateOn) {
+              if (isSingleWord) {
+                // Single word mode: grow from animateGrowFrom to 1.0
+                wordStyle.animation = `subGrow ${speed}s ease-out forwards`;
+              } else if (isActive) {
+                // Karaoke mode: active word pops up to animateScale
+                wordStyle.transform = `scale(${animateScale})`;
+              } else {
+                wordStyle.transform = "scale(1)";
+              }
+            }
+
             return (
-              <span
-                key={globalIdx}
-                style={{
-                  color: isActive ? highlightColor : (subColor || "#ffffff"),
-                  transition: "color 0.1s",
-                }}
-              >
+              <span key={isSingleWord ? `sw-${singleWordKey}-${globalIdx}` : globalIdx} style={wordStyle}>
                 {stripPunct(w.word)}{i < visibleWords.length - 1 ? " " : ""}
               </span>
             );
@@ -934,7 +978,7 @@ export default function PreviewPanelNew() {
     const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
     const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
     const visibleText = (chunks[chunkIdx] || []).map(w => stripPunct(w.word)).join(" ");
-    return <div style={{ ...subTextStyle, display: "block" }}>{visibleText}</div>;
+    return <div style={{ ...subTextStyle, display: "block", textShadow: subWordShadows.normal || undefined }}>{visibleText}</div>;
   };
 
   // Double-click handler for caption — switch right panel to Text tab
@@ -955,12 +999,16 @@ export default function PreviewPanelNew() {
   }, [setActivePanel, setDrawerOpen]);
 
 
+  // Dynamic CSS for single-word grow animation
+  const growKeyframes = animateOn ? `@keyframes subGrow { from { transform: scale(${animateGrowFrom}); } to { transform: scale(1); } }` : "";
+
   return (
     <div
       ref={containerRef}
       className="flex flex-col h-full w-full overflow-hidden relative select-none"
       style={{ background: "hsl(240 8% 3%)" }}
     >
+      {growKeyframes && <style>{growKeyframes}</style>}
       {/* Top controls overlay */}
       <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
         {/* Left: Fullscreen */}

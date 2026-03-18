@@ -242,3 +242,18 @@
 **Why it happened:** Trusted the `RightZone.js` import path without tracing the ACTUAL import chain from `EditorLayout.js`. Two parallel implementations existed.
 
 **Rule:** Before modifying any component, trace the import chain from the entry point (`EditorLayout.js`) to verify the component is actually mounted. `grep` for the import in the layout file, not just in any file.
+
+---
+
+## Effect Presets Must Be Panel-Scoped
+
+### Applying an effect preset should only change the target panel's store
+- **Mistake:** applyEffectPreset() always modified BOTH subtitle and caption stores, so clicking a preset in the Text (caption) panel also changed subtitles.
+- **Why:** The function was designed without considering that it would be called from two independent panels.
+- **Rule:** Any shared utility that modifies stores must accept a target/scope parameter. Never assume 'apply to everything' is the right default.
+
+## Per-Word Effects for Karaoke Highlight
+
+### Text-shadow must be per-word, not per-container, when karaoke highlighting is active
+- **Mistake:** Glow was applied at the parent div level, so the active (highlighted) word had its color changed but kept the same glow color as non-active words.
+- **Rule:** When words can have independent visual states (karaoke), all text-shadow effects must be per-span, not per-container. The active word's glow should match highlightColor.

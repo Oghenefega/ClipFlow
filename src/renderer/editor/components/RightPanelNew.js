@@ -455,7 +455,7 @@ function useUserPresets() {
   return { userPresets, persist };
 }
 
-function EffectPresetsGrid({ userPresets, persist }) {
+function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameText, setRenameText] = useState("");
   const [savingNew, setSavingNew] = useState(false);
@@ -526,7 +526,7 @@ function EffectPresetsGrid({ userPresets, persist }) {
                     onBlur={() => handleRename(preset.id)}
                     className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
                 ) : (
-                  <button className="flex-1 text-left px-2 py-1.5 text-xs text-foreground truncate" onClick={() => applyEffectPreset(preset)}>
+                  <button className="flex-1 text-left px-2 py-1.5 text-xs text-foreground truncate" onClick={() => applyEffectPreset(preset, target)}>
                     {preset.name}
                   </button>
                 )}
@@ -562,7 +562,7 @@ function EffectPresetsGrid({ userPresets, persist }) {
         <SectionLabel>Built-in</SectionLabel>
         <div className="grid grid-cols-2 gap-2">
           {EFFECT_PRESETS.map((preset) => (
-            <button key={preset.id} onClick={() => applyEffectPreset(preset)}
+            <button key={preset.id} onClick={() => applyEffectPreset(preset, target)}
               className="py-2 rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/40 hover:bg-secondary/80 cursor-pointer transition-all flex items-center justify-center">
               <span className="text-[10px] text-foreground font-medium">{preset.name}</span>
             </button>
@@ -1151,6 +1151,14 @@ function SubtitlesPanel() {
   const setSyncOffset = useSubtitleStore((s) => s.setSyncOffset);
   const effectOrder = useSubtitleStore((s) => s.effectOrder);
   const setEffectOrder = useSubtitleStore((s) => s.setEffectOrder);
+  const animateOn = useSubtitleStore((s) => s.animateOn);
+  const setAnimateOn = useSubtitleStore((s) => s.setAnimateOn);
+  const animateScale = useSubtitleStore((s) => s.animateScale);
+  const setAnimateScale = useSubtitleStore((s) => s.setAnimateScale);
+  const animateGrowFrom = useSubtitleStore((s) => s.animateGrowFrom);
+  const setAnimateGrowFrom = useSubtitleStore((s) => s.setAnimateGrowFrom);
+  const animateSpeed = useSubtitleStore((s) => s.animateSpeed);
+  const setAnimateSpeed = useSubtitleStore((s) => s.setAnimateSpeed);
 
   // B/I/U wired to subtitle store
   const subBold = useSubtitleStore((s) => s.subBold);
@@ -1184,7 +1192,7 @@ function SubtitlesPanel() {
 
       <ScrollArea className="flex-1">
         {subTab === "presets" ? (
-          <EffectPresetsGrid userPresets={userPresets} persist={persist} />
+          <EffectPresetsGrid userPresets={userPresets} persist={persist} target="subtitle" />
         ) : (
           /* Settings */
           <div className="p-3 space-y-3">
@@ -1311,6 +1319,23 @@ function SubtitlesPanel() {
 
             <Separator />
 
+            {/* Animation */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-foreground font-medium">Animation</span>
+                <ToggleSwitch value={animateOn} onChange={setAnimateOn} />
+              </div>
+              {animateOn && (
+                <div className="space-y-2 mt-2">
+                  <EffectSlider label="Pop scale" value={Math.round(animateScale * 100)} onChange={(v) => setAnimateScale(v / 100)} min={100} max={150} suffix="%" />
+                  <EffectSlider label="Grow from" value={Math.round(animateGrowFrom * 100)} onChange={(v) => setAnimateGrowFrom(v / 100)} min={50} max={100} suffix="%" />
+                  <EffectSlider label="Speed" value={Math.round(animateSpeed * 1000)} onChange={(v) => setAnimateSpeed(v / 1000)} min={50} max={500} suffix="ms" />
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Save as preset shortcut */}
             <Button variant="outline" className="w-full h-8 text-xs gap-2" onClick={() => setSubTab("presets")}>
               <Star className="h-3 w-3" /> Save as preset
@@ -1421,7 +1446,7 @@ function TextPanel() {
 
       <ScrollArea className="flex-1">
         {subTab === "presets" ? (
-          <EffectPresetsGrid userPresets={userPresets} persist={persist} />
+          <EffectPresetsGrid userPresets={userPresets} persist={persist} target="caption" />
         ) : (
           <div className="p-3 space-y-3">
             {/* Text content */}

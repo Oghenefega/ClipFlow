@@ -12,6 +12,7 @@ const SUB_STYLE_KEYS = [
   "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
   "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
   "lineMode", "syncOffset", "punctuationRemove", "effectOrder",
+  "animateOn", "animateScale", "animateGrowFrom", "animateSpeed",
 ];
 
 // Snapshot/restore helpers for cross-store undo
@@ -214,6 +215,11 @@ const useSubtitleStore = create((set, get) => ({
   syncOffset: 0,
   // Per-punctuation removal config
   punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
+  // Animation settings
+  animateOn: false,
+  animateScale: 1.2,       // karaoke pop scale (1.0–1.5)
+  animateGrowFrom: 0.8,    // single-word start scale (0.5–1.0)
+  animateSpeed: 0.2,       // transition duration in seconds (0.05–0.5)
 
   // ── Derived getter ──
   getTranscriptRows: () => {
@@ -527,6 +533,10 @@ const useSubtitleStore = create((set, get) => ({
   setLineMode: (m) => { get()._pushStyleUndo(); set({ lineMode: m }); },
   setSyncOffset: (o) => { get()._pushStyleUndo(); set({ syncOffset: o }); },
   setPunctuationRemove: (config) => { get()._pushStyleUndo(); set({ punctuationRemove: config }); },
+  setAnimateOn: (v) => { get()._pushStyleUndo(); set({ animateOn: v }); },
+  setAnimateScale: (v) => { get()._pushStyleUndo(); set({ animateScale: v }); },
+  setAnimateGrowFrom: (v) => { get()._pushStyleUndo(); set({ animateGrowFrom: v }); },
+  setAnimateSpeed: (v) => { get()._pushStyleUndo(); set({ animateSpeed: v }); },
 
   // ── Segment mode switching ──
   setSegmentMode: (mode) => {
