@@ -725,7 +725,7 @@ export default function PreviewPanelNew() {
   const onSubtitleDoubleClick = useCallback((e) => {
     e.stopPropagation();
     setSelectedOverlay("sub");
-    setActivePanel("sub");
+    setActivePanel("subs");
     setDrawerOpen(true);
   }, [setActivePanel, setDrawerOpen]);
 
