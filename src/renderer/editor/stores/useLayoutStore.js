@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { LP_DEFAULT, DRAWER_DEFAULT, TL_DEFAULT } from "../utils/constants";
 
+// Push to cross-store undo stack for position changes
+function _pushCrossUndo() {
+  try {
+    const subStore = require("./useSubtitleStore").default;
+    subStore.getState()._pushUndo();
+  } catch (_) {}
+}
+
 const useLayoutStore = create((set, get) => ({
   // ── Left panel ──
   lpTab: "transcript",
@@ -53,10 +61,10 @@ const useLayoutStore = create((set, get) => ({
 
   setZoom: (z) => set({ zoom: z }),
 
-  // ── Overlay position actions ──
-  setSubYPercent: (p) => set({ subYPercent: p }),
-  setCapYPercent: (p) => set({ capYPercent: p }),
-  setCapWidthPercent: (w) => set({ capWidthPercent: w }),
+  // ── Overlay position actions (push undo for Ctrl+Z) ──
+  setSubYPercent: (p) => { _pushCrossUndo(); set({ subYPercent: p }); },
+  setCapYPercent: (p) => { _pushCrossUndo(); set({ capYPercent: p }); },
+  setCapWidthPercent: (w) => { _pushCrossUndo(); set({ capWidthPercent: w }); },
 }));
 
 export default useLayoutStore;

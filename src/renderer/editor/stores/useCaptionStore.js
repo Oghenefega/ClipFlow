@@ -1,5 +1,13 @@
 import { create } from "zustand";
 
+// Push to the cross-store undo stack (lives in subtitle store)
+function _pushCrossUndo() {
+  try {
+    const subStore = require("./useSubtitleStore").default;
+    subStore.getState()._pushUndo();
+  } catch (_) {}
+}
+
 const useCaptionStore = create((set) => ({
   captionText: "",
   captionFontFamily: "Latina Essential",
@@ -23,27 +31,27 @@ const useCaptionStore = create((set) => ({
   captionStartSec: 0,
   captionEndSec: null, // null = use full clip duration
 
-  // ── Actions ──
-  setCaptionText: (text) => set({ captionText: text }),
-  setCaptionFontFamily: (f) => set({ captionFontFamily: f }),
-  setCaptionFontWeight: (w) => set({ captionFontWeight: w }),
-  setCaptionFontSize: (s) => set({ captionFontSize: s }),
-  setCaptionColor: (c) => set({ captionColor: c }),
-  setCaptionBold: (b) => set({ captionBold: b }),
-  setCaptionItalic: (i) => set({ captionItalic: i }),
-  setCaptionUnderline: (u) => set({ captionUnderline: u }),
-  toggleBold: () => set((s) => ({ captionBold: !s.captionBold })),
-  toggleItalic: () => set((s) => ({ captionItalic: !s.captionItalic })),
-  toggleUnderline: () => set((s) => ({ captionUnderline: !s.captionUnderline })),
-  setCaptionLineSpacing: (v) => set({ captionLineSpacing: v }),
-  setCaptionShadowOn: (v) => set({ captionShadowOn: v }),
-  setCaptionShadowColor: (c) => set({ captionShadowColor: c }),
-  setCaptionShadowBlur: (b) => set({ captionShadowBlur: b }),
-  setCaptionShadowOpacity: (o) => set({ captionShadowOpacity: o }),
-  setCaptionStrokeOn: (v) => set({ captionStrokeOn: v }),
-  setCaptionStrokeColor: (c) => set({ captionStrokeColor: c }),
-  setCaptionStrokeWidth: (w) => set({ captionStrokeWidth: w }),
-  setCaptionStrokeOpacity: (o) => set({ captionStrokeOpacity: o }),
+  // ── Actions (all styling setters push cross-store undo) ──
+  setCaptionText: (text) => { _pushCrossUndo(); set({ captionText: text }); },
+  setCaptionFontFamily: (f) => { _pushCrossUndo(); set({ captionFontFamily: f }); },
+  setCaptionFontWeight: (w) => { _pushCrossUndo(); set({ captionFontWeight: w }); },
+  setCaptionFontSize: (s) => { _pushCrossUndo(); set({ captionFontSize: s }); },
+  setCaptionColor: (c) => { _pushCrossUndo(); set({ captionColor: c }); },
+  setCaptionBold: (b) => { _pushCrossUndo(); set({ captionBold: b }); },
+  setCaptionItalic: (i) => { _pushCrossUndo(); set({ captionItalic: i }); },
+  setCaptionUnderline: (u) => { _pushCrossUndo(); set({ captionUnderline: u }); },
+  toggleBold: () => { _pushCrossUndo(); set((s) => ({ captionBold: !s.captionBold })); },
+  toggleItalic: () => { _pushCrossUndo(); set((s) => ({ captionItalic: !s.captionItalic })); },
+  toggleUnderline: () => { _pushCrossUndo(); set((s) => ({ captionUnderline: !s.captionUnderline })); },
+  setCaptionLineSpacing: (v) => { _pushCrossUndo(); set({ captionLineSpacing: v }); },
+  setCaptionShadowOn: (v) => { _pushCrossUndo(); set({ captionShadowOn: v }); },
+  setCaptionShadowColor: (c) => { _pushCrossUndo(); set({ captionShadowColor: c }); },
+  setCaptionShadowBlur: (b) => { _pushCrossUndo(); set({ captionShadowBlur: b }); },
+  setCaptionShadowOpacity: (o) => { _pushCrossUndo(); set({ captionShadowOpacity: o }); },
+  setCaptionStrokeOn: (v) => { _pushCrossUndo(); set({ captionStrokeOn: v }); },
+  setCaptionStrokeColor: (c) => { _pushCrossUndo(); set({ captionStrokeColor: c }); },
+  setCaptionStrokeWidth: (w) => { _pushCrossUndo(); set({ captionStrokeWidth: w }); },
+  setCaptionStrokeOpacity: (o) => { _pushCrossUndo(); set({ captionStrokeOpacity: o }); },
   setCaptionStartSec: (t) => set({ captionStartSec: t }),
   setCaptionEndSec: (t) => set({ captionEndSec: t }),
 

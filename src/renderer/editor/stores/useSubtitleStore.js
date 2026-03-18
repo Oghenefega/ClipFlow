@@ -1,6 +1,74 @@
 import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 
+// ── Cross-store styling snapshot keys ──
+// These keys are captured in undo snapshots so styling changes are undoable.
+const SUB_STYLE_KEYS = [
+  "subMode", "fontSize", "strokeWidth", "strokeColor", "strokeOpacity", "strokeOn",
+  "shadowOn", "shadowBlur", "shadowColor", "shadowOpacity", "bgOn", "bgOpacity",
+  "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
+  "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
+  "lineMode", "syncOffset", "punctuationRemove",
+];
+
+// Snapshot/restore helpers for cross-store undo
+function _snapshotStyling(subState) {
+  const sub = {};
+  for (const k of SUB_STYLE_KEYS) sub[k] = subState[k];
+  // Deep-copy punctuationRemove
+  if (sub.punctuationRemove) sub.punctuationRemove = { ...sub.punctuationRemove };
+
+  // Capture caption store state (lazy import to avoid circular deps)
+  let cap = null;
+  try {
+    const capStore = require("./useCaptionStore").default;
+    const cs = capStore.getState();
+    cap = {
+      captionText: cs.captionText, captionFontFamily: cs.captionFontFamily,
+      captionFontWeight: cs.captionFontWeight, captionFontSize: cs.captionFontSize,
+      captionColor: cs.captionColor, captionBold: cs.captionBold,
+      captionItalic: cs.captionItalic, captionUnderline: cs.captionUnderline,
+      captionLineSpacing: cs.captionLineSpacing, captionShadowOn: cs.captionShadowOn,
+      captionShadowColor: cs.captionShadowColor, captionShadowBlur: cs.captionShadowBlur,
+      captionShadowOpacity: cs.captionShadowOpacity, captionStrokeOn: cs.captionStrokeOn,
+      captionStrokeColor: cs.captionStrokeColor, captionStrokeWidth: cs.captionStrokeWidth,
+      captionStrokeOpacity: cs.captionStrokeOpacity,
+    };
+  } catch (_) {}
+
+  // Capture layout positions
+  let layout = null;
+  try {
+    const layoutStore = require("./useLayoutStore").default;
+    const ls = layoutStore.getState();
+    layout = {
+      subYPercent: ls.subYPercent, capYPercent: ls.capYPercent, capWidthPercent: ls.capWidthPercent,
+    };
+  } catch (_) {}
+
+  return { sub, cap, layout };
+}
+
+function _restoreStyling(snapshot, subSet) {
+  if (!snapshot) return;
+  // Restore subtitle styling
+  if (snapshot.sub) subSet(snapshot.sub);
+  // Restore caption store
+  if (snapshot.cap) {
+    try {
+      const capStore = require("./useCaptionStore").default;
+      capStore.setState(snapshot.cap);
+    } catch (_) {}
+  }
+  // Restore layout positions
+  if (snapshot.layout) {
+    try {
+      const layoutStore = require("./useLayoutStore").default;
+      layoutStore.setState(snapshot.layout);
+    } catch (_) {}
+  }
+}
+
 // ── Merge whisper subword tokens into real words using segment text as ground truth ──
 // Whisper/whisperx tokenizes at subword level: "raiders" → ["ra","iders"],
 // "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"]
@@ -175,31 +243,48 @@ const useSubtitleStore = create((set, get) => ({
     get().setSegmentMode("3word");
   },
 
-  // ── Undo/Redo actions ──
+  // ── Undo/Redo actions (segments + styling across all stores) ──
+  _lastUndoPushTime: 0,
   _pushUndo: () => {
-    const { editSegments, _undoStack } = get();
-    const snapshot = JSON.parse(JSON.stringify(editSegments));
-    set({ _undoStack: [..._undoStack.slice(-50), snapshot], _redoStack: [] });
+    // Debounce: rapid changes within 300ms merge into one undo entry
+    const now = Date.now();
+    const state = get();
+    if (now - state._lastUndoPushTime < 300) return;
+    const snapshot = {
+      editSegments: JSON.parse(JSON.stringify(state.editSegments)),
+      styling: _snapshotStyling(state),
+    };
+    set({ _undoStack: [...state._undoStack.slice(-50), snapshot], _redoStack: [], _lastUndoPushTime: now });
   },
   undo: () => {
-    const { _undoStack, editSegments } = get();
-    if (_undoStack.length === 0) return;
-    const prev = _undoStack[_undoStack.length - 1];
+    const state = get();
+    if (state._undoStack.length === 0) return;
+    const prev = state._undoStack[state._undoStack.length - 1];
+    const current = {
+      editSegments: JSON.parse(JSON.stringify(state.editSegments)),
+      styling: _snapshotStyling(state),
+    };
     set({
-      _undoStack: _undoStack.slice(0, -1),
-      _redoStack: [...get()._redoStack, JSON.parse(JSON.stringify(editSegments))],
-      editSegments: prev,
+      _undoStack: state._undoStack.slice(0, -1),
+      _redoStack: [...state._redoStack, current],
+      editSegments: prev.editSegments,
     });
+    _restoreStyling(prev.styling, set);
   },
   redo: () => {
-    const { _redoStack, editSegments } = get();
-    if (_redoStack.length === 0) return;
-    const next = _redoStack[_redoStack.length - 1];
+    const state = get();
+    if (state._redoStack.length === 0) return;
+    const next = state._redoStack[state._redoStack.length - 1];
+    const current = {
+      editSegments: JSON.parse(JSON.stringify(state.editSegments)),
+      styling: _snapshotStyling(state),
+    };
     set({
-      _redoStack: _redoStack.slice(0, -1),
-      _undoStack: [...get()._undoStack, JSON.parse(JSON.stringify(editSegments))],
-      editSegments: next,
+      _redoStack: state._redoStack.slice(0, -1),
+      _undoStack: [...state._undoStack, current],
+      editSegments: next.editSegments,
     });
+    _restoreStyling(next.styling, set);
   },
   canUndo: () => get()._undoStack.length > 0,
   canRedo: () => get()._redoStack.length > 0,
@@ -362,37 +447,38 @@ const useSubtitleStore = create((set, get) => ({
     set((s) => ({ editSegments: s.editSegments.filter(seg => seg.id !== segId) }));
   },
 
-  // ── Styling setters ──
-  setSubMode: (m) => set({ subMode: m }),
-  setFontSize: (s) => set({ fontSize: s }),
-  setStrokeWidth: (w) => set({ strokeWidth: w }),
-  setStrokeColor: (c) => set({ strokeColor: c }),
-  setStrokeOpacity: (o) => set({ strokeOpacity: o }),
-  setStrokeOn: (v) => set({ strokeOn: v }),
-  setShadowOn: (v) => set({ shadowOn: v }),
-  setShadowBlur: (b) => set({ shadowBlur: b }),
-  setShadowColor: (c) => set({ shadowColor: c }),
-  setShadowOpacity: (o) => set({ shadowOpacity: o }),
-  setBgOn: (v) => set({ bgOn: v }),
-  setBgOpacity: (o) => set({ bgOpacity: o }),
-  setHighlightColor: (c) => set({ highlightColor: c }),
-  setSubColor: (c) => set({ subColor: c }),
-  setSubPos: (p) => set({ subPos: p }),
-  setPunctOn: (v) => set({ punctOn: v }),
+  // ── Styling setters (all push undo for Ctrl+Z support) ──
+  _pushStyleUndo: () => { get()._pushUndo(); },
+  setSubMode: (m) => { get()._pushStyleUndo(); set({ subMode: m }); },
+  setFontSize: (s) => { get()._pushStyleUndo(); set({ fontSize: s }); },
+  setStrokeWidth: (w) => { get()._pushStyleUndo(); set({ strokeWidth: w }); },
+  setStrokeColor: (c) => { get()._pushStyleUndo(); set({ strokeColor: c }); },
+  setStrokeOpacity: (o) => { get()._pushStyleUndo(); set({ strokeOpacity: o }); },
+  setStrokeOn: (v) => { get()._pushStyleUndo(); set({ strokeOn: v }); },
+  setShadowOn: (v) => { get()._pushStyleUndo(); set({ shadowOn: v }); },
+  setShadowBlur: (b) => { get()._pushStyleUndo(); set({ shadowBlur: b }); },
+  setShadowColor: (c) => { get()._pushStyleUndo(); set({ shadowColor: c }); },
+  setShadowOpacity: (o) => { get()._pushStyleUndo(); set({ shadowOpacity: o }); },
+  setBgOn: (v) => { get()._pushStyleUndo(); set({ bgOn: v }); },
+  setBgOpacity: (o) => { get()._pushStyleUndo(); set({ bgOpacity: o }); },
+  setHighlightColor: (c) => { get()._pushStyleUndo(); set({ highlightColor: c }); },
+  setSubColor: (c) => { get()._pushStyleUndo(); set({ subColor: c }); },
+  setSubPos: (p) => { get()._pushStyleUndo(); set({ subPos: p }); },
+  setPunctOn: (v) => { get()._pushStyleUndo(); set({ punctOn: v }); },
   setShowSubs: (v) => set({ showSubs: v }),
   toggleShowSubs: () => set((s) => ({ showSubs: !s.showSubs })),
   setEmojiOn: (v) => set({ emojiOn: v }),
-  setSubFontFamily: (f) => set({ subFontFamily: f }),
-  setSubFontWeight: (w) => set({ subFontWeight: w }),
-  setSubItalic: (v) => set({ subItalic: v }),
-  setSubBold: (v) => set({ subBold: v }),
-  setSubUnderline: (v) => set({ subUnderline: v }),
-  toggleSubItalic: () => set((s) => ({ subItalic: !s.subItalic })),
-  toggleSubBold: () => set((s) => ({ subBold: !s.subBold })),
-  toggleSubUnderline: () => set((s) => ({ subUnderline: !s.subUnderline })),
-  setLineMode: (m) => set({ lineMode: m }),
-  setSyncOffset: (o) => set({ syncOffset: o }),
-  setPunctuationRemove: (config) => set({ punctuationRemove: config }),
+  setSubFontFamily: (f) => { get()._pushStyleUndo(); set({ subFontFamily: f }); },
+  setSubFontWeight: (w) => { get()._pushStyleUndo(); set({ subFontWeight: w }); },
+  setSubItalic: (v) => { get()._pushStyleUndo(); set({ subItalic: v }); },
+  setSubBold: (v) => { get()._pushStyleUndo(); set({ subBold: v }); },
+  setSubUnderline: (v) => { get()._pushStyleUndo(); set({ subUnderline: v }); },
+  toggleSubItalic: () => { get()._pushStyleUndo(); set((s) => ({ subItalic: !s.subItalic })); },
+  toggleSubBold: () => { get()._pushStyleUndo(); set((s) => ({ subBold: !s.subBold })); },
+  toggleSubUnderline: () => { get()._pushStyleUndo(); set((s) => ({ subUnderline: !s.subUnderline })); },
+  setLineMode: (m) => { get()._pushStyleUndo(); set({ lineMode: m }); },
+  setSyncOffset: (o) => { get()._pushStyleUndo(); set({ syncOffset: o }); },
+  setPunctuationRemove: (config) => { get()._pushStyleUndo(); set({ punctuationRemove: config }); },
 
   // ── Segment mode switching ──
   setSegmentMode: (mode) => {

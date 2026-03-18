@@ -442,6 +442,8 @@ export default function PreviewPanelNew() {
   const subMode = useSubtitleStore((s) => s.subMode);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const lineMode = useSubtitleStore((s) => s.lineMode);
+  const punctOn = useSubtitleStore((s) => s.punctOn);
+  const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
@@ -741,6 +743,21 @@ export default function PreviewPanelNew() {
     return style;
   }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing, captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, scaleFactor, buildStrokeShadows]);
 
+  // Strip punctuation from a word based on punctOn toggle + per-character config
+  const stripPunct = useCallback((word) => {
+    if (!punctOn || !word) return word;
+    const rm = punctuationRemove || {};
+    let result = word;
+    if (rm.ellipsis) result = result.replace(/\.\.\./g, "");
+    if (rm.period) result = result.replace(/\./g, "");
+    if (rm.comma) result = result.replace(/,/g, "");
+    if (rm.question) result = result.replace(/\?/g, "");
+    if (rm.exclamation) result = result.replace(/!/g, "");
+    if (rm.semicolon) result = result.replace(/;/g, "");
+    if (rm.colon) result = result.replace(/:/g, "");
+    return result;
+  }, [punctOn, punctuationRemove]);
+
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.
   const buildCharChunks = useCallback((words) => {
@@ -801,7 +818,7 @@ export default function PreviewPanelNew() {
                   transition: "color 0.1s",
                 }}
               >
-                {w.word}{i < visibleWords.length - 1 ? " " : ""}
+                {stripPunct(w.word)}{i < visibleWords.length - 1 ? " " : ""}
               </span>
             );
           })}
@@ -815,7 +832,7 @@ export default function PreviewPanelNew() {
     const segDuration = currentSeg.endSec - currentSeg.startSec;
     const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
     const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
-    const visibleText = (chunks[chunkIdx] || []).map(w => w.word).join(" ");
+    const visibleText = (chunks[chunkIdx] || []).map(w => stripPunct(w.word)).join(" ");
     return <div style={{ ...subTextStyle, display: "block" }}>{visibleText}</div>;
   };
 
