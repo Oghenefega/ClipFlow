@@ -41,16 +41,19 @@ const FONT_WEIGHT_OPTIONS = [
 ];
 
 // ── Zoom Menu ──
-function ZoomMenu({ zoom, setZoom, onClose }) {
+function ZoomMenu({ zoom, setZoom, onClose, triggerRef }) {
   const menuRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) onClose();
+      if (menuRef.current && !menuRef.current.contains(e.target) &&
+          triggerRef?.current && !triggerRef.current.contains(e.target)) {
+        onClose();
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   return (
     <div
@@ -397,6 +400,9 @@ export default function PreviewPanelNew() {
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
   const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
+  const subItalic = useSubtitleStore((s) => s.subItalic);
+  const subBold = useSubtitleStore((s) => s.subBold);
+  const subUnderline = useSubtitleStore((s) => s.subUnderline);
   const fontSize = useSubtitleStore((s) => s.fontSize);
   const strokeWidth = useSubtitleStore((s) => s.strokeWidth);
   const strokeOn = useSubtitleStore((s) => s.strokeOn);
@@ -411,6 +417,9 @@ export default function PreviewPanelNew() {
   const setSubFontFamily = useSubtitleStore((s) => s.setSubFontFamily);
   const setSubFontWeight = useSubtitleStore((s) => s.setSubFontWeight);
   const setFontSize = useSubtitleStore((s) => s.setFontSize);
+  const toggleSubBold = useSubtitleStore((s) => s.toggleSubBold);
+  const toggleSubItalic = useSubtitleStore((s) => s.toggleSubItalic);
+  const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
 
   // Caption
   const captionText = useCaptionStore((s) => s.captionText);
@@ -449,6 +458,7 @@ export default function PreviewPanelNew() {
   const captionInputRef = useRef(null);
   const capOverlayRef = useRef(null);
   const subOverlayRef = useRef(null);
+  const zoomBtnRef = useRef(null);
 
   // Track canvas size for proportional text scaling
   const [canvasWidth, setCanvasWidth] = useState(360);
@@ -494,6 +504,16 @@ export default function PreviewPanelNew() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Mouse wheel zoom on the preview area
+  const onWheel = useCallback((e) => {
+    e.preventDefault();
+    setZoomState((z) => {
+      const current = z === -1 ? 100 : z;
+      const delta = e.deltaY < 0 ? 10 : -10;
+      return Math.max(10, Math.min(400, current + delta));
+    });
   }, []);
 
   // Current subtitle segment (adjusted for sync offset)
@@ -585,6 +605,8 @@ export default function PreviewPanelNew() {
       fontFamily: `'${subFontFamily}', sans-serif`,
       fontSize: `${scaledFontSize}px`,
       fontWeight: subFontWeight || 700,
+      fontStyle: subItalic ? "italic" : "normal",
+      textDecoration: subUnderline ? "underline" : "none",
       color: "#ffffff",
       textAlign: "center",
       lineHeight: 1.3,
@@ -607,7 +629,7 @@ export default function PreviewPanelNew() {
       style.textShadow = `0 ${2 * scaleFactor}px ${scaledBlur}px rgba(0,0,0,0.7)`;
     }
     return style;
-  }, [subFontFamily, subFontWeight, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
+  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, bgOn, bgOpacity, strokeOn, strokeWidth, shadowOn, shadowBlur, scaleFactor]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -704,18 +726,6 @@ export default function PreviewPanelNew() {
     setDrawerOpen(true);
   }, [setActivePanel, setDrawerOpen]);
 
-  // Compute toolbar position relative to canvas
-  const [toolbarPos, setToolbarPos] = useState({ bottom: 8 });
-  useEffect(() => {
-    if (!selectedOverlay || !canvasRef.current) return;
-    const overlayRef = selectedOverlay === "cap" ? capOverlayRef : subOverlayRef;
-    if (!overlayRef.current) return;
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    const overlayRect = overlayRef.current.getBoundingClientRect();
-    // Position toolbar just below the overlay element, relative to canvas
-    const bottomOfOverlay = overlayRect.bottom - canvasRect.top;
-    setToolbarPos({ top: bottomOfOverlay + 6 });
-  }, [selectedOverlay, currentTime, capYPercent, subYPercent, canvasWidth]);
 
   return (
     <div
@@ -745,8 +755,9 @@ export default function PreviewPanelNew() {
         {/* Right: Zoom control */}
         <div className="relative pointer-events-auto">
           <button
+            ref={zoomBtnRef}
             className="flex items-center gap-1 px-2 py-1 rounded bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-[11px] font-medium backdrop-blur-sm transition-colors"
-            onClick={() => setZoomMenuOpen(!zoomMenuOpen)}
+            onClick={() => setZoomMenuOpen((prev) => !prev)}
           >
             {displayZoom}
             <ChevronDown className={`h-3 w-3 transition-transform ${zoomMenuOpen ? "rotate-180" : ""}`} />
@@ -756,13 +767,14 @@ export default function PreviewPanelNew() {
               zoom={zoom === -1 ? 100 : zoom}
               setZoom={setZoomState}
               onClose={() => setZoomMenuOpen(false)}
+              triggerRef={zoomBtnRef}
             />
           )}
         </div>
       </div>
 
       {/* Video canvas area — scrollable when zoomed in */}
-      <div className="flex-1 flex items-center justify-center overflow-auto p-1">
+      <div className="flex-1 flex items-center justify-center overflow-auto p-1" onWheel={onWheel}>
         <div
           ref={canvasRef}
           className="relative overflow-hidden rounded-lg shrink-0"
@@ -866,51 +878,49 @@ export default function PreviewPanelNew() {
             </DraggableOverlay>
           )}
 
-          {/* Inline editing toolbar — positioned inside canvas, below the selected element */}
-          {selectedOverlay && (
-            <div
-              className="absolute left-0 right-0 flex justify-center z-40 pointer-events-auto"
-              style={{ top: toolbarPos.top || "auto", bottom: toolbarPos.bottom }}
-            >
-              {selectedOverlay === "sub" ? (
-                <InlineToolbar
-                  target="sub"
-                  fontFamily={subFontFamily}
-                  fontSize={fontSize}
-                  fontWeight={subFontWeight}
-                  onFontFamily={setSubFontFamily}
-                  onFontSize={setFontSize}
-                  onFontWeight={setSubFontWeight}
-                  onAlign={() => {}}
-                  onBold={() => {}}
-                  onItalic={() => {}}
-                  onUnderline={() => {}}
-                  bold={false}
-                  italic={false}
-                  underline={false}
-                />
-              ) : (
-                <InlineToolbar
-                  target="cap"
-                  fontFamily={captionFontFamily}
-                  fontSize={captionFontSize}
-                  fontWeight={captionFontWeight}
-                  onFontFamily={setCaptionFontFamily}
-                  onFontSize={setCaptionFontSize}
-                  onFontWeight={setCaptionFontWeight}
-                  onAlign={() => {}}
-                  onBold={toggleBold}
-                  onItalic={toggleItalic}
-                  onUnderline={toggleUnderline}
-                  bold={captionBold}
-                  italic={captionItalic}
-                  underline={captionUnderline}
-                />
-              )}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Inline editing toolbar — positioned outside canvas to avoid clipping */}
+      {selectedOverlay && (
+        <div className="flex justify-center py-1.5 px-2 z-40 shrink-0">
+          {selectedOverlay === "sub" ? (
+            <InlineToolbar
+              target="sub"
+              fontFamily={subFontFamily}
+              fontSize={fontSize}
+              fontWeight={subFontWeight}
+              onFontFamily={setSubFontFamily}
+              onFontSize={setFontSize}
+              onFontWeight={setSubFontWeight}
+              onAlign={() => {}}
+              onBold={toggleSubBold}
+              onItalic={toggleSubItalic}
+              onUnderline={toggleSubUnderline}
+              bold={subBold}
+              italic={subItalic}
+              underline={subUnderline}
+            />
+          ) : (
+            <InlineToolbar
+              target="cap"
+              fontFamily={captionFontFamily}
+              fontSize={captionFontSize}
+              fontWeight={captionFontWeight}
+              onFontFamily={setCaptionFontFamily}
+              onFontSize={setCaptionFontSize}
+              onFontWeight={setCaptionFontWeight}
+              onAlign={() => {}}
+              onBold={toggleBold}
+              onItalic={toggleItalic}
+              onUnderline={toggleUnderline}
+              bold={captionBold}
+              italic={captionItalic}
+              underline={captionUnderline}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

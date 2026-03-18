@@ -3,11 +3,11 @@ import { create } from "zustand";
 const useCaptionStore = create((set) => ({
   captionText: "",
   captionFontFamily: "Latina Essential",
-  captionFontWeight: 700,
-  captionFontSize: 12,
+  captionFontWeight: 900,
+  captionFontSize: 30,
   captionColor: "#ffffff",
   captionBold: true,
-  captionItalic: false,
+  captionItalic: true,
   captionUnderline: false,
 
   // ── Actions ──
@@ -32,11 +32,11 @@ const useCaptionStore = create((set) => ({
   reset: () => set({
     captionText: "",
     captionFontFamily: "Latina Essential",
-    captionFontWeight: 700,
-    captionFontSize: 12,
+    captionFontWeight: 900,
+    captionFontSize: 30,
     captionColor: "#ffffff",
     captionBold: true,
-    captionItalic: false,
+    captionItalic: true,
     captionUnderline: false,
   }),
 }));
