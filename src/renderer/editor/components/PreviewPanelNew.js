@@ -430,6 +430,7 @@ export default function PreviewPanelNew() {
 
   // Subtitles
   const editSegments = useSubtitleStore((s) => s.editSegments);
+  const segmentMode = useSubtitleStore((s) => s.segmentMode);
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
   const subFontWeight = useSubtitleStore((s) => s.subFontWeight);
@@ -564,12 +565,14 @@ export default function PreviewPanelNew() {
   }, [editSegments, adjustedTime, showSubs]);
 
   // Current word for karaoke highlighting
+  // Karaoke is disabled in 1-word mode (only 1 word shows at a time, highlighting is pointless)
+  const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
   const currentWordIdx = useMemo(() => {
-    if (!currentSeg || subMode !== "karaoke" || !currentSeg.words?.length) return -1;
+    if (!currentSeg || !karaokeActive || !currentSeg.words?.length) return -1;
     return currentSeg.words.findIndex(
       (w) => adjustedTime >= w.start && adjustedTime <= w.end
     );
-  }, [currentSeg, adjustedTime, subMode]);
+  }, [currentSeg, adjustedTime, karaokeActive]);
 
   // Video event handlers
   const onTimeUpdate = useCallback(() => {
@@ -689,11 +692,33 @@ export default function PreviewPanelNew() {
     };
   }, [captionFontFamily, captionFontSize, captionBold, captionItalic, captionUnderline, captionColor, scaleFactor]);
 
+  // Build character-limit chunks: instead of fixed 3-word chunks, group words
+  // until the line exceeds ~20 characters. Long words get fewer per line.
+  const buildCharChunks = useCallback((words) => {
+    const CHAR_LIMIT = 20;
+    const chunks = [];
+    let current = [];
+    let currentLen = 0;
+    for (const w of words) {
+      const wordLen = w.word ? w.word.length : 0;
+      // If adding this word exceeds the limit AND we already have words, start new chunk
+      if (current.length > 0 && currentLen + wordLen + 1 > CHAR_LIMIT) {
+        chunks.push(current);
+        current = [w];
+        currentLen = wordLen;
+      } else {
+        current.push(w);
+        currentLen += (current.length > 1 ? 1 : 0) + wordLen; // +1 for space
+      }
+    }
+    if (current.length > 0) chunks.push(current);
+    return chunks;
+  }, []);
+
   // Render subtitle words with karaoke highlight + 1L/2L line mode
   const renderSubtitleText = () => {
     if (!currentSeg) return null;
     const words = currentSeg.words || [];
-    const CHUNK = 3; // words per line for 1L mode
 
     if (words.length > 0) {
       // Determine which words to show based on lineMode
@@ -701,20 +726,30 @@ export default function PreviewPanelNew() {
       let visibleOffset = 0;
 
       if (lineMode === "1L") {
-        // Show chunks of ~3 words around the active word
+        // Character-limit chunking instead of fixed 3-word
+        const chunks = buildCharChunks(words);
         const activeIdx = currentWordIdx >= 0 ? currentWordIdx : 0;
-        const chunkIndex = Math.floor(activeIdx / CHUNK);
-        const chunkStart = chunkIndex * CHUNK;
-        const chunkEnd = Math.min(words.length, chunkStart + CHUNK);
-        visibleWords = words.slice(chunkStart, chunkEnd);
-        visibleOffset = chunkStart;
+        // Find which chunk contains the active word
+        let cumulative = 0;
+        let chunkIdx = 0;
+        for (let c = 0; c < chunks.length; c++) {
+          if (activeIdx < cumulative + chunks[c].length) {
+            chunkIdx = c;
+            break;
+          }
+          cumulative += chunks[c].length;
+        }
+        visibleWords = chunks[chunkIdx] || chunks[0];
+        // Calculate offset for correct karaoke highlight index
+        visibleOffset = 0;
+        for (let c = 0; c < chunkIdx; c++) visibleOffset += chunks[c].length;
       }
 
       return (
-        <span style={subTextStyle}>
+        <div style={{ ...subTextStyle, display: "block" }}>
           {visibleWords.map((w, i) => {
             const globalIdx = i + visibleOffset;
-            const isActive = subMode === "karaoke" && globalIdx === currentWordIdx;
+            const isActive = karaokeActive && globalIdx === currentWordIdx;
             return (
               <span
                 key={globalIdx}
@@ -727,24 +762,22 @@ export default function PreviewPanelNew() {
               </span>
             );
           })}
-        </span>
+        </div>
       );
     }
 
     // Fallback: no word-level data, use segment text
     if (lineMode === "1L") {
-      // Split text into ~3-word chunks and show the chunk matching current time position
       const textWords = currentSeg.text.split(/\s+/);
+      const chunks = buildCharChunks(textWords.map(w => ({ word: w })));
       const segDuration = currentSeg.endSec - currentSeg.startSec;
       const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
-      const totalChunks = Math.ceil(textWords.length / CHUNK);
-      const chunkIdx = Math.min(Math.floor(progress * totalChunks), totalChunks - 1);
-      const chunkStart = chunkIdx * CHUNK;
-      const visibleText = textWords.slice(chunkStart, chunkStart + CHUNK).join(" ");
-      return <span style={subTextStyle}>{visibleText}</span>;
+      const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
+      const visibleText = (chunks[chunkIdx] || []).map(w => w.word).join(" ");
+      return <div style={{ ...subTextStyle, display: "block" }}>{visibleText}</div>;
     }
 
-    return <span style={subTextStyle}>{currentSeg.text}</span>;
+    return <div style={{ ...subTextStyle, display: "block" }}>{currentSeg.text}</div>;
   };
 
   // Double-click handler for caption — switch right panel to Text tab

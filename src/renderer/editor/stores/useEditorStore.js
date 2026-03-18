@@ -2,6 +2,7 @@ import { create } from "zustand";
 import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
+import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
   project: null,
@@ -32,6 +33,29 @@ const useEditorStore = create((set, get) => ({
     useCaptionStore.getState().initFromClip(clip);
     useSubtitleStore.getState().initSegments(project, clip);
     usePlaybackStore.getState().reset();
+
+    // Auto-apply default template on editor open
+    // Load the user's chosen default template (or fall back to built-in)
+    if (window.clipflow?.storeGet) {
+      Promise.all([
+        window.clipflow.storeGet("defaultTemplateId"),
+        window.clipflow.storeGet("layoutTemplates"),
+        window.clipflow.storeGet("builtInTemplateDeleted"),
+      ]).then(([defaultId, savedTemplates, builtInDeleted]) => {
+        const id = defaultId || "fega-default";
+        const allTemplates = [
+          ...(builtInDeleted ? [] : [BUILTIN_TEMPLATE]),
+          ...(Array.isArray(savedTemplates) ? savedTemplates : []),
+        ];
+        const tpl = allTemplates.find((t) => t.id === id) || allTemplates[0];
+        if (tpl) applyTemplate(tpl);
+      }).catch(() => {
+        // Fallback: apply built-in template
+        applyTemplate(BUILTIN_TEMPLATE);
+      });
+    } else {
+      applyTemplate(BUILTIN_TEMPLATE);
+    }
 
     // Reset waveform (real extraction via FFmpeg in main process — TODO)
     set({ waveformPeaks: null });
