@@ -410,9 +410,9 @@ function Topbar({ onBack }) {
           </div>
         )}
 
-        {/* Dirty indicator dot */}
+        {/* Dirty indicator dot — positioned above the title center */}
         {dirty && (
-          <div className="absolute -top-0 right-[calc(50%-180px)] w-1.5 h-1.5 rounded-full bg-yellow-400" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-yellow-400" />
         )}
 
         {/* Clip navigator dropdown */}

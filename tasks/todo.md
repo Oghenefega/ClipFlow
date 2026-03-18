@@ -238,6 +238,9 @@ Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Sam
 5. **Remove "Update with current" header in presets**: The top-level "Update with current" text above MY PRESETS is confusing — it's not tied to any specific preset. Remove it. The per-preset update icon (🔄) on each card row is sufficient.
 6. **Active preset indicator**: There's no way to tell which preset is currently active. Add a visual indicator (e.g., highlighted border, checkmark, or "Active" badge) on the preset that matches the current settings.
 7. **Timeline expand crash**: Clicking the timeline expand button (bottom-right icon) crashes with "Cannot read properties of undefined (reading 'x')". Needs null-safety check in timeline expand logic.
+8. **Highlight color swatches not editable**: The 5 highlight color circles are static — clicking one sets the highlight color but you can't customize the swatch colors themselves. Need: click a swatch to select it, then picking a new color from the color wheel/palette should update THAT swatch. The swatches should be user-configurable preset colors (persisted to electron-store) so the user doesn't have to find the same color in the wheel every time.
+9. **Remove placeholder songs from Audio panel**: The Music tab has fake placeholder songs (Cinematic ambient, Water stream river, etc.) that aren't real files. Remove all placeholder data — leave the panel structure intact but empty until real audio integration is built.
+10. **Zoomed preview can't scroll to top + needs middle-click drag**: When preview is zoomed in (e.g. 230%), scroll is clamped and you can't see the top of the video. Fix overflow/scroll constraints so the full video is reachable. Also add middle-mouse-button drag (pan) so the user can hold middle click and drag to pan around the zoomed preview.
 
 ---
 

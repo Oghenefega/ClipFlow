@@ -460,6 +460,7 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const [renameText, setRenameText] = useState("");
   const [savingNew, setSavingNew] = useState(false);
   const [newName, setNewName] = useState("");
+  const [activePresetId, setActivePresetId] = useState(null);
   const renameRef = useRef(null);
   const newRef = useRef(null);
 
@@ -519,15 +520,17 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
           <SectionLabel>My Presets</SectionLabel>
           <div className="space-y-1">
             {userPresets.map((preset) => (
-              <div key={preset.id} className="group flex items-center gap-1 rounded-md bg-secondary/40 border border-border/30 hover:border-primary/30 transition-colors">
+              <div key={preset.id} className={`group flex items-center gap-1 rounded-md border transition-colors ${
+                activePresetId === preset.id ? "bg-primary/10 border-primary/40" : "bg-secondary/40 border-border/30 hover:border-primary/30"
+              }`}>
                 {renamingId === preset.id ? (
                   <input ref={renameRef} value={renameText} onChange={(e) => setRenameText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRename(preset.id); if (e.key === "Escape") setRenamingId(null); }}
                     onBlur={() => handleRename(preset.id)}
                     className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
                 ) : (
-                  <button className="flex-1 text-left px-2 py-1.5 text-xs text-foreground truncate" onClick={() => applyEffectPreset(preset, target)}>
-                    {preset.name}
+                  <button className={`flex-1 text-left px-2 py-1.5 text-xs truncate ${activePresetId === preset.id ? "text-primary font-medium" : "text-foreground"}`} onClick={() => { applyEffectPreset(preset, target); setActivePresetId(preset.id); }}>
+                    {activePresetId === preset.id && <span className="mr-1">✓</span>}{preset.name}
                   </button>
                 )}
                 <TooltipProvider delayDuration={200}>
@@ -541,7 +544,7 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => handleUpdate(preset.id)}>
                       <RefreshCw className="h-3 w-3" />
                     </button>
-                  </TooltipTrigger><TooltipContent className="text-[10px]">Update with current</TooltipContent></Tooltip>
+                  </TooltipTrigger><TooltipContent className="text-[10px]">Overwrite preset</TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild>
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-red-400" onClick={() => handleDelete(preset.id)}>
                       <X className="h-3 w-3" />
@@ -562,9 +565,13 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
         <SectionLabel>Built-in</SectionLabel>
         <div className="grid grid-cols-2 gap-2">
           {EFFECT_PRESETS.map((preset) => (
-            <button key={preset.id} onClick={() => applyEffectPreset(preset, target)}
-              className="py-2 rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/40 hover:bg-secondary/80 cursor-pointer transition-all flex items-center justify-center">
-              <span className="text-[10px] text-foreground font-medium">{preset.name}</span>
+            <button key={preset.id} onClick={() => { applyEffectPreset(preset, target); setActivePresetId(preset.id); }}
+              className={`py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-center ${
+                activePresetId === preset.id ? "bg-primary/15 border-primary/50" : "bg-secondary/60 border-border/40 hover:border-primary/40 hover:bg-secondary/80"
+              }`}>
+              <span className={`text-[10px] font-medium ${activePresetId === preset.id ? "text-primary" : "text-foreground"}`}>
+                {activePresetId === preset.id && "✓ "}{preset.name}
+              </span>
             </button>
           ))}
         </div>
@@ -734,16 +741,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
 // ════════════════════════════════════════════════════════════════
 const AUDIO_FILTERS = ["All", "Ambient", "Chill", "Happy", "Inspiring", "Cinematic", "Pop", "Instrumental", "Celebrations"];
 
-const DEMO_TRACKS = [
-  { id: 1, name: "Cinematic ambient", dur: "03:10", filter: "Cinematic", gradient: "from-purple-400/40 to-purple-600/20" },
-  { id: 2, name: "Water stream river", dur: "01:47", filter: "Ambient", gradient: "from-blue-300/30 to-blue-500/20" },
-  { id: 3, name: "Spiritual healing", dur: "03:13", filter: "Chill", gradient: "from-pink-300/30 to-orange-300/20" },
-  { id: 4, name: "Space", dur: "02:26", filter: "Ambient", gradient: "from-indigo-400/30 to-violet-500/20" },
-  { id: 5, name: "Soothing ocean waves", dur: "02:13", filter: "Ambient", gradient: "from-cyan-300/30 to-blue-400/20" },
-  { id: 6, name: "Nature meditation", dur: "09:11", filter: "Chill", gradient: "from-amber-300/30 to-yellow-400/20" },
-  { id: 7, name: "Epic battle", dur: "04:22", filter: "Cinematic", gradient: "from-red-400/30 to-orange-500/20" },
-  { id: 8, name: "Happy morning", dur: "02:45", filter: "Happy", gradient: "from-yellow-300/30 to-green-300/20" },
-];
+const DEMO_TRACKS = []; // Audio tracks will be populated when audio integration is built
 
 function AudioPanel() {
   const [subTab, setSubTab] = useState("music");
@@ -842,7 +840,11 @@ function AudioPanel() {
             </div>
           ))}
           {filteredTracks.length === 0 && (
-            <div className="py-8 text-center text-xs text-muted-foreground">No tracks found</div>
+            <div className="py-12 text-center">
+              <Music className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <div className="text-xs text-muted-foreground">No audio tracks yet</div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">Upload audio files to add to your clips</div>
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -1029,7 +1031,7 @@ function BrandKitPanel() {
                       <button onClick={(e) => { e.stopPropagation(); setRenamingId(tpl.id); setRenameText(tpl.name); }}
                         className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary/80 transition-colors" title="Rename">Rename</button>
                       <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
-                        className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
+                        className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Overwrite preset settings">Update</button>
                     </>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
@@ -1076,7 +1078,25 @@ function BrandKitPanel() {
 // ════════════════════════════════════════════════════════════════
 //  DRAWER 4: SUBTITLES
 // ════════════════════════════════════════════════════════════════
-const HIGHLIGHT_COLORS = ["#4cce8a", "#ffffff", "#f87171", "#fbbf24", "#a78bfa"];
+const DEFAULT_HIGHLIGHT_SWATCHES = ["#4cce8a", "#ffffff", "#f87171", "#fbbf24", "#a78bfa"];
+
+function useHighlightSwatches() {
+  const [swatches, setSwatches] = useState(DEFAULT_HIGHLIGHT_SWATCHES);
+  useEffect(() => {
+    window.clipflow?.storeGet?.("highlightSwatches").then((saved) => {
+      if (Array.isArray(saved) && saved.length === 5) setSwatches(saved);
+    }).catch(() => {});
+  }, []);
+  const updateSwatch = useCallback((index, color) => {
+    setSwatches((prev) => {
+      const next = [...prev];
+      next[index] = color;
+      window.clipflow?.storeSet?.("highlightSwatches", next).catch(() => {});
+      return next;
+    });
+  }, []);
+  return { swatches, updateSwatch };
+}
 
 function SubtitlesPanel() {
   const [subTab, setSubTab] = useState("settings");
@@ -1091,6 +1111,8 @@ function SubtitlesPanel() {
   const setLineMode = useSubtitleStore((s) => s.setLineMode);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const setHighlightColor = useSubtitleStore((s) => s.setHighlightColor);
+  const { swatches: hlSwatches, updateSwatch: updateHlSwatch } = useHighlightSwatches();
+  const [selectedSwatchIdx, setSelectedSwatchIdx] = useState(null);
   const strokeOn = useSubtitleStore((s) => s.strokeOn);
   const setStrokeOn = useSubtitleStore((s) => s.setStrokeOn);
   const strokeWidth = useSubtitleStore((s) => s.strokeWidth);
@@ -1217,19 +1239,27 @@ function SubtitlesPanel() {
                 <span className="text-xs text-foreground font-medium">Highlight</span>
               </div>
               <div className="flex items-center gap-2">
-                {HIGHLIGHT_COLORS.map((c) => (
-                  <ColorPickerPopover key={c} color={c} onChange={setHighlightColor}>
+                {hlSwatches.map((c, i) => (
+                  <ColorPickerPopover key={i} color={c} onChange={(newColor) => {
+                    updateHlSwatch(i, newColor);
+                    setHighlightColor(newColor);
+                    setSelectedSwatchIdx(i);
+                  }}>
                     <button
                       className={`w-7 h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${
                         highlightColor === c ? "border-foreground scale-110" : "border-transparent"
                       }`}
                       style={{ background: c }}
+                      onClick={(e) => {
+                        // Single click = use this swatch color; right-click opens picker
+                        if (!e.defaultPrevented) {
+                          setHighlightColor(c);
+                          setSelectedSwatchIdx(i);
+                        }
+                      }}
                     />
                   </ColorPickerPopover>
                 ))}
-                <button className="w-7 h-7 rounded-full border-2 border-dashed border-border/50 flex items-center justify-center text-muted-foreground hover:border-border hover:text-foreground transition-colors">
-                  <Minus className="h-3 w-3" />
-                </button>
               </div>
             </div>
 

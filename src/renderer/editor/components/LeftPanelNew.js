@@ -174,7 +174,6 @@ function SubtitleSettingsPopover() {
               onClick={() => setPunctOn(!punctOn)}
               className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
             >
-              <span>{punctOn ? "Hide" : "Remove"}</span>
               <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${punctOn ? "rotate-180" : ""}`} />
             </button>
           </div>

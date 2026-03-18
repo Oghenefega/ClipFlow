@@ -266,7 +266,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     }
 
     // Draw filled polygon — mirrored waveform (like a pro DAW)
-    if (points.length === 0) return;
+    if (points.length === 0 || !points[0]) return;
     ctx.beginPath();
     // Top half (going left to right)
     ctx.moveTo(points[0].x, centerY - points[0].amp);
@@ -398,7 +398,7 @@ export default function TimelinePanelNew() {
     });
     observer.observe(trackAreaRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [tlCollapsed]); // re-attach when timeline expands/collapses
 
   // Available space for clip content (visible area minus label column)
   const visibleContentWidth = trackAreaWidth - LABEL_W;
@@ -779,6 +779,18 @@ export default function TimelinePanelNew() {
             {/* Vertical line — full height */}
             <div className="w-0.5 h-full bg-primary" />
           </div>
+
+          {/* ── End marker line — vertical line at clip end ── */}
+          <div
+            className="absolute z-20 pointer-events-none"
+            style={{
+              left: LABEL_W + clipContentWidth,
+              top: 0,
+              bottom: 0,
+              width: 2,
+              background: "hsl(0 0% 40% / 0.5)",
+            }}
+          />
 
           {/* ── Ruler row ── */}
           <div

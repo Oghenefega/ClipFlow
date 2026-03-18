@@ -200,15 +200,15 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
   const weightLabel = FONT_WEIGHT_OPTIONS.find(w => w.value === fontWeight)?.label || "Regular";
 
   return (
-    <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg border bg-card/95 backdrop-blur-sm shadow-lg">
+    <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border bg-card shadow-lg">
       {/* Font family (truncated) */}
       <div className="relative">
         <button
-          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-secondary/60 text-[11px] text-foreground transition-colors"
+          className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-secondary/60 text-[13px] text-foreground transition-colors"
           onClick={() => { setFontOpen(!fontOpen); setWeightOpen(false); setColorOpen(false); }}
         >
-          <span className="truncate max-w-[60px]" style={{ fontFamily, fontWeight: fontWeight || 900, fontStyle: "italic" }}>{shortFont}</span>
-          <ChevronDown className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+          <span className="truncate max-w-[80px]" style={{ fontFamily, fontWeight: fontWeight || 900, fontStyle: "italic" }}>{shortFont}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
         </button>
         {fontOpen && (
           <FontDropdown value={fontFamily} onChange={(f) => { onFontFamily(f); setFontOpen(false); }} onClose={() => setFontOpen(false)} />
@@ -227,7 +227,7 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
           if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
         }}
         onFocus={(e) => e.target.select()}
-        className="w-7 h-6 text-[11px] text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none cursor-ns-resize"
+        className="w-8 h-7 text-[13px] text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none cursor-ns-resize"
       />
 
       <Separator orientation="vertical" className="h-4" />
@@ -236,11 +236,11 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
       {onFontWeight && (
         <div className="relative">
           <button
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-secondary/60 text-[11px] text-foreground transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-secondary/60 text-[13px] text-foreground transition-colors"
             onClick={() => { setWeightOpen(!weightOpen); setFontOpen(false); setColorOpen(false); }}
           >
             <span style={{ fontWeight: fontWeight || 400 }}>{weightLabel}</span>
-            <ChevronDown className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
           </button>
           {weightOpen && (
             <div className="absolute top-full left-0 mt-1 w-[110px] rounded-lg border bg-popover shadow-xl z-50 overflow-hidden">
@@ -541,6 +541,9 @@ export default function PreviewPanelNew() {
   const capOverlayRef = useRef(null);
   const subOverlayRef = useRef(null);
   const zoomBtnRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   // Track canvas size for proportional text scaling
   const [canvasWidth, setCanvasWidth] = useState(360);
@@ -590,12 +593,38 @@ export default function PreviewPanelNew() {
 
   // Mouse wheel zoom on the preview area
   const onWheel = useCallback((e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoomState((z) => {
+        const current = z === -1 ? 100 : z;
+        const delta = e.deltaY < 0 ? 10 : -10;
+        return Math.max(10, Math.min(400, current + delta));
+      });
+    }
+    // Otherwise allow normal scroll for panning when zoomed
+  }, []);
+
+  // Middle-mouse drag to pan zoomed preview
+  const onPanDown = useCallback((e) => {
+    if (e.button !== 1) return; // middle mouse only
     e.preventDefault();
-    setZoomState((z) => {
-      const current = z === -1 ? 100 : z;
-      const delta = e.deltaY < 0 ? 10 : -10;
-      return Math.max(10, Math.min(400, current + delta));
-    });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    setIsPanning(true);
+    panStartRef.current = { x: e.clientX, y: e.clientY, scrollLeft: container.scrollLeft, scrollTop: container.scrollTop };
+    const onMove = (ev) => {
+      const dx = ev.clientX - panStartRef.current.x;
+      const dy = ev.clientY - panStartRef.current.y;
+      container.scrollLeft = panStartRef.current.scrollLeft - dx;
+      container.scrollTop = panStartRef.current.scrollTop - dy;
+    };
+    const onUp = () => {
+      setIsPanning(false);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }, []);
 
   // Current subtitle segment (adjusted for sync offset)
@@ -1049,8 +1078,15 @@ export default function PreviewPanelNew() {
         </div>
       </div>
 
-      {/* Video canvas area — scrollable when zoomed in */}
-      <div className="flex-1 flex items-center justify-center overflow-auto p-1" onWheel={onWheel}>
+      {/* Video canvas area — scrollable when zoomed in, middle-click to pan */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-auto p-1"
+        style={{ cursor: isPanning ? "grabbing" : (zoom !== -1 ? "default" : "default"), display: "flex", alignItems: zoom === -1 ? "center" : "flex-start", justifyContent: zoom === -1 ? "center" : "flex-start" }}
+        onWheel={onWheel}
+        onPointerDown={onPanDown}
+        onContextMenu={(e) => { if (isPanning) e.preventDefault(); }}
+      >
         <div
           ref={canvasRef}
           className="relative rounded-lg shrink-0"
