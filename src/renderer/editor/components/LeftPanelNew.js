@@ -49,14 +49,20 @@ const SEGMENT_MODES = [
 // ════════════════════════════════════════════════════════════════
 //  INLINE WORD EDITOR — shown on double-click
 // ════════════════════════════════════════════════════════════════
-function InlineWordEditor({ initialText, onConfirm, onCancel }) {
+function InlineWordEditor({ initialText, onConfirm, onCancel, selectAll }) {
   const inputRef = useRef(null);
   const [text, setText] = useState(initialText);
 
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      if (selectAll) {
+        inputRef.current.select();
+      } else {
+        // Place cursor at end
+        const len = inputRef.current.value.length;
+        inputRef.current.setSelectionRange(len, len);
+      }
     }
   }, []);
 
@@ -434,7 +440,7 @@ function TranscriptTab() {
 
   const handleWordDoubleClick = (e, idx) => {
     e.stopPropagation();
-    setEditingWord({ globalIdx: idx });
+    setEditingWord({ globalIdx: idx, selectAll: true });
   };
 
   const handleEditConfirm = (idx, newText) => {
@@ -478,6 +484,7 @@ function TranscriptTab() {
               initialText={w.word}
               onConfirm={(t) => handleEditConfirm(idx, t)}
               onCancel={() => setEditingWord(null)}
+              selectAll={editingWord?.selectAll}
             />
             {idx < allWords.length - 1 && " "}
           </React.Fragment>
@@ -648,6 +655,7 @@ function EditSubtitlesTab() {
             initialText={token}
             onConfirm={(t) => handleEditConfirm(seg.id, currentWordIdx, t)}
             onCancel={() => setEditingWord(null)}
+            selectAll={editingWord?.selectAll}
           />
         );
       }
@@ -661,7 +669,8 @@ function EditSubtitlesTab() {
             ${isSelected && !isPlaybackActive ? "bg-primary/15 text-primary" : ""}
             ${!isSelected && !isPlaybackActive ? "hover:bg-secondary/60" : ""}
           `}
-          onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx }); }}
+          onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: false }); }}
+          onDoubleClick={(e) => { e.stopPropagation(); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: true }); }}
         >
           {token}
         </span>
