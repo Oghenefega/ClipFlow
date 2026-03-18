@@ -26,7 +26,7 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
-import { EFFECT_PRESETS, applyEffectPreset } from "../utils/templateUtils";
+import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Color Palette (matches Vizard predefined palette)
@@ -432,6 +432,141 @@ function EffectSlider({ label, value, onChange, min, max, step = 1, suffix = "",
       <span className={`text-[10px] text-muted-foreground ${labelWidth}`}>{label}</span>
       <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="flex-1" />
       <span className="text-[10px] text-muted-foreground w-8 text-right">{typeof value === "number" && value % 1 !== 0 ? value.toFixed(1) : value}{suffix}</span>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Effect Presets Manager (used by Subtitles + Text panels)
+// ════════════════════════════════════════════════════════════════
+const STORE_KEY = "userEffectPresets";
+
+function useUserPresets() {
+  const [userPresets, setUserPresets] = useState([]);
+  useEffect(() => {
+    window.clipflow?.storeGet(STORE_KEY).then((saved) => {
+      if (Array.isArray(saved)) setUserPresets(saved);
+    }).catch(() => {});
+  }, []);
+  const persist = useCallback((presets) => {
+    setUserPresets(presets);
+    window.clipflow?.storeSet(STORE_KEY, presets);
+  }, []);
+  return { userPresets, persist };
+}
+
+function EffectPresetsGrid({ userPresets, persist }) {
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameText, setRenameText] = useState("");
+  const [savingNew, setSavingNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const renameRef = useRef(null);
+  const newRef = useRef(null);
+
+  useEffect(() => { if (renamingId && renameRef.current) renameRef.current.focus(); }, [renamingId]);
+  useEffect(() => { if (savingNew && newRef.current) newRef.current.focus(); }, [savingNew]);
+
+  const handleSaveNew = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const preset = snapshotEffectPreset(name);
+    persist([...userPresets, preset]);
+    setSavingNew(false); setNewName("");
+  };
+
+  const handleUpdate = (id) => {
+    const existing = userPresets.find(p => p.id === id);
+    if (!existing) return;
+    const updated = snapshotEffectPreset(existing.name);
+    updated.id = id;
+    persist(userPresets.map(p => p.id === id ? updated : p));
+  };
+
+  const handleRename = (id) => {
+    const name = renameText.trim();
+    if (!name) { setRenamingId(null); return; }
+    persist(userPresets.map(p => p.id === id ? { ...p, name } : p));
+    setRenamingId(null);
+  };
+
+  const handleDelete = (id) => {
+    persist(userPresets.filter(p => p.id !== id));
+  };
+
+  return (
+    <div className="p-3 space-y-3">
+      {/* Save current as preset */}
+      <div>
+        {savingNew ? (
+          <div className="flex gap-1.5">
+            <input ref={newRef} value={newName} onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveNew(); if (e.key === "Escape") setSavingNew(false); }}
+              placeholder="Preset name..."
+              className="flex-1 px-2 py-1.5 text-xs rounded bg-secondary/50 border border-border/40 text-foreground outline-none focus:border-primary/50" />
+            <Button size="sm" className="h-7 text-[10px] px-2" onClick={handleSaveNew}>Save</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-[10px] px-1.5" onClick={() => setSavingNew(false)}><X className="h-3 w-3" /></Button>
+          </div>
+        ) : (
+          <Button variant="outline" className="w-full h-8 text-xs gap-2" onClick={() => setSavingNew(true)}>
+            <Plus className="h-3 w-3" /> Save current as preset
+          </Button>
+        )}
+      </div>
+
+      {/* User presets */}
+      {userPresets.length > 0 && (
+        <div>
+          <SectionLabel>My Presets</SectionLabel>
+          <div className="space-y-1">
+            {userPresets.map((preset) => (
+              <div key={preset.id} className="group flex items-center gap-1 rounded-md bg-secondary/40 border border-border/30 hover:border-primary/30 transition-colors">
+                {renamingId === preset.id ? (
+                  <input ref={renameRef} value={renameText} onChange={(e) => setRenameText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(preset.id); if (e.key === "Escape") setRenamingId(null); }}
+                    onBlur={() => handleRename(preset.id)}
+                    className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
+                ) : (
+                  <button className="flex-1 text-left px-2 py-1.5 text-xs text-foreground truncate" onClick={() => applyEffectPreset(preset)}>
+                    {preset.name}
+                  </button>
+                )}
+                <div className="flex items-center gap-0.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Tooltip><TooltipTrigger asChild>
+                    <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => { setRenamingId(preset.id); setRenameText(preset.name); }}>
+                      <Pipette className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger><TooltipContent className="text-[10px]">Rename</TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild>
+                    <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => handleUpdate(preset.id)}>
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger><TooltipContent className="text-[10px]">Update with current</TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild>
+                    <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-red-400" onClick={() => handleDelete(preset.id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger><TooltipContent className="text-[10px]">Delete</TooltipContent></Tooltip>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Built-in presets */}
+      <div>
+        <SectionLabel>Built-in</SectionLabel>
+        <div className="grid grid-cols-2 gap-2">
+          {EFFECT_PRESETS.map((preset) => (
+            <button key={preset.id} onClick={() => applyEffectPreset(preset)}
+              className="py-2 rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/40 hover:bg-secondary/80 cursor-pointer transition-all flex items-center justify-center">
+              <span className="text-[10px] text-foreground font-medium">{preset.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -997,6 +1132,7 @@ function SubtitlesPanel() {
   const toggleSubUnderline = useSubtitleStore((s) => s.toggleSubUnderline);
   const [align, setAlign] = useState("center");
   const [fontColor, setFontColor] = useState("#ffffff");
+  const { userPresets, persist } = useUserPresets();
 
   return (
     <div className="flex flex-col h-full">
@@ -1019,15 +1155,7 @@ function SubtitlesPanel() {
 
       <ScrollArea className="flex-1">
         {subTab === "presets" ? (
-          /* Effect presets grid */
-          <div className="p-3 grid grid-cols-2 gap-2">
-            {EFFECT_PRESETS.map((preset) => (
-              <button key={preset.id} onClick={() => applyEffectPreset(preset)}
-                className="aspect-video rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/40 hover:bg-secondary/80 cursor-pointer transition-all flex items-center justify-center">
-                <span className="text-[10px] text-foreground font-medium">{preset.name}</span>
-              </button>
-            ))}
-          </div>
+          <EffectPresetsGrid userPresets={userPresets} persist={persist} />
         ) : (
           /* Settings */
           <div className="p-3 space-y-3">
@@ -1151,6 +1279,13 @@ function SubtitlesPanel() {
                 <ToggleSwitch value={showSubs} onChange={setShowSubs} />
               </div>
             </div>
+
+            <Separator />
+
+            {/* Save as preset shortcut */}
+            <Button variant="outline" className="w-full h-8 text-xs gap-2" onClick={() => setSubTab("presets")}>
+              <Star className="h-3 w-3" /> Save as preset
+            </Button>
           </div>
         )}
       </ScrollArea>
@@ -1239,6 +1374,7 @@ function TextPanel() {
   const captionEffectOrder = useCaptionStore((s) => s.captionEffectOrder);
   const setCaptionEffectOrder = useCaptionStore((s) => s.setCaptionEffectOrder);
   const markDirty = useEditorStore((s) => s.markDirty);
+  const { userPresets, persist } = useUserPresets();
 
   const [align, setAlign] = useState("center");
 
@@ -1256,31 +1392,7 @@ function TextPanel() {
 
       <ScrollArea className="flex-1">
         {subTab === "presets" ? (
-          <div className="p-3 space-y-3">
-            {/* Add buttons */}
-            <div className="space-y-1.5">
-              <Button variant="outline" className="w-full h-9 text-xs justify-start gap-2">
-                <Type className="h-3.5 w-3.5" /> Add a headline
-              </Button>
-              <Button variant="outline" className="w-full h-9 text-xs justify-start gap-2">
-                <AlignLeft className="h-3.5 w-3.5" /> Add body text
-              </Button>
-            </div>
-
-            <Separator />
-
-            {/* Preset grid */}
-            <div>
-              <SectionLabel>Recommended</SectionLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {["Bold Title", "Clean Sans", "Neon", "Retro", "Outline", "Gradient"].map((name, i) => (
-                  <div key={i} className="aspect-[3/2] rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-center justify-center">
-                    <span className="text-[10px] text-muted-foreground">{name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <EffectPresetsGrid userPresets={userPresets} persist={persist} />
         ) : (
           <div className="p-3 space-y-3">
             {/* Text content */}

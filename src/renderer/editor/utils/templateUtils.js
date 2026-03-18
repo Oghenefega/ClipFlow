@@ -211,6 +211,41 @@ export function applyEffectPreset(preset) {
   }
 }
 
+// Snapshot just the effect styling (not font/position) for effect presets
+export function snapshotEffectPreset(name) {
+  const sub = useSubtitleStore.getState();
+  const cap = useCaptionStore.getState();
+  return {
+    id: `epreset-${Date.now()}`, name, builtIn: false,
+    subtitle: {
+      subColor: sub.subColor,
+      strokeOn: sub.strokeOn, strokeWidth: sub.strokeWidth, strokeColor: sub.strokeColor,
+      strokeOpacity: sub.strokeOpacity, strokeBlur: sub.strokeBlur,
+      strokeOffsetX: sub.strokeOffsetX, strokeOffsetY: sub.strokeOffsetY,
+      glowOn: sub.glowOn, glowColor: sub.glowColor, glowOpacity: sub.glowOpacity,
+      glowIntensity: sub.glowIntensity, glowBlur: sub.glowBlur, glowBlend: sub.glowBlend,
+      glowOffsetX: sub.glowOffsetX, glowOffsetY: sub.glowOffsetY,
+      shadowOn: sub.shadowOn, shadowBlur: sub.shadowBlur, shadowColor: sub.shadowColor,
+      shadowOpacity: sub.shadowOpacity, shadowOffsetX: sub.shadowOffsetX, shadowOffsetY: sub.shadowOffsetY,
+      bgOn: sub.bgOn, bgOpacity: sub.bgOpacity, bgColor: sub.bgColor,
+      bgPaddingX: sub.bgPaddingX, bgPaddingY: sub.bgPaddingY, bgRadius: sub.bgRadius,
+    },
+    caption: {
+      color: cap.captionColor,
+      strokeOn: cap.captionStrokeOn, strokeWidth: cap.captionStrokeWidth, strokeColor: cap.captionStrokeColor,
+      strokeOpacity: cap.captionStrokeOpacity, strokeBlur: cap.captionStrokeBlur,
+      strokeOffsetX: cap.captionStrokeOffsetX, strokeOffsetY: cap.captionStrokeOffsetY,
+      glowOn: cap.captionGlowOn, glowColor: cap.captionGlowColor, glowOpacity: cap.captionGlowOpacity,
+      glowIntensity: cap.captionGlowIntensity, glowBlur: cap.captionGlowBlur, glowBlend: cap.captionGlowBlend,
+      glowOffsetX: cap.captionGlowOffsetX, glowOffsetY: cap.captionGlowOffsetY,
+      shadowOn: cap.captionShadowOn, shadowColor: cap.captionShadowColor, shadowBlur: cap.captionShadowBlur,
+      shadowOpacity: cap.captionShadowOpacity, shadowOffsetX: cap.captionShadowOffsetX, shadowOffsetY: cap.captionShadowOffsetY,
+      bgOn: cap.captionBgOn, bgColor: cap.captionBgColor, bgOpacity: cap.captionBgOpacity,
+      bgPaddingX: cap.captionBgPaddingX, bgPaddingY: cap.captionBgPaddingY, bgRadius: cap.captionBgRadius,
+    },
+  };
+}
+
 export function snapshotTemplate(name) {
   const sub = useSubtitleStore.getState();
   const cap = useCaptionStore.getState();
