@@ -40,7 +40,7 @@ const MERGE_THRESHOLD = 30;
 const RULER_H = 24;
 const TRACK_H = 44;
 const AUDIO_TRACK_H = 64;
-const LABEL_W = 72;
+const LABEL_W = 84;
 const END_PADDING = 200; // px of empty space after the clip ends
 
 // ── Speed Dropdown ──
@@ -138,7 +138,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
 
   return (
     <div
-      className="absolute top-1 bottom-1 rounded cursor-pointer group"
+      className="absolute top-1.5 bottom-1.5 rounded-md cursor-pointer group"
       style={{
         left: leftPx,
         width: Math.max(widthPx, 4),
@@ -151,12 +151,16 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <span
-        className="absolute inset-0 flex items-center px-2 text-xs font-medium truncate pointer-events-none select-none"
-        style={{ color: trackColor.text }}
+      <div
+        className="absolute inset-0 flex items-center px-2.5 pointer-events-none select-none overflow-hidden"
       >
-        {seg.text}
-      </span>
+        <span
+          className="text-[11px] font-medium truncate block w-full"
+          style={{ color: trackColor.text }}
+        >
+          {seg.text}
+        </span>
+      </div>
 
       {showBorder && (
         <div
@@ -811,9 +815,9 @@ export default function TimelinePanelNew() {
 
           {/* ── Caption track ── */}
           <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(263 70% 58%)" }}>T</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
+              <span className="text-xs text-muted-foreground font-medium">Caption</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
               {captionSegs.map((seg) => (
@@ -830,9 +834,9 @@ export default function TimelinePanelNew() {
 
           {/* ── Subtitle track ── */}
           <div className="flex items-stretch border-b border-border/40" style={{ height: TRACK_H }}>
-            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(120 60% 45%)" }}>S</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
+              <span className="text-xs text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
               {shouldMerge ? (
@@ -868,9 +872,9 @@ export default function TimelinePanelNew() {
 
           {/* ── Audio/Video track ── */}
           <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
-            <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+            <div className="shrink-0 flex items-center gap-1.5 px-2.5 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
               <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(25 90% 50%)" }}>♫</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
+              <span className="text-xs text-muted-foreground font-medium">Audio</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
               <WaveformTrack
@@ -886,9 +890,9 @@ export default function TimelinePanelNew() {
           </div>
 
           {/* ── Add audio row ── */}
-          <div className="flex items-center px-2 h-8">
-            <button className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground flex items-center gap-1 transition-colors ml-1">
-              <Music className="h-3 w-3" /> Add audio
+          <div className="flex items-center px-3 h-9">
+            <button className="text-xs text-muted-foreground/70 hover:text-muted-foreground flex items-center gap-1.5 transition-colors">
+              <Music className="h-3.5 w-3.5" /> Add audio
             </button>
           </div>
         </div>

@@ -42,7 +42,7 @@ const PALETTE_COLORS = [
 //  SHARED: Section Label
 // ════════════════════════════════════════════════════════════════
 function SectionLabel({ children, className = "" }) {
-  return <div className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 ${className}`}>{children}</div>;
+  return <div className={`text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 ${className}`}>{children}</div>;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -728,25 +728,25 @@ function BrandKitPanel() {
 
         {/* Name input */}
         {naming && (
-          <div className="flex gap-1.5 mb-2">
+          <div className="flex gap-1.5 mb-3">
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setNaming(false); }}
               placeholder="Template name..."
-              className="flex-1 h-7 px-2 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40" />
-            <Button size="sm" className="h-7 px-3 text-[10px]" onClick={handleSave}>Save</Button>
-            <Button variant="outline" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setNaming(false)}>Cancel</Button>
+              className="flex-1 h-8 px-2.5 text-sm rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40" />
+            <Button size="sm" className="h-8 px-4 text-xs" onClick={handleSave}>Save</Button>
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => setNaming(false)}>Cancel</Button>
           </div>
         )}
 
         {/* No templates warning */}
         {allTemplates.length === 0 && (
-          <div className="text-center py-4 text-xs text-muted-foreground">
+          <div className="text-center py-4 text-sm text-muted-foreground">
             No templates yet. Save your current layout to create one.
           </div>
         )}
 
         {/* Template cards */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {allTemplates.map((tpl) => {
             const isActive = tpl.id === activeId;
             const isDefault = tpl.id === defaultId;
@@ -754,41 +754,41 @@ function BrandKitPanel() {
             const c = tpl.caption;
             return (
               <div key={tpl.id} onClick={() => handleApply(tpl)}
-                className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-border/30 hover:border-border/60"}`}>
+                className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-border/30 hover:border-border/60"}`}>
                 {/* Mini 9:16 preview */}
-                <div className="w-8 h-14 rounded bg-secondary/80 border border-border/40 relative shrink-0 overflow-hidden">
+                <div className="w-9 h-16 rounded bg-secondary/80 border border-border/40 relative shrink-0 overflow-hidden">
                   <div className="absolute left-1 right-1 h-[3px] rounded-full" style={{ top: `${c.yPercent}%`, transform: "translateY(-50%)", background: "#a78bfa", opacity: 0.9 }} />
                   <div className="absolute left-1.5 right-1.5 h-[2px] rounded-full" style={{ top: `${s.yPercent}%`, transform: "translateY(-50%)", background: s.highlightColor || "#4cce8a", opacity: 0.9 }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
-                    {isDefault && <span className="text-[8px] font-bold text-yellow-400 bg-yellow-400/15 px-1 py-0.5 rounded shrink-0">★ DEFAULT</span>}
-                    {isActive && <span className="text-[9px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
+                    {isDefault && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded shrink-0">★ DEFAULT</span>}
+                    {isActive && <span className="text-[10px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
                   </div>
-                  <span className="text-[10px] text-muted-foreground block mt-0.5">
+                  <span className="text-xs text-muted-foreground block mt-0.5">
                     {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
                   </span>
                 </div>
-                <div className="flex flex-col gap-0.5 shrink-0">
+                <div className="flex flex-col gap-1 shrink-0">
                   {!isDefault && (
                     <button onClick={(e) => { e.stopPropagation(); handleSetDefault(tpl.id); }}
-                      className="text-[9px] text-muted-foreground hover:text-yellow-400 px-1.5 py-0.5 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
+                      className="text-[10px] text-muted-foreground hover:text-yellow-400 px-2 py-1 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
                   )}
                   {!tpl.builtIn && (
                     <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
-                      className="text-[9px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
+                      className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
-                    className="text-[9px] text-muted-foreground hover:text-destructive px-1.5 py-0.5 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
+                    className="text-[10px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <Button variant="outline" size="sm" className="w-full h-7 text-[10px] mt-2" onClick={() => { setNaming(true); setNewName(""); }}>
-          <Plus className="h-3 w-3 mr-1" /> Save current layout
+        <Button variant="outline" size="sm" className="w-full h-9 text-xs mt-3" onClick={() => { setNaming(true); setNewName(""); }}>
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Save current layout
         </Button>
       </div>
 
