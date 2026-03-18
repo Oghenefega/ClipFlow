@@ -634,7 +634,7 @@ export default function TimelinePanelNew() {
 
   // ── Full timeline ──
   return (
-    <div className="flex flex-col h-full bg-card select-none">
+    <div className="flex flex-col h-full bg-card select-none overflow-hidden">
       {/* Controls bar */}
       <div className="h-10 min-h-[40px] flex items-center px-3 border-b gap-2">
         {/* Left: Zoom controls */}
