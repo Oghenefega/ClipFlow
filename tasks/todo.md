@@ -16,7 +16,7 @@ Upgrade subtitle/caption effects from basic (stroke width/opacity, shadow blur/o
 2. Disabling doesn't lose settings (just hides the effect)
 3. Matches Resolve and Vizard patterns
 
-### Step 1: Data Model — Expand Stores
+### Step 1: Data Model — Expand Stores ✅
 
 **useSubtitleStore.js** — add new properties:
 ```
@@ -81,7 +81,7 @@ captionBgRadius: 6,
 - [ ] Add to cross-store undo snapshot keys in `SUB_STYLE_KEYS`
 - [ ] Add to caption snapshot in `_snapshotStyling`
 
-### Step 2: EffectSection Component Redesign
+### Step 2: EffectSection Component Redesign ✅
 
 **File:** `RightPanelNew.js`
 
@@ -92,7 +92,7 @@ Replace current `EffectSection` (Plus/Minus toggle) with new version:
 - [ ] When expanded + disabled: controls are visible but dimmed (opacity: 0.4)
 - [ ] Section header click toggles expand; toggle switch toggles enable
 
-### Step 3: Deepen Stroke Section
+### Step 3: Deepen Stroke Section ✅
 
 **Files:** `RightPanelNew.js` (both SubtitlesPanel and TextPanel)
 - [ ] Rename "Width" → "Thickness"
@@ -100,7 +100,7 @@ Replace current `EffectSection` (Plus/Minus toggle) with new version:
 - [ ] Add Offset X slider (-20 to +20)
 - [ ] Add Offset Y slider (-20 to +20)
 
-### Step 4: Add Glow Section (NEW)
+### Step 4: Add Glow Section (NEW) ✅
 
 **File:** `RightPanelNew.js` — insert between Stroke and Shadow
 - [ ] Color picker (default: matches text fill color)
@@ -111,14 +111,14 @@ Replace current `EffectSection` (Plus/Minus toggle) with new version:
 - [ ] Offset X slider (-20 to +20)
 - [ ] Offset Y slider (-20 to +20)
 
-### Step 5: Deepen Shadow Section
+### Step 5: Deepen Shadow Section ✅
 
 **File:** `RightPanelNew.js`
 - [ ] Add Offset X slider (-30 to +30, default 4)
 - [ ] Add Offset Y slider (-30 to +30, default 4)
 - [ ] Keep existing: color, blur/softness, opacity
 
-### Step 6: Deepen Background Section
+### Step 6: Deepen Background Section ✅
 
 **File:** `RightPanelNew.js`
 - [ ] Add Color picker (default #000000) — currently hardcoded
@@ -127,7 +127,7 @@ Replace current `EffectSection` (Plus/Minus toggle) with new version:
 - [ ] Add Border Radius slider (0-20px, default 6)
 - [ ] Keep existing: opacity
 
-### Step 7: Preview Rendering — Update `buildStrokeShadows` + text styles
+### Step 7: Preview Rendering — Update `buildStrokeShadows` + text styles ✅
 
 **File:** `PreviewPanelNew.js`
 
@@ -138,7 +138,7 @@ Update `subTextStyle` and `capTextStyle` to use new properties:
 - [ ] Background: use bgColor, bgPaddingX/Y, bgRadius
 - [ ] Render order: Background → Shadow → Glow (below) → Stroke → Glow (above) → Fill
 
-### Step 8: Built-in Effect Presets
+### Step 8: Built-in Effect Presets ✅
 
 **File:** `templateUtils.js` (or new `effectPresets.js`)
 - [ ] "Clean White" — white text, black stroke, no glow/shadow
@@ -150,7 +150,7 @@ Update `subTextStyle` and `capTextStyle` to use new properties:
 - [ ] "Minimal" — white text, thin stroke, nothing else
 - [ ] "Outlined" — colored stroke, transparent fill
 
-### Step 9: Update Template System
+### Step 9: Update Template System ✅
 
 **File:** `templateUtils.js`
 - [ ] Add new properties to `snapshotTemplate` and `applyTemplate`
@@ -233,6 +233,7 @@ Replace whisper.cpp binary subprocess with BetterWhisperX Python subprocess. Sam
 
 1. **Timeline end marker**: The timeline should have a visible end line/marker so the timeline stops before it (or the content goes under it). Currently it just fades off to the right.
 2. **Punctuation dropdown text**: Remove the "Hide" label — just the arrow chevron is enough. "Remove" label can stay or also be removed, arrow alone is obvious.
+3. **Title bar centering**: The clip title dropdown in the editor topbar is shifted left — should be centered horizontally.
 
 ---
 

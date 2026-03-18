@@ -530,6 +530,7 @@ function EffectPresetsGrid({ userPresets, persist }) {
                     {preset.name}
                   </button>
                 )}
+                <TooltipProvider delayDuration={200}>
                 <div className="flex items-center gap-0.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Tooltip><TooltipTrigger asChild>
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => { setRenamingId(preset.id); setRenameText(preset.name); }}>
@@ -547,6 +548,7 @@ function EffectPresetsGrid({ userPresets, persist }) {
                     </button>
                   </TooltipTrigger><TooltipContent className="text-[10px]">Delete</TooltipContent></Tooltip>
                 </div>
+                </TooltipProvider>
               </div>
             ))}
           </div>
@@ -942,6 +944,15 @@ function BrandKitPanel() {
     persistDefault(id);
   }, [persistDefault]);
 
+  const handleRename = useCallback((id, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    persist(templates.map((t) => t.id === id ? { ...t, name: trimmed } : t));
+  }, [templates, persist]);
+
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameText, setRenameText] = useState("");
+
   return (
     <div className="p-3 space-y-4">
       {/* Templates */}
@@ -986,13 +997,27 @@ function BrandKitPanel() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
+                    {renamingId === tpl.id ? (
+                      <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => { if (e.key === "Enter") { handleRename(tpl.id, renameText); setRenamingId(null); } if (e.key === "Escape") setRenamingId(null); }}
+                        onBlur={() => { handleRename(tpl.id, renameText); setRenamingId(null); }}
+                        className="text-sm font-medium text-foreground bg-transparent outline-none border-b border-primary/50 w-full" />
+                    ) : (
+                      <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
+                    )}
                     {isDefault && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded shrink-0">★ DEFAULT</span>}
                     {isActive && <span className="text-[10px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
                   </div>
                   <span className="text-xs text-muted-foreground block mt-0.5">
                     {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
                   </span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {s.strokeOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.strokeColor || "#000", borderLeftWidth: 2 }}>Stroke</span>}
+                    {s.glowOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.glowColor || "#fff", borderLeftWidth: 2 }}>Glow</span>}
+                    {s.shadowOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.shadowColor || "#000", borderLeftWidth: 2 }}>Shadow</span>}
+                    {s.bgOn && <span className="text-[9px] px-1 py-0.5 rounded bg-secondary/80 text-muted-foreground border border-border/30" style={{ borderLeftColor: s.bgColor || "#000", borderLeftWidth: 2 }}>BG</span>}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">
                   {!isDefault && (
@@ -1000,8 +1025,12 @@ function BrandKitPanel() {
                       className="text-[10px] text-muted-foreground hover:text-yellow-400 px-2 py-1 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
                   )}
                   {!tpl.builtIn && (
-                    <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
-                      className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); setRenamingId(tpl.id); setRenameText(tpl.name); }}
+                        className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary/80 transition-colors" title="Rename">Rename</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
+                        className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Update with current settings">Update</button>
+                    </>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
                     className="text-[10px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
