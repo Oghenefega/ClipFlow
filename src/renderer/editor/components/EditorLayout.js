@@ -398,7 +398,7 @@ function Topbar({ onBack }) {
         <Button
           size="sm"
           className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
-          style={{ background: "linear-gradient(135deg, #22c55e, #84cc16, #eab308)" }}
+          style={{ background: "linear-gradient(135deg, #15803d, #22c55e, #4ade80)" }}
           onClick={onSendToQueue}
         >
           <Send className="h-3.5 w-3.5 mr-1.5" />

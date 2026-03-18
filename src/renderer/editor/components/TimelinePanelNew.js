@@ -32,9 +32,11 @@ import {
 const SPEED_OPTIONS = ["0.25x", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"];
 const TRACK_COLORS = {
   cap: { bg: "hsl(263 70% 58% / 0.18)", border: "hsl(263 70% 58% / 0.6)", selected: "hsl(263 70% 58% / 0.4)", text: "hsl(263 70% 85%)" },
-  sub: { bg: "hsl(120 60% 50% / 0.20)", border: "hsl(120 60% 50% / 0.6)", selected: "hsl(120 60% 50% / 0.4)", text: "hsl(120 60% 90%)" },
-  audio: { bg: "hsl(25 90% 55% / 0.12)", border: "hsl(25 90% 55% / 0.4)", selected: "hsl(25 90% 55% / 0.3)", text: "hsl(25 90% 70%)" },
+  sub: { bg: "hsl(120 60% 45% / 0.25)", border: "hsl(120 60% 50% / 0.6)", selected: "hsl(120 60% 45% / 0.4)", text: "hsl(120 60% 90%)" },
+  audio: { bg: "transparent", border: "hsl(25 90% 55% / 0.4)", selected: "hsl(25 90% 55% / 0.15)", text: "hsl(25 90% 70%)" },
 };
+// Minimum pill width (px) below which pills merge into one continuous bar
+const MERGE_THRESHOLD = 30;
 const RULER_H = 24;
 const TRACK_H = 44;
 const AUDIO_TRACK_H = 64;
@@ -131,6 +133,9 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     window.addEventListener("pointerup", onUp);
   }, [seg, duration, timelineWidth, onResize]);
 
+  // Border only on hover or selection
+  const showBorder = selected || hovered;
+
   return (
     <div
       className="absolute top-1 bottom-1 rounded cursor-pointer group"
@@ -138,7 +143,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         left: leftPx,
         width: Math.max(widthPx, 4),
         background: selected ? trackColor.selected : trackColor.bg,
-        border: `2px solid ${selected ? trackColor.text : trackColor.border}`,
+        border: showBorder ? `2px solid ${selected ? trackColor.text : trackColor.border}` : "2px solid transparent",
         zIndex: selected ? 5 : 1,
         transition: resizing ? "none" : "background 0.15s, border-color 0.15s",
       }}
@@ -153,7 +158,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         {seg.text}
       </span>
 
-      {(selected || hovered) && (
+      {showBorder && (
         <div
           className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
           onPointerDown={(e) => onHandleDown("left", e)}
@@ -161,7 +166,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
           <div className="w-1 h-4 rounded-full bg-white/60" />
         </div>
       )}
-      {(selected || hovered) && (
+      {showBorder && (
         <div
           className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
           onPointerDown={(e) => onHandleDown("right", e)}
@@ -174,8 +179,38 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
 }
 
 // ── Waveform Track — continuous filled polygon, NOT bars ──
-function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu }) {
+function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize }) {
   const canvasRef = useRef(null);
+  const [resizing, setResizing] = useState(null);
+  const [hovered, setHovered] = useState(false);
+  const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
+
+  const onHandleDown = useCallback((side, e) => {
+    if (!audioSeg || !onResize) return;
+    e.stopPropagation();
+    setResizing(side);
+    startRef.current = { x: e.clientX, startSec: audioSeg.startSec, endSec: audioSeg.endSec };
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const dtSec = duration > 0 ? (dx / timelineWidth) * duration : 0;
+      let newStart = startRef.current.startSec;
+      let newEnd = startRef.current.endSec;
+      if (side === "left") {
+        newStart = Math.max(0, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
+      } else {
+        newEnd = Math.min(duration, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
+      }
+      onResize(audioSeg.id, newStart, newEnd);
+    };
+    const onUp = () => {
+      setResizing(null);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [audioSeg, onResize, duration, timelineWidth]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -269,22 +304,32 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     ctx.stroke();
   }, [peaks, timelineWidth, selected]);
 
+  const showHandles = selected || hovered;
+
   return (
     <div
       className={`relative h-full cursor-pointer rounded overflow-hidden ${
-        selected ? "ring-1 ring-primary/60" : ""
+        selected ? "ring-1 ring-orange-400/40" : ""
       }`}
-      style={{ width: timelineWidth, background: TRACK_COLORS.audio.bg }}
+      style={{ width: timelineWidth, background: "transparent" }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e); }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
-      {selected && (
+      {showHandles && (
         <>
-          <div className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10">
+          <div
+            className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
+            onPointerDown={(e) => onHandleDown("left", e)}
+          >
             <div className="w-1 h-4 rounded-full bg-white/60" />
           </div>
-          <div className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10">
+          <div
+            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center z-10"
+            onPointerDown={(e) => onHandleDown("right", e)}
+          >
             <div className="w-1 h-4 rounded-full bg-white/60" />
           </div>
         </>
@@ -310,6 +355,10 @@ export default function TimelinePanelNew() {
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
 
   const captionText = useCaptionStore((s) => s.captionText);
+  const captionStartSec = useCaptionStore((s) => s.captionStartSec);
+  const captionEndSec = useCaptionStore((s) => s.captionEndSec);
+  const setCaptionStartSec = useCaptionStore((s) => s.setCaptionStartSec);
+  const setCaptionEndSec = useCaptionStore((s) => s.setCaptionEndSec);
 
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
   const tlZoom = useLayoutStore((s) => s.tlZoom);
@@ -324,6 +373,8 @@ export default function TimelinePanelNew() {
   const [selectedSegId, setSelectedSegId] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [scrubbing, setScrubbing] = useState(false);
+  const [audioStartSec, setAudioStartSec] = useState(0);
+  const [audioEndSec, setAudioEndSec] = useState(null); // null = full duration
 
   // Single scroll container ref for ruler + all tracks
   const scrollRef = useRef(null);
@@ -409,11 +460,35 @@ export default function TimelinePanelNew() {
     setSelectedSegId(null);
   }, []);
 
-  // Caption segments
+  // Caption segments (resizable via store)
   const captionSegs = useMemo(() => {
     if (!captionText) return [];
-    return [{ id: "cap-1", text: captionText, startSec: 0, endSec: duration }];
-  }, [captionText, duration]);
+    return [{ id: "cap-1", text: captionText, startSec: captionStartSec, endSec: captionEndSec ?? duration }];
+  }, [captionText, captionStartSec, captionEndSec, duration]);
+
+  // Audio segment (resizable via local state)
+  const audioSeg = useMemo(() => {
+    return { id: "audio-1", startSec: audioStartSec, endSec: audioEndSec ?? duration };
+  }, [audioStartSec, audioEndSec, duration]);
+
+  // Caption resize handler
+  const handleCaptionResize = useCallback((id, newStart, newEnd) => {
+    setCaptionStartSec(Math.max(0, newStart));
+    setCaptionEndSec(Math.min(duration, newEnd));
+  }, [duration, setCaptionStartSec, setCaptionEndSec]);
+
+  // Audio resize handler
+  const handleAudioResize = useCallback((id, newStart, newEnd) => {
+    setAudioStartSec(Math.max(0, newStart));
+    setAudioEndSec(Math.min(duration, newEnd));
+  }, [duration]);
+
+  // Determine if pills should merge (Vizard-style): when average pill width < MERGE_THRESHOLD
+  const shouldMerge = useMemo(() => {
+    if (!editSegments || editSegments.length === 0 || duration <= 0) return false;
+    const avgPillWidth = clipContentWidth / editSegments.length;
+    return avgPillWidth < MERGE_THRESHOLD;
+  }, [editSegments, clipContentWidth, duration]);
 
   // Segment selection handler
   const handleSegSelect = useCallback((track, segId) => {
@@ -747,7 +822,7 @@ export default function TimelinePanelNew() {
                   duration={duration} timelineWidth={clipContentWidth}
                   selected={selectedTrack === "cap" && selectedSegId === seg.id}
                   onSelect={(id) => handleSegSelect("cap", id)}
-                  onResize={() => {}}
+                  onResize={handleCaptionResize}
                 />
               ))}
             </div>
@@ -760,21 +835,41 @@ export default function TimelinePanelNew() {
               <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
-              {editSegments.map((seg) => (
-                <SegmentBlock
-                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
-                  duration={duration} timelineWidth={clipContentWidth}
-                  selected={selectedTrack === "sub" && selectedSegId === seg.id}
-                  onSelect={(id) => handleSegSelect("sub", id)}
-                  onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
-                />
-              ))}
+              {shouldMerge ? (
+                /* Zoom-merged: one continuous bar showing "Subtitle" */
+                (() => {
+                  const first = editSegments[0];
+                  const last = editSegments[editSegments.length - 1];
+                  if (!first || !last) return null;
+                  const mergedSeg = { id: "merged-sub", text: "Subtitle", startSec: first.startSec, endSec: last.endSec };
+                  return (
+                    <SegmentBlock
+                      seg={mergedSeg} trackColor={TRACK_COLORS.sub}
+                      duration={duration} timelineWidth={clipContentWidth}
+                      selected={selectedTrack === "sub"}
+                      onSelect={() => handleSegSelect("sub", "merged-sub")}
+                      onResize={() => {}}
+                    />
+                  );
+                })()
+              ) : (
+                editSegments.map((seg) => (
+                  <SegmentBlock
+                    key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
+                    duration={duration} timelineWidth={clipContentWidth}
+                    selected={selectedTrack === "sub" && selectedSegId === seg.id}
+                    onSelect={(id) => handleSegSelect("sub", id)}
+                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                  />
+                ))
+              )}
             </div>
           </div>
 
           {/* ── Audio/Video track ── */}
           <div className="flex items-stretch border-b border-border/40" style={{ height: AUDIO_TRACK_H }}>
             <div className="shrink-0 flex items-center gap-1.5 px-2 border-r border-border/30 bg-card z-10" style={{ width: LABEL_W, position: "sticky", left: 0 }}>
+              <span className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center text-white" style={{ background: "hsl(25 90% 50%)" }}>♫</span>
               <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
@@ -784,6 +879,8 @@ export default function TimelinePanelNew() {
                 selected={selectedTrack === "audio"}
                 onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(null); }}
                 onContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY })}
+                audioSeg={audioSeg}
+                onResize={handleAudioResize}
               />
             </div>
           </div>
