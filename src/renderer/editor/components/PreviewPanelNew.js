@@ -456,6 +456,8 @@ export default function PreviewPanelNew() {
 
   // Caption
   const captionText = useCaptionStore((s) => s.captionText);
+  const captionStartSec = useCaptionStore((s) => s.captionStartSec);
+  const captionEndSec = useCaptionStore((s) => s.captionEndSec);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
   const captionFontSize = useCaptionStore((s) => s.captionFontSize);
@@ -857,8 +859,8 @@ export default function PreviewPanelNew() {
             </div>
           )}
 
-          {/* Caption overlay with resize handles */}
-          {captionText && (
+          {/* Caption overlay with resize handles — only visible within timeline range */}
+          {captionText && currentTime >= captionStartSec && currentTime <= (captionEndSec ?? Infinity) && (
             <DraggableOverlay
               yPercent={capYPercent}
               onYChange={setCapYPercent}

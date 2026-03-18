@@ -645,7 +645,7 @@ export default function TimelinePanelNew() {
                 <Button
                   variant="ghost" size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={() => setTlZoom(Math.max(0.25, tlZoom - 0.25))}
+                  onClick={() => setTlZoom(Math.max(0.1, +(tlZoom - 0.25).toFixed(2)))}
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </Button>
@@ -657,9 +657,9 @@ export default function TimelinePanelNew() {
           <div className="w-[100px]">
             <Slider
               value={[tlZoom * 100]}
-              min={25}
-              max={400}
-              step={25}
+              min={10}
+              max={1000}
+              step={10}
               onValueChange={([v]) => setTlZoom(v / 100)}
               className="flex-1"
             />
@@ -671,7 +671,7 @@ export default function TimelinePanelNew() {
                 <Button
                   variant="ghost" size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={() => setTlZoom(Math.min(4, tlZoom + 0.25))}
+                  onClick={() => setTlZoom(Math.min(10, +(tlZoom + 0.25).toFixed(2)))}
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
                 </Button>
