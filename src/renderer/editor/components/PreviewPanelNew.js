@@ -195,7 +195,16 @@ function InlineToolbar({ target, fontFamily, fontSize, fontWeight, onFontFamily,
         >
           <Minus className="h-3 w-3" />
         </button>
-        <span className="text-xs text-foreground font-mono w-6 text-center">{fontSize}</span>
+        <input
+          type="text"
+          value={fontSize}
+          onChange={(e) => {
+            const v = parseInt(e.target.value);
+            if (!isNaN(v) && v >= 1 && v <= 999) onFontSize(v);
+          }}
+          onFocus={(e) => e.target.select()}
+          className="w-8 h-6 text-xs text-foreground font-mono text-center rounded bg-transparent border border-transparent hover:border-border focus:border-primary/50 outline-none"
+        />
         <button
           className="w-6 h-6 rounded hover:bg-secondary/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => onFontSize(Math.min(120, fontSize + 1))}

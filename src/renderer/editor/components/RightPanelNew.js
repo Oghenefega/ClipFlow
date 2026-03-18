@@ -202,13 +202,19 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
             <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
           </div>
         )}
-        <div className="relative w-16">
-          <select value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))}
-            className="w-full h-8 px-2 pr-5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer focus:border-primary/40"
-          >
-            {[8,10,12,14,16,18,20,24,28,32,36,42,48,52,60,72].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        <div className="flex items-center w-20">
+          <button onClick={() => setFontSize(Math.max(1, fontSize - 1))}
+            className="w-6 h-8 rounded-l-md bg-secondary border border-border border-r-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
+            <Minus className="h-3 w-3" />
+          </button>
+          <input type="text" value={fontSize}
+            onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 999) setFontSize(v); }}
+            onFocus={(e) => e.target.select()}
+            className="w-8 h-8 text-xs text-center bg-secondary border-y border-border text-foreground outline-none focus:border-primary/40" />
+          <button onClick={() => setFontSize(Math.min(999, fontSize + 1))}
+            className="w-6 h-8 rounded-r-md bg-secondary border border-border border-l-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
+            <Plus className="h-3 w-3" />
+          </button>
         </div>
       </div>
 
@@ -570,8 +576,81 @@ function AudioPanel() {
 // ════════════════════════════════════════════════════════════════
 //  DRAWER 3: BRAND KIT
 // ════════════════════════════════════════════════════════════════
+// ── Built-in default template ──
+const BUILTIN_TEMPLATE = {
+  id: "fega-default", name: "Fega Default", builtIn: true,
+  caption: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff", bold: true, italic: true, underline: false, yPercent: 15, widthPercent: 90 },
+  subtitle: { fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, underline: false, strokeOn: true, strokeWidth: 7, shadowOn: false, shadowBlur: 8, bgOn: false, bgOpacity: 80, highlightColor: "#4cce8a", lineMode: "2L", subMode: "karaoke", yPercent: 80 },
+};
+const WEIGHT_LABELS = { 300: "Light", 400: "Regular", 500: "Medium", 700: "Bold", 900: "Heavy" };
+
+function snapshotTemplate(name) {
+  const sub = useSubtitleStore.getState();
+  const cap = useCaptionStore.getState();
+  const lay = useLayoutStore.getState();
+  return {
+    id: `tpl-${Date.now()}`, name, builtIn: false, createdAt: new Date().toISOString(),
+    caption: { fontFamily: cap.captionFontFamily, fontWeight: cap.captionFontWeight, fontSize: cap.captionFontSize, color: cap.captionColor, bold: cap.captionBold, italic: cap.captionItalic, underline: cap.captionUnderline, yPercent: lay.capYPercent, widthPercent: lay.capWidthPercent },
+    subtitle: { fontFamily: sub.subFontFamily, fontWeight: sub.subFontWeight, fontSize: sub.fontSize, italic: sub.subItalic, bold: sub.subBold, underline: sub.subUnderline, strokeOn: sub.strokeOn, strokeWidth: sub.strokeWidth, shadowOn: sub.shadowOn, shadowBlur: sub.shadowBlur, bgOn: sub.bgOn, bgOpacity: sub.bgOpacity, highlightColor: sub.highlightColor, lineMode: sub.lineMode, subMode: sub.subMode, yPercent: lay.subYPercent },
+  };
+}
+
+function applyTemplate(tpl) {
+  const c = tpl.caption; const s = tpl.subtitle;
+  const cs = useCaptionStore.getState(); const ss = useSubtitleStore.getState(); const ls = useLayoutStore.getState();
+  cs.setCaptionFontFamily(c.fontFamily); cs.setCaptionFontWeight(c.fontWeight); cs.setCaptionFontSize(c.fontSize);
+  cs.setCaptionColor(c.color); cs.setCaptionBold(c.bold); cs.setCaptionItalic(c.italic); cs.setCaptionUnderline(c.underline);
+  ss.setSubFontFamily(s.fontFamily); ss.setSubFontWeight(s.fontWeight); ss.setFontSize(s.fontSize);
+  ss.setSubItalic(s.italic); ss.setSubBold(s.bold); ss.setSubUnderline(s.underline);
+  ss.setStrokeOn(s.strokeOn); ss.setStrokeWidth(s.strokeWidth); ss.setShadowOn(s.shadowOn); ss.setShadowBlur(s.shadowBlur);
+  ss.setBgOn(s.bgOn); ss.setBgOpacity(s.bgOpacity); ss.setHighlightColor(s.highlightColor);
+  ss.setLineMode(s.lineMode); ss.setSubMode(s.subMode);
+  ls.setCapYPercent(c.yPercent); ls.setCapWidthPercent(c.widthPercent); ls.setSubYPercent(s.yPercent);
+}
+
 function BrandKitPanel() {
-  const [applyAll, setApplyAll] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [activeId, setActiveId] = useState("fega-default");
+  const [naming, setNaming] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    if (window.clipflow?.storeGet) {
+      window.clipflow.storeGet("layoutTemplates").then((saved) => { if (Array.isArray(saved)) setTemplates(saved); });
+      window.clipflow.storeGet("activeTemplateId").then((id) => { if (id) setActiveId(id); });
+    }
+  }, []);
+
+  const persist = useCallback((tpls) => {
+    setTemplates(tpls);
+    window.clipflow?.storeSet?.("layoutTemplates", tpls);
+  }, []);
+  const persistActive = useCallback((id) => {
+    setActiveId(id);
+    window.clipflow?.storeSet?.("activeTemplateId", id);
+  }, []);
+
+  const allTemplates = [BUILTIN_TEMPLATE, ...templates];
+
+  const handleSave = useCallback(() => {
+    const name = newName.trim();
+    if (!name) return;
+    const tpl = snapshotTemplate(name);
+    persist([...templates, tpl]);
+    persistActive(tpl.id);
+    setNaming(false);
+    setNewName("");
+  }, [newName, templates, persist, persistActive]);
+
+  const handleApply = useCallback((tpl) => {
+    applyTemplate(tpl);
+    persistActive(tpl.id);
+  }, [persistActive]);
+
+  const handleDelete = useCallback((id) => {
+    persist(templates.filter((t) => t.id !== id));
+    if (activeId === id) persistActive("fega-default");
+  }, [templates, activeId, persist, persistActive]);
 
   return (
     <div className="p-3 space-y-4">
@@ -579,25 +658,54 @@ function BrandKitPanel() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <SectionLabel className="mb-0">Templates</SectionLabel>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${applyAll ? "bg-primary border-primary" : "border-border"}`}
-                onClick={() => setApplyAll(!applyAll)}>
-                {applyAll && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-              </div>
-              <span className="text-[10px] text-muted-foreground">Apply to all</span>
-            </label>
+        </div>
+
+        {/* Name input */}
+        {naming && (
+          <div className="flex gap-1.5 mb-2">
+            <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setNaming(false); }}
+              placeholder="Template name..."
+              className="flex-1 h-7 px-2 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40" />
+            <Button size="sm" className="h-7 px-3 text-[10px]" onClick={handleSave}>Save</Button>
+            <Button variant="outline" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setNaming(false)}>Cancel</Button>
           </div>
+        )}
+
+        {/* Template cards */}
+        <div className="space-y-1.5">
+          {allTemplates.map((tpl) => {
+            const isActive = tpl.id === activeId;
+            const s = tpl.subtitle;
+            const c = tpl.caption;
+            return (
+              <div key={tpl.id} onClick={() => handleApply(tpl)}
+                className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-border/30 hover:border-border/60"}`}>
+                {/* Mini 9:16 preview */}
+                <div className="w-8 h-14 rounded bg-secondary/80 border border-border/40 relative shrink-0 overflow-hidden">
+                  <div className="absolute left-1 right-1 h-[3px] rounded-full" style={{ top: `${c.yPercent}%`, transform: "translateY(-50%)", background: "#a78bfa", opacity: 0.9 }} />
+                  <div className="absolute left-1.5 right-1.5 h-[2px] rounded-full" style={{ top: `${s.yPercent}%`, transform: "translateY(-50%)", background: s.highlightColor || "#4cce8a", opacity: 0.9 }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
+                    {isActive && <span className="text-[9px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0 ml-1">Active</span>}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground block mt-0.5">
+                    {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
+                  </span>
+                </div>
+                {!tpl.builtIn && !isActive && (
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
+                    className="text-muted-foreground hover:text-destructive text-sm px-1 transition-colors" title="Delete">×</button>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {["ClipFlow Default", "Gaming Bold"].map((name, i) => (
-            <div key={i} className="aspect-[4/5] rounded-lg bg-secondary/60 border border-border/40 hover:border-primary/30 cursor-pointer transition-colors flex items-end p-2">
-              <span className="text-[10px] text-muted-foreground">{name}</span>
-            </div>
-          ))}
-        </div>
-        <Button variant="outline" size="sm" className="w-full h-7 text-[10px] mt-2">
-          <Plus className="h-3 w-3 mr-1" /> Save as template
+
+        <Button variant="outline" size="sm" className="w-full h-7 text-[10px] mt-2" onClick={() => { setNaming(true); setNewName(""); }}>
+          <Plus className="h-3 w-3 mr-1" /> Save current layout
         </Button>
       </div>
 
@@ -607,36 +715,6 @@ function BrandKitPanel() {
       <div>
         <SectionLabel>Logos</SectionLabel>
         <DropZone accept="JPG, PNG, JPEG" icon={ImagePlus} />
-      </div>
-
-      <Separator />
-
-      {/* Subtitles */}
-      <div>
-        <SectionLabel>Subtitles</SectionLabel>
-        <div className="flex gap-2">
-          <div className="w-16 h-16 rounded-lg bg-secondary/60 border border-border/40 flex items-center justify-center">
-            <span className="text-[9px] text-muted-foreground font-semibold italic">The five</span>
-          </div>
-          <button className="w-16 h-16 rounded-lg border-2 border-dashed border-border/40 hover:border-border/60 flex items-center justify-center transition-colors">
-            <Plus className="h-4 w-4 text-muted-foreground/50" />
-          </button>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Text styles */}
-      <div>
-        <SectionLabel>Text styles</SectionLabel>
-        <div className="flex gap-2">
-          <div className="w-16 h-16 rounded-lg bg-secondary/60 border border-border/40 flex items-center justify-center">
-            <span className="text-[8px] text-muted-foreground leading-tight text-center">Lorem ipsum<br/>dolor sit</span>
-          </div>
-          <button className="w-16 h-16 rounded-lg border-2 border-dashed border-border/40 hover:border-border/60 flex items-center justify-center transition-colors">
-            <Type className="h-4 w-4 text-muted-foreground/50" />
-          </button>
-        </div>
       </div>
 
       <Separator />
