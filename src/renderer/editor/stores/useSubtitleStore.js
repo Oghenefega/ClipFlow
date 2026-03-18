@@ -11,15 +11,16 @@ const SUB_STYLE_KEYS = [
   "bgOn", "bgOpacity", "bgColor", "bgPaddingX", "bgPaddingY", "bgRadius",
   "highlightColor", "subColor", "subPos", "punctOn", "showSubs", "emojiOn",
   "subFontFamily", "subFontWeight", "subItalic", "subBold", "subUnderline",
-  "lineMode", "syncOffset", "punctuationRemove",
+  "lineMode", "syncOffset", "punctuationRemove", "effectOrder",
 ];
 
 // Snapshot/restore helpers for cross-store undo
 function _snapshotStyling(subState) {
   const sub = {};
   for (const k of SUB_STYLE_KEYS) sub[k] = subState[k];
-  // Deep-copy punctuationRemove
+  // Deep-copy objects/arrays
   if (sub.punctuationRemove) sub.punctuationRemove = { ...sub.punctuationRemove };
+  if (sub.effectOrder) sub.effectOrder = [...sub.effectOrder];
 
   // Capture caption store state (lazy import to avoid circular deps)
   let cap = null;
@@ -37,10 +38,13 @@ function _snapshotStyling(subState) {
       "captionGlowOn", "captionGlowColor", "captionGlowOpacity", "captionGlowIntensity",
       "captionGlowBlur", "captionGlowBlend", "captionGlowOffsetX", "captionGlowOffsetY",
       "captionBgOn", "captionBgColor", "captionBgOpacity", "captionBgPaddingX",
-      "captionBgPaddingY", "captionBgRadius",
+      "captionBgPaddingY", "captionBgRadius", "captionEffectOrder",
     ];
     cap = {};
-    for (const k of CAP_KEYS) cap[k] = cs[k];
+    for (const k of CAP_KEYS) {
+      const val = cs[k];
+      cap[k] = Array.isArray(val) ? [...val] : val;
+    }
   } catch (_) {}
 
   // Capture layout positions
@@ -193,6 +197,8 @@ const useSubtitleStore = create((set, get) => ({
   bgPaddingX: 12,
   bgPaddingY: 8,
   bgRadius: 6,
+  // Effect render order (draggable — determines layering in text-shadow)
+  effectOrder: ["glow", "stroke", "shadow", "background"],
   highlightColor: "#4cce8a",
   subColor: "#ffffff",
   subPos: 7,
@@ -502,6 +508,7 @@ const useSubtitleStore = create((set, get) => ({
   setBgPaddingX: (p) => { get()._pushStyleUndo(); set({ bgPaddingX: p }); },
   setBgPaddingY: (p) => { get()._pushStyleUndo(); set({ bgPaddingY: p }); },
   setBgRadius: (r) => { get()._pushStyleUndo(); set({ bgRadius: r }); },
+  setEffectOrder: (order) => { get()._pushStyleUndo(); set({ effectOrder: order }); },
   setHighlightColor: (c) => { get()._pushStyleUndo(); set({ highlightColor: c }); },
   setSubColor: (c) => { get()._pushStyleUndo(); set({ subColor: c }); },
   setSubPos: (p) => { get()._pushStyleUndo(); set({ subPos: p }); },

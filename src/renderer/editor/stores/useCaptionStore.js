@@ -45,6 +45,7 @@ const useCaptionStore = create((set) => ({
   captionBgPaddingX: 12,
   captionBgPaddingY: 8,
   captionBgRadius: 6,
+  captionEffectOrder: ["glow", "stroke", "shadow", "background"],
 
   // ── Caption timing (for timeline resize) ──
   captionStartSec: 0,
@@ -90,6 +91,7 @@ const useCaptionStore = create((set) => ({
   setCaptionBgPaddingX: (p) => { _pushCrossUndo(); set({ captionBgPaddingX: p }); },
   setCaptionBgPaddingY: (p) => { _pushCrossUndo(); set({ captionBgPaddingY: p }); },
   setCaptionBgRadius: (r) => { _pushCrossUndo(); set({ captionBgRadius: r }); },
+  setCaptionEffectOrder: (order) => { _pushCrossUndo(); set({ captionEffectOrder: order }); },
   setCaptionStartSec: (t) => set({ captionStartSec: t }),
   setCaptionEndSec: (t) => set({ captionEndSec: t }),
 

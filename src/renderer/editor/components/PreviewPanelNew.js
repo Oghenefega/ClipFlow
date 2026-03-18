@@ -455,6 +455,7 @@ export default function PreviewPanelNew() {
   const bgPaddingX = useSubtitleStore((s) => s.bgPaddingX);
   const bgPaddingY = useSubtitleStore((s) => s.bgPaddingY);
   const bgRadius = useSubtitleStore((s) => s.bgRadius);
+  const effectOrder = useSubtitleStore((s) => s.effectOrder);
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const subMode = useSubtitleStore((s) => s.subMode);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
@@ -505,6 +506,7 @@ export default function PreviewPanelNew() {
   const captionBgPaddingX = useCaptionStore((s) => s.captionBgPaddingX);
   const captionBgPaddingY = useCaptionStore((s) => s.captionBgPaddingY);
   const captionBgRadius = useCaptionStore((s) => s.captionBgRadius);
+  const captionEffectOrder = useCaptionStore((s) => s.captionEffectOrder);
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
@@ -685,17 +687,23 @@ export default function PreviewPanelNew() {
     return `rgba(${r},${g},${b},${opacity / 100})`;
   }, []);
 
-  // Generate outside stroke via text-shadow (16 directions around text)
+  // Generate outside stroke via multi-ring text-shadow (adaptive point count for smooth edges)
   const buildStrokeShadows = useCallback((width, colorHex, opacity, blur = 0, offX = 0, offY = 0) => {
     if (width <= 0) return "";
     const rgba = hexToRgba(colorHex, opacity);
     const shadows = [];
-    const steps = 16;
-    for (let i = 0; i < steps; i++) {
-      const angle = (i / steps) * Math.PI * 2;
-      const x = (Math.cos(angle) * width + offX).toFixed(1);
-      const y = (Math.sin(angle) * width + offY).toFixed(1);
-      shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
+    // Adaptive: more points for larger widths to avoid jagged edges
+    const steps = Math.max(24, Math.round(width * 8));
+    // Multiple rings from 40% to 100% width for solid fill (no gaps)
+    const rings = width > 3 ? 3 : width > 1 ? 2 : 1;
+    for (let ring = 1; ring <= rings; ring++) {
+      const r = width * (ring / rings);
+      for (let i = 0; i < steps; i++) {
+        const angle = (i / steps) * Math.PI * 2;
+        const x = (Math.cos(angle) * r + offX).toFixed(2);
+        const y = (Math.sin(angle) * r + offY).toFixed(2);
+        shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
+      }
     }
     return shadows.join(", ");
   }, [hexToRgba]);
@@ -708,7 +716,6 @@ export default function PreviewPanelNew() {
     const rgba = hexToRgba(colorHex, effectiveOpacity * 100);
     const ox = (offX * sf * 0.5).toFixed(1);
     const oy = (offY * sf * 0.5).toFixed(1);
-    // Multiple shadow layers for glow intensity
     const layers = Math.max(1, Math.round(scaledIntensity * 3));
     const parts = [];
     for (let i = 0; i < layers; i++) {
@@ -717,30 +724,36 @@ export default function PreviewPanelNew() {
     return parts.join(", ");
   }, [hexToRgba]);
 
-  // ── Build unified text-shadow from all effects ──
+  // ── Build unified text-shadow respecting effect order ──
   const buildAllShadows = useCallback((opts) => {
-    const { sf, stroke, glow: glowOpts, shadow: shadowOpts } = opts;
-    const parts = [];
-    // 1. Shadow (renders behind everything)
-    if (shadowOpts.on) {
-      const scaledBlur = shadowOpts.blur * sf * 0.5;
-      const ox = (shadowOpts.offX * sf * 0.5).toFixed(1);
-      const oy = (shadowOpts.offY * sf * 0.5).toFixed(1);
-      parts.push(`${ox}px ${oy}px ${scaledBlur}px ${hexToRgba(shadowOpts.color, shadowOpts.opacity)}`);
-    }
-    // 2. Glow
-    if (glowOpts.on) {
-      parts.push(buildGlowShadow(glowOpts.color, glowOpts.opacity, glowOpts.intensity, glowOpts.blur, glowOpts.blend, glowOpts.offX, glowOpts.offY, sf));
-    }
-    // 3. Stroke (renders closest to text)
-    if (stroke.on) {
-      const scaledW = Math.max(0.5, stroke.width * sf * 0.5);
-      const scaledBlur = stroke.blur * sf * 0.3;
-      const sOffX = stroke.offX * sf * 0.5;
-      const sOffY = stroke.offY * sf * 0.5;
-      parts.push(buildStrokeShadows(scaledW, stroke.color, stroke.opacity, scaledBlur, sOffX, sOffY));
-    }
-    return parts.filter(Boolean).join(", ");
+    const { sf, stroke, glow: glowOpts, shadow: shadowOpts, order } = opts;
+    // Render in reverse order: last in array = closest to text (drawn last by CSS)
+    // So we iterate in order and CSS paints first entries on top
+    const builders = {
+      shadow: () => {
+        if (!shadowOpts.on) return "";
+        const scaledBlur = shadowOpts.blur * sf * 0.5;
+        const ox = (shadowOpts.offX * sf * 0.5).toFixed(1);
+        const oy = (shadowOpts.offY * sf * 0.5).toFixed(1);
+        return `${ox}px ${oy}px ${scaledBlur}px ${hexToRgba(shadowOpts.color, shadowOpts.opacity)}`;
+      },
+      glow: () => {
+        if (!glowOpts.on) return "";
+        return buildGlowShadow(glowOpts.color, glowOpts.opacity, glowOpts.intensity, glowOpts.blur, glowOpts.blend, glowOpts.offX, glowOpts.offY, sf);
+      },
+      stroke: () => {
+        if (!stroke.on) return "";
+        const scaledW = Math.max(0.5, stroke.width * sf * 0.5);
+        const scaledBlur = stroke.blur * sf * 0.3;
+        return buildStrokeShadows(scaledW, stroke.color, stroke.opacity, scaledBlur, stroke.offX * sf * 0.5, stroke.offY * sf * 0.5);
+      },
+      background: () => "", // background is handled via CSS background, not text-shadow
+    };
+    // CSS text-shadow: first shadow listed is drawn on top (closest to text)
+    // So the effect at index 0 in order should appear on top = listed first
+    const effectOrder = order || ["glow", "stroke", "shadow", "background"];
+    const parts = effectOrder.map(key => builders[key] ? builders[key]() : "").filter(Boolean);
+    return parts.join(", ");
   }, [hexToRgba, buildStrokeShadows, buildGlowShadow]);
 
   // Build subtitle text style (scales proportionally with preview canvas)
@@ -775,6 +788,7 @@ export default function PreviewPanelNew() {
       stroke: { on: strokeOn, width: strokeWidth, color: strokeColor, opacity: strokeOpacity, blur: strokeBlur, offX: strokeOffsetX, offY: strokeOffsetY },
       glow: { on: glowOn, color: glowColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
       shadow: { on: shadowOn, color: shadowColor, opacity: shadowOpacity, blur: shadowBlur, offX: shadowOffsetX, offY: shadowOffsetY },
+      order: effectOrder,
     });
     if (allShadows) style.textShadow = allShadows;
     return style;
@@ -783,7 +797,7 @@ export default function PreviewPanelNew() {
     strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
     glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
     shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
-    scaleFactor, hexToRgba, buildAllShadows]);
+    scaleFactor, hexToRgba, buildAllShadows, effectOrder]);
 
   // Build caption text style (scales proportionally with preview canvas)
   const capTextStyle = useMemo(() => {
@@ -815,6 +829,7 @@ export default function PreviewPanelNew() {
       stroke: { on: captionStrokeOn, width: captionStrokeWidth, color: captionStrokeColor, opacity: captionStrokeOpacity, blur: captionStrokeBlur, offX: captionStrokeOffsetX, offY: captionStrokeOffsetY },
       glow: { on: captionGlowOn, color: captionGlowColor, opacity: captionGlowOpacity, intensity: captionGlowIntensity, blur: captionGlowBlur, blend: captionGlowBlend, offX: captionGlowOffsetX, offY: captionGlowOffsetY },
       shadow: { on: captionShadowOn, color: captionShadowColor, opacity: captionShadowOpacity, blur: captionShadowBlur, offX: captionShadowOffsetX, offY: captionShadowOffsetY },
+      order: captionEffectOrder,
     });
     if (allShadows) {
       style.textShadow = allShadows;
@@ -827,7 +842,7 @@ export default function PreviewPanelNew() {
     captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur, captionStrokeOffsetX, captionStrokeOffsetY,
     captionGlowOn, captionGlowColor, captionGlowOpacity, captionGlowIntensity, captionGlowBlur, captionGlowBlend, captionGlowOffsetX, captionGlowOffsetY,
     captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionShadowOffsetX, captionShadowOffsetY,
-    scaleFactor, hexToRgba, buildAllShadows]);
+    scaleFactor, hexToRgba, buildAllShadows, captionEffectOrder]);
 
   // Strip punctuation from a word based on punctOn toggle + per-character config
   const stripPunct = useCallback((word) => {

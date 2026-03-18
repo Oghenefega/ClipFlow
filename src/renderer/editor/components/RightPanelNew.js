@@ -18,7 +18,7 @@ import {
   Sparkles, Palette, Captions, Type, Music, Upload, ImagePlus,
   X, Search, Play, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
-  Bold, Italic, Underline, Pipette, Heart,
+  Bold, Italic, Underline, Pipette, Heart, GripVertical,
   UploadCloud, FolderOpen, FileImage, Film, Volume2,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
@@ -384,20 +384,29 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
 }
 
 // ════════════════════════════════════════════════════════════════
-//  SHARED: Expandable effect section with toggle + chevron
+//  SHARED: Expandable effect section with toggle + chevron + drag handle
 // ════════════════════════════════════════════════════════════════
-function EffectSection({ label, enabled, onToggle, color, onColorChange, defaultExpanded = false, children }) {
+function EffectSection({ label, effectKey, enabled, onToggle, color, onColorChange, defaultExpanded = false, onDragStart, onDragOver, onDrop, children }) {
   const [expanded, setExpanded] = useState(defaultExpanded || enabled);
   return (
-    <div className="border-t border-border/40">
+    <div
+      className="border-t border-border/40"
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", effectKey); onDragStart?.(effectKey); }}
+      onDragOver={(e) => { e.preventDefault(); onDragOver?.(effectKey); }}
+      onDrop={(e) => { e.preventDefault(); const from = e.dataTransfer.getData("text/plain"); onDrop?.(from, effectKey); }}
+    >
       <div className="flex items-center justify-between py-2.5 px-1">
-        <button className="flex items-center gap-1.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-          {expanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-          <span className="text-xs text-foreground font-medium">{label}</span>
-          {!expanded && enabled && color && (
-            <span className="w-2.5 h-2.5 rounded-full ml-1" style={{ background: color, boxShadow: `0 0 4px ${color}` }} />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <GripVertical className="h-3 w-3 text-muted-foreground/40 cursor-grab active:cursor-grabbing shrink-0" />
+          <button className="flex items-center gap-1.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+            <span className="text-xs text-foreground font-medium">{label}</span>
+            {!expanded && enabled && color && (
+              <span className="w-2.5 h-2.5 rounded-full ml-1" style={{ background: color, boxShadow: `0 0 4px ${color}` }} />
+            )}
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           {color && (
             <ColorPickerPopover color={color} onChange={onColorChange}>
@@ -976,6 +985,8 @@ function SubtitlesPanel() {
   const setShowSubs = useSubtitleStore((s) => s.setShowSubs);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const setSyncOffset = useSubtitleStore((s) => s.setSyncOffset);
+  const effectOrder = useSubtitleStore((s) => s.effectOrder);
+  const setEffectOrder = useSubtitleStore((s) => s.setEffectOrder);
 
   // B/I/U wired to subtitle store
   const subBold = useSubtitleStore((s) => s.subBold);
@@ -1059,48 +1070,66 @@ function SubtitlesPanel() {
 
             <Separator />
 
-            {/* Stroke */}
-            <EffectSection label="Stroke" enabled={strokeOn} onToggle={setStrokeOn} color={strokeColor} onColorChange={setStrokeColor} defaultExpanded>
-              <div className="space-y-2">
-                <EffectSlider label="Thickness" value={strokeWidth} onChange={setStrokeWidth} min={0} max={20} />
-                <EffectSlider label="Opacity" value={strokeOpacity} onChange={setStrokeOpacity} min={0} max={100} suffix="%" />
-                <EffectSlider label="Softness" value={strokeBlur} onChange={setStrokeBlur} min={0} max={20} />
-                <EffectSlider label="Offset X" value={strokeOffsetX} onChange={setStrokeOffsetX} min={-20} max={20} />
-                <EffectSlider label="Offset Y" value={strokeOffsetY} onChange={setStrokeOffsetY} min={-20} max={20} />
-              </div>
-            </EffectSection>
-
-            {/* Glow */}
-            <EffectSection label="Glow" enabled={glowOn} onToggle={setGlowOn} color={glowColor} onColorChange={setGlowColor}>
-              <div className="space-y-2">
-                <EffectSlider label="Opacity" value={glowOpacity} onChange={setGlowOpacity} min={0} max={100} suffix="%" />
-                <EffectSlider label="Intensity" value={glowIntensity} onChange={setGlowIntensity} min={0} max={100} suffix="%" />
-                <EffectSlider label="Softness" value={glowBlur} onChange={setGlowBlur} min={0} max={50} />
-                <EffectSlider label="Blend" value={glowBlend} onChange={setGlowBlend} min={0} max={100} suffix="%" />
-                <EffectSlider label="Offset X" value={glowOffsetX} onChange={setGlowOffsetX} min={-20} max={20} />
-                <EffectSlider label="Offset Y" value={glowOffsetY} onChange={setGlowOffsetY} min={-20} max={20} />
-              </div>
-            </EffectSection>
-
-            {/* Shadow */}
-            <EffectSection label="Shadow" enabled={shadowOn} onToggle={setShadowOn} color={shadowColor} onColorChange={setShadowColor}>
-              <div className="space-y-2">
-                <EffectSlider label="Softness" value={shadowBlur} onChange={setShadowBlur} min={0} max={30} />
-                <EffectSlider label="Opacity" value={shadowOpacity} onChange={setShadowOpacity} min={0} max={100} suffix="%" />
-                <EffectSlider label="Offset X" value={shadowOffsetX} onChange={setShadowOffsetX} min={-30} max={30} />
-                <EffectSlider label="Offset Y" value={shadowOffsetY} onChange={setShadowOffsetY} min={-30} max={30} />
-              </div>
-            </EffectSection>
-
-            {/* Background */}
-            <EffectSection label="Background" enabled={bgOn} onToggle={setBgOn} color={bgColor} onColorChange={setBgColor}>
-              <div className="space-y-2">
-                <EffectSlider label="Opacity" value={bgOpacity} onChange={setBgOpacity} min={0} max={100} suffix="%" />
-                <EffectSlider label="Padding X" value={bgPaddingX} onChange={setBgPaddingX} min={0} max={40} />
-                <EffectSlider label="Padding Y" value={bgPaddingY} onChange={setBgPaddingY} min={0} max={20} />
-                <EffectSlider label="Radius" value={bgRadius} onChange={setBgRadius} min={0} max={20} />
-              </div>
-            </EffectSection>
+            {/* Effect sections — rendered in draggable order */}
+            {(effectOrder || ["glow", "stroke", "shadow", "background"]).map((key) => {
+              const dragProps = {
+                effectKey: key,
+                onDragStart: () => {},
+                onDragOver: () => {},
+                onDrop: (from, to) => {
+                  if (from === to) return;
+                  const order = [...(effectOrder || ["glow", "stroke", "shadow", "background"])];
+                  const fi = order.indexOf(from); const ti = order.indexOf(to);
+                  if (fi < 0 || ti < 0) return;
+                  order.splice(fi, 1); order.splice(ti, 0, from);
+                  setEffectOrder(order);
+                },
+              };
+              if (key === "glow") return (
+                <EffectSection key="glow" label="Glow" enabled={glowOn} onToggle={setGlowOn} color={glowColor} onColorChange={setGlowColor} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Opacity" value={glowOpacity} onChange={setGlowOpacity} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Intensity" value={glowIntensity} onChange={setGlowIntensity} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Softness" value={glowBlur} onChange={setGlowBlur} min={0} max={50} />
+                    <EffectSlider label="Blend" value={glowBlend} onChange={setGlowBlend} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Offset X" value={glowOffsetX} onChange={setGlowOffsetX} min={-20} max={20} />
+                    <EffectSlider label="Offset Y" value={glowOffsetY} onChange={setGlowOffsetY} min={-20} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "stroke") return (
+                <EffectSection key="stroke" label="Stroke" enabled={strokeOn} onToggle={setStrokeOn} color={strokeColor} onColorChange={setStrokeColor} defaultExpanded {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Thickness" value={strokeWidth} onChange={setStrokeWidth} min={0} max={20} />
+                    <EffectSlider label="Opacity" value={strokeOpacity} onChange={setStrokeOpacity} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Softness" value={strokeBlur} onChange={setStrokeBlur} min={0} max={20} />
+                    <EffectSlider label="Offset X" value={strokeOffsetX} onChange={setStrokeOffsetX} min={-20} max={20} />
+                    <EffectSlider label="Offset Y" value={strokeOffsetY} onChange={setStrokeOffsetY} min={-20} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "shadow") return (
+                <EffectSection key="shadow" label="Shadow" enabled={shadowOn} onToggle={setShadowOn} color={shadowColor} onColorChange={setShadowColor} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Softness" value={shadowBlur} onChange={setShadowBlur} min={0} max={30} />
+                    <EffectSlider label="Opacity" value={shadowOpacity} onChange={setShadowOpacity} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Offset X" value={shadowOffsetX} onChange={setShadowOffsetX} min={-30} max={30} />
+                    <EffectSlider label="Offset Y" value={shadowOffsetY} onChange={setShadowOffsetY} min={-30} max={30} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "background") return (
+                <EffectSection key="background" label="Background" enabled={bgOn} onToggle={setBgOn} color={bgColor} onColorChange={setBgColor} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Opacity" value={bgOpacity} onChange={setBgOpacity} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Padding X" value={bgPaddingX} onChange={setBgPaddingX} min={0} max={40} />
+                    <EffectSlider label="Padding Y" value={bgPaddingY} onChange={setBgPaddingY} min={0} max={20} />
+                    <EffectSlider label="Radius" value={bgRadius} onChange={setBgRadius} min={0} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              return null;
+            })}
 
             <Separator />
 
@@ -1207,6 +1236,8 @@ function TextPanel() {
   const setCaptionBgPaddingY = useCaptionStore((s) => s.setCaptionBgPaddingY);
   const captionBgRadius = useCaptionStore((s) => s.captionBgRadius);
   const setCaptionBgRadius = useCaptionStore((s) => s.setCaptionBgRadius);
+  const captionEffectOrder = useCaptionStore((s) => s.captionEffectOrder);
+  const setCaptionEffectOrder = useCaptionStore((s) => s.setCaptionEffectOrder);
   const markDirty = useEditorStore((s) => s.markDirty);
 
   const [align, setAlign] = useState("center");
@@ -1279,48 +1310,66 @@ function TextPanel() {
               </div>
             </div>
 
-            {/* Stroke */}
-            <EffectSection label="Stroke" enabled={captionStrokeOn} onToggle={(v) => { setCaptionStrokeOn(v); markDirty(); }} color={captionStrokeColor} onColorChange={(c) => { setCaptionStrokeColor(c); markDirty(); }} defaultExpanded>
-              <div className="space-y-2">
-                <EffectSlider label="Thickness" value={captionStrokeWidth} onChange={(v) => { setCaptionStrokeWidth(v); markDirty(); }} min={0} max={20} />
-                <EffectSlider label="Opacity" value={captionStrokeOpacity} onChange={(v) => { setCaptionStrokeOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Softness" value={captionStrokeBlur} onChange={(v) => { setCaptionStrokeBlur(v); markDirty(); }} min={0} max={20} />
-                <EffectSlider label="Offset X" value={captionStrokeOffsetX} onChange={(v) => { setCaptionStrokeOffsetX(v); markDirty(); }} min={-20} max={20} />
-                <EffectSlider label="Offset Y" value={captionStrokeOffsetY} onChange={(v) => { setCaptionStrokeOffsetY(v); markDirty(); }} min={-20} max={20} />
-              </div>
-            </EffectSection>
-
-            {/* Glow */}
-            <EffectSection label="Glow" enabled={captionGlowOn} onToggle={(v) => { setCaptionGlowOn(v); markDirty(); }} color={captionGlowColor} onColorChange={(c) => { setCaptionGlowColor(c); markDirty(); }}>
-              <div className="space-y-2">
-                <EffectSlider label="Opacity" value={captionGlowOpacity} onChange={(v) => { setCaptionGlowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Intensity" value={captionGlowIntensity} onChange={(v) => { setCaptionGlowIntensity(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Softness" value={captionGlowBlur} onChange={(v) => { setCaptionGlowBlur(v); markDirty(); }} min={0} max={50} />
-                <EffectSlider label="Blend" value={captionGlowBlend} onChange={(v) => { setCaptionGlowBlend(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Offset X" value={captionGlowOffsetX} onChange={(v) => { setCaptionGlowOffsetX(v); markDirty(); }} min={-20} max={20} />
-                <EffectSlider label="Offset Y" value={captionGlowOffsetY} onChange={(v) => { setCaptionGlowOffsetY(v); markDirty(); }} min={-20} max={20} />
-              </div>
-            </EffectSection>
-
-            {/* Shadow */}
-            <EffectSection label="Shadow" enabled={captionShadowOn} onToggle={(v) => { setCaptionShadowOn(v); markDirty(); }} color={captionShadowColor} onColorChange={(c) => { setCaptionShadowColor(c); markDirty(); }}>
-              <div className="space-y-2">
-                <EffectSlider label="Softness" value={captionShadowBlur} onChange={(v) => { setCaptionShadowBlur(v); markDirty(); }} min={0} max={30} />
-                <EffectSlider label="Opacity" value={captionShadowOpacity} onChange={(v) => { setCaptionShadowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Offset X" value={captionShadowOffsetX} onChange={(v) => { setCaptionShadowOffsetX(v); markDirty(); }} min={-30} max={30} />
-                <EffectSlider label="Offset Y" value={captionShadowOffsetY} onChange={(v) => { setCaptionShadowOffsetY(v); markDirty(); }} min={-30} max={30} />
-              </div>
-            </EffectSection>
-
-            {/* Background */}
-            <EffectSection label="Background" enabled={captionBgOn} onToggle={(v) => { setCaptionBgOn(v); markDirty(); }} color={captionBgColor} onColorChange={(c) => { setCaptionBgColor(c); markDirty(); }}>
-              <div className="space-y-2">
-                <EffectSlider label="Opacity" value={captionBgOpacity} onChange={(v) => { setCaptionBgOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
-                <EffectSlider label="Padding X" value={captionBgPaddingX} onChange={(v) => { setCaptionBgPaddingX(v); markDirty(); }} min={0} max={40} />
-                <EffectSlider label="Padding Y" value={captionBgPaddingY} onChange={(v) => { setCaptionBgPaddingY(v); markDirty(); }} min={0} max={20} />
-                <EffectSlider label="Radius" value={captionBgRadius} onChange={(v) => { setCaptionBgRadius(v); markDirty(); }} min={0} max={20} />
-              </div>
-            </EffectSection>
+            {/* Effect sections — rendered in draggable order */}
+            {(captionEffectOrder || ["glow", "stroke", "shadow", "background"]).map((key) => {
+              const dragProps = {
+                effectKey: key,
+                onDragStart: () => {},
+                onDragOver: () => {},
+                onDrop: (from, to) => {
+                  if (from === to) return;
+                  const order = [...(captionEffectOrder || ["glow", "stroke", "shadow", "background"])];
+                  const fi = order.indexOf(from); const ti = order.indexOf(to);
+                  if (fi < 0 || ti < 0) return;
+                  order.splice(fi, 1); order.splice(ti, 0, from);
+                  setCaptionEffectOrder(order); markDirty();
+                },
+              };
+              if (key === "glow") return (
+                <EffectSection key="glow" label="Glow" enabled={captionGlowOn} onToggle={(v) => { setCaptionGlowOn(v); markDirty(); }} color={captionGlowColor} onColorChange={(c) => { setCaptionGlowColor(c); markDirty(); }} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Opacity" value={captionGlowOpacity} onChange={(v) => { setCaptionGlowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Intensity" value={captionGlowIntensity} onChange={(v) => { setCaptionGlowIntensity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Softness" value={captionGlowBlur} onChange={(v) => { setCaptionGlowBlur(v); markDirty(); }} min={0} max={50} />
+                    <EffectSlider label="Blend" value={captionGlowBlend} onChange={(v) => { setCaptionGlowBlend(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Offset X" value={captionGlowOffsetX} onChange={(v) => { setCaptionGlowOffsetX(v); markDirty(); }} min={-20} max={20} />
+                    <EffectSlider label="Offset Y" value={captionGlowOffsetY} onChange={(v) => { setCaptionGlowOffsetY(v); markDirty(); }} min={-20} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "stroke") return (
+                <EffectSection key="stroke" label="Stroke" enabled={captionStrokeOn} onToggle={(v) => { setCaptionStrokeOn(v); markDirty(); }} color={captionStrokeColor} onColorChange={(c) => { setCaptionStrokeColor(c); markDirty(); }} defaultExpanded {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Thickness" value={captionStrokeWidth} onChange={(v) => { setCaptionStrokeWidth(v); markDirty(); }} min={0} max={20} />
+                    <EffectSlider label="Opacity" value={captionStrokeOpacity} onChange={(v) => { setCaptionStrokeOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Softness" value={captionStrokeBlur} onChange={(v) => { setCaptionStrokeBlur(v); markDirty(); }} min={0} max={20} />
+                    <EffectSlider label="Offset X" value={captionStrokeOffsetX} onChange={(v) => { setCaptionStrokeOffsetX(v); markDirty(); }} min={-20} max={20} />
+                    <EffectSlider label="Offset Y" value={captionStrokeOffsetY} onChange={(v) => { setCaptionStrokeOffsetY(v); markDirty(); }} min={-20} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "shadow") return (
+                <EffectSection key="shadow" label="Shadow" enabled={captionShadowOn} onToggle={(v) => { setCaptionShadowOn(v); markDirty(); }} color={captionShadowColor} onColorChange={(c) => { setCaptionShadowColor(c); markDirty(); }} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Softness" value={captionShadowBlur} onChange={(v) => { setCaptionShadowBlur(v); markDirty(); }} min={0} max={30} />
+                    <EffectSlider label="Opacity" value={captionShadowOpacity} onChange={(v) => { setCaptionShadowOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Offset X" value={captionShadowOffsetX} onChange={(v) => { setCaptionShadowOffsetX(v); markDirty(); }} min={-30} max={30} />
+                    <EffectSlider label="Offset Y" value={captionShadowOffsetY} onChange={(v) => { setCaptionShadowOffsetY(v); markDirty(); }} min={-30} max={30} />
+                  </div>
+                </EffectSection>
+              );
+              if (key === "background") return (
+                <EffectSection key="background" label="Background" enabled={captionBgOn} onToggle={(v) => { setCaptionBgOn(v); markDirty(); }} color={captionBgColor} onColorChange={(c) => { setCaptionBgColor(c); markDirty(); }} {...dragProps}>
+                  <div className="space-y-2">
+                    <EffectSlider label="Opacity" value={captionBgOpacity} onChange={(v) => { setCaptionBgOpacity(v); markDirty(); }} min={0} max={100} suffix="%" />
+                    <EffectSlider label="Padding X" value={captionBgPaddingX} onChange={(v) => { setCaptionBgPaddingX(v); markDirty(); }} min={0} max={40} />
+                    <EffectSlider label="Padding Y" value={captionBgPaddingY} onChange={(v) => { setCaptionBgPaddingY(v); markDirty(); }} min={0} max={20} />
+                    <EffectSlider label="Radius" value={captionBgRadius} onChange={(v) => { setCaptionBgRadius(v); markDirty(); }} min={0} max={20} />
+                  </div>
+                </EffectSection>
+              );
+              return null;
+            })}
           </div>
         )}
       </ScrollArea>
