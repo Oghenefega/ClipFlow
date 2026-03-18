@@ -388,7 +388,8 @@ function Topbar({ onBack }) {
       <div className="relative flex items-center gap-2">
         <Button
           size="sm"
-          className="h-8 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium"
+          className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
+          style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)" }}
           onClick={onSave}
         >
           <Check className="h-3.5 w-3.5 mr-1.5" />
@@ -396,7 +397,8 @@ function Topbar({ onBack }) {
         </Button>
         <Button
           size="sm"
-          className="h-8 px-4 bg-green-600 text-white hover:bg-green-500 text-xs font-medium"
+          className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
+          style={{ background: "linear-gradient(135deg, #22c55e, #84cc16, #eab308)" }}
           onClick={onSendToQueue}
         >
           <Send className="h-3.5 w-3.5 mr-1.5" />
