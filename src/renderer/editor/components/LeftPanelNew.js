@@ -158,7 +158,7 @@ function SubtitleSettingsPopover() {
           <Settings2 className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0 bg-card border-border" align="end" sideOffset={6}>
+      <PopoverContent className="dark w-[280px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" align="end" sideOffset={6}>
         <div className="px-3 py-2.5 border-b border-border">
           <span className="text-sm font-semibold text-foreground">Subtitle settings</span>
         </div>
@@ -266,12 +266,12 @@ function TimecodePopover({ segment, children }) {
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0 bg-card border-border" side="bottom" align="start" sideOffset={4} collisionPadding={12}>
-        <div className="px-3 py-2 border-b border-border">
-          <span className="text-sm font-semibold text-foreground">Adjust start and end time</span>
+      <PopoverContent className="dark w-[280px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" side="bottom" align="start" sideOffset={4} collisionPadding={12}>
+        <div className="px-3 py-2.5 border-b border-[hsl(240_4%_20%)]">
+          <span className="text-sm font-semibold text-white">Adjust start and end time</span>
         </div>
         <div className="px-3 py-3 space-y-3">
-          {/* Dual-thumb range slider — local range only */}
+          {/* Dual-thumb range slider */}
           <Slider
             value={[localStart, localEnd]}
             onValueChange={handleRangeChange}
@@ -289,25 +289,25 @@ function TimecodePopover({ segment, children }) {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
               }}
-              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
+              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
-            <span className="text-muted-foreground text-sm">—</span>
+            <span className="text-[hsl(240_5%_50%)] text-sm">-</span>
             <input
               value={fmtTime(localEnd)}
               onChange={(e) => {
                 const sec = parseTime(e.target.value);
                 if (!isNaN(sec)) handleRangeChange([localStart, sec]);
               }}
-              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/50"
+              className="flex-1 h-8 px-2 text-sm font-mono text-center rounded-md bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
           </div>
 
           {/* Cancel / Apply */}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" className="h-8 px-3 text-sm" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="sm" className="h-8 px-3 text-sm text-[hsl(240_5%_65%)] hover:text-white" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button size="sm" className="h-8 px-4 text-sm bg-primary text-primary-foreground" onClick={handleApply}>
+            <Button size="sm" className="h-8 px-4 text-sm bg-primary text-white hover:bg-primary/90" onClick={handleApply}>
               Apply
             </Button>
           </div>
@@ -365,7 +365,7 @@ function SegmentModeDropdown() {
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[160px] p-0 bg-card border-border" align="start" sideOffset={4}>
+      <PopoverContent className="dark w-[160px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" align="start" sideOffset={4}>
         <div className="py-1">
           {SEGMENT_MODES.map((m) => (
             <button
@@ -401,13 +401,17 @@ function TranscriptTab() {
   const [editingWord, setEditingWord] = useState(null); // { globalIdx }
 
   // Build flat word list with segment context for editing
+  // Each word carries segId + segWordIdx for editing, plus segBreakAfter for paragraph breaks
   const allWords = useMemo(() => {
     const words = [];
-    editSegments.forEach((seg) => {
+    editSegments.forEach((seg, segIndex) => {
       let segWordIdx = 0;
       if (seg.words && seg.words.length > 0) {
-        seg.words.forEach((w) => {
-          words.push({ ...w, segId: seg.id, segWordIdx: segWordIdx++ });
+        seg.words.forEach((w, wi) => {
+          words.push({
+            ...w, segId: seg.id, segWordIdx: segWordIdx++,
+            segBreakAfter: wi === seg.words.length - 1 && segIndex < editSegments.length - 1,
+          });
         });
       } else {
         const textWords = seg.text.split(/\s+/).filter(Boolean);
@@ -420,6 +424,7 @@ function TranscriptTab() {
             end: seg.startSec + (i + 1) * perWord,
             segId: seg.id,
             segWordIdx: segWordIdx++,
+            segBreakAfter: i === textWords.length - 1 && segIndex < editSegments.length - 1,
           });
         });
       }
@@ -532,7 +537,7 @@ function TranscriptTab() {
           >
             {w.word}
           </span>
-          {idx < allWords.length - 1 && " "}
+          {w.segBreakAfter ? <><br /><br /></> : (idx < allWords.length - 1 ? " " : "")}
         </React.Fragment>
       );
     });

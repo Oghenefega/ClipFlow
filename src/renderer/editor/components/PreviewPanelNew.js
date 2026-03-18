@@ -760,7 +760,7 @@ export default function PreviewPanelNew() {
       </div>
 
       {/* Video canvas area — scrollable when zoomed in */}
-      <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+      <div className="flex-1 flex items-center justify-center overflow-auto p-1">
         <div
           ref={canvasRef}
           className="relative overflow-hidden rounded-lg shrink-0"
