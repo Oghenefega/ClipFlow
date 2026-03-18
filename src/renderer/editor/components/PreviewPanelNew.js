@@ -143,7 +143,7 @@ function InlineColorPicker({ color, onChange, onClose }) {
   }, [onClose]);
 
   return (
-    <div ref={ref} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-lg border bg-popover shadow-xl z-50">
+    <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-lg border bg-popover shadow-xl z-[60]">
       <div className="grid grid-cols-6 gap-1.5">
         {SWATCHES.map((c) => (
           <button
@@ -813,7 +813,7 @@ export default function PreviewPanelNew() {
       <div className="flex-1 flex items-center justify-center overflow-auto p-1" onWheel={onWheel}>
         <div
           ref={canvasRef}
-          className="relative overflow-hidden rounded-lg shrink-0"
+          className="relative rounded-lg shrink-0"
           style={{
             aspectRatio: "9 / 16",
             ...(zoom === -1
@@ -833,12 +833,13 @@ export default function PreviewPanelNew() {
           onClick={onCanvasClick}
           data-canvas-bg="true"
         >
-          {/* Video element */}
+          {/* Video element (overflow-hidden here for rounded corners) */}
+          <div className="absolute inset-0 overflow-hidden rounded-lg" />
           {videoSrc ? (
             <video
               ref={videoRef}
               src={videoSrc}
-              className="absolute inset-0 w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-contain rounded-lg"
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
               onEnded={onVideoEnd}
@@ -910,7 +911,7 @@ export default function PreviewPanelNew() {
               )}
               {/* Inline toolbar below caption when selected */}
               {selectedOverlay === "cap" && (
-                <div className="flex justify-center mt-1.5 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute left-1/2 -translate-x-1/2 mt-1 pointer-events-auto z-40" style={{ top: "100%" }} onClick={(e) => e.stopPropagation()}>
                   <InlineToolbar
                     target="cap"
                     fontFamily={captionFontFamily}
@@ -943,7 +944,7 @@ export default function PreviewPanelNew() {
               </div>
               {/* Inline toolbar below subtitle when selected */}
               {selectedOverlay === "sub" && (
-                <div className="flex justify-center mt-1.5 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute left-1/2 -translate-x-1/2 mt-1 pointer-events-auto z-40" style={{ top: "100%" }} onClick={(e) => e.stopPropagation()}>
                   <InlineToolbar
                     target="sub"
                     fontFamily={subFontFamily}

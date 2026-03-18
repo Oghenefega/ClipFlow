@@ -436,6 +436,14 @@ function TranscriptTab() {
     return -1;
   }, [allWords, adjustedTime]);
 
+  // Auto-scroll active word into view
+  const activeWordRef = useRef(null);
+  useEffect(() => {
+    if (activeWordRef.current) {
+      activeWordRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeWordIdx]);
+
   const handleWordClick = (word) => { seekTo(word.start); };
 
   const handleWordDoubleClick = (e, idx) => {
@@ -494,6 +502,7 @@ function TranscriptTab() {
       return (
         <React.Fragment key={idx}>
           <span
+            ref={isActive ? activeWordRef : null}
             onClick={() => handleWordClick(w)}
             onDoubleClick={(e) => handleWordDoubleClick(e, idx)}
             className={`
@@ -606,6 +615,24 @@ function EditSubtitlesTab() {
       return next;
     });
   }, [matches, editSegments, setActiveSegId, seekTo]);
+
+  // Auto-track active segment from playhead position
+  const activeSegRef = useRef(null);
+  useEffect(() => {
+    const currentSeg = editSegments.find(
+      (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
+    );
+    if (currentSeg && currentSeg.id !== activeSegId) {
+      setActiveSegId(currentSeg.id);
+    }
+  }, [adjustedTime, editSegments, activeSegId, setActiveSegId]);
+
+  // Auto-scroll active segment into view
+  useEffect(() => {
+    if (activeSegRef.current) {
+      activeSegRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeSegId]);
 
   const handleSegClick = (seg) => {
     setActiveSegId(seg.id);
@@ -748,6 +775,7 @@ function EditSubtitlesTab() {
             return (
               <div
                 key={seg.id}
+                ref={isActive ? activeSegRef : null}
                 onClick={() => handleSegClick(seg)}
                 className={`group relative cursor-pointer transition-colors border-b border-border/30 ${isActive ? "bg-primary/8" : "hover:bg-secondary/30"}`}
               >
