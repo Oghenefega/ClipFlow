@@ -485,14 +485,14 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
             {/* Left panel + Center preview: horizontal resizable split */}
             <ResizablePanelGroup direction="horizontal">
               {/* Left panel */}
-              <ResizablePanel defaultSize={49} minSize={28} maxSize={60}>
+              <ResizablePanel defaultSize={50} minSize={28} maxSize={70}>
                 <LeftPanelNew />
               </ResizablePanel>
 
               <ResizableHandle />
 
               {/* Center preview */}
-              <ResizablePanel defaultSize={78}>
+              <ResizablePanel defaultSize={50}>
                 <PreviewPanelNew />
               </ResizablePanel>
             </ResizablePanelGroup>
