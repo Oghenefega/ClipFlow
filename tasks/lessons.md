@@ -379,3 +379,15 @@
 ### Don't use Node.js `path` module in renderer code
 - **Mistake:** Used `path.basename()` in UploadView.js JSX — `path` is not available in the renderer process.
 - **Rule:** In renderer code, use string methods like `str.split(/[/\\]/).pop()` for path operations. Only use `path` in main process code.
+
+### Collapsed panels must actually release space, not just hide content
+- **Mistake:** Timeline collapse set `maxHeight: 0` on the timeline but it was still inside a `ResizablePanelGroup` that reserved its percentage. The visual space was still occupied.
+- **Rule:** When a panel should "collapse" (like a dropdown closing), it must be conditionally rendered or removed from the layout flow entirely — not just visually hidden within a flex/resizable container that still allocates space.
+
+### Audio segment bounds are the effective clip trim points
+- **Mistake:** Trimming audio segments (dragging edge shorter) didn't stop video playback at the trimmed endpoint. Video continued playing past the last audio segment.
+- **Rule:** In `onTimeUpdate`, treat the last audio segment's `endSec` as the absolute playback boundary. When `currentTime >= lastSegEnd`, immediately pause and clamp to that time. This is the trim enforcement mechanism.
+
+### Always check existing codebase for API model IDs before guessing
+- **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
+- **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.

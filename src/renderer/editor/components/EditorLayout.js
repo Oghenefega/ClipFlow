@@ -11,6 +11,7 @@ import PreviewPanelNew from "./PreviewPanelNew";
 import TimelinePanelNew from "./TimelinePanelNew";
 import useEditorStore from "../stores/useEditorStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
+import useLayoutStore from "../stores/useLayoutStore";
 import {
   Undo2,
   Redo2,
@@ -22,6 +23,7 @@ import {
   Send,
   Mic,
   Loader2,
+  PanelBottomOpen,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -517,6 +519,8 @@ function Topbar({ onBack }) {
 
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
+  const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
+
   // Global undo/redo keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -551,38 +555,55 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
       {/* Top toolbar */}
       <Topbar onBack={onBack} />
 
-      {/* Body + Timeline: vertical resizable split */}
-      <ResizablePanelGroup direction="vertical" className="flex-1">
-        {/* Upper body */}
-        <ResizablePanel defaultSize={72} minSize={40}>
-          <div className="flex h-full">
-            {/* Left panel + Center preview: horizontal resizable split */}
-            <ResizablePanelGroup direction="horizontal">
-              {/* Left panel */}
-              <ResizablePanel defaultSize={50} minSize={28} maxSize={70}>
-                <LeftPanelNew />
-              </ResizablePanel>
+      {/* Body + Timeline — timeline fully collapses/expands */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Upper body — takes all space when timeline collapsed */}
+        <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+          {/* Left panel + Center preview: horizontal resizable split */}
+          <ResizablePanelGroup direction="horizontal">
+            {/* Left panel */}
+            <ResizablePanel defaultSize={50} minSize={28} maxSize={70}>
+              <LeftPanelNew />
+            </ResizablePanel>
 
-              <ResizableHandle />
+            <ResizableHandle />
 
-              {/* Center preview */}
-              <ResizablePanel defaultSize={50}>
-                <PreviewPanelNew />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            {/* Center preview */}
+            <ResizablePanel defaultSize={50}>
+              <PreviewPanelNew />
+            </ResizablePanel>
+          </ResizablePanelGroup>
 
-            {/* Right icon rail + drawer (not in resizable — fixed width) */}
-            <RightPanelNew gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
+          {/* Right icon rail + drawer (not in resizable — fixed width) */}
+          <RightPanelNew gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
+        </div>
+
+        {/* Timeline toggle bar — always visible at bottom edge */}
+        {tlCollapsed && (
+          <div
+            className="shrink-0 flex items-center justify-center h-7 cursor-pointer select-none transition-colors hover:bg-secondary/30"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#131419" }}
+            onClick={() => useLayoutStore.getState().toggleTlCollapse()}
+          >
+            <PanelBottomOpen className="h-3 w-3 text-muted-foreground mr-1.5" />
+            <span className="text-[10px] text-muted-foreground">Show Timeline</span>
+            <span className="text-[9px] text-muted-foreground/50 ml-2">Ctrl+.</span>
           </div>
-        </ResizablePanel>
+        )}
 
-        <ResizableHandle />
-
-        {/* Timeline */}
-        <ResizablePanel defaultSize={28} minSize={8} maxSize={50}>
-          <TimelinePanelNew />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        {/* Timeline — fully collapses to 0 when hidden */}
+        {!tlCollapsed && (
+          <div
+            className="shrink-0"
+            style={{
+              height: 280,
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <TimelinePanelNew />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

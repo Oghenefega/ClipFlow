@@ -7,7 +7,7 @@ import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
-  PanelBottomClose, PanelBottomOpen, Music,
+  PanelBottomClose, Music,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -52,7 +52,6 @@ export default function TimelinePanelNew() {
   const deleteCaptionSegment = useCaptionStore((s) => s.deleteCaptionSegment);
   const rippleDeleteCaptionSegment = useCaptionStore((s) => s.rippleDeleteCaptionSegment);
 
-  const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
   const tlZoom = useLayoutStore((s) => s.tlZoom);
   const toggleTlCollapse = useLayoutStore((s) => s.toggleTlCollapse);
   const setTlZoom = useLayoutStore((s) => s.setTlZoom);
@@ -101,7 +100,7 @@ export default function TimelinePanelNew() {
     });
     observer.observe(trackAreaRef.current);
     return () => observer.disconnect();
-  }, [tlCollapsed]);
+  }, []);
 
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
@@ -384,42 +383,7 @@ export default function TimelinePanelNew() {
     if (videoRef?.current) videoRef.current.playbackRate = parseFloat(tlSpeed) || 1;
   }, [tlSpeed]);
 
-  // ════════════════════════════════════════
-  //  COLLAPSED MODE
-  // ════════════════════════════════════════
-  if (tlCollapsed) {
-    return (
-      <div className="flex items-center h-full select-none px-3 border-t" style={{ background: TIMELINE_BG }}>
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" onClick={togglePlay}>
-                  {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">{playing ? "Pause" : "Play"} (Space)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <span className="text-foreground">{fmtTime(currentTime)}</span>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground">{fmtTime(duration)}</span>
-          </div>
-        </div>
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleTlCollapse(); }}>
-                <PanelBottomOpen className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Show timeline (Ctrl+.)</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    );
-  }
+  // Collapsed mode is handled by EditorLayout — this component is unmounted when collapsed
 
   // ════════════════════════════════════════
   //  FULL TIMELINE
@@ -527,28 +491,30 @@ export default function TimelinePanelNew() {
       >
         <div className="relative" style={{ width: totalWidth, minWidth: totalWidth, minHeight: "100%" }}>
 
-          {/* ── PLAYHEAD — red line + triangle ── */}
-          <div
-            className="absolute z-30 pointer-events-none"
-            style={{ left: playheadPx, top: 0, bottom: 0, transform: "translateX(-50%)" }}
-          >
+          {/* ── PLAYHEAD — red line + triangle, clipped to track area ── */}
+          {playheadPx <= LABEL_W + clipContentWidth && (
             <div
-              className="absolute -top-0.5 left-1/2 -translate-x-1/2"
+              className="absolute z-30 pointer-events-none"
               style={{
-                width: 0, height: 0,
-                borderLeft: "5px solid transparent",
-                borderRight: "5px solid transparent",
-                borderTop: `6px solid ${PLAYHEAD_COLOR}`,
+                left: playheadPx, top: 0,
+                height: RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H,
+                transform: "translateX(-50%)",
               }}
-            />
-            <div style={{ width: 2, height: "100%", background: PLAYHEAD_COLOR, margin: "0 auto" }} />
-          </div>
+            >
+              <div
+                className="absolute -top-0.5 left-1/2 -translate-x-1/2"
+                style={{
+                  width: 0, height: 0,
+                  borderLeft: "5px solid transparent",
+                  borderRight: "5px solid transparent",
+                  borderTop: `6px solid ${PLAYHEAD_COLOR}`,
+                }}
+              />
+              <div style={{ width: 2, height: "100%", background: PLAYHEAD_COLOR, margin: "0 auto" }} />
+            </div>
+          )}
 
-          {/* ── End marker ── */}
-          <div
-            className="absolute z-20 pointer-events-none"
-            style={{ left: LABEL_W + clipContentWidth, top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.12)" }}
-          />
+          {/* End marker removed — timeline ends naturally where content ends */}
 
           {/* ── Snap guides ── */}
           {snapGuides.map((x, i) => (

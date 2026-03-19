@@ -693,23 +693,37 @@ export default function PreviewPanelNew() {
   // Audio segments from editor store — used to skip gaps during playback
   const audioSegments = useEditorStore((s) => s.audioSegments);
 
-  // Video event handlers — with gap-skipping for deleted audio sections
+  // Video event handlers — enforce audio segment bounds as trim points
   const onTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
     const time = videoRef.current.currentTime;
     setCurrentTime(time);
 
-    // Skip gaps: if current time is NOT within any audio segment, seek to next segment
+    // Enforce audio segment bounds — treat trimmed audio edges as video boundaries
     if (audioSegments.length > 0 && !videoRef.current.paused) {
-      const inSegment = audioSegments.some((s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05);
+      const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+
+      // Find the last audio segment's end — this is the effective clip end
+      const lastSegEnd = sorted[sorted.length - 1].endSec;
+
+      // If we've passed the last segment's end, stop immediately
+      if (time >= lastSegEnd - 0.02) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = lastSegEnd;
+        setCurrentTime(lastSegEnd);
+        setPlaying(false);
+        return;
+      }
+
+      // Check if current time falls within any audio segment
+      const inSegment = sorted.some((s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05);
       if (!inSegment) {
-        // Find the next segment after current time
-        const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+        // We're in a gap between segments — skip to next segment
         const next = sorted.find((s) => s.startSec > time);
         if (next) {
           videoRef.current.currentTime = next.startSec;
         } else {
-          // No more segments — pause at end
+          // No more segments ahead — pause
           videoRef.current.pause();
           setPlaying(false);
         }
