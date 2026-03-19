@@ -123,6 +123,23 @@ const useEditorStore = create((set, get) => ({
     }));
   },
 
+  rippleDeleteAudioSegment: (segId) => {
+    get()._pushAudioUndo();
+    const { audioSegments } = get();
+    const seg = audioSegments.find(s => s.id === segId);
+    if (!seg) return;
+    const gap = seg.endSec - seg.startSec;
+    const next = audioSegments
+      .filter(s => s.id !== segId)
+      .map(s => {
+        if (s.startSec >= seg.endSec) {
+          return { ...s, startSec: s.startSec - gap, endSec: s.endSec - gap };
+        }
+        return s;
+      });
+    set({ audioSegments: next });
+  },
+
   resizeAudioSegment: (id, newStart, newEnd) => {
     get()._pushAudioUndo();
     set((s) => {

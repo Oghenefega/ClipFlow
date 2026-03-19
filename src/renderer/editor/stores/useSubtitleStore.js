@@ -545,6 +545,25 @@ const useSubtitleStore = create((set, get) => ({
     set((s) => ({ editSegments: s.editSegments.filter(seg => seg.id !== segId) }));
   },
 
+  rippleDeleteSegment: (segId) => {
+    get()._pushUndo();
+    const { editSegments } = get();
+    const seg = editSegments.find(s => s.id === segId);
+    if (!seg) return;
+    const gap = seg.endSec - seg.startSec;
+    const next = editSegments
+      .filter(s => s.id !== segId)
+      .map(s => {
+        if (s.startSec >= seg.endSec) {
+          const newStart = s.startSec - gap;
+          const newEnd = s.endSec - gap;
+          return { ...s, startSec: newStart, endSec: newEnd, start: fmtTime(newStart), end: fmtTime(newEnd) };
+        }
+        return s;
+      });
+    set({ editSegments: next });
+  },
+
   // ── Styling setters (all push undo for Ctrl+Z support) ──
   _pushStyleUndo: () => { get()._pushUndo(); },
   setSubMode: (m) => { get()._pushStyleUndo(); set({ subMode: m }); },

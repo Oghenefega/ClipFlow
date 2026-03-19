@@ -100,6 +100,24 @@ const useCaptionStore = create((set, get) => ({
     });
   },
 
+  rippleDeleteCaptionSegment: (segId) => {
+    _pushCrossUndo();
+    const { captionSegments } = get();
+    const seg = captionSegments.find(s => s.id === segId);
+    if (!seg) return;
+    const gap = (seg.endSec ?? 0) - seg.startSec;
+    const next = captionSegments
+      .filter(s => s.id !== segId)
+      .map(s => {
+        if (s.startSec >= (seg.endSec ?? 0)) {
+          return { ...s, startSec: s.startSec - gap, endSec: s.endSec != null ? s.endSec - gap : s.endSec };
+        }
+        return s;
+      });
+    const firstText = next.length > 0 ? next[0].text : "";
+    set({ captionSegments: next, captionText: firstText });
+  },
+
   splitCaptionAtPlayhead: (time) => {
     const { captionSegments } = get();
     // Find the segment that contains the playhead
