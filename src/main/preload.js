@@ -94,6 +94,24 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("render:progress");
   },
 
+  // Feedback database
+  feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
+  feedbackGetApproved: (gameTag, limit) => ipcRenderer.invoke("feedback:getApproved", gameTag, limit),
+  feedbackGetCounts: (gameTag) => ipcRenderer.invoke("feedback:getCounts", gameTag),
+
+  // Game profiles
+  gameProfilesGetAll: () => ipcRenderer.invoke("gameProfiles:getAll"),
+  gameProfilesGet: (gameTag) => ipcRenderer.invoke("gameProfiles:get", gameTag),
+  gameProfilesUpdatePlayStyle: (gameTag, playStyle) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle),
+  gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
+  gameProfilesResetCount: (gameTag) => ipcRenderer.invoke("gameProfiles:resetCount", gameTag),
+
+  // Pipeline logs
+  pipelineLogsList: () => ipcRenderer.invoke("pipelineLogs:list"),
+  pipelineLogsRead: (logPath) => ipcRenderer.invoke("pipelineLogs:read", logPath),
+  pipelineLogsDeleteOld: (days) => ipcRenderer.invoke("pipelineLogs:deleteOld", days),
+  pipelineLogsMonthlyCost: () => ipcRenderer.invoke("pipelineLogs:monthlyCost"),
+
   // Re-transcribe a specific clip
   retranscribeClip: (projectId, clipId) =>
     ipcRenderer.invoke("retranscribe:clip", projectId, clipId),

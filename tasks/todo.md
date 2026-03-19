@@ -4,6 +4,102 @@
 
 ---
 
+## 🟡 Pending Approval — AI Clip Generation System (ClipFlow_AI_Spec)
+
+### Goal
+Replace the current local highlight detection (highlights.js) with a Claude-powered AI pipeline. The new system: transcribes with BetterWhisperX, analyzes audio energy with energy_scorer.py, extracts top 20 frames, sends everything to Claude Sonnet 4.5, and returns ranked highlight clips — all automatically. Includes a learning system (SQLite feedback DB + few-shot injection + auto-updating play style profiles).
+
+### What Changes vs Current Pipeline
+The current pipeline (probe → extract audio → whisper → local highlight detection → cut clips → save project) gets **replaced** with:
+- **Transcription:** whisper.js already migrated to BetterWhisperX ✅ — but now we also need SRT output for energy_scorer.py
+- **Energy analysis:** NEW — calls external `D:\whisper\energy_scorer.py` as subprocess (DO NOT REWRITE)
+- **Frame extraction:** NEW — FFmpeg extracts top 20 peak-energy frames at 720p
+- **Claude API call:** NEW — replaces highlights.js entirely. Sends transcript + frames + system prompt → gets clip JSON
+- **Clip cutting:** EXISTS — but rewired to use Claude's returned timestamps instead of local highlight scores
+- **Project creation:** EXISTS — but clips now include Claude's metadata (why, peak_quote, confidence, energy_level)
+
+### Architecture Decisions
+
+1. **SQLite for feedback** — `better-sqlite3` npm package (sync, no async overhead, Electron-compatible). File: `data/feedback.db`
+2. **Processing folder** — `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\` with 6 subfolders (transcripts, energy, frames, claude, clips, logs). Configurable in Settings.
+3. **Game profiles** — `data/game_profiles.json` with per-game play style text. Initial profiles for AR and RL from spec.
+4. **Cost tracking** — logged per API call, monthly total in Settings Logs tab.
+5. **Energy scorer** — called as subprocess only. Uses Track 2 (mic-only) audio via `-map 0:a:1`.
+
+### File Impact Analysis
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/main/main.js` | **Major rewrite** | Replace `pipeline:generateClips` handler with new 6-step AI pipeline. Add IPC for feedback DB, profile management, log viewer. |
+| `src/main/ffmpeg.js` | **Add functions** | `extractFrameAtTime()`, `cutClipCopy()` (stream copy, not re-encode) |
+| `src/main/whisper.js` | **Minor** | Add SRT output option for energy_scorer.py compatibility |
+| `src/main/highlights.js` | **Deprecated** | No longer called in pipeline. Keep file but pipeline bypasses it. |
+| `src/main/preload.js` | **Add methods** | Expose feedback DB queries, profile CRUD, log viewer, processing folder config |
+| `src/main/projects.js` | **Extend clip model** | Add `why`, `peakQuote`, `energyLevel`, `confidence`, `hasFrame` to clip schema |
+| `src/renderer/views/UploadView.js` | **Update pipeline UI** | New 6-step progress display matching spec Section 7 |
+| `src/renderer/views/ProjectsView.js` | **Extend clip cards** | Show Claude's reason, peak quote, energy badge, confidence score, approve/reject logging |
+| `src/renderer/views/SettingsView.js` | **Add Logs tab** | Log viewer with filtering, cost tracking, processing folder config |
+| `src/renderer/components/modals.js` | **Add modals** | Profile diff modal for play style updates |
+| `package.json` | **Add dep** | `better-sqlite3` |
+
+### NEW Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/main/ai-pipeline.js` | New AI pipeline orchestrator (energy analysis → frame extraction → Claude API → clip cutting) |
+| `src/main/feedback.js` | SQLite feedback DB wrapper (init, log, query approved, query rejected) |
+| `src/main/game-profiles.js` | Game play style profile CRUD + auto-update trigger |
+| `src/main/ai-prompt.js` | Claude system prompt builder (Sections A–F from spec) |
+| `src/main/pipeline-logger.js` | Per-video structured log file writer |
+| `data/game_profiles.json` | Initial play style profiles (AR, RL) |
+
+### Implementation Order (12 Steps — matches spec Section 10)
+
+**Phase A: Foundation (Steps 1–3)**
+
+- [ ] **Step 1: Wire energy_scorer.py** — Add IPC handler to call `energy_scorer.py` as subprocess. Parse its JSON + claude_ready.txt outputs. Save to `processing/energy/` and `processing/claude/`. Test with a real video.
+- [ ] **Step 2: Pipeline Status UI** — Update UploadView.js progress overlay with the new 6-step display (Transcription → Energy Analysis → Frame Extraction → Claude Analysis → Cutting Clips → Creating Project). Real-time step states (running/complete/failed/waiting), elapsed times, retry button on failure.
+- [ ] **Step 3: Logging system** — Create `pipeline-logger.js` for per-video structured log files in `processing/logs/`. Add Logs tab to SettingsView.js with list, filtering by game tag, status icons, copy-to-clipboard, delete old logs. Add cost tracking display.
+
+**Phase B: Core AI Pipeline (Steps 4–7)**
+
+- [ ] **Step 4: Frame extraction** — After energy analysis, read `.energy.json`, sort by peak_energy, take top 20, extract one 720p frame per segment midpoint via FFmpeg. Save to `processing/frames/`.
+- [ ] **Step 5: Claude API caller** — Build `ai-prompt.js` (Sections A–E of system prompt). Build Claude API call in `ai-pipeline.js`: send full `claude_ready.txt` + 20 base64 frames + system prompt. Parse JSON response strictly. Log token count + estimated cost.
+- [ ] **Step 6: Automatic clip cutting** — For each clip Claude returns, FFmpeg `-c copy` cut to `processing/clips/`. All clips ready before project creation.
+- [ ] **Step 7: Automatic project creation** — After all clips cut, create project in Projects tab with Claude's metadata per clip. Notify user "Project ready — N clips generated". Wire new pipeline into `pipeline:generateClips` IPC handler (replacing old highlights.js path).
+
+**Phase C: Clip Review UI (Step 8)**
+
+- [ ] **Step 8: Enhanced clip review in ClipBrowser** — Each clip shows: video preview, timestamp range, suggested title (editable), Claude's reason ("why"), peak quote, energy level badge (HIGH/MED/LOW color-coded), confidence score, Approve/Reject buttons, Open in Editor button. This extends the existing ClipBrowser, not a rewrite.
+
+**Phase D: Learning System (Steps 9–12)**
+
+- [ ] **Step 9: Feedback database** — Install `better-sqlite3`. Create `feedback.js` with SQLite schema from spec Section 6.1. Wire Approve/Reject buttons to log to `data/feedback.db` with all fields (video_id, game_tag, timestamps, transcript, energy, claude_reason, decision, user_note).
+- [ ] **Step 10: Few-shot injection** — Before each Claude API call, query `feedback.db` for last 20 approved clips matching game_tag. Format as Section F of system prompt. Skip if fewer than 5 approved clips.
+- [ ] **Step 11: Update threshold stepper** — Add "Update play style after every N sessions" stepper (3–20, default 5) to each game's AI Context section in Settings/Game Library.
+- [ ] **Step 12: Profile auto-update** — After every N transcriptions per game, trigger Claude analysis of recent SRT transcripts to propose updated play style profile. Show diff modal (old vs new). On approval, save to `game_profiles.json`. On dismiss, reset counter.
+
+### Key Constraints (from spec)
+- **Do NOT rewrite `energy_scorer.py`** — call as subprocess only
+- **Always `claude-sonnet-4-5`** — never Opus for highlight detection
+- **Frames capped at 20, resolution at 720p** — non-negotiable for cost control
+- **Claude must return JSON only** — strict parsing, logged error if not
+- **All generated files → `processing/`** — never write to recordings folder
+- **Processing folder configurable in Settings** — default: `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\`
+
+### Verification Criteria
+- [ ] Full pipeline runs end-to-end on a real 30-min recording
+- [ ] Pipeline status UI shows all 6 steps with real-time progress
+- [ ] Claude returns 15–20 clips with valid timestamps, titles, reasons
+- [ ] All clips pre-cut and ready before project appears in Projects tab
+- [ ] Approve/Reject logs to feedback.db correctly
+- [ ] Few-shot examples appear in Claude prompt after 5+ approved clips
+- [ ] Logs tab shows all pipeline runs with correct status/cost
+- [ ] Profile update triggers after N sessions, diff modal works
+- [ ] Build with zero errors, app launches, no regressions
+
+---
+
 ## 🟡 In Progress — Projects Tab Overhaul (Vizard-inspired)
 
 ### Goal

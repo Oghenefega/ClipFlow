@@ -10,6 +10,10 @@ const whisper = require("./whisper");
 const projects = require("./projects");
 const highlights = require("./highlights");
 const render = require("./render");
+const aiPipeline = require("./ai-pipeline");
+const feedbackDb = require("./feedback");
+const gameProfiles = require("./game-profiles");
+const pipelineLogger = require("./pipeline-logger");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -636,177 +640,81 @@ ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) =>
   } catch (err) { return { error: err.message }; }
 });
 
-// ============ PIPELINE: Generate Clips ============
-// Orchestrates: extract audio → transcribe → analyze loudness → detect highlights → cut clips → thumbnails → project
+// ============ PIPELINE: Generate Clips (AI Pipeline) ============
+// Orchestrates: transcribe → energy analysis → frame extraction → Claude API → cut clips → project
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
   const watchFolder = store.get("watchFolder");
   const sendProgress = (stage, pct, detail) => {
     mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail });
   };
 
+  return aiPipeline.runAIPipeline({ sourceFile, gameData, watchFolder, store, sendProgress });
+});
+
+// ============ FEEDBACK DATABASE ============
+ipcMain.handle("feedback:log", async (_, entry) => {
   try {
-    // Stage 0: Probe source file
-    sendProgress("probing", 0, "Analyzing source file...");
-    const probeResult = await ffmpeg.probe(sourceFile);
-    if (probeResult.error) return { error: `Probe failed: ${probeResult.error}` };
+    await feedbackDb.init();
+    return feedbackDb.logFeedback(entry);
+  } catch (err) { return { error: err.message }; }
+});
 
-    // Stage 1: Create project
-    sendProgress("creating", 5, "Creating project...");
-    const projResult = projects.createProject(watchFolder, {
-      sourceFile,
-      name: gameData.name || path.basename(sourceFile, path.extname(sourceFile)),
-      game: gameData.game || "Unknown",
-      gameTag: gameData.gameTag || "",
-      gameColor: gameData.gameColor || "#888",
-      sourceDuration: probeResult.duration,
-    });
-    if (projResult.error) return { error: projResult.error };
-    const project = projResult.project;
-    const clipsDir = projects.getClipsDir(watchFolder, project.id);
+ipcMain.handle("feedback:getApproved", async (_, gameTag, limit) => {
+  try {
+    await feedbackDb.init();
+    return feedbackDb.getApprovedClips(gameTag, limit || 20);
+  } catch (err) { return []; }
+});
 
-    // Stage 2: Extract audio
-    sendProgress("extracting", 10, "Extracting audio...");
-    project.status = "transcribing";
-    projects.saveProject(watchFolder, project);
+ipcMain.handle("feedback:getCounts", async (_, gameTag) => {
+  try {
+    await feedbackDb.init();
+    return feedbackDb.getFeedbackCounts(gameTag);
+  } catch (err) { return { approved: 0, rejected: 0, total: 0 }; }
+});
 
-    const wavPath = path.join(projects.getProjectsRoot(watchFolder), project.id, "audio.wav");
-    const audioResult = await ffmpeg.extractAudio(sourceFile, wavPath);
-    if (audioResult.error) {
-      project.status = "failed";
-      projects.saveProject(watchFolder, project);
-      return { error: `Audio extraction failed: ${audioResult.error}` };
-    }
+// ============ GAME PROFILES ============
+ipcMain.handle("gameProfiles:getAll", async () => {
+  return gameProfiles.loadProfiles();
+});
 
-    // Stage 3: Transcribe (BetterWhisperX)
-    sendProgress("transcribing", 20, "Transcribing with BetterWhisperX...");
-    const whisperOpts = {
-      pythonPath: store.get("whisperPythonPath") || "",
-      model: store.get("whisperModel") || "large-v3-turbo",
-      language: "en",
-      batchSize: 16,
-      computeType: "float16",
-      hfToken: store.get("hfToken") || "",
-      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
-      onProgress: (pct) => {
-        // Map whisper's 0-100 to our 20-60 range
-        sendProgress("transcribing", 20 + Math.round(pct * 0.4), `Transcribing... ${pct}%`);
-      },
-    };
+ipcMain.handle("gameProfiles:get", async (_, gameTag) => {
+  return gameProfiles.getProfile(gameTag);
+});
 
-    const transcription = await whisper.transcribe(wavPath, whisperOpts);
-    if (transcription.error) {
-      project.status = "failed";
-      projects.saveProject(watchFolder, project);
-      return { error: `Transcription failed: ${transcription.error}` };
-    }
+ipcMain.handle("gameProfiles:updatePlayStyle", async (_, gameTag, playStyle) => {
+  gameProfiles.updatePlayStyle(gameTag, playStyle);
+  return { success: true };
+});
 
-    project.transcription = transcription;
-    project.status = "analyzing";
-    projects.saveProject(watchFolder, project);
+ipcMain.handle("gameProfiles:setThreshold", async (_, gameTag, threshold) => {
+  gameProfiles.setUpdateThreshold(gameTag, threshold);
+  return { success: true };
+});
 
-    // Stage 4: Analyze loudness
-    sendProgress("analyzing", 65, "Analyzing audio energy...");
-    const loudnessResult = await ffmpeg.analyzeLoudness(wavPath, 1);
+ipcMain.handle("gameProfiles:resetCount", async (_, gameTag) => {
+  gameProfiles.resetSessionCount(gameTag);
+  return { success: true };
+});
 
-    // Stage 5: Detect highlights
-    sendProgress("detecting", 70, "Detecting highlight moments...");
-    const gameKeywords = gameData.keywords || [];
-    const highlightSegments = highlights.detectHighlights(
-      transcription,
-      loudnessResult,
-      {
-        keywords: gameKeywords,
-        gameName: gameData.game,
-        minClipDuration: 15,
-        maxClipDuration: 60,
-        targetClipCount: 30,
-      }
-    );
+// ============ PIPELINE LOGS ============
+ipcMain.handle("pipelineLogs:list", async () => {
+  const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+  return pipelineLogger.listLogs(processingDir);
+});
 
-    // Stage 6: Cut clips + generate thumbnails
-    project.status = "clipping";
-    projects.saveProject(watchFolder, project);
+ipcMain.handle("pipelineLogs:read", async (_, logPath) => {
+  return pipelineLogger.readLog(logPath);
+});
 
-    const totalClips = highlightSegments.length;
-    for (let i = 0; i < totalClips; i++) {
-      const hl = highlightSegments[i];
-      const clipNum = String(i + 1).padStart(3, "0");
-      const clipFileName = `clip_${clipNum}.mp4`;
-      const clipPath = path.join(clipsDir, clipFileName);
-      const thumbPath = path.join(clipsDir, `clip_${clipNum}_thumb.jpg`);
+ipcMain.handle("pipelineLogs:deleteOld", async (_, days) => {
+  const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+  return pipelineLogger.deleteOldLogs(processingDir, days || 30);
+});
 
-      const pct = 75 + Math.round((i / totalClips) * 20);
-      sendProgress("cutting", pct, `Cutting clip ${i + 1}/${totalClips}...`);
-
-      try {
-        await ffmpeg.cutClip(sourceFile, clipPath, hl.start, hl.end);
-      } catch (e) {
-        // Skip failed clips but continue
-        continue;
-      }
-
-      // Generate thumbnail at midpoint
-      const thumbTime = hl.start + (hl.end - hl.start) / 2;
-      try {
-        await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
-      } catch (e) { /* non-critical */ }
-
-      // Extract subtitle segments for this clip from the transcription
-      const clipSubtitles = (transcription.segments || [])
-        .filter((s) => s.start < hl.end && s.end > hl.start)
-        .map((s) => ({
-          start: Math.max(0, s.start - hl.start),
-          end: Math.min(hl.end - hl.start, s.end - hl.start),
-          text: s.text,
-          words: (s.words || []).map((w) => ({
-            ...w,
-            start: Math.max(0, w.start - hl.start),
-            end: Math.min(hl.end - hl.start, w.end - hl.start),
-          })),
-        }));
-
-      // Auto-generate title from the clip's transcript
-      const autoTitle = generateClipTitle(clipSubtitles, hl);
-
-      project.clips.push({
-        id: projects.generateClipId(),
-        title: autoTitle,
-        caption: autoTitle,
-        startTime: hl.start,
-        endTime: hl.end,
-        highlightScore: hl.score,
-        highlightReason: hl.reason,
-        status: "none",
-        subtitles: { sub1: clipSubtitles, sub2: [] },
-        sfx: [],
-        media: [],
-        renderStatus: "pending",
-        renderPath: null,
-        filePath: clipPath,
-        thumbnailPath: fs.existsSync(thumbPath) ? thumbPath : null,
-        createdAt: new Date().toISOString(),
-      });
-    }
-
-    // Stage 7: Save final project
-    sendProgress("saving", 98, "Saving project...");
-    project.status = "ready";
-    projects.saveProject(watchFolder, project);
-
-    // Clean up wav file
-    try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
-
-    sendProgress("complete", 100, `Generated ${project.clips.length} clips`);
-
-    return {
-      success: true,
-      projectId: project.id,
-      clipCount: project.clips.length,
-    };
-  } catch (err) {
-    sendProgress("failed", 0, err.message);
-    return { error: err.message };
-  }
+ipcMain.handle("pipelineLogs:monthlyCost", async () => {
+  const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+  return pipelineLogger.getMonthlyCost(processingDir);
 });
 
 // ============ ELECTRON-STORE: persistent settings ============

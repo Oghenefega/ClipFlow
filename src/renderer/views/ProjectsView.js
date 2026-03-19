@@ -162,16 +162,59 @@ function ScoreDisplay({ score }) {
   );
 }
 
-// ============ APPROVE/REJECT BUTTONS ============
-function ApproveRejectButtons({ clip, onUpdateClip, projectId }) {
+// Energy level badge colors
+const ENERGY_COLORS = {
+  HIGH: { bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.3)", text: "#f87171", label: "HIGH" },
+  MED: { bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.3)", text: "#fbbf24", label: "MED" },
+  LOW: { bg: "rgba(148,163,184,0.12)", border: "rgba(148,163,184,0.3)", text: "#94a3b8", label: "LOW" },
+};
+
+// Format HH:MM:SS from seconds
+const fmtHMS = (sec) => {
+  if (!sec || isNaN(sec)) return "00:00:00";
+  const h = Math.floor(sec / 3600).toString().padStart(2, "0");
+  const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${s}`;
+};
+
+// ============ APPROVE/REJECT BUTTONS (with feedback DB logging) ============
+function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
+
+  const handleDecision = async (decision) => {
+    const newStatus = (decision === "approved" && ca) || (decision === "rejected" && rej) ? "none" : decision;
+    onUpdateClip(projectId, clip.id, newStatus);
+
+    // Log to feedback DB (only when actually approving/rejecting, not toggling off)
+    if (newStatus !== "none" && window.clipflow?.feedbackLog) {
+      try {
+        await window.clipflow.feedbackLog({
+          videoId: project?.name || "",
+          gameTag: project?.gameTag || "",
+          clipStart: fmtHMS(clip.startTime),
+          clipEnd: fmtHMS(clip.endTime),
+          title: clip.title || "",
+          transcriptSegment: (clip.subtitles?.sub1 || []).map((s) => s.text).join(" ").substring(0, 500),
+          peakEnergy: (clip.confidence || clip.highlightScore / 100 || 0),
+          hasFrame: !!clip.hasFrame,
+          claudeReason: clip.highlightReason || "",
+          peakQuote: clip.peakQuote || "",
+          energyLevel: clip.energyLevel || "",
+          confidence: clip.confidence || 0,
+          decision: newStatus,
+          userNote: "",
+        });
+      } catch (e) { /* non-critical */ }
+    }
+  };
 
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {/* Approve — checkmark */}
       <button
-        onClick={() => onUpdateClip(projectId, clip.id, ca ? "none" : "approved")}
+        onClick={() => handleDecision("approved")}
         title={ca ? "Remove approval" : "Approve clip"}
         style={{
           width: 36, height: 36, borderRadius: T.radius.sm,
@@ -190,7 +233,7 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId }) {
       </button>
       {/* Reject — X */}
       <button
-        onClick={() => onUpdateClip(projectId, clip.id, rej ? "none" : "rejected")}
+        onClick={() => handleDecision("rejected")}
         title={rej ? "Remove rejection" : "Reject clip"}
         style={{
           width: 36, height: 36, borderRadius: T.radius.sm,
@@ -234,7 +277,7 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
       {/* Left: clip number + actions column */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: 2 }}>
         <span style={{ color: T.textTertiary, fontSize: 11, fontWeight: 700, fontFamily: T.mono }}>#{index + 1}</span>
-        <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} />
+        <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} />
       </div>
 
       {/* Center-left: video player */}
@@ -291,22 +334,69 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
           <ScoreDisplay score={clip.highlightScore} />
         </div>
 
-        {/* Status badges row */}
+        {/* AI metadata + status badges row */}
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          {clip.highlightReason && (
+          {/* Energy level badge */}
+          {clip.energyLevel && ENERGY_COLORS[clip.energyLevel] && (
             <span style={{
-              display: "inline-flex", padding: "2px 8px", borderRadius: 4,
-              background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
-              fontSize: 11, color: T.textTertiary, fontStyle: "italic",
-              maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+              background: ENERGY_COLORS[clip.energyLevel].bg,
+              border: `1px solid ${ENERGY_COLORS[clip.energyLevel].border}`,
+              fontSize: 10, fontWeight: 700, color: ENERGY_COLORS[clip.energyLevel].text,
+              fontFamily: T.mono, letterSpacing: "0.5px",
             }}>
-              {clip.highlightReason}
+              {clip.energyLevel === "HIGH" ? "\uD83D\uDD25" : clip.energyLevel === "MED" ? "\u26A1" : "\uD83D\uDCA4"} {clip.energyLevel}
             </span>
           )}
+
+          {/* Confidence score */}
+          {clip.confidence > 0 && (
+            <span style={{
+              display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+              background: "rgba(139,92,246,0.1)", border: `1px solid rgba(139,92,246,0.25)`,
+              fontSize: 10, fontWeight: 700, color: T.accentLight,
+              fontFamily: T.mono,
+            }}>
+              {(clip.confidence * 100).toFixed(0)}% conf
+            </span>
+          )}
+
+          {/* Timestamp range */}
+          <span style={{
+            display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+            background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`,
+            fontSize: 10, color: T.textTertiary, fontFamily: T.mono,
+          }}>
+            {fmtHMS(clip.startTime)} → {fmtHMS(clip.endTime)}
+          </span>
+
           {ca && <Badge color={T.green}>Approved</Badge>}
           {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
         </div>
+
+        {/* Claude's reason for picking this clip */}
+        {clip.highlightReason && (
+          <div style={{
+            padding: "6px 10px", borderRadius: T.radius.sm,
+            background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
+            fontSize: 12, color: T.textSecondary, lineHeight: 1.5,
+            fontStyle: "italic",
+          }}>
+            {clip.highlightReason}
+          </div>
+        )}
+
+        {/* Peak quote */}
+        {clip.peakQuote && (
+          <div style={{
+            padding: "6px 10px", borderRadius: T.radius.sm,
+            background: "rgba(251,191,36,0.04)", border: `1px solid rgba(251,191,36,0.15)`,
+            fontSize: 12, color: T.yellow, fontWeight: 600,
+          }}>
+            "{clip.peakQuote}"
+          </div>
+        )}
 
         {/* Transcript inline */}
         {transcriptSegs.length > 0 && (

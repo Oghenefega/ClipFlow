@@ -597,7 +597,156 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      {/* Pipeline Logs & Cost Tracking */}
+      <PipelineLogsSection />
+
       {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
+  );
+}
+
+// ============ PIPELINE LOGS SECTION ============
+function PipelineLogsSection() {
+  const [logs, setLogs] = useState([]);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [logContent, setLogContent] = useState("");
+  const [monthlyCost, setMonthlyCost] = useState({ total: 0, videoCount: 0 });
+  const [loading, setLoading] = useState(true);
+  const [filterGame, setFilterGame] = useState("");
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    if (window.clipflow?.pipelineLogsList) {
+      const logList = await window.clipflow.pipelineLogsList();
+      setLogs(logList || []);
+    }
+    if (window.clipflow?.pipelineLogsMonthlyCost) {
+      const cost = await window.clipflow.pipelineLogsMonthlyCost();
+      setMonthlyCost(cost || { total: 0, videoCount: 0 });
+    }
+    setLoading(false);
+  };
+
+  const handleSelectLog = async (log) => {
+    setSelectedLog(log);
+    if (window.clipflow?.pipelineLogsRead) {
+      const content = await window.clipflow.pipelineLogsRead(log.path);
+      setLogContent(content || "Failed to read log file");
+    }
+  };
+
+  const handleDeleteOld = async () => {
+    if (window.clipflow?.pipelineLogsDeleteOld) {
+      const deleted = await window.clipflow.pipelineLogsDeleteOld(30);
+      loadData();
+    }
+  };
+
+  const handleCopy = () => {
+    if (logContent) navigator.clipboard.writeText(logContent);
+  };
+
+  const filtered = filterGame
+    ? logs.filter((l) => l.videoName?.toLowerCase().includes(filterGame.toLowerCase()))
+    : logs;
+
+  return (
+    <Card style={{ padding: 24, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Pipeline Logs</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600, fontFamily: T.mono }}>
+            This month: ~${monthlyCost.total.toFixed(2)} across {monthlyCost.videoCount} video{monthlyCost.videoCount !== 1 ? "s" : ""}
+          </span>
+          <button onClick={handleDeleteOld} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
+            Delete Old (30d)
+          </button>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <input
+        value={filterGame}
+        onChange={(e) => setFilterGame(e.target.value)}
+        placeholder="Filter by video name..."
+        style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", marginBottom: 10, boxSizing: "border-box" }}
+      />
+
+      {loading ? (
+        <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>Loading logs...</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>
+          No pipeline logs yet. Logs appear after running Generate Clips.
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 12, maxHeight: 400 }}>
+          {/* Log list */}
+          <div style={{ width: 280, flexShrink: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+            {filtered.map((log, i) => (
+              <div
+                key={i}
+                onClick={() => handleSelectLog(log)}
+                style={{
+                  padding: "8px 10px", borderRadius: 6, cursor: "pointer",
+                  background: selectedLog?.path === log.path ? T.accentDim : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${selectedLog?.path === log.path ? T.accentBorder : T.border}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12 }}>
+                    {log.success ? "\u2705" : "\u274C"}
+                  </span>
+                  <span style={{ color: T.text, fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                    {log.videoName || log.filename}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
+                  <span style={{ color: T.textTertiary, fontSize: 10 }}>
+                    {new Date(log.date).toLocaleDateString()}
+                  </span>
+                  {log.apiCost > 0 && (
+                    <span style={{ color: T.accentLight, fontSize: 10, fontFamily: T.mono }}>
+                      ${log.apiCost.toFixed(4)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Log content viewer */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {selectedLog ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600 }}>{selectedLog.videoName}</span>
+                  <button onClick={handleCopy} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                    Copy to Clipboard
+                  </button>
+                </div>
+                <pre style={{
+                  flex: 1, overflowY: "auto", overflowX: "auto",
+                  padding: 12, borderRadius: 6,
+                  background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`,
+                  color: T.textSecondary, fontSize: 11, fontFamily: T.mono,
+                  lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap",
+                  maxHeight: 320,
+                }}>
+                  {logContent}
+                </pre>
+              </>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: T.textTertiary, fontSize: 12 }}>
+                Select a log to view its contents
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

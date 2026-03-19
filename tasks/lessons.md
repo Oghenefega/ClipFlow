@@ -355,3 +355,27 @@
 ### Deleting audio must cascade to overlapping subtitles
 - **Mistake:** Deleting an audio segment only removed the visual audio block. The subtitles in that time range remained, creating orphaned subtitles.
 - **Rule:** Track operations that remove time ranges must cascade: audio delete → also delete subtitle segments within that range.
+
+### Scores must show context (X/Y format, not raw numbers)
+- **Mistake:** Displayed raw highlight scores (28, 27, 26) with no indication of max. Users can't tell if 28 is good or bad.
+- **Rule:** Always display scores in a contextual format like X.X/10 or X/100. Never show a raw number without its scale.
+
+### Clip thumbnails must match video aspect ratio
+- **Mistake:** Used 16:9 `aspect-video` containers for 9:16 vertical gaming clips, causing zoomed-in center crops.
+- **Rule:** Always match thumbnail container aspect ratio to the actual video content. For vertical clips: `aspect-ratio: 9/16` with `object-contain`.
+
+### Auto-generate titles from transcript — never leave clips untitled
+- **Mistake:** Clips were created with empty `title: ""`, making the Projects view show blank titles everywhere.
+- **Rule:** Every clip must get an auto-generated title from its transcript during the pipeline. Pick the most energetic/emotional phrase. User can always override later.
+
+### Dropdowns/lists must have native scrolling for large lists
+- **Mistake:** Used shadcn ScrollArea for clip dropdown, which didn't support mouse wheel scrolling. 16 clips couldn't be reached.
+- **Rule:** For any list that can exceed viewport height, use native `overflow-y: auto` with a `max-height`. Always test with the actual data volume (not just 3-4 items).
+
+### Native Node.js modules fail with Electron — use WASM alternatives
+- **Mistake:** Tried to use `better-sqlite3` (native C++ addon) for the feedback database. `electron-rebuild` / `node-gyp` failed on Windows.
+- **Rule:** For Electron apps, avoid native Node.js modules when a pure JS/WASM alternative exists. Use `sql.js` (WebAssembly SQLite) instead of `better-sqlite3`. sql.js requires async init but works cross-platform with zero native compilation.
+
+### Don't use Node.js `path` module in renderer code
+- **Mistake:** Used `path.basename()` in UploadView.js JSX — `path` is not available in the renderer process.
+- **Rule:** In renderer code, use string methods like `str.split(/[/\\]/).pop()` for path operations. Only use `path` in main process code.

@@ -39,13 +39,27 @@ function findProjectForFile(name, localProjects) {
   return localProjects.find((p) => p.name === baseName) || null;
 }
 
+// AI pipeline stages in order
+const PIPELINE_STEPS = [
+  { key: "probing", label: "Analyzing File", icon: "\uD83D\uDD0D" },
+  { key: "creating", label: "Creating Project", icon: "\uD83D\uDCC1" },
+  { key: "extracting", label: "Extracting Audio", icon: "\uD83C\uDFA7" },
+  { key: "transcribing", label: "Transcription (WhisperX)", icon: "\uD83D\uDCDD" },
+  { key: "energy", label: "Audio Energy Analysis", icon: "\u26A1" },
+  { key: "frames", label: "Frame Extraction", icon: "\uD83D\uDDBC\uFE0F" },
+  { key: "claude", label: "Claude Analysis", icon: "\uD83E\uDDE0" },
+  { key: "cutting", label: "Cutting Clips", icon: "\u2702\uFE0F" },
+  { key: "saving", label: "Creating Project", icon: "\uD83D\uDCBE" },
+];
+
 const STAGE_LABELS = {
   probing: "Analyzing file",
   creating: "Creating project",
   extracting: "Extracting audio",
   transcribing: "Transcribing",
-  analyzing: "Analyzing energy",
-  detecting: "Detecting highlights",
+  energy: "Analyzing energy",
+  frames: "Extracting frames",
+  claude: "Claude analyzing",
   cutting: "Cutting clips",
   saving: "Saving project",
   complete: "Complete",
@@ -254,24 +268,62 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     <div>
       <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
 
-      {/* Pipeline progress overlay */}
+      {/* Pipeline progress panel — multi-step status */}
       {generating && progress && (
         <Card style={{ padding: "16px 20px", marginBottom: 16, borderColor: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : T.accentBorder }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-            <span style={{ fontSize: 18 }}>
-              {progress.stage === "complete" ? "\u2705" : progress.stage === "failed" ? "\u274C" : "\u2699\uFE0F"}
+          {/* Video name header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 16 }}>{"\uD83C\uDFAC"}</span>
+            <span style={{ color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {generating ? generating.split(/[/\\]/).pop() : ""}
             </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: T.text, fontSize: 13, fontWeight: 700 }}>
-                {STAGE_LABELS[progress.stage] || progress.stage}
-              </div>
-              <div style={{ color: T.textTertiary, fontSize: 11 }}>{progress.detail}</div>
-            </div>
-            <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 700, fontFamily: T.mono }}>
-              {progress.pct}%
-            </span>
+            {progress.stage === "complete" && <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} Done</span>}
+            {progress.stage === "failed" && <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>{"\u274C"} Failed</span>}
           </div>
-          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+
+          {/* Step-by-step status */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {PIPELINE_STEPS.map((step) => {
+              const currentIdx = PIPELINE_STEPS.findIndex((s) => s.key === progress.stage);
+              const stepIdx = PIPELINE_STEPS.findIndex((s) => s.key === step.key);
+              const isComplete = progress.stage === "complete" || stepIdx < currentIdx;
+              const isRunning = step.key === progress.stage && progress.stage !== "complete" && progress.stage !== "failed";
+              const isFailed = progress.stage === "failed" && step.key === progress.stage;
+              const isWaiting = stepIdx > currentIdx && progress.stage !== "complete";
+
+              let statusIcon, statusColor;
+              if (isComplete) { statusIcon = "\u2705"; statusColor = T.green; }
+              else if (isRunning) { statusIcon = "\u26A1"; statusColor = T.yellow; }
+              else if (isFailed) { statusIcon = "\u274C"; statusColor = T.red; }
+              else { statusIcon = "\u2B1C"; statusColor = T.textTertiary; }
+
+              return (
+                <div key={step.key} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "5px 8px", borderRadius: 6,
+                  background: isRunning ? "rgba(251,191,36,0.06)" : "transparent",
+                  opacity: isWaiting ? 0.4 : 1,
+                }}>
+                  <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>{statusIcon}</span>
+                  <span style={{ fontSize: 14 }}>{step.icon}</span>
+                  <span style={{ color: statusColor, fontSize: 12, fontWeight: isRunning ? 700 : 500, flex: 1 }}>
+                    {step.label}
+                  </span>
+                  {isRunning && progress.detail && (
+                    <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono }}>
+                      {progress.detail}
+                    </span>
+                  )}
+                  {isFailed && (
+                    <span style={{ color: T.red, fontSize: 10 }}>{progress.detail}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Overall progress bar */}
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginTop: 12 }}>
             <div style={{
               height: "100%", borderRadius: 2,
               background: progress.stage === "failed" ? T.red : progress.stage === "complete" ? T.green : `linear-gradient(90deg, ${T.accent}, ${T.accentLight})`,

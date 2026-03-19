@@ -5,3 +5,9 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+
+# Runtime data (feedback DB, processing artifacts)
+data/feedback.db
+data/feedback.db-wal
+data/feedback.db-shm
+processing/
