@@ -814,7 +814,11 @@ function PipelineLogsSection() {
                               <div onClick={(e) => toggleSelect(log.path, e)} style={cbxStyle(isChecked)}>
                                 {isChecked && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{"\u2713"}</span>}
                               </div>
-                              <span style={{ fontSize: 14, flexShrink: 0 }}>{log.success ? "\u2705" : "\u274C"}</span>
+                              <span style={{
+                                padding: "2px 6px", borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: T.mono, flexShrink: 0, letterSpacing: 0.3,
+                                background: log.success ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)",
+                                color: log.success ? "#34d399" : "#f87171",
+                              }}>{log.success ? "PASS" : "FAIL"}</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {log.videoName || log.filename}
@@ -839,33 +843,27 @@ function PipelineLogsSection() {
             </div>
           </div>
 
-          {/* Right: log content viewer */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-            {selectedLog ? (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selectedLog.videoName}</span>
-                  <button onClick={handleCopy} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
-                    Copy to Clipboard
-                  </button>
-                </div>
-                <pre style={{
-                  flex: 1, overflowY: "auto", overflowX: "auto",
-                  padding: 14, borderRadius: 8,
-                  background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`,
-                  color: T.textSecondary, fontSize: 11, fontFamily: T.mono,
-                  lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap",
-                  maxHeight: 420,
-                }}>
-                  {logContent}
-                </pre>
-              </>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: T.textTertiary, fontSize: 12 }}>
-                Select a log to view its contents
+          {/* Right: log content viewer — only rendered when a log is selected */}
+          {selectedLog && (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selectedLog.videoName}</span>
+                <button onClick={handleCopy} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                  Copy to Clipboard
+                </button>
               </div>
-            )}
-          </div>
+              <pre style={{
+                flex: 1, overflowY: "auto", overflowX: "auto",
+                padding: 14, borderRadius: 8,
+                background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`,
+                color: T.textSecondary, fontSize: 11, fontFamily: T.mono,
+                lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap",
+                maxHeight: 420,
+              }}>
+                {logContent}
+              </pre>
+            </div>
+          )}
         </div>
       )}
     </Card>
