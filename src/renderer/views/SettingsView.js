@@ -616,9 +616,7 @@ function PipelineLogsSection() {
   const [selected, setSelected] = useState(new Set());
   const [expandedGroups, setExpandedGroups] = useState(new Set());
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -644,9 +642,7 @@ function PipelineLogsSection() {
   const handleDeleteOld = async () => {
     if (window.clipflow?.pipelineLogsDeleteOld) {
       await window.clipflow.pipelineLogsDeleteOld(30);
-      setSelected(new Set());
-      setSelectedLog(null);
-      setLogContent("");
+      setSelected(new Set()); setSelectedLog(null); setLogContent("");
       loadData();
     }
   };
@@ -655,10 +651,7 @@ function PipelineLogsSection() {
     if (selected.size === 0) return;
     if (window.clipflow?.pipelineLogsDelete) {
       await window.clipflow.pipelineLogsDelete([...selected]);
-      if (selectedLog && selected.has(selectedLog.path)) {
-        setSelectedLog(null);
-        setLogContent("");
-      }
+      if (selectedLog && selected.has(selectedLog.path)) { setSelectedLog(null); setLogContent(""); }
       setSelected(new Set());
       loadData();
     }
@@ -666,33 +659,17 @@ function PipelineLogsSection() {
 
   const toggleSelect = (logPath, e) => {
     e.stopPropagation();
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(logPath)) next.delete(logPath);
-      else next.add(logPath);
-      return next;
-    });
+    setSelected(prev => { const next = new Set(prev); next.has(logPath) ? next.delete(logPath) : next.add(logPath); return next; });
   };
 
   const toggleGroup = (groupKey) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupKey)) next.delete(groupKey);
-      else next.add(groupKey);
-      return next;
-    });
+    setExpandedGroups(prev => { const next = new Set(prev); next.has(groupKey) ? next.delete(groupKey) : next.add(groupKey); return next; });
   };
 
-  const handleCopy = () => {
-    if (logContent) navigator.clipboard.writeText(logContent);
-  };
+  const handleCopy = () => { if (logContent) navigator.clipboard.writeText(logContent); };
 
-  const fmtLocalDate = (iso) => {
-    try { return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-    catch { return "Unknown date"; }
-  };
-  const fmtLocalTime = (iso) => {
-    try { return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }); }
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric" }); }
     catch { return ""; }
   };
 
@@ -702,41 +679,36 @@ function PipelineLogsSection() {
 
   // Group logs by video name
   const grouped = {};
-  for (const log of filtered) {
-    const key = log.videoName || log.filename;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(log);
-  }
-  const groupKeys = Object.keys(grouped).sort((a, b) => {
-    const aLatest = new Date(grouped[a][0]?.date || 0);
-    const bLatest = new Date(grouped[b][0]?.date || 0);
-    return bLatest - aLatest;
-  });
+  for (const log of filtered) { const key = log.videoName || log.filename; if (!grouped[key]) grouped[key] = []; grouped[key].push(log); }
+  const groupKeys = Object.keys(grouped).sort((a, b) => new Date(grouped[b][0]?.date || 0) - new Date(grouped[a][0]?.date || 0));
 
-  // Auto-expand groups on first load
+  // Auto-expand first 3 groups
   useEffect(() => {
-    if (groupKeys.length > 0 && expandedGroups.size === 0) {
-      setExpandedGroups(new Set(groupKeys.slice(0, 3)));
-    }
+    if (groupKeys.length > 0 && expandedGroups.size === 0) setExpandedGroups(new Set(groupKeys.slice(0, 3)));
   }, [logs.length]);
 
   const selectAllInGroup = (groupKey, e) => {
     e.stopPropagation();
-    const groupLogs = grouped[groupKey] || [];
+    const gl = grouped[groupKey] || [];
     setSelected(prev => {
       const next = new Set(prev);
-      const allSelected = groupLogs.every(l => next.has(l.path));
-      if (allSelected) {
-        groupLogs.forEach(l => next.delete(l.path));
-      } else {
-        groupLogs.forEach(l => next.add(l.path));
-      }
+      const all = gl.every(l => next.has(l.path));
+      gl.forEach(l => all ? next.delete(l.path) : next.add(l.path));
       return next;
     });
   };
 
+  // Styles
+  const cbxStyle = (checked) => ({
+    width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
+    border: `1.5px solid ${checked ? T.accent : "rgba(255,255,255,0.2)"}`,
+    background: checked ? T.accent : "transparent",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  });
+
   return (
     <Card style={{ padding: 24, marginBottom: 16 }}>
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Pipeline Logs</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -744,11 +716,11 @@ function PipelineLogsSection() {
             This month: ~${monthlyCost.total.toFixed(2)} across {monthlyCost.videoCount} video{monthlyCost.videoCount !== 1 ? "s" : ""}
           </span>
           {selected.size > 0 && (
-            <button onClick={handleDeleteSelected} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontWeight: 600 }}>
+            <button onClick={handleDeleteSelected} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontWeight: 600 }}>
               Delete {selected.size} Selected
             </button>
           )}
-          <button onClick={handleDeleteOld} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
+          <button onClick={handleDeleteOld} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
             Delete Old (30d)
           </button>
         </div>
@@ -756,129 +728,129 @@ function PipelineLogsSection() {
 
       {/* Filter */}
       <input
-        value={filterGame}
-        onChange={(e) => setFilterGame(e.target.value)}
+        value={filterGame} onChange={(e) => setFilterGame(e.target.value)}
         placeholder="Filter by video name..."
-        style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", marginBottom: 10, boxSizing: "border-box" }}
+        style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
       />
 
       {loading ? (
         <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>Loading logs...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>
-          No pipeline logs yet. Logs appear after running Generate Clips.
-        </div>
+        <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>No pipeline logs yet. Logs appear after running Generate Clips.</div>
       ) : (
-        <div style={{ display: "flex", gap: 12, maxHeight: 480 }}>
-          {/* Log list — grouped by video name */}
-          <div style={{ width: 300, flexShrink: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-            {groupKeys.map((groupKey) => {
-              const groupLogs = grouped[groupKey];
-              const isExpanded = expandedGroups.has(groupKey);
-              const successCount = groupLogs.filter(l => l.success).length;
-              const failCount = groupLogs.length - successCount;
-              const totalCost = groupLogs.reduce((s, l) => s + l.apiCost, 0);
-              const allGroupSelected = groupLogs.every(l => selected.has(l.path));
-              const someGroupSelected = groupLogs.some(l => selected.has(l.path));
+        <div style={{ display: "flex", gap: 14, maxHeight: 500 }}>
+          {/* Left: grouped log list */}
+          <div style={{ width: 300, flexShrink: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+              {groupKeys.map((groupKey) => {
+                const groupLogs = grouped[groupKey];
+                const isExpanded = expandedGroups.has(groupKey);
+                const successCount = groupLogs.filter(l => l.success).length;
+                const failCount = groupLogs.length - successCount;
+                const totalCost = groupLogs.reduce((s, l) => s + l.apiCost, 0);
+                const allSel = groupLogs.every(l => selected.has(l.path));
+                const someSel = groupLogs.some(l => selected.has(l.path));
 
-              return (
-                <div key={groupKey}>
-                  {/* Group header */}
-                  <div
-                    onClick={() => toggleGroup(groupKey)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "7px 8px", borderRadius: 6, cursor: "pointer",
-                      background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, marginBottom: 1,
-                    }}
-                  >
-                    {/* Group checkbox */}
+                return (
+                  <div key={groupKey} style={{ borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                    {/* Group header */}
                     <div
-                      onClick={(e) => selectAllInGroup(groupKey, e)}
+                      onClick={() => toggleGroup(groupKey)}
                       style={{
-                        width: 14, height: 14, borderRadius: 3, flexShrink: 0, cursor: "pointer",
-                        border: `1.5px solid ${someGroupSelected ? T.accent : "rgba(255,255,255,0.2)"}`,
-                        background: allGroupSelected ? T.accent : someGroupSelected ? "rgba(139,92,246,0.3)" : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "center",
+                        display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", cursor: "pointer",
+                        background: "rgba(255,255,255,0.03)",
                       }}
                     >
-                      {(allGroupSelected || someGroupSelected) && (
-                        <span style={{ color: "#fff", fontSize: 9, lineHeight: 1 }}>{allGroupSelected ? "\u2713" : "\u2012"}</span>
-                      )}
-                    </div>
-                    <span style={{ color: isExpanded ? T.text : T.textSecondary, fontSize: 11, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {isExpanded ? "\u25BC" : "\u25B6"} {groupKey}
-                    </span>
-                    <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-                      {successCount > 0 && <span style={{ fontSize: 9, color: "#34d399", fontFamily: T.mono }}>{successCount}\u2713</span>}
-                      {failCount > 0 && <span style={{ fontSize: 9, color: "#f87171", fontFamily: T.mono }}>{failCount}\u2717</span>}
-                      {totalCost > 0 && <span style={{ fontSize: 9, color: T.accentLight, fontFamily: T.mono }}>${totalCost.toFixed(2)}</span>}
-                    </div>
-                  </div>
-
-                  {/* Expanded log entries */}
-                  {isExpanded && groupLogs.map((log, i) => {
-                    const isSelected = selectedLog?.path === log.path;
-                    const isChecked = selected.has(log.path);
-                    return (
-                      <div
-                        key={log.path}
-                        onClick={() => handleSelectLog(log)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 6, padding: "5px 8px 5px 24px", borderRadius: 4, cursor: "pointer",
-                          background: isSelected ? T.accentDim : "transparent",
-                          marginLeft: 4, borderLeft: `2px solid ${isSelected ? T.accent : "rgba(255,255,255,0.05)"}`,
-                        }}
-                      >
-                        {/* Individual checkbox */}
-                        <div
-                          onClick={(e) => toggleSelect(log.path, e)}
-                          style={{
-                            width: 13, height: 13, borderRadius: 3, flexShrink: 0, cursor: "pointer",
-                            border: `1.5px solid ${isChecked ? T.accent : "rgba(255,255,255,0.15)"}`,
-                            background: isChecked ? T.accent : "transparent",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}
-                        >
-                          {isChecked && <span style={{ color: "#fff", fontSize: 8, lineHeight: 1 }}>{"\u2713"}</span>}
-                        </div>
-                        <span style={{ fontSize: 11, flexShrink: 0 }}>{log.success ? "\u2705" : "\u274C"}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                            <span style={{ color: T.textTertiary, fontSize: 10 }}>{fmtLocalDate(log.date)}</span>
-                            <span style={{ color: T.textTertiary, fontSize: 10 }}>{fmtLocalTime(log.date)}</span>
-                            {log.apiCost > 0 && (
-                              <span style={{ color: T.accentLight, fontSize: 10, fontFamily: T.mono }}>${log.apiCost.toFixed(4)}</span>
-                            )}
-                          </div>
-                        </div>
+                      <div onClick={(e) => selectAllInGroup(groupKey, e)} style={cbxStyle(allSel)}>
+                        {(allSel || someSel) && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{allSel ? "\u2713" : "\u2012"}</span>}
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      <span style={{ fontSize: 10, color: T.textTertiary, flexShrink: 0 }}>{isExpanded ? "\u25BC" : "\u25B6"}</span>
+                      <span style={{ color: T.text, fontSize: 12, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {groupKey}
+                      </span>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                        {successCount > 0 && (
+                          <span style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, fontFamily: T.mono, background: "rgba(52,211,153,0.12)", color: "#34d399" }}>
+                            {successCount} passed
+                          </span>
+                        )}
+                        {failCount > 0 && (
+                          <span style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, fontFamily: T.mono, background: "rgba(248,113,113,0.12)", color: "#f87171" }}>
+                            {failCount} failed
+                          </span>
+                        )}
+                        {totalCost > 0 && (
+                          <span style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, fontFamily: T.mono, background: "rgba(139,92,246,0.12)", color: T.accentLight }}>
+                            ${totalCost.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded entries */}
+                    {isExpanded && (
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        {groupLogs.map((log) => {
+                          const isActive = selectedLog?.path === log.path;
+                          const isChecked = selected.has(log.path);
+                          return (
+                            <div
+                              key={log.path}
+                              onClick={() => handleSelectLog(log)}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                                cursor: "pointer", borderTop: `1px solid ${T.border}`,
+                                background: isActive ? T.accentDim : "transparent",
+                                transition: "background 0.15s",
+                              }}
+                              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                            >
+                              <div onClick={(e) => toggleSelect(log.path, e)} style={cbxStyle(isChecked)}>
+                                {isChecked && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{"\u2713"}</span>}
+                              </div>
+                              <span style={{ fontSize: 14, flexShrink: 0 }}>{log.success ? "\u2705" : "\u274C"}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {log.videoName || log.filename}
+                                </div>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 2 }}>
+                                  <span style={{ color: T.textTertiary, fontSize: 11 }}>{fmtDate(log.date)}</span>
+                                  {log.apiCost > 0 && (
+                                    <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, fontFamily: T.mono, background: "rgba(139,92,246,0.12)", color: T.accentLight }}>
+                                      ${log.apiCost.toFixed(4)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Log content viewer */}
+          {/* Right: log content viewer */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
             {selectedLog ? (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600 }}>{selectedLog.videoName}</span>
-                    <span style={{ color: T.textTertiary, fontSize: 10 }}>{fmtLocalDate(selectedLog.date)} {fmtLocalTime(selectedLog.date)}</span>
-                  </div>
-                  <button onClick={handleCopy} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
+                  <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selectedLog.videoName}</span>
+                  <button onClick={handleCopy} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: T.font, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary }}>
                     Copy to Clipboard
                   </button>
                 </div>
                 <pre style={{
                   flex: 1, overflowY: "auto", overflowX: "auto",
-                  padding: 12, borderRadius: 6,
+                  padding: 14, borderRadius: 8,
                   background: "rgba(0,0,0,0.3)", border: `1px solid ${T.border}`,
                   color: T.textSecondary, fontSize: 11, fontFamily: T.mono,
-                  lineHeight: 1.5, margin: 0, whiteSpace: "pre-wrap",
-                  maxHeight: 380,
+                  lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap",
+                  maxHeight: 420,
                 }}>
                   {logContent}
                 </pre>
