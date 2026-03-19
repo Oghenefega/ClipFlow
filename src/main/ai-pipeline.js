@@ -43,6 +43,7 @@ function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger) 
     const child = spawn(pythonPath, args, {
       timeout: 600000, // 10 min
       stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, PYTHONIOENCODING: "utf-8" },
     });
 
     let stdout = "";
