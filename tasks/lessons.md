@@ -326,3 +326,32 @@
 ### Never remove working features without explicit approval
 - **Mistake:** Removed the merged subtitle bar (shouldMerge/MERGE_THRESHOLD) during refactoring. User wanted it back — "the subtitle track is meant to morph into one line."
 - **Rule:** Never remove existing working features during a fix. If code looks unused, ASK before removing. If removing something, document what was removed and why in the commit message.
+
+---
+
+## Meta: Debugging Approach That Works
+
+### Diagnose root cause BEFORE writing code — never guess-patch
+- **What failed before:** Multiple rounds of surface-level "fixes" — adjusting buffers from 0.05 to 0.01, adding fallbacks that masked the real issue, patching symptoms instead of causes. Burned 10+ hours of debugging time.
+- **What worked this time:** Read the actual code, traced the data flow, identified the exact root cause for each issue, then wrote a targeted fix. Examples:
+  - Audio split: didn't try to "fix" the single-segment trim — identified the architecture was wrong (single var vs array) and rebuilt it.
+  - Caption display: traced `setCaptionText` → `captionSegments` empty → preview renders from segments → nothing shows. One root cause, one fix.
+  - Preview zoom: read the actual CSS flex properties, saw `flex-start` vs `center`, fixed the condition.
+- **Rule:** For every bug: (1) trace the actual data flow in code, (2) identify the EXACT line where behavior diverges from expectation, (3) fix THAT line. If the architecture is wrong, rebuild the architecture — don't add workarounds on top of a broken foundation.
+
+### Batch related fixes, don't iterate one at a time
+- **What failed before:** Fixing one issue per round, rebuilding each time, losing context between rounds.
+- **What worked this time:** Read all affected files up front, identified all 7 root causes in parallel, implemented all fixes in one pass, built once, verified once.
+- **Rule:** When given multiple bug reports, read ALL relevant files first, diagnose ALL root causes, then implement ALL fixes before building. One build, one verification pass.
+
+### setCaptionText must target the ACTIVE caption, not always segs[0]
+- **Mistake:** `setCaptionText()` always updated `captionSegments[0]`. After splitting a caption into 2 parts, editing the right panel always changed the first part's text regardless of which part was selected on the timeline.
+- **Rule:** Any multi-segment store must track which segment is "active" (`activeCaptionId`). Text editing operations must target the active segment, not hardcode index 0.
+
+### Audio segments must live in a Zustand store, not local React state
+- **Mistake:** Audio segments stored as `useState` in TimelinePanelNew. This made them invisible to: (1) the playback system (can't skip gaps), (2) the undo system (can't revert), (3) save/load (not persisted), (4) other components.
+- **Rule:** Any state that affects multiple concerns (playback, undo, persistence) MUST be in a Zustand store. Local state is only for truly component-local UI state (hover, drag, dropdown open).
+
+### Deleting audio must cascade to overlapping subtitles
+- **Mistake:** Deleting an audio segment only removed the visual audio block. The subtitles in that time range remained, creating orphaned subtitles.
+- **Rule:** Track operations that remove time ranges must cascade: audio delete → also delete subtitle segments within that range.

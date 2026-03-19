@@ -13,6 +13,8 @@ let _nextCapId = 1;
 const useCaptionStore = create((set, get) => ({
   // ── Caption segments (array — supports multiple, overlapping captions) ──
   captionSegments: [],
+  // Which caption segment is currently selected/active in the timeline
+  activeCaptionId: null,
   // Backwards-compat: derived from first segment (used by legacy consumers)
   captionText: "",
 
@@ -123,7 +125,9 @@ const useCaptionStore = create((set, get) => ({
     return newId;
   },
 
-  // ── Legacy setter — updates first segment's text (for backwards compat) ──
+  setActiveCaptionId: (id) => set({ activeCaptionId: id }),
+
+  // ── Text setter — updates the ACTIVE segment (or first if none selected) ──
   setCaptionText: (text) => {
     _pushCrossUndo();
     set((s) => {
@@ -133,15 +137,19 @@ const useCaptionStore = create((set, get) => ({
           const id = `cap-${_nextCapId++}`;
           return {
             captionText: text,
+            activeCaptionId: id,
             captionSegments: [{ id, text, startSec: 0, endSec: null }],
           };
         }
         return { captionText: text };
       }
-      // Update first segment's text
-      const segs = [...s.captionSegments];
-      segs[0] = { ...segs[0], text };
-      return { captionSegments: segs, captionText: text };
+      // Find the active segment (or fall back to first)
+      const targetId = s.activeCaptionId || s.captionSegments[0]?.id;
+      const segs = s.captionSegments.map((seg) =>
+        seg.id === targetId ? { ...seg, text } : seg
+      );
+      const firstText = segs.length > 0 ? segs[0].text : "";
+      return { captionSegments: segs, captionText: firstText };
     });
   },
 

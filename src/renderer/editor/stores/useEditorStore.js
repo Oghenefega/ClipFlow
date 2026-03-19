@@ -11,6 +11,9 @@ const useEditorStore = create((set, get) => ({
   editingTitle: false,
   dirty: false,
   waveformPeaks: null,
+  // Audio segments — array of { id, startSec, endSec }
+  // Used by timeline for visual rendering AND by preview for playback control
+  audioSegments: [],
 
   // ── Actions ──
   initFromContext: (editorContext, localProjects) => {
@@ -78,17 +81,89 @@ const useEditorStore = create((set, get) => ({
   markDirty: () => set({ dirty: true }),
   setWaveformPeaks: (peaks) => set({ waveformPeaks: peaks }),
 
+  // ── Audio segment actions ──
+  setAudioSegments: (segs) => set({ audioSegments: segs }),
+
+  initAudioSegments: (duration) => {
+    const { audioSegments } = get();
+    if (audioSegments.length === 0 && duration > 0) {
+      set({ audioSegments: [{ id: "audio-1", startSec: 0, endSec: duration }] });
+    }
+  },
+
+  _pushAudioUndo: () => {
+    try {
+      const subStore = require("./useSubtitleStore").default;
+      subStore.getState()._pushUndo();
+    } catch (_) {}
+  },
+
+  splitAudioSegment: (time) => {
+    get()._pushAudioUndo();
+    set((s) => {
+      const seg = s.audioSegments.find((seg) => time > seg.startSec + 0.05 && time < seg.endSec - 0.05);
+      if (!seg) return s;
+      const newId = `audio-${Date.now()}`;
+      return {
+        audioSegments: s.audioSegments.flatMap((as) => {
+          if (as.id !== seg.id) return [as];
+          return [
+            { ...as, endSec: time },
+            { id: newId, startSec: time, endSec: as.endSec },
+          ];
+        }),
+      };
+    });
+  },
+
+  deleteAudioSegment: (segId) => {
+    get()._pushAudioUndo();
+    set((s) => ({
+      audioSegments: s.audioSegments.filter((seg) => seg.id !== segId),
+    }));
+  },
+
+  resizeAudioSegment: (id, newStart, newEnd) => {
+    get()._pushAudioUndo();
+    set((s) => {
+      const sorted = [...s.audioSegments].sort((a, b) => a.startSec - b.startSec);
+      const idx = sorted.findIndex((seg) => seg.id === id);
+      if (idx < 0) return s;
+      const prevSeg = idx > 0 ? sorted[idx - 1] : null;
+      const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+      const minDur = 0.1;
+      let ns = Math.max(0, newStart);
+      let ne = Math.min(usePlaybackStore.getState().duration || Infinity, newEnd);
+      ns = Math.min(ns, ne - minDur);
+      ne = Math.max(ne, ns + minDur);
+      const updated = sorted.map((seg) => ({ ...seg }));
+      if (prevSeg && ns < prevSeg.endSec) {
+        const pi = sorted.findIndex((seg) => seg.id === prevSeg.id);
+        updated[pi].endSec = Math.max(updated[pi].startSec + minDur, ns);
+      }
+      if (nextSeg && ne > nextSeg.startSec) {
+        const ni = sorted.findIndex((seg) => seg.id === nextSeg.id);
+        updated[ni].startSec = Math.min(updated[ni].endSec - minDur, ne);
+      }
+      updated[idx].startSec = ns;
+      updated[idx].endSec = ne;
+      return { audioSegments: updated };
+    });
+  },
+
   handleSave: async () => {
     const { clip, project, clipTitle } = get();
     if (!clip || !project) return;
     try {
       const editSegments = useSubtitleStore.getState().editSegments;
       const { captionText, captionSegments } = useCaptionStore.getState();
+      const { audioSegments } = get();
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
         caption: captionText,
         captionSegments: captionSegments,
         subtitles: editSegments,
+        audioSegments: audioSegments,
       });
       set({ dirty: false });
     } catch (e) {

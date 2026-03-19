@@ -690,12 +690,32 @@ export default function PreviewPanelNew() {
     return { currentSeg: seg, currentWordIdx: -1 };
   }, [editSegments, adjustedTime, showSubs, globalWordIndex]);
 
-  // Video event handlers
+  // Audio segments from editor store — used to skip gaps during playback
+  const audioSegments = useEditorStore((s) => s.audioSegments);
+
+  // Video event handlers — with gap-skipping for deleted audio sections
   const onTimeUpdate = useCallback(() => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+    if (!videoRef.current) return;
+    const time = videoRef.current.currentTime;
+    setCurrentTime(time);
+
+    // Skip gaps: if current time is NOT within any audio segment, seek to next segment
+    if (audioSegments.length > 0 && !videoRef.current.paused) {
+      const inSegment = audioSegments.some((s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05);
+      if (!inSegment) {
+        // Find the next segment after current time
+        const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+        const next = sorted.find((s) => s.startSec > time);
+        if (next) {
+          videoRef.current.currentTime = next.startSec;
+        } else {
+          // No more segments — pause at end
+          videoRef.current.pause();
+          setPlaying(false);
+        }
+      }
     }
-  }, [setCurrentTime]);
+  }, [setCurrentTime, audioSegments, setPlaying]);
 
   const onLoadedMetadata = useCallback(() => {
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {

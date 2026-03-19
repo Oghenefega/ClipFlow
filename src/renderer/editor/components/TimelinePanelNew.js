@@ -390,6 +390,11 @@ export default function TimelinePanelNew() {
   const setTlZoom = useLayoutStore((s) => s.setTlZoom);
 
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
+  const audioSegments = useEditorStore((s) => s.audioSegments);
+  const initAudioSegments = useEditorStore((s) => s.initAudioSegments);
+  const splitAudioSegment = useEditorStore((s) => s.splitAudioSegment);
+  const deleteAudioSegment = useEditorStore((s) => s.deleteAudioSegment);
+  const resizeAudioSegment = useEditorStore((s) => s.resizeAudioSegment);
 
   // Local state
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -397,15 +402,11 @@ export default function TimelinePanelNew() {
   const [selectedSegId, setSelectedSegId] = useState(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, track, segId }
   const [scrubbing, setScrubbing] = useState(false);
-  // Multi-segment audio track — array of { id, startSec, endSec }
-  const [audioSegments, setAudioSegments] = useState([]);
 
   // Initialize audio segment when duration becomes available
   useEffect(() => {
-    if (duration > 0 && audioSegments.length === 0) {
-      setAudioSegments([{ id: "audio-1", startSec: 0, endSec: duration }]);
-    }
-  }, [duration, audioSegments.length]);
+    if (duration > 0) initAudioSegments(duration);
+  }, [duration, initAudioSegments]);
 
   // Single scroll container ref for ruler + all tracks
   const scrollRef = useRef(null);
@@ -505,58 +506,17 @@ export default function TimelinePanelNew() {
     updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
   }, [duration, updateCaptionSegmentTimes]);
 
-  // Audio resize handler — with neighbor pushing (no overlaps)
+  // Audio resize and split use store actions directly
   const handleAudioResize = useCallback((id, newStart, newEnd) => {
-    setAudioSegments((segs) => {
-      const sorted = [...segs].sort((a, b) => a.startSec - b.startSec);
-      const idx = sorted.findIndex((s) => s.id === id);
-      if (idx < 0) return segs;
-      const seg = sorted[idx];
-      const prevSeg = idx > 0 ? sorted[idx - 1] : null;
-      const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
-      const minDur = 0.1;
-      let ns = Math.max(0, newStart);
-      let ne = Math.min(duration, newEnd);
-      ns = Math.min(ns, ne - minDur);
-      ne = Math.max(ne, ns + minDur);
-      // Push neighbors if needed
-      const updated = sorted.map((s) => ({ ...s }));
-      if (prevSeg && ns < prevSeg.endSec) {
-        const pi = sorted.findIndex((s) => s.id === prevSeg.id);
-        updated[pi].endSec = Math.max(updated[pi].startSec + minDur, ns);
-      }
-      if (nextSeg && ne > nextSeg.startSec) {
-        const ni = sorted.findIndex((s) => s.id === nextSeg.id);
-        updated[ni].startSec = Math.min(updated[ni].endSec - minDur, ne);
-      }
-      updated[idx].startSec = ns;
-      updated[idx].endSec = ne;
-      return updated;
-    });
-  }, [duration]);
-
-  // Audio split — creates two segments from one at the given time
-  const splitAudioAtTime = useCallback((time) => {
-    setAudioSegments((segs) => {
-      const seg = segs.find((s) => time > s.startSec + 0.05 && time < s.endSec - 0.05);
-      if (!seg) return segs;
-      const newId = `audio-${Date.now()}`;
-      return segs.flatMap((s) => {
-        if (s.id !== seg.id) return [s];
-        return [
-          { ...s, endSec: time },
-          { id: newId, startSec: time, endSec: s.endSec },
-        ];
-      });
-    });
-    return true;
-  }, []);
+    resizeAudioSegment(id, newStart, newEnd);
+  }, [resizeAudioSegment]);
 
   // Segment selection handler
   const handleSegSelect = useCallback((track, segId) => {
     setSelectedTrack(track);
     setSelectedSegId(segId);
     if (track === "sub") setActiveSegId(segId);
+    if (track === "cap") useCaptionStore.getState().setActiveCaptionId(segId);
   }, [setActiveSegId]);
 
   // Subtitle resize with neighbor pushing — prevents overlaps
@@ -631,7 +591,7 @@ export default function TimelinePanelNew() {
         setSelectedSegId(newId);
       }
     } else if (track === "audio") {
-      splitAudioAtTime(time);
+      splitAudioSegment(time);
     } else {
       // Default: split subtitle at playhead time
       splitSegment(time);
@@ -642,7 +602,7 @@ export default function TimelinePanelNew() {
         setSelectedSegId(newActiveId);
       }
     }
-  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAudioAtTime, audioSegments]);
+  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAudioSegment, audioSegments]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1117,7 +1077,7 @@ export default function TimelinePanelNew() {
               const newActiveId = useSubtitleStore.getState().activeSegId;
               if (newActiveId) { setSelectedTrack("sub"); setSelectedSegId(newActiveId); }
             } else if (contextMenu.track === "audio") {
-              splitAudioAtTime(time);
+              splitAudioSegment(time);
             }
           }}
           onDelete={() => {
@@ -1130,7 +1090,17 @@ export default function TimelinePanelNew() {
               setSelectedTrack(null);
               setSelectedSegId(null);
             } else if (contextMenu.track === "audio" && contextMenu.segId) {
-              setAudioSegments((segs) => segs.filter((s) => s.id !== contextMenu.segId));
+              // Find the audio segment being deleted to know its time range
+              const deletedSeg = audioSegments.find((s) => s.id === contextMenu.segId);
+              deleteAudioSegment(contextMenu.segId);
+              // Also delete overlapping subtitle segments
+              if (deletedSeg) {
+                const subStore = useSubtitleStore.getState();
+                const overlapping = subStore.editSegments.filter(
+                  (s) => s.startSec >= deletedSeg.startSec && s.endSec <= deletedSeg.endSec
+                );
+                overlapping.forEach((s) => subStore.deleteSegment(s.id));
+              }
               setSelectedTrack(null);
               setSelectedSegId(null);
             }

@@ -64,7 +64,17 @@ function _snapshotStyling(subState) {
     };
   } catch (_) {}
 
-  return { sub, cap, layout };
+  // Capture audio segments
+  let audio = null;
+  try {
+    const editorStore = require("./useEditorStore").default;
+    const es = editorStore.getState();
+    if (es.audioSegments) {
+      audio = es.audioSegments.map((s) => ({ ...s }));
+    }
+  } catch (_) {}
+
+  return { sub, cap, layout, audio };
 }
 
 function _restoreStyling(snapshot, subSet) {
@@ -83,6 +93,13 @@ function _restoreStyling(snapshot, subSet) {
     try {
       const layoutStore = require("./useLayoutStore").default;
       layoutStore.setState(snapshot.layout);
+    } catch (_) {}
+  }
+  // Restore audio segments
+  if (snapshot.audio) {
+    try {
+      const editorStore = require("./useEditorStore").default;
+      editorStore.setState({ audioSegments: snapshot.audio });
     } catch (_) {}
   }
 }

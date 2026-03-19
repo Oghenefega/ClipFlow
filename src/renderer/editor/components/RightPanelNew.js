@@ -1383,8 +1383,15 @@ function SubtitlesPanel() {
 // ════════════════════════════════════════════════════════════════
 function TextPanel() {
   const [subTab, setSubTab] = useState("settings");
-  const captionText = useCaptionStore((s) => s.captionText);
+  const captionSegments = useCaptionStore((s) => s.captionSegments);
+  const activeCaptionId = useCaptionStore((s) => s.activeCaptionId);
   const setCaptionText = useCaptionStore((s) => s.setCaptionText);
+  // Show the active segment's text (or first segment's text if none selected)
+  const captionText = useMemo(() => {
+    if (!captionSegments || captionSegments.length === 0) return "";
+    const active = captionSegments.find((s) => s.id === activeCaptionId);
+    return active ? active.text : captionSegments[0].text;
+  }, [captionSegments, activeCaptionId]);
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
