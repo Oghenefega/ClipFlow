@@ -11,6 +11,83 @@ const projects = require("./projects");
 const highlights = require("./highlights");
 const render = require("./render");
 
+/**
+ * Generate a clip title from its transcript segments.
+ * Picks the most energetic/emotional phrase, or falls back to the first sentence.
+ * @param {Array} clipSubtitles - Subtitle segments for the clip
+ * @param {object} highlight - Highlight data { score, reason }
+ * @returns {string} Generated title
+ */
+function generateClipTitle(clipSubtitles, highlight) {
+  if (!clipSubtitles || clipSubtitles.length === 0) return "";
+
+  // Collect all text and score each segment for emotional intensity
+  const hypeIndicators = [
+    "oh my god", "omg", "what the", "no way", "how did", "let's go",
+    "are you kidding", "holy", "insane", "crazy", "clutch", "wait what",
+    "i can't", "oh no", "dude", "bro", "bruh", "literally", "actually",
+    "did you see", "that was", "killed", "destroyed", "nice", "sick",
+  ];
+
+  let bestSeg = null;
+  let bestScore = -1;
+
+  for (const seg of clipSubtitles) {
+    const text = (seg.text || "").trim();
+    if (!text || text.length < 5) continue;
+
+    let score = 0;
+    const lower = text.toLowerCase();
+
+    // Score hype words
+    for (const hw of hypeIndicators) {
+      if (lower.includes(hw)) score += 10;
+    }
+
+    // Score exclamation marks and question marks (emotional punctuation)
+    score += (text.match(/!/g) || []).length * 5;
+    score += (text.match(/\?/g) || []).length * 3;
+
+    // Score ALL CAPS words
+    score += (text.match(/\b[A-Z]{2,}\b/g) || []).length * 4;
+
+    // Prefer medium-length phrases (not too short, not too long)
+    const wordCount = text.split(/\s+/).length;
+    if (wordCount >= 3 && wordCount <= 10) score += 5;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestSeg = seg;
+    }
+  }
+
+  // Fall back to the first segment with meaningful text
+  if (!bestSeg) {
+    bestSeg = clipSubtitles.find((s) => (s.text || "").trim().length >= 5) || clipSubtitles[0];
+  }
+
+  let title = (bestSeg.text || "").trim();
+
+  // Clean up: remove leading/trailing punctuation fragments, cap length
+  title = title.replace(/^[,.\s]+|[,.\s]+$/g, "");
+
+  // If too long, take the first sentence or phrase
+  if (title.length > 60) {
+    const sentenceEnd = title.search(/[.!?]/);
+    if (sentenceEnd > 10 && sentenceEnd < 60) {
+      title = title.substring(0, sentenceEnd + 1);
+    } else {
+      // Take first ~8 words
+      title = title.split(/\s+/).slice(0, 8).join(" ");
+    }
+  }
+
+  // Title case
+  title = title.replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return title;
+}
+
 const store = new Store({
   name: "clipflow-settings",
   defaults: {
@@ -688,10 +765,13 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
           })),
         }));
 
+      // Auto-generate title from the clip's transcript
+      const autoTitle = generateClipTitle(clipSubtitles, hl);
+
       project.clips.push({
         id: projects.generateClipId(),
-        title: "",
-        caption: "",
+        title: autoTitle,
+        caption: autoTitle,
         startTime: hl.start,
         endTime: hl.end,
         highlightScore: hl.score,

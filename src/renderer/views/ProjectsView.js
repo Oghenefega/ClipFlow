@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 
@@ -20,15 +20,356 @@ const getProjectStatus = (p) => {
   return "ready";
 };
 
-// Pure helper — extract transcript text for a clip from project transcription
-const getClipTranscript = (clip, project) => {
-  if (!project?.transcription?.segments) return "";
+// Pure helper — extract transcript segments for a clip from project transcription
+const getClipTranscriptSegments = (clip, project) => {
+  if (!project?.transcription?.segments) return [];
   return project.transcription.segments
     .filter((s) => s.start >= (clip.startTime || 0) && s.end <= (clip.endTime || 0))
-    .map((s) => s.text)
-    .join(" ")
-    .trim();
+    .map((s) => ({
+      start: s.start,
+      end: s.end,
+      text: (s.text || "").trim(),
+    }));
 };
+
+// Format seconds to mm:ss
+const fmtTime = (sec) => {
+  if (!sec || isNaN(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+// Format seconds to [MM:SS] timestamp
+const fmtTimestamp = (sec) => {
+  if (!sec || isNaN(sec)) return "[00:00]";
+  const m = Math.floor(sec / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `[${m}:${s}]`;
+};
+
+// ============ CLIP VIDEO PLAYER ============
+function ClipVideoPlayer({ clip }) {
+  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+
+  const duration = Math.round((clip.endTime || 0) - (clip.startTime || 0));
+  const filePath = clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
+  const thumbPath = clip.thumbnailPath ? `file://${clip.thumbnailPath.replace(/\\/g, "/")}` : null;
+
+  const togglePlay = useCallback(() => {
+    if (!filePath) return;
+    setShowVideo(true);
+    setTimeout(() => {
+      const vid = videoRef.current;
+      if (!vid) return;
+      if (vid.paused) {
+        vid.play().then(() => setIsPlaying(true)).catch(() => {});
+      } else {
+        vid.pause();
+        setIsPlaying(false);
+      }
+    }, 50);
+  }, [filePath]);
+
+  return (
+    <div
+      style={{
+        width: 180, minWidth: 180, flexShrink: 0,
+        borderRadius: T.radius.md, overflow: "hidden",
+        background: "#000", position: "relative",
+        aspectRatio: "9 / 16", cursor: "pointer",
+      }}
+      onClick={togglePlay}
+    >
+      {showVideo && filePath ? (
+        <video
+          ref={videoRef}
+          src={filePath}
+          poster={thumbPath || undefined}
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+          onEnded={() => setIsPlaying(false)}
+          onPause={() => setIsPlaying(false)}
+          onPlay={() => setIsPlaying(true)}
+        />
+      ) : thumbPath ? (
+        <img
+          src={thumbPath}
+          alt=""
+          draggable={false}
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+        />
+      ) : (
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: 32, opacity: 0.2 }}>🎬</span>
+        </div>
+      )}
+
+      {/* Play/pause overlay */}
+      {!isPlaying && (
+        <div
+          style={{
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.3)",
+            transition: "opacity 0.2s",
+          }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: "50%",
+            background: "rgba(255,255,255,0.9)", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#000" style={{ marginLeft: 2 }}>
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Duration badge */}
+      <div style={{
+        position: "absolute", bottom: 8, right: 8,
+        background: "rgba(0,0,0,0.75)", borderRadius: 4,
+        padding: "2px 6px", fontSize: 11, fontWeight: 700,
+        fontFamily: T.mono, color: "#fff",
+        backdropFilter: "blur(4px)",
+      }}>
+        {fmtTime(duration)}
+      </div>
+    </div>
+  );
+}
+
+// ============ SCORE DISPLAY ============
+function ScoreDisplay({ score }) {
+  if (!score || score <= 0) return null;
+  const displayScore = (score / 10).toFixed(1);
+  const numScore = parseFloat(displayScore);
+  const color = numScore >= 8 ? T.green : numScore >= 6 ? T.yellow : T.red;
+
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+      <span style={{ fontSize: 28, fontWeight: 800, color, fontFamily: T.font, lineHeight: 1 }}>
+        {displayScore}
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: T.textTertiary }}>
+        /10
+      </span>
+    </div>
+  );
+}
+
+// ============ APPROVE/REJECT BUTTONS ============
+function ApproveRejectButtons({ clip, onUpdateClip, projectId }) {
+  const ca = clip.status === "approved" || clip.status === "ready";
+  const rej = clip.status === "rejected";
+
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {/* Approve — checkmark */}
+      <button
+        onClick={() => onUpdateClip(projectId, clip.id, ca ? "none" : "approved")}
+        title={ca ? "Remove approval" : "Approve clip"}
+        style={{
+          width: 36, height: 36, borderRadius: T.radius.sm,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          border: ca ? `1.5px solid ${T.green}` : `1px solid ${T.border}`,
+          cursor: "pointer",
+          background: ca ? T.greenDim : "rgba(255,255,255,0.03)",
+          transition: "all 0.15s ease",
+        }}
+        onMouseEnter={(e) => { if (!ca) { e.currentTarget.style.borderColor = T.green; e.currentTarget.style.background = T.greenDim; } }}
+        onMouseLeave={(e) => { if (!ca) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ca ? T.green : T.textTertiary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </button>
+      {/* Reject — X */}
+      <button
+        onClick={() => onUpdateClip(projectId, clip.id, rej ? "none" : "rejected")}
+        title={rej ? "Remove rejection" : "Reject clip"}
+        style={{
+          width: 36, height: 36, borderRadius: T.radius.sm,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          border: rej ? `1.5px solid ${T.red}` : `1px solid ${T.border}`,
+          cursor: "pointer",
+          background: rej ? T.redDim : "rgba(255,255,255,0.03)",
+          transition: "all 0.15s ease",
+        }}
+        onMouseEnter={(e) => { if (!rej) { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.background = T.redDim; } }}
+        onMouseLeave={(e) => { if (!rej) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={rej ? T.red : T.textTertiary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ============ CLIP ROW ============
+function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb }) {
+  const [editId, setEditId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const ca = clip.status === "approved" || clip.status === "ready";
+  const rej = clip.status === "rejected";
+  const transcriptSegs = getClipTranscriptSegments(clip, project);
+
+  return (
+    <div
+      style={{
+        display: "flex", gap: 16,
+        padding: 16, borderRadius: T.radius.lg,
+        background: T.surface,
+        border: `1px solid ${ca ? T.greenBorder : rej ? T.redBorder : T.border}`,
+        opacity: rej ? 0.45 : 1,
+        transition: "all 0.2s ease",
+      }}
+    >
+      {/* Left: clip number + actions column */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: 2 }}>
+        <span style={{ color: T.textTertiary, fontSize: 11, fontWeight: 700, fontFamily: T.mono }}>#{index + 1}</span>
+        <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} />
+      </div>
+
+      {/* Center-left: video player */}
+      <ClipVideoPlayer clip={clip} />
+
+      {/* Right: details + transcript */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0, overflow: "hidden" }}>
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editId === clip.id ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { onEditClipTitle(project.id, clip.id, editText); setEditId(null); }
+                    if (e.key === "Escape") setEditId(null);
+                  }}
+                  autoFocus
+                  style={{
+                    flex: 1, background: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.sm,
+                    padding: "6px 10px", color: T.text, fontSize: 14, fontWeight: 600,
+                    fontFamily: T.font, outline: "none",
+                  }}
+                />
+                <button
+                  onClick={() => { onEditClipTitle(project.id, clip.id, editText); setEditId(null); }}
+                  style={{ background: T.accent, border: "none", borderRadius: T.radius.sm, padding: "6px 12px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}
+                >Save</button>
+              </div>
+            ) : (
+              <div
+                onClick={() => { setEditId(clip.id); setEditText(clip.title || ""); }}
+                style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span style={{
+                  color: T.text, fontSize: 15, fontWeight: 700, lineHeight: 1.4,
+                  overflow: "hidden", textOverflow: "ellipsis",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                }}>
+                  {clip.title || "Untitled Clip"}
+                </span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Score */}
+          <ScoreDisplay score={clip.highlightScore} />
+        </div>
+
+        {/* Status badges row */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {clip.highlightReason && (
+            <span style={{
+              display: "inline-flex", padding: "2px 8px", borderRadius: 4,
+              background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+              fontSize: 11, color: T.textTertiary, fontStyle: "italic",
+              maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {clip.highlightReason}
+            </span>
+          )}
+          {ca && <Badge color={T.green}>Approved</Badge>}
+          {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
+          {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
+        </div>
+
+        {/* Transcript inline */}
+        {transcriptSegs.length > 0 && (
+          <div
+            style={{
+              flex: 1, overflow: "hidden", display: "flex", flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                overflowY: "auto", maxHeight: 160,
+                padding: "8px 10px", borderRadius: T.radius.sm,
+                background: "rgba(255,255,255,0.02)",
+                border: `1px solid ${T.border}`,
+              }}
+            >
+              {transcriptSegs.map((seg, i) => (
+                <div key={i} style={{ marginBottom: i < transcriptSegs.length - 1 ? 6 : 0 }}>
+                  <span style={{
+                    color: T.accent, fontSize: 11, fontWeight: 600,
+                    fontFamily: T.mono, marginRight: 6,
+                  }}>
+                    {fmtTimestamp(seg.start)}
+                  </span>
+                  <span style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.5 }}>
+                    {seg.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        {!rej && (
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            {onOpenInEditor && (
+              <button
+                onClick={() => onOpenInEditor(project.id, clip.id)}
+                style={{
+                  padding: "6px 14px", borderRadius: T.radius.sm,
+                  border: `1px solid ${T.accentBorder}`,
+                  background: T.accentDim, color: T.accentLight,
+                  fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  display: "flex", alignItems: "center", gap: 5,
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(139,92,246,0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = T.accentDim; }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                Open in Editor
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ============ PROJECT LIST ============
 export function ProjectsListView({ localProjects = [], onSelect, onDeleteProjects, mainGame, gamesDb = [] }) {
@@ -40,7 +381,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
       <div>
         <PageHeader title="Projects" subtitle="Review generated clips" />
         <Card style={{ padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>{"\ud83c\udfac"}</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🎬</div>
           <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>No projects yet</div>
           <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Projects will appear here once clips are generated.</div>
         </Card>
@@ -99,7 +440,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
     <div>
       <PageHeader
         title="Projects"
-        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}${readyCount > 0 ? ` \u00b7 ${readyCount} to review` : ""}`}
+        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` · ${processingCount} processing` : ""}${readyCount > 0 ? ` · ${readyCount} to review` : ""}`}
       />
 
       {/* Header row: select all */}
@@ -155,7 +496,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
                   fontSize: 18, flexShrink: 0,
                   background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${pColor}18`,
                 }}>
-                  {st === "done" ? "\u2705" : st === "error" ? "\u274c" : st === "processing" ? "\u23f3" : "\ud83c\udfac"}
+                  {st === "done" ? "✅" : st === "error" ? "❌" : st === "processing" ? "⏳" : "🎬"}
                 </div>
                 <div style={{ flex: 1, overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -200,7 +541,7 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-              >{"\ud83d\uddd1"}</span>
+              >🗑</span>
             </div>
           );
         })}
@@ -244,9 +585,6 @@ export function ProjectsListView({ localProjects = [], onSelect, onDeleteProject
 // ============ CLIP BROWSER ============
 export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, gamesDb }) {
   const [filter, setFilter] = useState("all");
-  const [editId, setEditId] = useState(null);
-  const [editText, setEditText] = useState("");
-  const [expandedClip, setExpandedClip] = useState(null); // clipId or null
   const [batchRendering, setBatchRendering] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ pct: 0, detail: "" });
 
@@ -270,7 +608,6 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
     } catch (e) { /* handled by result */ }
     window.clipflow?.removeRenderProgressListener?.();
     setBatchRendering(false);
-    // Trigger refresh by calling onBack then re-opening (parent handles)
     if (onBatchRender) onBatchRender(project.id);
   };
 
@@ -289,7 +626,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
               whiteSpace: "nowrap",
             }}
           >
-            {batchRendering ? `⏳ ${batchProgress.pct}%` : `🚀 Render All (${renderableApproved})`}
+            {batchRendering ? `⏳ ${batchProgress.pct}%` : `Render All (${renderableApproved})`}
           </button>
         )}
         <span onClick={() => { navigator.clipboard.writeText(String(project.id)); }} title="Copy project ID" style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, cursor: "pointer", flexShrink: 0, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>#{project.id}</span>
@@ -297,78 +634,19 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
 
       <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={setFilter} />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {filtered.map((clip) => {
-          const ca = isApproved(clip);
-          const rej = clip.status === "rejected";
-          const clipDuration = Math.round((clip.endTime || 0) - (clip.startTime || 0));
-          const clipTranscript = getClipTranscript(clip, project);
-          return (
-            <Card key={clip.id} borderColor={ca ? T.greenBorder : T.border} style={{ padding: 20, opacity: rej ? 0.35 : 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
-                <div style={{ flex: 1 }}>
-                  {editId === clip.id ? (
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input value={editText} onChange={(e) => setEditText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { onEditClipTitle(project.id, clip.id, editText); setEditId(null); } if (e.key === "Escape") setEditId(null); }} autoFocus style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 15, fontWeight: 600, fontFamily: T.font, outline: "none" }} />
-                      <button onClick={() => { onEditClipTitle(project.id, clip.id, editText); setEditId(null); }} style={{ background: T.accent, border: "none", borderRadius: T.radius.md, padding: "10px 18px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
-                      <button onClick={() => setEditId(null)} style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.textTertiary, fontSize: 13, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                    </div>
-                  ) : (
-                    <div onClick={() => { setEditId(clip.id); setEditText(clip.title); }} style={{ color: T.text, fontSize: 16, fontWeight: 600, lineHeight: 1.5, cursor: "pointer" }}>{clip.title} <span style={{ color: T.textMuted, fontSize: 13 }}>{"\u270e"}</span></div>
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <button onClick={() => onUpdateClip(project.id, clip.id, ca ? "none" : "approved")} style={{ width: 42, height: 42, borderRadius: T.radius.md, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", border: ca ? `1px solid ${T.greenBorder}` : `1px solid ${T.border}`, cursor: "pointer", background: ca ? T.greenDim : "rgba(255,255,255,0.04)", color: ca ? T.green : T.textTertiary }}>{"\ud83d\udc4d"}</button>
-                  <button onClick={() => onUpdateClip(project.id, clip.id, rej ? "none" : "rejected")} style={{ width: 42, height: 42, borderRadius: T.radius.md, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", border: rej ? `1px solid ${T.redBorder}` : `1px solid ${T.border}`, cursor: "pointer", background: rej ? T.redDim : "rgba(255,255,255,0.04)", color: rej ? T.red : T.textTertiary }}>{"\ud83d\udc4e"}</button>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono }}>{clipDuration}s</span>
-                {(clip.highlightScore || 0) > 0 && <ViralBar score={clip.highlightScore} />}
-                {clip.highlightReason && (
-                  <span style={{ color: T.textTertiary, fontSize: 11, fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>{clip.highlightReason}</span>
-                )}
-              </div>
-              {!rej && (
-                <div style={{ display: "flex", gap: 8, paddingTop: 14, borderTop: `1px solid ${T.border}`, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-                  {clipTranscript && (
-                    <button onClick={() => onTranscript({ ...clip, transcript: clipTranscript })} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83d\udcdd"} Transcript</button>
-                  )}
-                  {clipTranscript && (
-                    <button onClick={() => setExpandedClip(expandedClip === clip.id ? null : clip.id)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${expandedClip === clip.id ? T.accentBorder : T.border}`, background: expandedClip === clip.id ? T.accentDim : "rgba(255,255,255,0.03)", color: expandedClip === clip.id ? T.accentLight : T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\u2728"} AI Titles</button>
-                  )}
-                  {onOpenInEditor && (
-                    <button onClick={() => onOpenInEditor(project.id, clip.id)} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{"\ud83c\udfac"} Open in Editor</button>
-                  )}
-                  {ca && <Badge color={T.green}>{"\u2713"} Queued</Badge>}
-                  {clip.renderStatus === "rendered" && <Badge color={T.cyan}>{"✓"} Rendered</Badge>}
-                  {clip.renderStatus === "rendering" && <Badge color={T.yellow}>{"⏳"} Rendering</Badge>}
-                </div>
-              )}
-              {expandedClip === clip.id && clipTranscript && (
-                <div style={{ marginTop: 14, borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, background: "rgba(139,92,246,0.06)", border: `1px solid ${T.accentBorder}` }}>
-                    <span style={{ fontSize: 16 }}>✦</span>
-                    <div style={{ flex: 1, color: T.textSecondary, fontSize: 12 }}>
-                      AI title & caption generation is available in the <strong style={{ color: T.text }}>Editor</strong>
-                    </div>
-                    <button
-                      onClick={() => onOpenInEditor(project.id, clip.id)}
-                      style={{
-                        padding: "6px 14px", borderRadius: 6, border: "none",
-                        background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
-                        color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
-                        whiteSpace: "nowrap", boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
-                      }}
-                    >
-                      🎬 Open in Editor
-                    </button>
-                  </div>
-                </div>
-              )}
-            </Card>
-          );
-        })}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+        {filtered.map((clip, index) => (
+          <ClipRow
+            key={clip.id}
+            clip={clip}
+            project={project}
+            index={clips.indexOf(clip)}
+            onUpdateClip={onUpdateClip}
+            onEditClipTitle={onEditClipTitle}
+            onOpenInEditor={onOpenInEditor}
+            gamesDb={gamesDb}
+          />
+        ))}
         {filtered.length === 0 && (
           <Card style={{ padding: 40, textAlign: "center" }}>
             <div style={{ color: T.textTertiary, fontSize: 14 }}>No clips match this filter.</div>

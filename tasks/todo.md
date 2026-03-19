@@ -4,7 +4,123 @@
 
 ---
 
-## 🟡 In Progress — Timeline Core Operations + Whisper Fix
+## 🟡 In Progress — Projects Tab Overhaul (Vizard-inspired)
+
+### Goal
+Redesign the ClipBrowser (project detail view) from a bland card list into a rich clip review experience with inline video playback, better scoring, auto-generated titles, and side-by-side transcript — modeled on Vizard's clip browser.
+
+### Issue 1: Clip cards are bland — full visual overhaul
+**Current:** Tiny cards with just score bar, duration text, and buttons. No thumbnails, no video, no visual hierarchy.
+**Target:** Each clip is a row with: portrait thumbnail/video player on left, title + score + transcript on right. Clean, information-dense layout like Vizard.
+
+**Files:**
+- [ ] `src/renderer/views/ProjectsView.js` — complete ClipBrowser redesign
+
+### Issue 2: Inline video player with thumbnail
+**Current:** No thumbnail, no video preview. Just action buttons.
+**Target:** Each clip shows a 9:16 thumbnail that becomes a playable video on hover/click. User can quickly watch clips at a glance without opening the editor.
+
+**Implementation:**
+- [ ] Show `clip.thumbnailPath` as poster image in a 9:16 container
+- [ ] On click/hover: load `clip.filePath` as `<video>` element with play/pause controls
+- [ ] Duration badge overlay on thumbnail (bottom-right, like Vizard "00:30")
+- [ ] Play button overlay on hover
+
+### Issue 3: Replace thumbs up/down with checkmark/X
+**Current:** 👍/👎 icons — look childish and generic.
+**Target:** Clean ✓ (approve) and ✕ (reject) icons with subtle color states.
+
+**Files:**
+- [ ] `src/renderer/views/ProjectsView.js` — replace ThumbsUp/ThumbsDown with Check/X from lucide-react
+
+### Issue 4: Score display as X/10
+**Current:** Raw highlight score (28, 27, 26) with no context. Out of 100 but looks arbitrary.
+**Target:** Normalize to X.X/10 scale (like Vizard's 9.5/10). Clear, glanceable.
+
+**Implementation:**
+- [ ] `displayScore = (highlightScore / 10).toFixed(1)` — maps 0–100 → 0.0–10.0
+- [ ] Render as `<big>8.5</big><small>/10</small>` with color coding (green ≥ 8, yellow ≥ 6, red < 6)
+
+### Issue 5: Auto-title clips from transcript
+**Current:** Clips have empty titles — user sees blank or "Untitled".
+**Target:** Auto-generate title from transcript on clip creation. Pick the phrase with the most emotion/energy. If no strong phrase, use a representative quote.
+
+**Implementation:**
+- [ ] In `src/main/main.js` pipeline handler, after transcription + highlight detection:
+  - For each clip, find the transcript segment with highest energy (loudest + most hype words)
+  - Extract 3-8 word phrase from that segment
+  - Capitalize as title case
+  - Set as `clip.title`
+- [ ] Fallback: first non-trivial sentence from clip's transcript
+- [ ] Can be overridden by user (inline edit already works)
+
+### Issue 6: Transcript beside video player
+**Current:** Transcript is a modal popup — disconnected from the clip context.
+**Target:** Transcript shown inline beside the video player in each clip row. Scrollable, with timestamps like Vizard reference.
+
+**Implementation:**
+- [ ] Remove TranscriptModal trigger from clip cards
+- [ ] Show transcript text inline (right side of clip row, beside/below title+score)
+- [ ] Format with timestamps: `[MM:SS] text...` per segment
+- [ ] Scrollable area (max-height with overflow-y-auto)
+
+### Issue 7: Clip duration tuning (backend)
+**Current:** `minClipDuration: 15` produces clips stuck at 15s floor.
+**Target:** ~30 second clips with flexibility (20-45s range).
+
+**Implementation:**
+- [ ] `src/main/highlights.js` — change `minClipDuration` from 15 to 25
+- [ ] Increase gap tolerance from 3s to 5s (bridges small pauses in speech)
+- [ ] Add context padding: 2s before and 2s after highlight peak
+- [ ] Keep `maxClipDuration: 60`
+
+### Layout Design (ClipBrowser)
+```
+┌─────────────────────────────────────────────────────────┐
+│ ← Back   Project Name                    Render All (N) │
+│ All (16)  Pending (16)  Approved (0)                     │
+├─────────────────────────────────────────────────────────┤
+│ ┌──────────┬────────────────────────────────────────────┐│
+│ │          │ "How Did I Fumble My Best Run Ever?!"      ││
+│ │  9:16    │  8.5/10  ✓ ✕                              ││
+│ │ video    │                                            ││
+│ │ player   │ [09:29] How do I fumble? How do I fumble  ││
+│ │          │ the best, my best run ever?                ││
+│ │  ▶ 0:30  │ [09:42] don't even know where I am...     ││
+│ │          │ [09:51] the actual, I don't, what?         ││
+│ └──────────┴────────────────────────────────────────────┘│
+│ ┌──────────┬────────────────────────────────────────────┐│
+│ │  next    │  ...                                       ││
+│ │  clip    │                                            ││
+│ └──────────┴────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────┘
+```
+
+### Verification
+- [ ] Build with zero errors
+- [ ] Launch app, open a project with clips
+- [ ] Each clip shows portrait thumbnail with playable video
+- [ ] Score displays as X.X/10 with color coding
+- [ ] ✓/✕ icons replace thumbs up/down
+- [ ] Clips have auto-generated titles from transcript
+- [ ] Transcript shows inline beside video
+- [ ] Clips are ~25-30s average (not all 15s)
+- [ ] No regressions in existing features
+
+### Files Impacted
+1. `src/renderer/views/ProjectsView.js` — complete ClipBrowser redesign
+2. `src/main/highlights.js` — clip duration tuning
+3. `src/main/main.js` — auto-title generation in pipeline
+
+### Implementation Order
+1. Backend: clip duration tuning (highlights.js)
+2. Backend: auto-title from transcript (main.js pipeline)
+3. Frontend: ClipBrowser visual overhaul (ProjectsView.js)
+4. Build + verify
+
+---
+
+## ✅ Completed — Timeline Core Operations + Whisper Fix
 
 ### Goal
 Make the timeline work like a real NLE: cut/splice segments, trim audio, independent caption segments with overlap support, proper right-click behavior, and fix whisper alignment drift after ~30s.

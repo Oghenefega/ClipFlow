@@ -7,7 +7,7 @@
  *   Game keywords:    20%  (game-specific trigger words)
  *   Pacing:           10%  (rapid speech = high energy)
  *
- * Output: ~30 highlight segments per 30-min recording, each 15-60 seconds.
+ * Output: ~30 highlight segments per 30-min recording, each 25-60 seconds.
  */
 
 // ============ WORD BANKS ============
@@ -146,7 +146,7 @@ function scorePacing(wordCount, durationSec) {
  * @returns {Array<{ start, end, score, reason, segments }>}
  */
 function detectHighlights(transcription, audioAnalysis, gameContext = {}) {
-  const minDuration = gameContext.minClipDuration || 15;
+  const minDuration = gameContext.minClipDuration || 25;
   const maxDuration = gameContext.maxClipDuration || 60;
   const targetCount = gameContext.targetClipCount || 30;
   const gameKeywords = gameContext.keywords || [];
@@ -242,7 +242,7 @@ function groupIntoClips(scoredSegments, minDuration, maxDuration) {
       if (used.has(i)) break;
       const seg = scoredSegments[i];
       const gap = clipStart - seg.end;
-      if (gap > 3) break; // more than 3s gap = different moment
+      if (gap > 5) break; // more than 5s gap = different moment
       const newDuration = clipEnd - seg.start;
       if (newDuration > maxDuration) break;
 
@@ -257,7 +257,7 @@ function groupIntoClips(scoredSegments, minDuration, maxDuration) {
       if (used.has(i)) break;
       const seg = scoredSegments[i];
       const gap = seg.start - clipEnd;
-      if (gap > 3) break;
+      if (gap > 5) break;
       const newDuration = seg.end - clipStart;
       if (newDuration > maxDuration) break;
 
@@ -270,10 +270,16 @@ function groupIntoClips(scoredSegments, minDuration, maxDuration) {
     const duration = clipEnd - clipStart;
 
     // Pad short clips to minimum duration (add context before/after)
+    // Always add 2s context padding for natural clip boundaries
+    const contextPad = 2;
     if (duration < minDuration) {
-      const padding = (minDuration - duration) / 2;
+      const padding = (minDuration - duration) / 2 + contextPad;
       clipStart = Math.max(0, clipStart - padding);
       clipEnd = clipEnd + padding;
+    } else {
+      // Even for long-enough clips, add context padding for natural start/end
+      clipStart = Math.max(0, clipStart - contextPad);
+      clipEnd = Math.min(clipEnd + contextPad, clipStart + maxDuration);
     }
 
     // Mark segments as used
