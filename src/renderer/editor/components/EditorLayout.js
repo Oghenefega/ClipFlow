@@ -5,7 +5,6 @@ import {
   ResizableHandle,
 } from "../../../components/ui/resizable";
 import { Separator } from "../../../components/ui/separator";
-import { ScrollArea } from "../../../components/ui/scroll-area";
 import LeftPanelNew from "./LeftPanelNew";
 import RightPanelNew from "./RightPanelNew";
 import PreviewPanelNew from "./PreviewPanelNew";
@@ -85,52 +84,60 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
     );
   }
 
+  // Derive duration from startTime/endTime if no explicit duration field
+  const getDuration = (c) => c.duration || ((c.endTime && c.startTime != null) ? (c.endTime - c.startTime) : 0);
+
   return (
     <div
       ref={dropdownRef}
       className="absolute top-full left-1/2 -translate-x-1/2 mt-1 rounded-lg border bg-popover shadow-xl z-50 overflow-hidden"
-      style={{ width: Math.min(clips.length * 152 + 24, 640) }}
+      style={{ width: Math.min(clips.length * 120 + 32, 640) }}
     >
       <div className="px-3 py-2 border-b">
         <span className="text-[11px] font-medium text-muted-foreground">
           Project Clips ({clips.length})
         </span>
       </div>
-      <ScrollArea className="max-h-[280px]">
+      <div
+        className="overflow-y-auto overflow-x-hidden"
+        style={{ maxHeight: "min(420px, calc(100vh - 120px))" }}
+      >
         <div className="p-3 flex flex-wrap gap-2">
           {clips.map((c) => {
             const isActive = c.id === currentClipId;
+            const dur = getDuration(c);
             return (
               <button
                 key={c.id}
                 onClick={() => onSelect(c.id)}
                 className={`
                   group flex flex-col rounded-lg overflow-hidden border transition-all cursor-pointer
-                  w-[140px] shrink-0
+                  w-[108px] shrink-0
                   ${isActive
                     ? "border-primary ring-1 ring-primary/40 bg-primary/5"
                     : "border-border/60 hover:border-muted-foreground/40 bg-card hover:bg-secondary/40"
                   }
                 `}
               >
-                {/* Thumbnail */}
+                {/* Thumbnail — portrait 9:16 ratio for vertical gaming clips */}
                 <div
-                  className="w-full aspect-video bg-muted/30 flex items-center justify-center overflow-hidden relative"
+                  className="w-full bg-muted/30 flex items-center justify-center overflow-hidden relative"
+                  style={{ aspectRatio: "9 / 16" }}
                 >
                   {c.thumbnailPath ? (
                     <img
                       src={`file://${c.thumbnailPath.replace(/\\/g, "/")}`}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       draggable={false}
                     />
                   ) : (
                     <Play className="h-5 w-5 text-muted-foreground/30" />
                   )}
                   {/* Duration badge */}
-                  {c.duration && (
+                  {dur > 0 && (
                     <span className="absolute bottom-1 right-1 text-[9px] font-mono bg-black/70 text-white px-1 rounded">
-                      {fmtDuration(c.duration)}
+                      {fmtDuration(dur)}
                     </span>
                   )}
                   {/* Active indicator */}
@@ -141,8 +148,8 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                   )}
                 </div>
                 {/* Title */}
-                <div className="px-2 py-1.5">
-                  <span className={`text-[11px] leading-tight line-clamp-2 ${isActive ? "text-primary font-medium" : "text-foreground"}`}>
+                <div className="px-1.5 py-1.5">
+                  <span className={`text-[10px] leading-tight line-clamp-2 ${isActive ? "text-primary font-medium" : "text-foreground"}`}>
                     {c.title || "Untitled"}
                   </span>
                 </div>
@@ -150,7 +157,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
