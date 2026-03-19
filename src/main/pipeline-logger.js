@@ -88,7 +88,7 @@ class PipelineLogger {
     const header = [
       `=== ClipFlow AI Pipeline Log ===`,
       `Video: ${this.videoName}`,
-      `Date: ${new Date(this.startTime).toLocaleString()}`,
+      `Date: ${new Date(this.startTime).toISOString()}`,
       `Status: ${this.success ? "SUCCESS" : "FAILED"}`,
       `Total time: ${totalTime}s`,
       `API cost: $${this.apiCost.toFixed(4)} (${this.apiTokens.input} in / ${this.apiTokens.output} out)`,
@@ -110,7 +110,7 @@ class PipelineLogger {
       apiCost: this.apiCost,
       apiTokens: this.apiTokens,
       totalTimeMs: Date.now() - this.startTime,
-      date: new Date(this.startTime).toLocaleString(),
+      date: new Date(this.startTime).toISOString(),
     };
   }
 
@@ -149,7 +149,7 @@ function listLogs(processingDir) {
         success: statusLine.includes("SUCCESS"),
         partialFailure: statusLine.includes("PARTIAL"),
         apiCost: costMatch ? parseFloat(costMatch[1]) : 0,
-        date: stats.mtime.toLocaleString(),
+        date: stats.mtime.toISOString(),
         size: stats.size,
       };
     });
@@ -188,6 +188,21 @@ function deleteOldLogs(processingDir, retentionDays = 30) {
 }
 
 /**
+ * Delete specific log files by path.
+ * @returns {number} Number of files deleted
+ */
+function deleteLogs(logPaths) {
+  let deleted = 0;
+  for (const p of logPaths) {
+    if (fs.existsSync(p) && p.endsWith(".log")) {
+      fs.unlinkSync(p);
+      deleted++;
+    }
+  }
+  return deleted;
+}
+
+/**
  * Get monthly cost total from log files.
  */
 function getMonthlyCost(processingDir) {
@@ -210,6 +225,7 @@ module.exports = {
   PipelineLogger,
   listLogs,
   readLog,
+  deleteLogs,
   deleteOldLogs,
   getMonthlyCost,
 };

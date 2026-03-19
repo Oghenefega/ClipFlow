@@ -110,6 +110,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Pipeline logs
   pipelineLogsList: () => ipcRenderer.invoke("pipelineLogs:list"),
   pipelineLogsRead: (logPath) => ipcRenderer.invoke("pipelineLogs:read", logPath),
+  pipelineLogsDelete: (logPaths) => ipcRenderer.invoke("pipelineLogs:delete", logPaths),
   pipelineLogsDeleteOld: (days) => ipcRenderer.invoke("pipelineLogs:deleteOld", days),
   pipelineLogsMonthlyCost: () => ipcRenderer.invoke("pipelineLogs:monthlyCost"),
 

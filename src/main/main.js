@@ -777,6 +777,10 @@ ipcMain.handle("pipelineLogs:deleteOld", async (_, days) => {
   return pipelineLogger.deleteOldLogs(processingDir, days || 30);
 });
 
+ipcMain.handle("pipelineLogs:delete", async (_, logPaths) => {
+  return pipelineLogger.deleteLogs(logPaths);
+});
+
 ipcMain.handle("pipelineLogs:monthlyCost", async () => {
   const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
   return pipelineLogger.getMonthlyCost(processingDir);
