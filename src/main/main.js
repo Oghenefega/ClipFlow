@@ -740,7 +740,7 @@ Write the updated play style profile:`;
 
   try {
     const result = await anthropicRequest(apiKey, {
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
@@ -909,7 +909,7 @@ Return ONLY valid JSON in this exact structure:
     }
 
     const result = await anthropicRequest(apiKey, {
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],

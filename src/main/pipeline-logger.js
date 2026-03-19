@@ -88,7 +88,7 @@ class PipelineLogger {
     const header = [
       `=== ClipFlow AI Pipeline Log ===`,
       `Video: ${this.videoName}`,
-      `Date: ${new Date(this.startTime).toISOString()}`,
+      `Date: ${new Date(this.startTime).toLocaleString()}`,
       `Status: ${this.success ? "SUCCESS" : "FAILED"}`,
       `Total time: ${totalTime}s`,
       `API cost: $${this.apiCost.toFixed(4)} (${this.apiTokens.input} in / ${this.apiTokens.output} out)`,
@@ -110,12 +110,13 @@ class PipelineLogger {
       apiCost: this.apiCost,
       apiTokens: this.apiTokens,
       totalTimeMs: Date.now() - this.startTime,
-      date: new Date(this.startTime).toISOString(),
+      date: new Date(this.startTime).toLocaleString(),
     };
   }
 
   _append(line) {
-    const ts = new Date().toISOString().substring(11, 23); // HH:mm:ss.SSS
+    const now = new Date();
+    const ts = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
     this.entries.push(`${ts} ${line}`);
   }
 }
@@ -148,7 +149,7 @@ function listLogs(processingDir) {
         success: statusLine.includes("SUCCESS"),
         partialFailure: statusLine.includes("PARTIAL"),
         apiCost: costMatch ? parseFloat(costMatch[1]) : 0,
-        date: stats.mtime.toISOString(),
+        date: stats.mtime.toLocaleString(),
         size: stats.size,
       };
     });
