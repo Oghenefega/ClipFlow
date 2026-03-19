@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 
@@ -53,12 +53,43 @@ function ClipVideoPlayer({ clip }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   const duration = Math.round((clip.endTime || 0) - (clip.startTime || 0));
   const filePath = clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
   const thumbPath = clip.thumbnailPath ? `file://${clip.thumbnailPath.replace(/\\/g, "/")}` : null;
 
-  const togglePlay = useCallback(() => {
+  // Subtitle segments from saved clip data
+  const subtitles = useMemo(() => clip.subtitles || [], [clip.subtitles]);
+
+  // Find active subtitle at current time
+  const activeSubtitle = useMemo(() => {
+    if (!subtitles.length || !isPlaying) return null;
+    return subtitles.find(s => currentTime >= s.startSec && currentTime <= s.endSec);
+  }, [subtitles, currentTime, isPlaying]);
+
+  // Time update handler
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const onTimeUpdate = () => { if (!isSeeking) setCurrentTime(vid.currentTime); };
+    const onDurationChange = () => setVideoDuration(vid.duration || 0);
+    const onLoadedMetadata = () => setVideoDuration(vid.duration || 0);
+    vid.addEventListener("timeupdate", onTimeUpdate);
+    vid.addEventListener("durationchange", onDurationChange);
+    vid.addEventListener("loadedmetadata", onLoadedMetadata);
+    return () => {
+      vid.removeEventListener("timeupdate", onTimeUpdate);
+      vid.removeEventListener("durationchange", onDurationChange);
+      vid.removeEventListener("loadedmetadata", onLoadedMetadata);
+    };
+  }, [showVideo, isSeeking]);
+
+  const togglePlay = useCallback((e) => {
+    // Don't toggle when clicking the seek bar
+    if (e.target.closest("[data-seekbar]")) return;
     if (!filePath) return;
     setShowVideo(true);
     setTimeout(() => {
@@ -73,72 +104,129 @@ function ClipVideoPlayer({ clip }) {
     }, 50);
   }, [filePath]);
 
-  return (
-    <div
-      style={{
-        width: 180, minWidth: 180, flexShrink: 0,
-        borderRadius: T.radius.md, overflow: "hidden",
-        background: "#000", position: "relative",
-        aspectRatio: "9 / 16", cursor: "pointer",
-      }}
-      onClick={togglePlay}
-    >
-      {showVideo && filePath ? (
-        <video
-          ref={videoRef}
-          src={filePath}
-          poster={thumbPath || undefined}
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-          onEnded={() => setIsPlaying(false)}
-          onPause={() => setIsPlaying(false)}
-          onPlay={() => setIsPlaying(true)}
-        />
-      ) : thumbPath ? (
-        <img
-          src={thumbPath}
-          alt=""
-          draggable={false}
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-        />
-      ) : (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontSize: 32, opacity: 0.2 }}>🎬</span>
-        </div>
-      )}
+  const handleSeek = useCallback((e) => {
+    const vid = videoRef.current;
+    if (!vid || !videoDuration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    vid.currentTime = pct * videoDuration;
+    setCurrentTime(pct * videoDuration);
+  }, [videoDuration]);
 
-      {/* Play/pause overlay */}
-      {!isPlaying && (
+  const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
+
+  return (
+    <div style={{ width: 180, minWidth: 180, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Video container — fit exactly to 9:16 content */}
+      <div
+        style={{
+          width: 180, borderRadius: T.radius.md, overflow: "hidden",
+          background: "#000", position: "relative",
+          aspectRatio: "9 / 16", cursor: "pointer",
+        }}
+        onClick={togglePlay}
+      >
+        {showVideo && filePath ? (
+          <video
+            ref={videoRef}
+            src={filePath}
+            poster={thumbPath || undefined}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            onEnded={() => setIsPlaying(false)}
+            onPause={() => setIsPlaying(false)}
+            onPlay={() => setIsPlaying(true)}
+          />
+        ) : thumbPath ? (
+          <img
+            src={thumbPath}
+            alt=""
+            draggable={false}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 32, opacity: 0.2 }}>🎬</span>
+          </div>
+        )}
+
+        {/* Subtitle overlay */}
+        {activeSubtitle && (
+          <div style={{
+            position: "absolute", bottom: 40, left: 6, right: 6,
+            display: "flex", justifyContent: "center", pointerEvents: "none",
+          }}>
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: "#fff",
+              textAlign: "center", lineHeight: 1.3,
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.8)",
+              maxWidth: "95%", wordBreak: "break-word",
+            }}>
+              {activeSubtitle.text}
+            </span>
+          </div>
+        )}
+
+        {/* Play/pause overlay */}
+        {!isPlaying && (
+          <div
+            style={{
+              position: "absolute", inset: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(0,0,0,0.3)",
+              transition: "opacity 0.2s",
+            }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: "rgba(255,255,255,0.9)", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#000" style={{ marginLeft: 2 }}>
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Duration badge */}
+        <div style={{
+          position: "absolute", bottom: 8, right: 8,
+          background: "rgba(0,0,0,0.75)", borderRadius: 4,
+          padding: "2px 6px", fontSize: 11, fontWeight: 700,
+          fontFamily: T.mono, color: "#fff",
+          backdropFilter: "blur(4px)",
+        }}>
+          {fmtTime(showVideo && videoDuration > 0 ? Math.floor(currentTime) : duration)}
+        </div>
+      </div>
+
+      {/* Seek bar — below the video */}
+      {showVideo && videoDuration > 0 && (
         <div
+          data-seekbar="true"
+          onClick={handleSeek}
+          onMouseDown={(e) => {
+            setIsSeeking(true);
+            handleSeek(e);
+            const onMove = (ev) => handleSeek(ev);
+            const onUp = () => { setIsSeeking(false); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+          }}
           style={{
-            position: "absolute", inset: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(0,0,0,0.3)",
-            transition: "opacity 0.2s",
+            width: "100%", height: 6, background: "rgba(255,255,255,0.1)",
+            borderRadius: "0 0 4px 4px", cursor: "pointer", position: "relative",
+            marginTop: -1,
           }}
         >
           <div style={{
-            width: 44, height: 44, borderRadius: "50%",
-            background: "rgba(255,255,255,0.9)", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#000" style={{ marginLeft: 2 }}>
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          </div>
+            width: `${progress}%`, height: "100%",
+            background: T.accent, borderRadius: "0 0 4px 4px",
+            transition: isSeeking ? "none" : "width 0.1s linear",
+          }} />
         </div>
       )}
-
-      {/* Duration badge */}
-      <div style={{
-        position: "absolute", bottom: 8, right: 8,
-        background: "rgba(0,0,0,0.75)", borderRadius: 4,
-        padding: "2px 6px", fontSize: 11, fontWeight: 700,
-        fontFamily: T.mono, color: "#fff",
-        backdropFilter: "blur(4px)",
-      }}>
-        {fmtTime(duration)}
-      </div>
     </div>
   );
 }
