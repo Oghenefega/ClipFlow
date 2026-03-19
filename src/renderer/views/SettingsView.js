@@ -739,8 +739,8 @@ function PipelineLogsSection() {
         <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>No pipeline logs yet. Logs appear after running Generate Clips.</div>
       ) : (
         <div style={{ display: "flex", gap: 14, maxHeight: 500 }}>
-          {/* Left: grouped log list */}
-          <div style={{ width: 300, flexShrink: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {/* Left: grouped log list — wider when no log selected */}
+          <div style={{ width: selectedLog ? 300 : "100%", maxWidth: selectedLog ? 300 : "none", flexShrink: 0, overflow: "hidden", display: "flex", flexDirection: "column", transition: "width 0.2s" }}>
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
               {groupKeys.map((groupKey) => {
                 const groupLogs = grouped[groupKey];
