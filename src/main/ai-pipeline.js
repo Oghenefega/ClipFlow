@@ -36,14 +36,15 @@ function ensureProcessingDirs(processingDir) {
 function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger) {
   return new Promise((resolve, reject) => {
     const scriptPath = "D:\\whisper\\energy_scorer.py";
-    const args = [scriptPath, videoPath, srtPath];
+    // -X utf8 forces Python UTF-8 mode so emoji energy labels (🔥⚡💤🔇) don't crash on Windows cp1252
+    const args = ["-X", "utf8", scriptPath, videoPath, srtPath];
 
     logger.logCommand(pythonPath, args);
 
     const child = spawn(pythonPath, args, {
       timeout: 600000, // 10 min
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, PYTHONIOENCODING: "utf-8" },
+      env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
     });
 
     let stdout = "";
