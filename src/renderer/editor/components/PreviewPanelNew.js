@@ -588,28 +588,27 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Mouse wheel zoom on the preview area
+  // Mouse wheel zoom on the preview area — scroll wheel always zooms (no Ctrl needed)
   const onWheel = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      setZoomState((z) => {
-        const current = z === -1 ? 100 : z;
-        const delta = e.deltaY < 0 ? 10 : -10;
-        return Math.max(10, Math.min(400, current + delta));
-      });
-    }
-    // Otherwise allow normal scroll for panning when zoomed
+    e.preventDefault();
+    setZoomState((z) => {
+      const current = z === -1 ? 100 : z;
+      const delta = e.deltaY < 0 ? 10 : -10;
+      return Math.max(10, Math.min(400, current + delta));
+    });
   }, []);
 
   // Middle-mouse drag to pan zoomed preview
   const onPanDown = useCallback((e) => {
     if (e.button !== 1) return; // middle mouse only
     e.preventDefault();
+    e.stopPropagation();
     const container = scrollContainerRef.current;
     if (!container) return;
     setIsPanning(true);
     panStartRef.current = { x: e.clientX, y: e.clientY, scrollLeft: container.scrollLeft, scrollTop: container.scrollTop };
     const onMove = (ev) => {
+      ev.preventDefault();
       const dx = ev.clientX - panStartRef.current.x;
       const dy = ev.clientY - panStartRef.current.y;
       container.scrollLeft = panStartRef.current.scrollLeft - dx;
@@ -622,6 +621,11 @@ export default function PreviewPanelNew() {
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+  }, []);
+
+  // Prevent browser auto-scroll on middle-click
+  const onAuxClick = useCallback((e) => {
+    if (e.button === 1) e.preventDefault();
   }, []);
 
   // Current subtitle segment and word — WORD-DRIVEN approach
@@ -1127,9 +1131,11 @@ export default function PreviewPanelNew() {
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto p-1"
-        style={{ cursor: isPanning ? "grabbing" : (zoom !== -1 ? "default" : "default"), display: "flex", alignItems: zoom === -1 ? "center" : "flex-start", justifyContent: zoom === -1 ? "center" : "flex-start" }}
+        style={{ cursor: isPanning ? "grabbing" : "default", display: "flex", alignItems: (zoom === -1 || zoom <= 100) ? "center" : "flex-start", justifyContent: (zoom === -1 || zoom <= 100) ? "center" : "flex-start" }}
         onWheel={onWheel}
         onPointerDown={onPanDown}
+        onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
+        onAuxClick={onAuxClick}
         onContextMenu={(e) => { if (isPanning) e.preventDefault(); }}
       >
         <div

@@ -128,6 +128,14 @@ const useCaptionStore = create((set, get) => ({
     _pushCrossUndo();
     set((s) => {
       if (s.captionSegments.length === 0) {
+        // Auto-create a segment so the preview can render it
+        if (text) {
+          const id = `cap-${_nextCapId++}`;
+          return {
+            captionText: text,
+            captionSegments: [{ id, text, startSec: 0, endSec: null }],
+          };
+        }
         return { captionText: text };
       }
       // Update first segment's text

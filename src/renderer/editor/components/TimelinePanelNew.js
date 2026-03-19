@@ -40,6 +40,7 @@ const TRACK_H = 44;
 const AUDIO_TRACK_H = 64;
 const LABEL_W = 84;
 const END_PADDING = 200; // px of empty space after the clip ends
+const MERGE_THRESHOLD = 18; // px — if avg segment width < this, show merged bar
 
 // ── Speed Dropdown ──
 function SpeedDropdown({ value, onChange, onClose }) {
@@ -191,7 +192,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
 }
 
 // ── Waveform Track — continuous filled polygon, NOT bars ──
-function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize }) {
+function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, segStartSec = 0, segEndSec }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -247,25 +248,35 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       return;
     }
 
-    // Normalize peaks relative to loudest
+    // Slice peaks for this segment's time range
+    const effectiveEnd = segEndSec ?? duration;
+    const startFrac = duration > 0 ? segStartSec / duration : 0;
+    const endFrac = duration > 0 ? effectiveEnd / duration : 1;
+    const sliceStart = Math.floor(startFrac * peaks.length);
+    const sliceEnd = Math.ceil(endFrac * peaks.length);
+    const segPeaks = peaks.slice(sliceStart, sliceEnd);
+
+    if (segPeaks.length === 0) return;
+
+    // Normalize peaks relative to loudest in FULL clip (for consistent amplitude)
     const maxPeak = Math.max(...peaks, 0.01);
     const centerY = h / 2;
     const maxAmp = h * 0.45; // max half-height
 
-    // Resample peaks to match pixel width for smooth polygon
-    const pointCount = Math.min(peaks.length, Math.floor(w));
-    if (pointCount <= 0) return; // Guard: no points to draw if width is 0
-    const samplesPerPoint = peaks.length / pointCount;
+    // Resample segment peaks to match pixel width for smooth polygon
+    const pointCount = Math.min(segPeaks.length, Math.floor(w));
+    if (pointCount <= 0) return;
+    const samplesPerPoint = segPeaks.length / pointCount;
 
     // Build points array with normalized amplitudes
     const points = [];
     for (let i = 0; i < pointCount; i++) {
       const sampleIdx = Math.floor(i * samplesPerPoint);
-      const endIdx = Math.min(Math.floor((i + 1) * samplesPerPoint), peaks.length);
+      const endIdx = Math.min(Math.floor((i + 1) * samplesPerPoint), segPeaks.length);
       // Take max in this bucket for peak representation
       let max = 0;
       for (let j = sampleIdx; j < endIdx; j++) {
-        if (peaks[j] > max) max = peaks[j];
+        if (segPeaks[j] > max) max = segPeaks[j];
       }
       const normalized = max / maxPeak;
       // Power curve to boost quiet sections
@@ -316,7 +327,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     ctx.moveTo(0, centerY);
     ctx.lineTo(w, centerY);
     ctx.stroke();
-  }, [peaks, timelineWidth, selected]);
+  }, [peaks, timelineWidth, selected, duration, segStartSec, segEndSec]);
 
   const showHandles = selected || hovered;
 
@@ -386,8 +397,15 @@ export default function TimelinePanelNew() {
   const [selectedSegId, setSelectedSegId] = useState(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, track, segId }
   const [scrubbing, setScrubbing] = useState(false);
-  const [audioStartSec, setAudioStartSec] = useState(0);
-  const [audioEndSec, setAudioEndSec] = useState(null); // null = full duration
+  // Multi-segment audio track — array of { id, startSec, endSec }
+  const [audioSegments, setAudioSegments] = useState([]);
+
+  // Initialize audio segment when duration becomes available
+  useEffect(() => {
+    if (duration > 0 && audioSegments.length === 0) {
+      setAudioSegments([{ id: "audio-1", startSec: 0, endSec: duration }]);
+    }
+  }, [duration, audioSegments.length]);
 
   // Single scroll container ref for ruler + all tracks
   const scrollRef = useRef(null);
@@ -482,21 +500,57 @@ export default function TimelinePanelNew() {
     }));
   }, [captionSegments, duration]);
 
-  // Audio segment (resizable via local state)
-  const audioSeg = useMemo(() => {
-    return { id: "audio-1", startSec: audioStartSec, endSec: audioEndSec ?? duration };
-  }, [audioStartSec, audioEndSec, duration]);
-
   // Caption resize handler — no neighbor pushing (overlap allowed)
   const handleCaptionResize = useCallback((id, newStart, newEnd) => {
     updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
   }, [duration, updateCaptionSegmentTimes]);
 
-  // Audio resize handler
+  // Audio resize handler — with neighbor pushing (no overlaps)
   const handleAudioResize = useCallback((id, newStart, newEnd) => {
-    setAudioStartSec(Math.max(0, newStart));
-    setAudioEndSec(Math.min(duration, newEnd));
+    setAudioSegments((segs) => {
+      const sorted = [...segs].sort((a, b) => a.startSec - b.startSec);
+      const idx = sorted.findIndex((s) => s.id === id);
+      if (idx < 0) return segs;
+      const seg = sorted[idx];
+      const prevSeg = idx > 0 ? sorted[idx - 1] : null;
+      const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+      const minDur = 0.1;
+      let ns = Math.max(0, newStart);
+      let ne = Math.min(duration, newEnd);
+      ns = Math.min(ns, ne - minDur);
+      ne = Math.max(ne, ns + minDur);
+      // Push neighbors if needed
+      const updated = sorted.map((s) => ({ ...s }));
+      if (prevSeg && ns < prevSeg.endSec) {
+        const pi = sorted.findIndex((s) => s.id === prevSeg.id);
+        updated[pi].endSec = Math.max(updated[pi].startSec + minDur, ns);
+      }
+      if (nextSeg && ne > nextSeg.startSec) {
+        const ni = sorted.findIndex((s) => s.id === nextSeg.id);
+        updated[ni].startSec = Math.min(updated[ni].endSec - minDur, ne);
+      }
+      updated[idx].startSec = ns;
+      updated[idx].endSec = ne;
+      return updated;
+    });
   }, [duration]);
+
+  // Audio split — creates two segments from one at the given time
+  const splitAudioAtTime = useCallback((time) => {
+    setAudioSegments((segs) => {
+      const seg = segs.find((s) => time > s.startSec + 0.05 && time < s.endSec - 0.05);
+      if (!seg) return segs;
+      const newId = `audio-${Date.now()}`;
+      return segs.flatMap((s) => {
+        if (s.id !== seg.id) return [s];
+        return [
+          { ...s, endSec: time },
+          { id: newId, startSec: time, endSec: s.endSec },
+        ];
+      });
+    });
+    return true;
+  }, []);
 
   // Segment selection handler
   const handleSegSelect = useCallback((track, segId) => {
@@ -563,8 +617,10 @@ export default function TimelinePanelNew() {
       });
       const subSegsNow = useSubtitleStore.getState().editSegments;
       const hasSub = subSegsNow.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
-      // Prefer subtitle split (more common), fall back to caption
+      const hasAudio = audioSegments.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
+      // Prefer subtitle split (more common), then audio, then caption
       if (hasSub) track = "sub";
+      else if (hasAudio) track = "audio";
       else if (hasCap) track = "cap";
     }
 
@@ -575,9 +631,7 @@ export default function TimelinePanelNew() {
         setSelectedSegId(newId);
       }
     } else if (track === "audio") {
-      if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
-        setAudioEndSec(time);
-      }
+      splitAudioAtTime(time);
     } else {
       // Default: split subtitle at playhead time
       splitSegment(time);
@@ -588,7 +642,7 @@ export default function TimelinePanelNew() {
         setSelectedSegId(newActiveId);
       }
     }
-  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, audioStartSec, audioEndSec, duration]);
+  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAudioAtTime, audioSegments]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -618,6 +672,26 @@ export default function TimelinePanelNew() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, deleteCaptionSegment]);
+
+  // Anchor zoom to playhead — when zoom changes, adjust scroll so playhead stays in place
+  const prevZoomRef = useRef(tlZoom);
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || duration <= 0 || prevZoomRef.current === tlZoom) {
+      prevZoomRef.current = tlZoom;
+      return;
+    }
+    const prevClipWidth = visibleContentWidth * prevZoomRef.current;
+    const newClipWidth = clipContentWidth;
+    const t = currentTime / duration;
+    // Where was the playhead before and after zoom?
+    const prevPlayheadX = LABEL_W + t * prevClipWidth;
+    const newPlayheadX = LABEL_W + t * newClipWidth;
+    // Keep the playhead at the same offset from the left edge of the viewport
+    const viewOffset = prevPlayheadX - container.scrollLeft;
+    container.scrollLeft = newPlayheadX - viewOffset;
+    prevZoomRef.current = tlZoom;
+  }, [tlZoom, duration, currentTime, clipContentWidth, visibleContentWidth]);
 
   // Smooth auto-scroll to keep playhead visible during playback
   const lastScrollRef = useRef(0);
@@ -945,15 +1019,47 @@ export default function TimelinePanelNew() {
               <span className="text-xs text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
-              {editSegments.map((seg) => (
-                <SegmentBlock
-                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
-                  duration={duration} timelineWidth={clipContentWidth}
-                  selected={selectedTrack === "sub" && selectedSegId === seg.id}
-                  onSelect={(id) => handleSegSelect("sub", id)}
-                  onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
-                />
-              ))}
+              {(() => {
+                // Check if segments are too small to render individually — show merged bar
+                if (editSegments.length > 1 && duration > 0) {
+                  const avgWidth = editSegments.reduce((sum, s) => sum + ((s.endSec - s.startSec) / duration) * clipContentWidth, 0) / editSegments.length;
+                  if (avgWidth < MERGE_THRESHOLD) {
+                    // Merged view: single bar spanning all segments
+                    const minStart = Math.min(...editSegments.map(s => s.startSec));
+                    const maxEnd = Math.max(...editSegments.map(s => s.endSec));
+                    const leftPx = (minStart / duration) * clipContentWidth;
+                    const widthPx = ((maxEnd - minStart) / duration) * clipContentWidth;
+                    return (
+                      <div
+                        className="absolute top-1.5 bottom-1.5 rounded-md cursor-pointer"
+                        style={{
+                          left: leftPx,
+                          width: Math.max(widthPx, 4),
+                          background: TRACK_COLORS.sub.bg,
+                          border: `2px solid ${TRACK_COLORS.sub.border}`,
+                        }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedTrack("sub"); }}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                          <span className="text-[11px] font-medium" style={{ color: TRACK_COLORS.sub.text }}>
+                            Subtitle ({editSegments.length})
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+                // Normal view: individual segments
+                return editSegments.map((seg) => (
+                  <SegmentBlock
+                    key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
+                    duration={duration} timelineWidth={clipContentWidth}
+                    selected={selectedTrack === "sub" && selectedSegId === seg.id}
+                    onSelect={(id) => handleSegSelect("sub", id)}
+                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                  />
+                ));
+              })()}
             </div>
           </div>
 
@@ -964,15 +1070,25 @@ export default function TimelinePanelNew() {
               <span className="text-xs text-muted-foreground font-medium">Audio</span>
             </div>
             <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
-              <WaveformTrack
-                peaks={waveformPeaks} duration={duration}
-                timelineWidth={clipContentWidth} currentTime={currentTime}
-                selected={selectedTrack === "audio"}
-                onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(null); }}
-                onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: "audio-1" }); }}
-                audioSeg={audioSeg}
-                onResize={handleAudioResize}
-              />
+              {audioSegments.map((seg) => {
+                const leftPx = duration > 0 ? (seg.startSec / duration) * clipContentWidth : 0;
+                const widthPx = duration > 0 ? ((seg.endSec - seg.startSec) / duration) * clipContentWidth : 0;
+                return (
+                  <div key={seg.id} className="absolute top-0 bottom-0" style={{ left: leftPx, width: Math.max(widthPx, 4) }}>
+                    <WaveformTrack
+                      peaks={waveformPeaks} duration={duration}
+                      timelineWidth={widthPx} currentTime={currentTime}
+                      selected={selectedTrack === "audio" && selectedSegId === seg.id}
+                      onSelect={() => { setSelectedTrack("audio"); setSelectedSegId(seg.id); }}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
+                      audioSeg={seg}
+                      onResize={handleAudioResize}
+                      segStartSec={seg.startSec}
+                      segEndSec={seg.endSec}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1001,9 +1117,7 @@ export default function TimelinePanelNew() {
               const newActiveId = useSubtitleStore.getState().activeSegId;
               if (newActiveId) { setSelectedTrack("sub"); setSelectedSegId(newActiveId); }
             } else if (contextMenu.track === "audio") {
-              if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
-                setAudioEndSec(time);
-              }
+              splitAudioAtTime(time);
             }
           }}
           onDelete={() => {
@@ -1013,6 +1127,10 @@ export default function TimelinePanelNew() {
               setSelectedSegId(null);
             } else if (contextMenu.track === "sub" && contextMenu.segId) {
               useSubtitleStore.getState().deleteSegment(contextMenu.segId);
+              setSelectedTrack(null);
+              setSelectedSegId(null);
+            } else if (contextMenu.track === "audio" && contextMenu.segId) {
+              setAudioSegments((segs) => segs.filter((s) => s.id !== contextMenu.segId));
               setSelectedTrack(null);
               setSelectedSegId(null);
             }

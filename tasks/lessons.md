@@ -302,3 +302,27 @@
 ### Right-click on timeline must not move playhead
 - **Mistake:** Right-click events could propagate to the scroll container's `onPointerDown` handler, which triggered seeking despite the button check, due to event ordering.
 - **Rule:** All track rows must `stopPropagation()` on `onPointerDown` for right-click (button === 2) AND on `onContextMenu` to prevent seek events from reaching the scroll container.
+
+### Audio track must use multi-segment array, not single start/end
+- **Mistake:** Audio track stored as single `audioStartSec`/`audioEndSec` local state. "Splitting" only trimmed the end — no second segment was created.
+- **Rule:** Any track that supports splitting MUST use an array of segments (like captionSegments). A split always creates TWO segments from one. Never use single start/end for splittable tracks.
+
+### setCaptionText must auto-create segment when captionSegments is empty
+- **Mistake:** `setCaptionText()` only set `captionText` (legacy field) when `captionSegments` was empty. But the preview renders from `captionSegments`, not `captionText`. User types caption → nothing appears.
+- **Rule:** When a store's render path uses an array (captionSegments), any setter that modifies the underlying data MUST ensure the array is populated. Auto-create a segment if the array is empty and text is non-empty.
+
+### Preview scroll zoom should not require Ctrl key
+- **Mistake:** `onWheel` handler required `e.ctrlKey || e.metaKey` for zoom. The user expected middle mouse scroll to zoom without modifier keys, which is standard behavior in video editors.
+- **Rule:** In the preview panel, mouse wheel always zooms (no modifier needed). This matches Vizard/CapCut behavior.
+
+### Preview zoom must center content when zoom ≤ 100%
+- **Mistake:** Scroll container used `justifyContent: "flex-start"` for all zoom levels except fit mode. At zoom < 100%, content stuck to the top-left corner.
+- **Rule:** Use `justifyContent: "center"` and `alignItems: "center"` when zoom ≤ 100% (content fits in viewport). Only use `flex-start` when content overflows (zoom > 100%).
+
+### Timeline zoom must anchor to playhead position
+- **Mistake:** Changing zoom level scaled the timeline width without adjusting scroll position. The playhead jumped to a different visual position after zoom.
+- **Rule:** On zoom change, calculate the playhead's offset from the viewport edge before zoom, then adjust scrollLeft after zoom so the playhead stays at the same viewport offset.
+
+### Never remove working features without explicit approval
+- **Mistake:** Removed the merged subtitle bar (shouldMerge/MERGE_THRESHOLD) during refactoring. User wanted it back — "the subtitle track is meant to morph into one line."
+- **Rule:** Never remove existing working features during a fix. If code looks unused, ASK before removing. If removing something, document what was removed and why in the commit message.
