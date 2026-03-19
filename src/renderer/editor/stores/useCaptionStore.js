@@ -104,7 +104,7 @@ const useCaptionStore = create((set, get) => ({
     // Resolve null endSec to Infinity for comparison (null = spans full duration)
     const seg = captionSegments.find((s) => {
       const effectiveEnd = s.endSec ?? Infinity;
-      return time > s.startSec + 0.05 && time < effectiveEnd - 0.05;
+      return time > s.startSec + 0.001 && time < effectiveEnd - 0.001;
     });
     if (!seg) return;
 

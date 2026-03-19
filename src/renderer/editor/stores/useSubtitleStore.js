@@ -246,9 +246,16 @@ const useSubtitleStore = create((set, get) => ({
     // If clip has its own transcription, segments are already clip-relative (start from 0)
     const hasClipTranscription = !!clip?.transcription;
     const clipStart = hasClipTranscription ? 0 : (clip.startTime || 0);
-    const clipEnd = hasClipTranscription ? Infinity : (clip.endTime || 0);
+    // Use Infinity as fallback when endTime is missing/zero — never filter out all segments
+    const rawEnd = hasClipTranscription ? Infinity : (clip.endTime || 0);
+    const clipEnd = rawEnd > clipStart ? rawEnd : Infinity;
     const segs = transcriptionSource.segments
-      .filter((s) => s.start >= clipStart && (clipEnd === Infinity || s.end <= clipEnd))
+      .filter((s) => {
+        // For clip-level transcription (clipEnd=Infinity): include all segments
+        // For project-level: include segments that overlap with the clip time range
+        if (clipEnd === Infinity) return s.start >= clipStart;
+        return s.start < clipEnd && s.end > clipStart;
+      })
       .map((s, i) => {
         const segStartSec = s.start - clipStart;
         const segEndSec = s.end - clipStart;
@@ -391,7 +398,8 @@ const useSubtitleStore = create((set, get) => ({
     // Otherwise fall back to activeSegId
     let targetSegId = activeSegId;
     if (atTime != null) {
-      const found = editSegments.find(s => atTime >= s.startSec + 0.01 && atTime <= s.endSec - 0.01);
+      // Use minimal buffer (0.001s = 1ms) to find containing segment
+      const found = editSegments.find(s => atTime >= s.startSec + 0.001 && atTime <= s.endSec - 0.001);
       if (found) targetSegId = found.id;
     }
     if (!targetSegId) return;
@@ -407,7 +415,7 @@ const useSubtitleStore = create((set, get) => ({
     let splitSec;
     let splitWordIdx;
 
-    if (atTime != null && atTime > seg.startSec + 0.01 && atTime < seg.endSec - 0.01) {
+    if (atTime != null && atTime > seg.startSec + 0.001 && atTime < seg.endSec - 0.001) {
       // Split at the given time — find the nearest word boundary
       splitSec = atTime;
       if (seg.words && seg.words.length > 0) {

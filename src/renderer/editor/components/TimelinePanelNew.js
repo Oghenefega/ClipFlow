@@ -569,7 +569,11 @@ export default function TimelinePanelNew() {
     }
 
     if (track === "cap") {
-      splitCaptionAtPlayhead(time);
+      const newId = splitCaptionAtPlayhead(time);
+      if (newId) {
+        setSelectedTrack("cap");
+        setSelectedSegId(newId);
+      }
     } else if (track === "audio") {
       if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
         setAudioEndSec(time);
@@ -577,6 +581,12 @@ export default function TimelinePanelNew() {
     } else {
       // Default: split subtitle at playhead time
       splitSegment(time);
+      // Sync local selectedSegId to store's activeSegId (set by splitSegment)
+      const newActiveId = useSubtitleStore.getState().activeSegId;
+      if (newActiveId) {
+        setSelectedTrack("sub");
+        setSelectedSegId(newActiveId);
+      }
     }
   }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, audioStartSec, audioEndSec, duration]);
 
@@ -984,9 +994,12 @@ export default function TimelinePanelNew() {
           onSplit={() => {
             const time = usePlaybackStore.getState().currentTime;
             if (contextMenu.track === "cap") {
-              splitCaptionAtPlayhead(time);
+              const newId = splitCaptionAtPlayhead(time);
+              if (newId) { setSelectedTrack("cap"); setSelectedSegId(newId); }
             } else if (contextMenu.track === "sub") {
               splitSegment(time);
+              const newActiveId = useSubtitleStore.getState().activeSegId;
+              if (newActiveId) { setSelectedTrack("sub"); setSelectedSegId(newActiveId); }
             } else if (contextMenu.track === "audio") {
               if (time > audioStartSec + 0.05 && time < (audioEndSec ?? duration) - 0.05) {
                 setAudioEndSec(time);

@@ -279,6 +279,26 @@
 - **Mistake:** When zoomed out, subtitle track merged all segments into one bar with `onResize={() => {}}` — an empty handler that made resize impossible.
 - **Rule:** Never replace interactive segments with non-functional merged views. Always render actual segments. If they're too small to see, that's a zoom UX issue, not a reason to remove functionality.
 
+### Karaoke display must be word-driven, not segment-boundary-driven
+- **Mistake 1:** `currentSeg` was found by segment boundaries (`adjustedTime >= startSec && adjustedTime <= endSec`). Gap-closing logic extends segment endSec, which delays the transition to the next 3-word group. Result: old words stay on screen while new ones are already being spoken.
+- **Mistake 2:** `currentWordIdx` used exact [start,end] matching which returned -1 during inter-word gaps, skipping highlights.
+- **Root cause:** The segment-boundary approach inherently causes timing drift because segment boundaries are artificial (created by 3-word chunking + gap-closing), not aligned with actual speech.
+- **Fix:** Build a flat global word index across ALL segments. Find the active word globally by "most recent word that started." Then derive the containing segment from the word, not the other way around.
+- **Rule:** For karaoke/word-level features, always drive the display from WORD timestamps, never from segment boundaries. Segments are containers for editing convenience, not display timing.
+- **Research (Netflix/Aegisub/W3C):** For speech content, words should appear AT speech time (within ~100ms). No pre-advance needed. Gap-closing at segment level is fine but must not affect word-level display timing.
+
+### Split boundary buffers must be minimal
+- **Mistake:** Split used 0.01s and 0.05s buffers for finding the containing segment. A segment [10.0, 10.1] would reject splits at 10.005s because `10.005 < 10.01`.
+- **Rule:** Use 0.001s (1ms) buffer maximum. The buffer exists only to prevent splitting at the exact boundary (which would create zero-duration segments).
+
+### Local selectedSegId must sync after split
+- **Mistake:** After `splitSegment()`, the store's `activeSegId` was updated to the new segment, but the timeline's local `selectedSegId` remained stale. The timeline showed the old (now-nonexistent) segment as selected.
+- **Rule:** After any store mutation that creates/changes segment IDs, immediately sync the timeline's local selection state to match the store.
+
+### Segment filter must use overlap, not containment
+- **Mistake:** `initSegments` filter used `s.end <= clipEnd` (containment). If `clipEnd` was 0 or undefined (fallback: `clip.endTime || 0`), ALL segments were filtered out.
+- **Rule:** Use overlap check (`s.start < clipEnd && s.end > clipStart`) for segment filtering. Never allow clipEnd to be 0 — fall back to Infinity.
+
 ### Right-click on timeline must not move playhead
 - **Mistake:** Right-click events could propagate to the scroll container's `onPointerDown` handler, which triggered seeking despite the button check, due to event ordering.
 - **Rule:** All track rows must `stopPropagation()` on `onPointerDown` for right-click (button === 2) AND on `onContextMenu` to prevent seek events from reaching the scroll container.

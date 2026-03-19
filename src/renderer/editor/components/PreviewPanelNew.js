@@ -624,39 +624,67 @@ export default function PreviewPanelNew() {
     window.addEventListener("pointerup", onUp);
   }, []);
 
-  // Current subtitle segment (adjusted for sync offset)
+  // Current subtitle segment and word — WORD-DRIVEN approach
+  // Instead of finding the segment first (which can show stale words due to
+  // gap-closing extending segment boundaries), we find the active WORD first
+  // across ALL segments, then display its containing segment.
+  // This ensures words appear exactly when spoken, not delayed by segment boundaries.
   const adjustedTime = currentTime - syncOffset;
-  const currentSeg = useMemo(() => {
-    if (!showSubs || editSegments.length === 0) return null;
-    return editSegments.find(
-      (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
-    ) || null;
-  }, [editSegments, adjustedTime, showSubs]);
-
-  // Current word for karaoke highlighting
-  // Karaoke is disabled in 1-word mode (only 1 word shows at a time, highlighting is pointless)
   const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
-  const currentWordIdx = useMemo(() => {
-    if (!currentSeg || !karaokeActive || !currentSeg.words?.length) return -1;
-    const words = currentSeg.words;
-    // First: try exact match (time within word boundaries)
-    const exact = words.findIndex(
-      (w) => adjustedTime >= w.start && adjustedTime <= w.end
-    );
-    if (exact >= 0) return exact;
-    // Fallback: find the most recent word that has started (handles gaps between words)
-    // This prevents karaoke highlights from "skipping" during inter-word silence
-    let best = -1;
-    for (let i = 0; i < words.length; i++) {
-      if (adjustedTime >= words[i].start) best = i;
-      else break; // words are sorted, no need to check further
+
+  // Build flat word index across all segments (memoized on editSegments change)
+  const globalWordIndex = useMemo(() => {
+    const index = [];
+    for (let si = 0; si < editSegments.length; si++) {
+      const seg = editSegments[si];
+      if (seg.words && seg.words.length > 0) {
+        for (let wi = 0; wi < seg.words.length; wi++) {
+          index.push({ segIdx: si, wordIdx: wi, word: seg.words[wi] });
+        }
+      }
     }
-    // Only use fallback if we're not too far past the word's end (< 0.5s gap)
-    if (best >= 0 && adjustedTime <= words[best].end + 0.5) return best;
-    // Before first word: highlight first word if we're close (< 0.2s)
-    if (best < 0 && words.length > 0 && adjustedTime >= words[0].start - 0.2) return 0;
-    return -1;
-  }, [currentSeg, adjustedTime, karaokeActive]);
+    return index;
+  }, [editSegments]);
+
+  // Find current segment + word index using word-driven lookup
+  const { currentSeg, currentWordIdx } = useMemo(() => {
+    if (!showSubs || editSegments.length === 0) return { currentSeg: null, currentWordIdx: -1 };
+
+    // Strategy: find the active word globally, then derive the segment from it
+    if (globalWordIndex.length > 0) {
+      // Find the most recent word that has started (word-driven)
+      let bestGlobal = -1;
+      for (let i = 0; i < globalWordIndex.length; i++) {
+        if (adjustedTime >= globalWordIndex[i].word.start) bestGlobal = i;
+        else break; // sorted by time
+      }
+
+      if (bestGlobal >= 0) {
+        const entry = globalWordIndex[bestGlobal];
+        // Check we're not too far past this word (> 1.5s after its end = silence)
+        if (adjustedTime <= entry.word.end + 1.5) {
+          const seg = editSegments[entry.segIdx];
+          return { currentSeg: seg, currentWordIdx: entry.wordIdx };
+        }
+      }
+
+      // Before any word: check if we're close to the first word (< 0.15s)
+      if (bestGlobal < 0 && globalWordIndex.length > 0) {
+        const firstWord = globalWordIndex[0];
+        if (adjustedTime >= firstWord.word.start - 0.15) {
+          const seg = editSegments[firstWord.segIdx];
+          return { currentSeg: seg, currentWordIdx: firstWord.wordIdx };
+        }
+      }
+    }
+
+    // Fallback for segments without word-level data: use segment boundaries
+    // Use strict < for endSec to avoid showing stale segments at boundaries
+    const seg = editSegments.find(
+      (s) => adjustedTime >= s.startSec && adjustedTime < s.endSec
+    ) || null;
+    return { currentSeg: seg, currentWordIdx: -1 };
+  }, [editSegments, adjustedTime, showSubs, globalWordIndex]);
 
   // Video event handlers
   const onTimeUpdate = useCallback(() => {
