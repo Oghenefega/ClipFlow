@@ -638,9 +638,24 @@ export default function PreviewPanelNew() {
   const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
   const currentWordIdx = useMemo(() => {
     if (!currentSeg || !karaokeActive || !currentSeg.words?.length) return -1;
-    return currentSeg.words.findIndex(
+    const words = currentSeg.words;
+    // First: try exact match (time within word boundaries)
+    const exact = words.findIndex(
       (w) => adjustedTime >= w.start && adjustedTime <= w.end
     );
+    if (exact >= 0) return exact;
+    // Fallback: find the most recent word that has started (handles gaps between words)
+    // This prevents karaoke highlights from "skipping" during inter-word silence
+    let best = -1;
+    for (let i = 0; i < words.length; i++) {
+      if (adjustedTime >= words[i].start) best = i;
+      else break; // words are sorted, no need to check further
+    }
+    // Only use fallback if we're not too far past the word's end (< 0.5s gap)
+    if (best >= 0 && adjustedTime <= words[best].end + 0.5) return best;
+    // Before first word: highlight first word if we're close (< 0.2s)
+    if (best < 0 && words.length > 0 && adjustedTime >= words[0].start - 0.2) return 0;
+    return -1;
   }, [currentSeg, adjustedTime, karaokeActive]);
 
   // Video event handlers

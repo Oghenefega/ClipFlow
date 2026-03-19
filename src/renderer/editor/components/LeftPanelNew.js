@@ -652,11 +652,20 @@ function EditSubtitlesTab() {
   };
 
   // Find active word index within a segment based on playback time
+  // Uses "most recent word" approach to bridge gaps between words
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
+    // Exact match first
     for (let i = seg.words.length - 1; i >= 0; i--) {
-      if (adjustedTime >= seg.words[i].start && adjustedTime < seg.words[i].end + 0.05) return i;
+      if (adjustedTime >= seg.words[i].start && adjustedTime <= seg.words[i].end) return i;
     }
+    // Fallback: most recent word that started (bridges inter-word gaps)
+    let best = -1;
+    for (let i = 0; i < seg.words.length; i++) {
+      if (adjustedTime >= seg.words[i].start) best = i;
+      else break;
+    }
+    if (best >= 0 && adjustedTime <= seg.words[best].end + 0.5) return best;
     return -1;
   }, [adjustedTime]);
 

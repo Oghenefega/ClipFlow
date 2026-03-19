@@ -185,6 +185,29 @@ def repair_segment_words(words, seg_start, seg_end, energy, frame_ms=20):
                 is_broken = True
                 break
 
+    # Check 6: Mid-segment drift — words cluster in one half of the segment
+    # This catches the pattern where alignment drifts in the middle but catches up
+    # at the end, making other checks pass but timestamps still feel wrong.
+    if not is_broken and n_words >= 4 and seg_dur > 0.5:
+        # Compare where words ARE vs where they SHOULD be (uniform pacing)
+        word_centers = [(w["start"] + w["end"]) / 2 for w in words]
+        # Expected uniform centers
+        expected_centers = [seg_start + (i + 0.5) / n_words * seg_dur for i in range(n_words)]
+        # Compute mean absolute deviation from expected positions
+        deviations = [abs(actual - expected) for actual, expected in zip(word_centers, expected_centers)]
+        mean_deviation = sum(deviations) / len(deviations)
+        # If average word is off by more than 15% of segment duration, redistribute
+        if mean_deviation > seg_dur * 0.15:
+            is_broken = True
+
+    # Check 7: Words don't fill the segment — first word starts late or last word ends early
+    if not is_broken and n_words >= 2 and seg_dur > 0.3:
+        first_gap = words[0]["start"] - seg_start
+        last_gap = seg_end - words[-1]["end"]
+        # If >25% of segment is empty at start or end, words aren't spanning properly
+        if first_gap > seg_dur * 0.25 or last_gap > seg_dur * 0.25:
+            is_broken = True
+
     # ── Fix broken timestamps ──
     if is_broken:
         return energy_weighted_distribute(words, seg_start, seg_end, energy, frame_ms)
