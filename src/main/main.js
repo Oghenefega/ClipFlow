@@ -697,6 +697,71 @@ ipcMain.handle("gameProfiles:resetCount", async (_, gameTag) => {
   return { success: true };
 });
 
+ipcMain.handle("gameProfiles:generateUpdate", async (_, gameTag) => {
+  const apiKey = store.get("anthropicApiKey");
+  if (!apiKey) return { error: "Anthropic API key not configured." };
+
+  const profile = gameProfiles.getProfile(gameTag);
+  if (!profile) return { error: `No profile found for ${gameTag}` };
+
+  const watchFolder = store.get("watchFolder");
+  if (!watchFolder) return { error: "Watch folder not set." };
+
+  const transcripts = gameProfiles.getRecentTranscripts(watchFolder, gameTag, 10);
+  if (transcripts.length === 0) return { error: "No recent transcripts found for this game." };
+
+  const transcriptBlock = transcripts.map((t, i) =>
+    `--- Session ${i + 1}: ${t.projectName} ---\n${t.transcript}`
+  ).join("\n\n");
+
+  const systemPrompt = `You are analyzing a gaming content creator's recent gameplay sessions to update their play style profile. The creator's name is Fega.
+
+Your task: Based on the recent transcripts below, write an updated play style profile for this game. The profile should describe HOW Fega plays this specific game — his patterns, humor style, recurring phrases, emotional reactions, and content style.
+
+Rules:
+- Write in third person ("Fega does X", not "You do X")
+- Focus on patterns that repeat across sessions
+- Include specific phrases or catchphrases you notice
+- Note gameplay style (aggressive, cautious, chaotic, etc.)
+- Note content style (comedic, competitive, educational, etc.)
+- Keep it concise but thorough — 150-300 words
+- If the current profile is good and the transcripts don't reveal anything new, return the current profile unchanged
+- Output ONLY the profile text, no headers or explanations`;
+
+  const userMessage = `Game: ${profile.gameName} (${gameTag})
+
+CURRENT PLAY STYLE PROFILE:
+${profile.playStyle || "(empty — no profile yet)"}
+
+RECENT SESSION TRANSCRIPTS (${transcripts.length} sessions):
+${transcriptBlock}
+
+Write the updated play style profile:`;
+
+  try {
+    const result = await anthropicRequest(apiKey, {
+      model: "claude-sonnet-4-6-20250514",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    if (result.error) return { error: result.error.message || JSON.stringify(result.error) };
+
+    const newProfile = (result.content || [])
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+
+    if (!newProfile) return { error: "Empty response from Claude" };
+
+    return { success: true, oldProfile: profile.playStyle || "", newProfile, gameName: profile.gameName };
+  } catch (err) {
+    return { error: err.message || "Failed to generate profile update" };
+  }
+});
+
 // ============ PIPELINE LOGS ============
 ipcMain.handle("pipelineLogs:list", async () => {
   const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
@@ -844,7 +909,7 @@ Return ONLY valid JSON in this exact structure:
     }
 
     const result = await anthropicRequest(apiKey, {
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6-20250514",
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],

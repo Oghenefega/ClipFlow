@@ -105,6 +105,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   gameProfilesUpdatePlayStyle: (gameTag, playStyle) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle),
   gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
   gameProfilesResetCount: (gameTag) => ipcRenderer.invoke("gameProfiles:resetCount", gameTag),
+  gameProfilesGenerateUpdate: (gameTag) => ipcRenderer.invoke("gameProfiles:generateUpdate", gameTag),
 
   // Pipeline logs
   pipelineLogsList: () => ipcRenderer.invoke("pipelineLogs:list"),

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox } from "../components/shared";
+import { ProfileDiffModal } from "../components/modals";
 
 const RENAMED_PATTERN = /^\d{4}-\d{2}-\d{2}\s+\S+\s+Day\d+\s+Pt\d+\.(mp4|mkv)$/i;
 
@@ -76,6 +77,7 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
   const [progress, setProgress] = useState(null);
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
+  const [profileDiff, setProfileDiff] = useState(null); // { gameTag, gameName, oldProfile, newProfile }
 
   // Load done files + collapsed state from store on mount
   useEffect(() => {
@@ -163,6 +165,23 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
         setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
         onProjectCreated?.(result.projectId);
         setTimeout(() => { setGenerating(null); setProgress(null); }, 3000);
+
+        // Check if play style profile update is needed
+        if (result.profileUpdateNeeded && result.gameTag) {
+          try {
+            const updateResult = await window.clipflow.gameProfilesGenerateUpdate(result.gameTag);
+            if (updateResult.success) {
+              setProfileDiff({
+                gameTag: result.gameTag,
+                gameName: updateResult.gameName,
+                oldProfile: updateResult.oldProfile,
+                newProfile: updateResult.newProfile,
+              });
+            }
+          } catch (err) {
+            console.error("Profile update generation failed:", err);
+          }
+        }
       }
     } catch (e) {
       setProgress({ stage: "failed", pct: 0, detail: e.message });
@@ -537,6 +556,18 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
           </>
         )}
       </div>
+
+      {/* Profile Diff Modal — shown when play style update is suggested after pipeline */}
+      {profileDiff && (
+        <ProfileDiffModal
+          gameTag={profileDiff.gameTag}
+          gameName={profileDiff.gameName}
+          oldProfile={profileDiff.oldProfile}
+          newProfile={profileDiff.newProfile}
+          onAccept={() => setProfileDiff(null)}
+          onDismiss={() => setProfileDiff(null)}
+        />
+      )}
     </div>
   );
 }

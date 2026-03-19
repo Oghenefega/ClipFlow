@@ -67,7 +67,7 @@ class PipelineLogger {
   logApiUsage(inputTokens, outputTokens, model) {
     this.apiTokens.input = inputTokens;
     this.apiTokens.output = outputTokens;
-    // Sonnet 4.5 pricing: $3/M input, $15/M output
+    // Sonnet 4.6 pricing: $3/M input, $15/M output
     const inputCost = (inputTokens / 1_000_000) * 3;
     const outputCost = (outputTokens / 1_000_000) * 15;
     this.apiCost = inputCost + outputCost;

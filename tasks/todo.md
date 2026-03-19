@@ -76,8 +76,8 @@ The current pipeline (probe → extract audio → whisper → local highlight de
 
 - [ ] **Step 9: Feedback database** — Install `better-sqlite3`. Create `feedback.js` with SQLite schema from spec Section 6.1. Wire Approve/Reject buttons to log to `data/feedback.db` with all fields (video_id, game_tag, timestamps, transcript, energy, claude_reason, decision, user_note).
 - [ ] **Step 10: Few-shot injection** — Before each Claude API call, query `feedback.db` for last 20 approved clips matching game_tag. Format as Section F of system prompt. Skip if fewer than 5 approved clips.
-- [ ] **Step 11: Update threshold stepper** — Add "Update play style after every N sessions" stepper (3–20, default 5) to each game's AI Context section in Settings/Game Library.
-- [ ] **Step 12: Profile auto-update** — After every N transcriptions per game, trigger Claude analysis of recent SRT transcripts to propose updated play style profile. Show diff modal (old vs new). On approval, save to `game_profiles.json`. On dismiss, reset counter.
+- [x] **Step 11: Update threshold stepper** — Add "Update play style after every N sessions" stepper (3–20, default 5) to each game's AI Context section in Settings/Game Library.
+- [x] **Step 12: Profile auto-update** — After every N transcriptions per game, trigger Claude analysis of recent SRT transcripts to propose updated play style profile. Show diff modal (old vs new). On approval, save to `game_profiles.json`. On dismiss, reset counter.
 
 ### Key Constraints (from spec)
 - **Do NOT rewrite `energy_scorer.py`** — call as subprocess only

@@ -108,6 +108,49 @@ function ensureProfile(gameTag, gameName) {
   }
 }
 
+/**
+ * Gather recent transcription texts for a game from project JSONs.
+ * @param {string} watchFolder - Base watch folder path
+ * @param {string} gameTag - Game tag to filter by
+ * @param {number} limit - Max number of recent projects to pull transcripts from
+ * @returns {Array<{ projectName: string, transcript: string }>}
+ */
+function getRecentTranscripts(watchFolder, gameTag, limit = 10) {
+  const projectsRoot = path.join(watchFolder, ".clipflow", "projects");
+  if (!fs.existsSync(projectsRoot)) return [];
+
+  const dirs = fs.readdirSync(projectsRoot, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && d.name.startsWith("proj_"));
+
+  const matched = [];
+  for (const dir of dirs) {
+    const projPath = path.join(projectsRoot, dir.name, "project.json");
+    if (!fs.existsSync(projPath)) continue;
+    try {
+      const proj = JSON.parse(fs.readFileSync(projPath, "utf-8"));
+      if (proj.gameTag !== gameTag) continue;
+      if (!proj.transcription) continue;
+      // Extract plain text from transcription (may be string or object with .text)
+      let text = "";
+      if (typeof proj.transcription === "string") {
+        text = proj.transcription;
+      } else if (proj.transcription.text) {
+        text = proj.transcription.text;
+      } else if (Array.isArray(proj.transcription.segments)) {
+        text = proj.transcription.segments.map((s) => s.text || "").join(" ");
+      }
+      if (!text.trim()) continue;
+      matched.push({ projectName: proj.name, createdAt: proj.createdAt, transcript: text.trim() });
+    } catch (e) {
+      // skip
+    }
+  }
+
+  // Sort newest first, return limited
+  matched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return matched.slice(0, limit);
+}
+
 module.exports = {
   loadProfiles,
   saveProfiles,
@@ -117,5 +160,6 @@ module.exports = {
   resetSessionCount,
   setUpdateThreshold,
   ensureProfile,
+  getRecentTranscripts,
   PROFILES_PATH,
 };

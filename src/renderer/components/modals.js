@@ -108,6 +108,20 @@ export const GameEditModal = ({ game, onSave, onClose, anthropicApiKey }) => {
   const [researching, setResearching] = useState(false);
   const [researchError, setResearchError] = useState("");
   const [showAiSection, setShowAiSection] = useState(false);
+  const [updateThreshold, setUpdateThreshold] = useState(5);
+  const [sessionCount, setSessionCount] = useState(0);
+
+  // Load game profile data (threshold + session count) on mount
+  useEffect(() => {
+    if (game.tag && window.clipflow.gameProfilesGet) {
+      window.clipflow.gameProfilesGet(game.tag).then((profile) => {
+        if (profile) {
+          setUpdateThreshold(profile.updateThreshold || 5);
+          setSessionCount(profile.sessionCount || 0);
+        }
+      });
+    }
+  }, [game.tag]);
 
   const handleResearch = async () => {
     if (!anthropicApiKey) return;
@@ -221,13 +235,124 @@ export const GameEditModal = ({ game, onSave, onClose, anthropicApiKey }) => {
                   </div>
                 )}
               </div>
+
+              {/* Auto-update threshold stepper */}
+              <div style={{ marginBottom: 14, background: "rgba(255,255,255,0.02)", borderRadius: T.radius.md, padding: "14px 16px" }}>
+                <SectionLabel>Play Style Auto-Update</SectionLabel>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
+                  <span style={{ color: T.textSecondary, fontSize: 12, whiteSpace: "nowrap" }}>Update after every</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                    <button
+                      onClick={() => setUpdateThreshold(Math.max(3, updateThreshold - 1))}
+                      style={{ width: 28, height: 28, borderRadius: "6px 0 0 6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: updateThreshold <= 3 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold <= 3 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
+                    >−</button>
+                    <div style={{ width: 36, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.06)", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, color: T.accentLight, fontSize: 14, fontWeight: 700, fontFamily: T.mono }}>
+                      {updateThreshold}
+                    </div>
+                    <button
+                      onClick={() => setUpdateThreshold(Math.min(20, updateThreshold + 1))}
+                      style={{ width: 28, height: 28, borderRadius: "0 6px 6px 0", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: updateThreshold >= 20 ? T.textTertiary : T.text, fontSize: 16, cursor: updateThreshold >= 20 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font }}
+                    >+</button>
+                  </div>
+                  <span style={{ color: T.textSecondary, fontSize: 12, whiteSpace: "nowrap" }}>sessions</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                  <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(100, (sessionCount / updateThreshold) * 100)}%`, height: "100%", borderRadius: 2, background: sessionCount >= updateThreshold ? T.green : T.accent, transition: "width 0.3s" }} />
+                  </div>
+                  <span style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, whiteSpace: "nowrap" }}>
+                    {sessionCount} / {updateThreshold}
+                  </span>
+                </div>
+                <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>
+                  AI will analyze recent transcripts and suggest play style updates after {updateThreshold} pipeline runs
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-          <button onClick={() => onSave({ ...game, tag, hashtag, color, dayCount, active, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt })} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save Changes</button>
+          <button onClick={() => {
+            // Save threshold to game profiles backend
+            if (window.clipflow.gameProfilesSetThreshold) {
+              window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
+            }
+            onSave({ ...game, tag, hashtag, color, dayCount, active, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
+          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save Changes</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============ PROFILE DIFF MODAL ============
+export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, onAccept, onDismiss }) => {
+  const [accepting, setAccepting] = useState(false);
+
+  const handleAccept = async () => {
+    setAccepting(true);
+    try {
+      await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, newProfile);
+      await window.clipflow.gameProfilesResetCount(gameTag);
+      onAccept(newProfile);
+    } catch (err) {
+      console.error("Failed to save profile update:", err);
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    await window.clipflow.gameProfilesResetCount(gameTag);
+    onDismiss();
+  };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+      <div style={{ background: T.surface, borderRadius: T.radius.xl, maxWidth: 720, width: "100%", border: `1px solid ${T.accentBorder}`, boxShadow: "0 24px 80px rgba(139,92,246,0.2)", overflow: "hidden", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <div style={{ background: T.accentGlow, padding: "20px 24px", borderBottom: `1px solid ${T.accentBorder}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🧠</div>
+            <div>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>Play Style Update — {gameName}</div>
+              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>AI analyzed recent sessions and suggests updating your play style profile</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Diff content */}
+        <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {/* Old */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: T.red, boxShadow: `0 0 6px ${T.red}` }} />
+                <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Current</span>
+              </div>
+              <div style={{ background: "rgba(248,113,113,0.04)", border: `1px solid rgba(248,113,113,0.15)`, borderRadius: T.radius.md, padding: "14px 16px", color: T.textSecondary, fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", minHeight: 120 }}>
+                {oldProfile || "(empty)"}
+              </div>
+            </div>
+            {/* New */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}` }} />
+                <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Proposed</span>
+              </div>
+              <div style={{ background: "rgba(52,211,153,0.04)", border: `1px solid rgba(52,211,153,0.15)`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", minHeight: 120 }}>
+                {newProfile || "(empty)"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={handleDismiss} style={{ flex: 1, padding: 12, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Keep Current</button>
+          <button onClick={handleAccept} disabled={accepting} style={{ flex: 2, padding: 12, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: accepting ? 0.6 : 1 }}>{accepting ? "Saving..." : "Accept Update"}</button>
         </div>
       </div>
     </div>

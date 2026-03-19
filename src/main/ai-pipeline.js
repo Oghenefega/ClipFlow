@@ -208,7 +208,7 @@ function extractFrame(videoPath, outPath, timeSeconds) {
 function callClaudeApi(apiKey, systemPrompt, userContent, logger) {
   return new Promise((resolve, reject) => {
     const body = {
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6-20250514",
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
@@ -245,7 +245,7 @@ function callClaudeApi(apiKey, systemPrompt, userContent, logger) {
           logger.logApiUsage(
             usage.input_tokens || 0,
             usage.output_tokens || 0,
-            "claude-sonnet-4-20250514"
+            "claude-sonnet-4-6-20250514"
           );
 
           // Extract JSON from response
@@ -554,6 +554,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       clipCount: project.clips.length,
       logPath,
       profileUpdateNeeded: thresholdReached,
+      gameTag: gameData.gameTag,
       apiCost: logger.apiCost,
     };
   } catch (err) {
