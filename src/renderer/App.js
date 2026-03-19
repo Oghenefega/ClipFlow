@@ -290,25 +290,24 @@ export default function App() {
   }, []);
 
   const handleUpdateClip = useCallback((projectId, clipId, status) => {
-    setLocalProjects((prev) => prev.map((p) => {
-      if (p.id !== projectId) return p;
-      return {
-        ...p,
-        clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, status } : c)),
-      };
-    }));
+    const updateClips = (p) => ({
+      ...p,
+      clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, status } : c)),
+    });
+    setLocalProjects((prev) => prev.map((p) => p.id !== projectId ? p : updateClips(p)));
+    // Also update selProj so ClipBrowser re-renders immediately
+    setSelProj((prev) => prev && prev.id === projectId ? updateClips(prev) : prev);
     // Persist to project JSON on disk
     window.clipflow?.projectUpdateClip?.(projectId, clipId, { status }).catch(() => {});
   }, []);
 
   const handleEditClipTitle = useCallback((projectId, clipId, title) => {
-    setLocalProjects((prev) => prev.map((p) => {
-      if (p.id !== projectId) return p;
-      return {
-        ...p,
-        clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, title } : c)),
-      };
-    }));
+    const updateClips = (p) => ({
+      ...p,
+      clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, title } : c)),
+    });
+    setLocalProjects((prev) => prev.map((p) => p.id !== projectId ? p : updateClips(p)));
+    setSelProj((prev) => prev && prev.id === projectId ? updateClips(prev) : prev);
     // Persist to project JSON on disk
     window.clipflow?.projectUpdateClip?.(projectId, clipId, { title }).catch(() => {});
   }, []);
