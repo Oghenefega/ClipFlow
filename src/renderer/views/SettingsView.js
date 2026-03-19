@@ -632,6 +632,11 @@ function PipelineLogsSection() {
   };
 
   const handleSelectLog = async (log) => {
+    if (selectedLog?.path === log.path) {
+      setSelectedLog(null);
+      setLogContent("");
+      return;
+    }
     setSelectedLog(log);
     if (window.clipflow?.pipelineLogsRead) {
       const content = await window.clipflow.pipelineLogsRead(log.path);
