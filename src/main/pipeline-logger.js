@@ -198,7 +198,7 @@ function getMonthlyCost(processingDir) {
   let total = 0;
   let videoCount = 0;
   for (const log of logs) {
-    if (new Date(log.date) >= monthStart) {
+    if (new Date(log.date) >= monthStart && log.apiCost > 0) {
       total += log.apiCost;
       videoCount++;
     }
