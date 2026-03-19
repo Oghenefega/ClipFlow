@@ -116,11 +116,11 @@ function ClipVideoPlayer({ clip }) {
   const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 
   return (
-    <div style={{ width: 180, minWidth: 180, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0 }}>
+    <div style={{ width: 220, minWidth: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Video container — fit exactly to 9:16 content */}
       <div
         style={{
-          width: 180, borderRadius: T.radius.md, overflow: "hidden",
+          width: 220, borderRadius: T.radius.md, overflow: "hidden",
           background: "#000", position: "relative",
           aspectRatio: "9 / 16", cursor: "pointer",
         }}
@@ -299,7 +299,7 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
   };
 
   return (
-    <div style={{ display: "flex", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {/* Approve — checkmark */}
       <button
         onClick={() => handleDecision("approved")}
@@ -362,13 +362,13 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
         transition: "all 0.2s ease",
       }}
     >
-      {/* Left: clip number + actions column */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: 2 }}>
+      {/* Left: clip number + approve/reject stacked vertically + video player */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
         <span style={{ color: T.textTertiary, fontSize: 11, fontWeight: 700, fontFamily: T.mono }}>#{index + 1}</span>
         <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} />
       </div>
 
-      {/* Center-left: video player */}
+      {/* Video player — larger */}
       <ClipVideoPlayer clip={clip} />
 
       {/* Right: details + transcript */}
@@ -426,25 +426,29 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           {/* Energy level badge */}
           {clip.energyLevel && ENERGY_COLORS[clip.energyLevel] && (
-            <span style={{
-              display: "inline-flex", padding: "2px 7px", borderRadius: 4,
-              background: ENERGY_COLORS[clip.energyLevel].bg,
-              border: `1px solid ${ENERGY_COLORS[clip.energyLevel].border}`,
-              fontSize: 10, fontWeight: 700, color: ENERGY_COLORS[clip.energyLevel].text,
-              fontFamily: T.mono, letterSpacing: "0.5px",
-            }}>
+            <span
+              title={`Audio Energy: ${clip.energyLevel} — How loud/intense the mic audio is during this clip`}
+              style={{
+                display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+                background: ENERGY_COLORS[clip.energyLevel].bg,
+                border: `1px solid ${ENERGY_COLORS[clip.energyLevel].border}`,
+                fontSize: 10, fontWeight: 700, color: ENERGY_COLORS[clip.energyLevel].text,
+                fontFamily: T.mono, letterSpacing: "0.5px", cursor: "default",
+              }}>
               {clip.energyLevel === "HIGH" ? "\uD83D\uDD25" : clip.energyLevel === "MED" ? "\u26A1" : "\uD83D\uDCA4"} {clip.energyLevel}
             </span>
           )}
 
           {/* Confidence score */}
           {clip.confidence > 0 && (
-            <span style={{
-              display: "inline-flex", padding: "2px 7px", borderRadius: 4,
-              background: "rgba(139,92,246,0.1)", border: `1px solid rgba(139,92,246,0.25)`,
-              fontSize: 10, fontWeight: 700, color: T.accentLight,
-              fontFamily: T.mono,
-            }}>
+            <span
+              title={`Claude's Confidence: ${(clip.confidence * 100).toFixed(0)}% — How confident the AI is that this clip will perform well`}
+              style={{
+                display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+                background: "rgba(139,92,246,0.1)", border: `1px solid rgba(139,92,246,0.25)`,
+                fontSize: 10, fontWeight: 700, color: T.accentLight,
+                fontFamily: T.mono, cursor: "default",
+              }}>
               {(clip.confidence * 100).toFixed(0)}% conf
             </span>
           )}
