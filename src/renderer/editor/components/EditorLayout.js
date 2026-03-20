@@ -111,6 +111,22 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
           {clips.map((c) => {
             const isActive = c.id === currentClipId;
             const dur = getDuration(c);
+            const isRejected = c.status === "rejected";
+            const isApproved = c.status === "approved" || c.status === "ready";
+            const isQueued = c.status === "queued" || c.status === "scheduled";
+            const isPosted = c.status === "posted" || c.status === "published";
+            // Status-based border glow
+            const statusBorder = isActive
+              ? "border-primary ring-1 ring-primary/40 bg-primary/5"
+              : isRejected
+                ? "border-red-500/30 bg-card opacity-45"
+                : isPosted
+                  ? "border-emerald-400/50 ring-1 ring-emerald-400/20 bg-card hover:bg-secondary/40"
+                  : isQueued
+                    ? "border-cyan-400/40 ring-1 ring-cyan-400/15 bg-card hover:bg-secondary/40"
+                    : isApproved
+                      ? "border-emerald-400/40 bg-card hover:bg-secondary/40"
+                      : "border-border/60 hover:border-muted-foreground/40 bg-card hover:bg-secondary/40";
             return (
               <button
                 key={c.id}
@@ -118,10 +134,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                 className={`
                   group flex flex-col rounded-lg overflow-hidden border transition-all cursor-pointer
                   w-[108px] shrink-0
-                  ${isActive
-                    ? "border-primary ring-1 ring-primary/40 bg-primary/5"
-                    : "border-border/60 hover:border-muted-foreground/40 bg-card hover:bg-secondary/40"
-                  }
+                  ${statusBorder}
                 `}
               >
                 {/* Thumbnail — portrait 9:16 ratio for vertical gaming clips */}
@@ -151,10 +164,24 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                       <Check className="h-2.5 w-2.5 text-white" />
                     </div>
                   )}
+                  {/* Status badge — top right corner */}
+                  {isPosted && (
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/90 text-white px-1 py-0.5 rounded">✓ Posted</span>
+                  )}
+                  {isQueued && (
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-cyan-500/90 text-white px-1 py-0.5 rounded">Queued</span>
+                  )}
+                  {isApproved && !isActive && (
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/70 text-white px-1 py-0.5 rounded">✓</span>
+                  )}
                 </div>
                 {/* Title */}
                 <div className="px-1.5 py-1.5">
-                  <span className={`text-[10px] leading-tight line-clamp-2 ${isActive ? "text-primary font-medium" : "text-foreground"}`}>
+                  <span className={`text-[10px] leading-tight line-clamp-2 ${
+                    isActive ? "text-primary font-medium"
+                    : isRejected ? "text-muted-foreground/60"
+                    : "text-foreground"
+                  }`}>
                     {c.title || "Untitled"}
                   </span>
                 </div>
@@ -379,7 +406,7 @@ function Topbar({ onBack }) {
       </div>
 
       {/* Center: Editable clip title — absolutely centered on the full topbar */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: navOpen ? 60 : 5 }}>
         <div className="pointer-events-auto relative">
         {editingTitle ? (
           <input

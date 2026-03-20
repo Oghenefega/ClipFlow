@@ -596,27 +596,7 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
         </div>
       )}
 
-      <Separator />
-
-      {/* Built-in presets */}
-      <div>
-        <SectionLabel>Built-in</SectionLabel>
-        <div className="grid grid-cols-2 gap-2">
-          {EFFECT_PRESETS.map((preset) => (
-            <button key={preset.id} onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}
-              className={`py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
-                activePresetId === preset.id ? "bg-secondary/70 border-border/50" : "bg-secondary/60 border-border/40 hover:border-muted-foreground/40 hover:bg-secondary/80"
-              }`}>
-              {activePresetId === preset.id && (
-                <span className="shrink-0 w-[6px] h-[6px] rounded-full" style={{ background: dotColor.bg, boxShadow: dotColor.shadow }} />
-              )}
-              <span className="text-[10px] font-medium text-foreground">
-                {preset.name}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Built-in presets removed — user manages their own presets */}
     </div>
   );
 }

@@ -170,6 +170,12 @@ export function applyTemplate(tpl) {
   _safeSet(ss, "setAnimateScale", s.animateScale);
   _safeSet(ss, "setAnimateGrowFrom", s.animateGrowFrom);
   _safeSet(ss, "setAnimateSpeed", s.animateSpeed);
+  // Segment mode + punctuation
+  if (s.segmentMode !== undefined && typeof ss.setSegmentMode === "function") {
+    ss.setSegmentMode(s.segmentMode);
+  }
+  _safeSet(ss, "setPunctOn", s.punctOn);
+  if (s.punctuationRemove !== undefined) ss.setPunctuationRemove(s.punctuationRemove);
 
   // Layout positions
   if (c.yPercent !== undefined) ls.setCapYPercent(c.yPercent);
@@ -311,6 +317,10 @@ export function snapshotTemplate(name) {
       highlightColor: sub.highlightColor, lineMode: sub.lineMode, subMode: sub.subMode,
       animateOn: sub.animateOn, animateScale: sub.animateScale, animateGrowFrom: sub.animateGrowFrom, animateSpeed: sub.animateSpeed,
       yPercent: lay.subYPercent,
+      // Segment mode + punctuation
+      segmentMode: sub.segmentMode,
+      punctOn: sub.punctOn,
+      punctuationRemove: sub.punctuationRemove ? { ...sub.punctuationRemove } : undefined,
     },
   };
 }
