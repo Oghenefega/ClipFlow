@@ -375,37 +375,48 @@ export default function TimelinePanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
 
-  // ── Zoom anchored to PLAYHEAD position ──
-  // When zooming in/out, the playhead stays at the same screen position
+  // ── Zoom anchored to PLAYHEAD — gently slides playhead to center ──
+  // When zooming, smoothly animate scrollLeft so the playhead glides to the
+  // center of the viewport instead of snapping.
+  const zoomAnimRef = useRef(null);
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || effectiveDuration <= 0 || prevZoomRef.current === tlZoom) {
       prevZoomRef.current = tlZoom;
       return;
     }
-    const prevClipWidth = visibleContentWidth * prevZoomRef.current;
+
     const viewWidth = container.clientWidth;
-
-    // Playhead position in content space (before zoom)
-    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
-    const prevPlayheadX = LABEL_W + playheadFrac * prevClipWidth;
-
-    // Where the playhead was on screen (relative to viewport)
-    const playheadScreenX = prevPlayheadX - container.scrollLeft;
-
     // New playhead position in content space (after zoom)
+    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
-    // Scroll so the playhead stays at the same screen position
-    // But if playhead is off-screen, center it instead
-    if (playheadScreenX >= 0 && playheadScreenX <= viewWidth) {
-      container.scrollLeft = newPlayheadX - playheadScreenX;
-    } else {
-      // Center the playhead on screen
-      container.scrollLeft = newPlayheadX - viewWidth / 2;
-    }
+    // Target: center the playhead in the viewport
+    const targetScroll = newPlayheadX - viewWidth / 2;
+    const clampedTarget = Math.max(0, targetScroll);
+
+    // Animate smoothly with lerp over ~8 frames
+    if (zoomAnimRef.current) cancelAnimationFrame(zoomAnimRef.current);
+    const startScroll = container.scrollLeft;
+    const diff = clampedTarget - startScroll;
+    let frame = 0;
+    const FRAMES = 8;
+    const animate = () => {
+      frame++;
+      const t = frame / FRAMES;
+      // Ease-out cubic
+      const ease = 1 - Math.pow(1 - t, 3);
+      container.scrollLeft = startScroll + diff * ease;
+      if (frame < FRAMES) {
+        zoomAnimRef.current = requestAnimationFrame(animate);
+      } else {
+        zoomAnimRef.current = null;
+      }
+    };
+    zoomAnimRef.current = requestAnimationFrame(animate);
 
     prevZoomRef.current = tlZoom;
+    return () => { if (zoomAnimRef.current) cancelAnimationFrame(zoomAnimRef.current); };
   }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth, currentTime]);
 
   // ── Smooth auto-scroll during playback ──

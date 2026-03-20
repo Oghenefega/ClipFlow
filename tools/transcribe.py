@@ -388,6 +388,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference")
     parser.add_argument("--compute_type", default="float16", help="Compute type (float16, int8, etc.)")
     parser.add_argument("--hf_token", default=None, help="HuggingFace token for wav2vec2 alignment model")
+    parser.add_argument("--initial_prompt", default=None, help="Initial prompt to seed vocabulary hints (slang, proper nouns)")
     args = parser.parse_args()
 
     if not os.path.exists(args.audio):
@@ -416,7 +417,10 @@ def main():
 
         # ── Step 3: Transcribe ──
         print_progress(15, "Transcribing...")
-        result = model.transcribe(audio, batch_size=args.batch_size, language=args.language)
+        transcribe_kwargs = dict(batch_size=args.batch_size, language=args.language)
+        if args.initial_prompt:
+            transcribe_kwargs["initial_prompt"] = args.initial_prompt
+        result = model.transcribe(audio, **transcribe_kwargs)
         print_progress(60, "Transcription complete")
 
         # ── Step 4: Align for word-level timestamps ──

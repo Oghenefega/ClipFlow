@@ -375,6 +375,42 @@ const useSubtitleStore = create((set, get) => ({
 
   updateWordInSegment: (segId, wordIdx, newText) => {
     get()._pushUndo();
+    const { editSegments, segmentMode } = get();
+    const seg = editSegments.find(s => s.id === segId);
+    if (!seg) return;
+
+    // Detect multi-word input (e.g., user typed "way I just" to replace "way")
+    const inputWords = newText.split(/\s+/).filter(Boolean);
+
+    // In 1-word mode, auto-split multi-word input into separate segments
+    if (segmentMode === "1word" && inputWords.length > 1) {
+      // This segment should become multiple segments
+      const segDur = seg.endSec - seg.startSec;
+      const perWord = segDur / inputWords.length;
+      const newSegs = inputWords.map((word, i) => ({
+        ...seg,
+        id: i === 0 ? seg.id : Date.now() + i,
+        text: word,
+        startSec: seg.startSec + i * perWord,
+        endSec: seg.startSec + (i + 1) * perWord,
+        start: fmtTime(seg.startSec + i * perWord),
+        end: fmtTime(seg.startSec + (i + 1) * perWord),
+        dur: perWord.toFixed(1) + "s",
+        words: [{
+          word,
+          start: seg.startSec + i * perWord,
+          end: seg.startSec + (i + 1) * perWord,
+          probability: 1,
+        }],
+      }));
+      const idx = editSegments.findIndex(s => s.id === segId);
+      const next = [...editSegments];
+      next.splice(idx, 1, ...newSegs);
+      set({ editSegments: next, activeSegId: newSegs[0].id });
+      return;
+    }
+
+    // Standard single-word update
     set((s) => ({
       editSegments: s.editSegments.map(seg => {
         if (seg.id !== segId) return seg;
@@ -538,6 +574,58 @@ const useSubtitleStore = create((set, get) => ({
     const arr = [...editSegments];
     arr.splice(idx, 1, ...wordSegs);
     set({ editSegments: arr, activeSegId: wordSegs[0].id });
+  },
+
+  // ── Create a new blank subtitle segment at a given time ──
+  createSegmentAtTime: (atTime) => {
+    get()._pushUndo();
+    const { editSegments } = get();
+    const DEFAULT_DUR = 0.5; // seconds
+    let startSec = atTime;
+    let endSec = atTime + DEFAULT_DUR;
+
+    // Find where this segment fits — don't overlap existing segments
+    const sorted = [...editSegments].sort((a, b) => a.startSec - b.startSec);
+
+    // Find the gap we're inserting into
+    for (let i = 0; i < sorted.length; i++) {
+      const seg = sorted[i];
+      // If atTime falls inside an existing segment, place after it
+      if (atTime >= seg.startSec && atTime < seg.endSec) {
+        startSec = seg.endSec;
+        endSec = seg.endSec + DEFAULT_DUR;
+        break;
+      }
+    }
+
+    // Clamp endSec to not overlap the next segment
+    const nextSeg = sorted.find(s => s.startSec > startSec);
+    if (nextSeg && endSec > nextSeg.startSec) {
+      endSec = nextSeg.startSec;
+    }
+
+    // Ensure minimum duration
+    if (endSec - startSec < 0.05) endSec = startSec + 0.1;
+
+    const newId = Date.now();
+    const newSeg = {
+      id: newId,
+      start: fmtTime(startSec),
+      end: fmtTime(endSec),
+      dur: (endSec - startSec).toFixed(1) + "s",
+      text: "",
+      track: "s1",
+      conf: "high",
+      startSec,
+      endSec,
+      warning: null,
+      words: [],
+    };
+
+    // Insert in sorted position
+    const next = [...editSegments, newSeg].sort((a, b) => a.startSec - b.startSec);
+    set({ editSegments: next, activeSegId: newId });
+    return newId;
   },
 
   deleteSegment: (segId) => {

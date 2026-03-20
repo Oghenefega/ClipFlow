@@ -25,6 +25,8 @@ import {
   Scissors,
   Merge,
   Check,
+  Plus,
+  CaseSensitive,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
@@ -69,7 +71,8 @@ function InlineWordEditor({ initialText, onConfirm, onCancel, selectAll }) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (text.trim()) onConfirm(text.trim());
+      // If text is empty, signal deletion via onConfirm with empty string
+      onConfirm(text.trim());
     } else if (e.key === "Escape") {
       onCancel();
     }
@@ -81,7 +84,7 @@ function InlineWordEditor({ initialText, onConfirm, onCancel, selectAll }) {
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}
-      onBlur={() => { if (text.trim()) onConfirm(text.trim()); else onCancel(); }}
+      onBlur={() => onConfirm(text.trim())}
       className="inline bg-primary/15 text-primary border border-primary/30 rounded px-1 py-0 text-sm outline-none min-w-[30px]"
       style={{ width: `${Math.max(30, text.length * 9)}px` }}
       onClick={(e) => e.stopPropagation()}
@@ -452,7 +455,23 @@ function TranscriptTab() {
 
   const handleEditConfirm = (idx, newText) => {
     const w = allWords[idx];
-    updateWordInSegment(w.segId, w.segWordIdx, newText);
+    if (!newText) {
+      // Empty text — delete word from segment
+      const subStore = useSubtitleStore.getState();
+      const origSegs = subStore.originalSegments;
+      const seg = origSegs.find(s => s.id === w.segId);
+      if (seg) {
+        const textWords = seg.text.split(/\s+/).filter(Boolean);
+        if (textWords.length <= 1) {
+          // Don't delete from transcript — just cancel
+        } else {
+          textWords.splice(w.segWordIdx, 1);
+          subStore.updateSegmentText(w.segId, textWords.join(" "));
+        }
+      }
+    } else {
+      updateWordInSegment(w.segId, w.segWordIdx, newText);
+    }
     setEditingWord(null);
   };
 
@@ -580,6 +599,8 @@ function EditSubtitlesTab() {
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const mergeSegment = useSubtitleStore((s) => s.mergeSegment);
   const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
+  const createSegmentAtTime = useSubtitleStore((s) => s.createSegmentAtTime);
+  const deleteSegment = useSubtitleStore((s) => s.deleteSegment);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
@@ -647,7 +668,22 @@ function EditSubtitlesTab() {
   };
 
   const handleEditConfirm = (segId, wordIdx, newText) => {
-    updateWordInSegment(segId, wordIdx, newText);
+    if (!newText) {
+      // Empty text — delete the word from the segment
+      const seg = editSegments.find(s => s.id === segId);
+      if (!seg) { setEditingWord(null); return; }
+      const textWords = seg.text.split(/\s+/).filter(Boolean);
+      if (textWords.length <= 1) {
+        // Last word in segment — delete the entire segment
+        deleteSegment(segId);
+      } else {
+        // Remove just this word
+        textWords.splice(wordIdx, 1);
+        useSubtitleStore.getState().updateSegmentText(segId, textWords.join(" "));
+      }
+    } else {
+      updateWordInSegment(segId, wordIdx, newText);
+    }
     setEditingWord(null);
   };
 
@@ -734,6 +770,21 @@ function EditSubtitlesTab() {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
+                className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                onClick={() => {
+                  const time = usePlaybackStore.getState().currentTime;
+                  const newId = createSegmentAtTime(time);
+                  if (newId) setEditingWord({ segId: newId, wordIdx: 0, selectAll: true, isNew: true });
+                }}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Add subtitle at playhead</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
                 className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30"
                 onClick={() => splitSegment()} disabled={!activeSegId}
               >
@@ -802,11 +853,57 @@ function EditSubtitlesTab() {
                       </button>
                     </TimecodePopover>
                     <span className="text-xs text-muted-foreground ml-auto">{seg.dur}</span>
+                    {/* ALL CAPS toggle */}
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isAllCaps = seg.text === seg.text.toUpperCase() && seg.text.length > 0;
+                              const newText = isAllCaps ? seg.text.toLowerCase() : seg.text.toUpperCase();
+                              useSubtitleStore.getState().updateSegmentText(seg.id, newText);
+                            }}
+                            className={`h-5 px-1.5 rounded text-[9px] font-bold transition-colors cursor-pointer ${
+                              seg.text === seg.text.toUpperCase() && seg.text.length > 0
+                                ? "bg-primary/20 text-primary border border-primary/30"
+                                : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/40 border border-transparent"
+                            }`}
+                          >
+                            AA
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">Toggle ALL CAPS</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
 
-                  {/* Segment text */}
+                  {/* Segment text — show inline editor for empty (newly created) segments */}
                   <div className="text-sm text-foreground/90 leading-relaxed break-words">
-                    {renderWords(seg)}
+                    {seg.text === "" && editingWord?.segId === seg.id ? (
+                      <InlineWordEditor
+                        initialText=""
+                        onConfirm={(t) => {
+                          if (t.trim()) {
+                            useSubtitleStore.getState().updateSegmentText(seg.id, t.trim());
+                          } else {
+                            deleteSegment(seg.id);
+                          }
+                          setEditingWord(null);
+                        }}
+                        onCancel={() => { deleteSegment(seg.id); setEditingWord(null); }}
+                        selectAll={false}
+                      />
+                    ) : seg.text === "" ? (
+                      <span
+                        className="text-muted-foreground/40 italic cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); setEditingWord({ segId: seg.id, wordIdx: 0, selectAll: true, isNew: true }); }}
+                      >
+                        Click to type...
+                      </span>
+                    ) : (
+                      renderWords(seg)
+                    )}
                   </div>
 
                   {isActive && seg.warning && (

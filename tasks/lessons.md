@@ -392,6 +392,15 @@
 - **Mistake:** `_trimToAudioBounds()` was called inside `resizeAudioSegment()`, which fires on every mouse-move frame. Dragging audio left trimmed subs/captions immediately, so dragging back right couldn't restore them.
 - **Rule:** Any operation that permanently modifies OTHER tracks (subtitle/caption auto-trim) must only run on mouse-up (`commitAudioResize`), not during the continuous drag. The drag should only update the segment being dragged. Commit side-effects on release.
 
+### Whisper initial_prompt seeds vocabulary for slang recognition
+- **Issue:** Whisper/whisperx doesn't recognize common slang like "ain't", "gonna", "tryna" in fast gaming speech.
+- **Solution:** Pass `initial_prompt` to `model.transcribe()` with a list of slang terms, gaming vocabulary, and proper nouns. This seeds the decoder's vocabulary without requiring model fine-tuning.
+- **Rule:** When transcription quality issues are vocabulary-related (not timing-related), use `initial_prompt` to hint the model. Keep the prompt concise (Whisper has a token limit for initial context).
+
+### Multi-word editing in 1-word mode should auto-split into segments
+- **Pattern:** When the user types "way I just" into a single-word segment (in 1-word mode), the text has 3 words. Auto-split the segment into 3 segments, evenly dividing the original segment's time range.
+- **Rule:** Always check `segmentMode` before deciding whether to split. In 3-word mode, multi-word input is valid as-is. In 1-word mode, it should create separate segments.
+
 ### Always check existing codebase for API model IDs before guessing
 - **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
 - **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.

@@ -68,6 +68,21 @@ function transcribe(wavPath, opts = {}) {
     const batchSize = opts.batchSize || 16;
     const computeType = opts.computeType || "float16";
 
+    // Slang/vocabulary hints — seeded into whisper's initial_prompt to improve
+    // recognition of informal speech, gaming terms, and proper nouns
+    const defaultSlangPrompt = [
+      // Common slang & contractions whisper struggles with
+      "ain't, gonna, gotta, wanna, y'all, bro, nah, fam, dawg, bruh",
+      "tryna, finna, boutta, lowkey, highkey, deadass, bussin, sus, cap, no cap",
+      "lit, fire, bet, dope, vibe, salty, clutch, cracked, goated, mid",
+      // Gaming terms
+      "GG, OP, nerf, buff, AFK, respawn, aggro, ADS, headshot, one-shot",
+      "let's go, oh my god, what the, are you kidding me",
+      // Fega-specific
+      "Fega, Arc Raiders, bioscanner, reagents",
+    ].join(", ");
+    const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
+
     // Build command — set HF_HOME so models download to D: drive
     const hfHome = opts.hfHome || "D:\\whisper\\hf_cache";
     let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
@@ -80,6 +95,8 @@ function transcribe(wavPath, opts = {}) {
     if (opts.hfToken) {
       cmd += ` --hf_token ${opts.hfToken}`;
     }
+    // Pass vocabulary hints to improve slang/informal speech recognition
+    cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
     cmd += `"`;
 
     const proc = exec(cmd, {
