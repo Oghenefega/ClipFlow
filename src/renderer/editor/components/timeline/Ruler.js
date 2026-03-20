@@ -25,7 +25,7 @@ export default React.memo(function Ruler({ duration, clipContentWidth }) {
         className="shrink-0 z-10"
         style={{ width: LABEL_W, position: "sticky", left: 0, background: RULER_BG }}
       />
-      <div className="relative flex-1" style={{ width: clipContentWidth + END_PADDING, background: RULER_BG }}>
+      <div className="relative flex-1" style={{ minWidth: clipContentWidth + END_PADDING, background: RULER_BG }}>
         {rulerTicks.map((tick, i) => {
           const x = tick.px - LABEL_W;
           return (

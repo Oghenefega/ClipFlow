@@ -489,7 +489,7 @@ export default function TimelinePanelNew() {
         onMouseMove={handleMouseMove}
         style={{ cursor: scrubbing ? "grabbing" : "default" }}
       >
-        <div className="relative" style={{ width: totalWidth, minWidth: totalWidth, minHeight: "100%" }}>
+        <div className="relative" style={{ width: totalWidth, minWidth: "100%", minHeight: "100%" }}>
 
           {/* ── PLAYHEAD — red line + triangle, clipped to track area ── */}
           {playheadPx <= LABEL_W + clipContentWidth && (
@@ -558,7 +558,7 @@ export default function TimelinePanelNew() {
               <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.cap.badge }}>T</span>
               <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
             </div>
-            <div data-track-content className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+            <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {captionSegs.map((seg) => (
                 <SegmentBlock
                   key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
@@ -598,7 +598,7 @@ export default function TimelinePanelNew() {
               <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.sub.badge }}>S</span>
               <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
             </div>
-            <div data-track-content className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+            <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
                 if (editSegments.length > 1 && duration > 0) {
                   const avgWidth = editSegments.reduce((sum, s) => sum + ((s.endSec - s.startSec) / duration) * clipContentWidth, 0) / editSegments.length;
@@ -654,7 +654,7 @@ export default function TimelinePanelNew() {
               <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.audio.badge }}>&#9835;</span>
               <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
             </div>
-            <div className="flex-1 relative" style={{ width: clipContentWidth + END_PADDING }}>
+            <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {audioSegments.map((seg) => {
                 const leftPx = duration > 0 ? (seg.startSec / duration) * clipContentWidth : 0;
                 const widthPx = duration > 0 ? ((seg.endSec - seg.startSec) / duration) * clipContentWidth : 0;
