@@ -352,24 +352,38 @@ export default function TimelinePanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
 
-  // ── Zoom anchored to mouse cursor ──
+  // ── Zoom anchored to PLAYHEAD position ──
+  // When zooming in/out, the playhead stays at the same screen position
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || effectiveDuration <= 0 || prevZoomRef.current === tlZoom) {
       prevZoomRef.current = tlZoom;
       return;
     }
-    const rect = container.getBoundingClientRect();
-    const mouseOffset = mouseXRef.current - rect.left;
     const prevClipWidth = visibleContentWidth * prevZoomRef.current;
-    const mouseScrollX = container.scrollLeft + mouseOffset;
-    const mouseContentX = mouseScrollX - LABEL_W;
-    const timeFrac = prevClipWidth > 0 ? mouseContentX / prevClipWidth : 0;
-    const newMouseContentX = timeFrac * clipContentWidth;
-    const newMouseScrollX = newMouseContentX + LABEL_W;
-    container.scrollLeft = newMouseScrollX - mouseOffset;
+    const viewWidth = container.clientWidth;
+
+    // Playhead position in content space (before zoom)
+    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
+    const prevPlayheadX = LABEL_W + playheadFrac * prevClipWidth;
+
+    // Where the playhead was on screen (relative to viewport)
+    const playheadScreenX = prevPlayheadX - container.scrollLeft;
+
+    // New playhead position in content space (after zoom)
+    const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
+
+    // Scroll so the playhead stays at the same screen position
+    // But if playhead is off-screen, center it instead
+    if (playheadScreenX >= 0 && playheadScreenX <= viewWidth) {
+      container.scrollLeft = newPlayheadX - playheadScreenX;
+    } else {
+      // Center the playhead on screen
+      container.scrollLeft = newPlayheadX - viewWidth / 2;
+    }
+
     prevZoomRef.current = tlZoom;
-  }, [tlZoom, duration, clipContentWidth, visibleContentWidth]);
+  }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth, currentTime]);
 
   // ── Smooth auto-scroll during playback ──
   useEffect(() => {
@@ -402,13 +416,18 @@ export default function TimelinePanelNew() {
     <div className="flex flex-col h-full select-none overflow-hidden" style={{ background: TIMELINE_BG }}>
       {/* ── Controls bar ── */}
       <div className="h-9 min-h-[36px] flex items-center px-3 gap-2" style={{ borderBottom: `1px solid ${TRACK_SEPARATOR}` }}>
-        {/* Left: Zoom */}
+        {/* Left: Zoom — logarithmic scale, 1.0 = fit to view (slider center) */}
+        {/* Zoom range: 0.2x to 8x. Log scale makes each step feel equal. */}
+        {/* Slider 0-100: 50 = fit (1.0x). Left of 50 = zoom out, right = zoom in */}
         <div className="flex items-center gap-0.5">
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => setTlZoom(Math.max(0.1, +(tlZoom - 0.25).toFixed(2)))}
+                  onClick={() => {
+                    // Logarithmic step: multiply by 0.8 (zoom out 20%)
+                    setTlZoom(Math.max(0.2, +(tlZoom * 0.8).toFixed(3)));
+                  }}
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </Button>
@@ -417,14 +436,26 @@ export default function TimelinePanelNew() {
             </Tooltip>
           </TooltipProvider>
           <div className="w-[90px]">
-            <Slider value={[tlZoom * 100]} min={10} max={1000} step={10}
-              onValueChange={([v]) => setTlZoom(v / 100)} className="flex-1" />
+            <Slider
+              value={[Math.round(50 + (Math.log2(tlZoom) / Math.log2(8)) * 50)]}
+              min={0} max={100} step={1}
+              onValueChange={([v]) => {
+                // Map slider 0-100 to zoom: 50=1.0x, 0=0.2x, 100=8x (log scale)
+                const t = (v - 50) / 50; // -1 to +1
+                const zoom = Math.pow(8, t); // 8^-1=0.125 → 8^0=1 → 8^1=8
+                setTlZoom(Math.max(0.2, Math.min(8, +zoom.toFixed(3))));
+              }}
+              className="flex-1"
+            />
           </div>
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => setTlZoom(Math.min(10, +(tlZoom + 0.25).toFixed(2)))}
+                  onClick={() => {
+                    // Logarithmic step: multiply by 1.25 (zoom in 25%)
+                    setTlZoom(Math.min(8, +(tlZoom * 1.25).toFixed(3)));
+                  }}
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
                 </Button>
