@@ -48,8 +48,139 @@ const fmtTimestamp = (sec) => {
   return `[${m}:${s}]`;
 };
 
+// ============ TEMPLATE → CSS STYLE HELPERS ============
+// Convert hex + opacity → rgba string
+function _hexToRgba(hex, opacity) {
+  const c = (hex || "#000000").replace("#", "").padEnd(6, "0");
+  const r = parseInt(c.slice(0, 2), 16) || 0;
+  const g = parseInt(c.slice(2, 4), 16) || 0;
+  const b = parseInt(c.slice(4, 6), 16) || 0;
+  return `rgba(${r},${g},${b},${opacity / 100})`;
+}
+
+// Build stroke text-shadow (ring of shadows around text)
+function _buildStroke(width, color, opacity, blur = 0, offX = 0, offY = 0) {
+  if (width <= 0) return "";
+  const rgba = _hexToRgba(color, opacity);
+  const shadows = [];
+  const steps = Math.max(16, Math.round(width * 6));
+  for (let i = 0; i < steps; i++) {
+    const angle = (2 * Math.PI * i) / steps;
+    const x = (Math.cos(angle) * width + offX).toFixed(1);
+    const y = (Math.sin(angle) * width + offY).toFixed(1);
+    shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
+  }
+  return shadows.join(", ");
+}
+
+// Build glow text-shadow
+function _buildGlow(color, opacity, intensity, blur, blend, offX = 0, offY = 0) {
+  const layers = [];
+  const layerCount = Math.max(1, Math.round(intensity / 25));
+  for (let i = 0; i < layerCount; i++) {
+    const layerBlur = blur * (0.5 + i * 0.5);
+    const layerOpacity = opacity * (1 - i * 0.15) * (blend / 100);
+    layers.push(`${offX}px ${offY}px ${layerBlur}px ${_hexToRgba(color, Math.max(5, layerOpacity))}`);
+  }
+  return layers.join(", ");
+}
+
+// Build all text-shadows from template style data
+function _buildAllShadows(s, sf) {
+  const parts = [];
+  // Stroke
+  if (s.strokeOn && s.strokeWidth > 0) {
+    const w = Math.max(0.3, (s.strokeWidth || 2) * sf * 0.5);
+    parts.push(_buildStroke(w, s.strokeColor || "#000", s.strokeOpacity ?? 100, (s.strokeBlur || 0) * sf * 0.3, (s.strokeOffsetX || 0) * sf * 0.5, (s.strokeOffsetY || 0) * sf * 0.5));
+  }
+  // Glow
+  if (s.glowOn) {
+    parts.push(_buildGlow(s.glowColor || "#fff", s.glowOpacity ?? 25, s.glowIntensity ?? 80, (s.glowBlur || 15) * sf * 0.4, s.glowBlend ?? 20, (s.glowOffsetX || 0) * sf * 0.5, (s.glowOffsetY || 0) * sf * 0.5));
+  }
+  // Shadow
+  if (s.shadowOn) {
+    parts.push(`${(s.shadowOffsetX || 4) * sf * 0.5}px ${(s.shadowOffsetY || 4) * sf * 0.5}px ${(s.shadowBlur || 8) * sf * 0.3}px ${_hexToRgba(s.shadowColor || "#000", s.shadowOpacity ?? 70)}`);
+  }
+  return parts.filter(Boolean).join(", ");
+}
+
+// Build CSS style object for subtitle overlay from template
+function buildSubPreviewStyle(tpl, containerWidth) {
+  const s = tpl?.subtitle || {};
+  const sf = containerWidth / 1080; // scale relative to 1080p base
+  const fontSize = Math.max(7, (s.fontSize || 52) * sf);
+  const shadows = _buildAllShadows(s, sf);
+  const style = {
+    fontFamily: `'${s.fontFamily || "Latina Essential"}', sans-serif`,
+    fontSize: `${fontSize}px`,
+    fontWeight: s.fontWeight || (s.bold ? 700 : 400),
+    fontStyle: s.italic ? "italic" : "normal",
+    color: s.subColor || "#ffffff",
+    textAlign: "center",
+    lineHeight: 1.2,
+    maxWidth: "95%",
+    wordBreak: "break-word",
+    textShadow: shadows || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+    textDecoration: s.underline ? "underline" : "none",
+  };
+  if (s.bgOn) {
+    style.background = _hexToRgba(s.bgColor || "#000", s.bgOpacity ?? 80);
+    style.padding = `${Math.max(1, (s.bgPaddingY || 8) * sf)}px ${Math.max(2, (s.bgPaddingX || 12) * sf)}px`;
+    style.borderRadius = `${Math.max(1, (s.bgRadius || 6) * sf)}px`;
+  }
+  return style;
+}
+
+// Build CSS style object for caption overlay from template
+function buildCapPreviewStyle(tpl, containerWidth) {
+  const c = tpl?.caption || {};
+  const sf = containerWidth / 1080;
+  const fontSize = Math.max(6, (c.fontSize || 30) * 2.4 * sf);
+  const shadows = _buildAllShadows({
+    strokeOn: c.strokeOn, strokeWidth: c.strokeWidth, strokeColor: c.strokeColor,
+    strokeOpacity: c.strokeOpacity, strokeBlur: c.strokeBlur, strokeOffsetX: c.strokeOffsetX, strokeOffsetY: c.strokeOffsetY,
+    glowOn: c.glowOn, glowColor: c.glowColor, glowOpacity: c.glowOpacity,
+    glowIntensity: c.glowIntensity, glowBlur: c.glowBlur, glowBlend: c.glowBlend, glowOffsetX: c.glowOffsetX, glowOffsetY: c.glowOffsetY,
+    shadowOn: c.shadowOn, shadowColor: c.shadowColor, shadowOpacity: c.shadowOpacity,
+    shadowBlur: c.shadowBlur, shadowOffsetX: c.shadowOffsetX, shadowOffsetY: c.shadowOffsetY,
+  }, sf);
+  const style = {
+    fontFamily: `'${c.fontFamily || "Latina Essential"}', sans-serif`,
+    fontSize: `${fontSize}px`,
+    fontWeight: c.fontWeight || (c.bold ? 700 : 400),
+    fontStyle: c.italic ? "italic" : "normal",
+    color: c.color || "#ffffff",
+    textAlign: "center",
+    lineHeight: c.lineSpacing || 1.3,
+    maxWidth: "95%",
+    wordBreak: "break-word",
+    textShadow: shadows || `0 ${2 * sf}px ${8 * sf}px rgba(0,0,0,0.6)`,
+    textDecoration: c.underline ? "underline" : "none",
+  };
+  if (c.bgOn) {
+    style.background = _hexToRgba(c.bgColor || "#000", c.bgOpacity ?? 70);
+    style.padding = `${Math.max(1, (c.bgPaddingY || 8) * sf)}px ${Math.max(2, (c.bgPaddingX || 12) * sf)}px`;
+    style.borderRadius = `${Math.max(1, (c.bgRadius || 6) * sf)}px`;
+  }
+  return style;
+}
+
+// Default template fallback (matches BUILTIN_TEMPLATE from templateUtils)
+const FALLBACK_TEMPLATE = {
+  subtitle: {
+    fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, subColor: "#ffffff",
+    strokeOn: true, strokeWidth: 7, strokeColor: "#000000", strokeOpacity: 100, strokeBlur: 0,
+    glowOn: false, shadowOn: false, bgOn: false, yPercent: 80,
+  },
+  caption: {
+    fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff",
+    bold: true, italic: true, lineSpacing: 1.3,
+    strokeOn: false, glowOn: false, shadowOn: false, bgOn: false, yPercent: 15, widthPercent: 90,
+  },
+};
+
 // ============ CLIP VIDEO PLAYER ============
-function ClipVideoPlayer({ clip }) {
+function ClipVideoPlayer({ clip, template }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
@@ -61,14 +192,33 @@ function ClipVideoPlayer({ clip }) {
   const filePath = clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
   const thumbPath = clip.thumbnailPath ? `file://${clip.thumbnailPath.replace(/\\/g, "/")}` : null;
 
+  const tpl = template || FALLBACK_TEMPLATE;
+  const CONTAINER_W = 220;
+
   // Subtitle segments from saved clip data
   const subtitles = useMemo(() => clip.subtitles || [], [clip.subtitles]);
+  // Caption segments from saved clip data
+  const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
 
   // Find active subtitle at current time
   const activeSubtitle = useMemo(() => {
     if (!subtitles.length || !isPlaying) return null;
     return subtitles.find(s => currentTime >= s.startSec && currentTime <= s.endSec);
   }, [subtitles, currentTime, isPlaying]);
+
+  // Find active caption at current time
+  const activeCaption = useMemo(() => {
+    if (!captions.length || !isPlaying) return null;
+    return captions.find(s => currentTime >= s.startSec && currentTime <= (s.endSec || Infinity));
+  }, [captions, currentTime, isPlaying]);
+
+  // Pre-built styles from template
+  const subStyle = useMemo(() => buildSubPreviewStyle(tpl, CONTAINER_W), [tpl]);
+  const capStyle = useMemo(() => buildCapPreviewStyle(tpl, CONTAINER_W), [tpl]);
+
+  // Position percentages from template
+  const subYPct = tpl?.subtitle?.yPercent ?? 80;
+  const capYPct = tpl?.caption?.yPercent ?? 15;
 
   // Time update handler
   useEffect(() => {
@@ -149,44 +299,40 @@ function ClipVideoPlayer({ clip }) {
           </div>
         )}
 
-        {/* Subtitle overlay — shows during playback or first subtitle on static thumbnail */}
+        {/* Subtitle overlay — styled from template, shows during playback or first subtitle on static */}
         {(() => {
           const displaySub = activeSubtitle || (!isPlaying && subtitles.length > 0 ? subtitles[0] : null);
           if (!displaySub) return null;
           return (
             <div style={{
-              position: "absolute", bottom: 40, left: 6, right: 6,
+              position: "absolute", left: 4, right: 4,
+              top: `${subYPct}%`, transform: "translateY(-50%)",
               display: "flex", justifyContent: "center", pointerEvents: "none",
             }}>
-              <span style={{
-                fontSize: 11, fontWeight: 700, color: "#fff",
-                textAlign: "center", lineHeight: 1.3,
-                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.8)",
-                maxWidth: "95%", wordBreak: "break-word",
-              }}>
+              <span style={subStyle}>
                 {displaySub.text}
               </span>
             </div>
           );
         })()}
 
-        {/* Caption overlay — shows clip title/caption at top */}
-        {clip.caption && !isPlaying && (
-          <div style={{
-            position: "absolute", bottom: 8, left: 6, right: 6,
-            display: "flex", justifyContent: "center", pointerEvents: "none",
-          }}>
-            <span style={{
-              fontSize: 9, fontWeight: 800, color: "#fff",
-              textAlign: "center", lineHeight: 1.2,
-              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.9)",
-              maxWidth: "95%", wordBreak: "break-word",
-              textTransform: "uppercase", letterSpacing: "0.02em",
+        {/* Caption overlay — styled from template, shows during playback AND on static */}
+        {(() => {
+          const displayCap = activeCaption || (!isPlaying && captions.length > 0 ? captions[0] : null)
+            || (!isPlaying && clip.caption ? { text: clip.caption } : null);
+          if (!displayCap) return null;
+          return (
+            <div style={{
+              position: "absolute", left: 4, right: 4,
+              top: `${capYPct}%`, transform: "translateY(-50%)",
+              display: "flex", justifyContent: "center", pointerEvents: "none",
             }}>
-              {clip.caption || clip.title}
-            </span>
-          </div>
-        )}
+              <span style={capStyle}>
+                {displayCap.text || displayCap}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Play/pause overlay */}
         {!isPlaying && (
@@ -366,7 +512,7 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
 }
 
 // ============ CLIP ROW ============
-function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb }) {
+function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb, template }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const ca = clip.status === "approved" || clip.status === "ready";
@@ -391,7 +537,7 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
       </div>
 
       {/* Video player — larger */}
-      <ClipVideoPlayer clip={clip} />
+      <ClipVideoPlayer clip={clip} template={template || FALLBACK_TEMPLATE} />
 
       {/* Right: details + transcript */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0, overflow: "hidden" }}>
@@ -792,6 +938,24 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
   const [batchRendering, setBatchRendering] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ pct: 0, detail: "" });
 
+  // Load default template for styled preview overlays
+  const [previewTemplate, setPreviewTemplate] = useState(FALLBACK_TEMPLATE);
+  useEffect(() => {
+    (async () => {
+      try {
+        const defaultId = await window.clipflow?.storeGet("defaultTemplateId");
+        const saved = await window.clipflow?.storeGet("layoutTemplates");
+        const builtInDeleted = await window.clipflow?.storeGet("builtInTemplateDeleted");
+        const all = [
+          ...(builtInDeleted ? [] : [FALLBACK_TEMPLATE]),
+          ...(Array.isArray(saved) ? saved : []),
+        ];
+        const tpl = all.find(t => t.id === (defaultId || "fega-default")) || all[0] || FALLBACK_TEMPLATE;
+        setPreviewTemplate(tpl);
+      } catch { /* use fallback */ }
+    })();
+  }, []);
+
   const clips = project.clips || [];
   const isApproved = (c) => c.status === "approved" || c.status === "ready";
   const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? c.status === "none" : true);
@@ -849,6 +1013,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
             onEditClipTitle={onEditClipTitle}
             onOpenInEditor={onOpenInEditor}
             gamesDb={gamesDb}
+            template={previewTemplate}
           />
         ))}
         {filtered.length === 0 && (

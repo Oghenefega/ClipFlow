@@ -373,7 +373,8 @@ export default function TimelinePanelNew() {
         if (isInput) return;
         if (selectedSegIds.size === 0) return;
         e.preventDefault();
-        const isRipple = !e.ctrlKey;
+        // Ripple delete only for audio track; sub/cap always regular delete
+        const isRipple = selectedTrack === "audio" ? !e.ctrlKey : false;
         if (selectedSegIds.size > 1) {
           handleBatchDelete(isRipple);
         } else {

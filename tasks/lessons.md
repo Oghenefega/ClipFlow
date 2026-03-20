@@ -414,6 +414,10 @@
 - **Issue:** Clicking a word highlights the PREVIOUS word instead of the clicked one. The `getActiveWordInSeg` function uses playback time which lags behind the click-to-seek.
 - **Rule:** When user clicks a word, the visual highlight must immediately show on THAT word, not rely on playback time catching up. Use the explicitly selected word info, not just the playback-derived active word.
 
+### DEL key should only ripple-delete on audio tracks, not subtitle/caption
+- **Mistake:** Made DEL = ripple delete and Ctrl+DEL = gap delete for ALL tracks. User doesn't want ripple delete on subtitle/caption tracks — ripple only makes sense for audio.
+- **Rule:** DEL on subtitle/caption = regular delete (leave gap). DEL on audio = ripple delete. Ripple delete is only meaningful when it shifts subsequent audio segments to close gaps.
+
 ### Always check existing codebase for API model IDs before guessing
 - **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
 - **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.
