@@ -313,28 +313,23 @@ function ClipVideoPlayer({ clip, template }) {
           </div>
         )}
 
-        {/* Subtitle overlay — styled from template, shows during playback or first subtitle on static */}
-        {(() => {
-          const displaySub = activeSubtitle || (!isPlaying && subtitles.length > 0 ? subtitles[0] : null);
-          if (!displaySub) return null;
-          return (
-            <div style={{
-              position: "absolute", left: 4, right: 4,
-              top: `${subYPct}%`, transform: "translateY(-50%)",
-              display: "flex", justifyContent: "center", pointerEvents: "none",
-            }}>
-              <span style={subStyle}>
-                {displaySub.text}
-              </span>
-            </div>
-          );
-        })()}
+        {/* Subtitle overlay — only during playback */}
+        {isPlaying && activeSubtitle && (
+          <div style={{
+            position: "absolute", left: 4, right: 4,
+            top: `${subYPct}%`, transform: "translateY(-50%)",
+            display: "flex", justifyContent: "center", pointerEvents: "none",
+          }}>
+            <span style={subStyle}>
+              {activeSubtitle.text}
+            </span>
+          </div>
+        )}
 
-        {/* Caption overlay — styled from template, shows during playback AND on static */}
+        {/* Caption overlay — only during playback */}
         {(() => {
-          const displayCap = activeCaption || (!isPlaying && captions.length > 0 ? captions[0] : null)
-            || (!isPlaying && clip.caption ? { text: clip.caption } : null);
-          if (!displayCap) return null;
+          if (!isPlaying || !activeCaption) return null;
+          const displayCap = activeCaption;
           return (
             <div style={{
               position: "absolute", left: 4, right: 4,
