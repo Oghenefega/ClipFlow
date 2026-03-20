@@ -3,6 +3,7 @@
 export const SPEED_OPTIONS = ["0.25x", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"];
 
 // ── Professional color palette (DaVinci/Premiere-inspired) ──
+// Caption = blue, Subtitle = teal/green, Audio = warm amber/orange
 export const TRACK_COLORS = {
   cap: {
     bg: "hsl(217 70% 55% / 0.16)",
@@ -14,21 +15,21 @@ export const TRACK_COLORS = {
     badge: "hsl(217 70% 50%)",
   },
   sub: {
-    bg: "hsl(38 80% 55% / 0.14)",
-    border: "hsl(38 80% 55% / 0.45)",
-    selected: "hsl(38 80% 55% / 0.28)",
-    hover: "hsl(38 80% 55% / 0.20)",
-    text: "hsl(38 80% 85%)",
-    ring: "hsl(38 80% 65%)",
-    badge: "hsl(38 80% 45%)",
+    bg: "hsl(160 55% 45% / 0.14)",
+    border: "hsl(160 55% 45% / 0.45)",
+    selected: "hsl(160 55% 45% / 0.28)",
+    hover: "hsl(160 55% 45% / 0.20)",
+    text: "hsl(160 55% 82%)",
+    ring: "hsl(160 55% 58%)",
+    badge: "hsl(160 55% 38%)",
   },
   audio: {
-    bg: "transparent",
-    border: "hsl(25 90% 55% / 0.4)",
+    bg: "hsl(25 90% 55% / 0.04)",
+    border: "hsl(25 90% 55% / 0.22)",
     selected: "hsl(25 90% 55% / 0.15)",
-    hover: "hsl(25 90% 55% / 0.08)",
+    hover: "hsl(25 90% 55% / 0.10)",
     text: "hsl(25 90% 70%)",
-    ring: "hsl(25 90% 60%)",
+    ring: "hsl(25 90% 60% / 0.7)",
     badge: "hsl(25 90% 50%)",
   },
 };

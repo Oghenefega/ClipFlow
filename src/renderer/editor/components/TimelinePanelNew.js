@@ -533,7 +533,7 @@ export default function TimelinePanelNew() {
         onMouseMove={handleMouseMove}
         style={{ cursor: scrubbing ? "grabbing" : "default" }}
       >
-        <div className="relative" style={{ width: totalWidth, minWidth: "100%", minHeight: "100%" }}>
+        <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
 
           {/* ── PLAYHEAD — red line + triangle, clipped to track area ── */}
           {playheadPx <= LABEL_W + clipContentWidth && (
@@ -541,7 +541,7 @@ export default function TimelinePanelNew() {
               className="absolute z-30 pointer-events-none"
               style={{
                 left: playheadPx, top: 0,
-                height: RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H,
+                height: RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H + TRACK_H,
                 transform: "translateX(-50%)",
               }}
             >
@@ -739,11 +739,23 @@ export default function TimelinePanelNew() {
             </div>
           </div>
 
-          {/* ── Add audio row ── */}
-          <div className="flex items-center px-3 h-8">
-            <button className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1.5 transition-colors">
-              <Music className="h-3 w-3" /> Add audio
-            </button>
+          {/* ── Additional audio track (empty placeholder) ── */}
+          <div
+            className="flex items-stretch"
+            style={{ height: TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
+          >
+            <div
+              className="shrink-0 flex items-center gap-1 px-2 z-10"
+              style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+            >
+              <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.25)" }}>&#9835;</span>
+              <span className="text-[10px] text-muted-foreground/40 font-medium">Audio 2</span>
+            </div>
+            <div className="flex-1 relative flex items-center" style={{ minWidth: clipContentWidth + END_PADDING }}>
+              <button className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors ml-3">
+                <Music className="h-3 w-3" /> Drop audio or click to add
+              </button>
+            </div>
           </div>
         </div>
       </div>

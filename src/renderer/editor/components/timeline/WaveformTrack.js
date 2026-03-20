@@ -132,30 +132,40 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 
   const showHandles = selected || hovered;
 
+  // 3-state visual: default (subtle border), hovered (brighter border), selected (bright + glow)
+  const borderColor = selected
+    ? "hsl(25 90% 60% / 0.6)"
+    : hovered
+      ? "hsl(25 90% 55% / 0.35)"
+      : "hsl(25 90% 55% / 0.18)";
+  const bgColor = selected
+    ? "hsl(25 90% 55% / 0.08)"
+    : hovered
+      ? "hsl(25 90% 55% / 0.04)"
+      : "hsl(25 90% 55% / 0.02)";
+  const shadow = selected
+    ? "0 0 0 1px hsl(25 90% 60% / 0.25), inset 0 1px 0 rgba(255,255,255,0.06)"
+    : "inset 0 1px 0 rgba(255,255,255,0.03)";
+
   return (
     <div
       className="relative h-full cursor-pointer overflow-hidden"
       style={{
         width: timelineWidth,
-        background: selected ? "hsl(25 90% 55% / 0.06)" : "transparent",
+        background: bgColor,
+        border: `1px solid ${borderColor}`,
         borderRadius: SEGMENT_RADIUS,
-        boxShadow: selected ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "none",
+        boxShadow: shadow,
         transition: resizing ? "none" : rippleAnimating
           ? `all ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
-          : "background 0.15s ease-out",
+          : "background 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out",
       }}
       onClick={(e) => { e.stopPropagation(); onSelect(); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e); }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <canvas ref={canvasRef} className="absolute inset-0" />
-      {selected && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ border: "1px solid hsl(25 90% 60% / 0.4)", borderRadius: SEGMENT_RADIUS }}
-        />
-      )}
+      <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
       {/* Left handle */}
       <div
         className="absolute left-0 top-0 bottom-0 z-10 cursor-col-resize"
