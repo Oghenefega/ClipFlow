@@ -401,6 +401,19 @@
 - **Pattern:** When the user types "way I just" into a single-word segment (in 1-word mode), the text has 3 words. Auto-split the segment into 3 segments, evenly dividing the original segment's time range.
 - **Rule:** Always check `segmentMode` before deciding whether to split. In 3-word mode, multi-word input is valid as-is. In 1-word mode, it should create separate segments.
 
+### NEVER mark tasks as done until user confirms
+- **Mistake:** Marked 6 tasks as "completed" after building successfully, but multiple had bugs: zoom glitched when playhead was centered, create subtitle didn't persist across segment mode switch, word highlighting was off-by-one, inline editor box too small.
+- **Rule:** After implementing, mark tasks as "awaiting verification" at most. Only mark DONE when the user explicitly confirms ("looks good", "works well", etc.). If user says "not fully fixed" or "I don't like it", mark it back as in_progress. If user doesn't mention it after a couple sessions, proactively ask "Did X work well for you?"
+- **Pattern:** Build → Launch → Tell user what changed → WAIT for confirmation → Only then mark done.
+
+### Segment mode switch must preserve user-created segments
+- **Issue:** Switching from 1-word to 3-word mode (or vice versa) rebuilds segments from `originalSegments`, which doesn't include manually created segments.
+- **Rule:** When user creates/edits segments manually, those changes must survive segment mode switches. Either update `originalSegments` when segments are created/edited, or merge manual segments into the rebuilt set.
+
+### Word highlight off-by-one in Edit Subtitles panel
+- **Issue:** Clicking a word highlights the PREVIOUS word instead of the clicked one. The `getActiveWordInSeg` function uses playback time which lags behind the click-to-seek.
+- **Rule:** When user clicks a word, the visual highlight must immediately show on THAT word, not rely on playback time catching up. Use the explicitly selected word info, not just the playback-derived active word.
+
 ### Always check existing codebase for API model IDs before guessing
 - **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
 - **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.

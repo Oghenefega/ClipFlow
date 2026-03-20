@@ -14,5 +14,13 @@
     "sessionCount": 0,
     "updateThreshold": 5,
     "lastUpdated": null
+  },
+  "EO": {
+    "gameTag": "EO",
+    "gameName": "Egging On",
+    "playStyle": "",
+    "sessionCount": 2,
+    "updateThreshold": 5,
+    "lastUpdated": null
   }
 }

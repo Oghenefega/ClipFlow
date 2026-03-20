@@ -201,6 +201,16 @@ export default function TimelinePanelNew() {
     updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
   }, [duration, updateCaptionSegmentTimes]);
 
+  // Drag (move) subtitle segment — updates startSec/endSec maintaining duration
+  const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
+    updateSegmentTimes(segId, Math.max(0, newStart), Math.min(effectiveDuration, newEnd));
+  }, [effectiveDuration, updateSegmentTimes]);
+
+  // Drag (move) caption segment
+  const handleCaptionDrag = useCallback((id, newStart, newEnd) => {
+    updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
+  }, [duration, updateCaptionSegmentTimes]);
+
   const handleAudioResize = useCallback((id, newStart, newEnd) => {
     resizeAudioSegment(id, newStart, newEnd);
   }, [resizeAudioSegment]);
@@ -375,10 +385,9 @@ export default function TimelinePanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
 
-  // ── Zoom anchored to PLAYHEAD — gently slides playhead to center ──
-  // When zooming, smoothly animate scrollLeft so the playhead glides to the
-  // center of the viewport instead of snapping.
-  const zoomAnimRef = useRef(null);
+  // ── Zoom anchored to PLAYHEAD — gently slides playhead toward center ──
+  // Uses zoom ratio to scale scroll position, then smoothly drifts toward centering.
+  // No rAF animation loop — single immediate scroll + CSS smooth behavior avoids glitchy feedback.
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || effectiveDuration <= 0 || prevZoomRef.current === tlZoom) {
@@ -386,37 +395,28 @@ export default function TimelinePanelNew() {
       return;
     }
 
+    const prevZoom = prevZoomRef.current;
+    const zoomRatio = tlZoom / prevZoom;
     const viewWidth = container.clientWidth;
-    // New playhead position in content space (after zoom)
+
+    // Playhead position in new content space
     const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
-    // Target: center the playhead in the viewport
-    const targetScroll = newPlayheadX - viewWidth / 2;
-    const clampedTarget = Math.max(0, targetScroll);
+    // Where playhead currently is on screen
+    const prevPlayheadX = LABEL_W + playheadFrac * (visibleContentWidth * prevZoom);
+    const playheadScreenX = prevPlayheadX - container.scrollLeft;
 
-    // Animate smoothly with lerp over ~8 frames
-    if (zoomAnimRef.current) cancelAnimationFrame(zoomAnimRef.current);
-    const startScroll = container.scrollLeft;
-    const diff = clampedTarget - startScroll;
-    let frame = 0;
-    const FRAMES = 8;
-    const animate = () => {
-      frame++;
-      const t = frame / FRAMES;
-      // Ease-out cubic
-      const ease = 1 - Math.pow(1 - t, 3);
-      container.scrollLeft = startScroll + diff * ease;
-      if (frame < FRAMES) {
-        zoomAnimRef.current = requestAnimationFrame(animate);
-      } else {
-        zoomAnimRef.current = null;
-      }
-    };
-    zoomAnimRef.current = requestAnimationFrame(animate);
+    // Two targets: (A) keep playhead at same screen position, (B) center playhead
+    const keepInPlaceScroll = newPlayheadX - playheadScreenX;
+    const centerScroll = newPlayheadX - viewWidth / 2;
 
+    // Blend: mostly keep-in-place, drift 30% toward center each zoom step
+    // This creates the "gentle slide to center" effect without oscillation
+    const blendedScroll = keepInPlaceScroll + (centerScroll - keepInPlaceScroll) * 0.3;
+
+    container.scrollLeft = Math.max(0, blendedScroll);
     prevZoomRef.current = tlZoom;
-    return () => { if (zoomAnimRef.current) cancelAnimationFrame(zoomAnimRef.current); };
   }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth, currentTime]);
 
   // ── Smooth auto-scroll during playback ──
@@ -651,6 +651,7 @@ export default function TimelinePanelNew() {
                     selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
                     onSelect={(id, e) => handleSegSelect("cap", id, e)}
                     onResize={handleCaptionResize}
+                    onDrag={handleCaptionDrag}
                     rippleAnimating={rippleAnimating}
                   />
                 );
@@ -727,6 +728,7 @@ export default function TimelinePanelNew() {
                     selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
                     onSelect={(id, e) => handleSegSelect("sub", id, e)}
                     onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                    onDrag={handleSubtitleDrag}
                     rippleAnimating={rippleAnimating}
                   />
                 ));
@@ -816,6 +818,46 @@ export default function TimelinePanelNew() {
           onRippleDelete={() => handleDelete(true, contextMenu.track, contextMenu.segId)}
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
           onDuplicate={() => { /* TODO */ }}
+          onDeleteWithAudio={() => {
+            // Delete the subtitle/caption AND the overlapping audio segment
+            const track = contextMenu.track;
+            const segId = contextMenu.segId;
+            // Find the subtitle/caption segment to get its time range
+            let seg;
+            if (track === "sub") {
+              seg = editSegments.find(s => s.id === segId);
+            } else if (track === "cap") {
+              seg = captionSegs.find(s => s.id === segId);
+            }
+            if (!seg) return;
+
+            // Find overlapping audio segment(s) that contain this subtitle's time range
+            const overlappingAudio = audioSegments.filter(
+              a => a.startSec < seg.endSec && a.endSec > seg.startSec
+            );
+
+            // Delete the subtitle/caption first
+            if (track === "sub") {
+              rippleDeleteSegment(segId);
+            } else if (track === "cap") {
+              rippleDeleteCaptionSegment(segId);
+            }
+
+            // Then ripple-delete matching audio segments and their overlapping subtitles
+            overlappingAudio.forEach(a => {
+              // Delete subtitles within this audio segment
+              const subStore = useSubtitleStore.getState();
+              const overlappingSubs = subStore.editSegments.filter(
+                s => s.startSec >= a.startSec && s.endSec <= a.endSec && s.id !== segId
+              );
+              overlappingSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
+              // Delete the audio segment
+              rippleDeleteAudioSegment(a.id);
+            });
+
+            setSelectedTrack(null);
+            setSelectedSegIds(new Set());
+          }}
         />
       )}
     </div>

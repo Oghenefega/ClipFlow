@@ -266,6 +266,10 @@ const useSubtitleStore = create((set, get) => ({
     // Use Infinity as fallback when endTime is missing/zero — never filter out all segments
     const rawEnd = hasClipTranscription ? Infinity : (clip.endTime || 0);
     const clipEnd = rawEnd > clipStart ? rawEnd : Infinity;
+
+    // Diagnostic: log offset info for debugging timing drift
+    console.log(`[initSegments] hasClipTranscription=${hasClipTranscription}, clipStart=${clipStart.toFixed(2)}, clipEnd=${clipEnd === Infinity ? 'Inf' : clipEnd.toFixed(2)}, source segments=${transcriptionSource.segments.length}`);
+
     const segs = transcriptionSource.segments
       .filter((s) => {
         // For clip-level transcription (clipEnd=Infinity): include all segments
@@ -274,16 +278,26 @@ const useSubtitleStore = create((set, get) => ({
         return s.start < clipEnd && s.end > clipStart;
       })
       .map((s, i) => {
-        const segStartSec = s.start - clipStart;
-        const segEndSec = s.end - clipStart;
+        const segStartSec = Math.max(0, s.start - clipStart);
+        const segEndSec = Math.max(0, s.end - clipStart);
         // Merge subword tokens using segment text as ground truth, then clamp timestamps
+        // Use nullish coalescing (??) instead of || to preserve valid 0 timestamps
         const rawWords = mergeWordTokens((s.words || []).map(w => ({
           word: w.word,
-          start: Math.max(0, (w.start || 0) - clipStart),
-          end: Math.max(0, (w.end || 0) - clipStart),
+          start: Math.max(0, (w.start ?? s.start) - clipStart),
+          end: Math.max(0, (w.end ?? s.end) - clipStart),
           probability: w.probability ?? 1,
         })), s.text);
         const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
+
+        // Diagnostic: log first segment's timing for drift detection
+        if (i === 0) {
+          console.log(`[initSegments] First seg: source=[${s.start.toFixed(2)}-${s.end.toFixed(2)}], clip-relative=[${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
+          if (repairedWords.length > 0) {
+            console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
+          }
+        }
+
         return {
           id: i + 1,
           start: fmtTime(segStartSec),
@@ -709,11 +723,21 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Segment mode switching ──
   setSegmentMode: (mode) => {
-    const { originalSegments } = get();
+    const { originalSegments, editSegments } = get();
     if (!originalSegments || originalSegments.length === 0) {
       set({ segmentMode: mode });
       return;
     }
+
+    // Identify manually-created segments (user-added, not from transcription).
+    // A segment is "manual" if it doesn't overlap with ANY original segment's time range.
+    // Also preserve segments whose text was user-edited (text differs from original words).
+    const manualSegs = editSegments.filter((es) => {
+      const overlapsOriginal = originalSegments.some((os) =>
+        es.startSec < os.endSec && es.endSec > os.startSec
+      );
+      return !overlapsOriginal;
+    });
 
     // Gather all words from all original segments (already merged during init)
     const allWords = [];
@@ -760,20 +784,19 @@ const useSubtitleStore = create((set, get) => ({
     }
 
     // Close gaps between segments during continuous speech.
-    // If gap between seg[i].end and seg[i+1].start is < 1s, extend seg[i]
-    // to touch seg[i+1] — pills should be continuous when speech is flowing.
-    // Only leave a visible gap when silence exceeds 1 second.
     for (let i = 0; i < rawSegs.length - 1; i++) {
       const gap = rawSegs[i + 1].startSec - rawSegs[i].endSec;
       if (gap > 0 && gap < SILENCE_GAP_THRESHOLD) {
-        // Extend current segment's end to meet the next segment's start
         rawSegs[i].endSec = rawSegs[i + 1].startSec;
         rawSegs[i].end = fmtTime(rawSegs[i].endSec);
         rawSegs[i].dur = (rawSegs[i].endSec - rawSegs[i].startSec).toFixed(1) + "s";
       }
     }
 
-    set({ editSegments: rawSegs, segmentMode: mode, activeSegId: rawSegs[0]?.id });
+    // Merge manually-created segments back in, sorted by time
+    const merged = [...rawSegs, ...manualSegs].sort((a, b) => a.startSec - b.startSec);
+
+    set({ editSegments: merged, segmentMode: mode, activeSegId: merged[0]?.id });
   },
 }));
 

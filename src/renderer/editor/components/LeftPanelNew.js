@@ -27,10 +27,13 @@ import {
   Check,
   Plus,
   CaseSensitive,
+  Trash2,
+  Film,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
+import useEditorStore from "../stores/useEditorStore";
 import { fmtTime, parseTime } from "../utils/timeUtils";
 
 const PUNCTUATION_OPTIONS = [
@@ -85,8 +88,8 @@ function InlineWordEditor({ initialText, onConfirm, onCancel, selectAll }) {
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}
       onBlur={() => onConfirm(text.trim())}
-      className="inline bg-primary/15 text-primary border border-primary/30 rounded px-1 py-0 text-sm outline-none min-w-[30px]"
-      style={{ width: `${Math.max(30, text.length * 9)}px` }}
+      className="inline bg-primary/15 text-primary border border-primary/30 rounded px-1.5 py-0.5 text-sm outline-none min-w-[40px]"
+      style={{ width: `${Math.max(40, text.length * 9.5 + 16)}px` }}
       onClick={(e) => e.stopPropagation()}
     />
   );
@@ -606,9 +609,16 @@ function EditSubtitlesTab() {
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const adjustedTime = currentTime - syncOffset;
 
+  const playing = usePlaybackStore((s) => s.playing);
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
   const [editingWord, setEditingWord] = useState(null); // { segId, wordIdx }
+
+  // Clear explicit word selection when playback starts, so playback highlight takes over
+  useEffect(() => {
+    if (playing) setSelectedWordInfo(null);
+  }, [playing, setSelectedWordInfo]);
 
   const matches = useMemo(() => {
     if (!transcriptSearch) return [];
@@ -716,7 +726,11 @@ function EditSubtitlesTab() {
       const currentWordIdx = wordIdx;
       wordIdx++;
       const isSelected = selectedWordInfo?.segId === seg.id && selectedWordInfo?.wordIdx === currentWordIdx;
-      const isPlaybackActive = currentWordIdx === activeWordInSeg;
+      // Prioritize explicit user selection over playback-derived highlight
+      // This prevents the "off-by-one" where clicking a word highlights the prior one
+      // because seekTo hasn't updated currentTime yet
+      const isPlaybackActive = !selectedWordInfo && currentWordIdx === activeWordInSeg;
+      const isHighlighted = isSelected || isPlaybackActive;
       const isEditing = editingWord?.segId === seg.id && editingWord?.wordIdx === currentWordIdx;
 
       if (isEditing) {
@@ -736,9 +750,8 @@ function EditSubtitlesTab() {
           key={i}
           className={`
             inline-block cursor-pointer rounded px-0.5 transition-colors
-            ${isPlaybackActive ? "bg-primary/20 text-primary font-semibold" : ""}
-            ${isSelected && !isPlaybackActive ? "bg-primary/15 text-primary" : ""}
-            ${!isSelected && !isPlaybackActive ? "hover:bg-secondary/60" : ""}
+            ${isHighlighted ? "bg-primary/20 text-primary font-semibold" : ""}
+            ${!isHighlighted ? "hover:bg-secondary/60" : ""}
           `}
           onClick={(e) => { e.stopPropagation(); handleWordClick(seg, currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: false }); }}
           onDoubleClick={(e) => { e.stopPropagation(); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: true }); }}
@@ -876,6 +889,54 @@ function EditSubtitlesTab() {
                         <TooltipContent className="text-xs">Toggle ALL CAPS</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+
+                    {/* Delete button — visible on hover */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="dark w-[200px] p-0 bg-[hsl(240_6%_10%)] border-[hsl(240_4%_20%)]" side="bottom" align="end" sideOffset={4}>
+                        <button
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSegment(seg.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete subtitle only
+                        </button>
+                        <button
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Delete subtitle + overlapping audio segment
+                            const edStore = useEditorStore.getState();
+                            const audioSegs = edStore.audioSegments;
+                            const overlapping = audioSegs.filter(
+                              a => a.startSec < seg.endSec && a.endSec > seg.startSec
+                            );
+                            // Delete subtitle first
+                            useSubtitleStore.getState().rippleDeleteSegment(seg.id);
+                            // Delete overlapping audio segments + their subtitles
+                            overlapping.forEach(a => {
+                              const subStore = useSubtitleStore.getState();
+                              const innerSubs = subStore.editSegments.filter(
+                                s => s.startSec >= a.startSec && s.endSec <= a.endSec
+                              );
+                              innerSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
+                              edStore.rippleDeleteAudioSegment(a.id);
+                            });
+                          }}
+                        >
+                          <Film className="h-3.5 w-3.5 text-red-500" /> Delete subtitle + clip
+                        </button>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Segment text — show inline editor for empty (newly created) segments */}

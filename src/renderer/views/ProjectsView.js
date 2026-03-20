@@ -149,19 +149,41 @@ function ClipVideoPlayer({ clip }) {
           </div>
         )}
 
-        {/* Subtitle overlay */}
-        {activeSubtitle && (
+        {/* Subtitle overlay — shows during playback or first subtitle on static thumbnail */}
+        {(() => {
+          const displaySub = activeSubtitle || (!isPlaying && subtitles.length > 0 ? subtitles[0] : null);
+          if (!displaySub) return null;
+          return (
+            <div style={{
+              position: "absolute", bottom: 40, left: 6, right: 6,
+              display: "flex", justifyContent: "center", pointerEvents: "none",
+            }}>
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: "#fff",
+                textAlign: "center", lineHeight: 1.3,
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.8)",
+                maxWidth: "95%", wordBreak: "break-word",
+              }}>
+                {displaySub.text}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Caption overlay — shows clip title/caption at top */}
+        {clip.caption && !isPlaying && (
           <div style={{
-            position: "absolute", bottom: 40, left: 6, right: 6,
+            position: "absolute", bottom: 8, left: 6, right: 6,
             display: "flex", justifyContent: "center", pointerEvents: "none",
           }}>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: "#fff",
-              textAlign: "center", lineHeight: 1.3,
-              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.8)",
+              fontSize: 9, fontWeight: 800, color: "#fff",
+              textAlign: "center", lineHeight: 1.2,
+              textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.9)",
               maxWidth: "95%", wordBreak: "break-word",
+              textTransform: "uppercase", letterSpacing: "0.02em",
             }}>
-              {activeSubtitle.text}
+              {clip.caption || clip.title}
             </span>
           </div>
         )}
