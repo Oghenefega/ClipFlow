@@ -168,8 +168,12 @@ const useEditorStore = create((set, get) => ({
       updated[idx].endSec = ne;
       return { audioSegments: updated };
     });
+    // NOTE: _trimToAudioBounds is NOT called here — it runs on mouse-up only
+    // so dragging back out restores the original sub/caption extents
+  },
 
-    // After resize, auto-trim subtitles & captions to the new audio boundary
+  // Called explicitly on mouse-up after audio resize to commit the trim
+  commitAudioResize: () => {
     get()._trimToAudioBounds();
   },
 

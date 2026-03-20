@@ -63,6 +63,7 @@ export default function TimelinePanelNew() {
   const deleteAudioSegment = useEditorStore((s) => s.deleteAudioSegment);
   const rippleDeleteAudioSegment = useEditorStore((s) => s.rippleDeleteAudioSegment);
   const resizeAudioSegment = useEditorStore((s) => s.resizeAudioSegment);
+  const commitAudioResize = useEditorStore((s) => s.commitAudioResize);
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -669,7 +670,7 @@ export default function TimelinePanelNew() {
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
-                      audioSeg={seg} onResize={handleAudioResize}
+                      audioSeg={seg} onResize={handleAudioResize} onResizeEnd={commitAudioResize}
                       segStartSec={seg.startSec} segEndSec={seg.endSec}
                       rippleAnimating={rippleAnimating}
                     />
