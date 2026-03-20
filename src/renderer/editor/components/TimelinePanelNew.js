@@ -572,16 +572,24 @@ export default function TimelinePanelNew() {
               <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              {captionSegs.map((seg) => (
-                <SegmentBlock
-                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
-                  duration={effectiveDuration} timelineWidth={clipContentWidth}
-                  selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
-                  onSelect={(id, e) => handleSegSelect("cap", id, e)}
-                  onResize={handleCaptionResize}
-                  rippleAnimating={rippleAnimating}
-                />
-              ))}
+              {captionSegs.map((seg) => {
+                // Visually clamp to audio boundary during drag (non-destructive)
+                const clampedSeg = audioMaxEnd > 0 && seg.endSec > audioMaxEnd
+                  ? { ...seg, endSec: Math.max(seg.startSec + 0.05, audioMaxEnd) }
+                  : seg;
+                // Hide segments fully past audio boundary
+                if (audioMaxEnd > 0 && seg.startSec >= audioMaxEnd) return null;
+                return (
+                  <SegmentBlock
+                    key={seg.id} seg={clampedSeg} trackColor={TRACK_COLORS.cap}
+                    duration={effectiveDuration} timelineWidth={clipContentWidth}
+                    selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
+                    onSelect={(id, e) => handleSegSelect("cap", id, e)}
+                    onResize={handleCaptionResize}
+                    rippleAnimating={rippleAnimating}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -613,11 +621,18 @@ export default function TimelinePanelNew() {
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
-                if (editSegments.length > 1 && effectiveDuration > 0) {
-                  const avgWidth = editSegments.reduce((sum, s) => sum + ((s.endSec - s.startSec) / effectiveDuration) * clipContentWidth, 0) / editSegments.length;
+                // Visually clamp subtitles to audio boundary
+                const visibleSubs = audioMaxEnd > 0
+                  ? editSegments
+                      .filter((s) => s.startSec < audioMaxEnd)
+                      .map((s) => s.endSec > audioMaxEnd ? { ...s, endSec: Math.max(s.startSec + 0.05, audioMaxEnd) } : s)
+                  : editSegments;
+
+                if (visibleSubs.length > 1 && effectiveDuration > 0) {
+                  const avgWidth = visibleSubs.reduce((sum, s) => sum + ((s.endSec - s.startSec) / effectiveDuration) * clipContentWidth, 0) / visibleSubs.length;
                   if (avgWidth < MERGE_THRESHOLD) {
-                    const minStart = Math.min(...editSegments.map(s => s.startSec));
-                    const maxEnd = Math.max(...editSegments.map(s => s.endSec));
+                    const minStart = Math.min(...visibleSubs.map(s => s.startSec));
+                    const maxEnd = Math.min(Math.max(...visibleSubs.map(s => s.endSec)), audioMaxEnd > 0 ? audioMaxEnd : Infinity);
                     const leftPx = (minStart / effectiveDuration) * clipContentWidth;
                     const widthPx = ((maxEnd - minStart) / effectiveDuration) * clipContentWidth;
                     return (
@@ -633,14 +648,14 @@ export default function TimelinePanelNew() {
                       >
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                           <span className="text-[10px] font-medium" style={{ color: TRACK_COLORS.sub.text }}>
-                            Subtitle ({editSegments.length})
+                            Subtitle ({visibleSubs.length})
                           </span>
                         </div>
                       </div>
                     );
                   }
                 }
-                return editSegments.map((seg) => (
+                return visibleSubs.map((seg) => (
                   <SegmentBlock
                     key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
                     duration={effectiveDuration} timelineWidth={clipContentWidth}
