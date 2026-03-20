@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, onResizeEnd, segStartSec = 0, segEndSec, rippleAnimating }) {
+function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, onResizeEnd, maxExtendSec, segStartSec = 0, segEndSec, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -25,7 +25,9 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
         if (side === "left") {
           newStart = Math.max(0, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
         } else {
-          newEnd = Math.min(duration, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
+          // Allow extending past current duration up to maxExtendSec (source boundary)
+          const maxEnd = maxExtendSec || duration;
+          newEnd = Math.min(maxEnd, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
         }
         onResize(audioSeg.id, newStart, newEnd);
       });

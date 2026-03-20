@@ -4,7 +4,7 @@
 
 ---
 
-## 🟡 Pending Approval — Clip Extension (Extend Clips Beyond Original Boundaries)
+## ✅ Implemented — Clip Extension (Extend Clips Beyond Original Boundaries)
 
 ### Goal
 Allow users to drag the right edge of an audio segment PAST its original clip boundary to extend the clip. When extended, new subtitle segments are pulled from the project-level transcription (already available — full source was transcribed during pipeline), and the clip video file is re-cut from the source recording with the new boundaries.
@@ -17,39 +17,12 @@ The full source video transcription is stored at `project.transcription` with wo
 
 ### Implementation Steps
 
-- [ ] **Step 1: Store original clip boundaries in editor**
-  - Add `sourceStartTime`, `sourceEndTime`, and `sourceDuration` to useEditorStore
-  - Load from `clip.startTime`, `clip.endTime`, and `project.sourceDuration` on editor init
-  - These define the maximum extendable range
-
-- [ ] **Step 2: Allow audio segment to extend past current duration**
-  - In `resizeAudioSegment()`, change the max clamp from `playbackStore.duration` to `sourceDuration - sourceStartTime` (the remaining source material after clip start)
-  - Update WaveformTrack's right-handle drag to allow extending past current video duration
-  - Show a visual indicator (dimmed zone) for the extendable range beyond current clip
-
-- [ ] **Step 3: Re-cut video on commit (mouse-up)**
-  - In `commitAudioResize()`, detect if the new audio end exceeds the original clip duration
-  - If so, call a new IPC handler `clipflow.extendClip(projectId, clipId, newEndTime)` which:
-    - Verifies source file exists (`project.sourceFile`)
-    - FFmpeg re-cuts from source with new boundaries (stream copy, fast)
-    - Updates `clip.endTime` in project JSON
-    - Returns new file path + updated duration
-  - Update `playbackStore.duration` and reload the video element with the new file
-
-- [ ] **Step 4: Pull new subtitles for extended range**
-  - After successful re-cut, re-filter `project.transcription.segments` for the new time range
-  - Merge new subtitle segments into `editSegments` (append only — don't disturb edited existing subs)
-  - Update caption segment endSec if it was at the old boundary
-
-- [ ] **Step 5: Update waveform for new duration**
-  - Re-extract waveform peaks via FFmpeg for the new clip file
-  - Update `editorStore.waveformPeaks`
-
-- [ ] **Step 6: IPC handler in main process**
-  - New handler: `extendClip` in `main.js`
-  - Uses FFmpeg stream copy (no re-encode, near-instant)
-  - Replaces old clip file with new one
-  - Updates project JSON with new `endTime`, `duration`
+- [x] **Step 1: Store original clip boundaries in editor**
+- [x] **Step 2: Allow audio segment to extend past current duration**
+- [x] **Step 3: Re-cut video on commit (mouse-up)**
+- [x] **Step 4: Pull new subtitles for extended range**
+- [x] **Step 5: Update waveform for new duration**
+- [x] **Step 6: IPC handler `clip:extend` in main process**
 
 ### File Impact
 | File | Change |

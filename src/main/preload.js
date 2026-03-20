@@ -114,6 +114,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   pipelineLogsDeleteOld: (days) => ipcRenderer.invoke("pipelineLogs:deleteOld", days),
   pipelineLogsMonthlyCost: () => ipcRenderer.invoke("pipelineLogs:monthlyCost"),
 
+  // Extend a clip (re-cut from source with new end time)
+  extendClip: (projectId, clipId, newSourceEndTime) =>
+    ipcRenderer.invoke("clip:extend", projectId, clipId, newSourceEndTime),
+
   // Re-transcribe a specific clip
   retranscribeClip: (projectId, clipId) =>
     ipcRenderer.invoke("retranscribe:clip", projectId, clipId),

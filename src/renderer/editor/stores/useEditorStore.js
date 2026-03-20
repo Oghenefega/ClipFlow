@@ -14,6 +14,16 @@ const useEditorStore = create((set, get) => ({
   // Audio segments — array of { id, startSec, endSec }
   // Used by timeline for visual rendering AND by preview for playback control
   audioSegments: [],
+  // Source boundaries — used for clip extension
+  // sourceStartTime: where this clip starts in the source video (seconds)
+  // sourceEndTime: where this clip ends in the source video (seconds)
+  // sourceDuration: total duration of the source video (seconds)
+  // maxExtendSec: maximum clip-relative time this clip can extend to
+  sourceStartTime: 0,
+  sourceEndTime: 0,
+  sourceDuration: 0,
+  maxExtendSec: 0,
+  extending: false, // true while an extend operation is in progress
 
   // ── Actions ──
   initFromContext: (editorContext, localProjects) => {
@@ -24,12 +34,25 @@ const useEditorStore = create((set, get) => ({
     const project = localProjects.find((p) => p.id === editorContext.projectId) || null;
     const clip = project ? (project.clips || []).find((c) => c.id === editorContext.clipId) || null : null;
 
+    // Compute source boundaries for clip extension
+    const sourceStart = clip?.startTime || 0;
+    const sourceEnd = clip?.endTime || 0;
+    const sourceDur = project?.sourceDuration || 0;
+    const clipDuration = sourceEnd > sourceStart ? sourceEnd - sourceStart : 0;
+    // Maximum clip-relative time = how far the clip can extend into the source
+    const maxExtend = sourceDur > 0 ? sourceDur - sourceStart : clipDuration;
+
     set({
       project,
       clip,
       clipTitle: clip?.title || "Untitled Clip",
       editingTitle: false,
       dirty: false,
+      sourceStartTime: sourceStart,
+      sourceEndTime: sourceEnd,
+      sourceDuration: sourceDur,
+      maxExtendSec: maxExtend > 0 ? maxExtend : clipDuration,
+      extending: false,
     });
 
     // Initialize other stores from clip data
@@ -152,7 +175,9 @@ const useEditorStore = create((set, get) => ({
       const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
       const minDur = 0.1;
       let ns = Math.max(0, newStart);
-      let ne = Math.min(usePlaybackStore.getState().duration || Infinity, newEnd);
+      // Allow extending up to maxExtendSec (source boundary), not just current clip duration
+      const maxEnd = get().maxExtendSec || usePlaybackStore.getState().duration || Infinity;
+      let ne = Math.min(maxEnd, newEnd);
       ns = Math.min(ns, ne - minDur);
       ne = Math.max(ne, ns + minDur);
       const updated = sorted.map((seg) => ({ ...seg }));
@@ -172,9 +197,144 @@ const useEditorStore = create((set, get) => ({
     // so dragging back out restores the original sub/caption extents
   },
 
-  // Called explicitly on mouse-up after audio resize to commit the trim
-  commitAudioResize: () => {
-    get()._trimToAudioBounds();
+  // Called explicitly on mouse-up after audio resize to commit trim or extension
+  commitAudioResize: async () => {
+    const { audioSegments, clip, project, sourceStartTime } = get();
+    if (audioSegments.length === 0 || !clip || !project) {
+      get()._trimToAudioBounds();
+      return;
+    }
+
+    const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+    const newAudioEnd = sorted[sorted.length - 1].endSec;
+    const currentDuration = usePlaybackStore.getState().duration;
+
+    // Check if we've extended PAST the current clip duration
+    if (newAudioEnd > currentDuration + 0.1) {
+      // ── EXTEND CLIP ──
+      set({ extending: true });
+      try {
+        const newSourceEnd = sourceStartTime + newAudioEnd;
+        const result = await window.clipflow.extendClip(
+          project.id, clip.id, newSourceEnd
+        );
+        if (result?.error) {
+          console.error("Extend clip failed:", result.error);
+          // Revert audio segment to current duration
+          set((s) => ({
+            audioSegments: s.audioSegments.map((seg) =>
+              seg.endSec > currentDuration ? { ...seg, endSec: currentDuration } : seg
+            ),
+          }));
+        } else {
+          // Update clip data with new boundaries
+          const newClip = { ...clip, endTime: newSourceEnd, filePath: result.filePath };
+          const newProject = {
+            ...project,
+            clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
+          };
+          set({ clip: newClip, project: newProject, sourceEndTime: newSourceEnd });
+
+          // Update video duration in playback store
+          usePlaybackStore.getState().setDuration(newAudioEnd);
+
+          // Pull new subtitle segments for the extended range from project transcription
+          get()._extendSubtitles(currentDuration, newAudioEnd);
+
+          // Extend caption to new end if it was at the old boundary
+          get()._extendCaptionToAudioEnd(currentDuration, newAudioEnd);
+
+          // Re-extract waveform for the new clip
+          if (result.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
+            window.clipflow.ffmpegExtractWaveformPeaks(result.filePath, 400)
+              .then((wfResult) => {
+                if (wfResult?.peaks?.length > 0) set({ waveformPeaks: wfResult.peaks });
+              })
+              .catch(() => {});
+          }
+
+          // Reload video element with new file
+          const videoRef = usePlaybackStore.getState().getVideoRef();
+          if (videoRef?.current) {
+            videoRef.current.src = `file://${result.filePath.replace(/\\/g, "/")}`;
+            videoRef.current.load();
+          }
+
+          get().markDirty();
+        }
+      } catch (err) {
+        console.error("Extend clip error:", err);
+      } finally {
+        set({ extending: false });
+      }
+    } else {
+      // Normal trim (no extension)
+      get()._trimToAudioBounds();
+    }
+  },
+
+  // Pull new subtitle segments from project transcription for extended time range
+  _extendSubtitles: (oldEnd, newEnd) => {
+    const { project, sourceStartTime } = get();
+    const transcription = project?.transcription;
+    if (!transcription?.segments) return;
+
+    const subStore = useSubtitleStore.getState();
+    const existingSubs = subStore.editSegments;
+
+    // Find source segments that fall in the newly extended range
+    const sourceNewStart = sourceStartTime + oldEnd;
+    const sourceNewEnd = sourceStartTime + newEnd;
+
+    const newSegs = transcription.segments
+      .filter((s) => s.start < sourceNewEnd && s.end > sourceNewStart)
+      .map((s) => {
+        const segStart = Math.max(0, s.start - sourceStartTime);
+        const segEnd = Math.min(newEnd, s.end - sourceStartTime);
+        return {
+          id: `ext-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          start: `${Math.floor(segStart / 60)}:${(segStart % 60).toFixed(1).padStart(4, "0")}`,
+          end: `${Math.floor(segEnd / 60)}:${(segEnd % 60).toFixed(1).padStart(4, "0")}`,
+          dur: `${(segEnd - segStart).toFixed(1)}s`,
+          text: s.text,
+          track: "s1",
+          conf: "high",
+          startSec: segStart,
+          endSec: segEnd,
+          warning: null,
+          words: (s.words || []).map((w) => ({
+            word: w.word,
+            start: Math.max(0, (w.start || 0) - sourceStartTime),
+            end: Math.max(0, (w.end || 0) - sourceStartTime),
+            probability: w.probability ?? 1,
+          })),
+        };
+      })
+      // Filter out segments that already exist (overlap with existing subs)
+      .filter((ns) => !existingSubs.some((es) =>
+        Math.abs(es.startSec - ns.startSec) < 0.1 && Math.abs(es.endSec - ns.endSec) < 0.1
+      ));
+
+    if (newSegs.length > 0) {
+      subStore.setEditSegments([...existingSubs, ...newSegs]);
+    }
+  },
+
+  // Extend caption end to match new audio end (if it was at the old boundary)
+  _extendCaptionToAudioEnd: (oldEnd, newEnd) => {
+    const capStore = useCaptionStore.getState();
+    const caps = capStore.captionSegments;
+    if (caps.length === 0) return;
+
+    const updated = caps.map((seg) => {
+      const end = seg.endSec || Infinity;
+      // If caption ended at or near the old boundary, extend it
+      if (Math.abs(end - oldEnd) < 0.2 || end === null) {
+        return { ...seg, endSec: newEnd };
+      }
+      return seg;
+    });
+    capStore.setCaptionSegments(updated);
   },
 
   // Trim subtitle & caption segments so nothing extends past the last audio segment's end

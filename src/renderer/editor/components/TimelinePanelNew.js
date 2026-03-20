@@ -64,6 +64,8 @@ export default function TimelinePanelNew() {
   const rippleDeleteAudioSegment = useEditorStore((s) => s.rippleDeleteAudioSegment);
   const resizeAudioSegment = useEditorStore((s) => s.resizeAudioSegment);
   const commitAudioResize = useEditorStore((s) => s.commitAudioResize);
+  const maxExtendSec = useEditorStore((s) => s.maxExtendSec);
+  const extending = useEditorStore((s) => s.extending);
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -103,20 +105,27 @@ export default function TimelinePanelNew() {
     return () => observer.disconnect();
   }, []);
 
+  // Effective duration: max of video duration and furthest audio segment end
+  // This allows the timeline to grow when a clip is being extended
+  const audioMaxEnd = audioSegments.length > 0
+    ? Math.max(...audioSegments.map((s) => s.endSec))
+    : 0;
+  const effectiveDuration = Math.max(duration, audioMaxEnd);
+
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
-  const playheadPx = duration > 0 ? LABEL_W + (currentTime / duration) * clipContentWidth : LABEL_W;
+  const playheadPx = effectiveDuration > 0 ? LABEL_W + (currentTime / effectiveDuration) * clipContentWidth : LABEL_W;
 
   // ── Scrubbing ──
   const handleScrub = useCallback((e) => {
-    if (!scrollRef.current || duration <= 0) return;
+    if (!scrollRef.current || effectiveDuration <= 0) return;
     const rect = scrollRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
     if (x < 0) return;
-    const t = Math.max(0, Math.min(duration, (x / clipContentWidth) * duration));
-    seekTo(t);
-  }, [duration, clipContentWidth, seekTo]);
+    const t = Math.max(0, Math.min(effectiveDuration, (x / clipContentWidth) * effectiveDuration));
+    seekTo(t); // seekTo already clamps to audio bounds
+  }, [effectiveDuration, clipContentWidth, seekTo]);
 
   const handleScrubStart = useCallback((e) => {
     if (e.button !== 0) return;
@@ -129,10 +138,10 @@ export default function TimelinePanelNew() {
     const onMove = (e) => {
       if (scrubRafRef.current) cancelAnimationFrame(scrubRafRef.current);
       scrubRafRef.current = requestAnimationFrame(() => {
-        if (!scrollRef.current || duration <= 0) return;
+        if (!scrollRef.current || effectiveDuration <= 0) return;
         const rect = scrollRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
-        const t = Math.max(0, Math.min(duration, (x / clipContentWidth) * duration));
+        const t = Math.max(0, Math.min(effectiveDuration, (x / clipContentWidth) * effectiveDuration));
         seekTo(t);
       });
     };
@@ -146,7 +155,7 @@ export default function TimelinePanelNew() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [scrubbing, duration, clipContentWidth, seekTo]);
+  }, [scrubbing, effectiveDuration, clipContentWidth, seekTo]);
 
   // Track mouse position for zoom-to-cursor
   const handleMouseMove = useCallback((e) => {
@@ -346,7 +355,7 @@ export default function TimelinePanelNew() {
   // ── Zoom anchored to mouse cursor ──
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container || duration <= 0 || prevZoomRef.current === tlZoom) {
+    if (!container || effectiveDuration <= 0 || prevZoomRef.current === tlZoom) {
       prevZoomRef.current = tlZoom;
       return;
     }
@@ -364,10 +373,10 @@ export default function TimelinePanelNew() {
 
   // ── Smooth auto-scroll during playback ──
   useEffect(() => {
-    if (!playing || !scrollRef.current || duration <= 0) return;
+    if (!playing || !scrollRef.current || effectiveDuration <= 0) return;
     const container = scrollRef.current;
     const viewWidth = container.clientWidth;
-    const playheadX = LABEL_W + (currentTime / duration) * clipContentWidth;
+    const playheadX = LABEL_W + (currentTime / effectiveDuration) * clipContentWidth;
 
     if (playheadX > container.scrollLeft + viewWidth * 0.75) {
       const target = playheadX - viewWidth * 0.3;
@@ -439,6 +448,9 @@ export default function TimelinePanelNew() {
             </Tooltip>
           </TooltipProvider>
           <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{fmtTime(duration)}</span>
+          {extending && (
+            <span className="text-[10px] text-yellow-400 ml-2 animate-pulse">Extending clip...</span>
+          )}
         </div>
 
         {/* Right: Split, Speed, Hide */}
@@ -531,7 +543,7 @@ export default function TimelinePanelNew() {
           ))}
 
           {/* ── Ruler ── */}
-          <Ruler duration={duration} clipContentWidth={clipContentWidth} />
+          <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} />
 
           {/* ── Caption track ── */}
           <div
@@ -543,7 +555,7 @@ export default function TimelinePanelNew() {
               const rect = e.currentTarget.querySelector("[data-track-content]")?.getBoundingClientRect();
               if (rect) {
                 const x = e.clientX - rect.left;
-                const clickTime = (x / clipContentWidth) * duration;
+                const clickTime = (x / clipContentWidth) * effectiveDuration;
                 const seg = captionSegs.find((s) => clickTime >= s.startSec && clickTime <= s.endSec);
                 if (seg) {
                   handleSegSelect("cap", seg.id);
@@ -563,7 +575,7 @@ export default function TimelinePanelNew() {
               {captionSegs.map((seg) => (
                 <SegmentBlock
                   key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
-                  duration={duration} timelineWidth={clipContentWidth}
+                  duration={effectiveDuration} timelineWidth={clipContentWidth}
                   selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
                   onSelect={(id, e) => handleSegSelect("cap", id, e)}
                   onResize={handleCaptionResize}
@@ -583,7 +595,7 @@ export default function TimelinePanelNew() {
               const rect = e.currentTarget.querySelector("[data-track-content]")?.getBoundingClientRect();
               if (rect) {
                 const x = e.clientX - rect.left;
-                const clickTime = (x / clipContentWidth) * duration;
+                const clickTime = (x / clipContentWidth) * effectiveDuration;
                 const seg = editSegments.find((s) => clickTime >= s.startSec && clickTime <= s.endSec);
                 if (seg) {
                   handleSegSelect("sub", seg.id);
@@ -601,13 +613,13 @@ export default function TimelinePanelNew() {
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
-                if (editSegments.length > 1 && duration > 0) {
-                  const avgWidth = editSegments.reduce((sum, s) => sum + ((s.endSec - s.startSec) / duration) * clipContentWidth, 0) / editSegments.length;
+                if (editSegments.length > 1 && effectiveDuration > 0) {
+                  const avgWidth = editSegments.reduce((sum, s) => sum + ((s.endSec - s.startSec) / effectiveDuration) * clipContentWidth, 0) / editSegments.length;
                   if (avgWidth < MERGE_THRESHOLD) {
                     const minStart = Math.min(...editSegments.map(s => s.startSec));
                     const maxEnd = Math.max(...editSegments.map(s => s.endSec));
-                    const leftPx = (minStart / duration) * clipContentWidth;
-                    const widthPx = ((maxEnd - minStart) / duration) * clipContentWidth;
+                    const leftPx = (minStart / effectiveDuration) * clipContentWidth;
+                    const widthPx = ((maxEnd - minStart) / effectiveDuration) * clipContentWidth;
                     return (
                       <div
                         className="absolute top-1 bottom-1 cursor-pointer"
@@ -631,7 +643,7 @@ export default function TimelinePanelNew() {
                 return editSegments.map((seg) => (
                   <SegmentBlock
                     key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
-                    duration={duration} timelineWidth={clipContentWidth}
+                    duration={effectiveDuration} timelineWidth={clipContentWidth}
                     selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
                     onSelect={(id, e) => handleSegSelect("sub", id, e)}
                     onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
@@ -657,20 +669,21 @@ export default function TimelinePanelNew() {
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {audioSegments.map((seg) => {
-                const leftPx = duration > 0 ? (seg.startSec / duration) * clipContentWidth : 0;
-                const widthPx = duration > 0 ? ((seg.endSec - seg.startSec) / duration) * clipContentWidth : 0;
+                const leftPx = effectiveDuration > 0 ? (seg.startSec / effectiveDuration) * clipContentWidth : 0;
+                const widthPx = effectiveDuration > 0 ? ((seg.endSec - seg.startSec) / effectiveDuration) * clipContentWidth : 0;
                 return (
                   <div key={seg.id} className="absolute top-0 bottom-0" style={{
                     left: leftPx, width: Math.max(widthPx, 4),
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
-                      peaks={waveformPeaks} duration={duration}
+                      peaks={waveformPeaks} duration={effectiveDuration}
                       timelineWidth={widthPx} currentTime={currentTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
                       audioSeg={seg} onResize={handleAudioResize} onResizeEnd={commitAudioResize}
+                      maxExtendSec={maxExtendSec}
                       segStartSec={seg.startSec} segEndSec={seg.endSec}
                       rippleAnimating={rippleAnimating}
                     />
