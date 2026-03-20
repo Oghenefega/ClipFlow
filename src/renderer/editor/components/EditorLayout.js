@@ -313,9 +313,9 @@ function Topbar({ onBack }) {
   };
 
   return (
-    <div className="h-12 min-h-[48px] flex items-center px-3 border-b bg-card select-none">
+    <div className="h-12 min-h-[48px] flex items-center px-3 border-b bg-card select-none relative">
       {/* Left: ClipFlow logo/back + Undo/Redo + Last saved */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 z-10">
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -375,8 +375,9 @@ function Topbar({ onBack }) {
         )}
       </div>
 
-      {/* Center: Editable clip title + clip navigator dropdown */}
-      <div className="flex-1 flex items-center justify-center relative">
+      {/* Center: Editable clip title — absolutely centered on the full topbar */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+        <div className="pointer-events-auto relative">
         {editingTitle ? (
           <input
             ref={titleInputRef}
@@ -434,10 +435,14 @@ function Topbar({ onBack }) {
             chevronRef={navChevronRef}
           />
         )}
+        </div>
       </div>
 
+      {/* Spacer to push right buttons to edge */}
+      <div className="flex-1" />
+
       {/* Right: Re-transcribe + Save + Queue buttons */}
-      <div className="relative flex items-center gap-2">
+      <div className="relative flex items-center gap-2 z-10">
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>

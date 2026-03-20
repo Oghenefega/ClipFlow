@@ -588,13 +588,47 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Mouse wheel zoom on the preview area — scroll wheel always zooms (no Ctrl needed)
+  // Mouse wheel zoom anchored to cursor position
   const onWheel = useCallback((e) => {
     e.preventDefault();
+    const container = scrollContainerRef.current;
+    if (!container) {
+      setZoomState((z) => {
+        const current = z === -1 ? 100 : z;
+        const delta = e.deltaY < 0 ? 10 : -10;
+        return Math.max(10, Math.min(400, current + delta));
+      });
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    // Mouse position relative to container viewport
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    // Mouse position in scrolled content space
+    const contentX = container.scrollLeft + mouseX;
+    const contentY = container.scrollTop + mouseY;
+
     setZoomState((z) => {
-      const current = z === -1 ? 100 : z;
+      const oldZoom = z === -1 ? 100 : z;
       const delta = e.deltaY < 0 ? 10 : -10;
-      return Math.max(10, Math.min(400, current + delta));
+      const newZoom = Math.max(10, Math.min(400, oldZoom + delta));
+
+      // After React re-renders with new zoom, adjust scroll to keep mouse point fixed
+      const scale = newZoom / oldZoom;
+      requestAnimationFrame(() => {
+        if (newZoom <= 100) {
+          // At or below 100%, content is centered — no scroll adjustment needed
+          container.scrollLeft = 0;
+          container.scrollTop = 0;
+        } else {
+          // Scale the content position under the mouse and re-center it
+          container.scrollLeft = contentX * scale - mouseX;
+          container.scrollTop = contentY * scale - mouseY;
+        }
+      });
+
+      return newZoom;
     });
   }, []);
 

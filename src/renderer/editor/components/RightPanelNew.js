@@ -461,8 +461,21 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const [savingNew, setSavingNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [activePresetId, setActivePresetId] = useState(null);
+  const [flashId, setFlashId] = useState(null); // For overwrite visual feedback
   const renameRef = useRef(null);
   const newRef = useRef(null);
+
+  // Persist active preset ID so it survives page navigation
+  const storeKey = `activePresetId_${target}`;
+  useEffect(() => {
+    window.clipflow?.storeGet(storeKey).then((saved) => {
+      if (saved) setActivePresetId(saved);
+    }).catch(() => {});
+  }, [storeKey]);
+  const setAndPersistActive = useCallback((id) => {
+    setActivePresetId(id);
+    window.clipflow?.storeSet(storeKey, id);
+  }, [storeKey]);
 
   useEffect(() => { if (renamingId && renameRef.current) renameRef.current.focus(); }, [renamingId]);
   useEffect(() => { if (savingNew && newRef.current) newRef.current.focus(); }, [savingNew]);
@@ -481,6 +494,10 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
     const updated = snapshotEffectPreset(existing.name);
     updated.id = id;
     persist(userPresets.map(p => p.id === id ? updated : p));
+    setAndPersistActive(id);
+    // Visual flash to confirm overwrite
+    setFlashId(id);
+    setTimeout(() => setFlashId(null), 1200);
   };
 
   const handleRename = (id) => {
@@ -520,8 +537,9 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
           <SectionLabel>My Presets</SectionLabel>
           <div className="space-y-1">
             {userPresets.map((preset) => (
-              <div key={preset.id} className={`group flex items-center gap-1 rounded-md border transition-colors ${
-                activePresetId === preset.id ? "bg-primary/10 border-primary/40" : "bg-secondary/40 border-border/30 hover:border-primary/30"
+              <div key={preset.id} className={`group flex items-center gap-1 rounded-md border transition-all ${
+                flashId === preset.id ? "bg-green-500/10 border-green-500/40" :
+                activePresetId === preset.id ? "bg-secondary/50 border-border/50" : "bg-secondary/40 border-border/30 hover:border-muted-foreground/30"
               }`}>
                 {renamingId === preset.id ? (
                   <input ref={renameRef} value={renameText} onChange={(e) => setRenameText(e.target.value)}
@@ -529,8 +547,16 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                     onBlur={() => handleRename(preset.id)}
                     className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
                 ) : (
-                  <button className={`flex-1 text-left px-2 py-1.5 text-xs truncate ${activePresetId === preset.id ? "text-primary font-medium" : "text-foreground"}`} onClick={() => { applyEffectPreset(preset, target); setActivePresetId(preset.id); }}>
-                    {activePresetId === preset.id && <span className="mr-1">✓</span>}{preset.name}
+                  <button className="flex-1 text-left px-2 py-1.5 text-xs truncate flex items-center gap-1.5 text-foreground" onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}>
+                    {/* Active indicator: glowing green dot */}
+                    {activePresetId === preset.id && (
+                      <span className="shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: "#34d399", boxShadow: "0 0 6px #34d399" }} />
+                    )}
+                    <span className="truncate">{preset.name}</span>
+                    {/* Overwrite flash */}
+                    {flashId === preset.id && (
+                      <span className="text-[9px] text-green-400 animate-pulse ml-auto shrink-0">Updated</span>
+                    )}
                   </button>
                 )}
                 <TooltipProvider delayDuration={200}>
@@ -565,12 +591,15 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
         <SectionLabel>Built-in</SectionLabel>
         <div className="grid grid-cols-2 gap-2">
           {EFFECT_PRESETS.map((preset) => (
-            <button key={preset.id} onClick={() => { applyEffectPreset(preset, target); setActivePresetId(preset.id); }}
-              className={`py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-center ${
-                activePresetId === preset.id ? "bg-primary/15 border-primary/50" : "bg-secondary/60 border-border/40 hover:border-primary/40 hover:bg-secondary/80"
+            <button key={preset.id} onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}
+              className={`py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                activePresetId === preset.id ? "bg-secondary/70 border-border/50" : "bg-secondary/60 border-border/40 hover:border-muted-foreground/40 hover:bg-secondary/80"
               }`}>
-              <span className={`text-[10px] font-medium ${activePresetId === preset.id ? "text-primary" : "text-foreground"}`}>
-                {activePresetId === preset.id && "✓ "}{preset.name}
+              {activePresetId === preset.id && (
+                <span className="shrink-0 w-[6px] h-[6px] rounded-full" style={{ background: "#34d399", boxShadow: "0 0 5px #34d399" }} />
+              )}
+              <span className="text-[10px] font-medium text-foreground">
+                {preset.name}
               </span>
             </button>
           ))}
