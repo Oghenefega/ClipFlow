@@ -82,6 +82,8 @@ export default function TimelinePanelNew() {
   const mouseXRef = useRef(0);
   const prevZoomRef = useRef(tlZoom);
   const scrubRafRef = useRef(null);
+  const playheadRafRef = useRef(null);
+  const [smoothTime, setSmoothTime] = useState(0);
 
   // Helper — first selected ID (for backwards compat with single-select APIs)
   const selectedSegId = useMemo(() => {
@@ -93,6 +95,26 @@ export default function TimelinePanelNew() {
   useEffect(() => {
     if (duration > 0) initAudioSegments(duration);
   }, [duration, initAudioSegments]);
+
+  // ── Smooth 60fps playhead via rAF loop ──
+  // Reads video.currentTime directly instead of relying on Zustand's ~4Hz timeupdate
+  useEffect(() => {
+    if (!playing) {
+      // When paused, sync smoothTime to the store's currentTime
+      setSmoothTime(currentTime);
+      if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current);
+      return;
+    }
+    const tick = () => {
+      const videoRef = usePlaybackStore.getState().getVideoRef();
+      if (videoRef?.current && !videoRef.current.paused) {
+        setSmoothTime(videoRef.current.currentTime);
+      }
+      playheadRafRef.current = requestAnimationFrame(tick);
+    };
+    playheadRafRef.current = requestAnimationFrame(tick);
+    return () => { if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current); };
+  }, [playing, currentTime]);
 
   // ── Layout measurements ──
   const [trackAreaWidth, setTrackAreaWidth] = useState(600);
@@ -115,7 +137,8 @@ export default function TimelinePanelNew() {
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
-  const playheadPx = effectiveDuration > 0 ? LABEL_W + (currentTime / effectiveDuration) * clipContentWidth : LABEL_W;
+  const playheadTime = playing ? smoothTime : currentTime;
+  const playheadPx = effectiveDuration > 0 ? LABEL_W + (playheadTime / effectiveDuration) * clipContentWidth : LABEL_W;
 
   // ── Scrubbing ──
   const handleScrub = useCallback((e) => {
@@ -390,16 +413,16 @@ export default function TimelinePanelNew() {
     if (!playing || !scrollRef.current || effectiveDuration <= 0) return;
     const container = scrollRef.current;
     const viewWidth = container.clientWidth;
-    const playheadX = LABEL_W + (currentTime / effectiveDuration) * clipContentWidth;
+    const phX = LABEL_W + (smoothTime / effectiveDuration) * clipContentWidth;
 
-    if (playheadX > container.scrollLeft + viewWidth * 0.75) {
-      const target = playheadX - viewWidth * 0.3;
+    if (phX > container.scrollLeft + viewWidth * 0.75) {
+      const target = phX - viewWidth * 0.3;
       container.scrollLeft += (target - container.scrollLeft) * 0.15;
-    } else if (playheadX < container.scrollLeft + LABEL_W + 20) {
-      const target = Math.max(0, playheadX - LABEL_W - 20);
+    } else if (phX < container.scrollLeft + LABEL_W + 20) {
+      const target = Math.max(0, phX - LABEL_W - 20);
       container.scrollLeft += (target - container.scrollLeft) * 0.15;
     }
-  }, [playing, currentTime, duration, clipContentWidth]);
+  }, [playing, smoothTime, duration, clipContentWidth]);
 
   // ── Apply playback speed ──
   useEffect(() => {
@@ -417,7 +440,7 @@ export default function TimelinePanelNew() {
       {/* ── Controls bar ── */}
       <div className="h-9 min-h-[36px] flex items-center px-3 gap-2" style={{ borderBottom: `1px solid ${TRACK_SEPARATOR}` }}>
         {/* Left: Zoom — logarithmic scale, 1.0 = fit to view (slider center) */}
-        {/* Zoom range: 0.2x to 8x. Log scale makes each step feel equal. */}
+        {/* Zoom range: 0.2x to 20x. Log scale makes each step feel equal. */}
         {/* Slider 0-100: 50 = fit (1.0x). Left of 50 = zoom out, right = zoom in */}
         <div className="flex items-center gap-0.5">
           <TooltipProvider delayDuration={300}>
@@ -437,13 +460,13 @@ export default function TimelinePanelNew() {
           </TooltipProvider>
           <div className="w-[90px]">
             <Slider
-              value={[Math.round(50 + (Math.log2(tlZoom) / Math.log2(8)) * 50)]}
+              value={[Math.round(50 + (Math.log2(tlZoom) / Math.log2(20)) * 50)]}
               min={0} max={100} step={1}
               onValueChange={([v]) => {
-                // Map slider 0-100 to zoom: 50=1.0x, 0=0.2x, 100=8x (log scale)
+                // Map slider 0-100 to zoom: 50=1.0x, 0=0.05x, 100=20x (log scale)
                 const t = (v - 50) / 50; // -1 to +1
-                const zoom = Math.pow(8, t); // 8^-1=0.125 → 8^0=1 → 8^1=8
-                setTlZoom(Math.max(0.2, Math.min(8, +zoom.toFixed(3))));
+                const zoom = Math.pow(20, t); // 20^-1=0.05 → 20^0=1 → 20^1=20
+                setTlZoom(Math.max(0.2, Math.min(20, +zoom.toFixed(3))));
               }}
               className="flex-1"
             />
@@ -454,7 +477,7 @@ export default function TimelinePanelNew() {
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     // Logarithmic step: multiply by 1.25 (zoom in 25%)
-                    setTlZoom(Math.min(8, +(tlZoom * 1.25).toFixed(3)));
+                    setTlZoom(Math.min(20, +(tlZoom * 1.25).toFixed(3)));
                   }}
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
