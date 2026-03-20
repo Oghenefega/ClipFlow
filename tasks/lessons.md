@@ -388,6 +388,10 @@
 - **Mistake:** Trimming audio segments (dragging edge shorter) didn't stop video playback at the trimmed endpoint. Video continued playing past the last audio segment.
 - **Rule:** In `onTimeUpdate`, treat the last audio segment's `endSec` as the absolute playback boundary. When `currentTime >= lastSegEnd`, immediately pause and clamp to that time. This is the trim enforcement mechanism.
 
+### Destructive operations must only commit on mouse-up, not during drag
+- **Mistake:** `_trimToAudioBounds()` was called inside `resizeAudioSegment()`, which fires on every mouse-move frame. Dragging audio left trimmed subs/captions immediately, so dragging back right couldn't restore them.
+- **Rule:** Any operation that permanently modifies OTHER tracks (subtitle/caption auto-trim) must only run on mouse-up (`commitAudioResize`), not during the continuous drag. The drag should only update the segment being dragged. Commit side-effects on release.
+
 ### Always check existing codebase for API model IDs before guessing
 - **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
 - **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.
