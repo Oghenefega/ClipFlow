@@ -145,6 +145,12 @@ const useCaptionStore = create((set, get) => ({
 
   setActiveCaptionId: (id) => set({ activeCaptionId: id }),
 
+  // Direct setter for caption segments array (used by auto-trim)
+  setCaptionSegments: (segs) => {
+    const firstText = segs.length > 0 ? segs[0].text : "";
+    set({ captionSegments: segs, captionText: firstText });
+  },
+
   // ── Text setter — updates the ACTIVE segment (or first if none selected) ──
   setCaptionText: (text) => {
     _pushCrossUndo();

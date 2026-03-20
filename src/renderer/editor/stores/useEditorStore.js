@@ -121,6 +121,7 @@ const useEditorStore = create((set, get) => ({
     set((s) => ({
       audioSegments: s.audioSegments.filter((seg) => seg.id !== segId),
     }));
+    get()._trimToAudioBounds();
   },
 
   rippleDeleteAudioSegment: (segId) => {
@@ -138,6 +139,7 @@ const useEditorStore = create((set, get) => ({
         return s;
       });
     set({ audioSegments: next });
+    get()._trimToAudioBounds();
   },
 
   resizeAudioSegment: (id, newStart, newEnd) => {
@@ -166,6 +168,49 @@ const useEditorStore = create((set, get) => ({
       updated[idx].endSec = ne;
       return { audioSegments: updated };
     });
+
+    // After resize, auto-trim subtitles & captions to the new audio boundary
+    get()._trimToAudioBounds();
+  },
+
+  // Trim subtitle & caption segments so nothing extends past the last audio segment's end
+  _trimToAudioBounds: () => {
+    const { audioSegments } = get();
+    if (audioSegments.length === 0) return;
+
+    const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+    const audioEnd = sorted[sorted.length - 1].endSec;
+    const audioStart = sorted[0].startSec;
+
+    // Trim subtitle segments
+    const subStore = useSubtitleStore.getState();
+    const subs = subStore.editSegments;
+    if (subs.length > 0) {
+      const lastSub = subs[subs.length - 1];
+      if (lastSub.endSec > audioEnd + 0.01) {
+        // Trim segments: remove any fully past audioEnd, clamp partial ones
+        const trimmed = subs
+          .filter((s) => s.startSec < audioEnd)
+          .map((s) => (s.endSec > audioEnd ? { ...s, endSec: audioEnd } : s));
+        subStore.setEditSegments(trimmed);
+      }
+    }
+
+    // Trim caption segments
+    const capStore = useCaptionStore.getState();
+    const caps = capStore.captionSegments;
+    if (caps.length > 0) {
+      const lastCap = caps[caps.length - 1];
+      if ((lastCap.endSec || Infinity) > audioEnd + 0.01) {
+        const trimmed = caps
+          .filter((s) => s.startSec < audioEnd)
+          .map((s) => {
+            const end = s.endSec || Infinity;
+            return end > audioEnd ? { ...s, endSec: audioEnd } : s;
+          });
+        capStore.setCaptionSegments(trimmed);
+      }
+    }
   },
 
   handleSave: async () => {

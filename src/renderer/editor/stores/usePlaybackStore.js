@@ -27,9 +27,21 @@ const usePlaybackStore = create((set, get) => ({
   setDuration: (d) => set({ duration: d }),
 
   seekTo: (sec) => {
+    // Clamp to audio bounds if available
+    let clamped = sec;
+    try {
+      const editorStore = require("./useEditorStore").default;
+      const audioSegments = editorStore.getState().audioSegments;
+      if (audioSegments.length > 0) {
+        const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+        const audioEnd = sorted[sorted.length - 1].endSec;
+        clamped = Math.min(clamped, audioEnd);
+        clamped = Math.max(clamped, 0);
+      }
+    } catch (_) {}
     const ref = get()._videoRef;
-    if (ref?.current) ref.current.currentTime = sec;
-    set({ currentTime: sec });
+    if (ref?.current) ref.current.currentTime = clamped;
+    set({ currentTime: clamped });
   },
 
   setTlSpeed: (speed) => set({ tlSpeed: speed }),
