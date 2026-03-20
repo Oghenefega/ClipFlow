@@ -37,20 +37,32 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
           <Separator />
         </>
       )}
-      <button
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
-        onClick={() => { onRippleDelete(); onClose(); }}
-      >
-        <ArrowLeftToLine className="h-3.5 w-3.5 text-orange-400" /> Ripple delete
-        <span className="ml-auto text-muted-foreground text-[10px]">Del</span>
-      </button>
-      <button
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
-        onClick={() => { onDelete(); onClose(); }}
-      >
-        <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete {trackLabel} (leave gap)
-        <span className="ml-auto text-muted-foreground text-[10px]">Ctrl+Del</span>
-      </button>
+      {track === "audio" ? (
+        <>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+            onClick={() => { onRippleDelete(); onClose(); }}
+          >
+            <ArrowLeftToLine className="h-3.5 w-3.5 text-orange-400" /> Ripple delete
+            <span className="ml-auto text-muted-foreground text-[10px]">Del</span>
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+            onClick={() => { onDelete(); onClose(); }}
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete {trackLabel} (leave gap)
+            <span className="ml-auto text-muted-foreground text-[10px]">Ctrl+Del</span>
+          </button>
+        </>
+      ) : (
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+          onClick={() => { onDelete(); onClose(); }}
+        >
+          <Trash2 className="h-3.5 w-3.5 text-red-400" /> Delete {trackLabel}
+          <span className="ml-auto text-muted-foreground text-[10px]">Del</span>
+        </button>
+      )}
       {(track === "sub" || track === "cap") && onDeleteWithAudio && (
         <>
           <Separator />

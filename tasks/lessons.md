@@ -421,3 +421,11 @@
 ### Always check existing codebase for API model IDs before guessing
 - **Mistake:** Used `claude-sonnet-4-5-20250514` for the Claude API model ID — a non-existent ID. The spec said "claude-sonnet-4-5" but the actual working model ID already in `main.js` was `claude-sonnet-4-20250514`.
 - **Rule:** Before adding any API model ID, grep the codebase for existing usage. The correct IDs are already proven to work in `main.js` (anthropic:generate and anthropic:researchGame handlers). Never guess or invent model IDs.
+
+### WhisperX initial_prompt goes in load_model, not transcribe
+- **Mistake:** Passed `initial_prompt` as a kwarg to `FasterWhisperPipeline.transcribe()`, which doesn't accept it. Caused transcription to crash entirely.
+- **Rule:** BetterWhisperX/whisperx passes `initial_prompt` through the `asr_options` dict in `whisperx.load_model()`, which creates `TranscriptionOptions`. The `transcribe()` method only accepts: `audio, batch_size, num_workers, language, task, chunk_size, print_progress, combined_progress, verbose`. Always check the actual API signature before passing kwargs — `inspect.signature()` is your friend.
+
+### Project preview should show styled subtitles, not raw text overlay
+- **Mistake:** User asked for subtitle/caption on project preview thumbnails. I added raw text as a simple overlay on the static thumbnail. User wanted the actual video playback preview to render subtitles with real styling (font, color, position, preset template) so they can judge the finished product before entering the editor.
+- **Rule:** "Show subtitles on preview" means render them with the same styling engine as the editor's PreviewPanel, not just dump text on top of a thumbnail. Think about what the user is trying to accomplish — in this case, previewing the finished product.

@@ -385,15 +385,42 @@ const useEditorStore = create((set, get) => ({
     const { clip, project, clipTitle } = get();
     if (!clip || !project) return;
     try {
-      const editSegments = useSubtitleStore.getState().editSegments;
-      const { captionText, captionSegments } = useCaptionStore.getState();
+      const subState = useSubtitleStore.getState();
+      const editSegments = subState.editSegments;
+      const capState = useCaptionStore.getState();
       const { audioSegments } = get();
+      // Save subtitle styling snapshot for preview rendering
+      const subtitleStyle = {
+        fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
+        fontSize: subState.fontSize, bold: subState.subBold, italic: subState.subItalic,
+        underline: subState.subUnderline, subColor: subState.subColor,
+        strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,
+        strokeColor: subState.strokeColor, strokeOpacity: subState.strokeOpacity,
+        strokeBlur: subState.strokeBlur, strokeOffsetX: subState.strokeOffsetX, strokeOffsetY: subState.strokeOffsetY,
+        shadowOn: subState.shadowOn, shadowBlur: subState.shadowBlur,
+        shadowColor: subState.shadowColor, shadowOpacity: subState.shadowOpacity,
+        shadowOffsetX: subState.shadowOffsetX, shadowOffsetY: subState.shadowOffsetY,
+        glowOn: subState.glowOn, glowColor: subState.glowColor, glowOpacity: subState.glowOpacity,
+        glowIntensity: subState.glowIntensity, glowBlur: subState.glowBlur, glowBlend: subState.glowBlend,
+        glowOffsetX: subState.glowOffsetX, glowOffsetY: subState.glowOffsetY,
+        bgOn: subState.bgOn, bgOpacity: subState.bgOpacity, bgColor: subState.bgColor,
+        bgPaddingX: subState.bgPaddingX, bgPaddingY: subState.bgPaddingY, bgRadius: subState.bgRadius,
+        yPercent: subState.subPos != null ? (subState.subPos / 10) * 100 : 80,
+      };
+      const captionStyle = {
+        fontFamily: capState.fontFamily, fontWeight: capState.fontWeight || 900,
+        fontSize: capState.fontSize, bold: capState.bold, italic: capState.italic,
+        color: capState.color, lineSpacing: capState.lineSpacing,
+        yPercent: capState.yPercent ?? 15,
+      };
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
-        caption: captionText,
-        captionSegments: captionSegments,
+        caption: capState.captionText,
+        captionSegments: capState.captionSegments,
         subtitles: editSegments,
         audioSegments: audioSegments,
+        subtitleStyle,
+        captionStyle,
       });
       set({ dirty: false });
     } catch (e) {

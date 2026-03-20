@@ -195,8 +195,16 @@ function ClipVideoPlayer({ clip, template }) {
   const tpl = template || FALLBACK_TEMPLATE;
   const CONTAINER_W = 220;
 
-  // Subtitle segments from saved clip data
-  const subtitles = useMemo(() => clip.subtitles || [], [clip.subtitles]);
+  // Subtitle segments — handle both pipeline format { sub1: [...] } and editor format [...]
+  const subtitles = useMemo(() => {
+    const raw = clip.subtitles;
+    if (!raw) return [];
+    // Editor-saved: flat array with startSec/endSec
+    if (Array.isArray(raw)) return raw;
+    // Pipeline-saved: { sub1: [...], sub2: [...] } with start/end
+    const sub1 = raw.sub1 || [];
+    return sub1.map(s => ({ ...s, startSec: s.startSec ?? s.start, endSec: s.endSec ?? s.end }));
+  }, [clip.subtitles]);
   // Caption segments from saved clip data
   const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
 
@@ -212,13 +220,19 @@ function ClipVideoPlayer({ clip, template }) {
     return captions.find(s => currentTime >= s.startSec && currentTime <= (s.endSec || Infinity));
   }, [captions, currentTime, isPlaying]);
 
-  // Pre-built styles from template
-  const subStyle = useMemo(() => buildSubPreviewStyle(tpl, CONTAINER_W), [tpl]);
-  const capStyle = useMemo(() => buildCapPreviewStyle(tpl, CONTAINER_W), [tpl]);
+  // Pre-built styles — prefer per-clip saved styling, fall back to template
+  const subStyle = useMemo(() => {
+    if (clip.subtitleStyle) return buildSubPreviewStyle({ subtitle: clip.subtitleStyle }, CONTAINER_W);
+    return buildSubPreviewStyle(tpl, CONTAINER_W);
+  }, [clip.subtitleStyle, tpl]);
+  const capStyle = useMemo(() => {
+    if (clip.captionStyle) return buildCapPreviewStyle({ caption: clip.captionStyle }, CONTAINER_W);
+    return buildCapPreviewStyle(tpl, CONTAINER_W);
+  }, [clip.captionStyle, tpl]);
 
-  // Position percentages from template
-  const subYPct = tpl?.subtitle?.yPercent ?? 80;
-  const capYPct = tpl?.caption?.yPercent ?? 15;
+  // Position percentages — prefer per-clip, fall back to template
+  const subYPct = clip.subtitleStyle?.yPercent ?? tpl?.subtitle?.yPercent ?? 80;
+  const capYPct = clip.captionStyle?.yPercent ?? tpl?.caption?.yPercent ?? 15;
 
   // Time update handler
   useEffect(() => {
