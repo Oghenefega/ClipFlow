@@ -455,6 +455,13 @@ function useUserPresets() {
   return { userPresets, persist };
 }
 
+// Preset indicator dot colors — matches timeline track colors for consistency
+const PRESET_DOT_COLORS = {
+  subtitle: { bg: "#84cc16", shadow: "0 0 6px #84cc16" },  // lime green (matches sub track)
+  caption:  { bg: "hsl(217 70% 65%)", shadow: "0 0 6px hsl(217 70% 65%)" },  // blue (matches cap track)
+  both:     { bg: "#34d399", shadow: "0 0 6px #34d399" },  // fallback green
+};
+
 function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameText, setRenameText] = useState("");
@@ -464,6 +471,8 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const [flashId, setFlashId] = useState(null); // For overwrite visual feedback
   const renameRef = useRef(null);
   const newRef = useRef(null);
+
+  const dotColor = PRESET_DOT_COLORS[target] || PRESET_DOT_COLORS.both;
 
   // Persist active preset ID so it survives page navigation
   const storeKey = `activePresetId_${target}`;
@@ -548,9 +557,9 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                     className="flex-1 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none" />
                 ) : (
                   <button className="flex-1 text-left px-2 py-1.5 text-xs truncate flex items-center gap-1.5 text-foreground" onClick={() => { applyEffectPreset(preset, target); setAndPersistActive(preset.id); }}>
-                    {/* Active indicator: glowing green dot */}
+                    {/* Active indicator: color-coded dot (blue=caption, lime=subtitle) */}
                     {activePresetId === preset.id && (
-                      <span className="shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: "#34d399", boxShadow: "0 0 6px #34d399" }} />
+                      <span className="shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: dotColor.bg, boxShadow: dotColor.shadow }} />
                     )}
                     <span className="truncate">{preset.name}</span>
                     {/* Overwrite flash */}
@@ -596,7 +605,7 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                 activePresetId === preset.id ? "bg-secondary/70 border-border/50" : "bg-secondary/60 border-border/40 hover:border-muted-foreground/40 hover:bg-secondary/80"
               }`}>
               {activePresetId === preset.id && (
-                <span className="shrink-0 w-[6px] h-[6px] rounded-full" style={{ background: "#34d399", boxShadow: "0 0 5px #34d399" }} />
+                <span className="shrink-0 w-[6px] h-[6px] rounded-full" style={{ background: dotColor.bg, boxShadow: dotColor.shadow }} />
               )}
               <span className="text-[10px] font-medium text-foreground">
                 {preset.name}

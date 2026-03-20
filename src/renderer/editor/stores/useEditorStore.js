@@ -75,12 +75,16 @@ const useEditorStore = create((set, get) => ({
         ];
         const tpl = allTemplates.find((t) => t.id === id) || allTemplates[0];
         if (tpl) applyTemplate(tpl);
+        // Clear undo/redo stacks — user should not be able to undo past initial state
+        useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
       }).catch(() => {
         // Fallback: apply built-in template
         applyTemplate(BUILTIN_TEMPLATE);
+        useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
       });
     } else {
       applyTemplate(BUILTIN_TEMPLATE);
+      useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
     }
 
     // Reset waveform (real extraction via FFmpeg in main process — TODO)
