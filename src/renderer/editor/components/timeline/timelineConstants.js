@@ -35,7 +35,7 @@ export const TRACK_COLORS = {
 };
 
 // ── Playhead & guides ──
-export const PLAYHEAD_COLOR = "#ef4444";
+export const PLAYHEAD_COLOR = "#9ca3af";
 export const SNAP_GUIDE_COLOR = "#22d3ee";
 
 // ── Surface colors ──

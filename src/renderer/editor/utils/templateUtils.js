@@ -207,6 +207,9 @@ export function applyEffectPreset(preset, target = "both") {
     if (s.segmentMode !== undefined && typeof ss.setSegmentMode === "function") {
       ss.setSegmentMode(s.segmentMode);
     }
+    // Punctuation settings
+    if (s.punctOn !== undefined) ss.setPunctOn(s.punctOn);
+    if (s.punctuationRemove !== undefined) ss.setPunctuationRemove(s.punctuationRemove);
   }
 
   // Apply caption effects (only when target is "caption" or "both")
@@ -230,11 +233,11 @@ export function applyEffectPreset(preset, target = "both") {
 }
 
 // Snapshot just the effect styling (not font/position) for effect presets
-export function snapshotEffectPreset(name) {
+export function snapshotEffectPreset(name, type = "both") {
   const sub = useSubtitleStore.getState();
   const cap = useCaptionStore.getState();
   return {
-    id: `epreset-${Date.now()}`, name, builtIn: false,
+    id: `epreset-${Date.now()}`, name, builtIn: false, type,
     subtitle: {
       subColor: sub.subColor,
       strokeOn: sub.strokeOn, strokeWidth: sub.strokeWidth, strokeColor: sub.strokeColor,
@@ -250,6 +253,9 @@ export function snapshotEffectPreset(name) {
       // Animation + segment mode
       animateOn: sub.animateOn, animateScale: sub.animateScale, animateGrowFrom: sub.animateGrowFrom, animateSpeed: sub.animateSpeed,
       segmentMode: sub.segmentMode,
+      // Punctuation settings
+      punctOn: sub.punctOn,
+      punctuationRemove: sub.punctuationRemove ? { ...sub.punctuationRemove } : undefined,
     },
     caption: {
       color: cap.captionColor,

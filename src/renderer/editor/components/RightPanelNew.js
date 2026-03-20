@@ -489,10 +489,13 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   useEffect(() => { if (renamingId && renameRef.current) renameRef.current.focus(); }, [renamingId]);
   useEffect(() => { if (savingNew && newRef.current) newRef.current.focus(); }, [savingNew]);
 
+  // Filter presets: only show presets that match this panel's target type
+  const filteredPresets = userPresets.filter(p => !p.type || p.type === target || p.type === "both");
+
   const handleSaveNew = () => {
     const name = newName.trim();
     if (!name) return;
-    const preset = snapshotEffectPreset(name);
+    const preset = snapshotEffectPreset(name, target);
     persist([...userPresets, preset]);
     setSavingNew(false); setNewName("");
   };
@@ -500,7 +503,7 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
   const handleUpdate = (id) => {
     const existing = userPresets.find(p => p.id === id);
     if (!existing) return;
-    const updated = snapshotEffectPreset(existing.name);
+    const updated = snapshotEffectPreset(existing.name, target);
     updated.id = id;
     persist(userPresets.map(p => p.id === id ? updated : p));
     setAndPersistActive(id);
@@ -541,11 +544,11 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
       </div>
 
       {/* User presets */}
-      {userPresets.length > 0 && (
+      {filteredPresets.length > 0 && (
         <div>
           <SectionLabel>My Presets</SectionLabel>
           <div className="space-y-1">
-            {userPresets.map((preset) => (
+            {filteredPresets.map((preset) => (
               <div key={preset.id} className={`group flex items-center gap-1 rounded-md border transition-all ${
                 flashId === preset.id ? "bg-green-500/10 border-green-500/40" :
                 activePresetId === preset.id ? "bg-secondary/50 border-border/50" : "bg-secondary/40 border-border/30 hover:border-muted-foreground/30"

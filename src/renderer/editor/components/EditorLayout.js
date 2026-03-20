@@ -11,6 +11,7 @@ import PreviewPanelNew from "./PreviewPanelNew";
 import TimelinePanelNew from "./TimelinePanelNew";
 import useEditorStore from "../stores/useEditorStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
+import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import {
   Undo2,
@@ -18,6 +19,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Play,
+  Pause,
   Clock,
   Check,
   Send,
@@ -25,6 +27,7 @@ import {
   Loader2,
   PanelBottomOpen,
 } from "lucide-react";
+import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
 import {
   Tooltip,
@@ -522,6 +525,62 @@ function Topbar({ onBack }) {
   );
 }
 
+// ── Mini Player Bar (shown when timeline is collapsed) ──
+function MiniPlayerBar({ onShowTimeline }) {
+  const currentTime = usePlaybackStore((s) => s.currentTime);
+  const duration = usePlaybackStore((s) => s.duration);
+  const playing = usePlaybackStore((s) => s.playing);
+  const togglePlay = usePlaybackStore((s) => s.togglePlay);
+  const seekTo = usePlaybackStore((s) => s.seekTo);
+
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div
+      className="shrink-0 flex items-center h-9 px-3 gap-2 select-none"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#131419" }}
+    >
+      {/* Play/Pause */}
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground shrink-0" onClick={togglePlay}>
+        {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+      </Button>
+
+      {/* Current time */}
+      <span className="text-[11px] font-mono text-foreground tabular-nums shrink-0 w-[52px] text-right">
+        {fmtDuration(currentTime)}
+      </span>
+
+      {/* Scrub bar */}
+      <div className="flex-1 mx-1">
+        <Slider
+          value={[progressPct]}
+          min={0} max={100} step={0.1}
+          onValueChange={([v]) => {
+            const t = (v / 100) * duration;
+            seekTo(Math.max(0, Math.min(duration, t)));
+          }}
+          className="flex-1"
+        />
+      </div>
+
+      {/* Duration */}
+      <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0 w-[52px]">
+        {fmtDuration(duration)}
+      </span>
+
+      {/* Show Timeline button */}
+      <button
+        className="flex items-center gap-1 ml-1 px-2 py-1 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors shrink-0"
+        onClick={onShowTimeline}
+      >
+        <PanelBottomOpen className="h-3 w-3" />
+        <span>Timeline</span>
+        <span className="text-muted-foreground/50 text-[9px] ml-0.5">Ctrl+.</span>
+      </button>
+    </div>
+  );
+}
+
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
@@ -583,25 +642,15 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
           <RightPanelNew gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
         </div>
 
-        {/* Timeline toggle bar — always visible at bottom edge */}
-        {tlCollapsed && (
-          <div
-            className="shrink-0 flex items-center justify-center h-7 cursor-pointer select-none transition-colors hover:bg-secondary/30"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#131419" }}
-            onClick={() => useLayoutStore.getState().toggleTlCollapse()}
-          >
-            <PanelBottomOpen className="h-3 w-3 text-muted-foreground mr-1.5" />
-            <span className="text-[10px] text-muted-foreground">Show Timeline</span>
-            <span className="text-[9px] text-muted-foreground/50 ml-2">Ctrl+.</span>
-          </div>
-        )}
+        {/* Mini player bar — visible when timeline collapsed */}
+        {tlCollapsed && <MiniPlayerBar onShowTimeline={() => useLayoutStore.getState().toggleTlCollapse()} />}
 
         {/* Timeline — fully collapses to 0 when hidden */}
         {!tlCollapsed && (
           <div
             className="shrink-0"
             style={{
-              height: 280,
+              height: 234,
               borderTop: "1px solid rgba(255,255,255,0.06)",
             }}
           >
