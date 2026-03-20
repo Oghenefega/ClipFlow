@@ -404,11 +404,16 @@ def main():
 
         # ── Step 1: Load model ──
         print_progress(5, "Loading model...")
+        # initial_prompt goes into asr_options (TranscriptionOptions), not transcribe()
+        asr_options = {}
+        if args.initial_prompt:
+            asr_options["initial_prompt"] = args.initial_prompt
         model = whisperx.load_model(
             args.model,
             device=device,
             compute_type=args.compute_type,
             language=args.language,
+            asr_options=asr_options if asr_options else None,
         )
 
         # ── Step 2: Load audio ──
@@ -417,10 +422,7 @@ def main():
 
         # ── Step 3: Transcribe ──
         print_progress(15, "Transcribing...")
-        transcribe_kwargs = dict(batch_size=args.batch_size, language=args.language)
-        if args.initial_prompt:
-            transcribe_kwargs["initial_prompt"] = args.initial_prompt
-        result = model.transcribe(audio, **transcribe_kwargs)
+        result = model.transcribe(audio, batch_size=args.batch_size, language=args.language)
         print_progress(60, "Transcription complete")
 
         # ── Step 4: Align for word-level timestamps ──
