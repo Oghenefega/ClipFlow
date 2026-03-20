@@ -195,24 +195,58 @@ function ClipVideoPlayer({ clip, template }) {
   const tpl = template || FALLBACK_TEMPLATE;
   const CONTAINER_W = 220;
 
-  // Subtitle segments — handle both pipeline format { sub1: [...] } and editor format [...]
-  const subtitles = useMemo(() => {
+  // Build word-level micro-segments (3 words each) for subtitle preview
+  // Handles both pipeline format { sub1: [...] } and editor-saved format [...]
+  const microSegments = useMemo(() => {
     const raw = clip.subtitles;
     if (!raw) return [];
-    // Editor-saved: flat array with startSec/endSec
+
+    // Editor-saved format: flat array of already-split segments (1-word or 3-word)
     if (Array.isArray(raw)) return raw;
-    // Pipeline-saved: { sub1: [...], sub2: [...] } with start/end
+
+    // Pipeline format: { sub1: [...], sub2: [...] } — paragraph-level with word timestamps
     const sub1 = raw.sub1 || [];
-    return sub1.map(s => ({ ...s, startSec: s.startSec ?? s.start, endSec: s.endSec ?? s.end }));
+    const micros = [];
+    const WORDS_PER_SEG = 3;
+    for (const seg of sub1) {
+      const words = seg.words || [];
+      if (words.length === 0) {
+        // No word data — split text manually with even timing
+        const textWords = (seg.text || "").trim().split(/\s+/).filter(Boolean);
+        const segDur = (seg.end || 0) - (seg.start || 0);
+        for (let i = 0; i < textWords.length; i += WORDS_PER_SEG) {
+          const chunk = textWords.slice(i, i + WORDS_PER_SEG);
+          const frac0 = i / textWords.length;
+          const frac1 = Math.min(1, (i + chunk.length) / textWords.length);
+          micros.push({
+            text: chunk.join(" "),
+            startSec: (seg.start || 0) + frac0 * segDur,
+            endSec: (seg.start || 0) + frac1 * segDur,
+          });
+        }
+      } else {
+        // Has word timestamps — group into 3-word chunks
+        for (let i = 0; i < words.length; i += WORDS_PER_SEG) {
+          const chunk = words.slice(i, i + WORDS_PER_SEG);
+          micros.push({
+            text: chunk.map(w => w.word || w.text || "").join(" "),
+            startSec: chunk[0].start ?? chunk[0].startSec ?? 0,
+            endSec: chunk[chunk.length - 1].end ?? chunk[chunk.length - 1].endSec ?? 0,
+          });
+        }
+      }
+    }
+    return micros;
   }, [clip.subtitles]);
+
   // Caption segments from saved clip data
   const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
 
-  // Find active subtitle at current time
+  // Find active micro-segment at current time
   const activeSubtitle = useMemo(() => {
-    if (!subtitles.length || !isPlaying) return null;
-    return subtitles.find(s => currentTime >= s.startSec && currentTime <= s.endSec);
-  }, [subtitles, currentTime, isPlaying]);
+    if (!microSegments.length || !isPlaying) return null;
+    return microSegments.find(s => currentTime >= s.startSec && currentTime <= s.endSec);
+  }, [microSegments, currentTime, isPlaying]);
 
   // Find active caption at current time
   const activeCaption = useMemo(() => {
