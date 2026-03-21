@@ -422,7 +422,14 @@ def main():
 
         # ── Step 3: Transcribe ──
         print_progress(15, "Transcribing...")
-        result = model.transcribe(audio, batch_size=args.batch_size, language=args.language)
+        # Lower VAD onset threshold (default ~0.5) so quiet speech at the start of clips
+        # is captured rather than silently dropped by Silero VAD.
+        result = model.transcribe(
+            audio,
+            batch_size=args.batch_size,
+            language=args.language,
+            vad_options={"onset": 0.3, "offset": 0.2},
+        )
         print_progress(60, "Transcription complete")
 
         # ── Step 4: Align for word-level timestamps ──
@@ -549,11 +556,28 @@ def main():
                 merged_segs.append(raw_seg)
                 print(f"[WARN] Alignment dropped segment at {raw_start:.1f}s: {text[:60]}...", file=sys.stderr)
 
-        # Also add any aligned segments that weren't in raw (shouldn't happen but safety)
+        # Also add any aligned segments that weren't in raw (shouldn't happen but safety).
+        # Guard: skip any aligned segment that overlaps >50% with an already-merged segment —
+        # this prevents sub-segments produced by alignment from duplicating content that
+        # the merge loop already captured from the larger raw segment.
         raw_texts = {(s.get("text") or "").strip() for s in raw_segs}
         for seg in aligned_segs:
             text = (seg.get("text") or "").strip()
-            if text and text not in raw_texts:
+            if not text or text in raw_texts:
+                continue
+            seg_start = seg.get("start", 0)
+            seg_end = seg.get("end", 0)
+            seg_dur = max(0.01, seg_end - seg_start)
+            # Check overlap against all already-merged segments
+            overlaps = False
+            for merged in merged_segs:
+                m_start = merged.get("start", 0)
+                m_end = merged.get("end", 0)
+                overlap = max(0, min(seg_end, m_end) - max(seg_start, m_start))
+                if overlap / seg_dur > 0.5:
+                    overlaps = True
+                    break
+            if not overlaps:
                 merged_segs.append(seg)
 
         # Sort by start time
