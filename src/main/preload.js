@@ -118,6 +118,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   extendClip: (projectId, clipId, newSourceEndTime) =>
     ipcRenderer.invoke("clip:extend", projectId, clipId, newSourceEndTime),
 
+  // Extend a clip backwards (re-cut from source with earlier start time)
+  extendClipLeft: (projectId, clipId, newSourceStartTime) =>
+    ipcRenderer.invoke("clip:extendLeft", projectId, clipId, newSourceStartTime),
+
   // Re-transcribe a specific clip
   retranscribeClip: (projectId, clipId) =>
     ipcRenderer.invoke("retranscribe:clip", projectId, clipId),

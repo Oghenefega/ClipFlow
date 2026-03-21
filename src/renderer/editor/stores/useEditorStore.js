@@ -23,6 +23,7 @@ const useEditorStore = create((set, get) => ({
   sourceEndTime: 0,
   sourceDuration: 0,
   maxExtendSec: 0,
+  maxExtendLeftSec: 0, // how far LEFT the clip can extend (= clip.startTime in source)
   extending: false, // true while an extend operation is in progress
 
   // ── Actions ──
@@ -52,6 +53,7 @@ const useEditorStore = create((set, get) => ({
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
       maxExtendSec: maxExtend > 0 ? maxExtend : clipDuration,
+      maxExtendLeftSec: sourceStart, // how many seconds we can extend backwards
       extending: false,
     });
 
@@ -178,7 +180,9 @@ const useEditorStore = create((set, get) => ({
       const prevSeg = idx > 0 ? sorted[idx - 1] : null;
       const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
       const minDur = 0.1;
-      let ns = Math.max(0, newStart);
+      // Allow extending left past 0 (negative) up to -maxExtendLeftSec (source boundary)
+      const minStart = -(get().maxExtendLeftSec || 0);
+      let ns = Math.max(minStart, newStart);
       // Allow extending up to maxExtendSec (source boundary), not just current clip duration
       const maxEnd = get().maxExtendSec || usePlaybackStore.getState().duration || Infinity;
       let ne = Math.min(maxEnd, newEnd);
@@ -210,8 +214,14 @@ const useEditorStore = create((set, get) => ({
     }
 
     const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+    const newAudioStart = sorted[0].startSec;
     const newAudioEnd = sorted[sorted.length - 1].endSec;
     const currentDuration = usePlaybackStore.getState().duration;
+
+    // Check if we've extended LEFT past 0
+    if (newAudioStart < -0.1) {
+      return get().commitLeftExtend();
+    }
 
     // Check if we've extended PAST the current clip duration
     if (newAudioEnd > currentDuration + 0.1) {
@@ -275,6 +285,177 @@ const useEditorStore = create((set, get) => ({
       // Normal trim (no extension)
       get()._trimToAudioBounds();
     }
+  },
+
+  // Commit left extension — called on mouse-up when audio start < 0
+  commitLeftExtend: async () => {
+    const { audioSegments, clip, project, sourceStartTime } = get();
+    if (audioSegments.length === 0 || !clip || !project) {
+      get()._trimToAudioBounds();
+      return;
+    }
+
+    const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+    const newAudioStart = sorted[0].startSec;
+
+    // Only extend if the left edge is negative (dragged past 0)
+    if (newAudioStart >= -0.1) {
+      get()._trimToAudioBounds();
+      return;
+    }
+
+    set({ extending: true });
+    try {
+      const delta = Math.abs(newAudioStart); // positive number — how many seconds we're prepending
+      const newSourceStart = sourceStartTime - delta;
+
+      const result = await window.clipflow.extendClipLeft(
+        project.id, clip.id, newSourceStart
+      );
+
+      if (result?.error) {
+        console.error("Extend clip left failed:", result.error);
+        // Revert audio segment start to 0
+        set((s) => ({
+          audioSegments: s.audioSegments.map((seg) =>
+            seg.startSec < 0 ? { ...seg, startSec: 0 } : seg
+          ),
+        }));
+      } else {
+        // Shift ALL existing timestamps forward by delta
+        // Audio segments: shift all by +delta, so the old start=0 becomes start=delta
+        set((s) => ({
+          audioSegments: s.audioSegments.map((seg) => ({
+            ...seg,
+            startSec: seg.startSec + delta,
+            endSec: seg.endSec + delta,
+          })),
+        }));
+
+        // Update clip data with new boundaries
+        const newClip = {
+          ...clip,
+          startTime: newSourceStart,
+          filePath: result.filePath,
+          duration: result.duration,
+        };
+        const newProject = {
+          ...project,
+          clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
+        };
+        set({
+          clip: newClip,
+          project: newProject,
+          sourceStartTime: newSourceStart,
+          maxExtendLeftSec: newSourceStart, // updated — less room to extend left now
+        });
+
+        // Update playback duration
+        usePlaybackStore.getState().setDuration(result.duration);
+
+        // Shift existing subtitles forward and prepend new ones for the revealed range
+        get()._shiftAndPrependSubtitles(delta, newSourceStart);
+
+        // Shift caption segments forward (extend start back, keep end position relative)
+        get()._shiftCaptionLeft(delta);
+
+        // Re-extract waveform for the new clip
+        if (result.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
+          window.clipflow.ffmpegExtractWaveformPeaks(result.filePath, 400)
+            .then((wfResult) => {
+              if (wfResult?.peaks?.length > 0) set({ waveformPeaks: wfResult.peaks });
+            })
+            .catch(() => {});
+        }
+
+        // Reload video element with new file
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.src = `file://${result.filePath.replace(/\\/g, "/")}`;
+          videoRef.current.load();
+        }
+
+        get().markDirty();
+      }
+    } catch (err) {
+      console.error("Extend clip left error:", err);
+    } finally {
+      set({ extending: false });
+    }
+  },
+
+  // Shift all existing subtitles forward by delta and prepend new segments for revealed range
+  _shiftAndPrependSubtitles: (delta, newSourceStart) => {
+    const { project } = get();
+    const transcription = project?.transcription;
+    const subStore = useSubtitleStore.getState();
+    const existingSubs = subStore.editSegments;
+
+    // 1. Shift all existing subtitle segments forward by delta
+    const shifted = existingSubs.map((seg) => ({
+      ...seg,
+      startSec: seg.startSec + delta,
+      endSec: seg.endSec + delta,
+      words: (seg.words || []).map((w) => ({
+        ...w,
+        start: (w.start || 0) + delta,
+        end: (w.end || 0) + delta,
+      })),
+    }));
+
+    // 2. Pull new segments from project transcription for the newly revealed range [0, delta]
+    if (!transcription?.segments) {
+      subStore.setEditSegments(shifted);
+      return;
+    }
+
+    const sourceRevealStart = newSourceStart;
+    const sourceRevealEnd = newSourceStart + delta;
+
+    const newSegs = transcription.segments
+      .filter((s) => s.start < sourceRevealEnd && s.end > sourceRevealStart)
+      .map((s) => {
+        const segStart = Math.max(0, s.start - newSourceStart);
+        const segEnd = Math.min(delta, s.end - newSourceStart);
+        return {
+          id: `ext-left-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          start: `${Math.floor(segStart / 60)}:${(segStart % 60).toFixed(1).padStart(4, "0")}`,
+          end: `${Math.floor(segEnd / 60)}:${(segEnd % 60).toFixed(1).padStart(4, "0")}`,
+          dur: `${(segEnd - segStart).toFixed(1)}s`,
+          text: s.text,
+          track: "s1",
+          conf: "high",
+          startSec: segStart,
+          endSec: segEnd,
+          warning: null,
+          words: (s.words || []).map((w) => ({
+            word: w.word,
+            start: Math.max(0, (w.start || 0) - newSourceStart),
+            end: Math.max(0, (w.end || 0) - newSourceStart),
+            probability: w.probability ?? 1,
+          })),
+        };
+      })
+      .filter((ns) => !shifted.some((es) =>
+        Math.abs(es.startSec - ns.startSec) < 0.1 && Math.abs(es.endSec - ns.endSec) < 0.1
+      ));
+
+    // Prepend new segments, then existing shifted segments
+    subStore.setEditSegments([...newSegs, ...shifted]);
+  },
+
+  // Shift caption segments forward by delta (extend backwards, keep end positions)
+  _shiftCaptionLeft: (delta) => {
+    const capStore = useCaptionStore.getState();
+    const caps = capStore.captionSegments;
+    if (caps.length === 0) return;
+
+    const updated = caps.map((seg) => ({
+      ...seg,
+      startSec: seg.startSec + delta,
+      endSec: (seg.endSec || 0) + delta,
+    }));
+    capStore.setCaptionSegments(updated);
   },
 
   // Pull new subtitle segments from project transcription for extended time range

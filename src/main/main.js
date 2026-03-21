@@ -587,6 +587,65 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
   }
 });
 
+// ============ EXTEND CLIP LEFT (backwards) ============
+ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTime) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    if (!watchFolder) return { error: "Watch folder not set" };
+
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+
+    const sourceFile = project.sourceFile;
+    if (!sourceFile || !fs.existsSync(sourceFile)) {
+      return { error: "Source recording not found. Cannot extend clip." };
+    }
+
+    const endTime = clip.endTime || 0;
+    const newStart = Math.max(0, newSourceStartTime);
+
+    if (newStart >= endTime) {
+      return { error: "Invalid extend range" };
+    }
+
+    // Re-cut from source with new boundaries
+    const clipDir = path.dirname(clip.filePath);
+    const ext = path.extname(clip.filePath);
+    const baseName = path.basename(clip.filePath, ext);
+    const tempPath = path.join(clipDir, `${baseName}_extended_left${ext}`);
+
+    await ffmpeg.cutClip(sourceFile, tempPath, newStart, endTime);
+
+    // Replace old clip file with new one
+    const finalPath = clip.filePath;
+    if (fs.existsSync(finalPath)) {
+      fs.unlinkSync(finalPath);
+    }
+    fs.renameSync(tempPath, finalPath);
+
+    // Update clip metadata in project JSON
+    const newDuration = endTime - newStart;
+    const delta = (clip.startTime || 0) - newStart; // how much we extended backwards
+    projects.updateClip(watchFolder, projectId, clipId, {
+      startTime: newStart,
+      duration: newDuration,
+    });
+
+    return {
+      success: true,
+      filePath: finalPath,
+      duration: newDuration,
+      newStartTime: newStart,
+      delta, // seconds shifted backwards — all existing timestamps need += delta
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // ============ RE-TRANSCRIBE CLIP ============
 ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
   try {

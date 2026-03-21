@@ -65,6 +65,7 @@ export default function TimelinePanelNew() {
   const resizeAudioSegment = useEditorStore((s) => s.resizeAudioSegment);
   const commitAudioResize = useEditorStore((s) => s.commitAudioResize);
   const maxExtendSec = useEditorStore((s) => s.maxExtendSec);
+  const maxExtendLeftSec = useEditorStore((s) => s.maxExtendLeftSec);
   const extending = useEditorStore((s) => s.extending);
 
   // ── Local state ──
@@ -769,7 +770,7 @@ export default function TimelinePanelNew() {
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
                       audioSeg={seg} onResize={handleAudioResize} onResizeEnd={commitAudioResize}
-                      maxExtendSec={maxExtendSec}
+                      maxExtendSec={maxExtendSec} maxExtendLeftSec={maxExtendLeftSec}
                       segStartSec={seg.startSec} segEndSec={seg.endSec}
                       rippleAnimating={rippleAnimating}
                     />
