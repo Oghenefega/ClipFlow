@@ -287,14 +287,13 @@ function Topbar({ onBack }) {
         setRetranscribeStage("Failed");
         setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 2000);
       } else {
-        // Reload segments from the new clip-level transcription
+        // Update clip data in editor store WITHOUT full reinit
+        // (initFromContext is too heavy — it resets waveform, playback, templates, undo stack)
         const updatedClip = { ...clip, transcription: result.transcription };
-        useSubtitleStore.getState().initSegments(project, updatedClip);
-        // Update the clip in the editor store
-        useEditorStore.getState().initFromContext(
-          { projectId: project.id, clipId: clip.id },
-          [{ ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) }]
-        );
+        const updatedProject = { ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) };
+        useEditorStore.setState({ project: updatedProject, clip: updatedClip });
+        // Reload subtitle segments from the new transcription
+        useSubtitleStore.getState().initSegments(updatedProject, updatedClip);
         setRetranscribeStage("Done!");
         setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 1500);
       }
