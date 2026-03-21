@@ -408,12 +408,21 @@ def main():
         asr_options = {}
         if args.initial_prompt:
             asr_options["initial_prompt"] = args.initial_prompt
+        # VAD onset=0.0 effectively disables VAD filtering — Fega's audio is a dedicated
+        # mic-only track, so every sound on it IS speech. No filtering needed.
+        #
+        # ⚠️ IMPORTANT for future multi-user / product use:
+        # When users upload footage with a mixed mic+game track, re-enable VAD with
+        # vad_onset=0.1 (catches whispers) or vad_onset=0.3 (more aggressive filtering).
+        # onset=0.0 on a mixed track will cause Whisper to hallucinate text from game audio.
         model = whisperx.load_model(
             args.model,
             device=device,
             compute_type=args.compute_type,
             language=args.language,
             asr_options=asr_options if asr_options else None,
+            vad_onset=0.0,
+            vad_offset=0.0,
         )
 
         # ── Step 2: Load audio ──
@@ -422,20 +431,10 @@ def main():
 
         # ── Step 3: Transcribe ──
         print_progress(15, "Transcribing...")
-        # VAD is effectively disabled (onset=0.0) because Fega's audio is a dedicated
-        # mic-only track with no game audio or background noise mixed in.
-        # Every sound on this track IS speech — no filtering needed.
-        #
-        # ⚠️ IMPORTANT for future multi-user / product use:
-        # When users upload footage with a mixed mic+game track, re-enable VAD with
-        # onset=0.1 (catches whispers) or onset=0.3 (more aggressive filtering).
-        # Setting onset=0.0 on a mixed track will cause Whisper to hallucinate text
-        # from game sounds and background noise.
         result = model.transcribe(
             audio,
             batch_size=args.batch_size,
             language=args.language,
-            vad_options={"onset": 0.0, "offset": 0.0},
         )
         print_progress(60, "Transcription complete")
 
