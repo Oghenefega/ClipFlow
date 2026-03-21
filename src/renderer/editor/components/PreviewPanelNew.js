@@ -727,11 +727,27 @@ export default function PreviewPanelNew() {
   // Audio segments from editor store — used to skip gaps during playback
   const audioSegments = useEditorStore((s) => s.audioSegments);
 
+  // 60fps rAF loop — keeps currentTime in sync at high frequency during playback
+  // The timeupdate event only fires ~4x/sec, which causes karaoke lag and skipped short words
+  useEffect(() => {
+    if (!playing) return;
+    let rafId;
+    const tick = () => {
+      if (videoRef.current) {
+        setCurrentTime(videoRef.current.currentTime);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [playing, setCurrentTime]);
+
   // Video event handlers — enforce audio segment bounds as trim points
   const onTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
     const time = videoRef.current.currentTime;
-    setCurrentTime(time);
+    // Note: setCurrentTime is handled by the rAF loop above for accuracy.
+    // timeupdate is kept only for audio segment boundary enforcement.
 
     // Enforce audio segment bounds — treat trimmed audio edges as video boundaries
     if (audioSegments.length > 0 && !videoRef.current.paused) {
