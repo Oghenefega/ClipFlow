@@ -422,13 +422,20 @@ def main():
 
         # ── Step 3: Transcribe ──
         print_progress(15, "Transcribing...")
-        # Lower VAD onset threshold (default ~0.5) so quiet speech at the start of clips
-        # is captured rather than silently dropped by Silero VAD.
+        # VAD is effectively disabled (onset=0.0) because Fega's audio is a dedicated
+        # mic-only track with no game audio or background noise mixed in.
+        # Every sound on this track IS speech — no filtering needed.
+        #
+        # ⚠️ IMPORTANT for future multi-user / product use:
+        # When users upload footage with a mixed mic+game track, re-enable VAD with
+        # onset=0.1 (catches whispers) or onset=0.3 (more aggressive filtering).
+        # Setting onset=0.0 on a mixed track will cause Whisper to hallucinate text
+        # from game sounds and background noise.
         result = model.transcribe(
             audio,
             batch_size=args.batch_size,
             language=args.language,
-            vad_options={"onset": 0.3, "offset": 0.2},
+            vad_options={"onset": 0.0, "offset": 0.0},
         )
         print_progress(60, "Transcription complete")
 
