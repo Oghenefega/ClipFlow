@@ -1,0 +1,46 @@
+# ClipFlow .claudeignore
+# Prevents Claude from reading these paths — saves tokens on every turn
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+
+# Lock files (large, never useful to read)
+package-lock.json
+yarn.lock
+*.lock
+
+# Minified assets
+*.min.js
+*.min.css
+
+# Git internals
+.git/
+
+# Reference screenshots (large binary folder — read only when explicitly working on UI reference)
+reference/
+
+# Binary / media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# Generated / compiled
+*.map
+*.d.ts.map

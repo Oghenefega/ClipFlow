@@ -520,3 +520,56 @@ These rules prevent recurring UI issues. Follow them for every component:
 - Repo: https://github.com/Oghenefega/ClipFlow.git
 - Branch: master
 - Private repository
+
+## Session Start Ritual
+
+**Every session, before any code work:**
+
+1. Read `HANDOFF.md` — this is your only required context load at session start
+2. Run `/context` — audit MCP server token cost and disable servers not needed for this session
+3. Ask the user:
+
+> "What's the focus today?
+> (1) UI/Visual — editor, components, styling
+> (2) Debugging — specific bug or regression
+> (3) Feature dev — new functionality
+> (4) Pipeline/backend/IPC — FFmpeg, Whisper, main process, IPC handlers
+> (5) Something else — tell me"
+
+4. Load **only** context relevant to that answer. Do not read the entire codebase upfront.
+   - UI/Visual → read editor components + reference screenshots in `/reference/vizard-ref/`
+   - Debugging → read only the files related to the reported bug
+   - Feature dev → read the relevant module + tasks/todo.md
+   - Pipeline/backend → read `src/main/` only
+
+## Session Boundaries
+
+- **One session = one feature or one distinct module.** Not one session per week.
+- Sessions should be task-scoped: build one thing, then stop and start fresh.
+
+**Triggers to END a session and start a new one:**
+- Feature is complete and verified
+- Switching from editor UI to pipeline/backend/IPC
+- Switching from building to debugging a different area
+- A bug is fully resolved and committed
+- Context is getting long — if you're running `/compact` repeatedly, that's a sign the session scope was too wide
+
+**Before closing every session — write HANDOFF.md:**
+```
+## Current State
+[One sentence: what is the app's current condition]
+
+## What Was Just Built
+[Bullet list of what changed this session]
+
+## Key Decisions
+[Any architectural or design choices made — and why]
+
+## Next Steps
+[Prioritized list of what to do next session]
+
+## Watch Out For
+[Gotchas, fragile areas, known issues, things that could break]
+```
+
+HANDOFF.md lives in the ClipFlow root. Overwrite it each session. Commit it before closing.
