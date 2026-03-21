@@ -746,8 +746,7 @@ export default function PreviewPanelNew() {
   const onTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
     const time = videoRef.current.currentTime;
-    // Note: setCurrentTime is handled by the rAF loop above for accuracy.
-    // timeupdate is kept only for audio segment boundary enforcement.
+    setCurrentTime(time);
 
     // Enforce audio segment bounds — treat trimmed audio edges as video boundaries
     if (audioSegments.length > 0 && !videoRef.current.paused) {
