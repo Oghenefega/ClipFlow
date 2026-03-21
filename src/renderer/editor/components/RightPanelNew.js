@@ -264,7 +264,7 @@ function ColorPickerPopover({ color, onChange, children }) {
 
         {/* RGB inputs */}
         <div className="flex items-center gap-1.5 mb-3">
-          <span className="text-[10px] text-muted-foreground w-7 shrink-0">RGB</span>
+          <span className="text-[12px] text-muted-foreground w-7 shrink-0">RGB</span>
           {[
             { val: r, set: (v) => applyRGB(v, g, b) },
             { val: g, set: (v) => applyRGB(r, v, b) },
@@ -272,11 +272,11 @@ function ColorPickerPopover({ color, onChange, children }) {
           ].map((ch, i) => (
             <input key={i} type="number" min={0} max={255} value={ch.val}
               onChange={(e) => ch.set(Math.max(0, Math.min(255, parseInt(e.target.value) || 0)))}
-              className="w-12 h-6 text-[10px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+              className="w-12 h-6 text-[12px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
             />
           ))}
           <input value={hex} onChange={(e) => handleHexInput(e.target.value)}
-            className="flex-1 h-6 text-[10px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+            className="flex-1 h-6 text-[12px] text-center rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
           />
         </div>
 
@@ -429,9 +429,9 @@ function EffectSection({ label, effectKey, enabled, onToggle, color, onColorChan
 function EffectSlider({ label, value, onChange, min, max, step = 1, suffix = "", labelWidth = "w-14" }) {
   return (
     <div className="flex items-center gap-2">
-      <span className={`text-[10px] text-muted-foreground ${labelWidth}`}>{label}</span>
+      <span className={`text-[12px] text-muted-foreground ${labelWidth}`}>{label}</span>
       <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="flex-1" />
-      <span className="text-[10px] text-muted-foreground w-8 text-right">{typeof value === "number" && value % 1 !== 0 ? value.toFixed(1) : value}{suffix}</span>
+      <span className="text-[12px] text-muted-foreground w-8 text-right">{typeof value === "number" && value % 1 !== 0 ? value.toFixed(1) : value}{suffix}</span>
     </div>
   );
 }
@@ -533,8 +533,8 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
               onKeyDown={(e) => { if (e.key === "Enter") handleSaveNew(); if (e.key === "Escape") setSavingNew(false); }}
               placeholder="Preset name..."
               className="flex-1 px-2 py-1.5 text-xs rounded bg-secondary/50 border border-border/40 text-foreground outline-none focus:border-primary/50" />
-            <Button size="sm" className="h-7 text-[10px] px-2" onClick={handleSaveNew}>Save</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-[10px] px-1.5" onClick={() => setSavingNew(false)}><X className="h-3 w-3" /></Button>
+            <Button size="sm" className="h-7 text-[12px] px-2" onClick={handleSaveNew}>Save</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-[12px] px-1.5" onClick={() => setSavingNew(false)}><X className="h-3 w-3" /></Button>
           </div>
         ) : (
           <Button variant="outline" className="w-full h-8 text-xs gap-2" onClick={() => setSavingNew(true)}>
@@ -577,17 +577,17 @@ function EffectPresetsGrid({ userPresets, persist, target = "both" }) {
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => { setRenamingId(preset.id); setRenameText(preset.name); }}>
                       <Pipette className="h-3 w-3" />
                     </button>
-                  </TooltipTrigger><TooltipContent className="text-[10px]">Rename</TooltipContent></Tooltip>
+                  </TooltipTrigger><TooltipContent className="text-[12px]">Rename</TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild>
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground" onClick={() => handleUpdate(preset.id)}>
                       <RefreshCw className="h-3 w-3" />
                     </button>
-                  </TooltipTrigger><TooltipContent className="text-[10px]">Overwrite preset</TooltipContent></Tooltip>
+                  </TooltipTrigger><TooltipContent className="text-[12px]">Overwrite preset</TooltipContent></Tooltip>
                   <Tooltip><TooltipTrigger asChild>
                     <button className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-red-400" onClick={() => handleDelete(preset.id)}>
                       <X className="h-3 w-3" />
                     </button>
-                  </TooltipTrigger><TooltipContent className="text-[10px]">Delete</TooltipContent></Tooltip>
+                  </TooltipTrigger><TooltipContent className="text-[12px]">Delete</TooltipContent></Tooltip>
                 </div>
                 </TooltipProvider>
               </div>
@@ -700,14 +700,14 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="text-xs text-foreground font-medium mb-1">{t.title}</div>
-                    {t.why && <div className="text-[10px] text-muted-foreground mb-2">{t.why}</div>}
+                    {t.why && <div className="text-[12px] text-muted-foreground mb-2">{t.why}</div>}
                     <div className="flex gap-1">
                       {isAccepted ? (
-                        <span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
+                        <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
                       ) : !isRejected && (
                         <>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10" onClick={() => acceptTitle(t, i)}>Apply</Button>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => reject(t.title)}>Skip</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptTitle(t, i)}>Apply</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(t.title)}>Skip</Button>
                         </>
                       )}
                     </div>
@@ -727,14 +727,14 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="text-xs text-foreground mb-1">{c.caption}</div>
-                    {c.why && <div className="text-[10px] text-muted-foreground mb-2">{c.why}</div>}
+                    {c.why && <div className="text-[12px] text-muted-foreground mb-2">{c.why}</div>}
                     <div className="flex gap-1">
                       {isAccepted ? (
-                        <span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
+                        <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
                       ) : !isRejected && (
                         <>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary hover:bg-primary/10" onClick={() => acceptCaption(c, i)}>Apply</Button>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => reject(c.caption)}>Skip</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptCaption(c, i)}>Apply</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(c.caption)}>Skip</Button>
                         </>
                       )}
                     </div>
@@ -833,7 +833,7 @@ function AudioPanel() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-foreground font-medium truncate">{track.name}</div>
-                <div className="text-[10px] text-muted-foreground">{track.dur}</div>
+                <div className="text-[12px] text-muted-foreground">{track.dur}</div>
               </div>
               {/* Hover actions */}
               {hoveredId === track.id && (
@@ -845,7 +845,7 @@ function AudioPanel() {
                           <Star className="h-3 w-3" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent className="text-[10px]">Favorite</TooltipContent>
+                      <TooltipContent className="text-[12px]">Favorite</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -853,7 +853,7 @@ function AudioPanel() {
                           <Plus className="h-3 w-3" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent className="text-[10px]">Add to timeline</TooltipContent>
+                      <TooltipContent className="text-[12px]">Add to timeline</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
@@ -864,7 +864,7 @@ function AudioPanel() {
             <div className="py-12 text-center">
               <Music className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
               <div className="text-xs text-muted-foreground">No audio tracks yet</div>
-              <div className="text-[10px] text-muted-foreground/60 mt-1">Upload audio files to add to your clips</div>
+              <div className="text-[12px] text-muted-foreground/60 mt-1">Upload audio files to add to your clips</div>
             </div>
           )}
         </div>
@@ -1029,8 +1029,8 @@ function BrandKitPanel() {
                     ) : (
                       <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
                     )}
-                    {isDefault && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded shrink-0">★ DEFAULT</span>}
-                    {isActive && <span className="text-[10px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
+                    {isDefault && <span className="text-[12px] font-bold text-yellow-400 bg-yellow-400/15 px-1.5 py-0.5 rounded shrink-0">★ DEFAULT</span>}
+                    {isActive && <span className="text-[12px] font-semibold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
                   </div>
                   <span className="text-xs text-muted-foreground block mt-0.5">
                     {s.fontFamily} · {s.fontSize} · {WEIGHT_LABELS[s.fontWeight] || s.fontWeight}{s.italic ? " · Italic" : ""}
@@ -1045,18 +1045,18 @@ function BrandKitPanel() {
                 <div className="flex flex-col gap-1 shrink-0">
                   {!isDefault && (
                     <button onClick={(e) => { e.stopPropagation(); handleSetDefault(tpl.id); }}
-                      className="text-[10px] text-muted-foreground hover:text-yellow-400 px-2 py-1 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
+                      className="text-[12px] text-muted-foreground hover:text-yellow-400 px-2 py-1 rounded hover:bg-yellow-400/10 transition-colors" title="Set as default">★ Default</button>
                   )}
                   {!tpl.builtIn && (
                     <>
                       <button onClick={(e) => { e.stopPropagation(); setRenamingId(tpl.id); setRenameText(tpl.name); }}
-                        className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary/80 transition-colors" title="Rename">Rename</button>
+                        className="text-[12px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary/80 transition-colors" title="Rename">Rename</button>
                       <button onClick={(e) => { e.stopPropagation(); handleUpdate(tpl.id); }}
-                        className="text-[10px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Overwrite preset settings">Update</button>
+                        className="text-[12px] text-muted-foreground hover:text-primary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title="Overwrite preset settings">Update</button>
                     </>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(tpl.id); }}
-                    className="text-[10px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
+                    className="text-[12px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-destructive/10 transition-colors" title="Delete template">Delete</button>
                 </div>
               </div>
             );
@@ -1229,7 +1229,7 @@ function SubtitlesPanel() {
           <div className="w-4 h-4 rounded border border-primary bg-primary flex items-center justify-center">
             <Check className="h-2.5 w-2.5 text-primary-foreground" />
           </div>
-          <span className="text-[10px] text-muted-foreground">Apply to all</span>
+          <span className="text-[12px] text-muted-foreground">Apply to all</span>
         </label>
       </div>
 
@@ -1353,7 +1353,7 @@ function SubtitlesPanel() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-foreground font-medium">Sync offset</span>
-                <span className="text-[10px] text-muted-foreground font-mono">{syncOffset > 0 ? "+" : ""}{syncOffset.toFixed(1)}s</span>
+                <span className="text-[12px] text-muted-foreground font-mono">{syncOffset > 0 ? "+" : ""}{syncOffset.toFixed(1)}s</span>
               </div>
               <Slider value={[syncOffset]} onValueChange={([v]) => setSyncOffset(v)} min={-10} max={10} step={0.1} />
             </div>
@@ -1530,7 +1530,7 @@ function TextPanel() {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-foreground font-medium w-20">Line spacing</span>
                 <Slider value={[captionLineSpacing * 10]} onValueChange={([v]) => { setCaptionLineSpacing(v / 10); markDirty(); }} min={8} max={30} step={1} className="flex-1" />
-                <span className="text-[10px] text-muted-foreground w-8 text-right">{captionLineSpacing.toFixed(1)}</span>
+                <span className="text-[12px] text-muted-foreground w-8 text-right">{captionLineSpacing.toFixed(1)}</span>
               </div>
             </div>
 
@@ -1757,7 +1757,7 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
                       }`}
                     >
                       <Icon className="h-5 w-5" />
-                      <span className="text-[10px] leading-none font-medium">{item.label}</span>
+                      <span className="text-[12px] leading-none font-medium">{item.label}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="text-xs">{item.label}</TooltipContent>
