@@ -421,8 +421,7 @@ def main():
             compute_type=args.compute_type,
             language=args.language,
             asr_options=asr_options if asr_options else None,
-            vad_onset=0.0,
-            vad_offset=0.0,
+            vad_options={"vad_onset": 0.0, "vad_offset": 0.0},
         )
 
         # ── Step 2: Load audio ──
