@@ -48,7 +48,7 @@ export const TRACK_SEPARATOR = "rgba(255,255,255,0.06)";
 export const RULER_H = 24;
 export const TRACK_H = 38;
 export const AUDIO_TRACK_H = 56;
-export const LABEL_W = 64;
+export const LABEL_W = 80;
 export const END_PADDING = 200;
 export const MERGE_THRESHOLD = 18;
 

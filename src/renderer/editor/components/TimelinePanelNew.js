@@ -634,8 +634,7 @@ export default function TimelinePanelNew() {
               className="shrink-0 flex items-center gap-1 px-2 z-10"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
             >
-              <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.cap.badge }}>T</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Caption</span>
+              <span className="text-[12px] text-muted-foreground font-medium">Caption</span>
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {captionSegs.map((seg) => {
@@ -683,8 +682,7 @@ export default function TimelinePanelNew() {
               className="shrink-0 flex items-center gap-1 px-2 z-10"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
             >
-              <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.sub.badge }}>S</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Subtitle</span>
+              <span className="text-[12px] text-muted-foreground font-medium">Subtitle</span>
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
@@ -747,8 +745,7 @@ export default function TimelinePanelNew() {
               className="shrink-0 flex items-center gap-1 px-2 z-10"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
             >
-              <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center text-white" style={{ background: TRACK_COLORS.audio.badge }}>&#9835;</span>
-              <span className="text-[10px] text-muted-foreground font-medium">Audio</span>
+              <span className="text-[12px] text-muted-foreground font-medium">Audio</span>
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {audioSegments.map((seg) => {
@@ -785,8 +782,7 @@ export default function TimelinePanelNew() {
               className="shrink-0 flex items-center gap-1 px-2 z-10"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
             >
-              <span className="text-[8px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.25)" }}>&#9835;</span>
-              <span className="text-[10px] text-muted-foreground/40 font-medium">Audio 2</span>
+              <span className="text-[12px] text-muted-foreground/40 font-medium">Audio 2</span>
             </div>
             <div className="flex-1 relative flex items-center" style={{ minWidth: clipContentWidth + END_PADDING }}>
               <button className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors ml-3">
