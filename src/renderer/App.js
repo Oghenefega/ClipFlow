@@ -405,7 +405,7 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("projects"); }} />;
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />;
     }
     if (view === "queue") {
       return (
