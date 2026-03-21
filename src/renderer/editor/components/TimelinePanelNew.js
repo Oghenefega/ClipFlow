@@ -97,11 +97,12 @@ export default function TimelinePanelNew() {
   }, [duration, initAudioSegments]);
 
   // ── Smooth 60fps playhead via rAF loop ──
-  // Reads video.currentTime directly instead of relying on Zustand's ~4Hz timeupdate
+  // Reads video.currentTime directly instead of relying on Zustand store updates.
+  // IMPORTANT: rAF loop depends ONLY on `playing` — NOT `currentTime`.
+  // If currentTime were a dependency, the 60fps store updates from PreviewPanel
+  // would tear down and rebuild this effect every frame, killing the loop.
   useEffect(() => {
     if (!playing) {
-      // When paused, sync smoothTime to the store's currentTime
-      setSmoothTime(currentTime);
       if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current);
       return;
     }
@@ -114,6 +115,11 @@ export default function TimelinePanelNew() {
     };
     playheadRafRef.current = requestAnimationFrame(tick);
     return () => { if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current); };
+  }, [playing]);
+
+  // When paused, sync smoothTime to store's currentTime (for seeking, scrubbing)
+  useEffect(() => {
+    if (!playing) setSmoothTime(currentTime);
   }, [playing, currentTime]);
 
   // ── Layout measurements ──
