@@ -408,13 +408,14 @@ def main():
         asr_options = {}
         if args.initial_prompt:
             asr_options["initial_prompt"] = args.initial_prompt
-        # VAD onset=0.0 effectively disables VAD filtering — Fega's audio is a dedicated
-        # mic-only track, so every sound on it IS speech. No filtering needed.
+        # vad_onset=0.001 is the minimum valid value (whisperx enforces 0 < onset < 1).
+        # This is effectively "no VAD filtering" — any frame with >0.1% speech probability
+        # passes, which on Fega's dedicated mic-only track means everything gets through.
         #
         # ⚠️ IMPORTANT for future multi-user / product use:
-        # When users upload footage with a mixed mic+game track, re-enable VAD with
-        # vad_onset=0.1 (catches whispers) or vad_onset=0.3 (more aggressive filtering).
-        # onset=0.0 on a mixed track will cause Whisper to hallucinate text from game audio.
+        # When users upload footage with a mixed mic+game track, use vad_onset=0.1
+        # (catches whispers) or vad_onset=0.3 (more aggressive filtering).
+        # Near-zero onset on a mixed track will cause Whisper to hallucinate text from game audio.
         model = whisperx.load_model(
             args.model,
             device=device,
