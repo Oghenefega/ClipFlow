@@ -25,6 +25,72 @@ function ensureProcessingDirs(processingDir) {
 }
 
 /**
+ * Slice word-level subtitles from the full source transcription for a clip's time range.
+ * Offsets all timestamps to be clip-local (0-based).
+ *
+ * Words that overlap the clip boundaries are included if their midpoint falls within range.
+ * Segments are rebuilt from the sliced words.
+ *
+ * @param {object} transcription - Source transcription { segments: [...], text: "..." }
+ * @param {number} clipStart - Clip start time in source (seconds)
+ * @param {number} clipEnd - Clip end time in source (seconds)
+ * @returns {Array} - Segments with 0-based word timestamps for the clip
+ */
+function sliceSubtitlesFromSource(transcription, clipStart, clipEnd) {
+  const segments = transcription?.segments || [];
+  const slicedSegments = [];
+
+  for (const seg of segments) {
+    const segStart = seg.start || 0;
+    const segEnd = seg.end || 0;
+
+    // Skip segments entirely outside the clip range
+    if (segEnd <= clipStart || segStart >= clipEnd) continue;
+
+    // Collect words that fall within the clip range
+    const words = seg.words || [];
+    const slicedWords = [];
+
+    for (const w of words) {
+      const wStart = w.start ?? segStart;
+      const wEnd = w.end ?? segEnd;
+      const wMid = (wStart + wEnd) / 2;
+
+      // Include word if its midpoint is within clip range
+      if (wMid >= clipStart && wMid <= clipEnd) {
+        slicedWords.push({
+          word: w.word,
+          start: Math.max(0, round3(wStart - clipStart)),
+          end: Math.max(0, round3(wEnd - clipStart)),
+          probability: w.probability ?? 1.0,
+        });
+      }
+    }
+
+    if (slicedWords.length === 0) continue;
+
+    // Rebuild segment from sliced words
+    const newStart = slicedWords[0].start;
+    const newEnd = slicedWords[slicedWords.length - 1].end;
+    const text = slicedWords.map((w) => w.word).join(" ");
+
+    slicedSegments.push({
+      start: newStart,
+      end: newEnd,
+      text,
+      words: slicedWords,
+    });
+  }
+
+  return slicedSegments;
+}
+
+/** Round to 3 decimal places (millisecond precision). */
+function round3(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
+/**
  * Run energy_scorer.py as a subprocess.
  * @param {string} pythonPath - Path to Python executable in venv
  * @param {string} videoPath - Source video file
@@ -377,8 +443,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     if (audioResult.error) throw new Error(`Audio extraction failed: ${audioResult.error}`);
     logger.endStep("Extract Audio", wavPath);
 
-    // ============ Stage 3: Transcribe (BetterWhisperX) ============
-    sendProgress("transcribing", 10, "Transcribing with BetterWhisperX...");
+    // ============ Stage 3: Transcribe (stable-ts) ============
+    sendProgress("transcribing", 10, "Transcribing with stable-ts...");
     logger.startStep("Transcription");
     const whisperOpts = {
       pythonPath: store.get("whisperPythonPath") || "",
@@ -491,8 +557,9 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
         await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
       } catch (e) { /* non-critical */ }
 
-      // Subtitles will be generated per-clip in Stage 8 (per-clip transcription)
-      // No longer slicing from source transcription — each clip gets its own WhisperX run
+      // Slice word-level timestamps from source transcription for this clip's time range
+      // Offset all timestamps to be clip-local (0-based)
+      const clipSubs = sliceSubtitlesFromSource(transcription, startSec, endSec);
 
       project.clips.push({
         id: projects.generateClipId(),
@@ -507,7 +574,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
         confidence: clip.confidence || 0,
         hasFrame: clip.has_frame || false,
         status: "none",
-        subtitles: { sub1: [], sub2: [] },
+        subtitles: { sub1: clipSubs, sub2: [] },
         sfx: [],
         media: [],
         renderStatus: "pending",
@@ -520,64 +587,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
 
     logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully`);
 
-    // ============ Stage 8: Per-Clip Transcription ============
-    // Each clip gets its own WhisperX run for accurate word-level timestamps.
-    // This replaces the old approach of slicing timestamps from the full source transcription,
-    // which produced unreliable word timing (mega-segments, interpolated timestamps, drift).
-    sendProgress("clipTranscribing", 85, "Transcribing clips for subtitles...");
-    logger.startStep("Per-Clip Transcription");
-
-    const clipWhisperOpts = {
-      pythonPath: store.get("whisperPythonPath") || "",
-      model: store.get("whisperModel") || "large-v3-turbo",
-      language: "en",
-      batchSize: 16,
-      computeType: "float16",
-      hfToken: store.get("hfToken") || "",
-      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
-    };
-
-    const totalClipsToTranscribe = project.clips.length;
-    for (let ci = 0; ci < totalClipsToTranscribe; ci++) {
-      const clipObj = project.clips[ci];
-      const clipPath = clipObj.filePath;
-      const clipWavPath = clipPath.replace(/\.mp4$/i, "_audio.wav");
-
-      const pct = 85 + Math.round((ci / totalClipsToTranscribe) * 10);
-      sendProgress("clipTranscribing", pct, `Transcribing clip ${ci + 1}/${totalClipsToTranscribe}...`);
-
-      try {
-        // 1. Extract audio from the clip file
-        const audioResult = await ffmpeg.extractAudio(clipPath, clipWavPath);
-        if (audioResult.error) {
-          logger.info(`Clip ${ci + 1} audio extraction failed: ${audioResult.error}`);
-          continue;
-        }
-
-        // 2. Run WhisperX on the clip audio (no progress callback — clips are short)
-        const clipTranscription = await whisper.transcribe(clipWavPath, clipWhisperOpts);
-
-        if (clipTranscription.error || !clipTranscription.segments) {
-          logger.info(`Clip ${ci + 1} transcription failed: ${clipTranscription.error || "no segments"}`);
-          continue;
-        }
-
-        // 3. Store the segments directly as clip subtitles (already 0-based since it's clip audio)
-        clipObj.subtitles.sub1 = clipTranscription.segments;
-        logger.info(`Clip ${ci + 1}: ${clipTranscription.segments.length} segments, ${clipTranscription.segments.reduce((n, s) => n + (s.words || []).length, 0)} words`);
-
-        // 4. Clean up temp WAV file
-        try { fs.unlinkSync(clipWavPath); } catch (e) { /* ignore */ }
-      } catch (err) {
-        logger.info(`Clip ${ci + 1} transcription error: ${err.message}`);
-        // Clean up WAV on error too
-        try { fs.unlinkSync(clipWavPath); } catch (e) { /* ignore */ }
-      }
-    }
-
-    logger.endStep("Per-Clip Transcription", `${project.clips.filter(c => c.subtitles.sub1.length > 0).length}/${totalClipsToTranscribe} clips transcribed`);
-
-    // ============ Stage 9: Save Project ============
+    // ============ Stage 8: Save Project ============
     sendProgress("saving", 97, "Saving project...");
     logger.startStep("Save Project");
     project.status = "ready";

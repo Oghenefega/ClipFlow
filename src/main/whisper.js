@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 /**
- * Check if BetterWhisperX (whisperx) is available via the Python venv.
+ * Check if stable-ts is available via the Python venv.
  * @param {string} pythonPath - Path to python.exe in the venv
  * @returns {Promise<{installed: boolean, version?: string, error?: string}>}
  */
@@ -13,35 +13,37 @@ function checkWhisper(pythonPath) {
       return resolve({ installed: false, error: "Python path not found" });
     }
 
-    const cmd = `"${pythonPath}" -c "import whisperx; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__)"`;
+    const cmd = `"${pythonPath}" -c "import stable_whisper; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__); print('stable_ts:' + stable_whisper.__version__)"`;
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
       if (err) {
-        return resolve({ installed: false, error: `whisperx not importable: ${err.message}` });
+        return resolve({ installed: false, error: `stable-ts not importable: ${err.message}` });
       }
       const output = stdout.toString();
       const hasCuda = output.includes("CUDA:True");
       const torchMatch = output.match(/torch:(.+)/);
       const torchVer = torchMatch ? torchMatch[1].trim() : "";
+      const stMatch = output.match(/stable_ts:(.+)/);
+      const stVer = stMatch ? stMatch[1].trim() : "";
       const version = hasCuda
-        ? `whisperx (CUDA) — torch ${torchVer}`
-        : `whisperx (CPU) — torch ${torchVer}`;
+        ? `stable-ts ${stVer} (CUDA) — torch ${torchVer}`
+        : `stable-ts ${stVer} (CPU) — torch ${torchVer}`;
       resolve({ installed: true, version });
     });
   });
 }
 
 /**
- * Transcribe an audio file using BetterWhisperX via tools/transcribe.py.
- * Returns word-level timestamps and segment data in the same format as before.
+ * Transcribe an audio file using stable-ts via tools/transcribe.py.
+ * Returns word-level timestamps and segment data.
  *
  * @param {string} wavPath - Path to audio file (WAV)
  * @param {object} opts
  * @param {string} opts.pythonPath - Path to python.exe in the venv
  * @param {string} [opts.model="large-v3-turbo"] - Whisper model name
  * @param {string} [opts.language="en"] - Language code
- * @param {number} [opts.batchSize=16] - Batch size for inference
+ * @param {number} [opts.batchSize=16] - Batch size (kept for CLI compat)
  * @param {string} [opts.computeType="float16"] - Compute type
- * @param {string} [opts.hfToken] - HuggingFace token (for wav2vec2 alignment)
+ * @param {string} [opts.hfToken] - HuggingFace token (kept for CLI compat)
  * @param {function} [opts.onProgress] - Progress callback(percentage)
  * @returns {Promise<{segments: Array, text: string}>}
  */

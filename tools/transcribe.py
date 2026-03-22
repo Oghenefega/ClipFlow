@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ClipFlow transcription bridge — BetterWhisperX (whisperx) wrapper.
+ClipFlow transcription bridge — stable-ts (faster-whisper backend) wrapper.
 
 Usage:
     python transcribe.py --audio <path> --output <path> [--model <name>] [--language <lang>]
@@ -11,6 +11,10 @@ Outputs JSON matching ClipFlow's expected format:
 
 Progress is printed to stderr as "XX%" (parseable by the existing progress handler).
 Exit 0 on success, non-zero on error.
+
+Uses stable-ts for transcription + word-level timestamps. stable-ts uses iterative
+audio muting + probability analysis to produce highly accurate word boundaries,
+significantly better than WhisperX's wav2vec2 forced alignment for gaming commentary.
 """
 
 import sys
@@ -139,16 +143,21 @@ def repair_segment_words(words, seg_start, seg_end, energy, frame_ms=20):
     Repair word timestamps within a single segment using audio energy.
 
     Strategy:
-    1. Detect if timestamps are broken (bunched, zero-duration, out of bounds)
+    1. Detect if timestamps are SEVERELY broken (not just natural variance)
     2. If broken: redistribute using energy-weighted allocation
     3. If mostly OK: snap word boundaries to nearest speech onsets
     4. Enforce monotonicity and segment boundary clamping
+
+    IMPORTANT: Only trigger repair for genuinely broken data. Natural speech
+    has uneven pacing — words are NOT uniformly distributed. Aggressive
+    repair replaces real alignment with interpolation, making timing worse.
     """
     if not words or len(words) == 0:
         return words
 
     seg_dur = seg_end - seg_start
     n_words = len(words)
+    triggered_check = None
 
     # ── Check if timestamps are broken ──
     is_broken = False
@@ -156,57 +165,63 @@ def repair_segment_words(words, seg_start, seg_end, energy, frame_ms=20):
     # Check 1: Segment has ~0 duration
     if seg_dur < 0.05:
         is_broken = True
+        triggered_check = "check1_zero_duration"
 
-    # Check 2: Words bunched at the same time (>50% share a start time within 50ms)
+    # Check 2: Words bunched at the same time (>70% share a start time within 50ms)
+    # Relaxed from 50% → 70% to avoid false positives on naturally tight speech
     if not is_broken and n_words > 1:
         rounded_starts = [round(w["start"] * 20) / 20 for w in words]
         unique_count = len(set(rounded_starts))
-        if unique_count / n_words < 0.5:
+        ratio = unique_count / n_words
+        if ratio < 0.3:
             is_broken = True
+            triggered_check = f"check2_bunched(unique_ratio={ratio:.2f})"
 
-    # Check 3: Words don't span the segment (cover < 30%)
-    if not is_broken and n_words > 1:
-        w_start = min(w["start"] for w in words)
-        w_end = max(w["end"] for w in words)
-        coverage = (w_end - w_start) / seg_dur if seg_dur > 0 else 0
-        if coverage < 0.3:
-            is_broken = True
+    # Check 3: REMOVED — natural speech legitimately clusters in a portion of the
+    # segment. A word span covering only 30-50% of segment time is normal for speech
+    # with leading/trailing silence. This check had ~20% false positive rate.
 
     # Check 4: Many words have zero or near-zero duration
+    # Relaxed: only trigger if >60% of words are <10ms (truly broken)
     if not is_broken and n_words > 2:
-        zero_dur_count = sum(1 for w in words if (w["end"] - w["start"]) < 0.02)
-        if zero_dur_count / n_words > 0.4:
+        zero_dur_count = sum(1 for w in words if (w["end"] - w["start"]) < 0.01)
+        ratio = zero_dur_count / n_words
+        if ratio > 0.6:
             is_broken = True
+            triggered_check = f"check4_zero_dur(ratio={ratio:.2f})"
 
     # Check 5: Words are not monotonically increasing
     if not is_broken and n_words > 1:
         for i in range(1, n_words):
             if words[i]["start"] < words[i-1]["start"] - 0.01:
                 is_broken = True
+                triggered_check = f"check5_non_monotonic(word={i})"
                 break
 
-    # Check 6: Mid-segment drift — words cluster in one half of the segment
-    # This catches the pattern where alignment drifts in the middle but catches up
-    # at the end, making other checks pass but timestamps still feel wrong.
-    if not is_broken and n_words >= 4 and seg_dur > 0.5:
-        # Compare where words ARE vs where they SHOULD be (uniform pacing)
-        word_centers = [(w["start"] + w["end"]) / 2 for w in words]
-        # Expected uniform centers
-        expected_centers = [seg_start + (i + 0.5) / n_words * seg_dur for i in range(n_words)]
-        # Compute mean absolute deviation from expected positions
-        deviations = [abs(actual - expected) for actual, expected in zip(word_centers, expected_centers)]
-        mean_deviation = sum(deviations) / len(deviations)
-        # If average word is off by more than 15% of segment duration, redistribute
-        if mean_deviation > seg_dur * 0.15:
-            is_broken = True
+    # Check 6: REMOVED — comparing word positions against UNIFORM distribution
+    # is fundamentally wrong. Natural speech is bursty: some words are rapid-fire,
+    # others have pauses. This check was flagging perfectly good alignment as
+    # "broken" and replacing real timestamps with energy-weighted interpolation.
 
-    # Check 7: Words don't fill the segment — first word starts late or last word ends early
-    if not is_broken and n_words >= 2 and seg_dur > 0.3:
-        first_gap = words[0]["start"] - seg_start
-        last_gap = seg_end - words[-1]["end"]
-        # If >25% of segment is empty at start or end, words aren't spanning properly
-        if first_gap > seg_dur * 0.25 or last_gap > seg_dur * 0.25:
-            is_broken = True
+    # Check 7: REMOVED — words not filling a segment is normal. Speech often starts
+    # after the segment boundary or ends before it. 25% gap threshold was too
+    # aggressive and caused false positives on natural speech.
+
+    # ── Diagnostic logging ──
+    if is_broken:
+        text_preview = " ".join(w.get("word", "") for w in words[:5])
+        if len(words) > 5:
+            text_preview += "..."
+        print(f"[REPAIR] {seg_start:.1f}-{seg_end:.1f}s ({n_words}w): {triggered_check} → redistributing | \"{text_preview}\"", file=sys.stderr)
+    else:
+        # Log when we KEEP the alignment (for debugging good vs bad clips)
+        text_preview = " ".join(w.get("word", "") for w in words[:5])
+        if len(words) > 5:
+            text_preview += "..."
+        # Only log segments with 3+ words to reduce noise
+        if n_words >= 3:
+            avg_dur = sum((w["end"] - w["start"]) for w in words) / n_words
+            print(f"[KEEP]   {seg_start:.1f}-{seg_end:.1f}s ({n_words}w): avg_word_dur={avg_dur:.3f}s | \"{text_preview}\"", file=sys.stderr)
 
     # ── Fix broken timestamps ──
     if is_broken:
@@ -498,14 +513,14 @@ def split_mega_segments(segments, max_duration=10.0):
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
-    parser = argparse.ArgumentParser(description="ClipFlow BetterWhisperX transcription bridge")
+    parser = argparse.ArgumentParser(description="ClipFlow stable-ts transcription bridge")
     parser.add_argument("--audio", required=True, help="Path to audio file (WAV)")
     parser.add_argument("--output", required=True, help="Path to write JSON output")
     parser.add_argument("--model", default="large-v3-turbo", help="Whisper model name")
     parser.add_argument("--language", default="en", help="Language code")
-    parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference (unused by stable-ts, kept for CLI compat)")
     parser.add_argument("--compute_type", default="float16", help="Compute type (float16, int8, etc.)")
-    parser.add_argument("--hf_token", default=None, help="HuggingFace token for wav2vec2 alignment model")
+    parser.add_argument("--hf_token", default=None, help="HuggingFace token (unused by stable-ts, kept for CLI compat)")
     parser.add_argument("--initial_prompt", default=None, help="Initial prompt to seed vocabulary hints (slang, proper nouns)")
     args = parser.parse_args()
 
@@ -514,242 +529,115 @@ def main():
         sys.exit(1)
 
     try:
-        print_progress(0, "Loading whisperx...")
-        import whisperx
+        print_progress(0, "Loading stable-ts...")
+        import stable_whisper
         import torch
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[INFO] Device: {device}, CUDA available: {torch.cuda.is_available()}", file=sys.stderr)
 
         # ── Step 1: Load model ──
+        # stable-ts wraps faster-whisper for GPU-accelerated transcription
+        # with built-in word-level timestamp refinement
         print_progress(5, "Loading model...")
-        # initial_prompt goes into asr_options (TranscriptionOptions), not transcribe()
-        asr_options = {}
-        if args.initial_prompt:
-            asr_options["initial_prompt"] = args.initial_prompt
-        model = whisperx.load_model(
+        model = stable_whisper.load_faster_whisper(
             args.model,
             device=device,
             compute_type=args.compute_type,
-            language=args.language,
-            asr_options=asr_options if asr_options else None,
         )
+        print_progress(15, "Model loaded")
 
-        # ── Step 2: Load audio ──
-        print_progress(10, "Loading audio...")
-        audio = whisperx.load_audio(args.audio)
+        # ── Step 2: Transcribe with word-level timestamps ──
+        # stable-ts produces word timestamps directly during transcription
+        # using iterative audio muting + probability analysis — no separate
+        # alignment step needed (unlike WhisperX's wav2vec2 approach)
+        print_progress(20, "Transcribing...")
+        transcribe_kwargs = {
+            "language": args.language,
+        }
+        if args.initial_prompt:
+            transcribe_kwargs["initial_prompt"] = args.initial_prompt
 
-        # ── Step 3: Transcribe ──
-        print_progress(15, "Transcribing...")
-        result = model.transcribe(
-            audio,
-            batch_size=args.batch_size,
-            language=args.language,
-        )
-        print_progress(55, "Transcription complete")
+        result = model.transcribe(args.audio, **transcribe_kwargs)
+        n_segs = len(result.segments) if hasattr(result, 'segments') else 0
+        print(f"[INFO] Transcription complete: {n_segs} segments", file=sys.stderr)
+        print_progress(60, "Transcription complete")
 
-        # ── Step 3.5: Split mega-segments before alignment ──
-        # Whisper sometimes produces 20-30+ second segments (especially with gaming
-        # commentary). The alignment model struggles with these, producing evenly
-        # interpolated word timestamps instead of accurate ones. Splitting into
-        # shorter segments (≤10s) gives alignment much better results.
-        raw_seg_count = len(result.get("segments", []))
-        result["segments"] = split_mega_segments(result.get("segments", []), max_duration=10.0)
-        split_seg_count = len(result["segments"])
-        if split_seg_count > raw_seg_count:
-            print(f"[INFO] Pre-alignment split: {raw_seg_count} → {split_seg_count} segments",
-                  file=sys.stderr)
-        print_progress(60, "Segments prepared for alignment")
+        # ── Step 3: Refine word timestamps ──
+        # refine() iteratively mutes audio at word boundaries and re-runs
+        # inference to find precise onset/offset times. precision=0.05 gives
+        # 50ms accuracy (good balance of speed vs precision)
+        print_progress(65, "Refining word timestamps...")
+        model.refine(args.audio, result, precision=0.05)
+        print_progress(85, "Refinement complete")
 
-        # ── Step 4: Align for word-level timestamps ──
-        print_progress(65, "Loading alignment model...")
-        align_model, align_metadata = whisperx.load_align_model(
-            language_code=args.language,
-            device=device,
-        )
-
-        print_progress(70, "Aligning words...")
-        aligned = whisperx.align(
-            result["segments"],
-            align_model,
-            align_metadata,
-            audio,
-            device,
-            return_char_alignments=False,
-        )
-        print_progress(85, "Alignment complete")
-
-        # ── Step 5: Format output ──
-        # Merge aligned segments with unaligned ones to prevent dropouts.
-        # Alignment can fail/drop segments — we keep the unaligned version
-        # for any segment that got lost during alignment.
-        raw_segs = result.get("segments", [])
-        aligned_segs = aligned.get("segments", [])
-
-        # Build a lookup of aligned segments by their text (approximate match)
-        aligned_by_text = {}
-        for seg in aligned_segs:
-            text = (seg.get("text") or "").strip()
-            if text:
-                aligned_by_text[text] = seg
-
-        # Merge strategy: ANCHOR segment boundaries to whisper's raw timestamps
-        # (which are reliable) and take word-level data from alignment.
-        # If alignment drifts (word times significantly outside segment range),
-        # fall back to raw segment without word timestamps.
-        DRIFT_THRESHOLD = 0.8  # seconds — if aligned words drift >0.8s from raw segment, discard alignment
-
-        merged_segs = []
-        for raw_seg in raw_segs:
-            text = (raw_seg.get("text") or "").strip()
-            if not text:
-                continue
-
-            raw_start = raw_seg.get("start", 0)
-            raw_end = raw_seg.get("end", 0)
-
-            if text in aligned_by_text:
-                aligned_seg = aligned_by_text[text]
-                aligned_words = aligned_seg.get("words", [])
-
-                # Check for drift: do aligned words fall within raw segment boundaries?
-                if aligned_words:
-                    word_starts = [w.get("start", 0) for w in aligned_words if w.get("start") is not None]
-                    word_ends = [w.get("end", 0) for w in aligned_words if w.get("end") is not None]
-
-                    if word_starts and word_ends:
-                        min_word_start = min(word_starts)
-                        max_word_end = max(word_ends)
-
-                        # Drift = how far words have shifted from raw segment boundaries
-                        start_drift = abs(min_word_start - raw_start)
-                        end_drift = abs(max_word_end - raw_end)
-
-                        if start_drift > DRIFT_THRESHOLD or end_drift > DRIFT_THRESHOLD:
-                            # Alignment drifted — use raw segment, discard alignment words
-                            print(f"[WARN] Alignment drift at {raw_start:.1f}s: words shifted by {start_drift:.1f}s/{end_drift:.1f}s — using raw timestamps", file=sys.stderr)
-                            merged_segs.append(raw_seg)
-                            continue
-
-                # Alignment looks OK — use aligned words but anchor to raw segment times
-                merged_seg = {
-                    **aligned_seg,
-                    "start": raw_start,  # Anchor to whisper's segment time
-                    "end": raw_end,      # Anchor to whisper's segment time
-                }
-
-                # Rescale word timestamps to fit within raw segment boundaries
-                if aligned_words:
-                    aw_start = aligned_seg.get("start", raw_start)
-                    aw_end = aligned_seg.get("end", raw_end)
-                    aw_dur = max(0.01, aw_end - aw_start)
-                    raw_dur = max(0.01, raw_end - raw_start)
-
-                    rescaled_words = []
-                    has_valid_words = False
-                    for w in aligned_words:
-                        ws = w.get("start")
-                        we = w.get("end")
-                        if ws is not None and we is not None:
-                            has_valid_words = True
-                            # Linear rescale from aligned time range to raw time range
-                            t_start = raw_start + ((ws - aw_start) / aw_dur) * raw_dur
-                            t_end = raw_start + ((we - aw_start) / aw_dur) * raw_dur
-                            rescaled_words.append({
-                                **w,
-                                "start": round(max(raw_start, min(raw_end, t_start)), 3),
-                                "end": round(max(raw_start, min(raw_end, t_end)), 3),
-                            })
-                        else:
-                            rescaled_words.append(w)
-
-                    # Per-word validation: check if rescaled words are monotonic and
-                    # don't bunch up (>50% of words with near-zero duration)
-                    if has_valid_words and len(rescaled_words) > 1:
-                        valid_rw = [w for w in rescaled_words if w.get("start") is not None and w.get("end") is not None]
-                        if valid_rw:
-                            zero_dur = sum(1 for w in valid_rw if (w["end"] - w["start"]) < 0.02)
-                            if zero_dur / len(valid_rw) > 0.4:
-                                # Words are bunched — alignment failed for this segment
-                                # Fall back to no word timestamps (let postprocess fix it)
-                                print(f"[WARN] Word timestamps bunched at {raw_start:.1f}s — discarding alignment words", file=sys.stderr)
-                                merged_seg["words"] = []
-                                merged_segs.append(merged_seg)
-                                continue
-
-                    merged_seg["words"] = rescaled_words
-
-                merged_segs.append(merged_seg)
-            else:
-                # Alignment dropped this segment — use the raw version
-                merged_segs.append(raw_seg)
-                print(f"[WARN] Alignment dropped segment at {raw_start:.1f}s: {text[:60]}...", file=sys.stderr)
-
-        # Also add any aligned segments that weren't in raw (shouldn't happen but safety).
-        # Guard: skip any aligned segment that overlaps >50% with an already-merged segment —
-        # this prevents sub-segments produced by alignment from duplicating content that
-        # the merge loop already captured from the larger raw segment.
-        raw_texts = {(s.get("text") or "").strip() for s in raw_segs}
-        for seg in aligned_segs:
-            text = (seg.get("text") or "").strip()
-            if not text or text in raw_texts:
-                continue
-            seg_start = seg.get("start", 0)
-            seg_end = seg.get("end", 0)
-            seg_dur = max(0.01, seg_end - seg_start)
-            # Check overlap against all already-merged segments
-            overlaps = False
-            for merged in merged_segs:
-                m_start = merged.get("start", 0)
-                m_end = merged.get("end", 0)
-                overlap = max(0, min(seg_end, m_end) - max(seg_start, m_start))
-                if overlap / seg_dur > 0.5:
-                    overlaps = True
-                    break
-            if not overlaps:
-                merged_segs.append(seg)
-
-        # Sort by start time
-        merged_segs.sort(key=lambda s: s.get("start", 0))
-
-        n_raw = len(raw_segs)
-        n_aligned = len(aligned_segs)
-        n_merged = len(merged_segs)
-        print(f"Segments: {n_raw} transcribed, {n_aligned} aligned, {n_merged} merged", file=sys.stderr)
-
+        # ── Step 4: Convert stable-ts result to ClipFlow format ──
+        print_progress(88, "Formatting output...")
         segments = []
         full_text_parts = []
 
-        for seg in merged_segs:
-            text = (seg.get("text") or "").strip()
+        for seg in result.segments:
+            text = seg.text.strip()
             if not text:
                 continue
 
-            start = seg.get("start", 0)
-            end = seg.get("end", 0)
+            seg_start = seg.start
+            seg_end = seg.end
 
             words = []
-            for w in seg.get("words", []):
-                word_text = (w.get("word") or "").strip()
+            for w in seg.words:
+                word_text = w.word.strip()
                 if not word_text:
                     continue
                 words.append({
                     "word": word_text,
-                    "start": w.get("start", start),
-                    "end": w.get("end", end),
-                    "probability": w.get("score", w.get("probability", 1.0)),
+                    "start": round(w.start, 3),
+                    "end": round(w.end, 3),
+                    "probability": round(getattr(w, 'probability', 1.0), 3),
                 })
 
+            # Log segment stats for debugging
+            if words:
+                avg_dur = sum((w["end"] - w["start"]) for w in words) / len(words)
+                print(f"[OK]   {seg_start:.1f}-{seg_end:.1f}s: {len(words)} words, avg_dur={avg_dur:.3f}s | \"{text[:60]}\"", file=sys.stderr)
+            else:
+                print(f"[WARN] {seg_start:.1f}-{seg_end:.1f}s: no words | \"{text[:60]}\"", file=sys.stderr)
+
             segments.append({
-                "start": start,
-                "end": end,
+                "start": round(seg_start, 3),
+                "end": round(seg_end, 3),
                 "text": text,
                 "words": words,
             })
             full_text_parts.append(text)
 
-        # ── Step 6: Audio-aware timestamp post-processing ──
-        print_progress(90, "Repairing word timestamps...")
-        segments = postprocess_timestamps(segments, audio, sr=16000)
+        print(f"[INFO] Total: {len(segments)} segments, {sum(len(s['words']) for s in segments)} words", file=sys.stderr)
+
+        # ── Step 5: Lightweight post-processing ──
+        # stable-ts produces high-quality timestamps, so post-processing is
+        # only a safety net for edge cases (zero-duration words, overlaps)
+        print_progress(90, "Post-processing timestamps...")
+
+        # Load audio for energy-based repair of any broken segments
+        # Use stdlib wave module — no extra dependencies needed
+        import wave
+        with wave.open(args.audio, 'rb') as wf:
+            sr = wf.getframerate()
+            n_channels = wf.getnchannels()
+            sampwidth = wf.getsampwidth()
+            n_frames = wf.getnframes()
+            raw_bytes = wf.readframes(n_frames)
+        # Convert to float32 numpy array
+        if sampwidth == 2:
+            audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        elif sampwidth == 4:
+            audio_np = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+        else:
+            audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        if n_channels > 1:
+            audio_np = audio_np.reshape(-1, n_channels).mean(axis=1)
+
+        segments = postprocess_timestamps(segments, audio_np, sr=sr)
         print_progress(95, "Post-processing complete")
 
         output = {

@@ -45,12 +45,11 @@ const PIPELINE_STEPS = [
   { key: "probing", label: "Analyzing File", icon: "\uD83D\uDD0D" },
   { key: "creating", label: "Creating Project", icon: "\uD83D\uDCC1" },
   { key: "extracting", label: "Extracting Audio", icon: "\uD83C\uDFA7" },
-  { key: "transcribing", label: "Transcription (WhisperX)", icon: "\uD83D\uDCDD" },
+  { key: "transcribing", label: "Transcription (stable-ts)", icon: "\uD83D\uDCDD" },
   { key: "energy", label: "Audio Energy Analysis", icon: "\u26A1" },
   { key: "frames", label: "Frame Extraction", icon: "\uD83D\uDDBC\uFE0F" },
   { key: "claude", label: "Claude Analysis", icon: "\uD83E\uDDE0" },
   { key: "cutting", label: "Cutting Clips", icon: "\u2702\uFE0F" },
-  { key: "clipTranscribing", label: "Transcribing Clips", icon: "\uD83C\uDFA4" },
   { key: "saving", label: "Creating Project", icon: "\uD83D\uDCBE" },
 ];
 
@@ -63,7 +62,6 @@ const STAGE_LABELS = {
   frames: "Extracting frames",
   claude: "Claude analyzing",
   cutting: "Cutting clips",
-  clipTranscribing: "Transcribing clips",
   saving: "Saving project",
   complete: "Complete",
   failed: "Failed",
