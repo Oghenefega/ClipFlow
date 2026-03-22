@@ -6,7 +6,7 @@ const RenameView = React.lazy(() => import("./views/RenameView"));
 const RecordingsView = React.lazy(() => import("./views/UploadView"));
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 const QueueView = React.lazy(() => import("./views/QueueView"));
-import CaptionsView from "./views/CaptionsView";
+const CaptionsView = React.lazy(() => import("./views/CaptionsView"));
 const SettingsView = React.lazy(() => import("./views/SettingsView"));
 const EditorView = React.lazy(() => import("./editor/EditorView"));
 
@@ -440,13 +440,15 @@ export default function App() {
     }
     if (view === "captions") {
       return (
-        <CaptionsView
-          ytDescriptions={ytDescriptions}
-          setYtDescriptions={setYtDescriptions}
-          captionTemplates={captionTemplates}
-          setCaptionTemplates={setCaptionTemplates}
-          gamesDb={gamesDb}
-        />
+        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
+          <CaptionsView
+            ytDescriptions={ytDescriptions}
+            setYtDescriptions={setYtDescriptions}
+            captionTemplates={captionTemplates}
+            setCaptionTemplates={setCaptionTemplates}
+            gamesDb={gamesDb}
+          />
+        </React.Suspense>
       );
     }
     if (view === "settings") {
