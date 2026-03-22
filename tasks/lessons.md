@@ -3,6 +3,18 @@
 > After ANY correction from the user, add the pattern here.
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## Windows File Locking (EBUSY)
+**Mistake:** Tried to delete/replace a video file while Electron's `<video>` element had it open. On Windows, this causes `EBUSY: resource busy or locked`.
+**Rule:** Before any IPC call that replaces a clip file on disk, ALWAYS unload the video element first (`removeAttribute("src")` + `.load()`), wait ~100ms for the OS to release the handle, then proceed.
+
+## Always Add Diagnostic Logging
+**Mistake:** Spent multiple rounds guessing at the root cause of left-extend failure. No error messages were visible to the user — errors were only logged to `console.error`.
+**Rule:** For ANY IPC call that can fail, log the error visibly (at minimum `console.error` with full context values). During development of new features, add `console.log` at key decision points so failures can be traced. Don't remove diagnostic logs — they're cheap and invaluable for future debugging.
+
+## React Declarative vs Imperative Video Control
+**Mistake:** Tried to imperatively set `videoRef.current.src = ...` from a Zustand store while React was declaratively managing the same `<video>` element's `src` prop via `useMemo`. React overwrote the imperative change on re-render.
+**Rule:** Use a `videoVersion` counter in the store. Increment it on clip re-cuts. Include it in the `videoSrc` memo dependency array with a `?v=N` cache buster. Add a `useEffect` that calls `.load()` when `videoSrc` changes (React `setAttribute` doesn't auto-load video).
+
 ---
 
 ## Vizard API

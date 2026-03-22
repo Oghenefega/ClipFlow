@@ -139,13 +139,19 @@ export default function TimelinePanelNew() {
   const audioMaxEnd = audioSegments.length > 0
     ? Math.max(...audioSegments.map((s) => s.endSec))
     : 0;
-  const effectiveDuration = Math.max(duration, audioMaxEnd);
+  // Left offset: when dragging audio left past 0, the min start goes negative
+  // We add this offset so the timeline grows to the right to accommodate
+  const audioMinStart = audioSegments.length > 0
+    ? Math.min(...audioSegments.map((s) => s.startSec))
+    : 0;
+  const leftOffset = audioMinStart < 0 ? Math.abs(audioMinStart) : 0;
+  const effectiveDuration = Math.max(duration, audioMaxEnd) + leftOffset;
 
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
   const playheadTime = playing ? smoothTime : currentTime;
-  const playheadPx = effectiveDuration > 0 ? LABEL_W + (playheadTime / effectiveDuration) * clipContentWidth : LABEL_W;
+  const playheadPx = effectiveDuration > 0 ? LABEL_W + ((playheadTime + leftOffset) / effectiveDuration) * clipContentWidth : LABEL_W;
 
   // ── Scrubbing ──
   const handleScrub = useCallback((e) => {
@@ -153,9 +159,10 @@ export default function TimelinePanelNew() {
     const rect = scrollRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
     if (x < 0) return;
-    const t = Math.max(0, Math.min(effectiveDuration, (x / clipContentWidth) * effectiveDuration));
+    const rawT = (x / clipContentWidth) * effectiveDuration - leftOffset;
+    const t = Math.max(0, Math.min(effectiveDuration - leftOffset, rawT));
     seekTo(t); // seekTo already clamps to audio bounds
-  }, [effectiveDuration, clipContentWidth, seekTo]);
+  }, [effectiveDuration, clipContentWidth, seekTo, leftOffset]);
 
   const handleScrubStart = useCallback((e) => {
     if (e.button !== 0) return;
@@ -171,7 +178,8 @@ export default function TimelinePanelNew() {
         if (!scrollRef.current || effectiveDuration <= 0) return;
         const rect = scrollRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
-        const t = Math.max(0, Math.min(effectiveDuration, (x / clipContentWidth) * effectiveDuration));
+        const rawT = (x / clipContentWidth) * effectiveDuration - leftOffset;
+        const t = Math.max(0, Math.min(effectiveDuration - leftOffset, rawT));
         seekTo(t);
       });
     };
@@ -185,7 +193,7 @@ export default function TimelinePanelNew() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [scrubbing, effectiveDuration, clipContentWidth, seekTo]);
+  }, [scrubbing, effectiveDuration, clipContentWidth, seekTo, leftOffset]);
 
   // Track mouse position for zoom-to-cursor
   const handleMouseMove = useCallback((e) => {
@@ -408,7 +416,7 @@ export default function TimelinePanelNew() {
     const viewWidth = container.clientWidth;
 
     // Playhead position in new content space
-    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
+    const playheadFrac = effectiveDuration > 0 ? (currentTime + leftOffset) / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
     // Where playhead currently is on screen
@@ -432,7 +440,7 @@ export default function TimelinePanelNew() {
     if (!playing || !scrollRef.current || effectiveDuration <= 0) return;
     const container = scrollRef.current;
     const viewWidth = container.clientWidth;
-    const phX = LABEL_W + (smoothTime / effectiveDuration) * clipContentWidth;
+    const phX = LABEL_W + ((smoothTime + leftOffset) / effectiveDuration) * clipContentWidth;
 
     if (phX > container.scrollLeft + viewWidth * 0.75) {
       const target = phX - viewWidth * 0.3;
@@ -616,7 +624,7 @@ export default function TimelinePanelNew() {
           ))}
 
           {/* ── Ruler ── */}
-          <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} />
+          <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} leftOffset={leftOffset} />
 
           {/* ── Caption track ── */}
           <div
@@ -660,6 +668,7 @@ export default function TimelinePanelNew() {
                     onResize={handleCaptionResize}
                     onDrag={handleCaptionDrag}
                     rippleAnimating={rippleAnimating}
+                    leftOffset={leftOffset}
                   />
                 );
               })}
@@ -705,7 +714,7 @@ export default function TimelinePanelNew() {
                   if (avgWidth < MERGE_THRESHOLD) {
                     const minStart = Math.min(...visibleSubs.map(s => s.startSec));
                     const maxEnd = Math.min(Math.max(...visibleSubs.map(s => s.endSec)), audioMaxEnd > 0 ? audioMaxEnd : Infinity);
-                    const leftPx = (minStart / effectiveDuration) * clipContentWidth;
+                    const leftPx = ((minStart + leftOffset) / effectiveDuration) * clipContentWidth;
                     const widthPx = ((maxEnd - minStart) / effectiveDuration) * clipContentWidth;
                     return (
                       <div
@@ -736,6 +745,7 @@ export default function TimelinePanelNew() {
                     onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
                     onDrag={handleSubtitleDrag}
                     rippleAnimating={rippleAnimating}
+                    leftOffset={leftOffset}
                   />
                 ));
               })()}
@@ -756,7 +766,7 @@ export default function TimelinePanelNew() {
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {audioSegments.map((seg) => {
-                const leftPx = effectiveDuration > 0 ? (seg.startSec / effectiveDuration) * clipContentWidth : 0;
+                const leftPx = effectiveDuration > 0 ? ((seg.startSec + leftOffset) / effectiveDuration) * clipContentWidth : 0;
                 const widthPx = effectiveDuration > 0 ? ((seg.endSec - seg.startSec) / effectiveDuration) * clipContentWidth : 0;
                 return (
                   <div key={seg.id} className="absolute top-0 bottom-0" style={{

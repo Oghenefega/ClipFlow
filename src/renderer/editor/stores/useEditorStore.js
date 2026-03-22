@@ -25,6 +25,7 @@ const useEditorStore = create((set, get) => ({
   maxExtendSec: 0,
   maxExtendLeftSec: 0, // how far LEFT the clip can extend (= clip.startTime in source)
   extending: false, // true while an extend operation is in progress
+  videoVersion: 0, // incremented on clip re-cut to bust video cache
 
   // ── Actions ──
   initFromContext: (editorContext, localProjects) => {
@@ -228,12 +229,23 @@ const useEditorStore = create((set, get) => ({
       // ── EXTEND CLIP ──
       set({ extending: true });
       try {
+        // Unload video to release file lock (Windows EBUSY prevention)
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        }
+        await new Promise((r) => setTimeout(r, 100));
+
         const newSourceEnd = sourceStartTime + newAudioEnd;
+        console.log("[ExtendRight] sourceStartTime:", sourceStartTime, "newAudioEnd:", newAudioEnd, "newSourceEnd:", newSourceEnd, "currentDuration:", currentDuration);
         const result = await window.clipflow.extendClip(
           project.id, clip.id, newSourceEnd
         );
+        console.log("[ExtendRight] IPC result:", JSON.stringify(result));
         if (result?.error) {
-          console.error("Extend clip failed:", result.error);
+          console.error("[ExtendRight] Failed:", result.error);
           // Revert audio segment to current duration
           set((s) => ({
             audioSegments: s.audioSegments.map((seg) =>
@@ -247,7 +259,7 @@ const useEditorStore = create((set, get) => ({
             ...project,
             clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
           };
-          set({ clip: newClip, project: newProject, sourceEndTime: newSourceEnd });
+          set({ clip: newClip, project: newProject, sourceEndTime: newSourceEnd, videoVersion: get().videoVersion + 1 });
 
           // Update video duration in playback store
           usePlaybackStore.getState().setDuration(newAudioEnd);
@@ -257,22 +269,6 @@ const useEditorStore = create((set, get) => ({
 
           // Extend caption to new end if it was at the old boundary
           get()._extendCaptionToAudioEnd(currentDuration, newAudioEnd);
-
-          // Re-extract waveform for the new clip
-          if (result.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
-            window.clipflow.ffmpegExtractWaveformPeaks(result.filePath, 400)
-              .then((wfResult) => {
-                if (wfResult?.peaks?.length > 0) set({ waveformPeaks: wfResult.peaks });
-              })
-              .catch(() => {});
-          }
-
-          // Reload video element with new file
-          const videoRef = usePlaybackStore.getState().getVideoRef();
-          if (videoRef?.current) {
-            videoRef.current.src = `file://${result.filePath.replace(/\\/g, "/")}`;
-            videoRef.current.load();
-          }
 
           get().markDirty();
         }
@@ -309,9 +305,23 @@ const useEditorStore = create((set, get) => ({
       const delta = Math.abs(newAudioStart); // positive number — how many seconds we're prepending
       const newSourceStart = sourceStartTime - delta;
 
+      console.log("[ExtendLeft] sourceStartTime:", sourceStartTime, "delta:", delta, "newSourceStart:", newSourceStart, "clip.startTime:", clip?.startTime, "clip.endTime:", clip?.endTime);
+
+      // Unload video to release file lock (Windows EBUSY prevention)
+      const videoRef = usePlaybackStore.getState().getVideoRef();
+      if (videoRef?.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
+      }
+      // Brief delay for OS to release file handle
+      await new Promise((r) => setTimeout(r, 100));
+
       const result = await window.clipflow.extendClipLeft(
         project.id, clip.id, newSourceStart
       );
+
+      console.log("[ExtendLeft] IPC result:", JSON.stringify(result));
 
       if (result?.error) {
         console.error("Extend clip left failed:", result.error);
@@ -348,6 +358,7 @@ const useEditorStore = create((set, get) => ({
           project: newProject,
           sourceStartTime: newSourceStart,
           maxExtendLeftSec: newSourceStart, // updated — less room to extend left now
+          videoVersion: get().videoVersion + 1,
         });
 
         // Update playback duration
@@ -358,22 +369,6 @@ const useEditorStore = create((set, get) => ({
 
         // Shift caption segments forward (extend start back, keep end position relative)
         get()._shiftCaptionLeft(delta);
-
-        // Re-extract waveform for the new clip
-        if (result.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
-          window.clipflow.ffmpegExtractWaveformPeaks(result.filePath, 400)
-            .then((wfResult) => {
-              if (wfResult?.peaks?.length > 0) set({ waveformPeaks: wfResult.peaks });
-            })
-            .catch(() => {});
-        }
-
-        // Reload video element with new file
-        const videoRef = usePlaybackStore.getState().getVideoRef();
-        if (videoRef?.current) {
-          videoRef.current.src = `file://${result.filePath.replace(/\\/g, "/")}`;
-          videoRef.current.load();
-        }
 
         get().markDirty();
       }
@@ -444,7 +439,7 @@ const useEditorStore = create((set, get) => ({
     subStore.setEditSegments([...newSegs, ...shifted]);
   },
 
-  // Shift caption segments forward by delta (extend backwards, keep end positions)
+  // Extend caption backwards: shift all timestamps by delta, extend first caption's start to 0
   _shiftCaptionLeft: (delta) => {
     const capStore = useCaptionStore.getState();
     const caps = capStore.captionSegments;
@@ -452,9 +447,12 @@ const useEditorStore = create((set, get) => ({
 
     const updated = caps.map((seg) => ({
       ...seg,
-      startSec: seg.startSec + delta,
-      endSec: (seg.endSec || 0) + delta,
+      // If caption started at clip beginning (0), keep it at 0 to cover new content
+      startSec: seg.startSec < 0.2 ? 0 : seg.startSec + delta,
+      // null endSec = "span full duration" — preserve it (don't convert to a number)
+      endSec: seg.endSec == null ? null : seg.endSec + delta,
     }));
+    console.log("[ExtendLeft] Caption shift: delta=", delta, "before:", caps.map(s => `${s.startSec}-${s.endSec}`), "after:", updated.map(s => `${s.startSec}-${s.endSec}`));
     capStore.setCaptionSegments(updated);
   },
 
@@ -512,9 +510,10 @@ const useEditorStore = create((set, get) => ({
     if (caps.length === 0) return;
 
     const updated = caps.map((seg) => {
-      const end = seg.endSec || Infinity;
+      // null endSec = "span full duration" — keep as null (it auto-extends)
+      if (seg.endSec == null) return seg;
       // If caption ended at or near the old boundary, extend it
-      if (Math.abs(end - oldEnd) < 0.2 || end === null) {
+      if (Math.abs(seg.endSec - oldEnd) < 0.2) {
         return { ...seg, endSec: newEnd };
       }
       return seg;

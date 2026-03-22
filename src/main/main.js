@@ -549,8 +549,10 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
     const startTime = clip.startTime || 0;
     const newEndTime = Math.min(newSourceEndTime, project.sourceDuration || newSourceEndTime);
 
+    console.log("[ExtendRight IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newEndTime:", newEndTime, "sourceFile:", sourceFile);
+
     if (newEndTime <= startTime) {
-      return { error: "Invalid extend range" };
+      return { error: `Invalid extend range: newEndTime=${newEndTime} <= startTime=${startTime}` };
     }
 
     // Re-cut from source with new boundaries
@@ -607,8 +609,10 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
     const endTime = clip.endTime || 0;
     const newStart = Math.max(0, newSourceStartTime);
 
+    console.log("[ExtendLeft IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "clip.duration:", clip.duration, "newSourceStartTime:", newSourceStartTime, "newStart:", newStart, "endTime:", endTime, "sourceFile:", sourceFile);
+
     if (newStart >= endTime) {
-      return { error: "Invalid extend range" };
+      return { error: `Invalid extend range: newStart=${newStart} >= endTime=${endTime}` };
     }
 
     // Re-cut from source with new boundaries

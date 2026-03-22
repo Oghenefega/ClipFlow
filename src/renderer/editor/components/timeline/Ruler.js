@@ -2,17 +2,19 @@ import React, { useMemo } from "react";
 import { fmtTime } from "../../utils/timeUtils";
 import { LABEL_W, RULER_H, RULER_BG, RULER_TEXT, END_PADDING } from "./timelineConstants";
 
-export default React.memo(function Ruler({ duration, clipContentWidth }) {
+export default React.memo(function Ruler({ duration, clipContentWidth, leftOffset = 0 }) {
   const rulerTicks = useMemo(() => {
     if (duration <= 0) return [];
     const majorInterval = Math.max(0.5, Math.round((duration / (clipContentWidth / 60)) * 2) / 2);
     const ticks = [];
     for (let t = 0; t <= duration; t += majorInterval / 2) {
       const isMajor = Math.abs(t % majorInterval) < 0.01 || Math.abs(t % majorInterval - majorInterval) < 0.01;
-      ticks.push({ time: t, px: LABEL_W + (t / duration) * clipContentWidth, major: isMajor });
+      // Display time subtracts leftOffset so the original 0 point stays labeled as 0
+      const displayTime = t - leftOffset;
+      ticks.push({ time: t, displayTime, px: LABEL_W + (t / duration) * clipContentWidth, major: isMajor });
     }
     return ticks;
-  }, [duration, clipContentWidth]);
+  }, [duration, clipContentWidth, leftOffset]);
 
   return (
     <div
@@ -39,9 +41,9 @@ export default React.memo(function Ruler({ duration, clipContentWidth }) {
                   className="text-[9px] font-mono leading-none mb-0.5 -translate-x-1/2 whitespace-nowrap"
                   style={{ color: RULER_TEXT }}
                 >
-                  {tick.time < 60
-                    ? `${tick.time.toFixed(tick.time % 1 === 0 ? 0 : 1)}s`
-                    : fmtTime(tick.time)
+                  {Math.abs(tick.displayTime) < 60
+                    ? `${tick.displayTime < 0 ? "-" : ""}${Math.abs(tick.displayTime).toFixed(Math.abs(tick.displayTime) % 1 === 0 ? 0 : 1)}s`
+                    : fmtTime(tick.displayTime)
                   }
                 </span>
               )}

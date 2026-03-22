@@ -406,6 +406,7 @@ function DraggableOverlay({
 export default function PreviewPanelNew() {
   const clip = useEditorStore((s) => s.clip);
   const project = useEditorStore((s) => s.project);
+  const videoVersion = useEditorStore((s) => s.videoVersion);
 
   // Playback
   const playing = usePlaybackStore((s) => s.playing);
@@ -563,8 +564,19 @@ export default function PreviewPanelNew() {
   // Video source path
   const videoSrc = useMemo(() => {
     if (!clip?.filePath) return null;
-    return `file://${clip.filePath.replace(/\\/g, "/")}`;
-  }, [clip?.filePath]);
+    // videoVersion busts the cache when clip is re-cut (extend left/right) at the same path
+    const cacheBuster = videoVersion > 0 ? `?v=${videoVersion}` : "";
+    return `file://${clip.filePath.replace(/\\/g, "/")}${cacheBuster}`;
+  }, [clip?.filePath, videoVersion]);
+
+  // Force video reload when videoSrc changes (React setAttribute doesn't auto-load)
+  const prevVideoSrcRef = useRef(null);
+  useEffect(() => {
+    if (videoSrc && videoRef.current && prevVideoSrcRef.current !== null && prevVideoSrcRef.current !== videoSrc) {
+      videoRef.current.load();
+    }
+    prevVideoSrcRef.current = videoSrc;
+  }, [videoSrc]);
 
   // Compute display zoom
   const displayZoom = zoom === -1 ? "Fit" : `${zoom}%`;
