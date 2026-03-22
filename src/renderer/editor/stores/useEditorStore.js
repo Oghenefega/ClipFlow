@@ -561,6 +561,71 @@ const useEditorStore = create((set, get) => ({
     }
   },
 
+  // Revert clip to previous boundaries (called by undo when extension is undone)
+  revertClipBoundaries: async (clipMeta) => {
+    const { clip, project } = get();
+    if (!clip || !project || !clipMeta) return;
+
+    const targetStart = clipMeta.startTime ?? clip.startTime;
+    const targetEnd = clipMeta.endTime ?? clip.endTime;
+
+    console.log("[RevertClip] Reverting to startTime:", targetStart, "endTime:", targetEnd);
+    set({ extending: true });
+
+    try {
+      // Unload video to release file lock (Windows EBUSY prevention)
+      const videoRef = usePlaybackStore.getState().getVideoRef();
+      if (videoRef?.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
+      }
+      await new Promise((r) => setTimeout(r, 100));
+
+      const result = await window.clipflow.recutClip(
+        project.id, clip.id, targetStart, targetEnd
+      );
+
+      console.log("[RevertClip] IPC result:", JSON.stringify(result));
+
+      if (result?.error) {
+        console.error("[RevertClip] Failed:", result.error);
+      } else {
+        const newDuration = result.duration;
+        const newClip = {
+          ...clip,
+          startTime: targetStart,
+          endTime: targetEnd,
+          duration: newDuration,
+          filePath: result.filePath,
+        };
+        const newProject = {
+          ...project,
+          clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
+        };
+        set({
+          clip: newClip,
+          project: newProject,
+          sourceStartTime: clipMeta.sourceStartTime ?? targetStart,
+          sourceEndTime: clipMeta.sourceEndTime ?? targetEnd,
+          maxExtendLeftSec: clipMeta.maxExtendLeftSec ?? targetStart,
+          maxExtendSec: clipMeta.maxExtendSec ?? (get().sourceDuration - targetStart),
+          videoVersion: get().videoVersion + 1,
+        });
+
+        // Update playback duration
+        usePlaybackStore.getState().setDuration(newDuration);
+
+        console.log("[RevertClip] Success. New duration:", newDuration);
+        get().markDirty();
+      }
+    } catch (err) {
+      console.error("[RevertClip] Error:", err);
+    } finally {
+      set({ extending: false });
+    }
+  },
+
   handleSave: async () => {
     const { clip, project, clipTitle } = get();
     if (!clip || !project) return;

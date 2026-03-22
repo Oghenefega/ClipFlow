@@ -206,31 +206,84 @@ export default function TimelinePanelNew() {
     setSelectedSegIds(new Set());
   }, []);
 
+  // Clear snap guides on any pointer up (end of drag/resize)
+  useEffect(() => {
+    const onUp = () => setSnapGuides([]);
+    window.addEventListener("pointerup", onUp);
+    return () => window.removeEventListener("pointerup", onUp);
+  }, []);
+
   // ── Caption segments — resolve null endSec ──
   const captionSegs = useMemo(() => {
     return captionSegments.map((seg) => ({ ...seg, endSec: seg.endSec ?? duration }));
   }, [captionSegments, duration]);
 
+  // ── Snap system ──
+  // Collect all segment edge times across all tracks for snap detection
+  const snapPoints = useMemo(() => {
+    const points = new Set();
+    for (const s of editSegments) { points.add(s.startSec); points.add(s.endSec); }
+    for (const s of captionSegs) { points.add(s.startSec); points.add(s.endSec); }
+    for (const s of audioSegments) { points.add(s.startSec); points.add(s.endSec); }
+    return Array.from(points);
+  }, [editSegments, captionSegs, audioSegments]);
+
+  // Snap a time value to the nearest snap point (returns snapped time + active guide lines)
+  const applySnap = useCallback((time, excludeId, excludeTrack) => {
+    const thresholdSec = effectiveDuration > 0
+      ? (SNAP_THRESHOLD_PX / clipContentWidth) * effectiveDuration
+      : 0.1;
+    let closest = null;
+    let closestDist = Infinity;
+    for (const pt of snapPoints) {
+      const dist = Math.abs(time - pt);
+      if (dist < thresholdSec && dist < closestDist) {
+        closest = pt;
+        closestDist = dist;
+      }
+    }
+    if (closest !== null && closestDist > 0.001) {
+      // Show snap guide at this position
+      const guidePx = LABEL_W + ((closest + leftOffset) / effectiveDuration) * clipContentWidth;
+      setSnapGuides([guidePx]);
+      return closest;
+    }
+    setSnapGuides([]);
+    return time;
+  }, [snapPoints, effectiveDuration, clipContentWidth, leftOffset]);
+
+  // Clear snap guides when no drag is happening (called on pointer up via wrapped handlers)
+  const clearSnapGuides = useCallback(() => setSnapGuides([]), []);
+
   // ── Resize handlers ──
   const handleCaptionResize = useCallback((id, newStart, newEnd) => {
-    updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
-  }, [duration, updateCaptionSegmentTimes]);
+    const sStart = applySnap(newStart, id, "cap");
+    const sEnd = applySnap(newEnd, id, "cap");
+    updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sEnd));
+  }, [duration, updateCaptionSegmentTimes, applySnap]);
 
   // Drag (move) subtitle segment — updates startSec/endSec maintaining duration
   const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
-    updateSegmentTimes(segId, Math.max(0, newStart), Math.min(effectiveDuration, newEnd));
-  }, [effectiveDuration, updateSegmentTimes]);
+    const segDur = newEnd - newStart;
+    const sStart = applySnap(newStart, segId, "sub");
+    updateSegmentTimes(segId, Math.max(0, sStart), Math.min(effectiveDuration, sStart + segDur));
+  }, [effectiveDuration, updateSegmentTimes, applySnap]);
 
   // Drag (move) caption segment
   const handleCaptionDrag = useCallback((id, newStart, newEnd) => {
-    updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
-  }, [duration, updateCaptionSegmentTimes]);
+    const segDur = newEnd - newStart;
+    const sStart = applySnap(newStart, id, "cap");
+    updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sStart + segDur));
+  }, [duration, updateCaptionSegmentTimes, applySnap]);
 
   const handleAudioResize = useCallback((id, newStart, newEnd) => {
-    resizeAudioSegment(id, newStart, newEnd);
-  }, [resizeAudioSegment]);
+    // Audio resize has its own extension logic, but still snap edges
+    const sStart = applySnap(newStart, id, "audio");
+    const sEnd = applySnap(newEnd, id, "audio");
+    resizeAudioSegment(id, sStart, sEnd);
+  }, [resizeAudioSegment, applySnap]);
 
-  const handleSubtitleResize = useCallback((segId, newStart, newEnd) => {
+  const handleSubtitleResize = useCallback((segId, rawStart, rawEnd) => {
     const sorted = [...editSegments].sort((a, b) => a.startSec - b.startSec);
     const idx = sorted.findIndex((s) => s.id === segId);
     if (idx < 0) return;
@@ -238,6 +291,10 @@ export default function TimelinePanelNew() {
     const prevSeg = idx > 0 ? sorted[idx - 1] : null;
     const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
     const minDur = 0.1;
+
+    // Apply snap to the edge being dragged
+    let newStart = rawStart !== seg.startSec ? applySnap(rawStart, segId, "sub") : rawStart;
+    let newEnd = rawEnd !== seg.endSec ? applySnap(rawEnd, segId, "sub") : rawEnd;
 
     if (newStart !== seg.startSec) {
       newStart = Math.max(0, newStart);
@@ -267,7 +324,7 @@ export default function TimelinePanelNew() {
       }
     }
     updateSegmentTimes(segId, newStart, newEnd);
-  }, [editSegments, duration, updateSegmentTimes]);
+  }, [editSegments, duration, updateSegmentTimes, applySnap]);
 
   // ── Segment selection (multi-select support) ──
   const handleSegSelect = useCallback((track, segId, event) => {

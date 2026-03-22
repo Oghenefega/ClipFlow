@@ -5,6 +5,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
+  const [extendDelta, setExtendDelta] = useState(0); // seconds being added during drag
   const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
   const rafRef = useRef(null);
 
@@ -26,10 +27,17 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
           // Allow extending left past 0 (negative) up to -maxExtendLeftSec
           const minStart = -(maxExtendLeftSec || 0);
           newStart = Math.max(minStart, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
+          // Track extension delta (negative newStart = extending backwards)
+          const delta = newStart < 0 ? Math.abs(newStart) : -(startRef.current.startSec - newStart);
+          setExtendDelta(delta > 0.05 ? delta : 0);
         } else {
           // Allow extending past current duration up to maxExtendSec (source boundary)
           const maxEnd = maxExtendSec || duration;
           newEnd = Math.min(maxEnd, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
+          // Track extension delta (past original end = extending forward)
+          const origEnd = startRef.current.endSec;
+          const delta = newEnd - origEnd;
+          setExtendDelta(delta > 0.05 ? delta : 0);
         }
         onResize(audioSeg.id, newStart, newEnd);
       });
@@ -37,6 +45,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     const onUp = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       setResizing(null);
+      setExtendDelta(0);
       document.body.style.cursor = "";
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
@@ -168,6 +177,27 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       onMouseLeave={() => setHovered(false)}
     >
       <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
+      {/* Extension counter — floating label showing +X.Xs during drag */}
+      {resizing && extendDelta > 0 && (
+        <div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            top: -22,
+            ...(resizing === "left" ? { left: -4 } : { right: -4 }),
+            background: "hsl(25 90% 50% / 0.9)",
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: "'JetBrains Mono', monospace",
+            padding: "1px 5px",
+            borderRadius: 4,
+            whiteSpace: "nowrap",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          }}
+        >
+          +{extendDelta.toFixed(1)}s
+        </div>
+      )}
       {/* Left handle */}
       <div
         className="absolute left-0 top-0 bottom-0 z-10 cursor-col-resize"

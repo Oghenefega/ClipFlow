@@ -64,17 +64,32 @@ function _snapshotStyling(subState) {
     };
   } catch (_) {}
 
-  // Capture audio segments
+  // Capture audio segments + clip metadata (for undo of extensions)
   let audio = null;
+  let clipMeta = null;
   try {
     const editorStore = require("./useEditorStore").default;
     const es = editorStore.getState();
     if (es.audioSegments) {
       audio = es.audioSegments.map((s) => ({ ...s }));
     }
+    // Capture clip extension metadata so undo can re-cut the video
+    if (es.clip) {
+      clipMeta = {
+        startTime: es.clip.startTime,
+        endTime: es.clip.endTime,
+        duration: es.clip.duration,
+        filePath: es.clip.filePath,
+        sourceStartTime: es.sourceStartTime,
+        sourceEndTime: es.sourceEndTime,
+        maxExtendLeftSec: es.maxExtendLeftSec,
+        maxExtendSec: es.maxExtendSec,
+        videoVersion: es.videoVersion,
+      };
+    }
   } catch (_) {}
 
-  return { sub, cap, layout, audio };
+  return { sub, cap, layout, audio, clipMeta };
 }
 
 function _restoreStyling(snapshot, subSet) {
@@ -95,11 +110,28 @@ function _restoreStyling(snapshot, subSet) {
       layoutStore.setState(snapshot.layout);
     } catch (_) {}
   }
-  // Restore audio segments
-  if (snapshot.audio) {
+  // Restore audio segments + revert clip boundaries if extension was undone
+  if (snapshot.audio || snapshot.clipMeta) {
     try {
       const editorStore = require("./useEditorStore").default;
-      editorStore.setState({ audioSegments: snapshot.audio });
+      if (snapshot.audio) {
+        editorStore.setState({ audioSegments: snapshot.audio });
+      }
+      // If clip boundaries changed (extension was done), re-cut the video
+      if (snapshot.clipMeta) {
+        const es = editorStore.getState();
+        const currentStart = es.clip?.startTime;
+        const currentEnd = es.clip?.endTime;
+        const snapStart = snapshot.clipMeta.startTime;
+        const snapEnd = snapshot.clipMeta.endTime;
+        // Only re-cut if boundaries actually differ
+        if (currentStart !== undefined && currentEnd !== undefined &&
+            (Math.abs((currentStart || 0) - (snapStart || 0)) > 0.05 ||
+             Math.abs((currentEnd || 0) - (snapEnd || 0)) > 0.05)) {
+          console.log("[Undo] Clip boundaries changed — reverting. Current:", currentStart, "-", currentEnd, "Snapshot:", snapStart, "-", snapEnd);
+          editorStore.getState().revertClipBoundaries(snapshot.clipMeta);
+        }
+      }
     } catch (_) {}
   }
 }

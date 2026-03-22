@@ -650,6 +650,66 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
   }
 });
 
+// ============ RE-CUT CLIP (arbitrary boundaries — used by undo) ============
+ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTime) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    if (!watchFolder) return { error: "Watch folder not set" };
+
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+
+    const sourceFile = project.sourceFile;
+    if (!sourceFile || !fs.existsSync(sourceFile)) {
+      return { error: "Source recording not found. Cannot recut clip." };
+    }
+
+    const newStart = Math.max(0, newStartTime);
+    const newEnd = Math.min(newEndTime, project.sourceDuration || newEndTime);
+
+    console.log("[Recut IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newStart:", newStart, "newEnd:", newEnd, "sourceFile:", sourceFile);
+
+    if (newStart >= newEnd) {
+      return { error: `Invalid recut range: newStart=${newStart} >= newEnd=${newEnd}` };
+    }
+
+    const clipDir = path.dirname(clip.filePath);
+    const ext = path.extname(clip.filePath);
+    const baseName = path.basename(clip.filePath, ext);
+    const tempPath = path.join(clipDir, `${baseName}_recut${ext}`);
+
+    await ffmpeg.cutClip(sourceFile, tempPath, newStart, newEnd);
+
+    const finalPath = clip.filePath;
+    if (fs.existsSync(finalPath)) {
+      fs.unlinkSync(finalPath);
+    }
+    fs.renameSync(tempPath, finalPath);
+
+    const newDuration = newEnd - newStart;
+    projects.updateClip(watchFolder, projectId, clipId, {
+      startTime: newStart,
+      endTime: newEnd,
+      duration: newDuration,
+    });
+
+    console.log("[Recut IPC] Success. duration:", newDuration, "start:", newStart, "end:", newEnd);
+    return {
+      success: true,
+      filePath: finalPath,
+      duration: newDuration,
+      newStartTime: newStart,
+      newEndTime: newEnd,
+    };
+  } catch (err) {
+    console.error("[Recut IPC] Error:", err);
+    return { error: err.message };
+  }
+});
+
 // ============ RE-TRANSCRIBE CLIP ============
 ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
   try {

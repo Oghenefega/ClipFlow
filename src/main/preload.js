@@ -122,6 +122,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   extendClipLeft: (projectId, clipId, newSourceStartTime) =>
     ipcRenderer.invoke("clip:extendLeft", projectId, clipId, newSourceStartTime),
 
+  // Re-cut a clip to arbitrary boundaries (used by undo)
+  recutClip: (projectId, clipId, newStartTime, newEndTime) =>
+    ipcRenderer.invoke("clip:recut", projectId, clipId, newStartTime, newEndTime),
+
   // Re-transcribe a specific clip
   retranscribeClip: (projectId, clipId) =>
     ipcRenderer.invoke("retranscribe:clip", projectId, clipId),

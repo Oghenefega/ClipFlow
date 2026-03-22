@@ -441,3 +441,7 @@
 ### Project preview should show styled subtitles, not raw text overlay
 - **Mistake:** User asked for subtitle/caption on project preview thumbnails. I added raw text as a simple overlay on the static thumbnail. User wanted the actual video playback preview to render subtitles with real styling (font, color, position, preset template) so they can judge the finished product before entering the editor.
 - **Rule:** "Show subtitles on preview" means render them with the same styling engine as the editor's PreviewPanel, not just dump text on top of a thumbnail. Think about what the user is trying to accomplish — in this case, previewing the finished product.
+
+### Undo must fully revert clip extensions — no weak workarounds
+- **Mistake:** Proposed using audio segment bounds as a workaround for undo because "undo can't un-re-cut the video file." User strongly rejected this as lazy.
+- **Rule:** Undo of a clip extension MUST re-cut the video back to original boundaries via IPC, reload the video, and restore all metadata (duration, timestamps, subtitles, captions). Store clip boundary metadata (startTime, endTime, duration, filePath) in every undo snapshot. On undo, detect if boundaries changed and trigger a full re-cut. This is a basic feature in any video editor — never propose workarounds for something this fundamental.
