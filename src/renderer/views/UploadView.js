@@ -50,6 +50,7 @@ const PIPELINE_STEPS = [
   { key: "frames", label: "Frame Extraction", icon: "\uD83D\uDDBC\uFE0F" },
   { key: "claude", label: "Claude Analysis", icon: "\uD83E\uDDE0" },
   { key: "cutting", label: "Cutting Clips", icon: "\u2702\uFE0F" },
+  { key: "clipTranscribing", label: "Transcribing Clips", icon: "\uD83C\uDFA4" },
   { key: "saving", label: "Creating Project", icon: "\uD83D\uDCBE" },
 ];
 
@@ -62,6 +63,7 @@ const STAGE_LABELS = {
   frames: "Extracting frames",
   claude: "Claude analyzing",
   cutting: "Cutting clips",
+  clipTranscribing: "Transcribing clips",
   saving: "Saving project",
   complete: "Complete",
   failed: "Failed",

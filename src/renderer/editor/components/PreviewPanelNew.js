@@ -739,58 +739,83 @@ export default function PreviewPanelNew() {
   // Audio segments from editor store — used to skip gaps during playback
   const audioSegments = useEditorStore((s) => s.audioSegments);
 
-  // 60fps rAF loop — keeps currentTime in sync at high frequency during playback
-  // The timeupdate event only fires ~4x/sec, which causes karaoke lag and skipped short words
+  // Pre-sort audio segments once when they change — avoids re-sorting every frame
+  const sortedAudioSegments = useMemo(() => {
+    if (!audioSegments || audioSegments.length === 0) return [];
+    return [...audioSegments].sort((a, b) => a.startSec - b.startSec);
+  }, [audioSegments]);
+
+  // 60fps rAF loop — SOLE source of currentTime updates during playback
+  // Also handles audio gap enforcement so time updates and seeks happen in the same frame
   useEffect(() => {
     if (!playing) return;
     let rafId;
     const tick = () => {
-      if (videoRef.current) {
-        setCurrentTime(videoRef.current.currentTime);
+      const video = videoRef.current;
+      if (!video) {
+        rafId = requestAnimationFrame(tick);
+        return;
       }
+
+      const time = video.currentTime;
+
+      // Enforce audio segment bounds during playback
+      if (sortedAudioSegments.length > 0) {
+        const lastSegEnd = sortedAudioSegments[sortedAudioSegments.length - 1].endSec;
+
+        // Past last segment end — stop
+        if (time >= lastSegEnd - 0.02) {
+          video.pause();
+          video.currentTime = lastSegEnd;
+          setCurrentTime(lastSegEnd);
+          setPlaying(false);
+          return; // Don't schedule next frame — we're done
+        }
+
+        // Check if in a gap — skip to next segment
+        const inSegment = sortedAudioSegments.some(
+          (s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05
+        );
+        if (!inSegment) {
+          const next = sortedAudioSegments.find((s) => s.startSec > time);
+          if (next) {
+            video.currentTime = next.startSec;
+            setCurrentTime(next.startSec);
+          } else {
+            video.pause();
+            setPlaying(false);
+            return;
+          }
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+      }
+
+      // Normal tick — update time from video element
+      setCurrentTime(time);
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [playing, setCurrentTime]);
+  }, [playing, setCurrentTime, setPlaying, sortedAudioSegments]);
 
-  // Video event handlers — enforce audio segment bounds as trim points
+  // Video event handlers — only enforce bounds when paused (seek while paused)
   const onTimeUpdate = useCallback(() => {
-    if (!videoRef.current) return;
-    const time = videoRef.current.currentTime;
+    const video = videoRef.current;
+    if (!video || !video.paused) return; // rAF handles playback — only act when paused
+
+    const time = video.currentTime;
     setCurrentTime(time);
 
-    // Enforce audio segment bounds — treat trimmed audio edges as video boundaries
-    if (audioSegments.length > 0 && !videoRef.current.paused) {
-      const sorted = [...audioSegments].sort((a, b) => a.startSec - b.startSec);
-
-      // Find the last audio segment's end — this is the effective clip end
-      const lastSegEnd = sorted[sorted.length - 1].endSec;
-
-      // If we've passed the last segment's end, stop immediately
-      if (time >= lastSegEnd - 0.02) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = lastSegEnd;
+    // Clamp to audio segment bounds on paused seeks
+    if (sortedAudioSegments.length > 0) {
+      const lastSegEnd = sortedAudioSegments[sortedAudioSegments.length - 1].endSec;
+      if (time >= lastSegEnd) {
+        video.currentTime = lastSegEnd;
         setCurrentTime(lastSegEnd);
-        setPlaying(false);
-        return;
-      }
-
-      // Check if current time falls within any audio segment
-      const inSegment = sorted.some((s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05);
-      if (!inSegment) {
-        // We're in a gap between segments — skip to next segment
-        const next = sorted.find((s) => s.startSec > time);
-        if (next) {
-          videoRef.current.currentTime = next.startSec;
-        } else {
-          // No more segments ahead — pause
-          videoRef.current.pause();
-          setPlaying(false);
-        }
       }
     }
-  }, [setCurrentTime, audioSegments, setPlaying]);
+  }, [setCurrentTime, sortedAudioSegments]);
 
   const onLoadedMetadata = useCallback(() => {
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {

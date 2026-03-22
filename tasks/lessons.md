@@ -404,6 +404,13 @@
 - **Mistake:** `_trimToAudioBounds()` was called inside `resizeAudioSegment()`, which fires on every mouse-move frame. Dragging audio left trimmed subs/captions immediately, so dragging back right couldn't restore them.
 - **Rule:** Any operation that permanently modifies OTHER tracks (subtitle/caption auto-trim) must only run on mouse-up (`commitAudioResize`), not during the continuous drag. The drag should only update the segment being dragged. Commit side-effects on release.
 
+### Never slice word timestamps from a long source transcription — re-transcribe per clip
+- **Mistake:** Sliced subtitle word timestamps from the full 30+ minute source transcription, offsetting them to clip-relative time. WhisperX produces unreliable word alignment on long recordings — some segments get accurate timestamps, others get interpolated garbage (every word ~0.7s evenly spaced). This caused: subtitles too slow, then skipping ahead; words appearing before they're spoken; segments grouping words across long pauses.
+- **Diagnostic:** User's debug reports showed the pattern clearly — clips from the same project had wildly different subtitle quality. Good clips had short segments with accurate word times. Bad clips had 25-30 second mega-segments with uniformly distributed timestamps.
+- **Root cause:** WhisperX alignment (wav2vec2) degrades on long audio files. The alignment model works segment-by-segment, and when the underlying Whisper model produces long segments, alignment becomes unreliable.
+- **Fix:** After cutting clip video files, re-transcribe each clip individually with WhisperX. Short audio (15-60s) produces dramatically better word-level alignment. The full source transcription is still used for highlight detection (Claude API), where segment-level timing is sufficient.
+- **Rule:** For word-level features (karaoke subtitles), always transcribe the SHORT clip audio, never slice from a long source. Segment-level features (highlight detection) can use source-level transcription.
+
 ### Whisper initial_prompt seeds vocabulary for slang recognition
 - **Issue:** Whisper/whisperx doesn't recognize common slang like "ain't", "gonna", "tryna" in fast gaming speech.
 - **Solution:** Pass `initial_prompt` to `model.transcribe()` with a list of slang terms, gaming vocabulary, and proper nouns. This seeds the decoder's vocabulary without requiring model fine-tuning.

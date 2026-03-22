@@ -597,10 +597,115 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      {/* Subtitle Debug Log */}
+      <SubtitleDebugSection />
+
       {/* Pipeline Logs & Cost Tracking */}
       <PipelineLogsSection />
 
       {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
+    </div>
+  );
+}
+
+// ============ SUBTITLE DEBUG LOG SECTION ============
+function SubtitleDebugSection() {
+  const [entries, setEntries] = useState([]);
+  const [expanded, setExpanded] = useState(null);
+  const [copied, setCopied] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const log = await window.clipflow?.debugGetSubtitleLog?.() || [];
+      setEntries(log.reverse()); // newest first
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleClear = async () => {
+    await window.clipflow?.debugClearSubtitleLog?.();
+    setEntries([]);
+    setExpanded(null);
+  };
+
+  const handleCopy = (entry, idx) => {
+    const json = JSON.stringify(entry, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      setCopied(idx);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  };
+
+  const handleCopyAll = () => {
+    const json = JSON.stringify(entries, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      setCopied("all");
+      setTimeout(() => setCopied(null), 1500);
+    });
+  };
+
+  if (loading) return null;
+  if (entries.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <h3 style={{ color: T.textPrimary, fontSize: 14, fontWeight: 600, margin: 0 }}>Subtitle Debug Log</h3>
+        <span style={{ color: T.textMuted, fontSize: 12 }}>({entries.length} report{entries.length !== 1 ? "s" : ""})</span>
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={handleCopyAll}
+          style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, color: copied === "all" ? "#34d399" : T.textSecondary, fontSize: 11, padding: "3px 10px", cursor: "pointer" }}
+        >
+          {copied === "all" ? "Copied!" : "Copy All"}
+        </button>
+        <button
+          onClick={handleClear}
+          style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, color: "#f87171", fontSize: 11, padding: "3px 10px", cursor: "pointer" }}
+        >
+          Clear
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {entries.map((entry, idx) => (
+          <div key={idx} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div
+              onClick={() => setExpanded(expanded === idx ? null : idx)}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", cursor: "pointer" }}
+            >
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: entry.rating === "good" ? "#34d399" : "#f87171",
+                boxShadow: `0 0 6px ${entry.rating === "good" ? "#34d399" : "#f87171"}`,
+              }} />
+              <span style={{ color: T.textPrimary, fontSize: 12, fontWeight: 500, flex: 1 }}>
+                {entry.clipTitle || "Untitled"} — {entry.subtitleSource}
+              </span>
+              {entry.note && <span style={{ color: "#fbbf24", fontSize: 11, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>"{entry.note}"</span>}
+              <span style={{ color: T.textMuted, fontSize: 11 }}>
+                {new Date(entry.timestamp).toLocaleDateString()} {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleCopy(entry, idx); }}
+                style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 4, color: copied === idx ? "#34d399" : T.textMuted, fontSize: 10, padding: "2px 8px", cursor: "pointer" }}
+              >
+                {copied === idx ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            {expanded === idx && (
+              <pre style={{
+                background: "#0a0b10", color: "#a78bfa", fontSize: 11, padding: "10px 14px", margin: 0,
+                borderTop: `1px solid ${T.border}`, maxHeight: 300, overflow: "auto",
+                fontFamily: "'JetBrains Mono', monospace", whiteSpace: "pre-wrap", wordBreak: "break-all",
+              }}>
+                {JSON.stringify(entry, null, 2)}
+              </pre>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

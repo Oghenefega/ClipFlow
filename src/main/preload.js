@@ -82,6 +82,11 @@ contextBridge.exposeInMainWorld("clipflow", {
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
 
+  // Subtitle debug log
+  debugLogSubtitle: (entry) => ipcRenderer.invoke("debug:logSubtitle", entry),
+  debugGetSubtitleLog: () => ipcRenderer.invoke("debug:getSubtitleLog"),
+  debugClearSubtitleLog: () => ipcRenderer.invoke("debug:clearSubtitleLog"),
+
   // Render pipeline
   renderClip: (clipData, projectData, outputPath, options) =>
     ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),

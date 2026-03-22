@@ -396,7 +396,7 @@ function EffectSection({ label, effectKey, enabled, onToggle, color, onColorChan
       onDragOver={(e) => { e.preventDefault(); onDragOver?.(effectKey); }}
       onDrop={(e) => { e.preventDefault(); const from = e.dataTransfer.getData("text/plain"); onDrop?.(from, effectKey); }}
     >
-      <div className="flex items-center justify-between py-2.5 px-1">
+      <div className="flex items-center justify-between py-1.5 px-1">
         <div className="flex items-center gap-1">
           <GripVertical className="h-3 w-3 text-muted-foreground/40 cursor-grab active:cursor-grabbing shrink-0" />
           <button className="flex items-center gap-1.5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
@@ -1238,7 +1238,7 @@ function SubtitlesPanel() {
           <EffectPresetsGrid userPresets={userPresets} persist={persist} target="subtitle" />
         ) : (
           /* Settings */
-          <div className="p-3 space-y-3">
+          <div className="p-3 space-y-2">
             {/* Font toolbar */}
             <FontToolbar
               fontFamily={subFontFamily} setFontFamily={setSubFontFamily}
@@ -1267,7 +1267,7 @@ function SubtitlesPanel() {
                     setSelectedSwatchIdx(i);
                   }}>
                     <button
-                      className={`w-7 h-7 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${
+                      className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${
                         highlightColor === c ? "border-foreground scale-110" : "border-transparent"
                       }`}
                       style={{ background: c }}
@@ -1506,7 +1506,7 @@ function TextPanel() {
         {subTab === "presets" ? (
           <EffectPresetsGrid userPresets={userPresets} persist={persist} target="caption" />
         ) : (
-          <div className="p-3 space-y-3">
+          <div className="p-3 space-y-2">
             {/* Text content */}
             <div>
               <textarea value={captionText} onChange={(e) => { setCaptionText(e.target.value); markDirty(); }} rows={3} placeholder="Enter caption text..."

@@ -189,13 +189,11 @@ function mergeWordTokens(words, segmentText) {
   return merged;
 }
 
-// ── Pass through word timestamps as-is ──
-// Real timestamp repair happens in Python (transcribe.py) using audio energy.
-// No JS-side fallbacks — if timestamps are bad, they stay bad so the root
-// cause is visible and gets fixed at the source (re-generate clips).
+// ── Validate and clamp word timestamps to segment boundaries ──
+// Per-clip transcription (WhisperX on short clip audio) produces accurate word
+// timestamps. This function just ensures they stay within segment bounds.
 function validateWords(words, segStart, segEnd) {
   if (!words || words.length === 0) return words;
-  // Only clamp to segment boundaries — no fabrication
   return words.map(w => ({
     ...w,
     start: Math.max(segStart, Math.min(segEnd, w.start)),
@@ -284,58 +282,107 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // ── Full reset — clears all segments to prevent data leaking between clips ──
+  clearAll: () => {
+    set({
+      editSegments: [],
+      originalSegments: [],
+      activeSegId: null,
+      activeRow: 0,
+      selectedWordInfo: null,
+      editingWordKey: null,
+      _undoStack: [],
+      _redoStack: [],
+      _lastUndoPushTime: 0,
+    });
+  },
+
   // ── Init from project data ──
   initSegments: (project, clip) => {
-    // Prefer clip-level transcription (from re-transcribe) over project-level
-    const transcriptionSource = clip?.transcription || project?.transcription;
-    if (!transcriptionSource?.segments || !clip) {
+    if (!clip) {
       set({ editSegments: [], activeSegId: null });
       return;
     }
-    // If clip has its own transcription, segments are already clip-relative (start from 0)
-    const hasClipTranscription = !!clip?.transcription;
-    const clipStart = hasClipTranscription ? 0 : (clip.startTime || 0);
-    // Use Infinity as fallback when endTime is missing/zero — never filter out all segments
-    const rawEnd = hasClipTranscription ? Infinity : (clip.endTime || 0);
-    const clipEnd = rawEnd > clipStart ? rawEnd : Infinity;
 
-    // Diagnostic: log offset info for debugging timing drift
-    console.log(`[initSegments] hasClipTranscription=${hasClipTranscription}, clipStart=${clipStart.toFixed(2)}, clipEnd=${clipEnd === Infinity ? 'Inf' : clipEnd.toFixed(2)}, source segments=${transcriptionSource.segments.length}`);
+    // Priority: 1) clip.transcription (re-transcribed), 2) clip.subtitles.sub1 (pipeline-generated, already clip-relative), 3) project.transcription (source-level, needs offset)
+    const hasClipTranscription = !!clip?.transcription?.segments?.length;
+    const hasClipSubtitles = clip?.subtitles?.sub1?.length > 0;
+    const hasProjectTranscription = !!project?.transcription?.segments?.length;
 
-    const segs = transcriptionSource.segments
+    let segments;
+    let clipStart = 0; // offset to subtract from timestamps
+
+    if (hasClipTranscription) {
+      // Re-transcribed: already clip-relative (0-based)
+      segments = clip.transcription.segments;
+      clipStart = 0;
+    } else if (hasClipSubtitles) {
+      // Pipeline-generated subtitles: already clip-relative (0-based)
+      segments = clip.subtitles.sub1;
+      clipStart = 0;
+    } else if (hasProjectTranscription) {
+      // Source-level transcription: need to offset by clip.startTime
+      segments = project.transcription.segments;
+      clipStart = clip.startTime || 0;
+    } else {
+      set({ editSegments: [], activeSegId: null });
+      return;
+    }
+
+    // Filter and clip-end bounds
+    const clipEnd = clipStart > 0 ? (clip.endTime || Infinity) : Infinity;
+
+    console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, clipStart=${clipStart.toFixed(2)}, segments=${segments.length}`);
+
+    const segs = segments
       .filter((s) => {
-        // For clip-level transcription (clipEnd=Infinity): include all segments
-        // For project-level: include segments that overlap with the clip time range
-        if (clipEnd === Infinity) return s.start >= clipStart;
+        if (clipEnd === Infinity) return true;
         return s.start < clipEnd && s.end > clipStart;
       })
       .map((s, i) => {
         const segStartSec = Math.max(0, s.start - clipStart);
         const segEndSec = Math.max(0, s.end - clipStart);
-        // Merge subword tokens using segment text as ground truth, then clamp timestamps
-        // Use nullish coalescing (??) instead of || to preserve valid 0 timestamps
-        const rawWords = mergeWordTokens((s.words || []).map(w => ({
+
+        // Build words, then filter out words that were entirely before clip start
+        // (they got clamped to 0 and would cause duplicate phrases at the beginning)
+        const allWords = (s.words || []).map(w => ({
           word: w.word,
           start: Math.max(0, (w.start ?? s.start) - clipStart),
           end: Math.max(0, (w.end ?? s.end) - clipStart),
           probability: w.probability ?? 1,
-        })), s.text);
+          _originalStart: w.start ?? s.start, // keep original for filtering
+        }));
+
+        // Drop words whose original time was entirely before clip start
+        // (these are words from a segment that straddled the clip boundary)
+        const clippedWords = clipStart > 0
+          ? allWords.filter(w => w._originalStart >= clipStart - 0.05)
+          : allWords;
+
+        // Clean up internal field
+        const cleanWords = clippedWords.map(({ _originalStart, ...w }) => w);
+
+        const rawWords = mergeWordTokens(cleanWords, s.text);
         const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
 
-        // Diagnostic: log first segment's timing for drift detection
         if (i === 0) {
-          console.log(`[initSegments] First seg: source=[${s.start.toFixed(2)}-${s.end.toFixed(2)}], clip-relative=[${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
+          console.log(`[initSegments] First seg: [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
           if (repairedWords.length > 0) {
             console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
           }
         }
+
+        // Rebuild segment text from surviving words (boundary trim may have removed some)
+        const segText = repairedWords.length > 0
+          ? repairedWords.map(w => w.word).join("").trim()
+          : s.text;
 
         return {
           id: i + 1,
           start: fmtTime(segStartSec),
           end: fmtTime(segEndSec),
           dur: ((s.end - s.start).toFixed(1)) + "s",
-          text: s.text,
+          text: segText || s.text,
           track: "s1",
           conf: "high",
           startSec: segStartSec,
@@ -343,7 +390,10 @@ const useSubtitleStore = create((set, get) => ({
           warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
           words: repairedWords,
         };
-      });
+      })
+      .filter((s) => s.words.length > 0 || s.text.trim().length > 0); // Drop empty segments from boundary trim
+    // Re-number IDs after filtering
+    segs.forEach((s, i) => { s.id = i + 1; });
     // Store original sentence-level segments for transcript tab and mode switching
     set({
       originalSegments: segs,
@@ -793,26 +843,77 @@ const useSubtitleStore = create((set, get) => ({
       }
     });
 
+    const PAUSE_SPLIT_THRESHOLD = 0.7; // seconds — pause this long = new subtitle group
     const SILENCE_GAP_THRESHOLD = 1.0; // seconds — only show gaps when silence > 1s
     const chunkSize = mode === "1word" ? 1 : 3;
     const rawSegs = [];
-    for (let i = 0; i < allWords.length; i += chunkSize) {
-      const chunk = allWords.slice(i, i + chunkSize);
-      const startSec = chunk[0].start;
-      const endSec = chunk[chunk.length - 1].end;
-      rawSegs.push({
-        id: Date.now() + i,
-        start: fmtTime(startSec),
-        end: fmtTime(endSec),
-        dur: (endSec - startSec).toFixed(1) + "s",
-        text: chunk.map((w) => w.word).join(" "),
-        track: chunk[0].track || "s1",
-        conf: "high",
-        startSec,
-        endSec,
-        warning: null,
-        words: chunk,
-      });
+
+    if (mode === "1word") {
+      // 1-word mode: simple, one word per segment
+      for (let i = 0; i < allWords.length; i++) {
+        const w = allWords[i];
+        rawSegs.push({
+          id: Date.now() + i,
+          start: fmtTime(w.start),
+          end: fmtTime(w.end),
+          dur: (w.end - w.start).toFixed(1) + "s",
+          text: w.word,
+          track: w.track || "s1",
+          conf: "high",
+          startSec: w.start,
+          endSec: w.end,
+          warning: null,
+          words: [w],
+        });
+      }
+    } else {
+      // 3-word mode: group by 3, but SPLIT at pauses > threshold
+      // This prevents showing future words in the same subtitle group
+      let chunk = [];
+      for (let i = 0; i < allWords.length; i++) {
+        const w = allWords[i];
+        const prevWord = chunk.length > 0 ? chunk[chunk.length - 1] : null;
+        const gap = prevWord ? w.start - prevWord.end : 0;
+
+        // Force a split if: chunk is full OR there's a significant pause
+        if (chunk.length >= chunkSize || (chunk.length > 0 && gap >= PAUSE_SPLIT_THRESHOLD)) {
+          const startSec = chunk[0].start;
+          const endSec = chunk[chunk.length - 1].end;
+          rawSegs.push({
+            id: Date.now() + rawSegs.length,
+            start: fmtTime(startSec),
+            end: fmtTime(endSec),
+            dur: (endSec - startSec).toFixed(1) + "s",
+            text: chunk.map((cw) => cw.word).join(" "),
+            track: chunk[0].track || "s1",
+            conf: "high",
+            startSec,
+            endSec,
+            warning: null,
+            words: chunk,
+          });
+          chunk = [];
+        }
+        chunk.push(w);
+      }
+      // Flush remaining words
+      if (chunk.length > 0) {
+        const startSec = chunk[0].start;
+        const endSec = chunk[chunk.length - 1].end;
+        rawSegs.push({
+          id: Date.now() + rawSegs.length,
+          start: fmtTime(startSec),
+          end: fmtTime(endSec),
+          dur: (endSec - startSec).toFixed(1) + "s",
+          text: chunk.map((cw) => cw.word).join(" "),
+          track: chunk[0].track || "s1",
+          conf: "high",
+          startSec,
+          endSec,
+          warning: null,
+          words: chunk,
+        });
+      }
     }
 
     // Close gaps between segments during continuous speech.

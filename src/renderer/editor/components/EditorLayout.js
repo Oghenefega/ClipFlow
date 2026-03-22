@@ -578,8 +578,7 @@ function Topbar({ onBack }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs ${debugStatus === "good" ? "text-green-400" : "text-muted-foreground/50 hover:text-green-400"}`}
-                style={debugStatus === "good" ? { boxShadow: "0 0 8px rgba(74, 222, 128, 0.4)" } : undefined}
+                className={`h-7 px-2 text-xs ${debugStatus === "good" ? "text-green-400 bg-green-400/10 border border-green-400/30" : "text-muted-foreground/50 hover:text-green-400"}`}
                 onClick={() => onDebugReport("good")}
               >
                 <ThumbsUp className="h-3.5 w-3.5" />
@@ -592,8 +591,7 @@ function Topbar({ onBack }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs ${debugStatus === "bad" ? "text-red-400" : "text-muted-foreground/50 hover:text-red-400"}`}
-                style={debugStatus === "bad" ? { boxShadow: "0 0 8px rgba(248, 113, 113, 0.4)" } : undefined}
+                className={`h-7 px-2 text-xs ${debugStatus === "bad" ? "text-red-400 bg-red-400/10 border border-red-400/30" : "text-muted-foreground/50 hover:text-red-400"}`}
                 onClick={() => onDebugReport("bad")}
               >
                 <ThumbsDown className="h-3.5 w-3.5" />

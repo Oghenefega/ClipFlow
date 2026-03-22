@@ -491,19 +491,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
         await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
       } catch (e) { /* non-critical */ }
 
-      // Extract subtitle segments from transcription for this clip
-      const clipSubtitles = (transcription.segments || [])
-        .filter((s) => s.start < endSec && s.end > startSec)
-        .map((s) => ({
-          start: Math.max(0, s.start - startSec),
-          end: Math.min(endSec - startSec, s.end - startSec),
-          text: s.text,
-          words: (s.words || []).map((w) => ({
-            ...w,
-            start: Math.max(0, w.start - startSec),
-            end: Math.min(endSec - startSec, w.end - startSec),
-          })),
-        }));
+      // Subtitles will be generated per-clip in Stage 8 (per-clip transcription)
+      // No longer slicing from source transcription — each clip gets its own WhisperX run
 
       project.clips.push({
         id: projects.generateClipId(),
@@ -518,7 +507,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
         confidence: clip.confidence || 0,
         hasFrame: clip.has_frame || false,
         status: "none",
-        subtitles: { sub1: clipSubtitles, sub2: [] },
+        subtitles: { sub1: [], sub2: [] },
         sfx: [],
         media: [],
         renderStatus: "pending",
@@ -531,7 +520,64 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
 
     logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully`);
 
-    // ============ Stage 8: Save Project ============
+    // ============ Stage 8: Per-Clip Transcription ============
+    // Each clip gets its own WhisperX run for accurate word-level timestamps.
+    // This replaces the old approach of slicing timestamps from the full source transcription,
+    // which produced unreliable word timing (mega-segments, interpolated timestamps, drift).
+    sendProgress("clipTranscribing", 85, "Transcribing clips for subtitles...");
+    logger.startStep("Per-Clip Transcription");
+
+    const clipWhisperOpts = {
+      pythonPath: store.get("whisperPythonPath") || "",
+      model: store.get("whisperModel") || "large-v3-turbo",
+      language: "en",
+      batchSize: 16,
+      computeType: "float16",
+      hfToken: store.get("hfToken") || "",
+      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
+    };
+
+    const totalClipsToTranscribe = project.clips.length;
+    for (let ci = 0; ci < totalClipsToTranscribe; ci++) {
+      const clipObj = project.clips[ci];
+      const clipPath = clipObj.filePath;
+      const clipWavPath = clipPath.replace(/\.mp4$/i, "_audio.wav");
+
+      const pct = 85 + Math.round((ci / totalClipsToTranscribe) * 10);
+      sendProgress("clipTranscribing", pct, `Transcribing clip ${ci + 1}/${totalClipsToTranscribe}...`);
+
+      try {
+        // 1. Extract audio from the clip file
+        const audioResult = await ffmpeg.extractAudio(clipPath, clipWavPath);
+        if (audioResult.error) {
+          logger.info(`Clip ${ci + 1} audio extraction failed: ${audioResult.error}`);
+          continue;
+        }
+
+        // 2. Run WhisperX on the clip audio (no progress callback — clips are short)
+        const clipTranscription = await whisper.transcribe(clipWavPath, clipWhisperOpts);
+
+        if (clipTranscription.error || !clipTranscription.segments) {
+          logger.info(`Clip ${ci + 1} transcription failed: ${clipTranscription.error || "no segments"}`);
+          continue;
+        }
+
+        // 3. Store the segments directly as clip subtitles (already 0-based since it's clip audio)
+        clipObj.subtitles.sub1 = clipTranscription.segments;
+        logger.info(`Clip ${ci + 1}: ${clipTranscription.segments.length} segments, ${clipTranscription.segments.reduce((n, s) => n + (s.words || []).length, 0)} words`);
+
+        // 4. Clean up temp WAV file
+        try { fs.unlinkSync(clipWavPath); } catch (e) { /* ignore */ }
+      } catch (err) {
+        logger.info(`Clip ${ci + 1} transcription error: ${err.message}`);
+        // Clean up WAV on error too
+        try { fs.unlinkSync(clipWavPath); } catch (e) { /* ignore */ }
+      }
+    }
+
+    logger.endStep("Per-Clip Transcription", `${project.clips.filter(c => c.subtitles.sub1.length > 0).length}/${totalClipsToTranscribe} clips transcribed`);
+
+    // ============ Stage 9: Save Project ============
     sendProgress("saving", 97, "Saving project...");
     logger.startStep("Save Project");
     project.status = "ready";

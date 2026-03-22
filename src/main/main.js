@@ -1181,6 +1181,36 @@ ipcMain.handle("anthropic:logHistory", async (_, entry) => {
   }
 });
 
+// ============ SUBTITLE DEBUG LOG ============
+ipcMain.handle("debug:logSubtitle", async (_, entry) => {
+  try {
+    const history = store.get("subtitleDebugLog") || [];
+    history.push({ ...entry, timestamp: new Date().toISOString() });
+    const bounded = history.length > 100 ? history.slice(-100) : history;
+    store.set("subtitleDebugLog", bounded);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("debug:getSubtitleLog", async () => {
+  try {
+    return store.get("subtitleDebugLog") || [];
+  } catch (err) {
+    return [];
+  }
+});
+
+ipcMain.handle("debug:clearSubtitleLog", async () => {
+  try {
+    store.set("subtitleDebugLog", []);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // ============ RENDER PIPELINE ============
 let activeRenderProc = null;
 
