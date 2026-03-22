@@ -549,8 +549,6 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
     const startTime = clip.startTime || 0;
     const newEndTime = Math.min(newSourceEndTime, project.sourceDuration || newSourceEndTime);
 
-    console.log("[ExtendRight IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newEndTime:", newEndTime, "sourceFile:", sourceFile);
-
     if (newEndTime <= startTime) {
       return { error: `Invalid extend range: newEndTime=${newEndTime} <= startTime=${startTime}` };
     }
@@ -608,8 +606,6 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
 
     const endTime = clip.endTime || 0;
     const newStart = Math.max(0, newSourceStartTime);
-
-    console.log("[ExtendLeft IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "clip.duration:", clip.duration, "newSourceStartTime:", newSourceStartTime, "newStart:", newStart, "endTime:", endTime, "sourceFile:", sourceFile);
 
     if (newStart >= endTime) {
       return { error: `Invalid extend range: newStart=${newStart} >= endTime=${endTime}` };
@@ -670,8 +666,6 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
     const newStart = Math.max(0, newStartTime);
     const newEnd = Math.min(newEndTime, project.sourceDuration || newEndTime);
 
-    console.log("[Recut IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newStart:", newStart, "newEnd:", newEnd, "sourceFile:", sourceFile);
-
     if (newStart >= newEnd) {
       return { error: `Invalid recut range: newStart=${newStart} >= newEnd=${newEnd}` };
     }
@@ -696,7 +690,6 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
       duration: newDuration,
     });
 
-    console.log("[Recut IPC] Success. duration:", newDuration, "start:", newStart, "end:", newEnd);
     return {
       success: true,
       filePath: finalPath,
