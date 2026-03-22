@@ -8,7 +8,7 @@ import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
 import SettingsView from "./views/SettingsView";
-import EditorView from "./editor/EditorView";
+const EditorView = React.lazy(() => import("./editor/EditorView"));
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
@@ -405,7 +405,11 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />;
+      return (
+        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading editor...</div>}>
+          <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />
+        </React.Suspense>
+      );
     }
     if (view === "queue") {
       return (
