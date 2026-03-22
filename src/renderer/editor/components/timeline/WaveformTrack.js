@@ -160,7 +160,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 
   return (
     <div
-      className="relative h-full cursor-pointer overflow-hidden"
+      className="relative h-full cursor-pointer"
       style={{
         width: timelineWidth,
         background: bgColor,
@@ -176,7 +176,9 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
+      <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: SEGMENT_RADIUS }}>
+        <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
+      </div>
       {/* Extension counter — floating label showing +X.Xs during drag */}
       {resizing && extendDelta > 0 && (
         <div

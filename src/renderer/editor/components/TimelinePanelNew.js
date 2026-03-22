@@ -585,7 +585,7 @@ export default function TimelinePanelNew() {
               <TooltipContent className="text-xs">{playing ? "Pause" : "Play"} (Space)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{fmtTime(duration)}</span>
+          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{fmtTime(audioMaxEnd > 0 ? audioMaxEnd : duration)}</span>
           {extending && (
             <span className="text-[10px] text-yellow-400 ml-2 animate-pulse">Extending clip...</span>
           )}
