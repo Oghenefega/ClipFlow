@@ -272,11 +272,18 @@ function Topbar({ onBack }) {
   }, [handleSave, clip, project]);
 
   // Subtitle debug report — logs clip subtitle data for diagnosis
-  const [debugStatus, setDebugStatus] = useState(null); // "good" | "bad" | null
+  // Initialize debugStatus from clip's persisted subtitleRating
+  const [debugStatus, setDebugStatus] = useState(() => clip?.subtitleRating || null); // "good" | "bad" | null
   const [debugNoteOpen, setDebugNoteOpen] = useState(false); // false | "good" | "bad"
   const [debugNote, setDebugNote] = useState("");
   const [debugChecks, setDebugChecks] = useState({});
   const debugNoteRef = useRef(null);
+  const debugSubmittingRef = useRef(false); // guard against multiple rapid submissions
+
+  // Sync debugStatus when clip changes (e.g., navigating between clips)
+  useEffect(() => {
+    setDebugStatus(clip?.subtitleRating || null);
+  }, [clip?.id, clip?.subtitleRating]);
 
   const BAD_CHECKS = [
     { id: "too_slow", label: "Subtitles too slow" },
@@ -293,43 +300,58 @@ function Topbar({ onBack }) {
 
   const submitDebugReport = useCallback(async (rating, note, checks) => {
     if (!clip || !project) return;
-    const editSegments = useSubtitleStore.getState().editSegments;
+    // Guard: prevent multiple rapid submissions
+    if (debugSubmittingRef.current) return;
+    debugSubmittingRef.current = true;
 
-    const checkedItems = Object.entries(checks || {}).filter(([, v]) => v).map(([k]) => k);
+    try {
+      const editSegments = useSubtitleStore.getState().editSegments;
 
-    const report = {
-      rating,
-      note: note || "",
-      checks: checkedItems,
-      clipId: clip?.id,
-      clipTitle: clip.title || "Untitled",
-      projectId: project.id,
-      projectName: project.name || "",
-      clipStartTime: clip.startTime,
-      clipEndTime: clip.endTime,
-      clipDuration: clip.endTime - clip.startTime,
-      clipFilePath: clip.filePath,
-      hasClipTranscription: !!clip.transcription?.segments?.length,
-      hasClipSubtitles: !!(clip.subtitles?.sub1?.length > 0),
-      subtitleSource: clip.transcription?.segments?.length ? "clip-transcription"
-        : clip.subtitles?.sub1?.length > 0 ? "clip-subtitles" : "project-transcription",
-      rawSubtitles: clip.subtitles?.sub1?.slice(0, 5)?.map(s => ({
-        start: s.start, end: s.end, text: s.text,
-        wordCount: s.words?.length || 0,
-        firstWord: s.words?.[0] ? { word: s.words[0].word, start: s.words[0].start, end: s.words[0].end } : null,
-        lastWord: s.words?.[s.words.length - 1] ? { word: s.words[s.words.length - 1].word, start: s.words[s.words.length - 1].start, end: s.words[s.words.length - 1].end } : null,
-      })) || [],
-      editSegments: editSegments.slice(0, 8).map(s => ({
-        id: s.id, startSec: s.startSec, endSec: s.endSec, text: s.text,
-        wordCount: s.words?.length || 0,
-        words: s.words?.slice(0, 10)?.map(w => ({ word: w.word, start: w.start, end: w.end })) || [],
-      })),
-      totalEditSegments: editSegments.length,
-    };
+      const checkedItems = Object.entries(checks || {}).filter(([, v]) => v).map(([k]) => k);
 
-    await window.clipflow?.debugLogSubtitle?.(report);
-    setDebugStatus(rating);
-    setTimeout(() => setDebugStatus(null), 2000);
+      const report = {
+        rating,
+        note: note || "",
+        checks: checkedItems,
+        clipId: clip?.id,
+        clipTitle: clip.title || "Untitled",
+        projectId: project.id,
+        projectName: project.name || "",
+        clipStartTime: clip.startTime,
+        clipEndTime: clip.endTime,
+        clipDuration: clip.endTime - clip.startTime,
+        clipFilePath: clip.filePath,
+        hasClipTranscription: !!clip.transcription?.segments?.length,
+        hasClipSubtitles: !!(clip.subtitles?.sub1?.length > 0),
+        subtitleSource: clip.transcription?.segments?.length ? "clip-transcription"
+          : clip.subtitles?.sub1?.length > 0 ? "clip-subtitles" : "project-transcription",
+        rawSubtitles: clip.subtitles?.sub1?.slice(0, 5)?.map(s => ({
+          start: s.start, end: s.end, text: s.text,
+          wordCount: s.words?.length || 0,
+          firstWord: s.words?.[0] ? { word: s.words[0].word, start: s.words[0].start, end: s.words[0].end } : null,
+          lastWord: s.words?.[s.words.length - 1] ? { word: s.words[s.words.length - 1].word, start: s.words[s.words.length - 1].start, end: s.words[s.words.length - 1].end } : null,
+        })) || [],
+        editSegments: editSegments.slice(0, 8).map(s => ({
+          id: s.id, startSec: s.startSec, endSec: s.endSec, text: s.text,
+          wordCount: s.words?.length || 0,
+          words: s.words?.slice(0, 10)?.map(w => ({ word: w.word, start: w.start, end: w.end })) || [],
+        })),
+        totalEditSegments: editSegments.length,
+      };
+
+      await window.clipflow?.debugLogSubtitle?.(report);
+
+      // Persist rating on the clip so it survives navigation
+      await window.clipflow?.projectUpdateClip?.(project.id, clip.id, { subtitleRating: rating });
+      // Update local clip object so the UI stays in sync
+      useEditorStore.setState((s) => ({
+        clip: s.clip ? { ...s.clip, subtitleRating: rating } : s.clip,
+      }));
+
+      setDebugStatus(rating);
+    } finally {
+      debugSubmittingRef.current = false;
+    }
   }, [clip, project]);
 
   const onDebugReport = useCallback((rating) => {
@@ -557,6 +579,7 @@ function Topbar({ onBack }) {
                 variant="ghost"
                 size="sm"
                 className={`h-7 px-2 text-xs ${debugStatus === "good" ? "text-green-400" : "text-muted-foreground/50 hover:text-green-400"}`}
+                style={debugStatus === "good" ? { boxShadow: "0 0 8px rgba(74, 222, 128, 0.4)" } : undefined}
                 onClick={() => onDebugReport("good")}
               >
                 <ThumbsUp className="h-3.5 w-3.5" />
@@ -570,6 +593,7 @@ function Topbar({ onBack }) {
                 variant="ghost"
                 size="sm"
                 className={`h-7 px-2 text-xs ${debugStatus === "bad" ? "text-red-400" : "text-muted-foreground/50 hover:text-red-400"}`}
+                style={debugStatus === "bad" ? { boxShadow: "0 0 8px rgba(248, 113, 113, 0.4)" } : undefined}
                 onClick={() => onDebugReport("bad")}
               >
                 <ThumbsDown className="h-3.5 w-3.5" />
