@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import { AddGameModal, TranscriptModal } from "./components/modals";
-const RenameView = React.lazy(() => import("./views/RenameView"));
-const RecordingsView = React.lazy(() => import("./views/UploadView"));
+import RenameView from "./views/RenameView";
+import RecordingsView from "./views/UploadView";
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
-const QueueView = React.lazy(() => import("./views/QueueView"));
-const CaptionsView = React.lazy(() => import("./views/CaptionsView"));
-const SettingsView = React.lazy(() => import("./views/SettingsView"));
-const EditorView = React.lazy(() => import("./editor/EditorView"));
+import QueueView from "./views/QueueView";
+import CaptionsView from "./views/CaptionsView";
+import SettingsView from "./views/SettingsView";
+import EditorView from "./editor/EditorView";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
@@ -374,7 +374,6 @@ export default function App() {
   const renderView = () => {
     if (view === "rename") {
       return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <RenameView
           gamesDb={gamesDb}
           mainGameName={mainGame}
@@ -388,12 +387,10 @@ export default function App() {
           setManagedFiles={setManagedFiles}
           watchFolder={watchFolder}
         />
-        </React.Suspense>
       );
     }
     if (view === "recordings") {
       return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <RecordingsView
           watchFolder={watchFolder}
           gamesDb={gamesDb}
@@ -405,19 +402,13 @@ export default function App() {
             });
           }}
         />
-        </React.Suspense>
       );
     }
     if (view === "editor") {
-      return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading editor...</div>}>
-          <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />
-        </React.Suspense>
-      );
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />;
     }
     if (view === "queue") {
       return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <QueueView
           allClips={allClips}
           mainGame={mainGame}
@@ -435,25 +426,21 @@ export default function App() {
           captionTemplates={captionTemplates}
           gamesDb={gamesDb}
         />
-        </React.Suspense>
       );
     }
     if (view === "captions") {
       return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
-          <CaptionsView
-            ytDescriptions={ytDescriptions}
-            setYtDescriptions={setYtDescriptions}
-            captionTemplates={captionTemplates}
-            setCaptionTemplates={setCaptionTemplates}
-            gamesDb={gamesDb}
-          />
-        </React.Suspense>
+        <CaptionsView
+          ytDescriptions={ytDescriptions}
+          setYtDescriptions={setYtDescriptions}
+          captionTemplates={captionTemplates}
+          setCaptionTemplates={setCaptionTemplates}
+          gamesDb={gamesDb}
+        />
       );
     }
     if (view === "settings") {
       return (
-        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <SettingsView
           mainGame={mainGame}
           setMainGame={setMainGame}
@@ -487,7 +474,6 @@ export default function App() {
           styleGuide={styleGuide}
           setStyleGuide={setStyleGuide}
         />
-        </React.Suspense>
       );
     }
     // Projects / Clips view
