@@ -287,15 +287,21 @@ function Topbar({ onBack }) {
 
   const BAD_CHECKS = [
     { id: "too_slow", label: "Subtitles too slow" },
+    { id: "too_fast", label: "Subtitles too fast / ahead of speech" },
     { id: "start_before_speech", label: "Subtitles start before speech" },
+    { id: "no_pause_respect", label: "Doesn't respect pauses / silence" },
     { id: "bad_grouping", label: "Segments badly grouped" },
-    { id: "words_missing", label: "Words missing/cut off" },
+    { id: "words_missing", label: "Words missing / cut off" },
     { id: "timing_drift", label: "Timing drifts mid-clip" },
+    { id: "shows_future_words", label: "Shows words before I say them" },
+    { id: "duplicate_phrases", label: "Duplicate / repeated phrases" },
   ];
   const GOOD_CHECKS = [
     { id: "on_time", label: "On time" },
     { id: "in_sync", label: "In sync" },
     { id: "well_grouped", label: "Segments well grouped" },
+    { id: "respects_pauses", label: "Respects pauses / silence" },
+    { id: "accurate_words", label: "Words are accurate" },
   ];
 
   const submitDebugReport = useCallback(async (rating, note, checks) => {

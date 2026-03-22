@@ -452,3 +452,11 @@
 ### Undo must fully revert clip extensions — no weak workarounds
 - **Mistake:** Proposed using audio segment bounds as a workaround for undo because "undo can't un-re-cut the video file." User strongly rejected this as lazy.
 - **Rule:** Undo of a clip extension MUST re-cut the video back to original boundaries via IPC, reload the video, and restore all metadata (duration, timestamps, subtitles, captions). Store clip boundary metadata (startTime, endTime, duration, filePath) in every undo snapshot. On undo, detect if boundaries changed and trigger a full re-cut. This is a basic feature in any video editor — never propose workarounds for something this fundamental.
+
+### 3-word subtitle grouping must be smart, not dumb
+- **Mistake:** Grouped every 3 consecutive words blindly. This put sentence endings with sentence starts (e.g. "for sure. I") and grouped words across 7-second pauses (e.g. "oh my, that" where "that" is spoken 7s later).
+- **Rule:** 3-word chunking must follow a hierarchy: (1) Never group end of sentence with start of next — split at .!? (2) Split at pauses > 0.7s (3) Forward-look: if adding word N makes 3 but word N+1 is >1s away, flush current chunk and let word N start next group (4) Max 3 words. Allow 1-2 word segments when rules require it.
+
+### No fallback — fix the foundation, don't patch around it
+- **Mistake:** Proposed fallback logic that silently chose between old and new code paths. User couldn't tell what was working and what wasn't.
+- **Rule:** When rebuilding a system (e.g. per-clip transcription replacing source-sliced subtitles), commit fully to the new approach. If it breaks, debug logs will show why. Fallbacks hide problems and make debugging impossible.

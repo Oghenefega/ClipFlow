@@ -376,6 +376,124 @@ def postprocess_timestamps(segments, audio_np, sr=16000):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+#  TIER 2: Pre-alignment mega-segment splitting
+# ════════════════════════════════════════════════════════════════════════════
+
+def split_mega_segments(segments, max_duration=10.0):
+    """
+    Split segments longer than max_duration into smaller sub-segments
+    BEFORE alignment. This gives the alignment model shorter audio chunks
+    to work with, producing much more accurate word-level timestamps.
+
+    Split strategy:
+    1. Find natural sentence boundaries (. ! ? followed by capital letter)
+    2. If not enough natural splits, split at comma boundaries
+    3. Last resort: split evenly by word count
+
+    Each sub-segment gets proportional time allocation from the parent.
+    """
+    import re
+
+    split_segs = []
+    for seg in segments:
+        seg_start = seg.get("start", 0)
+        seg_end = seg.get("end", 0)
+        dur = seg_end - seg_start
+        text = (seg.get("text") or "").strip()
+
+        if dur <= max_duration or not text:
+            split_segs.append(seg)
+            continue
+
+        words = text.split()
+        if len(words) <= 3:
+            split_segs.append(seg)
+            continue
+
+        n_target_splits = max(2, int(dur / max_duration) + 1)
+        target_chunk_size = max(1, len(words) // n_target_splits)
+
+        # Find natural split points — indices where a new sub-segment should start
+        # Priority 1: After sentence enders (. ! ?) where next word is capitalized
+        # Priority 2: After commas with a natural break feel
+        sentence_splits = []
+        comma_splits = []
+
+        for i in range(1, len(words)):
+            prev = words[i - 1]
+            curr = words[i]
+            if re.search(r'[.!?][\'""\u2019]*$', prev):
+                sentence_splits.append(i)
+            elif prev.endswith(",") and len(curr) > 1:
+                comma_splits.append(i)
+
+        # Pick best split points
+        def pick_splits(candidates, n_needed):
+            """Pick n_needed split points from candidates, as evenly spaced as possible."""
+            if len(candidates) <= n_needed:
+                return candidates
+            # Score each candidate by how close it is to ideal positions
+            ideal_positions = [(k + 1) * len(words) // (n_needed + 1)
+                               for k in range(n_needed)]
+            selected = []
+            used = set()
+            for ideal in ideal_positions:
+                best = min(candidates, key=lambda x: abs(x - ideal))
+                if best not in used:
+                    selected.append(best)
+                    used.add(best)
+            return sorted(selected)
+
+        needed = n_target_splits - 1
+        chosen_splits = pick_splits(sentence_splits, needed)
+
+        # Not enough sentence splits? Add comma splits
+        if len(chosen_splits) < needed:
+            remaining = needed - len(chosen_splits)
+            available_commas = [c for c in comma_splits if c not in chosen_splits]
+            extra = pick_splits(available_commas, remaining)
+            chosen_splits = sorted(set(chosen_splits) | set(extra))
+
+        # Still not enough? Add evenly-spaced splits
+        if len(chosen_splits) < needed:
+            remaining = needed - len(chosen_splits)
+            even_splits = [(k + 1) * len(words) // (remaining + 1)
+                           for k in range(remaining)]
+            even_splits = [e for e in even_splits
+                           if e not in chosen_splits and 0 < e < len(words)]
+            chosen_splits = sorted(set(chosen_splits) | set(even_splits[:remaining]))
+
+        # Build sub-segments
+        boundaries = [0] + sorted(chosen_splits) + [len(words)]
+        seg_dur = seg_end - seg_start
+
+        for j in range(len(boundaries) - 1):
+            start_idx = boundaries[j]
+            end_idx = boundaries[j + 1]
+            chunk_words = words[start_idx:end_idx]
+            if not chunk_words:
+                continue
+
+            # Proportional time allocation
+            frac_start = start_idx / len(words)
+            frac_end = end_idx / len(words)
+            sub_start = round(seg_start + frac_start * seg_dur, 3)
+            sub_end = round(seg_start + frac_end * seg_dur, 3)
+
+            split_segs.append({
+                "start": sub_start,
+                "end": sub_end,
+                "text": " ".join(chunk_words),
+            })
+
+        n_subs = len(boundaries) - 1
+        print(f"[INFO] Split {dur:.1f}s mega-segment ({len(words)} words) "
+              f"into {n_subs} sub-segments", file=sys.stderr)
+
+    return split_segs
+
+
+# ════════════════════════════════════════════════════════════════════════════
 #  MAIN
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -427,7 +545,20 @@ def main():
             batch_size=args.batch_size,
             language=args.language,
         )
-        print_progress(60, "Transcription complete")
+        print_progress(55, "Transcription complete")
+
+        # ── Step 3.5: Split mega-segments before alignment ──
+        # Whisper sometimes produces 20-30+ second segments (especially with gaming
+        # commentary). The alignment model struggles with these, producing evenly
+        # interpolated word timestamps instead of accurate ones. Splitting into
+        # shorter segments (≤10s) gives alignment much better results.
+        raw_seg_count = len(result.get("segments", []))
+        result["segments"] = split_mega_segments(result.get("segments", []), max_duration=10.0)
+        split_seg_count = len(result["segments"])
+        if split_seg_count > raw_seg_count:
+            print(f"[INFO] Pre-alignment split: {raw_seg_count} → {split_seg_count} segments",
+                  file=sys.stderr)
+        print_progress(60, "Segments prepared for alignment")
 
         # ── Step 4: Align for word-level timestamps ──
         print_progress(65, "Loading alignment model...")

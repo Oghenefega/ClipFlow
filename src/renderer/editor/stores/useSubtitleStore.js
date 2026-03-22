@@ -844,9 +844,37 @@ const useSubtitleStore = create((set, get) => ({
     });
 
     const PAUSE_SPLIT_THRESHOLD = 0.7; // seconds — pause this long = new subtitle group
-    const SILENCE_GAP_THRESHOLD = 1.0; // seconds — only show gaps when silence > 1s
-    const chunkSize = mode === "1word" ? 1 : 3;
+    const SILENCE_GAP_THRESHOLD = 0.15; // seconds — only close tiny timing gaps, preserve real pauses
+    const FORWARD_LOOK_GAP = 1.0; // seconds — if next word is this far, don't orphan current word
+    const MAX_WORDS = 3;
     const rawSegs = [];
+
+    // Helper: does this word end a sentence? (.!? but not just a comma)
+    const isSentenceEnder = (word) => {
+      if (!word) return false;
+      const w = word.trim();
+      return /[.!?]$/.test(w) || /[.!?]['""\u2019]$/.test(w);
+    };
+
+    // Helper: flush a chunk of words into a segment
+    const flushChunk = (chunk) => {
+      if (chunk.length === 0) return;
+      const startSec = chunk[0].start;
+      const endSec = chunk[chunk.length - 1].end;
+      rawSegs.push({
+        id: Date.now() + rawSegs.length,
+        start: fmtTime(startSec),
+        end: fmtTime(endSec),
+        dur: (endSec - startSec).toFixed(1) + "s",
+        text: chunk.map((cw) => cw.word).join(" "),
+        track: chunk[0].track || "s1",
+        conf: "high",
+        startSec,
+        endSec,
+        warning: null,
+        words: [...chunk],
+      });
+    };
 
     if (mode === "1word") {
       // 1-word mode: simple, one word per segment
@@ -867,52 +895,64 @@ const useSubtitleStore = create((set, get) => ({
         });
       }
     } else {
-      // 3-word mode: group by 3, but SPLIT at pauses > threshold
-      // This prevents showing future words in the same subtitle group
+      // Smart 3-word mode with hierarchy:
+      // Rule 1: SENTENCE BOUNDARY — never group end of sentence with start of next
+      //         If prev word ends with .!?, flush before adding this word
+      // Rule 2: PAUSE SPLIT — gap > 0.7s between words = new segment
+      // Rule 3: FORWARD LOOK — if adding this word makes 3, but there's a big gap
+      //         after this word (>1s to next word), don't add it — let it start next group
+      //         This prevents orphaning sentence starters at the end of a group
+      // Rule 4: MAX 3 WORDS — never exceed 3 words per segment
       let chunk = [];
+
       for (let i = 0; i < allWords.length; i++) {
         const w = allWords[i];
         const prevWord = chunk.length > 0 ? chunk[chunk.length - 1] : null;
-        const gap = prevWord ? w.start - prevWord.end : 0;
+        const gapBefore = prevWord ? w.start - prevWord.end : 0;
+        const nextWord = i + 1 < allWords.length ? allWords[i + 1] : null;
+        const gapAfter = nextWord ? nextWord.start - w.end : 0;
 
-        // Force a split if: chunk is full OR there's a significant pause
-        if (chunk.length >= chunkSize || (chunk.length > 0 && gap >= PAUSE_SPLIT_THRESHOLD)) {
-          const startSec = chunk[0].start;
-          const endSec = chunk[chunk.length - 1].end;
-          rawSegs.push({
-            id: Date.now() + rawSegs.length,
-            start: fmtTime(startSec),
-            end: fmtTime(endSec),
-            dur: (endSec - startSec).toFixed(1) + "s",
-            text: chunk.map((cw) => cw.word).join(" "),
-            track: chunk[0].track || "s1",
-            conf: "high",
-            startSec,
-            endSec,
-            warning: null,
-            words: chunk,
-          });
+        // --- Pre-flush checks (flush BEFORE adding this word) ---
+
+        // Rule 1: Previous word ended a sentence — start fresh
+        if (chunk.length > 0 && prevWord && isSentenceEnder(prevWord.word)) {
+          flushChunk(chunk);
           chunk = [];
         }
+
+        // Rule 2: Significant pause before this word
+        if (chunk.length > 0 && gapBefore >= PAUSE_SPLIT_THRESHOLD) {
+          flushChunk(chunk);
+          chunk = [];
+        }
+
+        // Rule 4: Chunk already full
+        if (chunk.length >= MAX_WORDS) {
+          flushChunk(chunk);
+          chunk = [];
+        }
+
+        // Rule 3: Forward look — chunk has 2+ words, adding this makes 3,
+        // but there's a big gap AFTER this word. This word likely belongs
+        // with the NEXT group, not this one. Flush current chunk first.
+        if (chunk.length >= 2 && gapAfter >= FORWARD_LOOK_GAP) {
+          flushChunk(chunk);
+          chunk = [];
+        }
+
         chunk.push(w);
+
+        // --- Post-add check ---
+        // If this word ends a sentence, flush immediately
+        if (isSentenceEnder(w.word)) {
+          flushChunk(chunk);
+          chunk = [];
+        }
       }
+
       // Flush remaining words
       if (chunk.length > 0) {
-        const startSec = chunk[0].start;
-        const endSec = chunk[chunk.length - 1].end;
-        rawSegs.push({
-          id: Date.now() + rawSegs.length,
-          start: fmtTime(startSec),
-          end: fmtTime(endSec),
-          dur: (endSec - startSec).toFixed(1) + "s",
-          text: chunk.map((cw) => cw.word).join(" "),
-          track: chunk[0].track || "s1",
-          conf: "high",
-          startSec,
-          endSec,
-          warning: null,
-          words: chunk,
-        });
+        flushChunk(chunk);
       }
     }
 
