@@ -7,7 +7,7 @@ import RecordingsView from "./views/UploadView";
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 const QueueView = React.lazy(() => import("./views/QueueView"));
 import CaptionsView from "./views/CaptionsView";
-import SettingsView from "./views/SettingsView";
+const SettingsView = React.lazy(() => import("./views/SettingsView"));
 const EditorView = React.lazy(() => import("./editor/EditorView"));
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
@@ -447,6 +447,7 @@ export default function App() {
     }
     if (view === "settings") {
       return (
+        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <SettingsView
           mainGame={mainGame}
           setMainGame={setMainGame}
@@ -480,6 +481,7 @@ export default function App() {
           styleGuide={styleGuide}
           setStyleGuide={setStyleGuide}
         />
+        </React.Suspense>
       );
     }
     // Projects / Clips view
