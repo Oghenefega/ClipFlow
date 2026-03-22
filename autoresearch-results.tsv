@@ -1,0 +1,11 @@
+# metric_direction: lower_is_better
+# goal: Reduce gzipped JS bundle size
+# verify: npx react-scripts build 2>&1 | grep "main.*\.js" | head -1 | awk '{print $1}'
+# guard: npx react-scripts build 2>&1 | grep -c "Failed to compile" || echo 0
+iteration	commit	metric	delta	guard	status	description
+0	4628483	188.21	0	pass	baseline	initial state — 188.21 kB gzipped JS bundle
+1	ba97f20	89.58	-98.63	pass	keep	lazy-load EditorView — splits editor+stores into separate chunks
+2	8653015	82.14	-7.44	pass	keep	lazy-load QueueView — splits publishing logic into separate chunk
+3	9658d1e	75.20	-6.94	pass	keep	lazy-load SettingsView — splits settings into separate chunk
+4	22f4b3a	68.43	-6.77	pass	keep	lazy-load RenameView + RecordingsView — two more chunks split
+5	b1c896f	67.37	-1.06	pass	keep	lazy-load CaptionsView — final view split, diminishing returns reached

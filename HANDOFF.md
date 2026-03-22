@@ -1,53 +1,52 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-21_
+_Last updated: 2026-03-22_
 
 ## Current State
-App builds and runs. Left-extend clip feature is complete with undo, extension counter, subtitle trimming, and timeline snap effects. Editor navigation is solid.
+App builds and runs. No feature work this session — session was dedicated to Claude Code configuration, tooling setup, and autoresearch experimentation.
 
-## What Was Recently Built (last ~10 commits)
-- **Left-extend clip feature**: Drag audio left edge to reveal earlier content in clips
-  - Undo support for clip extensions
-  - Extension counter badge on timeline
-  - Timeline snap effect animation
-  - Subtitle trimming when clips are shrunk back
-  - EBUSY fix for video file reload during extension
-  - Caption handling during extend operations
-- **Extension counter fixes**: Visibility and duration display after cuts
-- **Editor back button fix**: Navigate to clip browser (not projects list) — one step back in hierarchy
-- **Timeline playhead fix**: Split rAF loop from paused sync to prevent drift
-- **Re-transcribe fix**: Update clip data without full editor reinit
-- **VAD tuning**: Disabled VAD filtering (Fega uses dedicated mic-only audio track, so VAD was cutting beginning words)
+## What Was Just Built
 
-## Uncommitted Changes
-- `data/game_profiles.json` — minor edits (3 lines changed)
-- `src/components/ui/slider.tsx` — minor edits (2 lines changed)
-- `src/renderer/editor/components/RightPanelNew.js` — minor edits (4 lines changed)
+### Claude Code Setup (permanent improvements)
+- **Global CLAUDE.md** slimmed down — removed documentation, kept only rules and conventions
+- **Project CLAUDE.md** slimmed down — same treatment, ~50 lines of pure instructions
+- **`.claude/rules/`** created with 4 path-scoped rule files: `editor.md`, `pipeline.md`, `ui-standards.md`, `conventions.md`
+- **6 custom slash commands** created in `.claude/commands/`: `build`, `review`, `session-start`, `session-end`, `fix-issue`, `status`
+- **`settings.local.json`** cleaned up — replaced 22 messy one-off approvals with intentional allow/deny lists
+- **`views/EditorView.js` deleted** — 2,654 lines of dead code that was never imported anywhere
+- **`tasks/lessons.md`** updated with 2 new lessons (see Watch Out For)
 
-These were not committed — review before next session.
+### Autoresearch — Learned, Not Shipped
+- Ran 3 autoresearch experiments as learning exercises
+- Console.log cleanup: ran and then **reverted** (app in active development, logs needed for debugging)
+- Bundle size / lazy loading: ran and then **reverted** (web metric — irrelevant for Electron desktop)
+- LOC reduction: skipped (too risky while app is unstable)
 
 ## Key Decisions
-- VAD is effectively disabled (`vad_onset=0.001`) because Fega records with a dedicated mic track — no background game audio to filter
-- Back button follows hierarchy: Editor → ClipBrowser → Projects list
-- Extension counter shows how many seconds a clip was extended from its original boundaries
 
-## Next Steps (Priority Order)
-1. **Review & commit uncommitted changes** — 3 files with minor edits sitting in working tree
-2. **Missing beginning words in transcript** — VAD is disabled but may need further work (prepend silence, initial_prompt, post-processing)
-3. **Continue Editor UI Rebuild (Phase 10)** — reference screenshots in `/reference/vizard-ref/`
-4. **Platform API integrations** — publish.js stubs need real implementations
+- **Console.logs stay** until specific features are confirmed stable and shipped. Not a codebase-wide sweep.
+- **Autoresearch targets for Electron** must be things that matter for a local desktop app — IPC speed, render performance, FFmpeg pipeline, memory usage. Never bundle size, network payload, or code splitting.
+- **LOC reduction deferred** — too much judgment involved for an autonomous loop while the app is still actively breaking.
+- **rules/ files are path-scoped** — editor rules only load when working in editor files, pipeline rules only for main.js/IPC work.
+
+## Next Steps
+
+1. **Resume active feature work** — check todo.md for current priority
+2. **Autoresearch: LOC consolidation** — when app is more stable, target `RightPanelNew.js` (1,772 lines) and `PreviewPanelNew.js` (1,418 lines) for duplicate pattern cleanup
+3. **Autoresearch: console.log cleanup** — per-feature, once each feature is confirmed working
+4. **Consider agents** — code-reviewer agent on Haiku for pre-commit reviews
+5. **Consider security audit** — `/autoresearch:security` when approaching a stable release
 
 ## Watch Out For
-- **PreviewPanelNew.js rAF**: if `playing` gets stale or video unmounts during playback, could orphan animation frames
-- **TimelinePanelNew.js**: uses `usePlaybackStore.getState().getVideoRef()` inside rAF — direct store access (not subscription) is intentional to avoid re-render loops
-- **Zustand selectors**: always subscribe with selectors, never `useStore(state => state)`
-- **`isDev` flag**: set to `false` in main.js — must rebuild (`npx react-scripts build`) before testing
-- **Schema migrations**: any electron-store data change requires migration function first
-- **EBUSY errors**: Windows file locking can cause EBUSY when overwriting video files that are loaded in the player — the extend feature handles this but watch for it in similar operations
+
+- **Debug logs are load-bearing** — do NOT remove console.logs without explicitly asking first. The app is under active development and logs like `[ExtendRight]`, `[ExtendLeft]`, `[initSegments]` are actively used to diagnose issues.
+- **ClipFlow is Electron, not a web app** — bundle size, lazy loading, code splitting are irrelevant. Never suggest web performance optimizations.
+- **autoresearch-results.tsv** is in the repo root — this is a working file, gitignored intent but currently tracked. Can be deleted between runs.
+- **`.claude/settings.local.json`** is gitignored — don't commit it. Permissions are local-only.
+- **`views/EditorView.js` is gone** — if something references it, that's a bug. The real editor is `editor/EditorView.js`.
 
 ## Logs / Debugging
-- Electron main process logs go to the terminal where `npm start` was run
-- Pipeline progress events: listen via `window.clipflow.onPipelineProgress(callback)`
-- Render progress: `window.clipflow.onRenderProgress(callback)`
-- FFmpeg errors surface through IPC rejection — check main process console
-- Whisper transcription streams progress via IPC events
-- Browser DevTools console (Ctrl+Shift+I in the Electron window) shows renderer-side errors
+
+No app bugs worked on this session. All debug logs restored to their original state. If you see IPC errors on clip extension, the relevant logs are:
+- `[ExtendRight IPC]` / `[ExtendLeft IPC]` / `[Recut IPC]` → `src/main/main.js`
+- `[ExtendRight]` / `[ExtendLeft]` / `[RevertClip]` → `src/renderer/editor/stores/useEditorStore.js`
+- `[initSegments]` / `[Undo]` → `src/renderer/editor/stores/useSubtitleStore.js`

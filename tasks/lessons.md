@@ -457,6 +457,14 @@
 - **Mistake:** Grouped every 3 consecutive words blindly. This put sentence endings with sentence starts (e.g. "for sure. I") and grouped words across 7-second pauses (e.g. "oh my, that" where "that" is spoken 7s later).
 - **Rule:** 3-word chunking must follow a hierarchy: (1) Never group end of sentence with start of next — split at .!? (2) Split at pauses > 0.7s (3) Forward-look: if adding word N makes 3 but word N+1 is >1s away, flush current chunk and let word N start next group (4) Max 3 words. Allow 1-2 word segments when rules require it.
 
+### Never remove debug logs during active development without asking first
+- **Mistake:** Ran autoresearch to remove all console.logs treating them as "dead weight." The app is still under active development — things are still breaking, and those logs (ExtendRight, ExtendLeft, Recut, initSegments, etc.) were actively used to diagnose whether features work correctly.
+- **Rule:** Before removing ANY console.log, ask: "Is this app still in active development? Are these logs being used to debug current issues?" If yes — do not touch them. console.log cleanup is only appropriate for a stable, shipped, production app where the feature is confirmed working. ClipFlow is not there yet.
+
+### ClipFlow is an Electron desktop app — never optimize for web metrics
+- **Mistake:** Ran autoresearch to reduce JS bundle size via React.lazy + code splitting. Achieved 64% bundle reduction (188 kB → 67 kB) but this metric is meaningless for a desktop app. All JS files are on local disk — there is no network. The "optimization" added "Loading..." flashes when navigating to views, making UX worse with zero real benefit.
+- **Rule:** ClipFlow is an Electron + React DESKTOP app. Bundle size, network payload, CDN caching — none of these web metrics apply. Before suggesting any optimization, ask: "does this matter when files are on local disk?" Valid optimization targets for ClipFlow: IPC call speed, FFmpeg pipeline efficiency, render performance, memory usage, startup time. Never again propose bundle splitting, lazy loading, or network-oriented optimizations.
+
 ### No fallback — fix the foundation, don't patch around it
 - **Mistake:** Proposed fallback logic that silently chose between old and new code paths. User couldn't tell what was working and what wasn't.
 - **Rule:** When rebuilding a system (e.g. per-clip transcription replacing source-sliced subtitles), commit fully to the new approach. If it breaks, debug logs will show why. Fallbacks hide problems and make debugging impossible.
