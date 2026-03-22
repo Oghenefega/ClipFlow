@@ -27,17 +27,15 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
           // Allow extending left past 0 (negative) up to -maxExtendLeftSec
           const minStart = -(maxExtendLeftSec || 0);
           newStart = Math.max(minStart, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
-          // Track extension delta (negative newStart = extending backwards)
-          const delta = newStart < 0 ? Math.abs(newStart) : -(startRef.current.startSec - newStart);
-          setExtendDelta(delta > 0.05 ? delta : 0);
+          // Only show extension counter when extending past 0 (into pre-clip territory)
+          setExtendDelta(newStart < -0.05 ? Math.abs(newStart) : 0);
         } else {
           // Allow extending past current duration up to maxExtendSec (source boundary)
           const maxEnd = maxExtendSec || duration;
           newEnd = Math.min(maxEnd, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
-          // Track extension delta (past original end = extending forward)
+          // Only show extension counter when extending past original end
           const origEnd = startRef.current.endSec;
-          const delta = newEnd - origEnd;
-          setExtendDelta(delta > 0.05 ? delta : 0);
+          setExtendDelta(newEnd > origEnd + 0.05 ? newEnd - origEnd : 0);
         }
         onResize(audioSeg.id, newStart, newEnd);
       });

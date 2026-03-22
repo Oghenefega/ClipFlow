@@ -530,35 +530,92 @@ const useEditorStore = create((set, get) => ({
     const audioEnd = sorted[sorted.length - 1].endSec;
     const audioStart = sorted[0].startSec;
 
-    // Trim subtitle segments
     const subStore = useSubtitleStore.getState();
-    const subs = subStore.editSegments;
-    if (subs.length > 0) {
-      const lastSub = subs[subs.length - 1];
-      if (lastSub.endSec > audioEnd + 0.01) {
-        // Trim segments: remove any fully past audioEnd, clamp partial ones
-        const trimmed = subs
-          .filter((s) => s.startSec < audioEnd)
-          .map((s) => (s.endSec > audioEnd ? { ...s, endSec: audioEnd } : s));
-        subStore.setEditSegments(trimmed);
-      }
+    const capStore = useCaptionStore.getState();
+    let subs = subStore.editSegments;
+    let caps = capStore.captionSegments;
+    let needsSubUpdate = false;
+    let needsCapUpdate = false;
+
+    // ── Right trim: remove/clamp segments past audioEnd ──
+    if (subs.length > 0 && subs[subs.length - 1].endSec > audioEnd + 0.01) {
+      subs = subs
+        .filter((s) => s.startSec < audioEnd)
+        .map((s) => (s.endSec > audioEnd ? { ...s, endSec: audioEnd } : s));
+      needsSubUpdate = true;
+    }
+    if (caps.length > 0 && (caps[caps.length - 1].endSec || Infinity) > audioEnd + 0.01) {
+      caps = caps
+        .filter((s) => s.startSec < audioEnd)
+        .map((s) => {
+          const end = s.endSec || Infinity;
+          return end > audioEnd ? { ...s, endSec: audioEnd } : s;
+        });
+      needsCapUpdate = true;
     }
 
-    // Trim caption segments
-    const capStore = useCaptionStore.getState();
-    const caps = capStore.captionSegments;
-    if (caps.length > 0) {
-      const lastCap = caps[caps.length - 1];
-      if ((lastCap.endSec || Infinity) > audioEnd + 0.01) {
-        const trimmed = caps
-          .filter((s) => s.startSec < audioEnd)
+    // ── Left trim: remove/clamp segments before audioStart ──
+    if (audioStart > 0.01) {
+      if (subs.length > 0) {
+        subs = subs
+          .filter((s) => s.endSec > audioStart + 0.01)
           .map((s) => {
-            const end = s.endSec || Infinity;
-            return end > audioEnd ? { ...s, endSec: audioEnd } : s;
+            if (s.startSec < audioStart) {
+              // Clamp start and filter words
+              const words = (s.words || []).filter((w) => (w.end || 0) > audioStart);
+              return { ...s, startSec: audioStart, words };
+            }
+            return s;
           });
-        capStore.setCaptionSegments(trimmed);
+        needsSubUpdate = true;
       }
+      if (caps.length > 0) {
+        caps = caps
+          .filter((s) => (s.endSec == null ? Infinity : s.endSec) > audioStart + 0.01)
+          .map((s) => (s.startSec < audioStart ? { ...s, startSec: audioStart } : s));
+        needsCapUpdate = true;
+      }
+
+      // ── Shift everything left so first audio starts at 0 ──
+      console.log("[TrimToAudio] Shifting left by", audioStart, "to fill gap");
+      const shift = audioStart;
+
+      // Shift audio segments
+      set({
+        audioSegments: sorted.map((s) => ({
+          ...s,
+          startSec: s.startSec - shift,
+          endSec: s.endSec - shift,
+        })),
+      });
+
+      // Shift subtitles
+      subs = subs.map((s) => ({
+        ...s,
+        startSec: s.startSec - shift,
+        endSec: s.endSec - shift,
+        words: (s.words || []).map((w) => ({
+          ...w,
+          start: (w.start || 0) - shift,
+          end: (w.end || 0) - shift,
+        })),
+      }));
+      needsSubUpdate = true;
+
+      // Shift captions
+      caps = caps.map((s) => ({
+        ...s,
+        startSec: s.startSec - shift,
+        endSec: s.endSec == null ? null : s.endSec - shift,
+      }));
+      needsCapUpdate = true;
+
+      // Update playback duration
+      usePlaybackStore.getState().setDuration(audioEnd - shift);
     }
+
+    if (needsSubUpdate) subStore.setEditSegments(subs);
+    if (needsCapUpdate) capStore.setCaptionSegments(caps);
   },
 
   // Revert clip to previous boundaries (called by undo when extension is undone)
