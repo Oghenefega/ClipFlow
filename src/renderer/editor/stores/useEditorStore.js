@@ -258,11 +258,9 @@ const useEditorStore = create((set, get) => ({
         await new Promise((r) => setTimeout(r, 100));
 
         const newSourceEnd = sourceStartTime + newAudioEnd;
-        console.log("[ExtendRight] sourceStartTime:", sourceStartTime, "newAudioEnd:", newAudioEnd, "newSourceEnd:", newSourceEnd, "currentDuration:", currentDuration);
         const result = await window.clipflow.extendClip(
           project.id, clip.id, newSourceEnd
         );
-        console.log("[ExtendRight] IPC result:", JSON.stringify(result));
         if (result?.error) {
           console.error("[ExtendRight] Failed:", result.error);
           // Revert audio segment to current duration
@@ -324,8 +322,6 @@ const useEditorStore = create((set, get) => ({
       const delta = Math.abs(newAudioStart); // positive number — how many seconds we're prepending
       const newSourceStart = sourceStartTime - delta;
 
-      console.log("[ExtendLeft] sourceStartTime:", sourceStartTime, "delta:", delta, "newSourceStart:", newSourceStart, "clip.startTime:", clip?.startTime, "clip.endTime:", clip?.endTime);
-
       // Unload video to release file lock (Windows EBUSY prevention)
       const videoRef = usePlaybackStore.getState().getVideoRef();
       if (videoRef?.current) {
@@ -339,8 +335,6 @@ const useEditorStore = create((set, get) => ({
       const result = await window.clipflow.extendClipLeft(
         project.id, clip.id, newSourceStart
       );
-
-      console.log("[ExtendLeft] IPC result:", JSON.stringify(result));
 
       if (result?.error) {
         console.error("Extend clip left failed:", result.error);
@@ -471,7 +465,6 @@ const useEditorStore = create((set, get) => ({
       // null endSec = "span full duration" — preserve it (don't convert to a number)
       endSec: seg.endSec == null ? null : seg.endSec + delta,
     }));
-    console.log("[ExtendLeft] Caption shift: delta=", delta, "before:", caps.map(s => `${s.startSec}-${s.endSec}`), "after:", updated.map(s => `${s.startSec}-${s.endSec}`));
     capStore.setCaptionSegments(updated);
   },
 
@@ -596,7 +589,6 @@ const useEditorStore = create((set, get) => ({
       }
 
       // ── Shift everything left so first audio starts at 0 ──
-      console.log("[TrimToAudio] Shifting left by", audioStart, "to fill gap");
       const shift = audioStart;
 
       // Shift audio segments
@@ -645,7 +637,6 @@ const useEditorStore = create((set, get) => ({
     const targetStart = clipMeta.startTime ?? clip.startTime;
     const targetEnd = clipMeta.endTime ?? clip.endTime;
 
-    console.log("[RevertClip] Reverting to startTime:", targetStart, "endTime:", targetEnd);
     set({ extending: true });
 
     try {
@@ -661,8 +652,6 @@ const useEditorStore = create((set, get) => ({
       const result = await window.clipflow.recutClip(
         project.id, clip.id, targetStart, targetEnd
       );
-
-      console.log("[RevertClip] IPC result:", JSON.stringify(result));
 
       if (result?.error) {
         console.error("[RevertClip] Failed:", result.error);
@@ -692,7 +681,6 @@ const useEditorStore = create((set, get) => ({
         // Update playback duration
         usePlaybackStore.getState().setDuration(newDuration);
 
-        console.log("[RevertClip] Success. New duration:", newDuration);
         get().markDirty();
       }
     } catch (err) {
