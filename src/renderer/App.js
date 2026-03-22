@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import { AddGameModal, TranscriptModal } from "./components/modals";
-import RenameView from "./views/RenameView";
-import RecordingsView from "./views/UploadView";
+const RenameView = React.lazy(() => import("./views/RenameView"));
+const RecordingsView = React.lazy(() => import("./views/UploadView"));
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 const QueueView = React.lazy(() => import("./views/QueueView"));
 import CaptionsView from "./views/CaptionsView";
@@ -374,6 +374,7 @@ export default function App() {
   const renderView = () => {
     if (view === "rename") {
       return (
+        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <RenameView
           gamesDb={gamesDb}
           mainGameName={mainGame}
@@ -387,10 +388,12 @@ export default function App() {
           setManagedFiles={setManagedFiles}
           watchFolder={watchFolder}
         />
+        </React.Suspense>
       );
     }
     if (view === "recordings") {
       return (
+        <React.Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0a", color: "#666" }}>Loading...</div>}>
         <RecordingsView
           watchFolder={watchFolder}
           gamesDb={gamesDb}
@@ -402,6 +405,7 @@ export default function App() {
             });
           }}
         />
+        </React.Suspense>
       );
     }
     if (view === "editor") {
