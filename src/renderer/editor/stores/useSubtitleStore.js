@@ -128,7 +128,6 @@ function _restoreStyling(snapshot, subSet) {
         if (currentStart !== undefined && currentEnd !== undefined &&
             (Math.abs((currentStart || 0) - (snapStart || 0)) > 0.05 ||
              Math.abs((currentEnd || 0) - (snapEnd || 0)) > 0.05)) {
-          console.log("[Undo] Clip boundaries changed — reverting. Current:", currentStart, "-", currentEnd, "Snapshot:", snapStart, "-", snapEnd);
           editorStore.getState().revertClipBoundaries(snapshot.clipMeta);
         }
       }
@@ -332,8 +331,6 @@ const useSubtitleStore = create((set, get) => ({
     // Filter and clip-end bounds
     const clipEnd = clipStart > 0 ? (clip.endTime || Infinity) : Infinity;
 
-    console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, clipStart=${clipStart.toFixed(2)}, segments=${segments.length}`);
-
     const segs = segments
       .filter((s) => {
         if (clipEnd === Infinity) return true;
@@ -364,13 +361,6 @@ const useSubtitleStore = create((set, get) => ({
 
         const rawWords = mergeWordTokens(cleanWords, s.text);
         const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
-
-        if (i === 0) {
-          console.log(`[initSegments] First seg: [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
-          if (repairedWords.length > 0) {
-            console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
-          }
-        }
 
         // Rebuild segment text from surviving words (boundary trim may have removed some)
         const segText = repairedWords.length > 0

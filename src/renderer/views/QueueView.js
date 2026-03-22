@@ -227,7 +227,6 @@ export default function QueueView({
       }));
 
       // Publishing not yet wired — stub for tracker functionality
-      console.log("Publishing not yet wired", { platform: plat.key, clipTitle: clip.title });
       setPublishStatus((prev) => ({
         ...prev,
         [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
