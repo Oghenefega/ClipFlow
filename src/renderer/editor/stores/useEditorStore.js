@@ -28,13 +28,32 @@ const useEditorStore = create((set, get) => ({
   videoVersion: 0, // incremented on clip re-cut to bust video cache
 
   // ── Actions ──
-  initFromContext: (editorContext, localProjects) => {
+  initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
       set({ project: null, clip: null, clipTitle: "", dirty: false });
       return;
     }
-    const project = localProjects.find((p) => p.id === editorContext.projectId) || null;
-    const clip = project ? (project.clips || []).find((c) => c.id === editorContext.clipId) || null : null;
+
+    // CRITICAL: Clear all stores BEFORE async load to prevent old data leaking
+    // into the new clip while the project loads from disk
+    useSubtitleStore.getState().clearAll();
+    useCaptionStore.getState().initFromClip(null);
+    usePlaybackStore.getState().reset();
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [] });
+
+    // Load full project via IPC — localProjects are summaries without clips
+    let project = null;
+    let clip = null;
+    try {
+      const result = await window.clipflow.projectLoad(editorContext.projectId);
+      if (result && !result.error && result.project) {
+        project = result.project;
+        clip = (project.clips || []).find((c) => c.id === editorContext.clipId) || null;
+      }
+    } catch (e) {
+      // Fallback to summary (won't have clips, but prevents crash)
+      project = localProjects.find((p) => p.id === editorContext.projectId) || null;
+    }
 
     // Compute source boundaries for clip extension
     const sourceStart = clip?.startTime || 0;

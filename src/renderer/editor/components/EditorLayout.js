@@ -26,6 +26,9 @@ import {
   Mic,
   Loader2,
   PanelBottomOpen,
+  Bug,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -268,6 +271,80 @@ function Topbar({ onBack }) {
     }
   }, [handleSave, clip, project]);
 
+  // Subtitle debug report — logs clip subtitle data for diagnosis
+  const [debugStatus, setDebugStatus] = useState(null); // "good" | "bad" | null
+  const [debugNoteOpen, setDebugNoteOpen] = useState(false); // false | "good" | "bad"
+  const [debugNote, setDebugNote] = useState("");
+  const [debugChecks, setDebugChecks] = useState({});
+  const debugNoteRef = useRef(null);
+
+  const BAD_CHECKS = [
+    { id: "too_slow", label: "Subtitles too slow" },
+    { id: "start_before_speech", label: "Subtitles start before speech" },
+    { id: "bad_grouping", label: "Segments badly grouped" },
+    { id: "words_missing", label: "Words missing/cut off" },
+    { id: "timing_drift", label: "Timing drifts mid-clip" },
+  ];
+  const GOOD_CHECKS = [
+    { id: "on_time", label: "On time" },
+    { id: "in_sync", label: "In sync" },
+    { id: "well_grouped", label: "Segments well grouped" },
+  ];
+
+  const submitDebugReport = useCallback(async (rating, note, checks) => {
+    if (!clip || !project) return;
+    const editSegments = useSubtitleStore.getState().editSegments;
+
+    const checkedItems = Object.entries(checks || {}).filter(([, v]) => v).map(([k]) => k);
+
+    const report = {
+      rating,
+      note: note || "",
+      checks: checkedItems,
+      clipId: clip?.id,
+      clipTitle: clip.title || "Untitled",
+      projectId: project.id,
+      projectName: project.name || "",
+      clipStartTime: clip.startTime,
+      clipEndTime: clip.endTime,
+      clipDuration: clip.endTime - clip.startTime,
+      clipFilePath: clip.filePath,
+      hasClipTranscription: !!clip.transcription?.segments?.length,
+      hasClipSubtitles: !!(clip.subtitles?.sub1?.length > 0),
+      subtitleSource: clip.transcription?.segments?.length ? "clip-transcription"
+        : clip.subtitles?.sub1?.length > 0 ? "clip-subtitles" : "project-transcription",
+      rawSubtitles: clip.subtitles?.sub1?.slice(0, 5)?.map(s => ({
+        start: s.start, end: s.end, text: s.text,
+        wordCount: s.words?.length || 0,
+        firstWord: s.words?.[0] ? { word: s.words[0].word, start: s.words[0].start, end: s.words[0].end } : null,
+        lastWord: s.words?.[s.words.length - 1] ? { word: s.words[s.words.length - 1].word, start: s.words[s.words.length - 1].start, end: s.words[s.words.length - 1].end } : null,
+      })) || [],
+      editSegments: editSegments.slice(0, 8).map(s => ({
+        id: s.id, startSec: s.startSec, endSec: s.endSec, text: s.text,
+        wordCount: s.words?.length || 0,
+        words: s.words?.slice(0, 10)?.map(w => ({ word: w.word, start: w.start, end: w.end })) || [],
+      })),
+      totalEditSegments: editSegments.length,
+    };
+
+    await window.clipflow?.debugLogSubtitle?.(report);
+    setDebugStatus(rating);
+    setTimeout(() => setDebugStatus(null), 2000);
+  }, [clip, project]);
+
+  const onDebugReport = useCallback((rating) => {
+    setDebugNote("");
+    setDebugChecks({});
+    setDebugNoteOpen(rating); // "good" or "bad"
+    setTimeout(() => debugNoteRef.current?.focus(), 50);
+  }, []);
+
+  const onDebugNoteSubmit = useCallback(() => {
+    const rating = debugNoteOpen;
+    setDebugNoteOpen(false);
+    submitDebugReport(rating, debugNote, debugChecks);
+  }, [debugNote, debugChecks, debugNoteOpen, submitDebugReport]);
+
   const onRetranscribe = useCallback(async () => {
     if (!clip || !project || retranscribing) return;
     setRetranscribing(true);
@@ -470,8 +547,99 @@ function Topbar({ onBack }) {
       {/* Spacer to push right buttons to edge */}
       <div className="flex-1" />
 
-      {/* Right: Re-transcribe + Save + Queue buttons */}
+      {/* Right: Debug + Re-transcribe + Save + Queue buttons */}
       <div className="relative flex items-center gap-2 z-10">
+        {/* Subtitle debug report buttons */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-2 text-xs ${debugStatus === "good" ? "text-green-400" : "text-muted-foreground/50 hover:text-green-400"}`}
+                onClick={() => onDebugReport("good")}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Subs look good — log for reference</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-2 text-xs ${debugStatus === "bad" ? "text-red-400" : "text-muted-foreground/50 hover:text-red-400"}`}
+                onClick={() => onDebugReport("bad")}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Subs are bugged — log with note</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Debug note input popover */}
+        {debugNoteOpen && (
+          <div className="absolute top-full right-0 mt-1 bg-[#1a1b26] border border-[#2a2b3a] rounded-lg shadow-xl p-3 z-50" style={{ width: 340 }}>
+            <p className="text-xs text-muted-foreground mb-2">
+              {debugNoteOpen === "good" ? "What's good about the subtitles?" : "What's wrong with the subtitles?"}
+            </p>
+
+            {/* Checkbox options */}
+            <div className="flex flex-col gap-1.5 mb-2.5">
+              {(debugNoteOpen === "bad" ? BAD_CHECKS : GOOD_CHECKS).map((check) => (
+                <label
+                  key={check.id}
+                  className="flex items-center gap-2 cursor-pointer group"
+                  onClick={() => setDebugChecks((prev) => ({ ...prev, [check.id]: !prev[check.id] }))}
+                >
+                  <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                    debugChecks[check.id]
+                      ? debugNoteOpen === "bad" ? "bg-red-500/30 border-red-500/60" : "bg-green-500/30 border-green-500/60"
+                      : "border-[#2a2b3a] group-hover:border-[#3a3b4a]"
+                  }`}>
+                    {debugChecks[check.id] && <Check className="h-2.5 w-2.5 text-white" />}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground group-hover:text-foreground select-none">{check.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* Auto-expanding textarea for notes */}
+            <textarea
+              ref={debugNoteRef}
+              value={debugNote}
+              onChange={(e) => {
+                setDebugNote(e.target.value);
+                // Auto-expand: reset height then set to scrollHeight
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onDebugNoteSubmit(); } if (e.key === "Escape") setDebugNoteOpen(false); }}
+              placeholder={debugNoteOpen === "bad" ? "Additional notes (optional)..." : "Any extra comments (optional)..."}
+              rows={1}
+              className="w-full min-h-[32px] px-3 py-2 text-xs bg-[#0a0b10] border border-[#2a2b3a] rounded-md text-white placeholder:text-muted-foreground/50 focus:outline-none focus:border-purple-500 resize-none overflow-hidden"
+            />
+            <div className="flex gap-2 mt-2 justify-end">
+              <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-muted-foreground" onClick={() => setDebugNoteOpen(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                className={`h-7 px-3 text-xs border-0 ${
+                  debugNoteOpen === "bad"
+                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                    : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                }`}
+                onClick={onDebugNoteSubmit}
+              >
+                {debugNoteOpen === "bad" ? "Log Bug" : "Log Good"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <Separator orientation="vertical" className="h-5" />
+
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
