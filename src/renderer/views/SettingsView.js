@@ -94,7 +94,48 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     }
   };
 
-  const togPlat = (key) => setPlatforms((p) => p.map((x) => (x.key === key ? { ...x, connected: !x.connected } : x)));
+  const [connectingPlatform, setConnectingPlatform] = useState(null); // "tiktok" while connecting
+  const [disconnectTarget, setDisconnectTarget] = useState(null); // account key to disconnect (confirmation dialog)
+
+  const handleConnectTikTok = async () => {
+    if (!tiktokClientKey || !tiktokClientSecret) {
+      alert("Configure your TikTok Client Key and Secret in the API Credentials section below first.");
+      return;
+    }
+    setConnectingPlatform("tiktok");
+    try {
+      const result = await window.clipflow.oauthTiktokConnect();
+      if (result.error) {
+        alert(`TikTok connection failed: ${result.error}`);
+      } else if (result.success && result.account) {
+        setPlatforms((prev) => {
+          const exists = prev.findIndex((p) => p.key === result.account.key);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = { ...updated[exists], ...result.account };
+            return updated;
+          }
+          return [...prev, result.account];
+        });
+      }
+    } catch (err) {
+      alert(`TikTok connection error: ${err.message}`);
+    }
+    setConnectingPlatform(null);
+  };
+
+  const handleDisconnect = async (accountKey) => {
+    try {
+      const result = await window.clipflow.oauthRemoveAccount(accountKey);
+      if (result.success) {
+        setPlatforms((prev) => prev.filter((p) => p.key !== accountKey));
+      }
+    } catch (err) {
+      console.error("Disconnect failed:", err);
+    }
+    setDisconnectTarget(null);
+  };
+
   const rmMain = (name) => setMainPool((p) => p.filter((n) => n !== name));
   const delGame = (name) => { setGamesDb((p) => p.filter((g) => g.name !== name)); setMainPool((p) => p.filter((n) => n !== name)); };
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
@@ -196,16 +237,66 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       {/* Connected Platforms */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Connected Platforms</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Connected Platforms</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={handleConnectTikTok}
+              disabled={connectingPlatform === "tiktok"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "tiktok" ? 0.5 : 1 }}
+            >
+              {connectingPlatform === "tiktok" ? "Connecting..." : "+ TikTok"}
+            </button>
+          </div>
+        </div>
+
+        {platforms.length === 0 && !connectingPlatform && (
+          <div style={{ color: T.textTertiary, fontSize: 13, padding: "12px 0" }}>
+            No accounts connected yet. Click a button above to connect your first platform.
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {platforms.map((p) => (
-            <div key={p.key} onClick={() => togPlat(p.key)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${p.connected ? T.greenBorder : T.redBorder}`, background: p.connected ? "rgba(52,211,153,0.04)" : "rgba(248,113,113,0.04)", cursor: "pointer" }}>
-              <span style={{ color: p.connected ? T.text : T.textMuted, fontSize: 13, fontWeight: 600 }}>{p.abbr} — {p.name}</span>
-              <PulseDot color={p.connected ? T.green : T.red} size={6} />
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: T.radius.md, border: `1px solid ${T.greenBorder}`, background: "rgba(52,211,153,0.04)", position: "relative" }}>
+              {p.avatarUrl ? (
+                <img src={p.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: `1px solid ${T.border}` }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.accentDim, border: `1px solid ${T.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: T.accentLight }}>{p.abbr}</div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{p.name || p.displayName}</span>
+                <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 600 }}>{p.platform}</span>
+              </div>
+              <PulseDot color={T.green} size={7} />
+              <button
+                onClick={(e) => { e.stopPropagation(); setDisconnectTarget(p.key); }}
+                style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", padding: "0 0 0 4px", lineHeight: 1 }}
+                title="Disconnect"
+              >{"\u2715"}</button>
             </div>
           ))}
         </div>
       </Card>
+
+      {/* Disconnect Confirmation Dialog */}
+      {disconnectTarget && (() => {
+        const targetAccount = platforms.find((p) => p.key === disconnectTarget);
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)" }} onClick={() => setDisconnectTarget(null)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 32, maxWidth: 400, width: "90%" }}>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Disconnect Account?</div>
+              <p style={{ color: T.textSecondary, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>
+                Are you sure you want to disconnect <strong style={{ color: T.text }}>{targetAccount?.name}</strong> ({targetAccount?.platform})? You'll need to re-authorize to connect again.
+              </p>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setDisconnectTarget(null)} style={btnSecondary}>Cancel</button>
+                <button onClick={() => handleDisconnect(disconnectTarget)} style={{ ...BTN, background: T.red, border: "none", color: "#fff", fontWeight: 700 }}>Disconnect</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Output Folder */}
       <Card style={{ padding: 16, marginBottom: 16 }}>

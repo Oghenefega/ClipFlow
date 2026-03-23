@@ -141,6 +141,11 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("retranscribe:progress");
   },
 
+  // OAuth — connected accounts
+  oauthGetAccounts: () => ipcRenderer.invoke("oauth:getAccounts"),
+  oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),
+  oauthTiktokConnect: () => ipcRenderer.invoke("oauth:tiktok:connect"),
+
   // Platform info
   platform: process.platform,
 });

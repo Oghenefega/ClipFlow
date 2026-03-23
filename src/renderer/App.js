@@ -22,14 +22,7 @@ const INITIAL_GAMES = [
 ];
 const INITIAL_MAIN_POOL = ["Arc Raiders", "Rocket League", "Valorant"];
 const INITIAL_IGNORED = ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"];
-const PUBLISH_ORDER_INIT = [
-  { key: "youtube1", platform: "YouTube", abbr: "YT", name: "Fega", connected: true },
-  { key: "instagram", platform: "Instagram", abbr: "IG", name: "fegagaming", connected: true },
-  { key: "facebook", platform: "Facebook", abbr: "FB", name: "Fega Gaming", connected: true },
-  { key: "tiktok1", platform: "TikTok", abbr: "TT", name: "fega", connected: true },
-  { key: "youtube2", platform: "YouTube", abbr: "YT", name: "ThatGuy", connected: true },
-  { key: "tiktok2", platform: "TikTok", abbr: "TT", name: "thatguyfega", connected: true },
-];
+const PUBLISH_ORDER_INIT = [];
 const DEFAULT_TIME_SLOTS = ["12:30 PM","1:30 PM","2:30 PM","3:30 PM","4:30 PM","7:30 PM","8:30 PM","9:30 PM"];
 const DEFAULT_TEMPLATE = {
   timeSlots: [...DEFAULT_TIME_SLOTS],
@@ -148,7 +141,30 @@ export default function App() {
         if (all.mainPool) setMainPool(all.mainPool);
         if (all.gamesDb) setGamesDb(all.gamesDb);
         if (all.ignoredProcesses) setIgnoredProcesses(all.ignoredProcesses);
+        // Load platforms: merge stored manual platforms with OAuth-connected accounts
         if (all.platforms) setPlatforms(all.platforms);
+        if (window.clipflow?.oauthGetAccounts) {
+          try {
+            const oauthAccounts = await window.clipflow.oauthGetAccounts();
+            if (oauthAccounts && oauthAccounts.length > 0) {
+              setPlatforms((prev) => {
+                // Merge: keep existing manual entries, add/update OAuth accounts
+                const merged = [...prev];
+                for (const acct of oauthAccounts) {
+                  const idx = merged.findIndex((p) => p.key === acct.key);
+                  if (idx >= 0) {
+                    merged[idx] = { ...merged[idx], ...acct };
+                  } else {
+                    merged.push(acct);
+                  }
+                }
+                return merged;
+              });
+            }
+          } catch (e) {
+            console.error("Failed to load OAuth accounts:", e);
+          }
+        }
         if (all.weeklyTemplate) setWeeklyTemplate(migrateTemplate(all.weeklyTemplate));
         if (all.trackerData) setTrackerData(all.trackerData);
         if (all.weekTemplateOverrides) {

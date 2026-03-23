@@ -14,6 +14,8 @@ const aiPipeline = require("./ai-pipeline");
 const feedbackDb = require("./feedback");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
+const tokenStore = require("./token-store");
+const tiktokOAuth = require("./oauth/tiktok");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -108,14 +110,7 @@ const store = new Store({
       { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
     ],
     ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
-    platforms: [
-      { key: "youtube1", platform: "YouTube", abbr: "YT", name: "Fega", connected: true },
-      { key: "instagram", platform: "Instagram", abbr: "IG", name: "fegagaming", connected: true },
-      { key: "facebook", platform: "Facebook", abbr: "FB", name: "Fega Gaming", connected: true },
-      { key: "tiktok1", platform: "TikTok", abbr: "TT", name: "fega", connected: true },
-      { key: "youtube2", platform: "YouTube", abbr: "YT", name: "ThatGuy", connected: true },
-      { key: "tiktok2", platform: "TikTok", abbr: "TT", name: "thatguyfega", connected: true },
-    ],
+    platforms: [],
     weeklyTemplate: {
       Monday: ["main","main","main","main","main","main","main","main"],
       Tuesday: ["main","other","main","other","main","other","main","main"],
@@ -152,6 +147,17 @@ const store = new Store({
 // ── Migration: remove stale whisper.cpp store keys ──
 if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
 if (store.has("whisperModelPath")) store.delete("whisperModelPath");
+
+// ── Migration: clear hardcoded placeholder platforms ──
+// Old defaults had Fega's personal account names. New system uses OAuth-connected accounts.
+const currentPlatforms = store.get("platforms");
+if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
+  const isPlaceholder = currentPlatforms.some((p) => p.name === "Fega" || p.name === "fega" || p.name === "thatguyfega" || p.name === "fegagaming" || p.name === "ThatGuy" || p.name === "Fega Gaming");
+  if (isPlaceholder) {
+    store.set("platforms", []);
+    console.log("[Migration] Cleared hardcoded placeholder platforms");
+  }
+}
 
 let mainWindow;
 let watcher = null;
@@ -1277,6 +1283,61 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
 
     return { success: true, results };
   } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============ OAUTH: Connected Accounts ============
+
+// Get all connected accounts (safe for UI — no tokens)
+ipcMain.handle("oauth:getAccounts", async () => {
+  return tokenStore.getAccountsForUI();
+});
+
+// Remove a connected account
+ipcMain.handle("oauth:removeAccount", async (_, accountId) => {
+  try {
+    tokenStore.removeAccount(accountId);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// TikTok OAuth: start the connect flow
+ipcMain.handle("oauth:tiktok:connect", async () => {
+  try {
+    const clientKey = store.get("tiktokClientKey");
+    const clientSecret = store.get("tiktokClientSecret");
+
+    if (!clientKey || !clientSecret) {
+      return { error: "TikTok Client Key and Secret must be configured in Settings before connecting." };
+    }
+
+    console.log("[OAuth] Starting TikTok OAuth flow...");
+    const accountData = await tiktokOAuth.startOAuthFlow(clientKey, clientSecret);
+
+    // Save to encrypted token store
+    const accountId = `tiktok_${accountData.openId}`;
+    tokenStore.saveAccount(accountId, accountData);
+    console.log(`[OAuth] TikTok account saved: ${accountId} (${accountData.displayName})`);
+
+    // Return the UI-safe account data
+    return {
+      success: true,
+      account: {
+        key: accountId,
+        platform: "TikTok",
+        abbr: "TT",
+        name: accountData.displayName,
+        displayName: accountData.displayName,
+        avatarUrl: accountData.avatarUrl,
+        connected: true,
+        openId: accountData.openId,
+      },
+    };
+  } catch (err) {
+    console.error("[OAuth] TikTok connect failed:", err);
     return { error: err.message };
   }
 });
