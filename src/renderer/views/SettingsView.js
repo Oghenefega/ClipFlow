@@ -916,11 +916,6 @@ function PipelineLogsSection() {
   for (const log of filtered) { const key = log.videoName || log.filename; if (!grouped[key]) grouped[key] = []; grouped[key].push(log); }
   const groupKeys = Object.keys(grouped).sort((a, b) => new Date(grouped[b][0]?.date || 0) - new Date(grouped[a][0]?.date || 0));
 
-  // Auto-expand first 3 groups
-  useEffect(() => {
-    if (groupKeys.length > 0 && expandedGroups.size === 0) setExpandedGroups(new Set(groupKeys.slice(0, 3)));
-  }, [logs.length]);
-
   const selectAllInGroup = (groupKey, e) => {
     e.stopPropagation();
     const gl = grouped[groupKey] || [];
@@ -972,10 +967,9 @@ function PipelineLogsSection() {
       ) : filtered.length === 0 ? (
         <div style={{ color: T.textTertiary, fontSize: 12, textAlign: "center", padding: 20 }}>No pipeline logs yet. Logs appear after running Generate Clips.</div>
       ) : (
-        <div style={{ display: "flex", gap: 14, maxHeight: 500 }}>
+        <div style={{ display: "flex", gap: 14 }}>
           {/* Left: grouped log list — wider when no log selected */}
-          <div style={{ width: selectedLog ? 300 : "100%", maxWidth: selectedLog ? 300 : "none", flexShrink: 0, overflow: "hidden", display: "flex", flexDirection: "column", transition: "width 0.2s" }}>
-            <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ width: selectedLog ? 300 : "100%", maxWidth: selectedLog ? 300 : "none", flexShrink: 0, maxHeight: 500, overflowY: "auto" }}>
               {groupKeys.map((groupKey) => {
                 const groupLogs = grouped[groupKey];
                 const isExpanded = expandedGroups.has(groupKey);
@@ -986,7 +980,7 @@ function PipelineLogsSection() {
                 const someSel = groupLogs.some(l => selected.has(l.path));
 
                 return (
-                  <div key={groupKey} style={{ borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                  <div key={groupKey} style={{ borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 6 }}>
                     {/* Group header */}
                     <div
                       onClick={() => toggleGroup(groupKey)}
@@ -1069,7 +1063,6 @@ function PipelineLogsSection() {
                   </div>
                 );
               })}
-            </div>
           </div>
 
           {/* Right: log content viewer — only rendered when a log is selected */}
