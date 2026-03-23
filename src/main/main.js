@@ -16,6 +16,9 @@ const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
+const tiktokPublish = require("./oauth/tiktok-publish");
+const publishLog = require("./publish-log");
+const logger = require("./logger");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -155,7 +158,7 @@ if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
   const isPlaceholder = currentPlatforms.some((p) => p.name === "Fega" || p.name === "fega" || p.name === "thatguyfega" || p.name === "fegagaming" || p.name === "ThatGuy" || p.name === "Fega Gaming");
   if (isPlaceholder) {
     store.set("platforms", []);
-    console.log("[Migration] Cleared hardcoded placeholder platforms");
+    logger.info(logger.MODULES.system, "Cleared hardcoded placeholder platforms (migration)");
   }
 }
 
@@ -197,7 +200,18 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Rotate old log files (keep 7 days)
+  logger.rotateLogs(7);
+  // Log app startup
+  logger.info(logger.MODULES.system, "App started", {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    platform: process.platform,
+    logsDir: logger.getLogsDirPath(),
+  });
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (watcher) watcher.close();
@@ -1340,5 +1354,137 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
     console.error("[OAuth] TikTok connect failed:", err);
     return { error: err.message };
   }
+});
+
+// ── TikTok Content Posting ──
+
+ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "TikTok", accountId, accountName: "", videoPath };
+  try {
+    // Get the stored account tokens
+    const account = tokenStore.getAccount(accountId);
+    if (!account) {
+      const err = "TikTok account not found. Please reconnect in Settings.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+    logBase.accountName = account.displayName || accountId;
+
+    console.log(`[TikTok Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
+    console.log(`[TikTok Publish] Video: ${videoPath}`);
+
+    let accessToken = account.accessToken;
+
+    // Check if token is expired and refresh if needed
+    if (account.expiresAt && Date.now() > account.expiresAt) {
+      console.log("[TikTok Publish] Token expired, refreshing...");
+      const clientKey = store.get("tiktokClientKey");
+      if (!clientKey || !account.refreshToken) {
+        const err = "Cannot refresh TikTok token. Please reconnect in Settings.";
+        publishLog.logPublish({ ...logBase, status: "failed", error: err });
+        return { error: err };
+      }
+      const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, account.refreshToken);
+      console.log("[TikTok Publish] Refresh result:", JSON.stringify(refreshResult, null, 2));
+      if (refreshResult.error || !refreshResult.access_token) {
+        const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
+        publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
+        return { error: err };
+      }
+      tokenStore.updateTokens(
+        accountId,
+        refreshResult.access_token,
+        refreshResult.refresh_token || account.refreshToken,
+        Date.now() + (refreshResult.expires_in || 86400) * 1000,
+      );
+      accessToken = refreshResult.access_token;
+    }
+
+    // Build the caption
+    const postCaption = caption || title || "";
+    console.log(`[TikTok Publish] Caption: "${postCaption}"`);
+
+    // Publish with progress events
+    const result = await tiktokPublish.publishVideo(
+      accessToken,
+      videoPath,
+      {
+        title: postCaption,
+        privacy_level: "PUBLIC_TO_EVERYONE", // Sandbox will override to SELF_ONLY
+      },
+      (progress) => {
+        mainWindow?.webContents.send("tiktok:publishProgress", progress);
+      }
+    );
+
+    console.log(`[TikTok Publish] SUCCESS — publish_id: ${result.publish_id}, post_id: ${result.post_id}, status: ${result.status}`);
+    publishLog.logPublish({
+      ...logBase, status: "success",
+      publishId: result.publish_id, postId: result.post_id,
+      apiResponse: { status: result.status, publish_id: result.publish_id, post_id: result.post_id },
+    });
+
+    return {
+      success: true,
+      publish_id: result.publish_id,
+      post_id: result.post_id,
+      status: result.status,
+    };
+  } catch (err) {
+    console.error("[TikTok Publish] FAILED:", err.message);
+    console.error("[TikTok Publish] Stack:", err.stack);
+    publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
+    return { error: err.message };
+  }
+});
+
+// ── Publish log queries ──
+ipcMain.handle("publishLog:getRecent", async (_, limit) => {
+  return publishLog.getRecentLogs(limit || 50);
+});
+
+ipcMain.handle("publishLog:getForClip", async (_, clipId) => {
+  return publishLog.getLogsForClip(clipId);
+});
+
+// ============ LOGGING & BUG REPORTS ============
+
+// Get available log modules (for the report UI dropdown)
+ipcMain.handle("logs:getModules", async () => {
+  return Object.values(logger.MODULES);
+});
+
+// Get session logs, optionally filtered by modules
+ipcMain.handle("logs:getSessionLogs", async (_, modules) => {
+  return logger.getSessionLogs(modules);
+});
+
+// Build and export a bug report
+ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }) => {
+  const report = logger.buildReport(description, modules, severity);
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: "Save Bug Report",
+    defaultPath: path.join(app.getPath("desktop"), `clipflow-report-${report.reportId}.json`),
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { canceled: true };
+  }
+
+  fs.writeFileSync(result.filePath, JSON.stringify(report, null, 2), "utf-8");
+  logger.info(logger.MODULES.system, "Bug report exported", { reportId: report.reportId, path: result.filePath });
+  return { success: true, reportId: report.reportId, filePath: result.filePath };
+});
+
+// Get app version
+ipcMain.handle("app:getVersion", async () => {
+  return app.getVersion();
+});
+
+// Get logs directory path (for dev / Claude Code access)
+ipcMain.handle("logs:getDir", async () => {
+  return logger.getLogsDirPath();
 });
 

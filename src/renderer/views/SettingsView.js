@@ -10,7 +10,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
@@ -322,6 +322,33 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setSfxFolder(f); }}
             style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
             Browse
+          </button>
+        </div>
+      </Card>
+
+      {/* Queue Settings */}
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Queue Settings</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Require hashtag in title</div>
+            <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 2 }}>When enabled, the Queue button will warn if your clip title is missing a game hashtag</div>
+          </div>
+          <button
+            onClick={() => setRequireHashtagInTitle(!requireHashtagInTitle)}
+            style={{
+              width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer",
+              background: requireHashtagInTitle ? T.green : "rgba(255,255,255,0.12)",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: "#fff",
+              position: "absolute", top: 3,
+              left: requireHashtagInTitle ? 21 : 3,
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+            }} />
           </button>
         </div>
       </Card>
@@ -688,11 +715,17 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      {/* Report an Issue */}
+      <ReportIssueSection />
+
       {/* Subtitle Debug Log */}
       <SubtitleDebugSection />
 
       {/* Pipeline Logs & Cost Tracking */}
       <PipelineLogsSection />
+
+      {/* Version Footer */}
+      <VersionFooter />
 
       {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
@@ -1063,5 +1096,250 @@ function PipelineLogsSection() {
         </div>
       )}
     </Card>
+  );
+}
+
+// ============ REPORT AN ISSUE SECTION ============
+
+const MODULE_LABELS = {
+  subtitles: "Subtitles / Captions",
+  publishing: "Platform Publishing",
+  "title-generation": "Title & Caption Generation",
+  "video-processing": "Video Processing / Rendering",
+  editor: "Clip Editor",
+  pipeline: "Auto Clip Pipeline",
+  auth: "Account Connections / OAuth",
+};
+
+const SEVERITY_OPTIONS = [
+  { value: "crash", label: "App crashed completely", color: "#f87171" },
+  { value: "bug", label: "Something didn't work but the app kept running", color: "#fbbf24" },
+  { value: "visual", label: "Something looked off visually (layout, text, colors)", color: "#22d3ee" },
+];
+
+function ReportIssueSection() {
+  const [description, setDescription] = useState("");
+  const [selectedModules, setSelectedModules] = useState([]);
+  const [severity, setSeverity] = useState("bug");
+  const [includeLogs, setIncludeLogs] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [result, setResult] = useState(null); // { success, reportId } or { error }
+
+  const toggleModule = (mod) => {
+    setSelectedModules((prev) =>
+      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]
+    );
+  };
+
+  const handleExport = async () => {
+    if (!description.trim()) return;
+    setExporting(true);
+    setResult(null);
+    try {
+      const res = await window.clipflow?.logsExportReport({
+        description: description.trim(),
+        modules: includeLogs ? selectedModules : [],
+        severity,
+      });
+      if (res?.canceled) {
+        setResult(null);
+      } else if (res?.success) {
+        setResult({ success: true, reportId: res.reportId });
+        // Reset form after successful export
+        setTimeout(() => {
+          setDescription("");
+          setSelectedModules([]);
+          setSeverity("bug");
+          setResult(null);
+        }, 4000);
+      } else {
+        setResult({ error: "Failed to export report" });
+      }
+    } catch (err) {
+      setResult({ error: err.message || "Unexpected error" });
+    }
+    setExporting(false);
+  };
+
+  const cbxStyle = (checked) => ({
+    width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
+    border: `1.5px solid ${checked ? T.accent : "rgba(255,255,255,0.2)"}`,
+    background: checked ? T.accent : "transparent",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.15s",
+  });
+
+  const radioStyle = (active) => ({
+    width: 16, height: 16, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
+    border: `2px solid ${active ? T.accent : "rgba(255,255,255,0.2)"}`,
+    background: "transparent",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.15s",
+  });
+
+  return (
+    <Card style={{ padding: 24, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Report an Issue</div>
+        <span style={{ color: T.textMuted, fontSize: 11 }}>
+          Reports include app logs to help diagnose problems
+        </span>
+      </div>
+
+      {/* Description */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>
+          What happened?
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          placeholder="Describe what you were doing when the issue occurred. The more detail, the faster we can fix it."
+          style={{
+            ...inputStyle,
+            resize: "vertical",
+            minHeight: 80,
+            lineHeight: 1.5,
+            fontSize: 12,
+          }}
+        />
+      </div>
+
+      {/* Module selector */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600, display: "block", marginBottom: 8 }}>
+          What area was affected? <span style={{ fontWeight: 400, color: T.textTertiary }}>(select all that apply)</span>
+        </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {Object.entries(MODULE_LABELS).map(([key, label]) => {
+            const isSelected = selectedModules.includes(key);
+            return (
+              <div
+                key={key}
+                onClick={() => toggleModule(key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+                  background: isSelected ? T.accentDim : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${isSelected ? T.accentBorder : T.border}`,
+                  transition: "all 0.15s",
+                }}
+              >
+                <div style={cbxStyle(isSelected)}>
+                  {isSelected && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{"\u2713"}</span>}
+                </div>
+                <span style={{ color: isSelected ? T.text : T.textSecondary, fontSize: 12 }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Severity */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600, display: "block", marginBottom: 8 }}>
+          How bad was it?
+        </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {SEVERITY_OPTIONS.map((opt) => {
+            const isActive = severity === opt.value;
+            return (
+              <div
+                key={opt.value}
+                onClick={() => setSeverity(opt.value)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                  background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                  border: `1px solid ${isActive ? T.borderHover : "transparent"}`,
+                  transition: "all 0.15s",
+                }}
+              >
+                <div style={radioStyle(isActive)}>
+                  {isActive && (
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.accent }} />
+                  )}
+                </div>
+                <span style={{ color: isActive ? T.text : T.textSecondary, fontSize: 12 }}>{opt.label}</span>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: opt.color,
+                  boxShadow: `0 0 6px ${opt.color}`,
+                  marginLeft: 4,
+                }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Include logs checkbox */}
+      <div style={{ marginBottom: 20 }}>
+        <div
+          onClick={() => setIncludeLogs(!includeLogs)}
+          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 0" }}
+        >
+          <div style={cbxStyle(includeLogs)}>
+            {includeLogs && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{"\u2713"}</span>}
+          </div>
+          <span style={{ color: T.text, fontSize: 12, fontWeight: 500 }}>
+            Include app logs
+          </span>
+          <span style={{ color: T.textTertiary, fontSize: 11 }}>(recommended — helps diagnose faster)</span>
+        </div>
+      </div>
+
+      {/* Export button + result */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          onClick={handleExport}
+          disabled={!description.trim() || exporting}
+          style={{
+            padding: "8px 20px", borderRadius: 6, fontSize: 13, cursor: description.trim() && !exporting ? "pointer" : "not-allowed",
+            fontFamily: T.font, fontWeight: 700, border: "none",
+            background: description.trim() && !exporting ? T.accent : "rgba(139,92,246,0.3)",
+            color: "#fff",
+            opacity: description.trim() && !exporting ? 1 : 0.5,
+            transition: "all 0.15s",
+          }}
+        >
+          {exporting ? "Exporting..." : "Export Report"}
+        </button>
+
+        {result?.success && (
+          <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>
+            Report saved ({result.reportId})
+          </span>
+        )}
+        {result?.error && (
+          <span style={{ color: T.red, fontSize: 12, fontWeight: 600 }}>
+            {result.error}
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ============ VERSION FOOTER ============
+function VersionFooter() {
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.getAppVersion) {
+        const v = await window.clipflow.getAppVersion();
+        setVersion(v);
+      }
+    })();
+  }, []);
+
+  if (!version) return null;
+
+  return (
+    <div style={{ textAlign: "center", padding: "16px 0 8px", color: T.textMuted, fontSize: 11, fontFamily: T.mono }}>
+      ClipFlow v{version}
+    </div>
   );
 }

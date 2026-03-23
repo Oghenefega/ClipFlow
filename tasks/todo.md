@@ -4,6 +4,95 @@
 
 ---
 
+## 🔲 In Progress — Unified Logging + Bug Report System (MVP)
+
+### Goal
+Build a structured logging system that writes to local files, a "Report an Issue" UI in Settings, and proper app version tracking. Logs are readable by Claude Code during development and will later be bundled into user-submitted bug reports (submission endpoint deferred to a future session).
+
+### Version Tracking
+- Set `package.json` version to `0.1.0-alpha`
+- Expose `app.getVersion()` to renderer via preload bridge
+- Display version in Settings footer
+
+### Unified Logger — `src/main/logger.js`
+
+**What it does:** Every log call writes a structured JSON entry to a local file AND to console (for dev). Replaces scattered `console.log` calls over time.
+
+**Log file location:** `%APPDATA%/ClipFlow/logs/` — one file per day (`clipflow-2026-03-23.log`), each line is a JSON object.
+
+**Every log entry contains:**
+```json
+{
+  "timestamp": "2026-03-23T14:32:01.123Z",
+  "level": "info|warn|error|fatal",
+  "module": "subtitles|publishing|title-generation|auth|video-processing|editor|pipeline|system",
+  "sessionId": "sess_abc123",
+  "message": "Human readable description",
+  "context": { /* optional extra data */ }
+}
+```
+
+**Module taxonomy:**
+
+| Module | Covers |
+|--------|--------|
+| `system` | App startup, shutdown, crashes, migrations |
+| `subtitles` | Whisper transcription, subtitle timing |
+| `publishing` | TikTok/YouTube/etc. uploads |
+| `title-generation` | Anthropic API calls for titles/captions |
+| `auth` | OAuth flows, token refresh |
+| `video-processing` | FFmpeg operations (cut, render, probe) |
+| `editor` | Clip extend, recut, segment manipulation |
+| `pipeline` | Auto clip generation pipeline |
+
+**Log rotation:** Keep last 7 days of log files. Delete older on app startup.
+
+**No external dependencies** — use `fs.appendFileSync` for simplicity. No winston/pino needed for a desktop app.
+
+### Report UI — Settings → "Report an Issue"
+
+| Element | Details |
+|---------|---------|
+| Description | Textarea — "What happened?" |
+| Module selector | Multi-select checkboxes matching the module taxonomy |
+| Severity | Radio: "App crashed" / "Something didn't work" / "Looked wrong" |
+| Include logs | Checkbox, checked by default |
+| Action | **"Export Report"** button → saves a `.json` report file via save dialog |
+
+**MVP behavior:** Export bundles the user's description + selected module logs from the current session into a `.json` file they can send manually. Submission endpoint comes later.
+
+### Claude Code Log Access (Development Only)
+Logs written to `%APPDATA%/ClipFlow/logs/` are readable by Claude Code via `Read` tool. When debugging, I read the most recent log file to see what happened.
+
+### Implementation Steps
+
+- [ ] **Step 1: Version tracking** — Update package.json, expose via preload, show in Settings
+- [ ] **Step 2: Create `src/main/logger.js`** — Unified logger module with file writing + console output
+- [ ] **Step 3: Wire logger into main process** — Import logger in main.js, replace key console.log calls with logger calls (gradual migration, not all at once)
+- [ ] **Step 4: Add IPC handlers for logs** — `logs:getModules`, `logs:getSessionLogs`, `logs:exportReport`
+- [ ] **Step 5: Add preload bridge** — Expose log IPC to renderer
+- [ ] **Step 6: Build Report UI in SettingsView** — New "Report an Issue" card section
+- [ ] **Step 7: Log rotation** — Clean up files older than 7 days on startup
+- [ ] **Step 8: Verify** — Build, launch, confirm logs write to file, confirm report export works
+
+### File Impact
+
+| File | Change |
+|------|--------|
+| `package.json` | Version → `0.1.0-alpha` |
+| `src/main/logger.js` | **NEW** — Unified logger module |
+| `src/main/main.js` | Import logger, replace key console.logs, add log IPC handlers, add rotation on startup |
+| `src/main/preload.js` | Expose `logs:*` and `app.getVersion()` |
+| `src/renderer/views/SettingsView.js` | New "Report an Issue" section + version display |
+
+### What This Does NOT Include (Deferred)
+- Railway endpoint for report submission (future session)
+- Database storage for reports (future session)
+- Full migration of all 41 console.log calls (gradual, per-feature)
+- Remote log aggregation (Sentry, Logtail, etc.)
+
+---
+
 ## ✅ Implemented — Clip Extension (Extend Clips Beyond Original Boundaries)
 
 ### Goal

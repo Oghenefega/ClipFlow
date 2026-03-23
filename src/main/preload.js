@@ -146,6 +146,28 @@ contextBridge.exposeInMainWorld("clipflow", {
   oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),
   oauthTiktokConnect: () => ipcRenderer.invoke("oauth:tiktok:connect"),
 
+  // TikTok publishing
+  tiktokPublish: (params) => ipcRenderer.invoke("tiktok:publish", params),
+  onTiktokPublishProgress: (callback) => {
+    ipcRenderer.on("tiktok:publishProgress", (_, data) => callback(data));
+  },
+  removeTiktokPublishProgressListener: () => {
+    ipcRenderer.removeAllListeners("tiktok:publishProgress");
+  },
+
+  // Publish log
+  getPublishLogs: (limit) => ipcRenderer.invoke("publishLog:getRecent", limit),
+  getPublishLogsForClip: (clipId) => ipcRenderer.invoke("publishLog:getForClip", clipId),
+
   // Platform info
   platform: process.platform,
+
+  // App version
+  getAppVersion: () => ipcRenderer.invoke("app:getVersion"),
+
+  // Logging & Bug Reports
+  logsGetModules: () => ipcRenderer.invoke("logs:getModules"),
+  logsGetSessionLogs: (modules) => ipcRenderer.invoke("logs:getSessionLogs", modules),
+  logsExportReport: (data) => ipcRenderer.invoke("logs:exportReport", data),
+  logsGetDir: () => ipcRenderer.invoke("logs:getDir"),
 });
