@@ -100,16 +100,11 @@ function generateState(length = 32) {
  * TikTok v2 requires PKCE for the authorization flow.
  */
 function generatePKCE() {
-  // code_verifier: 43-128 chars, unreserved characters
-  const verifier = generateState(64);
-  // code_challenge: base64url(sha256(verifier))
-  const challenge = crypto
-    .createHash("sha256")
-    .update(verifier)
-    .digest("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  // code_verifier: 43-128 chars, base64url-encoded random bytes (RFC 7636)
+  const verifier = crypto.randomBytes(32).toString("base64url");
+  // code_challenge: base64url(sha256(verifier)) — use Node's native base64url
+  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+  console.log("[TikTok OAuth] PKCE verifier length:", verifier.length, "challenge length:", challenge.length);
   return { verifier, challenge };
 }
 
