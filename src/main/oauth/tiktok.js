@@ -102,8 +102,8 @@ function generateState(length = 32) {
 function generatePKCE() {
   // code_verifier: 43-128 chars, base64url-encoded random bytes (RFC 7636)
   const verifier = crypto.randomBytes(32).toString("base64url");
-  // code_challenge: base64url(sha256(verifier)) — use Node's native base64url
-  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+  // TikTok uses HEX-encoded SHA256 for code_challenge (non-standard, differs from RFC 7636)
+  const challenge = crypto.createHash("sha256").update(verifier).digest("hex");
   console.log("[TikTok OAuth] PKCE verifier length:", verifier.length, "challenge length:", challenge.length);
   return { verifier, challenge };
 }
