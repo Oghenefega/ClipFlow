@@ -57,3 +57,17 @@ npm run dev                  # Dev mode with hot reload
 
 - Repo: https://github.com/Oghenefega/ClipFlow.git
 - Branch: master (private)
+- Token: `C:\Users\IAmAbsolute\.claude\github_token.txt` — read this file to authenticate GitHub API calls
+- To fetch issues: `GET https://api.github.com/repos/Oghenefega/ClipFlow/issues?state=all&per_page=50` with `Authorization: Bearer <token>` header via WebFetch
+
+## GitHub Issues Workflow
+
+When the user describes a bug or feature, generate a ready-to-run PowerShell `gh issue create` command. Rules:
+
+- Always single line — no backslash continuations, no heredocs
+- Always include `--repo Oghenefega/ClipFlow`
+- Use `` `n `` for newlines inside the `--body` string
+- Labels: one `type:` + one `area:` from the label system
+- Body structure: `## Description`, `## Steps to Reproduce` (bugs), `## Expected`, optionally `## Notes`
+- Title: short, specific, lowercase after first word
+- Output the command in a PowerShell code block so it's easy to copy
