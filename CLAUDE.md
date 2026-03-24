@@ -1,6 +1,15 @@
-# ClipFlow — Desktop App for Gaming Content Pipeline
+# ClipFlow — Commercial Desktop App for Gaming Content Creators
 
-Electron + React desktop app for gaming content creator Fega. Automates the pipeline from OBS recording → file rename → local clip generation (FFmpeg + Whisper) → editor (subtitles, captions, AI titles) → render → schedule & publish to 6 platform accounts.
+Electron + React desktop app for gaming/streaming content creators. Automates the full content pipeline: OBS recording → file rename → local clip generation (FFmpeg + Whisper) → editor (subtitles, captions, AI titles) → render → schedule & publish to multiple social platforms.
+
+## Product Context
+
+ClipFlow is a **commercial software product** being built for public release with a subscription/lifetime license model. Currently in personal testing phase (Fega is the sole tester), but all architecture decisions should be made with a multi-user, paid product in mind. This is not a personal tool — it is a business.
+
+- Target market: gaming and streaming content creators
+- Revenue model: subscription + optional lifetime upgrade
+- Platform publishing: built for "publish on behalf of users" — each user connects their own social accounts via OAuth
+- Platform scope: YouTube, TikTok, Instagram, Facebook, X (Twitter), Kick, and others added over time
 
 ## Git Workflow
 

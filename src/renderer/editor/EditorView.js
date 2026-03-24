@@ -31,7 +31,7 @@ class EditorErrorBoundary extends React.Component {
   }
 }
 
-export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", onBack }) {
+export default function EditorView({ gamesDb = [], editorContext, localProjects = [], anthropicApiKey = "", requireHashtagInTitle = true, onBack, onClipRendered }) {
   // Subscribe to clip so component re-renders after initFromContext sets it
   const clip = useEditorStore((s) => s.clip);
 
@@ -42,7 +42,7 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
 
   return (
     <EditorErrorBoundary>
-      <EditorLayout onBack={onBack} gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
+      <EditorLayout onBack={onBack} gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} />
     </EditorErrorBoundary>
   );
 }

@@ -240,7 +240,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       // Build the TikTok authorization URL (with PKCE)
       const authUrl = new URL(TIKTOK_AUTH_URL);
       authUrl.searchParams.set("client_key", clientKey);
-      authUrl.searchParams.set("scope", "user.info.basic");
+      authUrl.searchParams.set("scope", "user.info.basic,video.publish");
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
       authUrl.searchParams.set("state", state);

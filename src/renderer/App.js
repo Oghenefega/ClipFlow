@@ -122,6 +122,9 @@ export default function App() {
   const [tiktokClientKey, setTiktokClientKey] = useState("");
   const [tiktokClientSecret, setTiktokClientSecret] = useState("");
 
+  // Queue settings
+  const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
+
   // Captions
   const [captionTemplates, setCaptionTemplates] = useState({
     tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
@@ -198,6 +201,7 @@ export default function App() {
         if (all.tiktokClientKey) setTiktokClientKey(all.tiktokClientKey);
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
+        if (all.requireHashtagInTitle !== undefined) setRequireHashtagInTitle(all.requireHashtagInTitle);
         // For ytDescriptions: merge real defaults with any saved overrides
         if (all.ytDescriptions && Object.keys(all.ytDescriptions).length > 0) {
           setYtDescriptions({ ...REAL_YT_DESCRIPTIONS, ...all.ytDescriptions });
@@ -269,6 +273,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientKey", tiktokClientKey); }, [tiktokClientKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("requireHashtagInTitle", requireHashtagInTitle); }, [requireHashtagInTitle]);
 
   // ============ MAIN GAME SWITCH LOGGING ============
   const prevMainGame = useRef(null);
@@ -421,7 +426,15 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} onBack={() => { setEditorContext(null); setView("clips"); }} />;
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={() => { setEditorContext(null); setView("clips"); }} onClipRendered={async (projectId) => {
+        try {
+          const full = await window.clipflow.projectLoad(projectId);
+          if (full?.project) {
+            setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
+            setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
+          }
+        } catch (e) { console.error("Failed to refresh project after render:", e); }
+      }} />;
     }
     if (view === "queue") {
       return (
@@ -441,6 +454,7 @@ export default function App() {
           ytDescriptions={ytDescriptions}
           captionTemplates={captionTemplates}
           gamesDb={gamesDb}
+          requireHashtagInTitle={requireHashtagInTitle}
         />
       );
     }
@@ -489,6 +503,8 @@ export default function App() {
           setTiktokClientSecret={setTiktokClientSecret}
           styleGuide={styleGuide}
           setStyleGuide={setStyleGuide}
+          requireHashtagInTitle={requireHashtagInTitle}
+          setRequireHashtagInTitle={setRequireHashtagInTitle}
         />
       );
     }

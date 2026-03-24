@@ -1007,16 +1007,32 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
   const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
   const renderableApproved = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered").length;
 
+  const [renderError, setRenderError] = useState(null);
+
   const handleBatchRender = async () => {
     if (batchRendering || renderableApproved === 0) return;
+    setRenderError(null);
     setBatchRendering(true);
     setBatchProgress({ pct: 0, detail: "Starting batch render..." });
     const onProgress = (p) => setBatchProgress(p);
     window.clipflow?.onRenderProgress?.(onProgress);
     try {
       const clipsToRender = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered");
-      await window.clipflow.batchRender(clipsToRender, project, null, {});
-    } catch (e) { /* handled by result */ }
+      const result = await window.clipflow.batchRender(clipsToRender, project, null, {});
+      if (result?.error) {
+        console.error("[BatchRender] Error:", result.error);
+        setRenderError(result.error);
+      } else if (result?.results) {
+        const failed = result.results.filter((r) => !r.success);
+        if (failed.length > 0) {
+          setRenderError(`${failed.length} clip(s) failed to render`);
+          console.error("[BatchRender] Failed clips:", failed);
+        }
+      }
+    } catch (e) {
+      console.error("[BatchRender] Exception:", e);
+      setRenderError(e.message || "Render failed");
+    }
     window.clipflow?.removeRenderProgressListener?.();
     setBatchRendering(false);
     if (onBatchRender) onBatchRender(project.id);
@@ -1044,6 +1060,13 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
       </PageHeader>
 
       <TabBar tabs={[{ id: "all", label: "All", count: clips.length }, { id: "pending", label: "Pending", count: pending }, { id: "approved", label: "Approved", count: approved }]} active={filter} onChange={setFilter} />
+
+      {renderError && (
+        <div style={{ margin: "12px 0 0", padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: `1px solid ${T.red}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ color: T.red, fontSize: 12, fontFamily: T.font }}>Render error: {renderError}</span>
+          <button onClick={() => setRenderError(null)} style={{ background: "none", border: "none", color: T.textTertiary, cursor: "pointer", fontSize: 14 }}>✕</button>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
         {filtered.map((clip, index) => (

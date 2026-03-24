@@ -198,7 +198,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
 }
 
 // ── Topbar ──
-function Topbar({ onBack }) {
+function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const clipTitle = useEditorStore((s) => s.clipTitle);
   const editingTitle = useEditorStore((s) => s.editingTitle);
   const dirty = useEditorStore((s) => s.dirty);
@@ -216,7 +216,11 @@ function Topbar({ onBack }) {
 
   const [navOpen, setNavOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [saveFlash, setSaveFlash] = useState(false);
   const [hashtagWarning, setHashtagWarning] = useState(false);
+  const [rendering, setRendering] = useState(false);
+  const [renderPct, setRenderPct] = useState(0);
+  const [renderDetail, setRenderDetail] = useState("");
   const [retranscribing, setRetranscribing] = useState(false);
   const [retranscribeStage, setRetranscribeStage] = useState("");
   const [, forceUpdate] = useState(0);
@@ -241,35 +245,69 @@ function Topbar({ onBack }) {
   const onSave = useCallback(async () => {
     await handleSave();
     setLastSaved(Date.now());
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1200);
   }, [handleSave]);
 
+  // Core queue logic: save → approve → render → done
+  const doQueueAndRender = useCallback(async () => {
+    if (!clip || !project || rendering) return;
+    await handleSave();
+    setLastSaved(Date.now());
+
+    // Mark as approved + rendering
+    await window.clipflow?.projectUpdateClip(project.id, clip.id, {
+      status: "approved",
+      renderStatus: "rendering",
+    });
+
+    // Start render with progress tracking
+    setRendering(true);
+    setRenderPct(0);
+    setRenderDetail("Starting render...");
+
+    const onProgress = (p) => {
+      setRenderPct(p.pct || 0);
+      setRenderDetail(p.detail || "Rendering...");
+    };
+    window.clipflow?.onRenderProgress?.(onProgress);
+
+    try {
+      const result = await window.clipflow.renderClip(clip, project, null, {});
+      if (result?.error) {
+        console.error("[Queue] Render failed:", result.error);
+        await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
+      } else {
+        setRenderPct(100);
+        setRenderDetail("Done!");
+        // Refresh project in App.js state so Queue tab picks up the rendered clip
+        if (onClipRendered) onClipRendered(project.id);
+      }
+    } catch (err) {
+      console.error("[Queue] Render error:", err);
+      await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
+    } finally {
+      window.clipflow?.removeRenderProgressListener?.();
+      setTimeout(() => {
+        setRendering(false);
+        setRenderPct(0);
+        setRenderDetail("");
+      }, 1500);
+    }
+  }, [handleSave, clip, project, rendering, onClipRendered]);
+
   const onSendToQueue = useCallback(async () => {
-    // Warn if title has no hashtag
-    if (!clipTitle || !clipTitle.includes("#")) {
+    if (requireHashtagInTitle && (!clipTitle || !clipTitle.includes("#"))) {
       setHashtagWarning(true);
       return;
     }
-    await handleSave();
-    setLastSaved(Date.now());
-    if (clip && project) {
-      window.clipflow?.projectUpdateClip(project.id, clip.id, {
-        status: "approved",
-        renderStatus: "pending",
-      });
-    }
-  }, [handleSave, clipTitle, clip, project]);
+    doQueueAndRender();
+  }, [requireHashtagInTitle, clipTitle, doQueueAndRender]);
 
   const onConfirmQueue = useCallback(async () => {
     setHashtagWarning(false);
-    await handleSave();
-    setLastSaved(Date.now());
-    if (clip && project) {
-      window.clipflow?.projectUpdateClip(project.id, clip.id, {
-        status: "approved",
-        renderStatus: "pending",
-      });
-    }
-  }, [handleSave, clip, project]);
+    doQueueAndRender();
+  }, [doQueueAndRender]);
 
   // Subtitle debug report — logs clip subtitle data for diagnosis
   // Initialize debugStatus from clip's persisted subtitleRating
@@ -694,22 +732,35 @@ function Topbar({ onBack }) {
 
         <Button
           size="sm"
-          className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
-          style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)" }}
+          className={`h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0 transition-all duration-300 ${saveFlash ? "ring-2 ring-green-400/60 scale-105" : ""}`}
+          style={{ background: saveFlash ? "linear-gradient(135deg, #15803d, #22c55e)" : "linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)" }}
           onClick={onSave}
         >
           <Check className="h-3.5 w-3.5 mr-1.5" />
-          Save
+          {saveFlash ? "Saved!" : "Save"}
         </Button>
-        <Button
-          size="sm"
-          className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
-          style={{ background: "linear-gradient(135deg, #15803d, #22c55e, #4ade80)" }}
-          onClick={onSendToQueue}
-        >
-          <Send className="h-3.5 w-3.5 mr-1.5" />
-          Queue
-        </Button>
+        {rendering ? (
+          <div className="h-8 px-4 flex items-center gap-2 rounded-md text-xs font-semibold text-white"
+            style={{ background: "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <div className="flex flex-col leading-none">
+              <span>{renderPct}%</span>
+            </div>
+            <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderPct}%` }} />
+            </div>
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
+            style={{ background: "linear-gradient(135deg, #15803d, #22c55e, #4ade80)" }}
+            onClick={onSendToQueue}
+          >
+            <Send className="h-3.5 w-3.5 mr-1.5" />
+            Queue
+          </Button>
+        )}
 
         {/* Hashtag warning popup */}
         {hashtagWarning && (
@@ -804,7 +855,7 @@ function MiniPlayerBar({ onShowTimeline }) {
 }
 
 // ── Main Layout Shell ──
-export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
+export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, requireHashtagInTitle = true, onClipRendered }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
 
   // Global undo/redo keyboard shortcuts
@@ -839,7 +890,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey }) {
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Top toolbar */}
-      <Topbar onBack={onBack} />
+      <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} />
 
       {/* Body + Timeline — timeline fully collapses/expands */}
       <div className="flex-1 flex flex-col overflow-hidden">

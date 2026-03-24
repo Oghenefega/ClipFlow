@@ -468,3 +468,8 @@
 ### No fallback — fix the foundation, don't patch around it
 - **Mistake:** Proposed fallback logic that silently chose between old and new code paths. User couldn't tell what was working and what wasn't.
 - **Rule:** When rebuilding a system (e.g. per-clip transcription replacing source-sliced subtitles), commit fully to the new approach. If it breaks, debug logs will show why. Fallbacks hide problems and make debugging impossible.
+
+## TikTok PKCE Uses Hex, Not Base64URL
+**Mistake:** Used RFC 7636 standard base64url encoding for PKCE code_challenge. TikTok rejected it with "Code verifier or code challenge is invalid" across 3 attempts.
+**Root Cause:** TikTok's OAuth v2 API deviates from RFC 7636 — it expects `code_challenge = hex(sha256(code_verifier))` (64-char hex string), NOT `base64url(sha256(code_verifier))`.
+**Rule:** When integrating third-party OAuth, always check platform-specific PKCE docs. Don't assume RFC compliance. For TikTok specifically: `.digest("hex")` not `.digest("base64url")`.

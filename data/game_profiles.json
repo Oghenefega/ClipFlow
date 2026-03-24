@@ -11,7 +11,7 @@
     "gameTag": "RL",
     "gameName": "Rocket League",
     "playStyle": "Fega plays Rocket League for fun and community, not as a competitive grind.\n\nKey patterns observed:\n- Plays various formats: 2v2 with duo Chili, 3v3 with randoms, 1v1s with subscribers, 1v1s vs randoms\n- Actively seeks to play with subscribers — treats subscriber 1v1s as special community moments\n- Self-roasts misses constantly (\"I miss an open net. That is insane.\")\n- Gives confident live sports commentary on opponents, then immediately plays badly himself\n- \"GET HIM OUT OF MY FACE\" and similar = hype/excitement. NEVER genuine anger.\n- Expresses deep appreciation for good teammate plays — says \"I love you bro\" multiple times consecutively\n- Apologizes to teammates dramatically when he makes mistakes\n- Declares confident intentions right before failing (\"Actually let's win\" → \"DAMN DAMN DAMN DAMN\")\n- The self-awareness of his own bad plays IS the content, not the good plays\n- Treats opponents with humor — villain energy when dominating, gracious when losing",
-    "sessionCount": 1,
+    "sessionCount": 4,
     "updateThreshold": 5,
     "lastUpdated": null
   },
@@ -19,8 +19,16 @@
     "gameTag": "EO",
     "gameName": "Egging On",
     "playStyle": "Fega plays Egging On as a comedic parkour climber with a chaotic, overconfident energy that constantly clashes with his actual performance. He opens sessions with big proclamations about his skill — declaring the game \"easy\" and promising to show viewers \"how it's done\" — only to immediately fall, lose track of where he is, or forget basic mechanics like jumping. This gap between confidence and execution is the core of his content style here.\n\nFega talks to his egg constantly, treating it like a misbehaving pet with commands like \"behave yourself\" and \"don't roll.\" When things go wrong he spirals into long, rapid-fire strings of \"no, no, no, no\" before catching himself and pivoting to forced optimism (\"today's a happy day, guys, today's a happy day\"). He frequently uses \"wait a minute\" as a stall phrase while visibly figuring things out in real time.\n\nHis humor is self-aware and reactive — he'll admit he forgot a mechanic, immediately justify it (\"it's been a minute\"), then claim mastery seconds later. Phrases like \"I had it, I had it,\" \"that is some BS,\" and \"I can explain\" pop up after failed attempts. He also engages with chat mid-chaos, calling people out by name without breaking his commentary rhythm.\n\nOverall content style is comedic and personality-driven over competitive, with Fega's wild emotional swings — hype to despair to manufactured positivity — being the main entertainment engine.",
-    "sessionCount": 3,
+    "sessionCount": 1,
     "updateThreshold": 5,
-    "lastUpdated": "2026-03-21T22:12:34.511Z"
+    "lastUpdated": "2026-03-22T06:36:27.502Z"
+  },
+  "SCoG": {
+    "gameTag": "SCoG",
+    "gameName": "Slackers: Carts of Glory",
+    "playStyle": "",
+    "sessionCount": 1,
+    "updateThreshold": 5,
+    "lastUpdated": null
   }
 }

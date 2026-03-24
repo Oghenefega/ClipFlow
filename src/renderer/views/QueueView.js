@@ -121,10 +121,11 @@ export default function QueueView({
   allClips, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, setWeeklyTemplate, weekTemplateOverrides, setWeekTemplateOverrides,
   savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, gamesDb,
+  requireHashtagInTitle = true,
 }) {
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
   const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
-  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && hasHashtag(c.title) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title));
+  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && (!requireHashtagInTitle || hasHashtag(c.title)) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title));
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
@@ -158,6 +159,34 @@ export default function QueueView({
   const [timeSlotVal, setTimeSlotVal] = useState(""); // edit value
   const [showAddSlot, setShowAddSlot] = useState(false);
   const [newSlotVal, setNewSlotVal] = useState("");
+  const [publishLogs, setPublishLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const [publishProgress, setPublishProgress] = useState(null); // { stage, pct, detail }
+
+  // Load publish logs on mount and after any publish
+  const loadPublishLogs = async () => {
+    if (window.clipflow?.getPublishLogs) {
+      try {
+        const logs = await window.clipflow.getPublishLogs(20);
+        setPublishLogs(logs);
+      } catch (e) { console.error("Failed to load publish logs:", e); }
+    }
+  };
+  useEffect(() => { loadPublishLogs(); }, []);
+
+  // Listen for TikTok publish progress events
+  useEffect(() => {
+    if (window.clipflow?.onTiktokPublishProgress) {
+      window.clipflow.onTiktokPublishProgress((data) => {
+        setPublishProgress(data);
+      });
+    }
+    return () => {
+      if (window.clipflow?.removeTiktokPublishProgressListener) {
+        window.clipflow.removeTiktokPublishProgressListener();
+      }
+    };
+  }, []);
 
   const dates = getUpcomingDates();
   const activePlat = platforms.filter((p) => p.connected);
@@ -226,12 +255,55 @@ export default function QueueView({
         [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "publishing" } },
       }));
 
-      // Publishing not yet wired — stub for tracker functionality
-      console.log("Publishing not yet wired", { platform: plat.key, clipTitle: clip.title });
-      setPublishStatus((prev) => ({
-        ...prev,
-        [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
-      }));
+      try {
+        if (plat.platform === "TikTok" && window.clipflow?.tiktokPublish) {
+          // Build caption from template
+          const gameTag = extractGameTag(clip.title) || "";
+          let caption = clip.title || "";
+          if (captionTemplates?.tiktok) {
+            caption = captionTemplates.tiktok
+              .replace("{title}", clip.title || "")
+              .replace("#{gametitle}", gameTag ? `#${gameTag}` : "");
+          }
+
+          const result = await window.clipflow.tiktokPublish({
+            accountId: plat.key,
+            videoPath: clip.renderPath,
+            title: clip.title,
+            caption,
+            clipId: clip.id,
+          });
+
+          if (result?.error) {
+            console.error(`[Publish] TikTok failed for ${plat.key}:`, result.error);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } },
+            }));
+            allSuccess = false;
+          } else {
+            console.log(`[Publish] TikTok success for ${plat.key}:`, result);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+            }));
+          }
+        } else {
+          // Other platforms not yet wired
+          console.log("Publishing not yet wired for", plat.platform, { platform: plat.key, clipTitle: clip.title });
+          setPublishStatus((prev) => ({
+            ...prev,
+            [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+          }));
+        }
+      } catch (err) {
+        console.error(`[Publish] Error for ${plat.key}:`, err);
+        setPublishStatus((prev) => ({
+          ...prev,
+          [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: err.message || "Failed" } },
+        }));
+        allSuccess = false;
+      }
 
       // Wait 30s between platforms when publishing now (not needed for scheduled)
       if (!baseTimestamp && i < activePlat.length - 1) {
@@ -257,6 +329,8 @@ export default function QueueView({
     }
 
     publishingRef.current = false;
+    setPublishProgress(null);
+    loadPublishLogs(); // Refresh logs after publish
   };
 
   const pubNow = (clipId) => publishClip(clipId, null);
@@ -621,9 +695,22 @@ export default function QueueView({
                         <div key={plat.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
                           <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>{icon}</span>
                           <span style={{ color: T.text, fontSize: 13, fontWeight: 600, minWidth: 100 }}>{plat.abbr} — {plat.name}</span>
-                          <span style={{ color, fontSize: 12, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {status === "pending" ? "Waiting..." : status === "publishing" ? "Sending..." : status === "done" ? "Sent" : status}
-                          </span>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ color, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {status === "pending" ? "Waiting..." : status === "publishing" ? (publishProgress?.detail || "Connecting...") : status === "done" ? "Sent" : status}
+                            </span>
+                            {status === "publishing" && publishProgress && (
+                              <div style={{ width: "100%", height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                                <div style={{
+                                  height: "100%",
+                                  width: `${publishProgress.pct || 0}%`,
+                                  borderRadius: 2,
+                                  background: `linear-gradient(90deg, ${T.accent}, ${T.green})`,
+                                  transition: "width 0.4s ease",
+                                }} />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -682,6 +769,38 @@ export default function QueueView({
         {activePlat.length === 0 && (
           <div style={{ marginTop: 10 }}>
             <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>No connected platforms. Check Settings.</InfoBanner>
+          </div>
+        )}
+      </Card>
+
+      {/* PUBLISH LOG */}
+      <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <SectionLabel>Publish Log</SectionLabel>
+          <button onClick={() => { setShowLogs(!showLogs); if (!showLogs) loadPublishLogs(); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{showLogs ? "Hide" : `Show (${publishLogs.length})`}</button>
+        </div>
+        {showLogs && (
+          <div style={{ marginTop: 12, maxHeight: 300, overflowY: "auto" }}>
+            {publishLogs.length === 0 && <div style={{ color: T.textTertiary, fontSize: 12, padding: "10px 0" }}>No publish attempts yet.</div>}
+            {publishLogs.map((log, i) => {
+              const statusColor = log.status === "success" ? T.green : log.status === "failed" ? T.red : log.status === "uploading" || log.status === "started" ? T.yellow : T.textMuted;
+              const time = new Date(log.timestamp).toLocaleString();
+              return (
+                <div key={i} style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, marginBottom: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ color: T.text, fontSize: 12, fontWeight: 600, maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.clipTitle || "Unknown clip"}</span>
+                    <span style={{ color: statusColor, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{log.status}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 12, fontSize: 11, color: T.textTertiary }}>
+                    <span>{log.platform} → {log.accountName || log.accountId}</span>
+                    <span>{time}</span>
+                  </div>
+                  {log.error && <div style={{ color: T.red, fontSize: 11, marginTop: 4, fontFamily: T.mono, wordBreak: "break-all" }}>{log.error}</div>}
+                  {log.publishId && <div style={{ color: T.textMuted, fontSize: 10, marginTop: 2, fontFamily: T.mono }}>publish_id: {log.publishId}</div>}
+                  {log.postId && <div style={{ color: T.green, fontSize: 10, marginTop: 2, fontFamily: T.mono }}>post_id: {log.postId}</div>}
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
