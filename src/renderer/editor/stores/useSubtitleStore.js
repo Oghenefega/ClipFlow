@@ -527,16 +527,53 @@ const useSubtitleStore = create((set, get) => ({
   updateSegmentTimes: (segId, startSec, endSec) => {
     get()._pushUndo();
     set((s) => ({
-      editSegments: s.editSegments.map(seg =>
-        seg.id === segId ? {
+      editSegments: s.editSegments.map(seg => {
+        if (seg.id !== segId) return seg;
+
+        // Sync word-level timestamps with new segment boundaries
+        let updatedWords = seg.words || [];
+        if (updatedWords.length > 0) {
+          const oldStart = seg.startSec;
+          const oldEnd = seg.endSec;
+          const oldDur = oldEnd - oldStart;
+          const newDur = endSec - startSec;
+          const delta = startSec - oldStart;
+          const durChanged = Math.abs(newDur - oldDur) > 0.001;
+          const startChanged = Math.abs(delta) > 0.001;
+
+          if (durChanged) {
+            // Trim operation — duration changed, one edge moved
+            // Filter out words fully outside new boundaries, clamp the rest
+            updatedWords = updatedWords
+              .filter(w => {
+                // Keep word if any part falls within the new boundaries
+                return w.end > startSec && w.start < endSec;
+              })
+              .map(w => ({
+                ...w,
+                start: Math.max(w.start, startSec),
+                end: Math.min(w.end, endSec),
+              }));
+          } else if (startChanged) {
+            // Move operation — same duration, both edges shifted by delta
+            updatedWords = updatedWords.map(w => ({
+              ...w,
+              start: w.start + delta,
+              end: w.end + delta,
+            }));
+          }
+        }
+
+        return {
           ...seg,
           startSec,
           endSec,
           start: fmtTime(startSec),
           end: fmtTime(endSec),
           dur: (endSec - startSec).toFixed(1) + "s",
-        } : seg
-      ),
+          words: updatedWords,
+        };
+      }),
     }));
   },
 

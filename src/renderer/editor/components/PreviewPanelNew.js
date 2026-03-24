@@ -701,6 +701,8 @@ export default function PreviewPanelNew() {
     if (!showSubs || editSegments.length === 0) return { currentSeg: null, currentWordIdx: -1 };
 
     // Strategy: find the active word globally, then derive the segment from it
+    // BUT respect segment boundaries — if the playhead is outside a segment's
+    // startSec/endSec range (e.g., user trimmed it on the timeline), don't show it.
     if (globalWordIndex.length > 0) {
       // Find the most recent word that has started (word-driven)
       let bestGlobal = -1;
@@ -711,18 +713,21 @@ export default function PreviewPanelNew() {
 
       if (bestGlobal >= 0) {
         const entry = globalWordIndex[bestGlobal];
-        // Check we're not too far past this word (> 1.5s after its end = silence)
-        if (adjustedTime <= entry.word.end + 1.5) {
-          const seg = editSegments[entry.segIdx];
+        const seg = editSegments[entry.segIdx];
+        // Must be within the segment's timeline boundaries AND not too far past the word
+        if (adjustedTime >= seg.startSec && adjustedTime < seg.endSec &&
+            adjustedTime <= entry.word.end + 1.5) {
           return { currentSeg: seg, currentWordIdx: entry.wordIdx };
         }
       }
 
       // Before any word: check if we're close to the first word (< 0.15s)
+      // AND within the segment's timeline boundaries
       if (bestGlobal < 0 && globalWordIndex.length > 0) {
         const firstWord = globalWordIndex[0];
-        if (adjustedTime >= firstWord.word.start - 0.15) {
-          const seg = editSegments[firstWord.segIdx];
+        const seg = editSegments[firstWord.segIdx];
+        if (adjustedTime >= firstWord.word.start - 0.15 &&
+            adjustedTime >= seg.startSec && adjustedTime < seg.endSec) {
           return { currentSeg: seg, currentWordIdx: firstWord.wordIdx };
         }
       }

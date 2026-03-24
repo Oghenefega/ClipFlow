@@ -699,8 +699,11 @@ function EditSubtitlesTab() {
 
   // Find active word index within a segment based on playback time
   // Uses "most recent word" approach to bridge gaps between words
+  // Respects segment timeline boundaries — no highlighting outside startSec/endSec
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
+    // Must be within segment's timeline boundaries
+    if (adjustedTime < seg.startSec || adjustedTime > seg.endSec) return -1;
     // Exact match first
     for (let i = seg.words.length - 1; i >= 0; i--) {
       if (adjustedTime >= seg.words[i].start && adjustedTime <= seg.words[i].end) return i;
