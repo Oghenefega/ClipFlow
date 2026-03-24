@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onDrag, onDragEnd, rippleAnimating, leftOffset = 0 }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, rippleAnimating, leftOffset = 0 }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -9,8 +9,9 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
   const rafRef = useRef(null);
   const dragThresholdRef = useRef(false);
 
+  const segDur = seg.endSec - seg.startSec;
   const leftPx = duration > 0 ? ((seg.startSec + leftOffset) / duration) * timelineWidth : 0;
-  const widthPx = duration > 0 ? ((seg.endSec - seg.startSec) / duration) * timelineWidth : 0;
+  const widthPx = duration > 0 ? (segDur / duration) * timelineWidth : 0;
 
   const onHandleDown = useCallback((side, e) => {
     e.stopPropagation();
@@ -26,9 +27,9 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         let newStart = startRef.current.startSec;
         let newEnd = startRef.current.endSec;
         if (side === "left") {
-          newStart = Math.max(0, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
+          newStart = Math.max(0, Math.min(startRef.current.startSec + dtSec, newEnd - 0.01));
         } else {
-          newEnd = Math.min(duration, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
+          newEnd = Math.min(duration, Math.max(startRef.current.endSec + dtSec, newStart + 0.01));
         }
         onResize(seg.id, newStart, newEnd);
       });
@@ -39,10 +40,11 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       document.body.style.cursor = "";
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      if (onResizeEnd) onResizeEnd(seg.id);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onResize]);
+  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onResize, onResizeEnd]);
 
   // ── Drag (move) handler — hold and drag segment body ──
   const onDragStart = useCallback((e) => {
@@ -101,9 +103,12 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     transition = "background 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out";
   }
 
+  // Don't render segments shrunk to near-zero (consumed by resize/drag)
+  if (segDur < 0.01) return null;
+
   return (
     <div
-      className="absolute top-1 bottom-1 cursor-pointer group"
+      className="segment-block absolute top-1 bottom-1 cursor-pointer group"
       style={{
         left: leftPx,
         width: Math.max(widthPx, 4),

@@ -647,15 +647,19 @@ function EditSubtitlesTab() {
   }, [matches, editSegments, setActiveSegId, seekTo]);
 
   // Auto-track active segment from playhead position
+  // Only auto-track during playback — when user explicitly selects a segment
+  // (selectedWordInfo is set), let their selection take precedence until playback resumes
   const activeSegRef = useRef(null);
   useEffect(() => {
+    // Don't override explicit user selection — only auto-track during playback
+    if (selectedWordInfo && !playing) return;
     const currentSeg = editSegments.find(
       (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
     );
     if (currentSeg && currentSeg.id !== activeSegId) {
       setActiveSegId(currentSeg.id);
     }
-  }, [adjustedTime, editSegments, activeSegId, setActiveSegId]);
+  }, [adjustedTime, editSegments, activeSegId, setActiveSegId, selectedWordInfo, playing]);
 
   // Auto-scroll active segment into view
   useEffect(() => {

@@ -83,6 +83,9 @@ export default function TimelinePanelNew() {
   const mouseXRef = useRef(0);
   const prevZoomRef = useRef(tlZoom);
   const dragOriginalsRef = useRef(null); // snapshot of all segment positions before drag
+  const resizeOriginalsRef = useRef(null); // snapshot of all segment positions before resize
+  const dragPhantomsRef = useRef([]); // phantom right portions during middle-case drag
+  const [dragPhantoms, setDragPhantoms] = useState([]);
   const scrubRafRef = useRef(null);
   const playheadRafRef = useRef(null);
   const [smoothTime, setSmoothTime] = useState(0);
@@ -167,6 +170,8 @@ export default function TimelinePanelNew() {
 
   const handleScrubStart = useCallback((e) => {
     if (e.button !== 0) return;
+    // Don't seek when clicking on a segment block — let the segment handle it
+    if (e.target.closest(".segment-block")) return;
     setScrubbing(true);
     handleScrub(e);
   }, [handleScrub]);
@@ -276,33 +281,92 @@ export default function TimelinePanelNew() {
   const clearSnapGuides = useCallback(() => setSnapGuides([]), []);
 
   // ── Resize handlers ──
-  const handleCaptionResize = useCallback((id, newStart, newEnd) => {
-    const sStart = applySnap(newStart, id, "cap");
-    const sEnd = applySnap(newEnd, id, "cap");
-    updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sEnd));
-  }, [duration, updateCaptionSegmentTimes, applySnap]);
+  // Resize caption — same originals-based approach as subtitle resize
+  const capResizeOriginalsRef = useRef(null);
 
-  // Drag (move) subtitle segment — temporarily shrinks overlapping neighbors.
-  // Neighbors restore when dragged back. On drop, splits if landed in the middle of another.
+  const handleCaptionResize = useCallback((id, rawStart, rawEnd) => {
+    const capStore = useCaptionStore.getState();
+
+    if (!capResizeOriginalsRef.current) {
+      capResizeOriginalsRef.current = {};
+      const segs = capStore.captionSegments.map(s => ({ ...s, endSec: s.endSec ?? duration }));
+      for (const seg of segs) {
+        capResizeOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
+      }
+    }
+    const originals = capResizeOriginalsRef.current;
+    const origSeg = originals[id];
+    if (!origSeg) return;
+
+    const resizingLeft = Math.abs(rawStart - origSeg.startSec) > 0.001;
+    const resizingRight = Math.abs(rawEnd - origSeg.endSec) > 0.001;
+
+    let newStart = resizingLeft ? applySnap(rawStart, id, "cap") : rawStart;
+    let newEnd = resizingRight ? applySnap(rawEnd, id, "cap") : rawEnd;
+    newStart = Math.max(0, newStart);
+    newEnd = Math.min(duration, newEnd);
+    if (newEnd - newStart < 0.01) {
+      if (resizingLeft) newStart = newEnd - 0.01;
+      else newEnd = newStart + 0.01;
+    }
+
+    // Iterate caption segments (preserves number IDs)
+    const capSegsSnapshot = capStore.captionSegments;
+    for (const seg of capSegsSnapshot) {
+      if (seg.id === id) continue;
+      const orig = originals[seg.id];
+      if (!orig) continue;
+      const overlapStart = Math.max(newStart, orig.startSec);
+      const overlapEnd = Math.min(newEnd, orig.endSec);
+
+      if (overlapStart < overlapEnd) {
+        if (newStart <= orig.startSec && newEnd >= orig.endSec) {
+          capStore.updateCaptionSegmentTimes(seg.id, orig.startSec, orig.startSec + 0.001);
+        } else if (resizingRight && newEnd > orig.startSec) {
+          capStore.updateCaptionSegmentTimes(seg.id, newEnd, orig.endSec);
+        } else if (resizingLeft && newStart < orig.endSec) {
+          capStore.updateCaptionSegmentTimes(seg.id, orig.startSec, newStart);
+        }
+      } else {
+        capStore.updateCaptionSegmentTimes(seg.id, orig.startSec, orig.endSec);
+      }
+    }
+
+    capStore.updateCaptionSegmentTimes(id, Math.max(0, newStart), Math.min(duration, newEnd));
+  }, [duration, applySnap]);
+
+  const handleCaptionResizeEnd = useCallback((id) => {
+    capResizeOriginalsRef.current = null;
+    const currentSegs = useCaptionStore.getState().captionSegments;
+    const toDelete = currentSegs.filter(seg => (seg.endSec ?? duration) - seg.startSec < 0.05);
+    for (const seg of toDelete) {
+      deleteCaptionSegment(seg.id);
+    }
+  }, [duration, deleteCaptionSegment]);
+
+  // Drag (move) subtitle segment — pushes overlapping neighbors.
+  // Uses getState() to avoid stale closure issues during drag.
   const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
+    const store = useSubtitleStore.getState();
     const segDur = newEnd - newStart;
     let sStart = applySnap(newStart, segId, "sub");
     sStart = Math.max(0, sStart);
     let sEnd = Math.min(effectiveDuration, sStart + segDur);
-    const minDur = 0.1;
 
     // Snapshot originals on first drag call
     if (!dragOriginalsRef.current) {
       dragOriginalsRef.current = {};
-      for (const seg of editSegments) {
+      for (const seg of store.editSegments) {
         dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
       }
     }
 
     const originals = dragOriginalsRef.current;
+    const phantoms = [];
+    // Iterate snapshot segments (preserves number IDs — Object.entries coerces to string!)
+    const segsSnapshot = store.editSegments;
 
-    // Restore all neighbors to their originals, then shrink based on current drag position
-    for (const seg of editSegments) {
+    for (const seg of segsSnapshot) {
       if (seg.id === segId) continue;
       const orig = originals[seg.id];
       if (!orig) continue;
@@ -312,74 +376,49 @@ export default function TimelinePanelNew() {
       const overlapEnd = Math.min(sEnd, orig.endSec);
 
       if (overlapStart < overlapEnd) {
-        // There IS overlap — shrink this segment
-        // Dragged segment eats from the left of neighbor
+        // Dragged segment eats from the LEFT of neighbor
         if (sStart <= orig.startSec && sEnd > orig.startSec && sEnd < orig.endSec) {
-          const newOtherStart = sEnd;
-          if (orig.endSec - newOtherStart >= minDur) {
-            updateSegmentTimes(seg.id, newOtherStart, orig.endSec);
-          }
+          store.updateSegmentTimes(seg.id, sEnd, orig.endSec);
         }
-        // Dragged segment eats from the right of neighbor
+        // Dragged segment eats from the RIGHT of neighbor
         else if (sEnd >= orig.endSec && sStart < orig.endSec && sStart > orig.startSec) {
-          const newOtherEnd = sStart;
-          if (newOtherEnd - orig.startSec >= minDur) {
-            updateSegmentTimes(seg.id, orig.startSec, newOtherEnd);
-          }
+          store.updateSegmentTimes(seg.id, orig.startSec, sStart);
         }
-        // Dragged segment sits in the middle — temporarily shrink to left portion only
+        // Dragged segment in the MIDDLE — left portion stays real, right becomes phantom
         else if (sStart > orig.startSec && sEnd < orig.endSec) {
-          updateSegmentTimes(seg.id, orig.startSec, sStart);
+          store.updateSegmentTimes(seg.id, orig.startSec, sStart);
+          phantoms.push({ startSec: sEnd, endSec: orig.endSec, text: seg.text || "", parentId: seg.id });
         }
-        // Dragged segment completely covers — hide it (shrink to minimum)
+        // Dragged segment completely COVERS neighbor — delete it
         else if (sStart <= orig.startSec && sEnd >= orig.endSec) {
-          updateSegmentTimes(seg.id, orig.startSec, orig.startSec + minDur);
+          store.deleteSegment(seg.id);
         }
       } else {
-        // No overlap — restore to original if it was modified
-        if (seg.startSec !== orig.startSec || seg.endSec !== orig.endSec) {
-          updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
-        }
+        // No overlap — restore to original
+        store.updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
       }
     }
 
-    updateSegmentTimes(segId, sStart, sEnd);
-  }, [effectiveDuration, editSegments, updateSegmentTimes, applySnap]);
+    dragPhantomsRef.current = phantoms;
+    setDragPhantoms(phantoms);
+    store.updateSegmentTimes(segId, sStart, sEnd);
+  }, [effectiveDuration, applySnap]);
 
-  // On drag end — finalize: if dropped in the middle of a segment, split it
+  // On drag end — create real segments from phantoms, clear state
   const handleSubtitleDragEnd = useCallback((segId) => {
-    const originals = dragOriginalsRef.current;
-    dragOriginalsRef.current = null;
-    if (!originals) return;
-
-    const draggedSeg = editSegments.find(s => s.id === segId);
-    if (!draggedSeg) return;
-
-    const minDur = 0.1;
-
-    for (const seg of editSegments) {
-      if (seg.id === segId) continue;
-      const orig = originals[seg.id];
-      if (!orig) continue;
-
-      // Check if the dragged segment landed in the middle of this segment's original span
-      if (draggedSeg.startSec > orig.startSec + minDur && draggedSeg.endSec < orig.endSec - minDur) {
-        // Split: left portion is already set (orig.startSec → draggedSeg.startSec)
-        // We need to create a right portion (draggedSeg.endSec → orig.endSec)
-        // Use splitSegment-like logic: update current to left part, add new for right part
-        updateSegmentTimes(seg.id, orig.startSec, draggedSeg.startSec);
-
-        // Create the right split by using the store's addSegmentAfter or manual insert
-        // For now, use splitSegment at the drag start point, then adjust
-        // Actually simpler: directly add a new segment
-        const rightText = seg.text || "";
-        const { addSegmentAt } = useSubtitleStore.getState();
-        if (addSegmentAt) {
-          addSegmentAt(draggedSeg.endSec, orig.endSec, rightText);
+    const phantoms = dragPhantomsRef.current;
+    if (phantoms.length > 0) {
+      const { addSegmentAt } = useSubtitleStore.getState();
+      if (addSegmentAt) {
+        for (const p of phantoms) {
+          addSegmentAt(p.startSec, p.endSec, p.text);
         }
       }
     }
-  }, [editSegments, updateSegmentTimes]);
+    dragPhantomsRef.current = [];
+    setDragPhantoms([]);
+    dragOriginalsRef.current = null;
+  }, []);
 
   // Drag (move) caption segment
   const handleCaptionDrag = useCallback((id, newStart, newEnd) => {
@@ -395,48 +434,79 @@ export default function TimelinePanelNew() {
     resizeAudioSegment(id, sStart, sEnd);
   }, [resizeAudioSegment, applySnap]);
 
+  // Resize subtitle — uses originals snapshot so neighbors restore when dragging back.
+  // Uses getState() to avoid stale closure issues during continuous resize.
   const handleSubtitleResize = useCallback((segId, rawStart, rawEnd) => {
-    const sorted = [...editSegments].sort((a, b) => a.startSec - b.startSec);
-    const idx = sorted.findIndex((s) => s.id === segId);
-    if (idx < 0) return;
-    const seg = sorted[idx];
-    const prevSeg = idx > 0 ? sorted[idx - 1] : null;
-    const nextSeg = idx < sorted.length - 1 ? sorted[idx + 1] : null;
-    const minDur = 0.1;
+    const store = useSubtitleStore.getState();
 
-    // Apply snap to the edge being dragged
-    let newStart = rawStart !== seg.startSec ? applySnap(rawStart, segId, "sub") : rawStart;
-    let newEnd = rawEnd !== seg.endSec ? applySnap(rawEnd, segId, "sub") : rawEnd;
-
-    if (newStart !== seg.startSec) {
-      newStart = Math.max(0, newStart);
-      newStart = Math.min(newStart, newEnd - minDur);
-      if (prevSeg && newStart < prevSeg.endSec) {
-        const pushEnd = newStart;
-        const pushStart = Math.max(0, Math.min(prevSeg.startSec, pushEnd - minDur));
-        if (pushEnd - pushStart >= minDur) {
-          updateSegmentTimes(prevSeg.id, pushStart, pushEnd);
-        } else {
-          newStart = prevSeg.endSec;
-        }
+    // Snapshot originals on first resize call
+    if (!resizeOriginalsRef.current) {
+      resizeOriginalsRef.current = {};
+      for (const seg of store.editSegments) {
+        resizeOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
       }
     }
-    if (newEnd !== seg.endSec) {
-      newEnd = Math.min(duration, newEnd);
-      newEnd = Math.max(newEnd, newStart + minDur);
-      if (nextSeg && newEnd > nextSeg.startSec) {
-        const pushStart = newEnd;
-        const pushEnd = Math.max(nextSeg.endSec, pushStart + minDur);
-        const clampedEnd = Math.min(pushEnd, duration);
-        if (clampedEnd - pushStart >= minDur) {
-          updateSegmentTimes(nextSeg.id, pushStart, clampedEnd);
-        } else {
-          newEnd = nextSeg.startSec;
+    const originals = resizeOriginalsRef.current;
+    const origSeg = originals[segId];
+    if (!origSeg) return;
+
+    // Determine which edge is being resized
+    const resizingLeft = Math.abs(rawStart - origSeg.startSec) > 0.001;
+    const resizingRight = Math.abs(rawEnd - origSeg.endSec) > 0.001;
+
+    // Apply snap to the moving edge
+    let newStart = resizingLeft ? applySnap(rawStart, segId, "sub") : rawStart;
+    let newEnd = resizingRight ? applySnap(rawEnd, segId, "sub") : rawEnd;
+    newStart = Math.max(0, newStart);
+    newEnd = Math.min(effectiveDuration, newEnd);
+    // Near-zero minimum for the resized segment itself
+    if (newEnd - newStart < 0.01) {
+      if (resizingLeft) newStart = newEnd - 0.01;
+      else newEnd = newStart + 0.01;
+    }
+
+    // Iterate store segments (preserves number IDs — Object.entries coerces to string!)
+    const segsSnapshot = store.editSegments;
+    for (const seg of segsSnapshot) {
+      if (seg.id === segId) continue;
+      const orig = originals[seg.id];
+      if (!orig) continue;
+
+      // Check overlap between resized position and neighbor's ORIGINAL position
+      const overlapStart = Math.max(newStart, orig.startSec);
+      const overlapEnd = Math.min(newEnd, orig.endSec);
+
+      if (overlapStart < overlapEnd) {
+        if (newStart <= orig.startSec && newEnd >= orig.endSec) {
+          // Fully covered — shrink to near-zero (invisible, cleaned up on resize end)
+          store.updateSegmentTimes(seg.id, orig.startSec, orig.startSec + 0.001);
+        } else if (resizingRight && newEnd > orig.startSec) {
+          // Extending right into neighbor — push its start
+          store.updateSegmentTimes(seg.id, newEnd, orig.endSec);
+        } else if (resizingLeft && newStart < orig.endSec) {
+          // Extending left into neighbor — push its end
+          store.updateSegmentTimes(seg.id, orig.startSec, newStart);
         }
+      } else {
+        // No overlap — restore to original
+        store.updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
       }
     }
-    updateSegmentTimes(segId, newStart, newEnd);
-  }, [editSegments, duration, updateSegmentTimes, applySnap]);
+
+    store.updateSegmentTimes(segId, newStart, newEnd);
+  }, [effectiveDuration, applySnap]);
+
+  // On resize end — delete any segments shrunk to near-zero (including self if shrunk to nothing)
+  const handleSubtitleResizeEnd = useCallback((segId) => {
+    resizeOriginalsRef.current = null;
+
+    // Delete ALL segments below threshold — neighbors consumed by extend, or self shrunk to zero
+    const currentSegs = useSubtitleStore.getState().editSegments;
+    const toDelete = currentSegs.filter(seg => seg.endSec - seg.startSec < 0.05);
+    for (const seg of toDelete) {
+      deleteSegment(seg.id);
+    }
+  }, [deleteSegment]);
 
   // ── Segment selection (multi-select support) ──
   const handleSegSelect = useCallback((track, segId, event) => {
@@ -453,7 +523,11 @@ export default function TimelinePanelNew() {
       setSelectedSegIds(new Set([segId]));
     }
     setSelectedTrack(track);
-    if (track === "sub") setActiveSegId(segId);
+    if (track === "sub") {
+      setActiveSegId(segId);
+      // Highlight the first word of the clicked segment in the Edit Subtitles panel
+      useSubtitleStore.getState().setSelectedWordInfo({ segId, wordIdx: 0 });
+    }
     if (track === "cap") useCaptionStore.getState().setActiveCaptionId(segId);
   }, [setActiveSegId]);
 
@@ -836,6 +910,7 @@ export default function TimelinePanelNew() {
                     selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
                     onSelect={(id, e) => handleSegSelect("cap", id, e)}
                     onResize={handleCaptionResize}
+                    onResizeEnd={handleCaptionResizeEnd}
                     onDrag={handleCaptionDrag}
                     rippleAnimating={rippleAnimating}
                     leftOffset={leftOffset}
@@ -906,19 +981,47 @@ export default function TimelinePanelNew() {
                     );
                   }
                 }
-                return visibleSubs.map((seg) => (
-                  <SegmentBlock
-                    key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
-                    duration={effectiveDuration} timelineWidth={clipContentWidth}
-                    selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
-                    onSelect={(id, e) => handleSegSelect("sub", id, e)}
-                    onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
-                    onDrag={handleSubtitleDrag}
-                    onDragEnd={handleSubtitleDragEnd}
-                    rippleAnimating={rippleAnimating}
-                    leftOffset={leftOffset}
-                  />
-                ));
+                return (<>
+                  {visibleSubs.map((seg) => (
+                    <SegmentBlock
+                      key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
+                      duration={effectiveDuration} timelineWidth={clipContentWidth}
+                      selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
+                      onSelect={(id, e) => handleSegSelect("sub", id, e)}
+                      onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
+                      onResizeEnd={handleSubtitleResizeEnd}
+                      onDrag={handleSubtitleDrag}
+                      onDragEnd={handleSubtitleDragEnd}
+                      rippleAnimating={rippleAnimating}
+                      leftOffset={leftOffset}
+                    />
+                  ))}
+                  {/* Phantom right portions during middle-case drag */}
+                  {dragPhantoms.map((phantom, i) => {
+                    const pLeft = effectiveDuration > 0 ? ((phantom.startSec + leftOffset) / effectiveDuration) * clipContentWidth : 0;
+                    const pWidth = effectiveDuration > 0 ? ((phantom.endSec - phantom.startSec) / effectiveDuration) * clipContentWidth : 0;
+                    return (
+                      <div
+                        key={`phantom-${i}`}
+                        className="absolute top-1 bottom-1 pointer-events-none"
+                        style={{
+                          left: pLeft,
+                          width: Math.max(pWidth, 4),
+                          background: TRACK_COLORS.sub.bg,
+                          border: `1.5px dashed ${TRACK_COLORS.sub.border}`,
+                          borderRadius: SEGMENT_RADIUS,
+                          opacity: 0.6,
+                        }}
+                      >
+                        <div className="absolute inset-0 flex items-center px-2 select-none overflow-hidden">
+                          <span className="text-[10px] font-medium truncate" style={{ color: TRACK_COLORS.sub.text }}>
+                            {phantom.text}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>);
               })()}
             </div>
           </div>
