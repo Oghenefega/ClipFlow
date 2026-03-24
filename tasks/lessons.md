@@ -473,3 +473,19 @@
 **Mistake:** Used RFC 7636 standard base64url encoding for PKCE code_challenge. TikTok rejected it with "Code verifier or code challenge is invalid" across 3 attempts.
 **Root Cause:** TikTok's OAuth v2 API deviates from RFC 7636 — it expects `code_challenge = hex(sha256(code_verifier))` (64-char hex string), NOT `base64url(sha256(code_verifier))`.
 **Rule:** When integrating third-party OAuth, always check platform-specific PKCE docs. Don't assume RFC compliance. For TikTok specifically: `.digest("hex")` not `.digest("base64url")`.
+
+### Object.entries() coerces keys to strings — breaks numeric ID comparisons
+- **Mistake:** Used `Object.entries(originals)` to iterate an object keyed by segment IDs (`Date.now()` numbers). `Object.entries()` coerces all keys to strings. Then `"1711296000000" === 1711296000000` is `false`, so all ID lookups and `updateSegmentTimes()` calls silently failed — no errors, just nothing happening.
+- **Rule:** When segment IDs are numbers, NEVER use `Object.entries()` or `Object.keys()` to iterate and compare against them. Instead iterate the source array directly (`store.editSegments.forEach(seg => originals[seg.id])`) which preserves native types. Or always normalize IDs to one type.
+
+### React Rules of Hooks — never return before hooks
+- **Mistake:** Added `if (segDur < 0.01) return null` at the top of SegmentBlock, before `useCallback` hooks. React error #310 crashed the app — hooks must be called in the same order every render.
+- **Rule:** All hooks (`useState`, `useCallback`, `useRef`, etc.) must come BEFORE any conditional `return`. Place early-exit `return null` AFTER all hook declarations, right before the JSX return.
+
+### Use getState() in captured event handlers, not closure values
+- **Mistake:** Drag/resize handlers captured `editSegments` and `updateSegmentTimes` from the component closure. During a drag operation (pointerdown → pointermove × N → pointerup), the closure values became stale — intermediate updates weren't visible to subsequent pointermove callbacks.
+- **Rule:** For long-lived event handlers (drag, resize) that need fresh store state on every call, use `useSubtitleStore.getState()` inside the handler body instead of subscribing via selectors. Selectors are for render; `getState()` is for imperative event handlers.
+
+### Don't patch around problems — find the real root cause
+- **Mistake:** Attempted multiple patches for drag/resize overlap: direction-based logic, minimum size blocking, shrink-to-0.001. Each fix introduced new edge cases. User had to say "stop eating my tokens — find out what the problem really is."
+- **Rule:** When a fix creates new bugs, STOP patching. Re-read the problem statement, trace the actual data flow, identify the single root cause (stale closures + string coercion in this case), and fix that. One correct fix > five patches.
