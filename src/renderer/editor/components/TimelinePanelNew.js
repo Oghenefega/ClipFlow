@@ -82,6 +82,7 @@ export default function TimelinePanelNew() {
   const trackAreaRef = useRef(null);
   const mouseXRef = useRef(0);
   const prevZoomRef = useRef(tlZoom);
+  const dragOriginalsRef = useRef(null); // snapshot of all segment positions before drag
   const scrubRafRef = useRef(null);
   const playheadRafRef = useRef(null);
   const [smoothTime, setSmoothTime] = useState(0);
@@ -195,6 +196,25 @@ export default function TimelinePanelNew() {
     };
   }, [scrubbing, effectiveDuration, clipContentWidth, seekTo, leftOffset]);
 
+  // Handle wheel events on timeline — horizontal scroll support
+  // MX Master and similar mice send deltaX for horizontal wheel;
+  // vertical scroll (deltaY without shift) is ignored to avoid fighting with page scroll.
+  // Shift+scroll converts vertical to horizontal for mice without a horizontal wheel.
+  const handleTimelineWheel = useCallback((e) => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    if (e.shiftKey && Math.abs(e.deltaY) > 0) {
+      // Shift + vertical scroll → horizontal scroll
+      e.preventDefault();
+      container.scrollLeft += e.deltaY;
+    } else if (Math.abs(e.deltaX) > 0) {
+      // Native horizontal scroll (e.g. MX Master horizontal wheel)
+      e.preventDefault();
+      container.scrollLeft += e.deltaX;
+    }
+  }, []);
+
   // Track mouse position for zoom-to-cursor
   const handleMouseMove = useCallback((e) => {
     mouseXRef.current = e.clientX;
@@ -262,12 +282,104 @@ export default function TimelinePanelNew() {
     updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sEnd));
   }, [duration, updateCaptionSegmentTimes, applySnap]);
 
-  // Drag (move) subtitle segment — updates startSec/endSec maintaining duration
+  // Drag (move) subtitle segment — temporarily shrinks overlapping neighbors.
+  // Neighbors restore when dragged back. On drop, splits if landed in the middle of another.
   const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
     const segDur = newEnd - newStart;
-    const sStart = applySnap(newStart, segId, "sub");
-    updateSegmentTimes(segId, Math.max(0, sStart), Math.min(effectiveDuration, sStart + segDur));
-  }, [effectiveDuration, updateSegmentTimes, applySnap]);
+    let sStart = applySnap(newStart, segId, "sub");
+    sStart = Math.max(0, sStart);
+    let sEnd = Math.min(effectiveDuration, sStart + segDur);
+    const minDur = 0.1;
+
+    // Snapshot originals on first drag call
+    if (!dragOriginalsRef.current) {
+      dragOriginalsRef.current = {};
+      for (const seg of editSegments) {
+        dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
+      }
+    }
+
+    const originals = dragOriginalsRef.current;
+
+    // Restore all neighbors to their originals, then shrink based on current drag position
+    for (const seg of editSegments) {
+      if (seg.id === segId) continue;
+      const orig = originals[seg.id];
+      if (!orig) continue;
+
+      // Check overlap between dragged position and this segment's ORIGINAL position
+      const overlapStart = Math.max(sStart, orig.startSec);
+      const overlapEnd = Math.min(sEnd, orig.endSec);
+
+      if (overlapStart < overlapEnd) {
+        // There IS overlap — shrink this segment
+        // Dragged segment eats from the left of neighbor
+        if (sStart <= orig.startSec && sEnd > orig.startSec && sEnd < orig.endSec) {
+          const newOtherStart = sEnd;
+          if (orig.endSec - newOtherStart >= minDur) {
+            updateSegmentTimes(seg.id, newOtherStart, orig.endSec);
+          }
+        }
+        // Dragged segment eats from the right of neighbor
+        else if (sEnd >= orig.endSec && sStart < orig.endSec && sStart > orig.startSec) {
+          const newOtherEnd = sStart;
+          if (newOtherEnd - orig.startSec >= minDur) {
+            updateSegmentTimes(seg.id, orig.startSec, newOtherEnd);
+          }
+        }
+        // Dragged segment sits in the middle — temporarily shrink to left portion only
+        else if (sStart > orig.startSec && sEnd < orig.endSec) {
+          updateSegmentTimes(seg.id, orig.startSec, sStart);
+        }
+        // Dragged segment completely covers — hide it (shrink to minimum)
+        else if (sStart <= orig.startSec && sEnd >= orig.endSec) {
+          updateSegmentTimes(seg.id, orig.startSec, orig.startSec + minDur);
+        }
+      } else {
+        // No overlap — restore to original if it was modified
+        if (seg.startSec !== orig.startSec || seg.endSec !== orig.endSec) {
+          updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
+        }
+      }
+    }
+
+    updateSegmentTimes(segId, sStart, sEnd);
+  }, [effectiveDuration, editSegments, updateSegmentTimes, applySnap]);
+
+  // On drag end — finalize: if dropped in the middle of a segment, split it
+  const handleSubtitleDragEnd = useCallback((segId) => {
+    const originals = dragOriginalsRef.current;
+    dragOriginalsRef.current = null;
+    if (!originals) return;
+
+    const draggedSeg = editSegments.find(s => s.id === segId);
+    if (!draggedSeg) return;
+
+    const minDur = 0.1;
+
+    for (const seg of editSegments) {
+      if (seg.id === segId) continue;
+      const orig = originals[seg.id];
+      if (!orig) continue;
+
+      // Check if the dragged segment landed in the middle of this segment's original span
+      if (draggedSeg.startSec > orig.startSec + minDur && draggedSeg.endSec < orig.endSec - minDur) {
+        // Split: left portion is already set (orig.startSec → draggedSeg.startSec)
+        // We need to create a right portion (draggedSeg.endSec → orig.endSec)
+        // Use splitSegment-like logic: update current to left part, add new for right part
+        updateSegmentTimes(seg.id, orig.startSec, draggedSeg.startSec);
+
+        // Create the right split by using the store's addSegmentAfter or manual insert
+        // For now, use splitSegment at the drag start point, then adjust
+        // Actually simpler: directly add a new segment
+        const rightText = seg.text || "";
+        const { addSegmentAt } = useSubtitleStore.getState();
+        if (addSegmentAt) {
+          addSegmentAt(draggedSeg.endSec, orig.endSec, rightText);
+        }
+      }
+    }
+  }, [editSegments, updateSegmentTimes]);
 
   // Drag (move) caption segment
   const handleCaptionDrag = useCallback((id, newStart, newEnd) => {
@@ -638,6 +750,7 @@ export default function TimelinePanelNew() {
         onPointerDown={handleScrubStart}
         onClick={handleTrackBgClick}
         onMouseMove={handleMouseMove}
+        onWheel={handleTimelineWheel}
         style={{ cursor: scrubbing ? "grabbing" : "default" }}
       >
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
@@ -801,6 +914,7 @@ export default function TimelinePanelNew() {
                     onSelect={(id, e) => handleSegSelect("sub", id, e)}
                     onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
                     onDrag={handleSubtitleDrag}
+                    onDragEnd={handleSubtitleDragEnd}
                     rippleAnimating={rippleAnimating}
                     leftOffset={leftOffset}
                   />

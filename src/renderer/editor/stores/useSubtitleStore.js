@@ -577,6 +577,24 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // Add a new segment at a specific time range (used by drag-split)
+  addSegmentAt: (startSec, endSec, text) => {
+    get()._pushUndo();
+    const newSeg = {
+      id: "seg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      startSec,
+      endSec,
+      start: fmtTime(startSec),
+      end: fmtTime(endSec),
+      dur: (endSec - startSec).toFixed(1) + "s",
+      text: text || "",
+      words: [],
+    };
+    set((s) => ({
+      editSegments: [...s.editSegments, newSeg].sort((a, b) => a.startSec - b.startSec),
+    }));
+  },
+
   splitSegment: (atTime) => {
     const { activeSegId, editSegments, selectedWordInfo, _pushUndo } = get();
 

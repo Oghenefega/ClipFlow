@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onDrag, rippleAnimating, leftOffset = 0 }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onDrag, onDragEnd, rippleAnimating, leftOffset = 0 }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -72,6 +72,9 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     };
     const onUp = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (dragThresholdRef.current && onDragEnd) {
+        onDragEnd(seg.id);
+      }
       setDragging(false);
       dragThresholdRef.current = false;
       document.body.style.cursor = "";
@@ -80,7 +83,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onDrag, dragging]);
+  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onDrag, onDragEnd, dragging]);
 
   const showHandles = selected || hovered;
 

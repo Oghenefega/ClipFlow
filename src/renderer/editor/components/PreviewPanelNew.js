@@ -600,8 +600,11 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Mouse wheel zoom anchored to cursor position
+  // Mouse wheel zoom anchored to cursor position (vertical scroll only)
+  // Allow horizontal scroll (e.g. MX Master horizontal wheel) to pass through
   const onWheel = useCallback((e) => {
+    // Only intercept vertical scroll for zoom — let horizontal scroll pass through
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     e.preventDefault();
     const container = scrollContainerRef.current;
     if (!container) {
