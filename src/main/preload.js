@@ -145,6 +145,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   oauthGetAccounts: () => ipcRenderer.invoke("oauth:getAccounts"),
   oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),
   oauthTiktokConnect: () => ipcRenderer.invoke("oauth:tiktok:connect"),
+  oauthMetaConnect: () => ipcRenderer.invoke("oauth:meta:connect"),
+  oauthYoutubeConnect: () => ipcRenderer.invoke("oauth:youtube:connect"),
 
   // TikTok publishing
   tiktokPublish: (params) => ipcRenderer.invoke("tiktok:publish", params),
@@ -153,6 +155,33 @@ contextBridge.exposeInMainWorld("clipflow", {
   },
   removeTiktokPublishProgressListener: () => {
     ipcRenderer.removeAllListeners("tiktok:publishProgress");
+  },
+
+  // Instagram publishing
+  instagramPublish: (params) => ipcRenderer.invoke("instagram:publish", params),
+  onInstagramPublishProgress: (callback) => {
+    ipcRenderer.on("instagram:publishProgress", (_, data) => callback(data));
+  },
+  removeInstagramPublishProgressListener: () => {
+    ipcRenderer.removeAllListeners("instagram:publishProgress");
+  },
+
+  // Facebook publishing
+  facebookPublish: (params) => ipcRenderer.invoke("facebook:publish", params),
+  onFacebookPublishProgress: (callback) => {
+    ipcRenderer.on("facebook:publishProgress", (_, data) => callback(data));
+  },
+  removeFacebookPublishProgressListener: () => {
+    ipcRenderer.removeAllListeners("facebook:publishProgress");
+  },
+
+  // YouTube publishing
+  youtubePublish: (params) => ipcRenderer.invoke("youtube:publish", params),
+  onYoutubePublishProgress: (callback) => {
+    ipcRenderer.on("youtube:publishProgress", (_, data) => callback(data));
+  },
+  removeYoutubePublishProgressListener: () => {
+    ipcRenderer.removeAllListeners("youtube:publishProgress");
   },
 
   // Publish log

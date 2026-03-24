@@ -63,7 +63,7 @@ function decrypt(value) {
  */
 function saveAccount(id, data) {
   const accounts = tokenStore.get("accounts") || {};
-  accounts[id] = {
+  const entry = {
     platform: data.platform,
     openId: data.openId || "",
     accessToken: encrypt(data.accessToken),
@@ -74,6 +74,14 @@ function saveAccount(id, data) {
     avatarUrl: data.avatarUrl || "",
     connectedAt: data.connectedAt || new Date().toISOString(),
   };
+  // Meta-specific fields (Instagram + Facebook)
+  if (data.igAccountId) entry.igAccountId = data.igAccountId;
+  if (data.pageId) entry.pageId = data.pageId;
+  if (data.pageName) entry.pageName = data.pageName;
+  if (data.pageAccessToken) entry.pageAccessToken = encrypt(data.pageAccessToken);
+  // YouTube-specific fields
+  if (data.channelId) entry.channelId = data.channelId;
+  accounts[id] = entry;
   tokenStore.set("accounts", accounts);
 }
 
@@ -89,6 +97,7 @@ function getAccount(id) {
     id,
     accessToken: decrypt(acct.accessToken),
     refreshToken: decrypt(acct.refreshToken),
+    pageAccessToken: acct.pageAccessToken ? decrypt(acct.pageAccessToken) : "",
   };
 }
 
@@ -121,6 +130,12 @@ function getAccountsForUI() {
     connected: true,
     openId: acct.openId || "",
     connectedAt: acct.connectedAt || "",
+    // Meta-specific (no tokens exposed)
+    igAccountId: acct.igAccountId || "",
+    pageId: acct.pageId || "",
+    pageName: acct.pageName || "",
+    // YouTube-specific
+    channelId: acct.channelId || "",
   }));
 }
 

@@ -17,6 +17,11 @@ const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
 const tiktokPublish = require("./oauth/tiktok-publish");
+const metaOAuth = require("./oauth/meta");
+const instagramPublish = require("./oauth/instagram-publish");
+const facebookPublish = require("./oauth/facebook-publish");
+const youtubeOAuth = require("./oauth/youtube");
+const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
 const logger = require("./logger");
 
@@ -1433,6 +1438,270 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
   } catch (err) {
     console.error("[TikTok Publish] FAILED:", err.message);
     console.error("[TikTok Publish] Stack:", err.stack);
+    publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
+    return { error: err.message };
+  }
+});
+
+// ── Meta OAuth (Instagram + Facebook) ──
+
+ipcMain.handle("oauth:meta:connect", async () => {
+  try {
+    const appId = store.get("metaAppId");
+    const appSecret = store.get("metaAppSecret");
+
+    if (!appId || !appSecret) {
+      return { error: "Meta App ID and App Secret must be configured in Settings before connecting." };
+    }
+
+    console.log("[OAuth] Starting Meta OAuth flow...");
+    const accountData = await metaOAuth.startOAuthFlow(appId, appSecret);
+
+    // Save to encrypted token store
+    const accountId = `meta_${accountData.openId}`;
+    tokenStore.saveAccount(accountId, accountData);
+    console.log(`[OAuth] Meta account saved: ${accountId} (${accountData.displayName})`);
+
+    return {
+      success: true,
+      account: {
+        key: accountId,
+        platform: "Meta",
+        abbr: "IG",
+        name: accountData.displayName,
+        displayName: accountData.displayName,
+        avatarUrl: accountData.avatarUrl,
+        connected: true,
+        openId: accountData.openId,
+        igAccountId: accountData.igAccountId,
+        pageId: accountData.pageId,
+        pageName: accountData.pageName,
+      },
+    };
+  } catch (err) {
+    console.error("[OAuth] Meta connect failed:", err);
+    return { error: err.message };
+  }
+});
+
+// ── Instagram Content Publishing ──
+
+ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Instagram", accountId, accountName: "", videoPath };
+  try {
+    const account = tokenStore.getAccount(accountId);
+    if (!account) {
+      const err = "Meta account not found. Please reconnect in Settings.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+    logBase.accountName = account.displayName || accountId;
+
+    if (!account.igAccountId) {
+      const err = "No Instagram Business Account linked. Check that your Instagram is a Business/Creator account connected to a Facebook Page.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+
+    console.log(`[Instagram Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
+    let accessToken = account.accessToken;
+
+    // Check token expiry and refresh if needed
+    if (account.expiresAt && Date.now() > account.expiresAt) {
+      console.log("[Instagram Publish] Token expired, refreshing...");
+      const appId = store.get("metaAppId");
+      const appSecret = store.get("metaAppSecret");
+      if (!appId || !appSecret) {
+        const err = "Cannot refresh Meta token — App ID/Secret missing. Please reconnect in Settings.";
+        publishLog.logPublish({ ...logBase, status: "failed", error: err });
+        return { error: err };
+      }
+      const refreshResult = await metaOAuth.refreshLongLivedToken(appId, appSecret, accessToken);
+      if (refreshResult.error || !refreshResult.access_token) {
+        const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}`;
+        publishLog.logPublish({ ...logBase, status: "failed", error: err });
+        return { error: err };
+      }
+      tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
+      accessToken = refreshResult.access_token;
+    }
+
+    const postCaption = caption || title || "";
+    const result = await instagramPublish.publishReel(
+      accessToken,
+      account.igAccountId,
+      videoPath,
+      { caption: postCaption },
+      (progress) => {
+        mainWindow?.webContents.send("instagram:publishProgress", progress);
+      }
+    );
+
+    console.log(`[Instagram Publish] SUCCESS — mediaId: ${result.mediaId}`);
+    publishLog.logPublish({
+      ...logBase, status: "success",
+      publishId: result.mediaId, postId: result.mediaId,
+      apiResponse: result,
+    });
+
+    return { success: true, mediaId: result.mediaId, status: result.status };
+  } catch (err) {
+    console.error("[Instagram Publish] FAILED:", err.message);
+    publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
+    return { error: err.message };
+  }
+});
+
+// ── Facebook Page Publishing ──
+
+ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Facebook", accountId, accountName: "", videoPath };
+  try {
+    const account = tokenStore.getAccount(accountId);
+    if (!account) {
+      const err = "Meta account not found. Please reconnect in Settings.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+    logBase.accountName = account.displayName || accountId;
+
+    if (!account.pageId || !account.pageAccessToken) {
+      const err = "No Facebook Page found. Ensure your Meta account manages at least one Page.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+
+    console.log(`[Facebook Publish] Starting publish for "${title}" to Page ${account.pageName} (${accountId})`);
+
+    const result = await facebookPublish.publishVideo(
+      account.pageAccessToken,
+      account.pageId,
+      videoPath,
+      { title: title || "", description: caption || title || "" },
+      (progress) => {
+        mainWindow?.webContents.send("facebook:publishProgress", progress);
+      }
+    );
+
+    console.log(`[Facebook Publish] SUCCESS — videoId: ${result.videoId}`);
+    publishLog.logPublish({
+      ...logBase, status: "success",
+      publishId: result.videoId, postId: result.videoId,
+      apiResponse: result,
+    });
+
+    return { success: true, videoId: result.videoId, status: result.status };
+  } catch (err) {
+    console.error("[Facebook Publish] FAILED:", err.message);
+    publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
+    return { error: err.message };
+  }
+});
+
+// ── YouTube OAuth ──
+
+ipcMain.handle("oauth:youtube:connect", async () => {
+  try {
+    const clientId = store.get("youtubeClientId");
+    const clientSecret = store.get("youtubeClientSecret");
+
+    if (!clientId || !clientSecret) {
+      return { error: "YouTube Client ID and Client Secret must be configured in Settings before connecting." };
+    }
+
+    console.log("[OAuth] Starting YouTube OAuth flow...");
+    const accountData = await youtubeOAuth.startOAuthFlow(clientId, clientSecret);
+
+    const accountId = `youtube_${accountData.channelId}`;
+    tokenStore.saveAccount(accountId, accountData);
+    console.log(`[OAuth] YouTube account saved: ${accountId} (${accountData.displayName})`);
+
+    return {
+      success: true,
+      account: {
+        key: accountId,
+        platform: "YouTube",
+        abbr: "YT",
+        name: accountData.displayName,
+        displayName: accountData.displayName,
+        avatarUrl: accountData.avatarUrl,
+        connected: true,
+        openId: accountData.channelId,
+        channelId: accountData.channelId,
+      },
+    };
+  } catch (err) {
+    console.error("[OAuth] YouTube connect failed:", err);
+    return { error: err.message };
+  }
+});
+
+// ── YouTube Publishing ──
+
+ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "YouTube", accountId, accountName: "", videoPath };
+  try {
+    const account = tokenStore.getAccount(accountId);
+    if (!account) {
+      const err = "YouTube account not found. Please reconnect in Settings.";
+      publishLog.logPublish({ ...logBase, status: "failed", error: err });
+      return { error: err };
+    }
+    logBase.accountName = account.displayName || accountId;
+
+    console.log(`[YouTube Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
+    let accessToken = account.accessToken;
+
+    // Check token expiry and refresh if needed (YouTube access tokens last ~1 hour)
+    if (account.expiresAt && Date.now() > account.expiresAt) {
+      console.log("[YouTube Publish] Token expired, refreshing...");
+      const clientId = store.get("youtubeClientId");
+      const clientSecret = store.get("youtubeClientSecret");
+      if (!clientId || !clientSecret || !account.refreshToken) {
+        const err = "Cannot refresh YouTube token. Please reconnect in Settings.";
+        publishLog.logPublish({ ...logBase, status: "failed", error: err });
+        return { error: err };
+      }
+      const refreshResult = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
+      if (refreshResult.error || !refreshResult.access_token) {
+        const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
+        publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
+        return { error: err };
+      }
+      tokenStore.updateTokens(
+        accountId,
+        refreshResult.access_token,
+        account.refreshToken, // YouTube doesn't return new refresh token on refresh
+        Date.now() + (refreshResult.expires_in || 3600) * 1000,
+      );
+      accessToken = refreshResult.access_token;
+    }
+
+    const result = await youtubePublish.publishVideo(
+      accessToken,
+      videoPath,
+      {
+        title: title || "Untitled",
+        description: caption || "",
+        tags: tags || [],
+        privacyStatus: "public",
+        categoryId: "20", // Gaming
+      },
+      (progress) => {
+        mainWindow?.webContents.send("youtube:publishProgress", progress);
+      }
+    );
+
+    console.log(`[YouTube Publish] SUCCESS — videoId: ${result.videoId}`);
+    publishLog.logPublish({
+      ...logBase, status: "success",
+      publishId: result.videoId, postId: result.videoId,
+      apiResponse: result,
+    });
+
+    return { success: true, videoId: result.videoId, status: result.status };
+  } catch (err) {
+    console.error("[YouTube Publish] FAILED:", err.message);
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }

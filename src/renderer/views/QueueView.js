@@ -174,17 +174,18 @@ export default function QueueView({
   };
   useEffect(() => { loadPublishLogs(); }, []);
 
-  // Listen for TikTok publish progress events
+  // Listen for publish progress events (all platforms)
   useEffect(() => {
-    if (window.clipflow?.onTiktokPublishProgress) {
-      window.clipflow.onTiktokPublishProgress((data) => {
-        setPublishProgress(data);
-      });
-    }
+    const progressHandler = (data) => setPublishProgress(data);
+    if (window.clipflow?.onTiktokPublishProgress) window.clipflow.onTiktokPublishProgress(progressHandler);
+    if (window.clipflow?.onInstagramPublishProgress) window.clipflow.onInstagramPublishProgress(progressHandler);
+    if (window.clipflow?.onFacebookPublishProgress) window.clipflow.onFacebookPublishProgress(progressHandler);
+    if (window.clipflow?.onYoutubePublishProgress) window.clipflow.onYoutubePublishProgress(progressHandler);
     return () => {
-      if (window.clipflow?.removeTiktokPublishProgressListener) {
-        window.clipflow.removeTiktokPublishProgressListener();
-      }
+      if (window.clipflow?.removeTiktokPublishProgressListener) window.clipflow.removeTiktokPublishProgressListener();
+      if (window.clipflow?.removeInstagramPublishProgressListener) window.clipflow.removeInstagramPublishProgressListener();
+      if (window.clipflow?.removeFacebookPublishProgressListener) window.clipflow.removeFacebookPublishProgressListener();
+      if (window.clipflow?.removeYoutubePublishProgressListener) window.clipflow.removeYoutubePublishProgressListener();
     };
   }, []);
 
@@ -288,8 +289,81 @@ export default function QueueView({
               [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
             }));
           }
+        } else if (plat.platform === "Meta" && plat.igAccountId && window.clipflow?.instagramPublish) {
+          // Instagram Reel publish (Meta account with IG Business Account)
+          const gameTag = extractGameTag(clip.title) || "";
+          let caption = clip.title || "";
+          if (captionTemplates?.instagram) {
+            caption = captionTemplates.instagram
+              .replace("{title}", clip.title || "")
+              .replace("#{gametitle}", gameTag ? `#${gameTag}` : "");
+          }
+
+          const result = await window.clipflow.instagramPublish({
+            accountId: plat.key,
+            videoPath: clip.renderPath,
+            title: clip.title,
+            caption,
+            clipId: clip.id,
+          });
+
+          if (result?.error) {
+            console.error(`[Publish] Instagram failed for ${plat.key}:`, result.error);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } },
+            }));
+            allSuccess = false;
+          } else {
+            console.log(`[Publish] Instagram success for ${plat.key}:`, result);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+            }));
+          }
+
+          // Also publish to Facebook Page if page is linked
+          if (plat.pageId && window.clipflow?.facebookPublish) {
+            const fbResult = await window.clipflow.facebookPublish({
+              accountId: plat.key,
+              videoPath: clip.renderPath,
+              title: clip.title,
+              caption: caption,
+              clipId: clip.id,
+            });
+            if (fbResult?.error) {
+              console.error(`[Publish] Facebook Page failed for ${plat.key}:`, fbResult.error);
+            } else {
+              console.log(`[Publish] Facebook Page success for ${plat.key}:`, fbResult);
+            }
+          }
+        } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
+          // YouTube publish
+          const result = await window.clipflow.youtubePublish({
+            accountId: plat.key,
+            videoPath: clip.renderPath,
+            title: clip.title,
+            caption: clip.title || "",
+            clipId: clip.id,
+            tags: [],
+          });
+
+          if (result?.error) {
+            console.error(`[Publish] YouTube failed for ${plat.key}:`, result.error);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } },
+            }));
+            allSuccess = false;
+          } else {
+            console.log(`[Publish] YouTube success for ${plat.key}:`, result);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+            }));
+          }
         } else {
-          // Other platforms not yet wired
+          // Platform not yet supported
           console.log("Publishing not yet wired for", plat.platform, { platform: plat.key, clipTitle: clip.title });
           setPublishStatus((prev) => ({
             ...prev,

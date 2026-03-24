@@ -124,6 +124,60 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     setConnectingPlatform(null);
   };
 
+  const handleConnectMeta = async () => {
+    if (!metaAppId || !metaAppSecret) {
+      alert("Configure your Meta App ID and App Secret in the API Credentials section below first.");
+      return;
+    }
+    setConnectingPlatform("meta");
+    try {
+      const result = await window.clipflow.oauthMetaConnect();
+      if (result.error) {
+        alert(`Meta connection failed: ${result.error}`);
+      } else if (result.success && result.account) {
+        setPlatforms((prev) => {
+          const exists = prev.findIndex((p) => p.key === result.account.key);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = { ...updated[exists], ...result.account };
+            return updated;
+          }
+          return [...prev, result.account];
+        });
+      }
+    } catch (err) {
+      alert(`Meta connection error: ${err.message}`);
+    }
+    setConnectingPlatform(null);
+  };
+
+  const handleConnectYouTube = async () => {
+    if (!youtubeClientId || !youtubeClientSecret) {
+      alert("Configure your YouTube Client ID and Client Secret in the API Credentials section below first.");
+      return;
+    }
+    setConnectingPlatform("youtube");
+    try {
+      const result = await window.clipflow.oauthYoutubeConnect();
+      if (result.error) {
+        alert(`YouTube connection failed: ${result.error}`);
+      } else if (result.success && result.account) {
+        setPlatforms((prev) => {
+          const exists = prev.findIndex((p) => p.key === result.account.key);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = { ...updated[exists], ...result.account };
+            return updated;
+          }
+          return [...prev, result.account];
+        });
+      }
+    } catch (err) {
+      alert(`YouTube connection error: ${err.message}`);
+    }
+    setConnectingPlatform(null);
+  };
+
   const handleDisconnect = async (accountKey) => {
     try {
       const result = await window.clipflow.oauthRemoveAccount(accountKey);
@@ -246,6 +300,20 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "tiktok" ? 0.5 : 1 }}
             >
               {connectingPlatform === "tiktok" ? "Connecting..." : "+ TikTok"}
+            </button>
+            <button
+              onClick={handleConnectMeta}
+              disabled={connectingPlatform === "meta"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "meta" ? 0.5 : 1 }}
+            >
+              {connectingPlatform === "meta" ? "Connecting..." : "+ Meta"}
+            </button>
+            <button
+              onClick={handleConnectYouTube}
+              disabled={connectingPlatform === "youtube"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "youtube" ? 0.5 : 1 }}
+            >
+              {connectingPlatform === "youtube" ? "Connecting..." : "+ YouTube"}
             </button>
           </div>
         </div>
