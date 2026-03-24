@@ -19,7 +19,11 @@ const usePlaybackStore = create((set, get) => ({
 
   setPlaying: (v) => set({ playing: v }),
   togglePlay: () => {
-    const { playing } = get();
+    const { playing, currentTime, duration, seekTo } = get();
+    if (!playing && duration > 0 && currentTime >= duration - 0.1) {
+      // At or near the end — restart from beginning
+      seekTo(0);
+    }
     set({ playing: !playing });
   },
 
