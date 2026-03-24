@@ -1,33 +1,39 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-23_
+_Last updated: 2026-03-23 (TikTok Pipeline session)_
 
 ## Current State
-App builds and runs. Unified logging system and bug report UI are live. Version tracking set to `0.1.0-alpha`.
+App builds and runs. TikTok OAuth + Content Posting API fully working in sandbox. Videos publish successfully to TikTok (SELF_ONLY in sandbox mode). Publish log tracks all attempts with success/failure details.
 
 ## What Was Just Built
-- **Unified Logger (`src/main/logger.js`)** — Structured JSON logging to `%APPDATA%/ClipFlow/logs/clipflow-YYYY-MM-DD.log`. Every entry has timestamp, level, module, sessionId, message, context. 8 module taxonomy: system, subtitles, publishing, title-generation, auth, video-processing, editor, pipeline. Auto-strips sensitive fields. 7-day log rotation on startup.
-- **Report an Issue UI (SettingsView)** — Description textarea, module multi-select chips, severity radio (crash/bug/visual), include-logs checkbox. "Export Report" button saves a bundled `.json` file with session logs grouped by module.
-- **Version Tracking** — `package.json` → `0.1.0-alpha`, exposed via `app:getVersion` IPC, displayed in Settings footer.
-- **Pipeline Logs overflow fix** — Collapsed nested wrapper div into single flex-child scroll container. Groups collapsed by default on launch.
+- **TikTok OAuth scope upgrade** — Now requests `user.info.basic,video.publish` (was only `user.info.basic`). Existing tokens still work but won't have publish scope until user reconnects.
+- **TikTok Content Posting API (`src/main/oauth/tiktok-publish.js`)** — Full publish flow: query creator info → initialize upload → single-chunk PUT (≤64MB) or multi-chunk upload (>64MB) → poll publish status until PUBLISH_COMPLETE or FAILED.
+- **Publish IPC handler** — `tiktok:publish` in main.js handles token refresh, caption building, and progress events. Preload bridge exposes `tiktokPublish()`, `onTiktokPublishProgress()`, `removeTiktokPublishProgressListener()`.
+- **QueueView real publishing** — `publishClip()` now calls real TikTok API for TikTok accounts (stubs remain for other platforms). Progress bar with gradient fill and stage text (permissions → init → upload → processing → done).
+- **Publish logging** — `src/main/publish-log.js` persists publish attempts to `clipflow-publish-log.json`. QueueView shows Publish Log panel with success/failure details.
+- **Editor → Queue flow fix** — Queue button in EditorLayout now renders clip AND refreshes `localProjects` state in App.js via `onProjectUpdated` callback, so rendered clips appear in Queue tab.
+- **ProjectsView Render All fix** — Batch render now refreshes `localProjects` after completion.
 
 ## Key Decisions
-- **Option B (database) for future reports** — Decided to store reports in Postgres (Railway) instead of email. For now, local export; endpoint comes in a future session.
-- **No external logging library** — `fs.appendFileSync` is sufficient for a desktop app. No winston/pino dependency needed.
-- **Gradual console.log migration** — Only startup + migration logs use the new logger now. Existing 41 console.logs migrate per-feature as we touch each area.
-- **Log files at known path for Claude Code** — Logs at `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\` are directly readable during dev sessions.
+- **Sandbox = SELF_ONLY always** — Creator info is queried but privacy is hardcoded to `SELF_ONLY` for sandbox compliance. The account must be set to private in TikTok settings.
+- **Single-chunk for ≤64MB** — Most gaming clips are under 64MB. Uses `chunk_size = video_size, total_chunk_count = 1`. Multi-chunk (10MB chunks) only for files >64MB.
+- **Creator interaction settings respected** — `disable_duet`, `disable_stitch`, `disable_comment` pulled from creator info query, not hardcoded.
 
 ## Next Steps
-1. **Report submission endpoint** — Build `/api/reports` on Railway backend to receive reports (Option B: Postgres storage)
-2. **Migrate existing console.logs** — As each feature is worked on, swap `console.log("[Tag]", ...)` to `logger.info(MODULES.x, ...)`
-3. **Wire logger into TikTok publishing** — `tiktok.js` and `tiktok-publish.js` have 20 console.log calls ready to migrate
-4. **Wire logger into FFmpeg/Whisper operations** — Capture video processing and transcription events
+- **Reconnect TikTok account** — Current token was issued with only `user.info.basic`. Need to disconnect and reconnect to get `video.publish` scope for future sessions.
+- **Scheduling** — Queue tab has schedule UI but `publishClip` with `scheduleOpts` doesn't delay actual publishing. Need a scheduler (cron/setTimeout) to publish at the scheduled time.
+- **Reschedule clips** — User wants to change date/time after scheduling (logged in memory).
+- **Caption templates** — QueueView references `captionTemplates?.tiktok` but the template substitution needs testing with real Captions tab data.
+- **Other platforms** — YouTube, Instagram, etc. are still stubs in `publishClip()`.
+- **Production mode** — When TikTok approves the app, switch from `SELF_ONLY` to using `allowedPrivacy` from creator info.
 
 ## Watch Out For
-- **Uncommitted files from prior sessions** — `CLAUDE.md`, `App.js`, `EditorView.js`, `EditorLayout.js`, `ProjectsView.js`, `QueueView.js`, `tiktok.js`, `lessons.md`, `tiktok-publish.js`, `publish-log.js` all have unstaged changes from previous work. Don't accidentally include them in logging-related commits.
-- **Pipeline Logs scroll** — Fixed the overflow glitch by collapsing to a single div, but if new UI is added inside that container, ensure `maxHeight: 500` + `overflowY: auto` stays on the direct flex child.
+- TikTok sandbox rate limit: 6 publish init requests per minute per user
+- Token expiry: access tokens last ~24h, refresh token flow is implemented but untested
+- `extractGameTag()` function in QueueView — used to build caption hashtag, verify it works with your title format
+- The `nul` file and `.claude/` directory in repo root are artifacts — don't commit them
 
-## Logs/Debugging
-- Log files write to: `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\`
-- One file per day: `clipflow-YYYY-MM-DD.log`, each line is a JSON object
-- Session ID format: `sess_<12 hex chars>` — filter by this to isolate one app run
-- To read logs during dev: `Read` the log file directly, or `cat %APPDATA%/ClipFlow/logs/clipflow-<date>.log`
+## Logs / Debugging
+- Publish logs: `%APPDATA%/clipflow/clipflow-publish-log.json`
+- App logs: `%APPDATA%/clipflow/logs/clipflow-YYYY-MM-DD.log`
+- Electron console: TikTok publish stages logged with `[TikTok Publish]` prefix
+- QueueView Publish Log panel: click "Show" to see recent publish attempts
