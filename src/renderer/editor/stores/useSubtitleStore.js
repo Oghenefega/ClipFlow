@@ -407,7 +407,16 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Undo/Redo actions (segments + styling across all stores) ──
   _lastUndoPushTime: 0,
+  _dragging: false,
+  startDrag: () => {
+    // Capture pre-drag state as single undo entry, then lock further pushes until drag ends
+    get()._pushUndo();
+    set({ _dragging: true });
+  },
+  endDrag: () => set({ _dragging: false }),
   _pushUndo: () => {
+    // No-op during drag/resize — pre-drag snapshot already captured by startDrag()
+    if (get()._dragging) return;
     // Debounce: rapid changes within 300ms merge into one undo entry
     const now = Date.now();
     const state = get();

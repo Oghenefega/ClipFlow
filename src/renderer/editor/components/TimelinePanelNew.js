@@ -353,8 +353,9 @@ export default function TimelinePanelNew() {
     sStart = Math.max(0, sStart);
     let sEnd = Math.min(effectiveDuration, sStart + segDur);
 
-    // Snapshot originals on first drag call
+    // Snapshot originals on first drag call + push single pre-drag undo entry
     if (!dragOriginalsRef.current) {
+      store.startDrag();
       dragOriginalsRef.current = {};
       for (const seg of store.editSegments) {
         dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
@@ -406,6 +407,7 @@ export default function TimelinePanelNew() {
 
   // On drag end — create real segments from phantoms, clear state
   const handleSubtitleDragEnd = useCallback((segId) => {
+    useSubtitleStore.getState().endDrag();
     const phantoms = dragPhantomsRef.current;
     if (phantoms.length > 0) {
       const { addSegmentAt } = useSubtitleStore.getState();
@@ -439,8 +441,9 @@ export default function TimelinePanelNew() {
   const handleSubtitleResize = useCallback((segId, rawStart, rawEnd) => {
     const store = useSubtitleStore.getState();
 
-    // Snapshot originals on first resize call
+    // Snapshot originals on first resize call + push single pre-resize undo entry
     if (!resizeOriginalsRef.current) {
+      store.startDrag();
       resizeOriginalsRef.current = {};
       for (const seg of store.editSegments) {
         resizeOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
@@ -498,6 +501,7 @@ export default function TimelinePanelNew() {
 
   // On resize end — delete any segments shrunk to near-zero (including self if shrunk to nothing)
   const handleSubtitleResizeEnd = useCallback((segId) => {
+    useSubtitleStore.getState().endDrag();
     resizeOriginalsRef.current = null;
 
     // Delete ALL segments below threshold — neighbors consumed by extend, or self shrunk to zero
