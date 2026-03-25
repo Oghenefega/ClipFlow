@@ -206,7 +206,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Rotate old log files (keep 7 days)
+  // Initialize electron-log (must happen before BrowserWindow creation)
+  logger.initialize();
+  // Clean up old-format log files
   logger.rotateLogs(7);
   // Log app startup
   logger.info(logger.MODULES.system, "App started", {
@@ -574,7 +576,7 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
     const startTime = clip.startTime || 0;
     const newEndTime = Math.min(newSourceEndTime, project.sourceDuration || newSourceEndTime);
 
-    console.log("[ExtendRight IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newEndTime:", newEndTime, "sourceFile:", sourceFile);
+    require("electron-log/main").scope("editor").debug("ExtendRight", { startTime: clip.startTime, endTime: clip.endTime, newEndTime, sourceFile });
 
     if (newEndTime <= startTime) {
       return { error: `Invalid extend range: newEndTime=${newEndTime} <= startTime=${startTime}` };
@@ -634,7 +636,7 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
     const endTime = clip.endTime || 0;
     const newStart = Math.max(0, newSourceStartTime);
 
-    console.log("[ExtendLeft IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "clip.duration:", clip.duration, "newSourceStartTime:", newSourceStartTime, "newStart:", newStart, "endTime:", endTime, "sourceFile:", sourceFile);
+    require("electron-log/main").scope("editor").debug("ExtendLeft", { startTime: clip.startTime, endTime: clip.endTime, duration: clip.duration, newSourceStartTime, newStart, endTime, sourceFile });
 
     if (newStart >= endTime) {
       return { error: `Invalid extend range: newStart=${newStart} >= endTime=${endTime}` };
@@ -695,7 +697,7 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
     const newStart = Math.max(0, newStartTime);
     const newEnd = Math.min(newEndTime, project.sourceDuration || newEndTime);
 
-    console.log("[Recut IPC] clip.startTime:", clip.startTime, "clip.endTime:", clip.endTime, "newStart:", newStart, "newEnd:", newEnd, "sourceFile:", sourceFile);
+    require("electron-log/main").scope("editor").debug("Recut", { startTime: clip.startTime, endTime: clip.endTime, newStart, newEnd, sourceFile });
 
     if (newStart >= newEnd) {
       return { error: `Invalid recut range: newStart=${newStart} >= newEnd=${newEnd}` };
@@ -721,7 +723,7 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
       duration: newDuration,
     });
 
-    console.log("[Recut IPC] Success. duration:", newDuration, "start:", newStart, "end:", newEnd);
+    require("electron-log/main").scope("editor").debug("Recut success", { duration: newDuration, start: newStart, end: newEnd });
     return {
       success: true,
       filePath: finalPath,
@@ -730,7 +732,7 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
       newEndTime: newEnd,
     };
   } catch (err) {
-    console.error("[Recut IPC] Error:", err);
+    require("electron-log/main").scope("editor").error("Recut failed", { error: err.message });
     return { error: err.message };
   }
 });
@@ -1209,10 +1211,13 @@ ipcMain.handle("anthropic:logHistory", async (_, entry) => {
 // ============ SUBTITLE DEBUG LOG ============
 ipcMain.handle("debug:logSubtitle", async (_, entry) => {
   try {
+    // Write to electron-store for SettingsView debug viewer
     const history = store.get("subtitleDebugLog") || [];
     history.push({ ...entry, timestamp: new Date().toISOString() });
     const bounded = history.length > 100 ? history.slice(-100) : history;
     store.set("subtitleDebugLog", bounded);
+    // Also write to unified app.log for file-based debugging
+    require("electron-log/main").scope("subtitles").info("Subtitle event", entry);
     return { success: true };
   } catch (err) {
     return { error: err.message };
@@ -1333,13 +1338,13 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
       return { error: "TikTok Client Key and Secret must be configured in Settings before connecting." };
     }
 
-    console.log("[OAuth] Starting TikTok OAuth flow...");
+    require("electron-log/main").scope("tiktok").info("Starting TikTok OAuth flow");
     const accountData = await tiktokOAuth.startOAuthFlow(clientKey, clientSecret);
 
     // Save to encrypted token store
     const accountId = `tiktok_${accountData.openId}`;
     tokenStore.saveAccount(accountId, accountData);
-    console.log(`[OAuth] TikTok account saved: ${accountId} (${accountData.displayName})`);
+    require("electron-log/main").scope("tiktok").info("Account saved", { accountId, displayName: accountData.displayName });
 
     // Return the UI-safe account data
     return {
@@ -1356,7 +1361,7 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
       },
     };
   } catch (err) {
-    console.error("[OAuth] TikTok connect failed:", err);
+    require("electron-log/main").scope("tiktok").error("OAuth connect failed", { error: err.message });
     return { error: err.message };
   }
 });
@@ -1375,14 +1380,13 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
     }
     logBase.accountName = account.displayName || accountId;
 
-    console.log(`[TikTok Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
-    console.log(`[TikTok Publish] Video: ${videoPath}`);
+    require("electron-log/main").scope("tiktok").info("Starting publish", { title, accountId, displayName: account.displayName, videoPath });
 
     let accessToken = account.accessToken;
 
     // Check if token is expired and refresh if needed
     if (account.expiresAt && Date.now() > account.expiresAt) {
-      console.log("[TikTok Publish] Token expired, refreshing...");
+      require("electron-log/main").scope("tiktok").info("Token expired, refreshing");
       const clientKey = store.get("tiktokClientKey");
       if (!clientKey || !account.refreshToken) {
         const err = "Cannot refresh TikTok token. Please reconnect in Settings.";
@@ -1390,7 +1394,7 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
         return { error: err };
       }
       const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, account.refreshToken);
-      console.log("[TikTok Publish] Refresh result:", JSON.stringify(refreshResult, null, 2));
+      require("electron-log/main").scope("tiktok").debug("Token refresh result", refreshResult);
       if (refreshResult.error || !refreshResult.access_token) {
         const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
         publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
@@ -1407,7 +1411,7 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
 
     // Build the caption
     const postCaption = caption || title || "";
-    console.log(`[TikTok Publish] Caption: "${postCaption}"`);
+    require("electron-log/main").scope("tiktok").debug("Caption", { caption: postCaption });
 
     // Publish with progress events
     const result = await tiktokPublish.publishVideo(
@@ -1422,7 +1426,7 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
       }
     );
 
-    console.log(`[TikTok Publish] SUCCESS — publish_id: ${result.publish_id}, post_id: ${result.post_id}, status: ${result.status}`);
+    require("electron-log/main").scope("tiktok").info("Publish success", { publish_id: result.publish_id, post_id: result.post_id, status: result.status });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.publish_id, postId: result.post_id,
@@ -1436,8 +1440,7 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
       status: result.status,
     };
   } catch (err) {
-    console.error("[TikTok Publish] FAILED:", err.message);
-    console.error("[TikTok Publish] Stack:", err.stack);
+    require("electron-log/main").scope("tiktok").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
@@ -1454,13 +1457,13 @@ ipcMain.handle("oauth:meta:connect", async () => {
       return { error: "Meta App ID and App Secret must be configured in Settings before connecting." };
     }
 
-    console.log("[OAuth] Starting Meta OAuth flow...");
+    require("electron-log/main").scope("meta").info("Starting Meta OAuth flow");
     const accountData = await metaOAuth.startOAuthFlow(appId, appSecret);
 
     // Save to encrypted token store
     const accountId = `meta_${accountData.openId}`;
     tokenStore.saveAccount(accountId, accountData);
-    console.log(`[OAuth] Meta account saved: ${accountId} (${accountData.displayName})`);
+    require("electron-log/main").scope("meta").info("Account saved", { accountId, displayName: accountData.displayName });
 
     return {
       success: true,
@@ -1479,7 +1482,7 @@ ipcMain.handle("oauth:meta:connect", async () => {
       },
     };
   } catch (err) {
-    console.error("[OAuth] Meta connect failed:", err);
+    require("electron-log/main").scope("meta").error("OAuth connect failed", { error: err.message });
     return { error: err.message };
   }
 });
@@ -1503,12 +1506,12 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
       return { error: err };
     }
 
-    console.log(`[Instagram Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
+    require("electron-log/main").scope("instagram").info("Starting publish", { title, accountId, displayName: account.displayName });
     let accessToken = account.accessToken;
 
     // Check token expiry and refresh if needed
     if (account.expiresAt && Date.now() > account.expiresAt) {
-      console.log("[Instagram Publish] Token expired, refreshing...");
+      require("electron-log/main").scope("instagram").info("Token expired, refreshing");
       const appId = store.get("metaAppId");
       const appSecret = store.get("metaAppSecret");
       if (!appId || !appSecret) {
@@ -1537,7 +1540,7 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
       }
     );
 
-    console.log(`[Instagram Publish] SUCCESS — mediaId: ${result.mediaId}`);
+    require("electron-log/main").scope("instagram").info("Publish success", { mediaId: result.mediaId });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.mediaId, postId: result.mediaId,
@@ -1546,7 +1549,7 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
 
     return { success: true, mediaId: result.mediaId, status: result.status };
   } catch (err) {
-    console.error("[Instagram Publish] FAILED:", err.message);
+    require("electron-log/main").scope("instagram").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
@@ -1571,7 +1574,7 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
       return { error: err };
     }
 
-    console.log(`[Facebook Publish] Starting publish for "${title}" to Page ${account.pageName} (${accountId})`);
+    require("electron-log/main").scope("facebook").info("Starting publish", { title, accountId, pageName: account.pageName });
 
     const result = await facebookPublish.publishVideo(
       account.pageAccessToken,
@@ -1583,7 +1586,7 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
       }
     );
 
-    console.log(`[Facebook Publish] SUCCESS — videoId: ${result.videoId}`);
+    require("electron-log/main").scope("facebook").info("Publish success", { videoId: result.videoId });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.videoId, postId: result.videoId,
@@ -1592,7 +1595,7 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
 
     return { success: true, videoId: result.videoId, status: result.status };
   } catch (err) {
-    console.error("[Facebook Publish] FAILED:", err.message);
+    require("electron-log/main").scope("facebook").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }
@@ -1609,12 +1612,12 @@ ipcMain.handle("oauth:youtube:connect", async () => {
       return { error: "YouTube Client ID and Client Secret must be configured in Settings before connecting." };
     }
 
-    console.log("[OAuth] Starting YouTube OAuth flow...");
+    require("electron-log/main").scope("youtube").info("Starting YouTube OAuth flow");
     const accountData = await youtubeOAuth.startOAuthFlow(clientId, clientSecret);
 
     const accountId = `youtube_${accountData.channelId}`;
     tokenStore.saveAccount(accountId, accountData);
-    console.log(`[OAuth] YouTube account saved: ${accountId} (${accountData.displayName})`);
+    require("electron-log/main").scope("youtube").info("Account saved", { accountId, displayName: accountData.displayName });
 
     return {
       success: true,
@@ -1631,7 +1634,7 @@ ipcMain.handle("oauth:youtube:connect", async () => {
       },
     };
   } catch (err) {
-    console.error("[OAuth] YouTube connect failed:", err);
+    require("electron-log/main").scope("youtube").error("OAuth connect failed", { error: err.message });
     return { error: err.message };
   }
 });
@@ -1649,12 +1652,12 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
     }
     logBase.accountName = account.displayName || accountId;
 
-    console.log(`[YouTube Publish] Starting publish for "${title}" to ${account.displayName} (${accountId})`);
+    require("electron-log/main").scope("youtube").info("Starting publish", { title, accountId, displayName: account.displayName });
     let accessToken = account.accessToken;
 
     // Check token expiry and refresh if needed (YouTube access tokens last ~1 hour)
     if (account.expiresAt && Date.now() > account.expiresAt) {
-      console.log("[YouTube Publish] Token expired, refreshing...");
+      require("electron-log/main").scope("youtube").info("Token expired, refreshing");
       const clientId = store.get("youtubeClientId");
       const clientSecret = store.get("youtubeClientSecret");
       if (!clientId || !clientSecret || !account.refreshToken) {
@@ -1692,7 +1695,7 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
       }
     );
 
-    console.log(`[YouTube Publish] SUCCESS — videoId: ${result.videoId}`);
+    require("electron-log/main").scope("youtube").info("Publish success", { videoId: result.videoId });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.videoId, postId: result.videoId,
@@ -1701,7 +1704,7 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
 
     return { success: true, videoId: result.videoId, status: result.status };
   } catch (err) {
-    console.error("[YouTube Publish] FAILED:", err.message);
+    require("electron-log/main").scope("youtube").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
     return { error: err.message };
   }

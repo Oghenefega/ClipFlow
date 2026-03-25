@@ -49,6 +49,7 @@
     "csv-parse": "^5.5.0",
     "csv-stringify": "^6.4.0",
     "dotenv": "^17.3.1",
+    "electron-log": "^5.4.3",
     "electron-store": "^8.1.0",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
