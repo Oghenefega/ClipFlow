@@ -12,6 +12,7 @@
 const https = require("https");
 const fs = require("fs");
 const { URL } = require("url");
+const log = require("electron-log/main").scope("youtube");
 
 const YT_UPLOAD_BASE = "https://www.googleapis.com/upload/youtube/v3/videos";
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
@@ -137,7 +138,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress = (
   }
 
   const fileSize = fs.statSync(videoPath).size;
-  console.log(`[YouTube Publish] File: ${videoPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+  log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
   // Step 1: Initiate resumable upload
   onProgress({ stage: "init", pct: 5, detail: "Initializing YouTube upload..." });
@@ -156,7 +157,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress = (
   };
 
   const uploadUri = await initiateUpload(accessToken, metadata, fileSize);
-  console.log("[YouTube Publish] Resumable upload URI obtained");
+  log.info("Resumable upload URI obtained");
 
   // Step 2: Upload in chunks
   onProgress({ stage: "uploading", pct: 10, detail: "Uploading video..." });
@@ -175,7 +176,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress = (
       fs.readSync(fd, buffer, 0, currentChunkSize, offset);
 
       const end = offset + currentChunkSize - 1;
-      console.log(`[YouTube Publish] Uploading chunk ${chunkNum}/${totalChunks} (bytes ${offset}-${end}/${fileSize})`);
+      log.info("Uploading chunk", { chunk: `${chunkNum}/${totalChunks}`, bytes: `${offset}-${end}/${fileSize}` });
 
       const result = await uploadChunk(uploadUri, buffer, offset, end, fileSize, accessToken);
 
@@ -188,7 +189,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress = (
       });
 
       if (result.done) {
-        console.log(`[YouTube Publish] Upload complete! Video ID: ${result.video.id}`);
+        log.info("Upload complete!", { videoId: result.video.id });
         onProgress({ stage: "done", pct: 100, detail: "Video uploaded to YouTube!" });
 
         return {

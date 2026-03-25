@@ -12,6 +12,7 @@
 const https = require("https");
 const fs = require("fs");
 const { URL } = require("url");
+const log = require("electron-log/main").scope("instagram");
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -129,7 +130,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     throw new Error(`Video file not found: ${videoPath}`);
   }
   const fileSize = fs.statSync(videoPath).size;
-  console.log(`[Instagram Publish] File: ${videoPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+  log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
   // Step 1: Create media container with resumable upload
   onProgress({ stage: "init", pct: 5, detail: "Creating media container..." });
@@ -152,8 +153,8 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
 
   const containerId = containerResult.id;
   const uploadUri = containerResult.uri;
-  console.log(`[Instagram Publish] Container: ${containerId}`);
-  console.log(`[Instagram Publish] Upload URI: ${uploadUri}`);
+  log.info("Container created", { containerId });
+  log.debug("Upload URI obtained", { uploadUri });
 
   if (!uploadUri) {
     throw new Error("No upload URI returned. Check permissions and account type.");
@@ -169,7 +170,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     throw new Error(`Upload failed (HTTP ${uploadResult.statusCode}): ${JSON.stringify(uploadResult.body)}`);
   }
 
-  console.log("[Instagram Publish] Upload complete, polling status...");
+  log.info("Upload complete, polling status...");
   onProgress({ stage: "processing", pct: 60, detail: "Processing on Instagram..." });
 
   // Step 3: Poll container status until FINISHED
@@ -185,7 +186,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     );
 
     const statusCode = statusResult.status_code;
-    console.log(`[Instagram Publish] Poll ${attempt + 1}/${maxAttempts}: ${statusCode}`);
+    log.info("Poll status", { attempt: `${attempt + 1}/${maxAttempts}`, statusCode });
 
     if (statusCode === "FINISHED") {
       onProgress({ stage: "publishing", pct: 85, detail: "Publishing Reel..." });
@@ -201,7 +202,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
         throw new Error(`Publish failed: ${publishResult.error.message}`);
       }
 
-      console.log(`[Instagram Publish] Published! Media ID: ${publishResult.id}`);
+      log.info("Published!", { mediaId: publishResult.id });
       onProgress({ stage: "done", pct: 100, detail: "Reel published!" });
 
       return {

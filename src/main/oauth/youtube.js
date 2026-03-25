@@ -16,6 +16,7 @@ const https = require("https");
 const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
+const log = require("electron-log/main").scope("youtube");
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -91,7 +92,7 @@ function httpsGet(url, headers = {}) {
 function generatePKCE() {
   const verifier = crypto.randomBytes(32).toString("base64url");
   const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
-  console.log("[YouTube OAuth] PKCE verifier length:", verifier.length, "challenge length:", challenge.length);
+  log.debug("PKCE generated", { verifierLength: verifier.length, challengeLength: challenge.length });
   return { verifier, challenge };
 }
 
@@ -169,16 +170,16 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
       }
 
       try {
-        console.log("[YouTube OAuth] Exchanging auth code for tokens...");
+        log.info("Exchanging auth code for tokens...");
         const tokenData = await exchangeCode(clientId, clientSecret, code, pkce.verifier, redirectUri);
-        console.log("[YouTube OAuth] Token exchange response:", JSON.stringify(tokenData, null, 2));
+        log.debug("Token exchange response", { tokenData });
 
         if (tokenData.error || !tokenData.access_token) {
           throw new Error(tokenData.error_description || tokenData.error || "Token exchange failed");
         }
 
         // Fetch YouTube channel info
-        console.log("[YouTube OAuth] Fetching channel info...");
+        log.info("Fetching channel info...");
         const channelData = await fetchChannelInfo(tokenData.access_token);
         const channel = channelData.items?.[0];
         if (!channel) {
@@ -189,7 +190,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
         const avatarUrl = channel.snippet?.thumbnails?.default?.url || "";
         const channelId = channel.id;
 
-        console.log(`[YouTube OAuth] Channel: ${displayName} (${channelId})`);
+        log.info("Channel found", { displayName, channelId });
 
         const accountData = {
           platform: "YouTube",
@@ -209,7 +210,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
         cleanup();
         resolve(accountData);
       } catch (err) {
-        console.error("[YouTube OAuth] Error:", err);
+        log.error("OAuth error", { error: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(buildResultPage(false, `Error: ${err.message}`));
         cleanup();
@@ -227,7 +228,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
     });
 
     server.listen(CALLBACK_PORT, "127.0.0.1", () => {
-      console.log(`[YouTube OAuth] Callback server listening on 127.0.0.1:${CALLBACK_PORT}`);
+      log.info("Callback server listening", { host: "127.0.0.1", port: CALLBACK_PORT });
 
       const authUrl = new URL(AUTH_URL);
       authUrl.searchParams.set("client_id", clientId);
@@ -240,7 +241,7 @@ function startOAuthFlow(clientId, clientSecret, timeoutMs = 120000) {
       authUrl.searchParams.set("access_type", "offline");
       authUrl.searchParams.set("prompt", "consent");
 
-      console.log("[YouTube OAuth] Opening browser:", authUrl.toString());
+      log.info("Opening browser for auth");
       shell.openExternal(authUrl.toString());
     });
 

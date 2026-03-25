@@ -13,6 +13,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
+const log = require("electron-log/main").scope("tiktok");
 
 const TIKTOK_API_BASE = "https://open.tiktokapis.com";
 const MAX_SINGLE_CHUNK = 64 * 1024 * 1024; // 64 MB — TikTok max single chunk
@@ -88,9 +89,9 @@ function putChunk(uploadUrl, buffer, start, end, totalSize) {
  * Query creator info — returns allowed privacy levels, max duration, etc.
  */
 async function queryCreatorInfo(accessToken) {
-  console.log("[TikTok Publish] Querying creator info...");
+  log.info("Querying creator info...");
   const result = await apiPost("/v2/post/publish/creator_info/query/", {}, accessToken);
-  console.log("[TikTok Publish] Creator info:", JSON.stringify(result, null, 2));
+  log.debug("Creator info response", { result });
   if (result.error?.code && result.error.code !== "ok") {
     throw new Error(`Creator info query failed: ${result.error.message || result.error.code}`);
   }
@@ -115,7 +116,7 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
     chunkSize = CHUNK_SIZE;
     chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
   }
-  console.log(`[TikTok Publish] Initializing upload: ${fileSize} bytes, ${chunkCount} chunk(s), chunkSize=${chunkSize}`);
+  log.info("Initializing upload", { fileSize, chunkCount, chunkSize });
 
   const body = {
     post_info: {
@@ -134,7 +135,7 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
   };
 
   const result = await apiPost("/v2/post/publish/video/init/", body, accessToken);
-  console.log("[TikTok Publish] Init response:", JSON.stringify(result, null, 2));
+  log.debug("Init response", { result });
 
   if (result.error?.code && result.error.code !== "ok") {
     throw new Error(`Upload init failed: ${result.error.message || result.error.code}`);
@@ -173,7 +174,7 @@ function putEntireFile(uploadUrl, buffer, totalSize) {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
-        console.log(`[TikTok Publish] Single upload response: HTTP ${res.statusCode}`);
+        log.info("Single upload response", { statusCode: res.statusCode });
         if (res.statusCode === 201 || res.statusCode === 200) {
           resolve({ statusCode: res.statusCode, body: data });
         } else {
@@ -190,16 +191,16 @@ function putEntireFile(uploadUrl, buffer, totalSize) {
 async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
   if (fileSize <= MAX_SINGLE_CHUNK) {
     // Single upload — read entire file and PUT
-    console.log(`[TikTok Publish] Single-chunk upload: ${fileSize} bytes from ${filePath}`);
+    log.info("Single-chunk upload", { fileSize, filePath });
     const buffer = fs.readFileSync(filePath);
     if (onProgress) onProgress({ pct: 50, detail: "Uploading video..." });
     await putEntireFile(uploadUrl, buffer, fileSize);
     if (onProgress) onProgress({ pct: 100, detail: "Upload complete" });
-    console.log("[TikTok Publish] Single upload complete");
+    log.info("Single upload complete");
     return;
   }
 
-  console.log(`[TikTok Publish] Chunked upload: ${chunkCount} chunks from ${filePath}`);
+  log.info("Chunked upload starting", { chunkCount, filePath });
   const fd = fs.openSync(filePath, "r");
   try {
     for (let i = 0; i < chunkCount; i++) {
@@ -209,7 +210,7 @@ async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
       const buffer = Buffer.alloc(bytesToRead);
       fs.readSync(fd, buffer, 0, bytesToRead, start);
 
-      console.log(`[TikTok Publish] Uploading chunk ${i + 1}/${chunkCount}: bytes ${start}-${end}/${fileSize}`);
+      log.info("Uploading chunk", { chunk: `${i + 1}/${chunkCount}`, bytes: `${start}-${end}/${fileSize}` });
       await putChunk(uploadUrl, buffer, start, end, fileSize);
 
       const pct = Math.round(((i + 1) / chunkCount) * 100);
@@ -219,7 +220,7 @@ async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
     fs.closeSync(fd);
   }
 
-  console.log("[TikTok Publish] All chunks uploaded successfully");
+  log.info("All chunks uploaded successfully");
 }
 
 /**
@@ -230,7 +231,7 @@ async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
  * @returns {{ status: string, post_id?: number }}
  */
 async function pollPublishStatus(accessToken, publishId, maxAttempts = 30) {
-  console.log(`[TikTok Publish] Polling status for publish_id: ${publishId}`);
+  log.info("Polling publish status", { publishId });
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Wait 10 seconds between polls
@@ -238,7 +239,7 @@ async function pollPublishStatus(accessToken, publishId, maxAttempts = 30) {
 
     const result = await apiPost("/v2/post/publish/status/fetch/", { publish_id: publishId }, accessToken);
     const status = result.data?.status;
-    console.log(`[TikTok Publish] Poll ${attempt + 1}: full response:`, JSON.stringify(result, null, 2));
+    log.debug("Poll response", { attempt: attempt + 1, result });
 
     if (status === "PUBLISH_COMPLETE") {
       const postId = result.data?.publicaly_available_post_id?.[0];
@@ -278,7 +279,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
   if (fileSize === 0) {
     throw new Error("Video file is empty");
   }
-  console.log(`[TikTok Publish] Starting publish: ${videoPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+  log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
   // Step 1: Query creator info
   progress("creator_info", 5, "Checking creator permissions...");
@@ -297,8 +298,8 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
   const disableStitch = creatorInfo.stitch_disabled || false;
   const disableComment = creatorInfo.comment_disabled || false;
 
-  console.log(`[TikTok Publish] Privacy: ${privacyLevel} (allowed: ${allowedPrivacy.join(", ")})`);
-  console.log(`[TikTok Publish] Interactions — duet_disabled: ${disableDuet}, stitch_disabled: ${disableStitch}, comment_disabled: ${disableComment}`);
+  log.info("Privacy level set", { privacyLevel, allowedPrivacy });
+  log.info("Interaction settings", { disableDuet, disableStitch, disableComment });
 
   // Step 2: Initialize upload
   progress("init", 10, "Initializing upload...");
@@ -323,7 +324,7 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
   const result = await pollPublishStatus(accessToken, publish_id);
 
   progress("done", 100, "Published!");
-  console.log(`[TikTok Publish] Complete! Post ID: ${result.post_id || "pending moderation"}`);
+  log.info("Publish complete", { postId: result.post_id || "pending moderation" });
 
   return {
     status: result.status,

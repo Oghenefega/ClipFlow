@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const log = require("electron-log/main").scope("system");
 
 let initSqlJs;
 try {
@@ -19,7 +20,7 @@ let SQL = null;
  */
 async function init() {
   if (!initSqlJs) {
-    console.warn("[feedback] sql.js not available — feedback logging disabled");
+    log.warn("sql.js not available — feedback logging disabled");
     return;
   }
   if (db) return; // already initialized

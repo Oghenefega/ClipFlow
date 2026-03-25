@@ -17,6 +17,7 @@ const http = require("http");
 const https = require("https");
 const { URL } = require("url");
 const { shell } = require("electron");
+const log = require("electron-log/main").scope("meta");
 
 const GRAPH_API_VERSION = "v21.0";
 const AUTH_URL = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`;
@@ -118,7 +119,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
       }
 
       try {
-        console.log("[Meta OAuth] Got auth code, exchanging for token...");
+        log.info("Got auth code, exchanging for token...");
 
         // Step 1: Exchange code for short-lived token
         const shortLived = await exchangeCode(appId, appSecret, code);
@@ -126,7 +127,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
           throw new Error(shortLived.error.message || JSON.stringify(shortLived.error));
         }
 
-        console.log("[Meta OAuth] Got short-lived token, exchanging for long-lived...");
+        log.info("Got short-lived token, exchanging for long-lived...");
 
         // Step 2: Exchange for long-lived token (60 days)
         const longLived = await exchangeForLongLived(appId, appSecret, shortLived.access_token);
@@ -136,18 +137,18 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
 
         const accessToken = longLived.access_token;
         const expiresIn = longLived.expires_in || 5184000; // 60 days default
-        console.log(`[Meta OAuth] Long-lived token obtained, expires in ${expiresIn}s`);
+        log.info("Long-lived token obtained", { expiresIn });
 
         // Step 3: Fetch user profile
-        console.log("[Meta OAuth] Fetching user profile...");
+        log.info("Fetching user profile...");
         const profile = await fetchProfile(accessToken);
-        console.log(`[Meta OAuth] User: ${profile.name} (ID: ${profile.id})`);
+        log.info("User fetched", { name: profile.name, id: profile.id });
 
         // Step 4: Fetch Pages and Instagram Business Account
-        console.log("[Meta OAuth] Fetching Pages and Instagram accounts...");
+        log.info("Fetching Pages and Instagram accounts...");
         const pagesData = await fetchPages(accessToken);
         const pages = pagesData.data || [];
-        console.log(`[Meta OAuth] Found ${pages.length} Page(s)`);
+        log.info("Pages found", { count: pages.length });
 
         let igAccountId = null;
         let pageId = null;
@@ -163,13 +164,13 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
           const igData = await fetchInstagramAccount(pageId, accessToken);
           if (igData.instagram_business_account) {
             igAccountId = igData.instagram_business_account.id;
-            console.log(`[Meta OAuth] Instagram Business Account: ${igAccountId} (via Page: ${pageName})`);
+            log.info("Instagram Business Account found", { igAccountId, pageName });
             break;
           }
         }
 
         if (!igAccountId) {
-          console.log("[Meta OAuth] No Instagram Business Account found. Facebook Page publishing will still work.");
+          log.info("No Instagram Business Account found — Facebook Page publishing will still work");
         }
 
         const accountData = {
@@ -192,7 +193,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
         res.end(buildCallbackPage(true, `Connected as ${profile.name}!`));
         settle(() => resolve(accountData));
       } catch (err) {
-        console.error("[Meta OAuth] Error:", err);
+        log.error("OAuth error", { error: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(buildCallbackPage(false, err.message));
         settle(() => reject(err));
@@ -200,7 +201,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
     });
 
     server.listen(CALLBACK_PORT, "127.0.0.1", () => {
-      console.log(`[Meta OAuth] Callback server listening on port ${CALLBACK_PORT}`);
+      log.info("Callback server listening", { port: CALLBACK_PORT });
 
       // Build the authorization URL and open in system browser
       const authUrl = new URL(AUTH_URL);
@@ -209,7 +210,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
       authUrl.searchParams.set("scope", SCOPES);
       authUrl.searchParams.set("response_type", "code");
 
-      console.log("[Meta OAuth] Opening system browser for auth...");
+      log.info("Opening system browser for auth");
       shell.openExternal(authUrl.toString());
     });
 

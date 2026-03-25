@@ -14,6 +14,7 @@ const https = require("https");
 const crypto = require("crypto");
 const { URL } = require("url");
 const { shell } = require("electron");
+const log = require("electron-log/main").scope("tiktok");
 
 const TIKTOK_AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
 const TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
@@ -104,7 +105,7 @@ function generatePKCE() {
   const verifier = crypto.randomBytes(32).toString("base64url");
   // TikTok uses HEX-encoded SHA256 for code_challenge (non-standard, differs from RFC 7636)
   const challenge = crypto.createHash("sha256").update(verifier).digest("hex");
-  console.log("[TikTok OAuth] PKCE verifier length:", verifier.length, "challenge length:", challenge.length);
+  log.debug("PKCE generated", { verifierLength: verifier.length, challengeLength: challenge.length });
   return { verifier, challenge };
 }
 
@@ -176,9 +177,9 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
 
       try {
         // Exchange code for tokens (with PKCE code_verifier)
-        console.log("[TikTok OAuth] Exchanging auth code for tokens...");
+        log.info("Exchanging auth code for tokens...");
         const tokenData = await exchangeCode(clientKey, clientSecret, code, pkce.verifier);
-        console.log("[TikTok OAuth] Token exchange response:", JSON.stringify(tokenData, null, 2));
+        log.debug("Token exchange response", { tokenData });
 
         if (tokenData.error || !tokenData.access_token) {
           const errMsg = tokenData.error_description || tokenData.error || "Token exchange failed";
@@ -191,9 +192,9 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
         }
 
         // Fetch user profile
-        console.log("[TikTok OAuth] Fetching user profile...");
+        log.info("Fetching user profile...");
         const profile = await fetchUserProfile(tokenData.access_token);
-        console.log("[TikTok OAuth] User profile response:", JSON.stringify(profile, null, 2));
+        log.debug("User profile response", { profile });
 
         const userData = profile?.data?.user || {};
         const displayName = userData.display_name || userData.username || "TikTok User";
@@ -216,7 +217,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
         cleanup();
         resolve(accountData);
       } catch (err) {
-        console.error("[TikTok OAuth] Error during token exchange:", err);
+        log.error("Error during token exchange", { error: err.message });
         const html = buildResultPage(false, `Error: ${err.message}`);
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(html);
@@ -235,7 +236,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
     });
 
     server.listen(CALLBACK_PORT, () => {
-      console.log(`[TikTok OAuth] Callback server listening on port ${CALLBACK_PORT}`);
+      log.info("Callback server listening", { port: CALLBACK_PORT });
 
       // Build the TikTok authorization URL (with PKCE)
       const authUrl = new URL(TIKTOK_AUTH_URL);
@@ -247,7 +248,7 @@ function startOAuthFlow(clientKey, clientSecret, timeoutMs = 120000) {
       authUrl.searchParams.set("code_challenge", pkce.challenge);
       authUrl.searchParams.set("code_challenge_method", "S256");
 
-      console.log("[TikTok OAuth] Opening browser:", authUrl.toString());
+      log.info("Opening browser for auth");
       shell.openExternal(authUrl.toString());
     });
 

@@ -8,6 +8,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
+const log = require("electron-log/main").scope("facebook");
 
 const GRAPH_API_VERSION = "v21.0";
 const VIDEO_HOST = "graph-video.facebook.com";
@@ -31,7 +32,7 @@ async function publishVideo(pageAccessToken, pageId, videoPath, options = {}, on
 
   const fileName = path.basename(videoPath);
   const fileSize = fs.statSync(videoPath).size;
-  console.log(`[Facebook Publish] File: ${videoPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+  log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
   onProgress({ stage: "uploading", pct: 10, detail: "Uploading video to Facebook..." });
 
@@ -88,7 +89,7 @@ async function publishVideo(pageAccessToken, pageId, videoPath, options = {}, on
             return;
           }
 
-          console.log(`[Facebook Publish] Video uploaded! ID: ${result.id}`);
+          log.info("Video uploaded!", { videoId: result.id });
           onProgress({ stage: "done", pct: 100, detail: "Video published to Facebook!" });
 
           resolve({
