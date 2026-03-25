@@ -120,7 +120,7 @@ const findGameFromClip = (clipTitle, gamesDb) => {
 export default function QueueView({
   allClips, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, setWeeklyTemplate, weekTemplateOverrides, setWeekTemplateOverrides,
-  savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, gamesDb,
+  savedTemplates, setSavedTemplates, ytDescriptions, captionTemplates, platformOptions, gamesDb,
   requireHashtagInTitle = true,
 }) {
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
@@ -273,6 +273,7 @@ export default function QueueView({
             title: clip.title,
             caption,
             clipId: clip.id,
+            postMode: platformOptions?.tiktokPostMode || "direct_post",
           });
 
           if (result?.error) {

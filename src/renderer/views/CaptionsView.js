@@ -13,7 +13,7 @@ function buildYtDescription(gameName, hashtag) {
   return `\u{1F534}Live every day 5PM\nThe funniest and most chaotic ${gameName} moments from my streams\u{1F602}\n\nStay connected & support the journey \n\u{1F514}SUBSCRIBE https://www.youtube.com/@Fega  \n\u{1F4AA}\u{1F3FD} Become a member: https://www.youtube.com/@Fega/join   \n\nMultistreaming ON \nTwitch: https://www.twitch.tv/fegaabsolute  \nKick: https://www.kick.com/fegaabsolute  \nTiktok: https://www.tiktok.com/fega  \n\n\u{1F53D} Watch My Best Videos \u{1F525}  \n\u{1F3AE} Old but Gold \u2013 Gaming Highlights & Reactions (Valorant, Fortnite,  Fall Guys, Outlast):  https://www.youtube.com/watch?v=GjYKMJdpESM&list=PLb2kk3HKq1SY6wAXPzbptMKqXULJulUmO    \n\n\u{1F4F2} Follow the Journey:  \n\u27A1 https://instagram.com/fegagaming \n\u27A1 https://twitter.com/FegaAbsolute   \n\n\u{1F3AE}Stream Setup  \nCamera | Sony ZVE10 - https://amzn.to/44QBgk7  \nLens | Vlog Lens (Sigma 18-35 lens) - https://amzn.to/4eX3oXm  \nMic | Blue Snowball - https://amzn.to/40ty3pw  \nElgato CamLink - https://amzn.to/4m1REVR  \nElgato Teleprompter - https://amzn.to/45a4Hit  \nGaming Mouse | Glorious Model O Wireless - https://amzn.to/453cwWe   \n\n\u2702\uFE0FMy Content & Editing Essentials  \nBEST Keyboard EVER | https://charachorder.com/FEGA  \nEditing Mouse | Master MX 3s - https://amzn.to/4kQ5D0j  \nNVME SSD Enclosure Casing - https://amzn.to/4nUunH9  \n2tb Samsung SSD - https://amzn.to/4lCtDFm   \n\n\u{1F4B8} All links above are affiliate links. \nPurchasing anything through them  helps support me. Thank you and God bless you!   \n\n${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming shorts, gaming shorts, funny gaming moments, funny clips, stream highlights, viral shorts, gaming content, gaming videos, gaming entertainment, ${hashtag} highlights, ${hashtag} fails, ${hashtag} clutch, Fega, YouTube Live, live gaming, live reaction\n\n#${hashtag} #gamingshorts #Fega`;
 }
 
-export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, gamesDb = [] }) {
+export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [] }) {
   const [section, setSection] = useState("youtube");
   const [editGame, setEditGame] = useState(null);
   const [editDesc, setEditDesc] = useState("");
@@ -128,6 +128,28 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                   <input value={editTpl} onChange={(e) => setEditTpl(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "12px 14px", color: T.text, fontSize: 14, fontFamily: T.mono, outline: "none", boxSizing: "border-box" }} />
                 ) : (
                   <div style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono }}>{captionTemplates[p.id] || `{title} #fyp`}</div>
+                )}
+                {p.id === "tiktok" && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ color: T.textSecondary, fontSize: 13 }}>Post Mode</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[
+                        { value: "direct_post", label: "Direct Post" },
+                        { value: "inbox", label: "Send to Inbox" },
+                      ].map(({ value, label }) => {
+                        const isActive = (platformOptions?.tiktokPostMode || "direct_post") === value;
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => setPlatformOptions?.((p) => ({ ...p, tiktokPostMode: value }))}
+                            style={{ padding: "5px 12px", borderRadius: 6, background: isActive ? T.green : "rgba(255,255,255,0.04)", border: `1px solid ${isActive ? T.green : T.border}`, color: isActive ? "#fff" : T.textSecondary, fontSize: 12, fontWeight: isActive ? 700 : 400, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </Card>
             ))}

@@ -1368,7 +1368,7 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
 
 // ── TikTok Content Posting ──
 
-ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "TikTok", accountId, accountName: "", videoPath };
   try {
     // Get the stored account tokens
@@ -1419,7 +1419,8 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
       videoPath,
       {
         title: postCaption,
-        privacy_level: "PUBLIC_TO_EVERYONE", // Sandbox will override to SELF_ONLY
+        privacy_level: "PUBLIC_TO_EVERYONE",
+        mode: postMode || "direct_post",
       },
       (progress) => {
         mainWindow?.webContents.send("tiktok:publishProgress", progress);

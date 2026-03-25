@@ -126,6 +126,7 @@ export default function App() {
   const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
 
   // Captions
+  const [platformOptions, setPlatformOptions] = useState({ tiktokPostMode: "direct_post" });
   const [captionTemplates, setCaptionTemplates] = useState({
     tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
     instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",
@@ -179,6 +180,7 @@ export default function App() {
         if (all.savedTemplates) setSavedTemplates(all.savedTemplates.map((p) => ({ ...p, template: migrateTemplate(p.template) })));
         if (all.mainGameHistory) setMainGameHistory(all.mainGameHistory);
         if (all.captionTemplates) setCaptionTemplates(all.captionTemplates);
+        if (all.platformOptions) setPlatformOptions((p) => ({ ...p, ...all.platformOptions }));
         // Load projects from disk (file-based), fall back to store
         if (window.clipflow?.projectList) {
           const projResult = await window.clipflow.projectList();
@@ -260,6 +262,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("savedTemplates", savedTemplates); }, [savedTemplates]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainGameHistory", mainGameHistory); }, [mainGameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("captionTemplates", captionTemplates); }, [captionTemplates]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("platformOptions", platformOptions); }, [platformOptions]);
   useEffect(() => { if (!hasLoaded.current) return; persist("ytDescriptions", ytDescriptions); }, [ytDescriptions]);
   useEffect(() => { if (!hasLoaded.current) return; persist("localProjects", localProjects); }, [localProjects]);
   useEffect(() => { if (!hasLoaded.current) return; persist("outputFolder", outputFolder); }, [outputFolder]);
@@ -453,6 +456,7 @@ export default function App() {
           setSavedTemplates={setSavedTemplates}
           ytDescriptions={ytDescriptions}
           captionTemplates={captionTemplates}
+          platformOptions={platformOptions}
           gamesDb={gamesDb}
           requireHashtagInTitle={requireHashtagInTitle}
         />
@@ -465,6 +469,8 @@ export default function App() {
           setYtDescriptions={setYtDescriptions}
           captionTemplates={captionTemplates}
           setCaptionTemplates={setCaptionTemplates}
+          platformOptions={platformOptions}
+          setPlatformOptions={setPlatformOptions}
           gamesDb={gamesDb}
         />
       );

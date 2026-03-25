@@ -99,15 +99,13 @@ async function queryCreatorInfo(accessToken) {
 }
 
 /**
- * Initialize a direct post upload.
+ * Initialize a direct post upload (video.publish scope).
  * @param {string} accessToken
  * @param {object} postInfo - { title, privacy_level, disable_duet, disable_stitch, disable_comment }
  * @param {number} fileSize - video file size in bytes
  * @returns {{ publish_id: string, upload_url: string }}
  */
 async function initializeUpload(accessToken, postInfo, fileSize) {
-  // If file fits in one chunk (≤ 64MB), upload as single chunk.
-  // Only use multi-chunk for files > 64MB.
   let chunkCount, chunkSize;
   if (fileSize <= MAX_SINGLE_CHUNK) {
     chunkCount = 1;
@@ -116,12 +114,12 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
     chunkSize = CHUNK_SIZE;
     chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
   }
-  log.info("Initializing upload", { fileSize, chunkCount, chunkSize });
+  log.info("Initializing direct post upload", { fileSize, chunkCount, chunkSize });
 
   const body = {
     post_info: {
       title: postInfo.title || "",
-      privacy_level: postInfo.privacy_level || "SELF_ONLY",
+      privacy_level: postInfo.privacy_level || "PUBLIC_TO_EVERYONE",
       disable_duet: postInfo.disable_duet || false,
       disable_stitch: postInfo.disable_stitch || false,
       disable_comment: postInfo.disable_comment || false,
@@ -139,6 +137,47 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
 
   if (result.error?.code && result.error.code !== "ok") {
     throw new Error(`Upload init failed: ${result.error.message || result.error.code}`);
+  }
+
+  return {
+    publish_id: result.data.publish_id,
+    upload_url: result.data.upload_url,
+  };
+}
+
+/**
+ * Initialize an inbox upload (video.upload scope).
+ * Posts go to the user's TikTok drafts/inbox — they finalize in the TikTok app.
+ * No post_info needed; no creator_info query required.
+ * @param {string} accessToken
+ * @param {number} fileSize
+ * @returns {{ publish_id: string, upload_url: string }}
+ */
+async function initializeInboxUpload(accessToken, fileSize) {
+  let chunkCount, chunkSize;
+  if (fileSize <= MAX_SINGLE_CHUNK) {
+    chunkCount = 1;
+    chunkSize = fileSize;
+  } else {
+    chunkSize = CHUNK_SIZE;
+    chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
+  }
+  log.info("Initializing inbox upload", { fileSize, chunkCount, chunkSize });
+
+  const body = {
+    source_info: {
+      source: "FILE_UPLOAD",
+      video_size: fileSize,
+      chunk_size: chunkSize,
+      total_chunk_count: chunkCount,
+    },
+  };
+
+  const result = await apiPost("/v2/post/publish/inbox/video/init/", body, accessToken);
+  log.debug("Inbox init response", { result });
+
+  if (result.error?.code && result.error.code !== "ok") {
+    throw new Error(`Inbox upload init failed: ${result.error.message || result.error.code}`);
   }
 
   return {
@@ -258,20 +297,23 @@ async function pollPublishStatus(accessToken, publishId, maxAttempts = 30) {
 }
 
 /**
- * Full publish flow: creator info → init → upload → poll.
+ * Full publish flow.
  *
- * @param {string} accessToken - OAuth access token with video.publish scope
+ * @param {string} accessToken - OAuth access token
  * @param {string} videoPath - local path to the rendered MP4
- * @param {object} options - { title, caption, privacy_level }
+ * @param {object} options - { title, caption, privacy_level, mode: "direct_post"|"inbox" }
  * @param {function} onProgress - callback({ stage, pct, detail })
  * @returns {{ status: string, publish_id: string, post_id?: number }}
+ *
+ * mode "direct_post" (default): requires video.publish scope — posts go live immediately.
+ * mode "inbox": requires video.upload scope — posts go to the user's TikTok drafts/inbox.
  */
 async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
+  const mode = options.mode === "inbox" ? "inbox" : "direct_post";
   const progress = (stage, pct, detail) => {
     if (onProgress) onProgress({ stage, pct, detail });
   };
 
-  // Verify file exists
   if (!fs.existsSync(videoPath)) {
     throw new Error(`Video file not found: ${videoPath}`);
   }
@@ -279,52 +321,53 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
   if (fileSize === 0) {
     throw new Error("Video file is empty");
   }
-  log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
+  log.info("Starting publish", { mode, videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
-  // Step 1: Query creator info
-  progress("creator_info", 5, "Checking creator permissions...");
-  const creatorInfo = await queryCreatorInfo(accessToken);
-  const allowedPrivacy = creatorInfo.privacy_level_options || ["SELF_ONLY"];
+  let publish_id, upload_url;
 
-  // Sandbox apps MUST use SELF_ONLY and the account MUST be private
-  // If SELF_ONLY isn't in allowed options, the account is likely public
-  if (!allowedPrivacy.includes("SELF_ONLY")) {
-    throw new Error("Your TikTok account must be set to PRIVATE for sandbox app publishing. Change it in TikTok Settings → Privacy, then try again.");
+  if (mode === "inbox") {
+    // Inbox flow — no creator_info query needed, no post_info
+    progress("init", 10, "Initializing upload...");
+    ({ publish_id, upload_url } = await initializeInboxUpload(accessToken, fileSize));
+  } else {
+    // Direct post flow — query creator info for allowed privacy levels
+    progress("creator_info", 5, "Checking creator permissions...");
+    const creatorInfo = await queryCreatorInfo(accessToken);
+    const allowedPrivacy = creatorInfo.privacy_level_options || ["PUBLIC_TO_EVERYONE"];
+
+    // Use requested privacy level if allowed, otherwise fall back to first allowed
+    const requested = options.privacy_level || "PUBLIC_TO_EVERYONE";
+    const privacyLevel = allowedPrivacy.includes(requested) ? requested : allowedPrivacy[0];
+
+    const disableDuet = creatorInfo.duet_disabled || false;
+    const disableStitch = creatorInfo.stitch_disabled || false;
+    const disableComment = creatorInfo.comment_disabled || false;
+
+    log.info("Privacy level", { privacyLevel, allowedPrivacy });
+
+    progress("init", 10, "Initializing upload...");
+    ({ publish_id, upload_url } = await initializeUpload(accessToken, {
+      title: options.title || options.caption || "",
+      privacy_level: privacyLevel,
+      disable_duet: disableDuet,
+      disable_stitch: disableStitch,
+      disable_comment: disableComment,
+    }, fileSize));
   }
-  const privacyLevel = "SELF_ONLY"; // Always SELF_ONLY for sandbox
 
-  // Respect creator's interaction settings
-  const disableDuet = creatorInfo.duet_disabled || false;
-  const disableStitch = creatorInfo.stitch_disabled || false;
-  const disableComment = creatorInfo.comment_disabled || false;
-
-  log.info("Privacy level set", { privacyLevel, allowedPrivacy });
-  log.info("Interaction settings", { disableDuet, disableStitch, disableComment });
-
-  // Step 2: Initialize upload
-  progress("init", 10, "Initializing upload...");
-  const { publish_id, upload_url } = await initializeUpload(accessToken, {
-    title: options.title || options.caption || "",
-    privacy_level: privacyLevel,
-    disable_duet: disableDuet,
-    disable_stitch: disableStitch,
-    disable_comment: disableComment,
-  }, fileSize);
-
-  // Step 3: Upload chunks
+  // Upload (same for both modes)
   progress("uploading", 15, "Uploading video...");
   await uploadVideoChunks(upload_url, videoPath, fileSize, (p) => {
-    // Scale upload progress from 15% to 80%
     const scaledPct = 15 + Math.round(p.pct * 0.65);
     progress("uploading", scaledPct, p.detail);
   });
 
-  // Step 4: Poll status
-  progress("processing", 85, "Processing on TikTok...");
+  // Poll status (same endpoint for both modes)
+  progress("processing", 85, mode === "inbox" ? "Sending to inbox..." : "Processing on TikTok...");
   const result = await pollPublishStatus(accessToken, publish_id);
 
-  progress("done", 100, "Published!");
-  log.info("Publish complete", { postId: result.post_id || "pending moderation" });
+  progress("done", 100, mode === "inbox" ? "Sent to inbox!" : "Published!");
+  log.info("Publish complete", { mode, postId: result.post_id || "pending" });
 
   return {
     status: result.status,
