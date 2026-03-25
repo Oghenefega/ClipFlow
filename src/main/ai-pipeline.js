@@ -545,7 +545,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       sendProgress("cutting", pct, `Cutting clip ${i + 1}/${totalClips}...`);
 
       try {
-        await cutClipFast(sourceFile, clipPath, startSec, endSec);
+        await ffmpeg.cutClip(sourceFile, clipPath, startSec, endSec);
       } catch (e) {
         logger.info(`Clip ${i + 1} cut failed: ${e.message}`);
         continue;
