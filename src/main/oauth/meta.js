@@ -161,6 +161,16 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
 
         log.info("Using page", { pageId, pageName });
 
+        // Fetch Page profile picture instead of personal profile picture
+        const pageAvatarUrl = `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/picture?type=large&redirect=false&access_token=${pageAccessToken}`;
+        let avatarUrl = profile.picture?.data?.url || "";
+        try {
+          const pagePic = await httpsGet(pageAvatarUrl);
+          if (pagePic.data?.url) avatarUrl = pagePic.data.url;
+        } catch (e) {
+          log.warn("Failed to fetch page picture, using user profile pic", { error: e.message });
+        }
+
         const accountData = {
           platform: "Facebook",
           loginType: "facebook_login",
@@ -170,7 +180,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
           expiresAt: Date.now() + expiresIn * 1000,
           scope: SCOPES,
           displayName: pageName || profile.name,
-          avatarUrl: profile.picture?.data?.url || "",
+          avatarUrl,
           pageId,
           pageName,
           pageAccessToken,

@@ -145,12 +145,18 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
           }
 
           log.info("Got auth code from redirect, exchanging for token...");
-          authWin.close();
 
-          // Exchange code for tokens
+          // Exchange code for tokens — settle BEFORE closing window
+          // to prevent the "closed" event handler from rejecting first
           handleAuthCode(appId, appSecret, code)
-            .then((accountData) => settle(() => resolve(accountData)))
-            .catch((err) => settle(() => reject(err)));
+            .then((accountData) => {
+              settle(() => resolve(accountData));
+              if (!authWin.isDestroyed()) authWin.close();
+            })
+            .catch((err) => {
+              settle(() => reject(err));
+              if (!authWin.isDestroyed()) authWin.close();
+            });
         } else {
           callback({});
         }
