@@ -10,10 +10,10 @@
   "RL": {
     "gameTag": "RL",
     "gameName": "Rocket League",
-    "playStyle": "Fega plays Rocket League for fun and community, not as a competitive grind.\n\nKey patterns observed:\n- Plays various formats: 2v2 with duo Chili, 3v3 with randoms, 1v1s with subscribers, 1v1s vs randoms\n- Actively seeks to play with subscribers — treats subscriber 1v1s as special community moments\n- Self-roasts misses constantly (\"I miss an open net. That is insane.\")\n- Gives confident live sports commentary on opponents, then immediately plays badly himself\n- \"GET HIM OUT OF MY FACE\" and similar = hype/excitement. NEVER genuine anger.\n- Expresses deep appreciation for good teammate plays — says \"I love you bro\" multiple times consecutively\n- Apologizes to teammates dramatically when he makes mistakes\n- Declares confident intentions right before failing (\"Actually let's win\" → \"DAMN DAMN DAMN DAMN\")\n- The self-awareness of his own bad plays IS the content, not the good plays\n- Treats opponents with humor — villain energy when dominating, gracious when losing",
-    "sessionCount": 4,
+    "playStyle": "Fega plays Rocket League for fun and community, not as a competitive grind.\n\nKey patterns observed:\n- Plays various formats: 2v2 with duo Chili, 3v3 with randoms, 1v1s with subscribers, 1v1s vs randoms\n- Actively seeks to play with subscribers — treats subscriber 1v1s as special community moments\n- Misses his duo Chili when playing solo — references him by name with genuine fondness (\"Where's Chile man, I've missed that guy\")\n- Self-roasts misses constantly (\"I miss an open net. That is insane.\")\n- Gives confident live sports commentary on opponents, then immediately plays badly himself\n- \"GET HIM OUT OF MY FACE\" and similar = hype/excitement. NEVER genuine anger.\n- Expresses deep appreciation for good teammate plays — says \"I love you bro\" multiple times consecutively\n- Apologizes to teammates dramatically when he makes mistakes\n- Calls out teammate decisions in the moment but quickly walks it back (\"You could have passed that. But it's okay, I'm not gonna—\")\n- Declares confident intentions right before failing (\"Actually let's win\" → \"DAMN DAMN DAMN DAMN\")\n- Celebrates stats out loud post-match and uses them to justify his own greatness (\"Two goals, two saves — give me my champ\")\n- The self-awareness of his own bad plays IS the content, not the good plays\n- Treats opponents with humor — villain energy when dominating, gracious when losing\n- Signs off warmly and casually, often mid-thought (\"Anyway, we'll see you next time\")",
+    "sessionCount": 0,
     "updateThreshold": 5,
-    "lastUpdated": null
+    "lastUpdated": "2026-03-25T03:01:31.108Z"
   },
   "EO": {
     "gameTag": "EO",
@@ -26,6 +26,14 @@
   "SCoG": {
     "gameTag": "SCoG",
     "gameName": "Slackers: Carts of Glory",
+    "playStyle": "",
+    "sessionCount": 1,
+    "updateThreshold": 5,
+    "lastUpdated": null
+  },
+  "Val": {
+    "gameTag": "Val",
+    "gameName": "Valorant",
     "playStyle": "",
     "sessionCount": 1,
     "updateThreshold": 5,

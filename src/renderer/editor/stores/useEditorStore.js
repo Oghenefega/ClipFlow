@@ -227,6 +227,7 @@ const useEditorStore = create((set, get) => ({
 
   // Called explicitly on mouse-up after audio resize to commit trim or extension
   commitAudioResize: async () => {
+    if (get().extending) return; // guard: don't stack concurrent extends
     const { audioSegments, clip, project, sourceStartTime } = get();
     if (audioSegments.length === 0 || !clip || !project) {
       get()._trimToAudioBounds();
@@ -293,8 +294,14 @@ const useEditorStore = create((set, get) => ({
         }
       } catch (err) {
         console.error("Extend clip error:", err);
+        // Revert audio segment to current duration so UI isn't stuck
+        set((s) => ({
+          audioSegments: s.audioSegments.map((seg) =>
+            seg.endSec > currentDuration ? { ...seg, endSec: currentDuration } : seg
+          ),
+        }));
       } finally {
-        set({ extending: false });
+        set({ extending: false, videoVersion: get().videoVersion + 1 });
       }
     } else {
       // Normal trim (no extension)
@@ -304,6 +311,7 @@ const useEditorStore = create((set, get) => ({
 
   // Commit left extension — called on mouse-up when audio start < 0
   commitLeftExtend: async () => {
+    if (get().extending) return; // guard: don't stack concurrent extends
     const { audioSegments, clip, project, sourceStartTime } = get();
     if (audioSegments.length === 0 || !clip || !project) {
       get()._trimToAudioBounds();
@@ -393,8 +401,14 @@ const useEditorStore = create((set, get) => ({
       }
     } catch (err) {
       console.error("Extend clip left error:", err);
+      // Revert audio segment starts so UI isn't stuck
+      set((s) => ({
+        audioSegments: s.audioSegments.map((seg) =>
+          seg.startSec < 0 ? { ...seg, startSec: 0 } : seg
+        ),
+      }));
     } finally {
-      set({ extending: false });
+      set({ extending: false, videoVersion: get().videoVersion + 1 });
     }
   },
 

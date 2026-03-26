@@ -3,6 +3,10 @@
 > After ANY correction from the user, add the pattern here.
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## Don't recommend deleting user data without explicit ask
+**Mistake:** Research summary recommended "auto-delete pipeline logs after 30 days on startup." Then when user asked about it, claimed "I never added auto-deletion" — contradicting what was written in the plan. Pipeline logs contain API cost data and performance history that has long-term value for a commercial product.
+**Rule:** Never recommend or implement auto-deletion of user data. If retention limits are needed, always ask the user first. And don't contradict your own written plan — if something was stated, own it.
+
 ## Windows File Locking (EBUSY)
 **Mistake:** Tried to delete/replace a video file while Electron's `<video>` element had it open. On Windows, this causes `EBUSY: resource busy or locked`.
 **Rule:** Before any IPC call that replaces a clip file on disk, ALWAYS unload the video element first (`removeAttribute("src")` + `.load()`), wait ~100ms for the OS to release the handle, then proceed.

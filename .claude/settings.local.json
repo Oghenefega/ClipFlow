@@ -1,4 +1,7 @@
 {
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false
+  },
   "permissions": {
     "allow": [
       "Bash(npm *)",
@@ -18,7 +21,8 @@
       "Glob",
       "Grep",
       "Bash(xargs wc:*)",
-      "Bash(grep -rn \"setTimeout.*[0-9]\\\\{3,\\\\}\" src/renderer/ --include=\"*.js\" --include=\"*.jsx\")"
+      "Bash(grep -rn \"setTimeout.*[0-9]\\\\{3,\\\\}\" src/renderer/ --include=\"*.js\" --include=\"*.jsx\")",
+      "Bash(gh project:*)"
     ],
     "deny": [
       "Bash(rm -rf *)",
