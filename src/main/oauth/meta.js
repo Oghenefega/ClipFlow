@@ -1,8 +1,8 @@
 /**
- * Meta OAuth 2.0 flow for ClipFlow (Facebook Login for Business).
+ * Meta OAuth 2.0 flow for ClipFlow (Facebook Login — Pages only).
  *
- * Single OAuth flow covers both Instagram and Facebook publishing.
- * Uses localhost callback server + system browser (same pattern as YouTube).
+ * Handles Facebook Page publishing. Instagram is handled separately
+ * via instagram-oauth.js (Instagram Business Login).
  *
  * Flow:
  *   1. Start local HTTP server on port 8083
@@ -10,8 +10,8 @@
  *   3. Intercept callback to extract auth code
  *   4. Exchange code for short-lived token
  *   5. Exchange short-lived for long-lived token (60 days)
- *   6. Fetch user profile, Pages, and Instagram Business Account
- *   7. Return complete account data
+ *   6. Fetch user profile and Pages
+ *   7. Return complete account data with Page info
  */
 const http = require("http");
 const https = require("https");
@@ -25,13 +25,12 @@ const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 const CALLBACK_PORT = 8083;
 const REDIRECT_URI = `http://localhost:${CALLBACK_PORT}/callback`;
 
-// Scopes for both Instagram + Facebook Page publishing
+// Scopes for Facebook Page publishing only (Instagram handled by instagram-oauth.js)
 const SCOPES = [
-  "instagram_basic",
-  "instagram_content_publish",
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
+  "business_management",
 ].join(",");
 
 // ── HTTP helpers ──
@@ -144,49 +143,37 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
         const profile = await fetchProfile(accessToken);
         log.info("User fetched", { name: profile.name, id: profile.id });
 
-        // Step 4: Fetch Pages and Instagram Business Account
-        log.info("Fetching Pages and Instagram accounts...");
+        // Step 4: Fetch Pages
+        log.info("Fetching Pages...");
         const pagesData = await fetchPages(accessToken);
         const pages = pagesData.data || [];
         log.info("Pages found", { count: pages.length });
 
-        let igAccountId = null;
-        let pageId = null;
-        let pageName = null;
-        let pageAccessToken = null;
-
-        for (const page of pages) {
-          pageId = page.id;
-          pageName = page.name;
-          pageAccessToken = page.access_token;
-
-          // Check for linked Instagram Business Account
-          const igData = await fetchInstagramAccount(pageId, accessToken);
-          if (igData.instagram_business_account) {
-            igAccountId = igData.instagram_business_account.id;
-            log.info("Instagram Business Account found", { igAccountId, pageName });
-            break;
-          }
+        if (pages.length === 0) {
+          throw new Error("No Facebook Pages found. You need to manage at least one Page to connect.");
         }
 
-        if (!igAccountId) {
-          log.info("No Instagram Business Account found — Facebook Page publishing will still work");
-        }
+        // Use first page (TODO: let user pick if multiple)
+        const page = pages[0];
+        const pageId = page.id;
+        const pageName = page.name;
+        const pageAccessToken = page.access_token;
+
+        log.info("Using page", { pageId, pageName });
 
         const accountData = {
-          platform: "Meta",
+          platform: "Facebook",
+          loginType: "facebook_login",
           openId: profile.id,
           accessToken,
-          refreshToken: "", // Meta long-lived tokens don't have refresh tokens — they're re-exchanged
+          refreshToken: "",
           expiresAt: Date.now() + expiresIn * 1000,
           scope: SCOPES,
-          displayName: profile.name,
+          displayName: pageName || profile.name,
           avatarUrl: profile.picture?.data?.url || "",
-          // Meta-specific fields stored alongside
-          igAccountId: igAccountId || "",
-          pageId: pageId || "",
-          pageName: pageName || "",
-          pageAccessToken: pageAccessToken || "",
+          pageId,
+          pageName,
+          pageAccessToken,
         };
 
         res.writeHead(200, { "Content-Type": "text/html" });
@@ -272,13 +259,6 @@ async function fetchProfile(accessToken) {
  */
 async function fetchPages(accessToken) {
   return httpsGet(`${GRAPH_BASE}/me/accounts?access_token=${accessToken}`);
-}
-
-/**
- * Check if a Page has a linked Instagram Business Account.
- */
-async function fetchInstagramAccount(pageId, accessToken) {
-  return httpsGet(`${GRAPH_BASE}/${pageId}?fields=instagram_business_account&access_token=${accessToken}`);
 }
 
 /**

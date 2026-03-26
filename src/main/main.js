@@ -18,6 +18,7 @@ const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
 const tiktokPublish = require("./oauth/tiktok-publish");
 const metaOAuth = require("./oauth/meta");
+const instagramOAuth = require("./oauth/instagram-oauth");
 const instagramPublish = require("./oauth/instagram-publish");
 const facebookPublish = require("./oauth/facebook-publish");
 const youtubeOAuth = require("./oauth/youtube");
@@ -1447,9 +1448,9 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
   }
 });
 
-// ── Meta OAuth (Instagram + Facebook) ──
+// ── Instagram Business Login OAuth ──
 
-ipcMain.handle("oauth:meta:connect", async () => {
+ipcMain.handle("oauth:instagram:connect", async () => {
   try {
     const appId = store.get("metaAppId");
     const appSecret = store.get("metaAppSecret");
@@ -1458,19 +1459,18 @@ ipcMain.handle("oauth:meta:connect", async () => {
       return { error: "Meta App ID and App Secret must be configured in Settings before connecting." };
     }
 
-    require("electron-log/main").scope("meta").info("Starting Meta OAuth flow");
-    const accountData = await metaOAuth.startOAuthFlow(appId, appSecret);
+    require("electron-log/main").scope("instagram-oauth").info("Starting Instagram Business Login flow");
+    const accountData = await instagramOAuth.startOAuthFlow(appId, appSecret);
 
-    // Save to encrypted token store
-    const accountId = `meta_${accountData.openId}`;
+    const accountId = `ig_${accountData.openId}`;
     tokenStore.saveAccount(accountId, accountData);
-    require("electron-log/main").scope("meta").info("Account saved", { accountId, displayName: accountData.displayName });
+    require("electron-log/main").scope("instagram-oauth").info("Account saved", { accountId, displayName: accountData.displayName });
 
     return {
       success: true,
       account: {
         key: accountId,
-        platform: "Meta",
+        platform: "Instagram",
         abbr: "IG",
         name: accountData.displayName,
         displayName: accountData.displayName,
@@ -1478,8 +1478,47 @@ ipcMain.handle("oauth:meta:connect", async () => {
         connected: true,
         openId: accountData.openId,
         igAccountId: accountData.igAccountId,
+        loginType: "instagram_business_login",
+      },
+    };
+  } catch (err) {
+    require("electron-log/main").scope("instagram-oauth").error("OAuth connect failed", { error: err.message });
+    return { error: err.message };
+  }
+});
+
+// ── Facebook Page OAuth ──
+
+ipcMain.handle("oauth:facebook:connect", async () => {
+  try {
+    const appId = store.get("metaAppId");
+    const appSecret = store.get("metaAppSecret");
+
+    if (!appId || !appSecret) {
+      return { error: "Meta App ID and App Secret must be configured in Settings before connecting." };
+    }
+
+    require("electron-log/main").scope("meta").info("Starting Facebook Page OAuth flow");
+    const accountData = await metaOAuth.startOAuthFlow(appId, appSecret);
+
+    const accountId = `fb_${accountData.pageId}`;
+    tokenStore.saveAccount(accountId, accountData);
+    require("electron-log/main").scope("meta").info("Account saved", { accountId, displayName: accountData.displayName });
+
+    return {
+      success: true,
+      account: {
+        key: accountId,
+        platform: "Facebook",
+        abbr: "FB",
+        name: accountData.displayName,
+        displayName: accountData.displayName,
+        avatarUrl: accountData.avatarUrl,
+        connected: true,
+        openId: accountData.openId,
         pageId: accountData.pageId,
         pageName: accountData.pageName,
+        loginType: "facebook_login",
       },
     };
   } catch (err) {
@@ -1488,6 +1527,7 @@ ipcMain.handle("oauth:meta:connect", async () => {
   }
 });
 
+
 // ── Instagram Content Publishing ──
 
 ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
@@ -1495,39 +1535,54 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
   try {
     const account = tokenStore.getAccount(accountId);
     if (!account) {
-      const err = "Meta account not found. Please reconnect in Settings.";
+      const err = "Instagram account not found. Please reconnect in Settings.";
       publishLog.logPublish({ ...logBase, status: "failed", error: err });
       return { error: err };
     }
     logBase.accountName = account.displayName || accountId;
 
     if (!account.igAccountId) {
-      const err = "No Instagram Business Account linked. Check that your Instagram is a Business/Creator account connected to a Facebook Page.";
+      const err = "No Instagram account ID found. Please reconnect your Instagram account.";
       publishLog.logPublish({ ...logBase, status: "failed", error: err });
       return { error: err };
     }
 
-    require("electron-log/main").scope("instagram").info("Starting publish", { title, accountId, displayName: account.displayName });
+    const isIgLogin = account.loginType === "instagram_business_login";
+    require("electron-log/main").scope("instagram").info("Starting publish", { title, accountId, loginType: isIgLogin ? "ig_login" : "fb_login" });
     let accessToken = account.accessToken;
 
     // Check token expiry and refresh if needed
     if (account.expiresAt && Date.now() > account.expiresAt) {
       require("electron-log/main").scope("instagram").info("Token expired, refreshing");
-      const appId = store.get("metaAppId");
-      const appSecret = store.get("metaAppSecret");
-      if (!appId || !appSecret) {
-        const err = "Cannot refresh Meta token — App ID/Secret missing. Please reconnect in Settings.";
-        publishLog.logPublish({ ...logBase, status: "failed", error: err });
-        return { error: err };
+
+      if (isIgLogin) {
+        // Instagram Business Login tokens — refresh via graph.instagram.com
+        const refreshResult = await instagramOAuth.refreshLongLivedToken(accessToken);
+        if (refreshResult.error || !refreshResult.access_token) {
+          const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}. Please reconnect your Instagram account.`;
+          publishLog.logPublish({ ...logBase, status: "failed", error: err });
+          return { error: err };
+        }
+        tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
+        accessToken = refreshResult.access_token;
+      } else {
+        // Facebook Login tokens — refresh via graph.facebook.com
+        const appId = store.get("metaAppId");
+        const appSecret = store.get("metaAppSecret");
+        if (!appId || !appSecret) {
+          const err = "Cannot refresh token — Meta App ID/Secret missing. Please reconnect in Settings.";
+          publishLog.logPublish({ ...logBase, status: "failed", error: err });
+          return { error: err };
+        }
+        const refreshResult = await metaOAuth.refreshLongLivedToken(appId, appSecret, accessToken);
+        if (refreshResult.error || !refreshResult.access_token) {
+          const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}`;
+          publishLog.logPublish({ ...logBase, status: "failed", error: err });
+          return { error: err };
+        }
+        tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
+        accessToken = refreshResult.access_token;
       }
-      const refreshResult = await metaOAuth.refreshLongLivedToken(appId, appSecret, accessToken);
-      if (refreshResult.error || !refreshResult.access_token) {
-        const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}`;
-        publishLog.logPublish({ ...logBase, status: "failed", error: err });
-        return { error: err };
-      }
-      tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
-      accessToken = refreshResult.access_token;
     }
 
     const postCaption = caption || title || "";
@@ -1535,7 +1590,7 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
       accessToken,
       account.igAccountId,
       videoPath,
-      { caption: postCaption },
+      { caption: postCaption, useIgGraph: isIgLogin },
       (progress) => {
         mainWindow?.webContents.send("instagram:publishProgress", progress);
       }
@@ -1563,14 +1618,14 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
   try {
     const account = tokenStore.getAccount(accountId);
     if (!account) {
-      const err = "Meta account not found. Please reconnect in Settings.";
+      const err = "Facebook account not found. Please reconnect in Settings.";
       publishLog.logPublish({ ...logBase, status: "failed", error: err });
       return { error: err };
     }
     logBase.accountName = account.displayName || accountId;
 
     if (!account.pageId || !account.pageAccessToken) {
-      const err = "No Facebook Page found. Ensure your Meta account manages at least one Page.";
+      const err = "No Facebook Page found. Please reconnect your Facebook Page.";
       publishLog.logPublish({ ...logBase, status: "failed", error: err });
       return { error: err };
     }

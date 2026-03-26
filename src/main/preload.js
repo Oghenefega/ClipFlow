@@ -145,7 +145,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   oauthGetAccounts: () => ipcRenderer.invoke("oauth:getAccounts"),
   oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),
   oauthTiktokConnect: () => ipcRenderer.invoke("oauth:tiktok:connect"),
-  oauthMetaConnect: () => ipcRenderer.invoke("oauth:meta:connect"),
+  oauthInstagramConnect: () => ipcRenderer.invoke("oauth:instagram:connect"),
+  oauthFacebookConnect: () => ipcRenderer.invoke("oauth:facebook:connect"),
   oauthYoutubeConnect: () => ipcRenderer.invoke("oauth:youtube:connect"),
 
   // TikTok publishing

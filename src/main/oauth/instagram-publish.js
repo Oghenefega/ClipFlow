@@ -1,6 +1,10 @@
 /**
  * Instagram Content Publishing API — Reels via Resumable Upload.
  *
+ * Supports two token types:
+ *   - Instagram Business Login tokens (graph.instagram.com)
+ *   - Facebook Login tokens (graph.facebook.com)
+ *
  * Flow:
  *   1. Create media container with upload_type=resumable
  *   2. Upload video binary to rupload.facebook.com
@@ -15,7 +19,17 @@ const { URL } = require("url");
 const log = require("electron-log/main").scope("instagram");
 
 const GRAPH_API_VERSION = "v21.0";
-const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
+const FB_GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
+const IG_GRAPH_BASE = `https://graph.instagram.com/${GRAPH_API_VERSION}`;
+
+/**
+ * Get the correct Graph API base URL based on token/login type.
+ * Instagram Business Login tokens use graph.instagram.com.
+ * Facebook Login tokens use graph.facebook.com.
+ */
+function getGraphBase(options) {
+  return options?.useIgGraph ? IG_GRAPH_BASE : FB_GRAPH_BASE;
+}
 
 // ── HTTP helpers ──
 
@@ -115,15 +129,16 @@ function uploadBinary(uploadUrl, fileBuffer, fileSize, accessToken) {
 /**
  * Publish a video as an Instagram Reel via resumable upload.
  *
- * @param {string} accessToken - User access token with instagram_content_publish scope
+ * @param {string} accessToken - User access token
  * @param {string} igUserId - Instagram Business Account ID
  * @param {string} videoPath - Local path to video file
- * @param {object} options - { caption }
+ * @param {object} options - { caption, useIgGraph } — useIgGraph=true for IG Business Login tokens
  * @param {function} onProgress - Progress callback: ({ stage, pct, detail })
  * @returns {Promise<object>} - { mediaId, status }
  */
 async function publishReel(accessToken, igUserId, videoPath, options = {}, onProgress = () => {}) {
-  const { caption = "" } = options;
+  const { caption = "", useIgGraph = false } = options;
+  const GRAPH_BASE = getGraphBase({ useIgGraph });
 
   // Validate file exists
   if (!fs.existsSync(videoPath)) {

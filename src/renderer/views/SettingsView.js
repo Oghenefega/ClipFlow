@@ -124,16 +124,16 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     setConnectingPlatform(null);
   };
 
-  const handleConnectMeta = async () => {
+  const handleConnectInstagram = async () => {
     if (!metaAppId || !metaAppSecret) {
       alert("Configure your Meta App ID and App Secret in the API Credentials section below first.");
       return;
     }
-    setConnectingPlatform("meta");
+    setConnectingPlatform("instagram");
     try {
-      const result = await window.clipflow.oauthMetaConnect();
+      const result = await window.clipflow.oauthInstagramConnect();
       if (result.error) {
-        alert(`Meta connection failed: ${result.error}`);
+        alert(`Instagram connection failed: ${result.error}`);
       } else if (result.success && result.account) {
         setPlatforms((prev) => {
           const exists = prev.findIndex((p) => p.key === result.account.key);
@@ -146,7 +146,34 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         });
       }
     } catch (err) {
-      alert(`Meta connection error: ${err.message}`);
+      alert(`Instagram connection error: ${err.message}`);
+    }
+    setConnectingPlatform(null);
+  };
+
+  const handleConnectFacebook = async () => {
+    if (!metaAppId || !metaAppSecret) {
+      alert("Configure your Meta App ID and App Secret in the API Credentials section below first.");
+      return;
+    }
+    setConnectingPlatform("facebook");
+    try {
+      const result = await window.clipflow.oauthFacebookConnect();
+      if (result.error) {
+        alert(`Facebook connection failed: ${result.error}`);
+      } else if (result.success && result.account) {
+        setPlatforms((prev) => {
+          const exists = prev.findIndex((p) => p.key === result.account.key);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = { ...updated[exists], ...result.account };
+            return updated;
+          }
+          return [...prev, result.account];
+        });
+      }
+    } catch (err) {
+      alert(`Facebook connection error: ${err.message}`);
     }
     setConnectingPlatform(null);
   };
@@ -302,11 +329,18 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               {connectingPlatform === "tiktok" ? "Connecting..." : "+ TikTok"}
             </button>
             <button
-              onClick={handleConnectMeta}
-              disabled={connectingPlatform === "meta"}
-              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "meta" ? 0.5 : 1 }}
+              onClick={handleConnectInstagram}
+              disabled={connectingPlatform === "instagram"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "instagram" ? 0.5 : 1 }}
             >
-              {connectingPlatform === "meta" ? "Connecting..." : "+ Meta"}
+              {connectingPlatform === "instagram" ? "Connecting..." : "+ Instagram"}
+            </button>
+            <button
+              onClick={handleConnectFacebook}
+              disabled={connectingPlatform === "facebook"}
+              style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "facebook" ? 0.5 : 1 }}
+            >
+              {connectingPlatform === "facebook" ? "Connecting..." : "+ Facebook Page"}
             </button>
             <button
               onClick={handleConnectYouTube}

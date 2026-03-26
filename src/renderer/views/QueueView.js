@@ -290,8 +290,8 @@ export default function QueueView({
               [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
             }));
           }
-        } else if (plat.platform === "Meta" && plat.igAccountId && window.clipflow?.instagramPublish) {
-          // Instagram Reel publish (Meta account with IG Business Account)
+        } else if (plat.platform === "Instagram" && window.clipflow?.instagramPublish) {
+          // Instagram Reel publish (IG Business Login or legacy Meta account)
           const gameTag = extractGameTag(clip.title) || "";
           let caption = clip.title || "";
           if (captionTemplates?.instagram) {
@@ -322,21 +322,67 @@ export default function QueueView({
               [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
             }));
           }
+        } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
+          // Facebook Page video publish
+          const gameTag = extractGameTag(clip.title) || "";
+          let caption = clip.title || "";
+          if (captionTemplates?.facebook) {
+            caption = captionTemplates.facebook
+              .replace("{title}", clip.title || "")
+              .replace("#{gametitle}", gameTag ? `#${gameTag}` : "");
+          }
 
-          // Also publish to Facebook Page if page is linked
-          if (plat.pageId && window.clipflow?.facebookPublish) {
-            const fbResult = await window.clipflow.facebookPublish({
-              accountId: plat.key,
-              videoPath: clip.renderPath,
-              title: clip.title,
-              caption: caption,
-              clipId: clip.id,
-            });
-            if (fbResult?.error) {
-              console.error(`[Publish] Facebook Page failed for ${plat.key}:`, fbResult.error);
-            } else {
-              console.log(`[Publish] Facebook Page success for ${plat.key}:`, fbResult);
-            }
+          const result = await window.clipflow.facebookPublish({
+            accountId: plat.key,
+            videoPath: clip.renderPath,
+            title: clip.title,
+            caption,
+            clipId: clip.id,
+          });
+
+          if (result?.error) {
+            console.error(`[Publish] Facebook failed for ${plat.key}:`, result.error);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } },
+            }));
+            allSuccess = false;
+          } else {
+            console.log(`[Publish] Facebook success for ${plat.key}:`, result);
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+            }));
+          }
+        } else if ((plat.platform === "Meta") && plat.igAccountId && window.clipflow?.instagramPublish) {
+          // Legacy Meta accounts — publish to Instagram (backwards compat)
+          const gameTag = extractGameTag(clip.title) || "";
+          let caption = clip.title || "";
+          if (captionTemplates?.instagram) {
+            caption = captionTemplates.instagram
+              .replace("{title}", clip.title || "")
+              .replace("#{gametitle}", gameTag ? `#${gameTag}` : "");
+          }
+
+          const result = await window.clipflow.instagramPublish({
+            accountId: plat.key,
+            videoPath: clip.renderPath,
+            title: clip.title,
+            caption,
+            clipId: clip.id,
+          });
+
+          if (result?.error) {
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } },
+            }));
+            allSuccess = false;
+          } else {
+            setPublishStatus((prev) => ({
+              ...prev,
+              [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } },
+            }));
           }
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
           // YouTube publish
