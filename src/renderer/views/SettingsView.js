@@ -10,7 +10,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
@@ -40,6 +40,14 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [showMetaSecret, setShowMetaSecret] = useState(false);
   const [showMetaIdEdit, setShowMetaIdEdit] = useState(false);
   const [showMetaSecretEdit, setShowMetaSecretEdit] = useState(false);
+  // Instagram
+  const [editInstagram, setEditInstagram] = useState(false);
+  const [igAppIdVal, setIgAppIdVal] = useState(instagramAppId || "");
+  const [igAppSecretVal, setIgAppSecretVal] = useState(instagramAppSecret || "");
+  const [showIgId, setShowIgId] = useState(false);
+  const [showIgSecret, setShowIgSecret] = useState(false);
+  const [showIgIdEdit, setShowIgIdEdit] = useState(false);
+  const [showIgSecretEdit, setShowIgSecretEdit] = useState(false);
   // TikTok
   const [editTiktok, setEditTiktok] = useState(false);
   const [ttClientKeyVal, setTtClientKeyVal] = useState(tiktokClientKey || "");
@@ -125,8 +133,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   };
 
   const handleConnectInstagram = async () => {
-    if (!metaAppId || !metaAppSecret) {
-      alert("Configure your Meta App ID and App Secret in the API Credentials section below first.");
+    if (!instagramAppId || !instagramAppSecret) {
+      alert("Configure your Instagram App ID and App Secret in the API Credentials section below first.");
       return;
     }
     setConnectingPlatform("instagram");
@@ -224,12 +232,14 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const anthropicConfigured = Boolean(anthropicApiKey);
   const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
   const metaConfigured = Boolean(metaAppId && metaAppSecret);
+  const instagramConfigured = Boolean(instagramAppId && instagramAppSecret);
   const tiktokConfigured = Boolean(tiktokClientKey && tiktokClientSecret);
 
   const apiServices = [
     { id: "anthropic", label: "Anthropic", configured: anthropicConfigured },
     { id: "youtube", label: "YouTube", configured: youtubeConfigured },
-    { id: "meta", label: "Meta", configured: metaConfigured },
+    { id: "instagram", label: "Instagram", configured: instagramConfigured },
+    { id: "meta", label: "Facebook Pages", configured: metaConfigured },
     { id: "tiktok", label: "TikTok", configured: tiktokConfigured },
   ];
 
@@ -664,7 +674,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         {activeApi === "meta" && (
           <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Meta (Facebook & Instagram)</span>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Facebook Pages</span>
               {!editMeta ? (
                 <button onClick={() => { setEditMeta(true); setMetaIdVal(metaAppId || ""); setMetaSecretVal(metaAppSecret || ""); }} style={btnSecondary}>Edit</button>
               ) : (
@@ -690,7 +700,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                     <button onClick={() => setShowMetaSecretEdit(!showMetaSecretEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaSecretEdit ? "Hide" : "Show"}>{showMetaSecretEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
                   </div>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>Meta App credentials for publishing to Facebook & Instagram.</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>Facebook app credentials for publishing to Facebook Pages.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -718,6 +728,70 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
                   <PulseDot color={metaConfigured ? T.green : T.red} size={6} />
                   <span style={{ color: metaConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{metaConfigured ? "Configured" : "Not set"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Instagram detail panel */}
+        {activeApi === "instagram" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Instagram</span>
+              {!editInstagram ? (
+                <button onClick={() => { setEditInstagram(true); setIgAppIdVal(instagramAppId || ""); setIgAppSecretVal(instagramAppSecret || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditInstagram(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setInstagramAppId(igAppIdVal); setInstagramAppSecret(igAppSecretVal); setEditInstagram(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
+            {editInstagram ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <SectionLabel>App ID</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={igAppIdVal} onChange={(e) => setIgAppIdVal(e.target.value)} type={showIgIdEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Instagram App ID" />
+                    <button onClick={() => setShowIgIdEdit(!showIgIdEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgIdEdit ? "Hide" : "Show"}>{showIgIdEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <div>
+                  <SectionLabel>App Secret</SectionLabel>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                    <input value={igAppSecretVal} onChange={(e) => setIgAppSecretVal(e.target.value)} type={showIgSecretEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="Instagram App Secret" />
+                    <button onClick={() => setShowIgSecretEdit(!showIgSecretEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgSecretEdit ? "Hide" : "Show"}>{showIgSecretEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                  </div>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: 0 }}>Instagram app credentials for direct Instagram publishing (Business/Creator accounts).</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App ID</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppId ? "Not set" : showIgId ? instagramAppId : maskKey(instagramAppId)}</span>
+                  {instagramAppId && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowIgId(!showIgId)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgId ? "Hide" : "Show"}>{showIgId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(instagramAppId, "ig-app-id")} style={{ ...iconBtn, color: copiedField === "ig-app-id" ? T.green : T.textTertiary }}>{copiedField === "ig-app-id" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App Secret</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppSecret ? "Not set" : showIgSecret ? instagramAppSecret : maskKey(instagramAppSecret)}</span>
+                  {instagramAppSecret && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowIgSecret(!showIgSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgSecret ? "Hide" : "Show"}>{showIgSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(instagramAppSecret, "ig-app-secret")} style={{ ...iconBtn, color: copiedField === "ig-app-secret" ? T.green : T.textTertiary }}>{copiedField === "ig-app-secret" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Status</span>
+                  <PulseDot color={instagramConfigured ? T.green : T.red} size={6} />
+                  <span style={{ color: instagramConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{instagramConfigured ? "Configured" : "Not set"}</span>
                 </div>
               </div>
             )}

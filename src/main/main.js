@@ -1452,11 +1452,11 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
 
 ipcMain.handle("oauth:instagram:connect", async () => {
   try {
-    const appId = store.get("metaAppId");
-    const appSecret = store.get("metaAppSecret");
+    const appId = store.get("instagramAppId");
+    const appSecret = store.get("instagramAppSecret");
 
     if (!appId || !appSecret) {
-      return { error: "Meta App ID and App Secret must be configured in Settings before connecting." };
+      return { error: "Instagram App ID and App Secret must be configured in Settings before connecting." };
     }
 
     require("electron-log/main").scope("instagram-oauth").info("Starting Instagram Business Login flow");

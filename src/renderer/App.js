@@ -114,9 +114,12 @@ export default function App() {
   const [youtubeClientId, setYoutubeClientId] = useState("");
   const [youtubeClientSecret, setYoutubeClientSecret] = useState("");
 
-  // Meta (Facebook/Instagram)
+  // Meta (Facebook Pages)
   const [metaAppId, setMetaAppId] = useState("");
   const [metaAppSecret, setMetaAppSecret] = useState("");
+  // Instagram (separate app — Instagram Business Login)
+  const [instagramAppId, setInstagramAppId] = useState("");
+  const [instagramAppSecret, setInstagramAppSecret] = useState("");
 
   // TikTok
   const [tiktokClientKey, setTiktokClientKey] = useState("");
@@ -200,6 +203,8 @@ export default function App() {
         if (all.youtubeClientSecret) setYoutubeClientSecret(all.youtubeClientSecret);
         if (all.metaAppId) setMetaAppId(all.metaAppId);
         if (all.metaAppSecret) setMetaAppSecret(all.metaAppSecret);
+        if (all.instagramAppId) setInstagramAppId(all.instagramAppId);
+        if (all.instagramAppSecret) setInstagramAppSecret(all.instagramAppSecret);
         if (all.tiktokClientKey) setTiktokClientKey(all.tiktokClientKey);
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
@@ -273,6 +278,8 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientSecret", youtubeClientSecret); }, [youtubeClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("metaAppId", metaAppId); }, [metaAppId]);
   useEffect(() => { if (!hasLoaded.current) return; persist("metaAppSecret", metaAppSecret); }, [metaAppSecret]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("instagramAppId", instagramAppId); }, [instagramAppId]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("instagramAppSecret", instagramAppSecret); }, [instagramAppSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientKey", tiktokClientKey); }, [tiktokClientKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
@@ -503,6 +510,10 @@ export default function App() {
           setMetaAppId={setMetaAppId}
           metaAppSecret={metaAppSecret}
           setMetaAppSecret={setMetaAppSecret}
+          instagramAppId={instagramAppId}
+          setInstagramAppId={setInstagramAppId}
+          instagramAppSecret={instagramAppSecret}
+          setInstagramAppSecret={setInstagramAppSecret}
           tiktokClientKey={tiktokClientKey}
           setTiktokClientKey={setTiktokClientKey}
           tiktokClientSecret={tiktokClientSecret}
