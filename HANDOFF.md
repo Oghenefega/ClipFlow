@@ -1,56 +1,58 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-26 (Meta OAuth Fresh Setup + Bug Fixes)_
+_Last updated: 2026-03-27 (Provider Abstraction Layer + Dev Dashboard)_
 
 ## Current State
-Both Facebook and Instagram OAuth apps have been **recreated from scratch** on Meta Developers and are fully working in Development Mode. All APIs tested and confirmed. App builds and runs clean.
+App builds clean and runs correctly. Both AI systems (LLM and transcription) are now behind provider abstraction interfaces with a hidden dev dashboard for switching providers at runtime.
 
-## What Was Built
+## What Was Just Built
 
-### New Meta Developer Apps (replacing old broken ones)
-- **ClipFlow Pages Publisher** (Facebook) — App ID: `713765408423963`
-  - Use case: "Manage everything on your Page"
-  - Permissions: `pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`, `pages_show_list`, `business_management`, `public_profile`
-  - OAuth redirect: `http://localhost:8083/callback`
-  - Business: Fega - Most Hyped Streamer
+### Provider Abstraction Layer (commit d8d343d — previous session started, this session verified)
+- **LLM Provider Interface** (`src/main/ai/llm-provider.js`) — common `chat()` contract, provider registry, config-driven selection via electron-store
+- **Anthropic Native Adapter** (`src/main/ai/providers/anthropic.js`) — consolidated two duplicate HTTP wrappers (`callClaudeApi` + `anthropicRequest`) into one. Fixed missing 120s timeout on title/caption gen, game research, and profile update calls
+- **OpenAI-Compatible Adapter** (`src/main/ai/providers/openai-compat.js`) — single adapter covering OpenAI, DeepSeek, Mistral, Gemini, xAI/Grok, Cohere, Perplexity, Together AI, Fireworks, Groq, Cerebras, SambaNova, NVIDIA NIM, OpenRouter, and any `/v1/chat/completions` endpoint. Handles message format conversion, image block translation, tool format translation
+- **Cost Tracker** (`src/main/ai/cost-tracker.js`) — extracted from pipeline-logger, maps 14 models across 6 providers to per-1M-token pricing
+- **Transcription Provider Interface** (`src/main/ai/transcription-provider.js`) — common `transcribe()` contract with word-level timestamp guarantee
+- **stable-ts Provider** (`src/main/ai/transcription/stable-ts.js`) — full whisper.js logic extracted into provider interface
+- **whisper.js** — converted to thin facade (delegates to active transcription provider)
+- All 4 AI tasks (highlight detection, title/caption gen, game research, profile update) rewired to use provider registry
+- Pipeline logger now uses cost-tracker for provider-aware pricing
 
-- **ClipFlow Reels Publisher-IG** (Instagram) — App ID: `1760748151572374`
-  - Use case: "Manage messaging & content on Instagram"
-  - Permissions: `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_messages`, `instagram_manage_comments`
-  - OAuth redirect: `https://localhost:8084/callback`
-  - Uses Instagram Business Login (independent from Facebook, no FB Page required)
-
-### Code Fixes
-1. **Instagram OAuth race condition** (`instagram-oauth.js`): Promise now settles BEFORE closing the auth window — prevents "closed" event from rejecting before token exchange completes
-2. **Facebook Page avatar** (`meta.js`): Fetches Page profile picture instead of user's personal profile pic
-
-### API Testing Completed (via Graph API Explorer)
-- Facebook: profile read, list pages, post to page, read published posts — all confirmed
-- Instagram: profile read, list media, create container + publish image — all confirmed
+### Dev Dashboard (commit dca729b)
+- **Activation:** Click version number 7 times at bottom of Settings (Android developer options pattern)
+- **Providers tab:** LLM provider selector (anthropic / openai-compat), config fields for OpenAI-compat (base URL, API key, model), Test Connection button with latency display, transcription provider selector
+- **Store tab:** Filterable electron-store viewer/editor — browse all keys, view JSON values, edit inline, delete keys
+- **Pipeline Logs tab:** View all pipeline run logs with status/cost, click to read full log content
+- **devMode** persists in electron-store, Hide button to dismiss
 
 ## Key Decisions
-- **Two separate Meta apps required** — Facebook Login use case and Instagram API use case cannot be combined (Meta restriction). Aligns with user's requirement for independent login flows
-- **Development Mode only** — no App Review needed until ClipFlow launches to real users. Fega has full API access as admin
-- **Old Meta apps (904335115744229, 1450688126508008, 3368958993263538) should be archived/deleted**
+- **Two adapters cover 95%+ of providers** — Anthropic needs native adapter for full features (prompt caching, tool use format, system-as-top-level-param). Everything else speaks OpenAI-compatible format
+- **Provider config is developer-only** — users never see model/provider selection. Ships with Anthropic as default. Swapping is for dev/testing and future business decisions
+- **Transcription stays local-only** — abstraction interface built but only stable-ts provider implemented. No cloud transcription adapters
+- **Version click counter** for dev mode activation — invisible to users, easy for developer, persists across sessions
+- **whisper.js kept as facade** — preserves all existing import paths, zero upstream changes needed
 
 ## Next Steps
-1. Start posting real content through ClipFlow (dev mode works for personal use)
-2. Test actual video/reel publishing through ClipFlow's publish pipeline
-3. Archive old broken Meta apps from developer dashboard
-4. When ready for launch: Business Verification → App Review → Publish both apps
-5. GitHub Issue #26: multi-account per platform (future feature)
-6. Fix Issue #12 — Undo debounce captures intermediate drag states (carried over)
+1. Test the full pipeline end-to-end (process a recording, verify highlight detection works identically)
+2. Test editor AI tools (generate titles/captions) to confirm provider abstraction is transparent
+3. Test game research (Opus + web_search tool) still works
+4. Try swapping to an OpenAI-compat provider via dev dashboard to validate the adapter works
+5. Test actual video/reel publishing through ClipFlow's publish pipeline
+6. Archive old broken Meta apps from developer dashboard
+7. When ready for launch: Business Verification → App Review → Publish both Meta apps
+8. Fix Issue #12 — Undo debounce captures intermediate drag states (carried over)
 
 ## Watch Out For
-- `pages_read_engagement` doesn't work on `/feed` endpoint — use `/published_posts` instead
-- Instagram API uses `graph.instagram.com` not `graph.facebook.com`
-- Meta testing dashboard counters take up to 24 hours to update
-- App secrets were visible during setup session — consider resetting before launch
+- **Stale Electron processes** — old instances from days ago can keep running and show outdated UI. Kill all electron processes before testing (`Get-Process -Name electron | Stop-Process -Force`)
+- **Game research uses hardcoded `claude-opus-4-6`** — when switching to openai-compat provider, this task will try to use Opus model name against the OpenAI endpoint. The provider adapter uses the config model as fallback, but web_search tool has no OpenAI equivalent (silently skipped)
+- **anthropicApiKey still exists in store** — kept for backward compat. Anthropic adapter reads it directly. OpenAI-compat adapter reads from `llmProviderConfig.apiKey`
+- **Two Meta apps = two sets of credentials** — don't mix `instagramAppId` with `metaAppId`
 - Instagram Business Login only works for Business/Creator accounts (Meta limitation)
-- Two Meta apps = two sets of credentials — don't mix `instagramAppId` with `metaAppId`
 
 ## Logs/Debugging
 - App logs: `%APPDATA%/clipflow/logs/` (rotated: app.log through app.5.log)
+- Pipeline logs: `processing/logs/` — now include provider name and model in API usage section
+- Dev dashboard: Settings → scroll to bottom → click version 7 times → purple "Dev Dashboard" card appears
+- Provider registry state: dev dashboard Providers tab shows active provider and available providers
+- Store viewer: dev dashboard Store tab — filter by key name, view/edit any electron-store value
 - Instagram OAuth: scope `instagram-oauth`, Facebook OAuth: scope `meta`
 - Token storage: encrypted via `token-store.js`
-- Publish log: `%APPDATA%/clipflow/clipflow-publish-log.json`
-- If Instagram connect fails: check `https://localhost:8084/callback` in Meta dashboard → ClipFlow Reels Publisher-IG → Instagram API → Business login settings
