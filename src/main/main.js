@@ -166,6 +166,7 @@ transcriptionProvider.init(store);
 if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
 if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
 if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
+if (!store.has("devMode")) store.set("devMode", false);
 
 // ── Migration: remove stale whisper.cpp store keys ──
 if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
@@ -1012,6 +1013,78 @@ ipcMain.handle("store:set", async (_, key, value) => {
 
 ipcMain.handle("store:getAll", async () => {
   return store.store;
+});
+
+// ============ DEV DASHBOARD ============
+
+ipcMain.handle("dev:getProviderInfo", async () => {
+  return {
+    llm: {
+      active: store.get("llmProvider", "anthropic"),
+      available: llmProvider.listProviders(),
+      config: store.get("llmProviderConfig", {}),
+      defaultModel: llmProvider.getProvider().defaultModel,
+    },
+    transcription: {
+      active: store.get("transcriptionProvider", "stable-ts"),
+      available: transcriptionProvider.listProviders(),
+    },
+  };
+});
+
+ipcMain.handle("dev:setLLMProvider", async (_, providerName, config) => {
+  store.set("llmProvider", providerName);
+  if (config) store.set("llmProviderConfig", config);
+  return { success: true };
+});
+
+ipcMain.handle("dev:setTranscriptionProvider", async (_, providerName) => {
+  store.set("transcriptionProvider", providerName);
+  return { success: true };
+});
+
+ipcMain.handle("dev:testLLMConnection", async () => {
+  try {
+    const provider = llmProvider.getProvider();
+    const start = Date.now();
+    const { text, usage } = await provider.chat({
+      model: provider.defaultModel,
+      system: "Respond with exactly: OK",
+      messages: [{ role: "user", content: "ping" }],
+      maxTokens: 10,
+      timeout: 15000,
+    });
+    const latency = Date.now() - start;
+    return { success: true, provider: provider.name, model: provider.defaultModel, latency, text: (text || "").trim(), usage };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("dev:getStoreKeys", async () => {
+  const all = store.store;
+  // Return key names + value types + truncated previews (don't dump full values for large objects)
+  const keys = {};
+  for (const [k, v] of Object.entries(all)) {
+    const type = Array.isArray(v) ? "array" : typeof v;
+    let preview;
+    if (type === "string") preview = v.length > 80 ? v.substring(0, 80) + "..." : v;
+    else if (type === "array") preview = `[${v.length} items]`;
+    else if (type === "object" && v !== null) preview = `{${Object.keys(v).length} keys}`;
+    else preview = String(v);
+    keys[k] = { type, preview, value: v };
+  }
+  return keys;
+});
+
+ipcMain.handle("dev:setStoreKey", async (_, key, value) => {
+  store.set(key, value);
+  return { success: true };
+});
+
+ipcMain.handle("dev:deleteStoreKey", async (_, key) => {
+  store.delete(key);
+  return { success: true };
 });
 
 // ============ LLM AI API (provider-abstracted) ============

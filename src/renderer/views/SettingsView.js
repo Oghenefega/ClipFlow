@@ -900,8 +900,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Pipeline Logs & Cost Tracking */}
       <PipelineLogsSection />
 
-      {/* Version Footer */}
-      <VersionFooter />
+      {/* Dev Dashboard — hidden behind version click counter */}
+      <DevDashboard />
 
       {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
@@ -1491,24 +1491,403 @@ function ReportIssueSection() {
   );
 }
 
-// ============ VERSION FOOTER ============
-function VersionFooter() {
+// ============ DEV DASHBOARD ============
+function DevDashboard() {
+  const [devMode, setDevMode] = useState(false);
   const [version, setVersion] = useState("");
+  const [clickCount, setClickCount] = useState(0);
+  const [showUnlockHint, setShowUnlockHint] = useState(false);
+  // Provider state
+  const [providerInfo, setProviderInfo] = useState(null);
+  const [llmProvider, setLlmProvider] = useState("anthropic");
+  const [llmConfig, setLlmConfig] = useState({ baseUrl: "", apiKey: "", model: "" });
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting] = useState(false);
+  // Store viewer
+  const [storeKeys, setStoreKeys] = useState(null);
+  const [expandedKey, setExpandedKey] = useState(null);
+  const [editingKey, setEditingKey] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [storeFilter, setStoreFilter] = useState("");
+  // Active tab
+  const [activeTab, setActiveTab] = useState("providers");
+  // Pipeline logs
+  const [pipelineLogs, setPipelineLogs] = useState([]);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [logContent, setLogContent] = useState("");
 
   useEffect(() => {
     (async () => {
-      if (window.clipflow?.getAppVersion) {
-        const v = await window.clipflow.getAppVersion();
-        setVersion(v);
-      }
+      const v = await window.clipflow?.getAppVersion?.();
+      if (v) setVersion(v);
+      const dm = await window.clipflow?.storeGet?.("devMode");
+      if (dm) setDevMode(true);
     })();
   }, []);
 
-  if (!version) return null;
+  const handleVersionClick = async () => {
+    const next = clickCount + 1;
+    setClickCount(next);
+    if (next >= 7 && !devMode) {
+      setDevMode(true);
+      await window.clipflow?.storeSet?.("devMode", true);
+      setClickCount(0);
+    } else if (next >= 3 && next < 7 && !devMode) {
+      setShowUnlockHint(true);
+      setTimeout(() => setShowUnlockHint(false), 2000);
+    }
+  };
+
+  const loadProviderInfo = async () => {
+    const info = await window.clipflow?.devGetProviderInfo?.();
+    if (info) {
+      setProviderInfo(info);
+      setLlmProvider(info.llm.active);
+      setLlmConfig(info.llm.config || { baseUrl: "", apiKey: "", model: "" });
+    }
+  };
+
+  const loadStoreKeys = async () => {
+    const keys = await window.clipflow?.devGetStoreKeys?.();
+    if (keys) setStoreKeys(keys);
+  };
+
+  const loadPipelineLogs = async () => {
+    const logs = await window.clipflow?.pipelineLogsList?.();
+    if (logs) setPipelineLogs(logs);
+  };
+
+  useEffect(() => {
+    if (devMode) {
+      loadProviderInfo();
+    }
+  }, [devMode]);
+
+  useEffect(() => {
+    if (devMode && activeTab === "store") loadStoreKeys();
+    if (devMode && activeTab === "logs") loadPipelineLogs();
+  }, [devMode, activeTab]);
+
+  const handleSaveLLMProvider = async () => {
+    await window.clipflow?.devSetLLMProvider?.(llmProvider, llmProvider === "openai-compat" ? llmConfig : {});
+    await loadProviderInfo();
+  };
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const result = await window.clipflow?.devTestLLMConnection?.();
+    setTestResult(result);
+    setTesting(false);
+  };
+
+  const handleSaveStoreKey = async (key) => {
+    try {
+      const parsed = JSON.parse(editValue);
+      await window.clipflow?.devSetStoreKey?.(key, parsed);
+    } catch {
+      await window.clipflow?.devSetStoreKey?.(key, editValue);
+    }
+    setEditingKey(null);
+    await loadStoreKeys();
+  };
+
+  const handleDeleteStoreKey = async (key) => {
+    await window.clipflow?.devDeleteStoreKey?.(key);
+    await loadStoreKeys();
+  };
+
+  const handleViewLog = async (logPath) => {
+    const content = await window.clipflow?.pipelineLogsRead?.(logPath);
+    setLogContent(content || "");
+    setSelectedLog(logPath);
+  };
+
+  const tabStyle = (tab) => ({
+    padding: "6px 14px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: T.font, fontWeight: 600,
+    background: activeTab === tab ? "rgba(139,92,246,0.15)" : "transparent",
+    color: activeTab === tab ? T.accentLight : T.textTertiary,
+    border: activeTab === tab ? `1px solid ${T.accentBorder}` : "1px solid transparent",
+    transition: "all 0.15s",
+  });
+
+  const filteredKeys = storeKeys ? Object.entries(storeKeys).filter(([k]) =>
+    !storeFilter || k.toLowerCase().includes(storeFilter.toLowerCase())
+  ).sort(([a], [b]) => a.localeCompare(b)) : [];
 
   return (
-    <div style={{ textAlign: "center", padding: "16px 0 8px", color: T.textMuted, fontSize: 11, fontFamily: T.mono }}>
-      ClipFlow v{version}
-    </div>
+    <>
+      {/* Version Footer — click 7 times to unlock dev mode */}
+      {version && (
+        <div
+          onClick={handleVersionClick}
+          style={{
+            textAlign: "center", padding: "16px 0 8px", color: T.textMuted, fontSize: 11, fontFamily: T.mono,
+            cursor: "default", userSelect: "none", position: "relative",
+          }}
+        >
+          ClipFlow v{version}
+          {showUnlockHint && (
+            <span style={{ color: T.accentLight, fontSize: 10, marginLeft: 8, opacity: 0.6 }}>
+              {7 - clickCount} more...
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Dev Dashboard */}
+      {devMode && (
+        <Card style={{ padding: 24, marginBottom: 16, borderColor: T.accentBorder }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.accentLight }}>Dev Dashboard</span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                background: "rgba(139,92,246,0.15)", color: T.accentLight, textTransform: "uppercase", letterSpacing: "0.5px",
+              }}>DEV</span>
+            </div>
+            <button
+              onClick={async () => { setDevMode(false); await window.clipflow?.storeSet?.("devMode", false); }}
+              style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", fontFamily: T.font }}
+            >
+              Hide
+            </button>
+          </div>
+
+          {/* Tab bar */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            <button onClick={() => setActiveTab("providers")} style={tabStyle("providers")}>Providers</button>
+            <button onClick={() => setActiveTab("store")} style={tabStyle("store")}>Store</button>
+            <button onClick={() => setActiveTab("logs")} style={tabStyle("logs")}>Pipeline Logs</button>
+          </div>
+
+          {/* ── Providers Tab ── */}
+          {activeTab === "providers" && providerInfo && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* LLM Provider */}
+              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: 16 }}>
+                <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>LLM Provider</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  {providerInfo.llm.available.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setLlmProvider(p)}
+                      style={{
+                        padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.mono,
+                        background: llmProvider === p ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.04)",
+                        color: llmProvider === p ? T.accentLight : T.textTertiary,
+                        border: llmProvider === p ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                {/* OpenAI-compat config fields */}
+                {llmProvider === "openai-compat" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    <input
+                      value={llmConfig.baseUrl || ""}
+                      onChange={(e) => setLlmConfig({ ...llmConfig, baseUrl: e.target.value })}
+                      placeholder="Base URL (e.g. https://api.openai.com/v1)"
+                      style={{ ...inputStyle, fontSize: 11, padding: "8px 12px" }}
+                    />
+                    <input
+                      value={llmConfig.apiKey || ""}
+                      onChange={(e) => setLlmConfig({ ...llmConfig, apiKey: e.target.value })}
+                      placeholder="API Key"
+                      type="password"
+                      style={{ ...inputStyle, fontSize: 11, padding: "8px 12px" }}
+                    />
+                    <input
+                      value={llmConfig.model || ""}
+                      onChange={(e) => setLlmConfig({ ...llmConfig, model: e.target.value })}
+                      placeholder="Model ID (e.g. gpt-4o, deepseek-chat)"
+                      style={{ ...inputStyle, fontSize: 11, padding: "8px 12px" }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button onClick={handleSaveLLMProvider} style={{ ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700, fontSize: 11 }}>Save</button>
+                  <button onClick={handleTestConnection} disabled={testing} style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11 }}>
+                    {testing ? "Testing..." : "Test Connection"}
+                  </button>
+                  {testResult && (
+                    <span style={{ fontSize: 11, fontFamily: T.mono, color: testResult.success ? T.green : T.red }}>
+                      {testResult.success ? `OK — ${testResult.latency}ms (${testResult.provider}/${testResult.model})` : testResult.error}
+                    </span>
+                  )}
+                </div>
+
+                {/* Current status */}
+                <div style={{ marginTop: 10, fontSize: 11, color: T.textMuted, fontFamily: T.mono }}>
+                  Active: {providerInfo.llm.active} / Model: {providerInfo.llm.defaultModel}
+                </div>
+              </div>
+
+              {/* Transcription Provider */}
+              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: 16 }}>
+                <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Transcription Provider</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {providerInfo.transcription.available.map((p) => (
+                    <button
+                      key={p}
+                      onClick={async () => { await window.clipflow?.devSetTranscriptionProvider?.(p); await loadProviderInfo(); }}
+                      style={{
+                        padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.mono,
+                        background: providerInfo.transcription.active === p ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)",
+                        color: providerInfo.transcription.active === p ? T.green : T.textTertiary,
+                        border: providerInfo.transcription.active === p ? `1px solid ${T.greenBorder}` : `1px solid ${T.border}`,
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: T.textMuted, fontFamily: T.mono }}>
+                  Active: {providerInfo.transcription.active} (local)
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Store Tab ── */}
+          {activeTab === "store" && storeKeys && (
+            <div>
+              <input
+                value={storeFilter}
+                onChange={(e) => setStoreFilter(e.target.value)}
+                placeholder="Filter keys..."
+                style={{ ...inputStyle, fontSize: 11, padding: "8px 12px", marginBottom: 12 }}
+              />
+              <div style={{ maxHeight: 400, overflow: "auto", borderRadius: 6, border: `1px solid ${T.border}` }}>
+                {filteredKeys.map(([key, info]) => (
+                  <div key={key} style={{
+                    borderBottom: `1px solid ${T.border}`, padding: "8px 12px",
+                    background: expandedKey === key ? "rgba(255,255,255,0.03)" : "transparent",
+                  }}>
+                    <div
+                      onClick={() => setExpandedKey(expandedKey === key ? null : key)}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ color: T.text, fontSize: 11, fontFamily: T.mono, fontWeight: 600 }}>{key}</span>
+                        <span style={{
+                          fontSize: 9, padding: "1px 5px", borderRadius: 3, fontFamily: T.mono,
+                          background: "rgba(255,255,255,0.06)", color: T.textMuted,
+                        }}>{info.type}</span>
+                      </div>
+                      <span style={{ color: T.textMuted, fontSize: 10, fontFamily: T.mono, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {info.preview}
+                      </span>
+                    </div>
+                    {expandedKey === key && (
+                      <div style={{ marginTop: 8 }}>
+                        {editingKey === key ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            <textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              rows={4}
+                              style={{ ...inputStyle, fontSize: 10, fontFamily: T.mono, padding: "8px", resize: "vertical" }}
+                            />
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button onClick={() => handleSaveStoreKey(key)} style={{ ...BTN, background: T.green, border: "none", color: "#fff", fontWeight: 700, fontSize: 10 }}>Save</button>
+                              <button onClick={() => setEditingKey(null)} style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <pre style={{
+                              fontSize: 10, fontFamily: T.mono, color: T.textTertiary,
+                              background: "rgba(0,0,0,0.2)", borderRadius: 4, padding: 8, margin: "4px 0",
+                              maxHeight: 200, overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all",
+                            }}>
+                              {typeof info.value === "string" ? info.value : JSON.stringify(info.value, null, 2)}
+                            </pre>
+                            <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                              <button
+                                onClick={() => { setEditingKey(key); setEditValue(typeof info.value === "string" ? info.value : JSON.stringify(info.value, null, 2)); }}
+                                style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 10 }}
+                              >Edit</button>
+                              <button
+                                onClick={() => handleDeleteStoreKey(key)}
+                                style={{ ...BTN, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red, fontSize: 10 }}
+                              >Delete</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, color: T.textMuted, fontSize: 10, fontFamily: T.mono }}>
+                {filteredKeys.length} keys {storeFilter && `(filtered from ${Object.keys(storeKeys).length})`}
+              </div>
+            </div>
+          )}
+
+          {/* ── Pipeline Logs Tab ── */}
+          {activeTab === "logs" && (
+            <div>
+              {selectedLog ? (
+                <div>
+                  <button
+                    onClick={() => { setSelectedLog(null); setLogContent(""); }}
+                    style={{ ...BTN, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 11, marginBottom: 8 }}
+                  >Back</button>
+                  <pre style={{
+                    fontSize: 10, fontFamily: T.mono, color: T.textTertiary,
+                    background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: 12,
+                    maxHeight: 400, overflow: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all",
+                    border: `1px solid ${T.border}`,
+                  }}>{logContent}</pre>
+                </div>
+              ) : (
+                <div style={{ maxHeight: 300, overflow: "auto" }}>
+                  {pipelineLogs.length === 0 ? (
+                    <div style={{ color: T.textMuted, fontSize: 12, textAlign: "center", padding: 24 }}>No pipeline logs yet</div>
+                  ) : (
+                    pipelineLogs.map((log, i) => (
+                      <div
+                        key={i}
+                        onClick={() => handleViewLog(log.path)}
+                        style={{
+                          display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px",
+                          borderBottom: `1px solid ${T.border}`, cursor: "pointer",
+                          background: "transparent", transition: "background 0.1s",
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <span style={{ color: T.text, fontSize: 11, fontWeight: 600 }}>{log.videoName || log.filename}</span>
+                          <span style={{ color: T.textMuted, fontSize: 10, fontFamily: T.mono }}>
+                            {new Date(log.date).toLocaleString()}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ color: log.success ? T.green : T.red, fontSize: 10, fontWeight: 700 }}>
+                            {log.success ? "OK" : "FAIL"}
+                          </span>
+                          {log.apiCost > 0 && (
+                            <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono }}>
+                              ${log.apiCost.toFixed(4)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+    </>
   );
 }

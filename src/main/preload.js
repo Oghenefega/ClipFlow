@@ -189,6 +189,15 @@ contextBridge.exposeInMainWorld("clipflow", {
   getPublishLogs: (limit) => ipcRenderer.invoke("publishLog:getRecent", limit),
   getPublishLogsForClip: (clipId) => ipcRenderer.invoke("publishLog:getForClip", clipId),
 
+  // Dev dashboard
+  devGetProviderInfo: () => ipcRenderer.invoke("dev:getProviderInfo"),
+  devSetLLMProvider: (name, config) => ipcRenderer.invoke("dev:setLLMProvider", name, config),
+  devSetTranscriptionProvider: (name) => ipcRenderer.invoke("dev:setTranscriptionProvider", name),
+  devTestLLMConnection: () => ipcRenderer.invoke("dev:testLLMConnection"),
+  devGetStoreKeys: () => ipcRenderer.invoke("dev:getStoreKeys"),
+  devSetStoreKey: (key, value) => ipcRenderer.invoke("dev:setStoreKey", key, value),
+  devDeleteStoreKey: (key) => ipcRenderer.invoke("dev:deleteStoreKey", key),
+
   // Platform info
   platform: process.platform,
 
