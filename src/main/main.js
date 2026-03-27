@@ -2,7 +2,6 @@ require("dotenv").config();
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const https = require("https");
 const chokidar = require("chokidar");
 const Store = require("electron-store");
 const ffmpeg = require("./ffmpeg");
@@ -25,6 +24,12 @@ const youtubeOAuth = require("./oauth/youtube");
 const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
 const logger = require("./logger");
+const llmProvider = require("./ai/llm-provider");
+const transcriptionProvider = require("./ai/transcription-provider");
+// Load provider adapters (self-register on require)
+require("./ai/providers/anthropic");
+require("./ai/providers/openai-compat");
+require("./ai/transcription/stable-ts");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -152,6 +157,15 @@ const store = new Store({
     titleCaptionHistory: [],
   },
 });
+
+// ── Initialize provider registries with store ──
+llmProvider.init(store);
+transcriptionProvider.init(store);
+
+// ── Migration: add provider config defaults ──
+if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
+if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
+if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
 
 // ── Migration: remove stale whisper.cpp store keys ──
 if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
@@ -907,9 +921,6 @@ ipcMain.handle("gameProfiles:resetCount", async (_, gameTag) => {
 });
 
 ipcMain.handle("gameProfiles:generateUpdate", async (_, gameTag) => {
-  const apiKey = store.get("anthropicApiKey");
-  if (!apiKey) return { error: "Anthropic API key not configured." };
-
   const profile = gameProfiles.getProfile(gameTag);
   if (!profile) return { error: `No profile found for ${gameTag}` };
 
@@ -948,22 +959,16 @@ ${transcriptBlock}
 Write the updated play style profile:`;
 
   try {
-    const result = await anthropicRequest(apiKey, {
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
+    const provider = llmProvider.getProvider();
+    const { text } = await provider.chat({
+      model: provider.defaultModel,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
+      maxTokens: 1000,
     });
 
-    if (result.error) return { error: result.error.message || JSON.stringify(result.error) };
-
-    const newProfile = (result.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
-
-    if (!newProfile) return { error: "Empty response from Claude" };
+    const newProfile = (text || "").trim();
+    if (!newProfile) return { error: "Empty response from LLM provider" };
 
     return { success: true, oldProfile: profile.playStyle || "", newProfile, gameName: profile.gameName };
   } catch (err) {
@@ -1009,41 +1014,11 @@ ipcMain.handle("store:getAll", async () => {
   return store.store;
 });
 
-// ============ ANTHROPIC AI API ============
-const anthropicRequest = (apiKey, body) => {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(body);
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error(`Failed to parse Anthropic response: ${data.substring(0, 300)}`)); }
-      });
-    });
-    req.on("error", reject);
-    req.write(payload);
-    req.end();
-  });
-};
+// ============ LLM AI API (provider-abstracted) ============
 
-// Generate titles & captions for a clip using Sonnet
+// Generate titles & captions for a clip
 ipcMain.handle("anthropic:generate", async (_, params) => {
   try {
-    const apiKey = store.get("anthropicApiKey");
-    if (!apiKey) return { error: "Anthropic API key not configured. Go to Settings." };
-
     const styleGuide = store.get("styleGuide") || "";
     const history = store.get("titleCaptionHistory") || [];
 
@@ -1121,22 +1096,18 @@ Return ONLY valid JSON in this exact structure:
       });
     }
 
-    const result = await anthropicRequest(apiKey, {
-      model: "claude-sonnet-4-6",
-      max_tokens: 2000,
+    const provider = llmProvider.getProvider();
+    const { text } = await provider.chat({
+      model: provider.defaultModel,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
+      maxTokens: 2000,
     });
 
-    // Parse the response — extract JSON from the text content
-    if (result.error) return { error: result.error.message || JSON.stringify(result.error) };
-    if (!result.content || result.content.length === 0) return { error: "Empty response from Anthropic" };
-
-    const textContent = result.content.find((c) => c.type === "text");
-    if (!textContent) return { error: "No text in Anthropic response" };
+    if (!text) return { error: "Empty response from LLM provider" };
 
     // Extract JSON from the response (may have markdown code fences)
-    let jsonStr = textContent.text;
+    let jsonStr = text;
     const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) jsonStr = jsonMatch[1];
     jsonStr = jsonStr.trim();
@@ -1145,7 +1116,7 @@ Return ONLY valid JSON in this exact structure:
       const parsed = JSON.parse(jsonStr);
       return { success: true, data: parsed };
     } catch (e) {
-      return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: textContent.text };
+      return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
     }
   } catch (err) {
     return { error: err.message };
@@ -1155,13 +1126,9 @@ Return ONLY valid JSON in this exact structure:
 // Research a game using Opus with web search (one-time per game)
 ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
   try {
-    const apiKey = store.get("anthropicApiKey");
-    if (!apiKey) return { error: "Anthropic API key not configured. Go to Settings." };
-
-    const result = await anthropicRequest(apiKey, {
+    const provider = llmProvider.getProvider();
+    const { text } = await provider.chat({
       model: "claude-opus-4-6",
-      max_tokens: 1500,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
       system: `You are a gaming research assistant. Your ONLY job is to describe what it's like to PLAY a specific game — the gameplay experience, not corporate info.
 
 RULES:
@@ -1176,17 +1143,14 @@ RULES:
         role: "user",
         content: `Describe the gameplay experience of "${gameName}". What is it like to play? How do people play it? What makes it fun, chaotic, or entertaining to watch?`,
       }],
+      maxTokens: 1500,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
     });
 
-    if (result.error) return { error: result.error.message || JSON.stringify(result.error) };
-    if (!result.content || result.content.length === 0) return { error: "Empty response from Anthropic" };
-
-    // Extract the final text response (may have tool_use blocks before it)
-    const textBlocks = result.content.filter((c) => c.type === "text");
-    let summary = textBlocks.map((t) => t.text).join("\n\n");
+    if (!text) return { error: "Empty response from LLM provider" };
 
     // Strip any AI preamble that slipped through
-    summary = summary.replace(/^(I'll research|Here is|Here's|Let me|Based on my research)[^\n]*\n+/i, "").trim();
+    let summary = text.replace(/^(I'll research|Here is|Here's|Let me|Based on my research)[^\n]*\n+/i, "").trim();
 
     if (!summary) return { error: "No text summary in research response" };
     return { success: true, data: summary };

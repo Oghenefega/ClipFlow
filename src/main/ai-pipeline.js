@@ -1,7 +1,6 @@
 const { execFile, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const https = require("https");
 const ffmpeg = require("./ffmpeg");
 const projects = require("./projects");
 const whisper = require("./whisper");
@@ -9,6 +8,7 @@ const aiPrompt = require("./ai-prompt");
 const gameProfiles = require("./game-profiles");
 const feedback = require("./feedback");
 const { PipelineLogger } = require("./pipeline-logger");
+const { getProvider } = require("./ai/llm-provider");
 
 // Default processing directory
 const DEFAULT_PROCESSING_DIR = path.join(__dirname, "..", "..", "processing");
@@ -265,96 +265,49 @@ function extractFrame(videoPath, outPath, timeSeconds) {
 
 /**
  * Call Claude API for highlight detection.
- * @param {string} apiKey - Anthropic API key
- * @param {string} systemPrompt - Full system prompt (Sections A–F)
+ * @param {string|Array} systemPrompt - Full system prompt (Sections A–F)
  * @param {Array} userContent - User message content array (text + images)
  * @param {PipelineLogger} logger
- * @returns {Promise<{ clips: Array, usage: { input_tokens, output_tokens } }>}
+ * @returns {Promise<{ clips: Array, usage: { inputTokens: number, outputTokens: number } }>}
  */
-function callClaudeApi(apiKey, systemPrompt, userContent, logger) {
-  return new Promise((resolve, reject) => {
-    const body = {
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userContent }],
-    };
+async function callLLMForHighlights(systemPrompt, userContent, logger) {
+  const provider = getProvider();
+  const model = provider.defaultModel;
 
-    const payload = JSON.stringify(body);
-    logger.info(`Claude API request: ${(payload.length / 1024).toFixed(1)} KB payload`);
+  logger.info(`LLM request via ${provider.name} (${model})`);
 
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const result = JSON.parse(data);
-
-          if (result.error) {
-            return reject(new Error(`Claude API error: ${result.error.message || JSON.stringify(result.error)}`));
-          }
-
-          // Log usage
-          const usage = result.usage || {};
-          logger.logApiUsage(
-            usage.input_tokens || 0,
-            usage.output_tokens || 0,
-            "claude-sonnet-4-6"
-          );
-
-          // Extract JSON from response
-          if (!result.content || result.content.length === 0) {
-            return reject(new Error("Empty response from Claude"));
-          }
-
-          const textContent = result.content.find((c) => c.type === "text");
-          if (!textContent) return reject(new Error("No text in Claude response"));
-
-          // Parse JSON — may have markdown fences
-          let jsonStr = textContent.text;
-          const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-          if (jsonMatch) jsonStr = jsonMatch[1];
-          jsonStr = jsonStr.trim();
-
-          let clips;
-          try {
-            clips = JSON.parse(jsonStr);
-          } catch (e) {
-            logger.logOutput("RAW_RESPONSE", textContent.text);
-            return reject(new Error(`Claude returned invalid JSON: ${e.message}`));
-          }
-
-          if (!Array.isArray(clips)) {
-            return reject(new Error("Claude response is not a JSON array"));
-          }
-
-          resolve({ clips, usage });
-        } catch (e) {
-          reject(new Error(`Failed to parse Claude response: ${e.message}`));
-        }
-      });
-    });
-
-    req.on("error", reject);
-    req.setTimeout(120000, () => {
-      req.destroy();
-      reject(new Error("Claude API request timed out after 120s"));
-    });
-    req.write(payload);
-    req.end();
+  const { text, usage } = await provider.chat({
+    model,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userContent }],
+    maxTokens: 4096,
+    timeout: 120000,
   });
+
+  // Log usage
+  logger.logApiUsage(usage.inputTokens, usage.outputTokens, model);
+
+  if (!text) throw new Error("Empty response from LLM provider");
+
+  // Parse JSON — may have markdown fences
+  let jsonStr = text;
+  const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) jsonStr = jsonMatch[1];
+  jsonStr = jsonStr.trim();
+
+  let clips;
+  try {
+    clips = JSON.parse(jsonStr);
+  } catch (e) {
+    logger.logOutput("RAW_RESPONSE", text);
+    throw new Error(`LLM returned invalid JSON: ${e.message}`);
+  }
+
+  if (!Array.isArray(clips)) {
+    throw new Error("LLM response is not a JSON array");
+  }
+
+  return { clips, usage };
 }
 
 /**
@@ -491,9 +444,6 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     sendProgress("claude", 65, "Claude is analyzing highlights...");
     logger.startStep("Claude Analysis");
 
-    const apiKey = store.get("anthropicApiKey");
-    if (!apiKey) throw new Error("Anthropic API key not configured. Go to Settings.");
-
     // Ensure game profile exists
     gameProfiles.ensureProfile(gameData.gameTag, gameData.game);
 
@@ -518,7 +468,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       frames,
     });
 
-    const claudeResult = await callClaudeApi(apiKey, systemPrompt, userContent, logger);
+    const claudeResult = await callLLMForHighlights(systemPrompt, userContent, logger);
     const aiClips = claudeResult.clips;
     logger.endStep("Claude Analysis", `${aiClips.length} clips identified`);
 

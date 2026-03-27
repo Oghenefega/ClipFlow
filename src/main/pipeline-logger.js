@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { getCost } = require("./ai/cost-tracker");
 
 /**
  * Structured logger for AI pipeline runs.
@@ -63,18 +64,16 @@ class PipelineLogger {
     }
   }
 
-  /** Log Claude API usage */
+  /** Log LLM API usage (provider-aware pricing via cost-tracker) */
   logApiUsage(inputTokens, outputTokens, model) {
     this.apiTokens.input = inputTokens;
     this.apiTokens.output = outputTokens;
-    // Sonnet 4.6 pricing: $3/M input, $15/M output
-    const inputCost = (inputTokens / 1_000_000) * 3;
-    const outputCost = (outputTokens / 1_000_000) * 15;
-    this.apiCost = inputCost + outputCost;
-    this._append(`[API]   Model: ${model}`);
+    const { inputCost, outputCost, totalCost, known } = getCost(model, inputTokens, outputTokens);
+    this.apiCost = totalCost;
+    this._append(`[API]   Model: ${model}${known ? "" : " (pricing unknown)"}`);
     this._append(`        Input: ${inputTokens} tokens ($${inputCost.toFixed(4)})`);
     this._append(`        Output: ${outputTokens} tokens ($${outputCost.toFixed(4)})`);
-    this._append(`        Total: $${this.apiCost.toFixed(4)}`);
+    this._append(`        Total: $${totalCost.toFixed(4)}`);
   }
 
   /** Log info message */
