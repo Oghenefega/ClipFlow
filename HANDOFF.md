@@ -1,58 +1,61 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-27 (Provider Abstraction Layer + Dev Dashboard)_
+_Last updated: 2026-03-30 (AI Prompt Redesign for Model-Agnostic Reliability)_
 
 ## Current State
-App builds clean and runs correctly. Both AI systems (LLM and transcription) are now behind provider abstraction interfaces with a hidden dev dashboard for switching providers at runtime.
+App builds clean and runs correctly. Both AI prompts (highlight detection + title/caption generation) have been redesigned for model-agnostic reliability. Provider abstraction layer from previous session remains unchanged and working.
 
 ## What Was Just Built
 
-### Provider Abstraction Layer (commit d8d343d — previous session started, this session verified)
-- **LLM Provider Interface** (`src/main/ai/llm-provider.js`) — common `chat()` contract, provider registry, config-driven selection via electron-store
-- **Anthropic Native Adapter** (`src/main/ai/providers/anthropic.js`) — consolidated two duplicate HTTP wrappers (`callClaudeApi` + `anthropicRequest`) into one. Fixed missing 120s timeout on title/caption gen, game research, and profile update calls
-- **OpenAI-Compatible Adapter** (`src/main/ai/providers/openai-compat.js`) — single adapter covering OpenAI, DeepSeek, Mistral, Gemini, xAI/Grok, Cohere, Perplexity, Together AI, Fireworks, Groq, Cerebras, SambaNova, NVIDIA NIM, OpenRouter, and any `/v1/chat/completions` endpoint. Handles message format conversion, image block translation, tool format translation
-- **Cost Tracker** (`src/main/ai/cost-tracker.js`) — extracted from pipeline-logger, maps 14 models across 6 providers to per-1M-token pricing
-- **Transcription Provider Interface** (`src/main/ai/transcription-provider.js`) — common `transcribe()` contract with word-level timestamp guarantee
-- **stable-ts Provider** (`src/main/ai/transcription/stable-ts.js`) — full whisper.js logic extracted into provider interface
-- **whisper.js** — converted to thin facade (delegates to active transcription provider)
-- All 4 AI tasks (highlight detection, title/caption gen, game research, profile update) rewired to use provider registry
-- Pipeline logger now uses cost-tracker for provider-aware pricing
+### AI Prompt Redesign — Goal A (commit 4eec903)
 
-### Dev Dashboard (commit dca729b)
-- **Activation:** Click version number 7 times at bottom of Settings (Android developer options pattern)
-- **Providers tab:** LLM provider selector (anthropic / openai-compat), config fields for OpenAI-compat (base URL, API key, model), Test Connection button with latency display, transcription provider selector
-- **Store tab:** Filterable electron-store viewer/editor — browse all keys, view JSON values, edit inline, delete keys
-- **Pipeline Logs tab:** View all pipeline run logs with status/cost, click to read full log content
-- **devMode** persists in electron-store, Hide button to dismiss
+**Highlight Detection** (`src/main/ai-prompt.js` — full rewrite):
+- 7 structured sections with `#` headers instead of prose blobs
+- Explicit JSON schema with typed constraints per field (confidence 0.50-1.00 as number, timestamps HH:MM:SS zero-padded, clip duration 30-90s, energy_level must be one of LOW/MED/HIGH/EXPLOSIVE)
+- Numbered rules: 7 clip boundary rules, 14 priority-ordered pick criteria, 6 avoid criteria
+- `buildPickCriteria()` function reorders selection rules based on creator's `momentPriorities` ranking
+- Parameterized creator profile — reads from `creatorProfile` object, falls back to `DEFAULT_CREATOR_PROFILE` (current Fega personality data)
+- DO/DO NOT output guardrails near the JSON schema
+- Few-shot section annotated with Tier 1/2/3 comments ready for Goal B
+
+**Title/Caption Generation** (`src/main/main.js` handler):
+- All 5 title slots and 5 caption slots shown explicitly in schema (no `...5 total` patterns)
+- Separated title rules (7 numbered) and caption rules (6 numbered)
+- Field constraints inline in schema: `<string, 3-10 words + #gamehashtag>`, `<string, under 15 words, no hashtags>`
+- DO NOT guardrails block
+
+**Robust JSON Parsing** (both files):
+- New `extractJSON(raw, expectedType)` utility in `ai-prompt.js` — exported for shared use
+- Handles: markdown fences, preamble text before JSON, trailing text after JSON
+- Finds first `[`/`{` and last `]`/`}` based on expected type — belt-and-suspenders approach
+- Used by both `ai-pipeline.js` (highlight detection) and `main.js` (title/caption gen)
+
+### Goal B Spec Written to tasks/todo.md
+Full cold-start architecture spec for next session — three-tier example blending, archetype examples file, creator profile data model, Fega migration, verification criteria.
 
 ## Key Decisions
-- **Two adapters cover 95%+ of providers** — Anthropic needs native adapter for full features (prompt caching, tool use format, system-as-top-level-param). Everything else speaks OpenAI-compatible format
-- **Provider config is developer-only** — users never see model/provider selection. Ships with Anthropic as default. Swapping is for dev/testing and future business decisions
-- **Transcription stays local-only** — abstraction interface built but only stable-ts provider implemented. No cloud transcription adapters
-- **Version click counter** for dev mode activation — invisible to users, easy for developer, persists across sessions
-- **whisper.js kept as facade** — preserves all existing import paths, zero upstream changes needed
+- **Prompts are parameterized but default to Fega** — `DEFAULT_CREATOR_PROFILE` object contains all of Fega's personality, phrases, and priorities. Goal B migrates this into electron-store so other users can have their own profiles
+- **No adapter changes needed** — the adapter layer (from previous session) handles API format translation; this session was purely prompt content
+- **`extractJSON()` is defensive** — we still tell models to return clean JSON, but the parser handles models that don't follow instructions perfectly
+- **Moment priorities are a ranked list, not toggles** — `["funny", "emotional", "clutch", "fails"]` determines the order of PICK criteria in the prompt. Goal B will let users customize this
+- **No `<reasoning>` blocks** — decided against adding thinking tags; more parsing complexity, more failure modes
+- **No per-provider prompt variations** — no "think step by step" for weaker models. Test first, add only if a specific model underperforms
 
 ## Next Steps
-1. Test the full pipeline end-to-end (process a recording, verify highlight detection works identically)
-2. Test editor AI tools (generate titles/captions) to confirm provider abstraction is transparent
-3. Test game research (Opus + web_search tool) still works
-4. Try swapping to an OpenAI-compat provider via dev dashboard to validate the adapter works
-5. Test actual video/reel publishing through ClipFlow's publish pipeline
-6. Archive old broken Meta apps from developer dashboard
-7. When ready for launch: Business Verification → App Review → Publish both Meta apps
-8. Fix Issue #12 — Undo debounce captures intermediate drag states (carried over)
+1. **Goal B: Cold-Start Architecture** (full spec in `tasks/todo.md`) — three-tier example blending, archetype-examples.json, creator profile data model, onboarding data layer
+2. Test the redesigned prompts by processing a video end-to-end — verify highlight detection quality is at least as good as before
+3. Test title/caption generation in the editor
+4. Try swapping to a non-Anthropic provider via dev dashboard to validate model-agnostic prompts work
+5. Remaining items from previous session: test publishing pipeline, fix Issue #12 (undo debounce), Meta app review
 
 ## Watch Out For
-- **Stale Electron processes** — old instances from days ago can keep running and show outdated UI. Kill all electron processes before testing (`Get-Process -Name electron | Stop-Process -Force`)
-- **Game research uses hardcoded `claude-opus-4-6`** — when switching to openai-compat provider, this task will try to use Opus model name against the OpenAI endpoint. The provider adapter uses the config model as fallback, but web_search tool has no OpenAI equivalent (silently skipped)
-- **anthropicApiKey still exists in store** — kept for backward compat. Anthropic adapter reads it directly. OpenAI-compat adapter reads from `llmProviderConfig.apiKey`
-- **Two Meta apps = two sets of credentials** — don't mix `instagramAppId` with `metaAppId`
-- Instagram Business Login only works for Business/Creator accounts (Meta limitation)
+- **`DEFAULT_CREATOR_PROFILE` is in ai-prompt.js** — when Goal B is built, this gets replaced by reading from electron-store. Don't duplicate the personality data
+- **`creatorProfile` param on `buildSystemPrompt()`** — currently nothing passes it (falls back to default). Goal B will wire it up from the store
+- **`aiPrompt` is now imported in main.js** — added `const aiPrompt = require("./ai-prompt")` for `extractJSON()` access
+- **Energy level values changed** — added "EXPLOSIVE" as a fourth level above "HIGH". The pipeline stores whatever the model returns in `clip.energy_level`
+- **Game research still hardcoded to claude-opus-4-6** — unchanged from previous session, same caveat applies when using non-Anthropic providers
 
 ## Logs/Debugging
-- App logs: `%APPDATA%/clipflow/logs/` (rotated: app.log through app.5.log)
-- Pipeline logs: `processing/logs/` — now include provider name and model in API usage section
-- Dev dashboard: Settings → scroll to bottom → click version 7 times → purple "Dev Dashboard" card appears
-- Provider registry state: dev dashboard Providers tab shows active provider and available providers
-- Store viewer: dev dashboard Store tab — filter by key name, view/edit any electron-store value
-- Instagram OAuth: scope `instagram-oauth`, Facebook OAuth: scope `meta`
-- Token storage: encrypted via `token-store.js`
+- App logs: `%APPDATA%/clipflow/logs/`
+- Pipeline logs: `processing/logs/`
+- Dev dashboard: Settings > click version 7x > purple card
+- To see the actual prompts sent to the model: check pipeline logs, they include the full system prompt
