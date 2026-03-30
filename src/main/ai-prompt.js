@@ -1,93 +1,160 @@
 const gameProfiles = require("./game-profiles");
 
+// ── Default Creator Profile (Fega) ──
+// Goal B will migrate this into electron-store as `creatorProfile`.
+// For now, this is the hardcoded default used when no profile exists.
+const DEFAULT_CREATOR_PROFILE = {
+  name: "Fega",
+  archetype: "hype",
+  description: `High energy & hype: Genuinely loud and reactive. Gets excited easily. Celebrations are big and loud.
+Fake rage: ALL dramatic negative reactions are for entertainment. "GET HIM OUT OF MY FACE" means he scored or made a great play. He is NEVER actually angry. Interpret aggression as hype.
+Self-deprecating: Constantly roasts his own gameplay. Bad aim, wrong decisions, forgetting items — all comedy material he leans into.
+Community first: Talks TO chat, not AT them. Reads names, responds mid-game, acknowledges everyone who shows up.
+Sarcasm: Delivered dry, often at peak energy. The contrast makes it land.
+Always fun: These games are ALWAYS ultimately a fun time. Never interpret his commentary as genuine negativity.`,
+  signaturePhrases: [
+    "Oh my goodness", "bruh", "lads", "boys", "bro", "man",
+    "by fire by force", "oh goodness gracious", "let's freaking go",
+    "it's giving", "that is dangerous",
+  ],
+  momentPriorities: ["funny", "emotional", "clutch", "fails"],
+};
+
 /**
- * Build the full Claude system prompt for highlight detection.
- * Sections A–F per the ClipFlow AI Spec.
+ * Build the full system prompt for highlight detection.
+ * Structured for model-agnostic reliability — any LLM should produce
+ * clean, parseable, high-quality output from this prompt.
  *
  * @param {object} opts
  * @param {string} opts.gameTag - Game tag (e.g. "AR")
  * @param {string} opts.gameName - Game display name
- * @param {string} opts.gameContext - AI-researched game description (from game library)
- * @param {Array} opts.approvedClips - Last 20 approved clips from feedback.db
+ * @param {string} opts.gameContext - AI-researched game description
+ * @param {Array} opts.approvedClips - Approved clips from feedback.db
+ * @param {object} [opts.creatorProfile] - Creator profile (falls back to DEFAULT_CREATOR_PROFILE)
  * @returns {string} Full system prompt
  */
-function buildSystemPrompt({ gameTag, gameName, gameContext, approvedClips }) {
+function buildSystemPrompt({ gameTag, gameName, gameContext, approvedClips, creatorProfile }) {
+  const creator = creatorProfile || DEFAULT_CREATOR_PROFILE;
   const sections = [];
 
-  // Section A — Who Fega Is (Static)
-  sections.push(`You are identifying highlights for a gaming content creator named Fega (Oghenefega Ofovwe), a Nigerian-Canadian solo streamer based in Ottawa. His brand is built on high energy, humor, and genuine community connection. He streams Monday–Saturday at 5pm and posts 48 shorts per week. His audience expects entertainment first — not pro-level gameplay.
+  // ── Section 1: Task Definition ──
+  sections.push(`# TASK
 
-You are analyzing a transcript from one of his gaming sessions. Your job is to identify 15–20 moments that would make the best short-form clips (30–90 seconds each).`);
+You are a clip detection AI. You analyze gaming video transcripts and energy data to identify the best moments for short-form content (YouTube Shorts, TikTok, Instagram Reels).
 
-  // Section B — Fega's Streaming Personality (Static)
-  sections.push(`FEGA'S STREAMING PERSONALITY:
+You will receive:
+1. A full transcript with per-line energy labels (low / medium / high / explosive)
+2. Screenshot frames from peak-energy moments
 
-- High energy & hype: Genuinely loud and reactive. Gets excited easily. Celebrations are big and loud.
-- Fake rage: ALL dramatic negative reactions are for entertainment. "GET HIM OUT OF MY FACE" means he scored or made a great play. He is NEVER actually angry. Interpret aggression as hype.
-- Self-deprecating: Constantly roasts his own gameplay. Bad aim, wrong decisions, forgetting items — all comedy material he leans into.
-- Community first: Talks TO chat, not AT them. Reads names, responds mid-game, acknowledges everyone who shows up.
-- Sarcasm: Delivered dry, often at peak energy. The contrast makes it land.
-- Signature phrases: "Oh my goodness", "bruh", "lads", "boys", "bro", "man", "by fire by force", "oh goodness gracious", "let's freaking go", "it's giving", "that is dangerous"
-- Always fun: These games are ALWAYS ultimately a fun time. Never interpret his commentary as genuine negativity.`);
+You must return: a JSON array of 10-25 clip recommendations, ordered by confidence (highest first).`);
 
-  // Section C — Game Context (Dynamic)
+  // ── Section 2: Creator Profile ──
+  let creatorSection = `# CREATOR PROFILE
+
+Name: ${creator.name || "Unknown"}
+Content archetype: ${creator.archetype || "variety"}`;
+
+  if (creator.description) {
+    creatorSection += `\n\nPersonality & style:\n${creator.description}`;
+  }
+
+  if (creator.signaturePhrases && creator.signaturePhrases.length > 0) {
+    creatorSection += `\n\nSignature phrases: "${creator.signaturePhrases.join('", "')}"`;
+  }
+
+  sections.push(creatorSection);
+
+  // ── Section 3: Game Context ──
   const profile = gameProfiles.getProfile(gameTag);
-  let gameSection = `GAME: ${gameName || gameTag}\n`;
+  let gameSection = `# GAME CONTEXT
+
+Game: ${gameName || gameTag}`;
   if (gameContext) {
-    gameSection += `\nGAME KNOWLEDGE:\n${gameContext}\n`;
+    gameSection += `\n\nAbout this game:\n${gameContext}`;
   }
   if (profile && profile.playStyle) {
-    gameSection += `\nFEGA'S PLAY STYLE FOR THIS GAME:\n${profile.playStyle}`;
+    gameSection += `\n\nHow this creator plays ${gameName || gameTag}:\n${profile.playStyle}`;
   }
   sections.push(gameSection);
 
-  // Section D — What Makes a Great Clip (Static)
-  sections.push(`WHAT MAKES A GREAT CLIP FOR FEGA:
+  // ── Section 4: Clip Selection Rules ──
+  // Order PICK criteria based on creator's momentPriorities
+  const pickCriteria = buildPickCriteria(creator.momentPriorities || ["funny", "clutch", "emotional", "fails"]);
 
-PICK moments that have:
-- HIGH energy combined with funny or chaotic context
-- A clear narrative arc — buildup → payoff (even if the payoff is failure or embarrassment)
-- Self-aware humor about doing something dumb or risky
-- Chat interaction that leads to a funny discovery or moment
-- Near-death, panic, or impossible situations
-- Sarcastic commentary delivered at peak energy
-- Genuine disbelief — "wait WHAT?", "since when??", "how??"
-- Villainous confidence — "what I had planned for him"
-- Teammate moments — dramatic apologies, celebrations, miscommunications
-- The contrast between what he says he'll do and what actually happens
+  sections.push(`# CLIP SELECTION RULES
 
-AVOID moments that have:
-- Quiet looting or exploring with no commentary
-- Menu navigation or crafting with no energy or humor
-- Generic damage taken with no reaction
-- Pure tutorial or explanation segments
-- Moments that require 2+ minutes of context to understand why they're funny
-- Flat delivery with no arc`);
+## What to PICK (in priority order):
+${pickCriteria}
 
-  // Section E — Output Format (Static)
-  sections.push(`Return ONLY a valid JSON array. No preamble, no explanation, no text outside the JSON.
-Target 15–20 clips. Order by confidence descending.
+## What to AVOID:
+1. Quiet segments with no commentary or energy (looting, menu navigation, loading screens)
+2. Moments that require more than 90 seconds of context to understand
+3. Pure tutorial or explanation segments with flat delivery
+4. Generic damage taken or deaths with no reaction
+5. Moments where the creator is AFK, silent, or distracted
+6. Duplicate moments — if two clips overlap by more than 50%, keep only the better one`);
 
-Format:
-[
-  {
-    "clip_number": 1,
-    "start": "HH:MM:SS",
-    "end": "HH:MM:SS",
-    "title": "max 8 words, punchy, YouTube Shorts style",
-    "why": "1-2 sentences explaining exactly why this works for Fega's audience",
-    "peak_quote": "the exact transcript line that is the funniest or most hype moment",
-    "energy_level": "HIGH or MED or LOW",
-    "has_frame": true or false,
-    "confidence": 0.0 to 1.0
-  }
-]`);
+  // ── Section 5: Clip Boundary Rules ──
+  sections.push(`# CLIP BOUNDARY RULES
 
-  // Section F — Few-Shot Examples (Dynamic)
+1. Every clip MUST be between 30 and 90 seconds long
+2. Never start a clip mid-sentence — find a natural speech boundary
+3. Never end a clip abruptly — include at least 2-3 seconds of reaction after the peak moment
+4. Start clips 3-5 seconds BEFORE the action begins (setup matters for narrative arc)
+5. The best clips have a clear structure: setup > escalation > peak moment > reaction
+6. If a moment needs more than 90 seconds to land, it is not a good short-form clip — skip it
+7. Timestamps must match the transcript — do not invent timestamps that don't appear in the source`);
+
+  // ── Section 6: Output Format (JSON Schema) ──
+  sections.push(`# OUTPUT FORMAT
+
+Return ONLY a valid JSON array. Your entire response must be parseable by JSON.parse() with zero modifications.
+
+## Schema — each element in the array:
+
+{
+  "clip_number": <integer, sequential starting at 1>,
+  "start": <string, format "HH:MM:SS", must exist in transcript>,
+  "end": <string, format "HH:MM:SS", must be after start, clip duration 30-90 seconds>,
+  "title": <string, 3-8 words, punchy short-form style, capitalize first letter of each major word>,
+  "why": <string, 1-2 sentences explaining why this moment works as a clip>,
+  "peak_quote": <string, the exact funniest or most hype line from the transcript within this clip's time range>,
+  "energy_level": <string, one of: "LOW", "MED", "HIGH", "EXPLOSIVE">,
+  "has_frame": <boolean, true if a provided screenshot falls within this clip's time range>,
+  "confidence": <number, 0.50 to 1.00, how confident you are this is a great clip>
+}
+
+## Constraints:
+- Return 10 to 25 clips total
+- Order by confidence descending (best clips first)
+- clip_number must be sequential: 1, 2, 3, ...
+- start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")
+- end must use format HH:MM:SS (zero-padded)
+- end minus start must be between 30 and 90 seconds
+- energy_level must be exactly one of: "LOW", "MED", "HIGH", "EXPLOSIVE"
+- confidence must be a decimal number between 0.50 and 1.00
+- has_frame must be a boolean (true or false), not a string
+- peak_quote must be a direct quote from the transcript, not paraphrased
+- No two clips should overlap by more than 50% of their duration
+
+## DO NOT:
+- Do not wrap the JSON in markdown code fences
+- Do not add any text, explanation, or commentary before or after the JSON array
+- Do not use placeholder values like "..." or "etc"
+- Do not return confidence as a string (use 0.85 not "0.85" or "high")
+- Do not return fewer than 10 clips unless the video genuinely has fewer than 10 interesting moments
+- Do not repeat the same title pattern across multiple clips`);
+
+  // ── Section 7: Few-Shot Examples ──
+  // Three-tier system: archetypes for cold start, real clips when available
+  // Goal B will add Tier 1 (archetype examples) and Tier 2 (blending).
+  // For now, only Tier 3 (real approved clips) is implemented.
   if (approvedClips && approvedClips.length >= 5) {
-    let fewShot = `CLIPS FEGA HAS PREVIOUSLY APPROVED FOR ${gameName || gameTag}:\nUse these as calibration for his taste. Prioritize similar moments.\n`;
+    let fewShot = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
+
+Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
     for (const clip of approvedClips.slice(0, 20)) {
-      fewShot += `\n- Timestamp: ${clip.clip_start} → ${clip.clip_end}`;
+      fewShot += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
       fewShot += `\n  Title: ${clip.title || "(untitled)"}`;
       fewShot += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
       fewShot += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
@@ -100,13 +167,64 @@ Format:
 }
 
 /**
- * Build the user message content array for the Claude API call.
+ * Build PICK criteria ordered by the creator's moment priorities.
+ * Each priority maps to specific selection criteria.
+ *
+ * @param {string[]} priorities - Ranked list e.g. ["funny", "clutch", "emotional", "fails"]
+ * @returns {string} Numbered list of pick criteria
+ */
+function buildPickCriteria(priorities) {
+  const criteriaMap = {
+    funny: [
+      "HIGH energy combined with humor, sarcasm, or chaotic context",
+      "Self-aware comedy — creator roasting their own gameplay, bad decisions, or missed shots",
+      "The contrast between what they say they'll do and what actually happens",
+    ],
+    clutch: [
+      "Near-death survival, impossible wins, or comeback moments",
+      "Intense focus followed by explosive celebration or disbelief",
+      "Villainous confidence — 'watch what I do to this guy' energy",
+    ],
+    emotional: [
+      "Genuine reactions of surprise, shock, or disbelief ('wait WHAT?', 'since when??')",
+      "Big celebrations — hype moments where energy peaks",
+      "Teammate moments — dramatic apologies, miscommunications, shared victories",
+    ],
+    fails: [
+      "Spectacular failures that the creator reacts to with humor, not genuine frustration",
+      "Overconfident predictions followed by immediate punishment",
+      "Moments so bad they loop back around to being entertaining",
+    ],
+  };
+
+  const lines = [];
+  let num = 1;
+  for (const priority of priorities) {
+    const criteria = criteriaMap[priority];
+    if (criteria) {
+      for (const line of criteria) {
+        lines.push(`${num}. ${line}`);
+        num++;
+      }
+    }
+  }
+
+  // Always include these universal criteria at the end
+  lines.push(`${num}. Chat interaction that leads to a funny discovery or moment`);
+  num++;
+  lines.push(`${num}. A clear narrative arc — buildup followed by payoff (even if the payoff is failure)`);
+
+  return lines.join("\n");
+}
+
+/**
+ * Build the user message content array for the API call.
  * Includes the full transcript text and frame images.
  *
  * @param {object} opts
  * @param {string} opts.claudeReadyText - Full transcript with energy labels
  * @param {Array<{path: string, timestamp: string}>} opts.frames - Frame image paths + timestamps
- * @returns {Array} Content array for Claude API message
+ * @returns {Array} Content array for API message
  */
 function buildUserContent({ claudeReadyText, frames }) {
   const content = [];
@@ -148,6 +266,46 @@ function buildUserContent({ claudeReadyText, frames }) {
 }
 
 /**
+ * Extract valid JSON from an LLM response that may contain extra text,
+ * markdown fences, or preamble. Works across all model providers.
+ *
+ * @param {string} raw - Raw LLM response text
+ * @param {"array"|"object"} expectedType - Whether to look for [ ] or { }
+ * @returns {any} Parsed JSON
+ * @throws {Error} If no valid JSON found
+ */
+function extractJSON(raw, expectedType = "array") {
+  if (!raw || typeof raw !== "string") {
+    throw new Error("Empty or non-string response from LLM");
+  }
+
+  let text = raw;
+
+  // Strip markdown code fences if present
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    text = fenceMatch[1];
+  }
+
+  text = text.trim();
+
+  // Find the JSON boundaries based on expected type
+  const openChar = expectedType === "array" ? "[" : "{";
+  const closeChar = expectedType === "array" ? "]" : "}";
+
+  const startIdx = text.indexOf(openChar);
+  const endIdx = text.lastIndexOf(closeChar);
+
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+    throw new Error(`No valid JSON ${expectedType} found in response. Raw starts with: ${raw.substring(0, 200)}`);
+  }
+
+  const jsonStr = text.substring(startIdx, endIdx + 1);
+
+  return JSON.parse(jsonStr);
+}
+
+/**
  * Parse a timestamp string "HH:MM:SS" to seconds.
  */
 function parseTimestamp(ts) {
@@ -170,6 +328,8 @@ function formatTimestamp(seconds) {
 module.exports = {
   buildSystemPrompt,
   buildUserContent,
+  extractJSON,
   parseTimestamp,
   formatTimestamp,
+  DEFAULT_CREATOR_PROFILE,
 };

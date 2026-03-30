@@ -289,15 +289,10 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
 
   if (!text) throw new Error("Empty response from LLM provider");
 
-  // Parse JSON — may have markdown fences
-  let jsonStr = text;
-  const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch) jsonStr = jsonMatch[1];
-  jsonStr = jsonStr.trim();
-
+  // Robust JSON extraction — handles markdown fences, preamble text, etc.
   let clips;
   try {
-    clips = JSON.parse(jsonStr);
+    clips = aiPrompt.extractJSON(text, "array");
   } catch (e) {
     logger.logOutput("RAW_RESPONSE", text);
     throw new Error(`LLM returned invalid JSON: ${e.message}`);

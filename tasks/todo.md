@@ -98,6 +98,95 @@ Split the current single "+ Meta" OAuth into two independent connections: "+ Ins
 
 ---
 
+## 🔲 Planned — Goal B: Cold-Start Architecture + Creator Profile System
+
+> **Prerequisite:** Goal A (prompt redesign for model-agnosticism) must be completed first. After Goal A, both prompts read creator personality/style from a `creatorProfile` object instead of hardcoded Fega strings. Goal B builds the data layer and blending logic that feeds that profile.
+
+### Problem
+
+New users have zero approved clips. The few-shot examples in the highlight detection prompt come entirely from the feedback database (last 20 approved clips). Without history, the AI has no reference for what "good" looks like for a given creator.
+
+### Deliverable 1 — Three-Tier Example Blending System
+
+Build in `ai-prompt.js` prompt construction logic:
+
+- **Tier 1 — Cold start (0 approved clips):** Use 3-5 static archetype examples selected by `creatorProfile.archetype`
+- **Tier 2 — Warming up (1-19 approved clips):** Blend real approved clips + static archetype examples, pad to minimum 5 total. Real clips accumulate → static examples phase out naturally
+- **Tier 3 — Dialed in (20+ approved clips):** Only real approved clips (current behavior). No static examples
+
+The existing gate in `ai-prompt.js` line 87 (`if (approvedClips && approvedClips.length >= 5)`) already does tier separation — add Tier 1 fallback and Tier 2 blending.
+
+### Deliverable 2 — Static Archetype Examples
+
+Create `src/main/data/archetype-examples.json` — 5 example clips per archetype, 20 total.
+
+**Archetypes:**
+
+1. **"hype"** — High energy, reactions, chaos. Screaming reactions, unexpected moments, funny fails, over-the-top celebrations. Punchy, exclamatory titles.
+2. **"competitive"** — Skilled plays, clutch moments. 1vX clutches, perfect strategies, rank-ups, close wins. Titles highlight skill/achievement.
+3. **"chill"** — Commentary, storytelling, laid-back. Interesting observations, educational plays, relaxed banter. Conversational, understated titles.
+4. **"variety"** — Balanced mix of all three. Default for users who don't pick a specific archetype.
+
+Each example clip includes: `start`, `end` (fake timestamps for format), `title`, `confidence`, `energy`, `reason`, `peak_quote`.
+
+**Important:** After generating, Fega must manually review all 20 examples to verify quality.
+
+### Deliverable 3 — Creator Profile Data Model
+
+Add to electron-store settings:
+
+```javascript
+creatorProfile: {
+  archetype: "hype" | "competitive" | "chill" | "variety",
+  description: "",        // optional free-text personality description
+  momentPriorities: ["funny", "clutch", "emotional", "fails"],  // RANKED list, not toggles
+  voiceMode: "hype" | "chill"
+}
+```
+
+**Design decision:** Moment preferences are a RANKED LIST, not boolean toggles. AI always looks for everything but weights/ranks based on priority order. A funny clutch play should never be filtered out.
+
+**Defaults (before onboarding):** archetype: "variety", description: "", momentPriorities: all included in default order, voiceMode: "hype".
+
+### Deliverable 4 — Prompt Builder Integration
+
+In `ai-prompt.js`:
+
+1. Read `creatorProfile` from settings
+2. If `description` is non-empty → use as creator personality section
+3. If `description` is empty → generate generic personality from archetype
+4. Use `momentPriorities` as weighted signals in PICK criteria ordering
+5. Select static archetype examples based on `archetype` field
+6. Blend with real approved clips using three-tier system
+
+### Deliverable 5 — Fega Migration
+
+- Migrate hardcoded personality (Sections A+B in `ai-prompt.js`) into `creatorProfile.description`
+- Set archetype: "hype", momentPriorities: ["funny", "emotional", "clutch", "fails"]
+- After Goal A, prompts already read from `creatorProfile` — migration just populates Fega's data
+
+### Onboarding UI (FUTURE — separate task, not Goal B)
+
+- First-launch wizard: "What's your content vibe?" → archetype selection
+- Moment priority ranking (drag to reorder)
+- Optional free-text personality description
+- Per-game setup: "How do you play this game?"
+
+### Files to modify
+
+- `src/main/ai-prompt.js` — three-tier blending, read from creatorProfile
+- `src/main/main.js` — creatorProfile store defaults, Fega migration
+- New: `src/main/data/archetype-examples.json`
+
+### Verification
+
+- [ ] Cold start: 0 approved clips + archetype set → prompt includes archetype examples
+- [ ] Warming up: 3 approved clips → prompt includes 3 real + 2 archetype = 5 total
+- [ ] Dialed in: 20+ approved clips → only real clips, no archetypes
+- [ ] Fega's pipeline works identically after migration
+
+---
+
 ## 🔲 Planned — Backend Infrastructure for Commercial Launch
 
 > All items labeled `milestone: commercial-launch` on GitHub. Build order reflects dependencies.

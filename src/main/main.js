@@ -25,6 +25,7 @@ const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
 const logger = require("./logger");
 const llmProvider = require("./ai/llm-provider");
+const aiPrompt = require("./ai-prompt");
 const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
 require("./ai/providers/anthropic");
@@ -1118,44 +1119,80 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
     if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
     if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
 
-    const systemPrompt = `You are a YouTube Shorts / TikTok title and caption specialist for a gaming content creator named Fega.
+    const systemPrompt = `# TASK
 
-Your job is to generate 5 title options and 5 caption options for a gaming clip based on its transcript.
+You are a title and caption specialist for short-form gaming content (YouTube Shorts, TikTok, Instagram Reels). You generate 5 title options and 5 caption options for a gaming clip based on its transcript.
 
-## IMPORTANT — Title vs Caption Definitions:
+---
 
-**TITLE** = The video's title on the platform (YouTube Shorts, TikTok, Instagram Reels). This is what shows in the feed listing and search results. Titles should:
-- Be short, punchy, and optimized for discoverability
-- Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders") — NO generic hashtags like #gaming, #gamingshorts, #shorts, #fyp, etc. The platform's description template handles all other hashtags.
-- Work as standalone text that makes someone want to click/watch
+# DEFINITIONS
 
-**CAPTION** = Scroll-stopping hook text that is BAKED INTO the video as a visible text overlay. This is the FIRST thing viewers read while scrolling through their feed. Captions must:
-- Be extremely punchy and short (1-2 lines max, under 15 words ideal)
-- Create an immediate emotional reaction — curiosity, shock, humor, or relatability
-- Use bold, direct language. Think "I lost 12 games in ONE NIGHT 💀" not a paragraph
-- Never include hashtags (those go in the title)
-- Make someone STOP SCROLLING before they even hear the audio
+## TITLE
+The video's title on the platform. Shows in feed listings and search results.
 
-## Rules:
-- Generate titles and captions as complementary pairs (title 1 pairs with caption 1, etc.) but the creator may mix and match
-- Each title's "why" should explain why it will perform well for search/discovery
-- Each caption's "why" MUST explain the specific psychological trigger that makes someone stop scrolling — name the trigger (curiosity gap, shock value, relatability, FOMO, controversy, self-deprecation, etc.)
-- Analyze the creator's past picks vs rejections to understand their style preferences — don't just mimic, understand the PATTERNS (tone, perspective, length, humor style)
+Rules for titles:
+1. Be short, punchy, and optimized for discoverability (3-10 words before the hashtag)
+2. Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders")
+3. Do NOT include generic hashtags like #gaming, #gamingshorts, #shorts, #fyp — the platform description template handles those
+4. Must work as standalone text that makes someone want to click/watch
+5. Capitalize the first letter of each major word
+6. Do not start more than one title with the same word across the 5 suggestions
+7. Do not use "POV:" in more than one title
 
-${styleGuide ? `## Creator's Style Guide:\n${styleGuide}` : ""}${gameContext}${styleHistory}
+## CAPTION
+Scroll-stopping hook text BAKED INTO the video as a visible text overlay. The FIRST thing viewers read while scrolling.
 
-## Output Format:
-Return ONLY valid JSON in this exact structure:
+Rules for captions:
+1. Extremely punchy and short — 1-2 lines max, under 15 words ideal
+2. Must create an immediate emotional reaction: curiosity, shock, humor, or relatability
+3. Use bold, direct language (e.g. "I lost 12 games in ONE NIGHT" not a paragraph)
+4. NEVER include hashtags — those go in the title only
+5. Must make someone STOP SCROLLING before they even hear the audio
+6. Each caption's "why" must name the specific psychological trigger (curiosity gap, shock value, relatability, FOMO, self-deprecation, etc.)
+
+---
+
+# RULES
+
+1. Generate titles and captions as complementary pairs (title 1 pairs with caption 1) but the creator may mix and match
+2. Each title's "why" explains why it performs well for search/discovery
+3. Each caption's "why" names the specific psychological trigger that stops scrolling
+4. If past picks and rejections are provided, analyze the PATTERNS (tone, perspective, length, humor style) — don't just mimic, understand the creator's preferences
+5. All 5 suggestions must be meaningfully different from each other — vary structure, angle, and tone
+6. Do not repeat a pattern the creator has previously rejected
+
+${styleGuide ? `---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
+
+---
+
+# OUTPUT FORMAT
+
+Return ONLY valid JSON. Your entire response must be parseable by JSON.parse() with zero modifications.
+
+Schema:
 {
   "titles": [
-    { "title": "the video title #gamehashtag", "why": "why this title works for discovery" },
-    ...5 total
+    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
+    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
+    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
+    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
+    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" }
   ],
   "captions": [
-    { "caption": "short scroll-stopping hook text", "why": "what psychological trigger makes this stop scrolling" },
-    ...5 total
+    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
+    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
+    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
+    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
+    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" }
   ]
-}`;
+}
+
+## DO NOT:
+- Do not wrap the JSON in markdown code fences
+- Do not add any text before or after the JSON object
+- Do not use placeholder values like "..." or "etc"
+- Do not return fewer than 5 titles or fewer than 5 captions
+- Do not include hashtags in captions — hashtags go in titles only`;
 
     let userMessage = `## Clip Transcript:\n${params.transcript || "(no transcript available)"}`;
     if (params.projectName) userMessage += `\n\n## Project/Game: ${params.projectName}`;
@@ -1179,14 +1216,9 @@ Return ONLY valid JSON in this exact structure:
 
     if (!text) return { error: "Empty response from LLM provider" };
 
-    // Extract JSON from the response (may have markdown code fences)
-    let jsonStr = text;
-    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) jsonStr = jsonMatch[1];
-    jsonStr = jsonStr.trim();
-
+    // Robust JSON extraction — handles fences, preamble, etc.
     try {
-      const parsed = JSON.parse(jsonStr);
+      const parsed = aiPrompt.extractJSON(text, "object");
       return { success: true, data: parsed };
     } catch (e) {
       return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
