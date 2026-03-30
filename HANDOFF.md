@@ -1,62 +1,64 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-30 (Goal B: Cold-Start Architecture + Creator Profile System)_
+_Last updated: 2026-03-30 (Onboarding Wizard + AI Preferences UI)_
 
 ## Current State
-App builds clean and runs correctly. Three-tier few-shot blending system is live, creator profile migrated from hardcoded default to electron-store, archetype examples file created.
+App builds clean and runs correctly. Onboarding wizard and Settings AI Preferences section are live. All 3 onboarding screens render and function. Existing users with configured profiles auto-skip onboarding.
 
 ## What Was Just Built
 
-### Goal B: Cold-Start Architecture (commit 32c6c85)
+### Onboarding Wizard (commit b3ee2bf)
 
-- **Three-tier few-shot blending** in `ai-prompt.js`:
-  - Tier 1 (0 approved clips): 5 static archetype examples labeled as "Reference Format"
-  - Tier 2 (1-19 clips): real approved clips first + static padding to reach minimum 5
-  - Tier 3 (20+ clips): only real approved clips, no static examples
-  - Gradual transition — static examples phase out naturally as real clips accumulate
+- **OnboardingView.js** — 3-screen first-launch wizard:
+  - Screen 1: "What's your content vibe?" — 4 archetype cards (hype, competitive, chill, variety) with visual selection
+  - Screen 2: "What moments matter most?" — 6 moment types with up/down arrow ranking, pre-populated order per archetype
+  - Screen 3: "Describe your style" — optional personality textarea + hype/chill voice mode toggle
+  - Skip option on every screen, safety fallback if store write fails
 
-- **Archetype examples file** (`src/main/data/archetype-examples.json`):
-  - 20 examples total: 5 per archetype (hype, competitive, chill, variety)
-  - Structure-focused: proper timestamps, narrative arcs, JSON format, confidence scoring
-  - Personality-neutral — archetypes vary moment TYPE, not creator voice
+- **App.js onboarding gate** — checks `onboardingComplete` flag from store, renders OnboardingView as full-screen overlay when false
 
-- **Creator profile data model** in electron-store:
-  - Fields: `archetype`, `description`, `signaturePhrases`, `momentPriorities`, `voiceMode`
-  - Generic defaults: archetype "variety", empty description, standard priority order
-  - Migration detects empty description and populates Fega's personality data
+- **AI Preferences in Settings** — full editor section with:
+  - Compact archetype selector (pill buttons)
+  - Moment priority list with up/down arrows + "Reset to default" per archetype
+  - Style description textarea (auto-saves on change)
+  - Voice mode toggle (Hype/Chill)
+  - "Reset AI preferences" with confirmation dialog (preserves feedback.db)
+  - "Re-run onboarding" button (sets flag to false + reloads)
 
-- **Prompt builder integration**:
-  - `buildSystemPrompt()` reads `creatorProfile` from store (passed by ai-pipeline.js)
-  - Empty description falls back to `getArchetypePersonality()` generic blurb
-  - `DEFAULT_CREATOR_PROFILE` is now a generic fallback, not Fega-specific
+- **6 moment types** (expanded from 4):
+  - funny, clutch, emotional, fails + NEW: skillful, educational
+  - Each has 3 criteria lines in `buildPickCriteria()` in ai-prompt.js
+  - Migration expands existing 4-item arrays to 6
 
-- **Fega migration**:
-  - Hardcoded Fega personality moved from `DEFAULT_CREATOR_PROFILE` to electron-store
-  - Migration runs on startup if `creatorProfile.description` is empty
-  - Pipeline output should be identical to pre-migration behavior
+- **Migrations:**
+  - Removed Fega hardcoded profile migration (onboarding replaces it)
+  - Added momentPriorities 4→6 expansion for existing users
+  - Added auto-complete onboarding for users with existing non-empty description
 
 ## Key Decisions
-- **Archetype examples teach structure, not style** — they show proper clip boundaries, narrative arcs, and JSON format. Creator personality comes from real approved clips, not static examples
-- **momentPriorities is a ranked list, not toggles** — AI always looks for ALL moment types, ranking determines emphasis order in PICK criteria
-- **Migration detects empty description** — `store.has()` always returns true when key is in defaults, so we check `!existingProfile.description` instead
-- **No onboarding UI in Goal B** — data layer only. Fega's profile populated via migration; fresh installs get "variety" defaults until onboarding is built
-- **One-time onboarding philosophy** — competitive differentiator vs Opus Clip's per-video genre selection. ClipFlow already knows it's gaming content
+- **Up/down arrows instead of drag-and-drop** — no DnD library in project, arrows are reliable and simple
+- **Pre-populated moment order per archetype** — picking Hype pre-sorts to funny/emotional/fails first, feels smart
+- **No creator name collection** — pipeline doesn't use it meaningfully, kept field in data model for future use
+- **onboardingComplete boolean as primary gate** — not archetype value, avoids false trigger for genuine "variety" users
+- **Store write safety fallback** — wizard tracks completion in React state too, so store failure doesn't trap user
+- **Reset preserves feedback.db** — preferences vs. history are separate concerns
+- **Settings saves immediately on interaction** — matches existing SettingsView pattern (no explicit Save button)
 
 ## Next Steps
-1. **Test the three-tier system end-to-end** — process a video and verify prompt includes archetype examples (cold start) or real clips (if Fega has approved clips in feedback.db)
-2. **Review archetype examples** — Fega should read `src/main/data/archetype-examples.json` and verify quality of all 20 examples
-3. **Test title/caption generation** in the editor with the new profile system
-4. **Onboarding UI** (separate task) — archetype picker, priority ranker, optional personality description
-5. **Remaining from previous sessions**: test publishing pipeline, fix Issue #12 (undo debounce), Meta app review, swap to non-Anthropic provider for testing
+1. **Test onboarding with a fresh store** — delete `clipflow-settings.json` from AppData, verify wizard appears and completes correctly
+2. **Verify Settings AI Preferences** — open Settings, check that profile data from onboarding shows correctly, test editing and reset
+3. **Test the AI pipeline** with the new 6 moment types — process a video, verify "skillful" and "educational" criteria appear in the system prompt
+4. **Remaining from previous sessions**: test publishing pipeline, fix Issue #12 (undo debounce), Meta app review, IG/FB OAuth split
 
 ## Watch Out For
-- **Fega migration runs every startup while description is empty** — once Fega's profile is populated (which it is now), the `!existingProfile.description` check prevents re-migration. But if someone manually clears the description, migration will re-run and overwrite with Fega's data. This is fine for now (single user) but needs revisiting before multi-user launch
-- **`creatorProfile` in store defaults vs migration** — the defaults have generic "variety" archetype, but migration immediately overwrites with Fega's "hype" data. For a fresh install that ISN'T Fega, the migration would still set Fega's personality. Remove the Fega migration before public release
-- **`archetype` variable scoped in buildSystemPrompt** — extracted early (line 45) and passed to `buildFewShotSection()`. If you refactor the prompt builder, keep this variable available for both Section 2 and Section 7
-- **Game research still hardcoded to claude-opus-4-6** — unchanged from previous sessions
+- **Two ClipFlow electron windows listed** during testing — one is the main window, one may be a ghost from a previous session. Use task manager to kill all electron.exe before relaunching
+- **Display scaling affects MCP click coordinates** — the 1920x617 resolution suggests non-standard scaling. Button clicks may need adjustment during automated testing
+- **Fega's profile still has old 4-item momentPriorities in store** until migration runs — the migration appends "skillful" and "educational" on next startup
+- **`onboardingComplete` defaults to `false`** in store schema — fresh installs will always show onboarding (correct behavior)
 
 ## Logs/Debugging
 - App logs: `%APPDATA%/clipflow/logs/`
 - Pipeline logs: `processing/logs/`
 - Dev dashboard: Settings > click version 7x > purple card
-- Migration log: look for "Migrated Fega creatorProfile into electron-store" in startup logs
-- To verify tier selection: check pipeline logs for the system prompt — Section 7 header will say "EXAMPLE CLIPS (Reference Format)" for Tier 1, "EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED" for Tier 2/3
+- Onboarding migration log: look for "Auto-completed onboarding for existing configured profile" in startup logs
+- MomentPriorities migration log: look for "Migrated momentPriorities: added skillful + educational"
+- Store file: `%APPDATA%/clipflow-settings/clipflow-settings.json` — check `onboardingComplete` and `creatorProfile` keys
