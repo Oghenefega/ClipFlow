@@ -1,61 +1,62 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-30 (AI Prompt Redesign for Model-Agnostic Reliability)_
+_Last updated: 2026-03-30 (Goal B: Cold-Start Architecture + Creator Profile System)_
 
 ## Current State
-App builds clean and runs correctly. Both AI prompts (highlight detection + title/caption generation) have been redesigned for model-agnostic reliability. Provider abstraction layer from previous session remains unchanged and working.
+App builds clean and runs correctly. Three-tier few-shot blending system is live, creator profile migrated from hardcoded default to electron-store, archetype examples file created.
 
 ## What Was Just Built
 
-### AI Prompt Redesign — Goal A (commit 4eec903)
+### Goal B: Cold-Start Architecture (commit 32c6c85)
 
-**Highlight Detection** (`src/main/ai-prompt.js` — full rewrite):
-- 7 structured sections with `#` headers instead of prose blobs
-- Explicit JSON schema with typed constraints per field (confidence 0.50-1.00 as number, timestamps HH:MM:SS zero-padded, clip duration 30-90s, energy_level must be one of LOW/MED/HIGH/EXPLOSIVE)
-- Numbered rules: 7 clip boundary rules, 14 priority-ordered pick criteria, 6 avoid criteria
-- `buildPickCriteria()` function reorders selection rules based on creator's `momentPriorities` ranking
-- Parameterized creator profile — reads from `creatorProfile` object, falls back to `DEFAULT_CREATOR_PROFILE` (current Fega personality data)
-- DO/DO NOT output guardrails near the JSON schema
-- Few-shot section annotated with Tier 1/2/3 comments ready for Goal B
+- **Three-tier few-shot blending** in `ai-prompt.js`:
+  - Tier 1 (0 approved clips): 5 static archetype examples labeled as "Reference Format"
+  - Tier 2 (1-19 clips): real approved clips first + static padding to reach minimum 5
+  - Tier 3 (20+ clips): only real approved clips, no static examples
+  - Gradual transition — static examples phase out naturally as real clips accumulate
 
-**Title/Caption Generation** (`src/main/main.js` handler):
-- All 5 title slots and 5 caption slots shown explicitly in schema (no `...5 total` patterns)
-- Separated title rules (7 numbered) and caption rules (6 numbered)
-- Field constraints inline in schema: `<string, 3-10 words + #gamehashtag>`, `<string, under 15 words, no hashtags>`
-- DO NOT guardrails block
+- **Archetype examples file** (`src/main/data/archetype-examples.json`):
+  - 20 examples total: 5 per archetype (hype, competitive, chill, variety)
+  - Structure-focused: proper timestamps, narrative arcs, JSON format, confidence scoring
+  - Personality-neutral — archetypes vary moment TYPE, not creator voice
 
-**Robust JSON Parsing** (both files):
-- New `extractJSON(raw, expectedType)` utility in `ai-prompt.js` — exported for shared use
-- Handles: markdown fences, preamble text before JSON, trailing text after JSON
-- Finds first `[`/`{` and last `]`/`}` based on expected type — belt-and-suspenders approach
-- Used by both `ai-pipeline.js` (highlight detection) and `main.js` (title/caption gen)
+- **Creator profile data model** in electron-store:
+  - Fields: `archetype`, `description`, `signaturePhrases`, `momentPriorities`, `voiceMode`
+  - Generic defaults: archetype "variety", empty description, standard priority order
+  - Migration detects empty description and populates Fega's personality data
 
-### Goal B Spec Written to tasks/todo.md
-Full cold-start architecture spec for next session — three-tier example blending, archetype examples file, creator profile data model, Fega migration, verification criteria.
+- **Prompt builder integration**:
+  - `buildSystemPrompt()` reads `creatorProfile` from store (passed by ai-pipeline.js)
+  - Empty description falls back to `getArchetypePersonality()` generic blurb
+  - `DEFAULT_CREATOR_PROFILE` is now a generic fallback, not Fega-specific
+
+- **Fega migration**:
+  - Hardcoded Fega personality moved from `DEFAULT_CREATOR_PROFILE` to electron-store
+  - Migration runs on startup if `creatorProfile.description` is empty
+  - Pipeline output should be identical to pre-migration behavior
 
 ## Key Decisions
-- **Prompts are parameterized but default to Fega** — `DEFAULT_CREATOR_PROFILE` object contains all of Fega's personality, phrases, and priorities. Goal B migrates this into electron-store so other users can have their own profiles
-- **No adapter changes needed** — the adapter layer (from previous session) handles API format translation; this session was purely prompt content
-- **`extractJSON()` is defensive** — we still tell models to return clean JSON, but the parser handles models that don't follow instructions perfectly
-- **Moment priorities are a ranked list, not toggles** — `["funny", "emotional", "clutch", "fails"]` determines the order of PICK criteria in the prompt. Goal B will let users customize this
-- **No `<reasoning>` blocks** — decided against adding thinking tags; more parsing complexity, more failure modes
-- **No per-provider prompt variations** — no "think step by step" for weaker models. Test first, add only if a specific model underperforms
+- **Archetype examples teach structure, not style** — they show proper clip boundaries, narrative arcs, and JSON format. Creator personality comes from real approved clips, not static examples
+- **momentPriorities is a ranked list, not toggles** — AI always looks for ALL moment types, ranking determines emphasis order in PICK criteria
+- **Migration detects empty description** — `store.has()` always returns true when key is in defaults, so we check `!existingProfile.description` instead
+- **No onboarding UI in Goal B** — data layer only. Fega's profile populated via migration; fresh installs get "variety" defaults until onboarding is built
+- **One-time onboarding philosophy** — competitive differentiator vs Opus Clip's per-video genre selection. ClipFlow already knows it's gaming content
 
 ## Next Steps
-1. **Goal B: Cold-Start Architecture** (full spec in `tasks/todo.md`) — three-tier example blending, archetype-examples.json, creator profile data model, onboarding data layer
-2. Test the redesigned prompts by processing a video end-to-end — verify highlight detection quality is at least as good as before
-3. Test title/caption generation in the editor
-4. Try swapping to a non-Anthropic provider via dev dashboard to validate model-agnostic prompts work
-5. Remaining items from previous session: test publishing pipeline, fix Issue #12 (undo debounce), Meta app review
+1. **Test the three-tier system end-to-end** — process a video and verify prompt includes archetype examples (cold start) or real clips (if Fega has approved clips in feedback.db)
+2. **Review archetype examples** — Fega should read `src/main/data/archetype-examples.json` and verify quality of all 20 examples
+3. **Test title/caption generation** in the editor with the new profile system
+4. **Onboarding UI** (separate task) — archetype picker, priority ranker, optional personality description
+5. **Remaining from previous sessions**: test publishing pipeline, fix Issue #12 (undo debounce), Meta app review, swap to non-Anthropic provider for testing
 
 ## Watch Out For
-- **`DEFAULT_CREATOR_PROFILE` is in ai-prompt.js** — when Goal B is built, this gets replaced by reading from electron-store. Don't duplicate the personality data
-- **`creatorProfile` param on `buildSystemPrompt()`** — currently nothing passes it (falls back to default). Goal B will wire it up from the store
-- **`aiPrompt` is now imported in main.js** — added `const aiPrompt = require("./ai-prompt")` for `extractJSON()` access
-- **Energy level values changed** — added "EXPLOSIVE" as a fourth level above "HIGH". The pipeline stores whatever the model returns in `clip.energy_level`
-- **Game research still hardcoded to claude-opus-4-6** — unchanged from previous session, same caveat applies when using non-Anthropic providers
+- **Fega migration runs every startup while description is empty** — once Fega's profile is populated (which it is now), the `!existingProfile.description` check prevents re-migration. But if someone manually clears the description, migration will re-run and overwrite with Fega's data. This is fine for now (single user) but needs revisiting before multi-user launch
+- **`creatorProfile` in store defaults vs migration** — the defaults have generic "variety" archetype, but migration immediately overwrites with Fega's "hype" data. For a fresh install that ISN'T Fega, the migration would still set Fega's personality. Remove the Fega migration before public release
+- **`archetype` variable scoped in buildSystemPrompt** — extracted early (line 45) and passed to `buildFewShotSection()`. If you refactor the prompt builder, keep this variable available for both Section 2 and Section 7
+- **Game research still hardcoded to claude-opus-4-6** — unchanged from previous sessions
 
 ## Logs/Debugging
 - App logs: `%APPDATA%/clipflow/logs/`
 - Pipeline logs: `processing/logs/`
 - Dev dashboard: Settings > click version 7x > purple card
-- To see the actual prompts sent to the model: check pipeline logs, they include the full system prompt
+- Migration log: look for "Migrated Fega creatorProfile into electron-store" in startup logs
+- To verify tier selection: check pipeline logs for the system prompt — Section 7 header will say "EXAMPLE CLIPS (Reference Format)" for Tier 1, "EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED" for Tier 2/3
