@@ -891,6 +891,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
+      {/* AI Preferences (Creator Profile) */}
+      <AIPreferencesSection />
+
       {/* Report an Issue */}
       <ReportIssueSection />
 
@@ -905,6 +908,220 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
+  );
+}
+
+// ============ AI PREFERENCES SECTION ============
+const ARCHETYPES_SETTINGS = [
+  { id: "hype", label: "Hype", color: "#f97316" },
+  { id: "competitive", label: "Competitive", color: "#3b82f6" },
+  { id: "chill", label: "Chill", color: "#34d399" },
+  { id: "variety", label: "Variety", color: T.accent },
+];
+
+const MOMENT_TYPES_SETTINGS = {
+  funny: "Funny moments",
+  clutch: "Clutch plays",
+  emotional: "Emotional reactions",
+  fails: "Fails & bloopers",
+  skillful: "Skillful plays",
+  educational: "Educational moments",
+};
+
+const ARCHETYPE_MOMENT_DEFAULTS = {
+  hype: ["funny", "emotional", "fails", "clutch", "skillful", "educational"],
+  competitive: ["clutch", "skillful", "emotional", "funny", "fails", "educational"],
+  chill: ["educational", "funny", "emotional", "skillful", "clutch", "fails"],
+  variety: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
+};
+
+function AIPreferencesSection() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.storeGet) {
+        const p = await window.clipflow.storeGet("creatorProfile");
+        setProfile(p || { archetype: "variety", description: "", signaturePhrases: [], momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"], voiceMode: "hype" });
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = (updated) => {
+    setProfile(updated);
+    if (window.clipflow?.storeSet) window.clipflow.storeSet("creatorProfile", updated);
+  };
+
+  const moveMoment = (index, dir) => {
+    if (!profile) return;
+    const mp = [...profile.momentPriorities];
+    const target = index + dir;
+    if (target < 0 || target >= mp.length) return;
+    [mp[index], mp[target]] = [mp[target], mp[index]];
+    save({ ...profile, momentPriorities: mp });
+  };
+
+  const resetToDefaults = () => {
+    const defaults = {
+      archetype: "variety",
+      description: "",
+      signaturePhrases: [],
+      momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
+      voiceMode: "hype",
+    };
+    save(defaults);
+    setShowResetConfirm(false);
+  };
+
+  const resetMomentsToArchetype = () => {
+    if (!profile) return;
+    const order = ARCHETYPE_MOMENT_DEFAULTS[profile.archetype] || ARCHETYPE_MOMENT_DEFAULTS.variety;
+    save({ ...profile, momentPriorities: [...order] });
+  };
+
+  if (loading || !profile) return null;
+
+  const arrowBtn = (disabled) => ({
+    background: "none", border: "none", padding: "1px 5px",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.15 : 0.5,
+    fontSize: 14, color: T.text, lineHeight: 1,
+  });
+
+  return (
+    <Card style={{ padding: 24, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>AI Preferences</div>
+      </div>
+
+      {/* Archetype selector */}
+      <div style={{ marginBottom: 20 }}>
+        <SectionLabel>Content Vibe</SectionLabel>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          {ARCHETYPES_SETTINGS.map((a) => {
+            const sel = profile.archetype === a.id;
+            return (
+              <button
+                key={a.id}
+                onClick={() => save({ ...profile, archetype: a.id })}
+                style={{
+                  padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: T.font, transition: "all 0.15s",
+                  background: sel ? `${a.color}18` : "rgba(255,255,255,0.04)",
+                  color: sel ? a.color : T.textTertiary,
+                  border: sel ? `1px solid ${a.color}44` : `1px solid ${T.border}`,
+                }}
+              >
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Moment priorities */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <SectionLabel>Moment Priorities</SectionLabel>
+          <button onClick={resetMomentsToArchetype} style={{ ...BTN, fontSize: 10, padding: "3px 8px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textTertiary }}>
+            Reset to default
+          </button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {(profile.momentPriorities || []).map((id, i) => {
+            const label = MOMENT_TYPES_SETTINGS[id] || id;
+            return (
+              <div key={id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px", borderRadius: 8,
+                background: T.surface, border: `1px solid ${T.border}`,
+              }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                  background: i === 0 ? T.accentDim : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${i === 0 ? T.accentBorder : T.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, color: i === 0 ? T.accent : T.textTertiary, fontFamily: T.mono,
+                }}>
+                  {i + 1}
+                </span>
+                <span style={{ flex: 1, fontSize: 13, color: T.text }}>{label}</span>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <button style={arrowBtn(i === 0)} onClick={() => moveMoment(i, -1)} disabled={i === 0}>&#9650;</button>
+                  <button style={arrowBtn(i === profile.momentPriorities.length - 1)} onClick={() => moveMoment(i, 1)} disabled={i === profile.momentPriorities.length - 1}>&#9660;</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Description */}
+      <div style={{ marginBottom: 20 }}>
+        <SectionLabel>Style Description</SectionLabel>
+        <textarea
+          value={profile.description || ""}
+          onChange={(e) => save({ ...profile, description: e.target.value })}
+          placeholder="e.g., I play shooters terribly on purpose and scream a lot, or I do chill commentary and explain what is going on"
+          rows={3}
+          style={{ ...inputStyle, resize: "vertical", minHeight: 72, lineHeight: 1.5, marginTop: 8 }}
+        />
+      </div>
+
+      {/* Voice mode */}
+      <div style={{ marginBottom: 20 }}>
+        <SectionLabel>Default Title Style</SectionLabel>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          {[{ id: "hype", label: "Hype" }, { id: "chill", label: "Chill" }].map((v) => {
+            const sel = profile.voiceMode === v.id;
+            return (
+              <button
+                key={v.id}
+                onClick={() => save({ ...profile, voiceMode: v.id })}
+                style={{
+                  padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: T.font, transition: "all 0.15s",
+                  background: sel ? T.accentDim : "rgba(255,255,255,0.04)",
+                  color: sel ? T.accent : T.textTertiary,
+                  border: sel ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                }}
+              >
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Reset */}
+      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {!showResetConfirm ? (
+          <button onClick={() => setShowResetConfirm(true)} style={{ ...BTN, fontSize: 11, background: T.redDim, border: `1px solid ${T.redBorder}`, color: T.red }}>
+            Reset AI preferences
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: T.textSecondary }}>Reset all AI preferences to defaults? Clip history will not be affected.</span>
+            <button onClick={resetToDefaults} style={{ ...BTN, fontSize: 11, background: T.red, border: "none", color: "#fff", fontWeight: 700 }}>Confirm</button>
+            <button onClick={() => setShowResetConfirm(false)} style={{ ...BTN, fontSize: 11, ...btnSecondary }}>Cancel</button>
+          </div>
+        )}
+        <button
+          onClick={async () => {
+            if (window.clipflow?.storeSet) {
+              await window.clipflow.storeSet("onboardingComplete", false);
+              window.location.reload();
+            }
+          }}
+          style={{ ...BTN, fontSize: 11, ...btnSecondary }}
+        >
+          Re-run onboarding
+        </button>
+      </div>
+    </Card>
   );
 }
 

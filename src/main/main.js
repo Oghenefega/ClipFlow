@@ -160,9 +160,10 @@ const store = new Store({
       archetype: "variety",
       description: "",
       signaturePhrases: [],
-      momentPriorities: ["funny", "clutch", "emotional", "fails"],
+      momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
       voiceMode: "hype",
     },
+    onboardingComplete: false,
   },
 });
 
@@ -176,28 +177,26 @@ if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
 if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
 if (!store.has("devMode")) store.set("devMode", false);
 
-// ── Migration: populate Fega's creatorProfile ──
-// Detect if creatorProfile is still the generic default (empty description) and migrate.
-// Once a user sets their own profile via onboarding, this won't overwrite it.
+// ── Migration: expand momentPriorities from 4 to 6 items ──
+// Adds "skillful" and "educational" for users who set up before this update.
 const existingProfile = store.get("creatorProfile");
-if (!existingProfile || !existingProfile.description) {
-  store.set("creatorProfile", {
-    archetype: "hype",
-    description: `High energy & hype: Genuinely loud and reactive. Gets excited easily. Celebrations are big and loud.
-Fake rage: ALL dramatic negative reactions are for entertainment. "GET HIM OUT OF MY FACE" means he scored or made a great play. He is NEVER actually angry. Interpret aggression as hype.
-Self-deprecating: Constantly roasts his own gameplay. Bad aim, wrong decisions, forgetting items — all comedy material he leans into.
-Community first: Talks TO chat, not AT them. Reads names, responds mid-game, acknowledges everyone who shows up.
-Sarcasm: Delivered dry, often at peak energy. The contrast makes it land.
-Always fun: These games are ALWAYS ultimately a fun time. Never interpret his commentary as genuine negativity.`,
-    signaturePhrases: [
-      "Oh my goodness", "bruh", "lads", "boys", "bro", "man",
-      "by fire by force", "oh goodness gracious", "let's freaking go",
-      "it's giving", "that is dangerous",
-    ],
-    momentPriorities: ["funny", "emotional", "clutch", "fails"],
-    voiceMode: "hype",
-  });
-  logger.info(logger.MODULES.system, "Migrated Fega creatorProfile into electron-store");
+if (existingProfile && existingProfile.momentPriorities) {
+  const mp = existingProfile.momentPriorities;
+  let changed = false;
+  if (!mp.includes("skillful")) { mp.push("skillful"); changed = true; }
+  if (!mp.includes("educational")) { mp.push("educational"); changed = true; }
+  if (changed) {
+    store.set("creatorProfile.momentPriorities", mp);
+    logger.info(logger.MODULES.system, "Migrated momentPriorities: added skillful + educational");
+  }
+}
+
+// ── Migration: auto-complete onboarding for existing users with configured profiles ──
+// If the user already has a non-empty description (e.g. Fega's migrated profile),
+// they've effectively already configured their profile — skip onboarding.
+if (!store.get("onboardingComplete") && existingProfile && existingProfile.description) {
+  store.set("onboardingComplete", true);
+  logger.info(logger.MODULES.system, "Auto-completed onboarding for existing configured profile");
 }
 
 // ── Migration: remove stale whisper.cpp store keys ──

@@ -9,6 +9,7 @@ import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
 import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
+import OnboardingView from "./views/OnboardingView";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
@@ -125,6 +126,9 @@ export default function App() {
   const [tiktokClientKey, setTiktokClientKey] = useState("");
   const [tiktokClientSecret, setTiktokClientSecret] = useState("");
 
+  // Onboarding
+  const [onboardingComplete, setOnboardingComplete] = useState(null); // null = loading, true/false = resolved
+
   // Queue settings
   const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
 
@@ -209,6 +213,8 @@ export default function App() {
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         if (all.requireHashtagInTitle !== undefined) setRequireHashtagInTitle(all.requireHashtagInTitle);
+        // Onboarding flag
+        setOnboardingComplete(!!all.onboardingComplete);
         // For ytDescriptions: merge real defaults with any saved overrides
         if (all.ytDescriptions && Object.keys(all.ytDescriptions).length > 0) {
           setYtDescriptions({ ...REAL_YT_DESCRIPTIONS, ...all.ytDescriptions });
@@ -594,6 +600,11 @@ export default function App() {
           onNavigate={nav}
         />
       </div>
+      {onboardingComplete === false && (
+        <OnboardingView onComplete={(profile) => {
+          setOnboardingComplete(true);
+        }} />
+      )}
       <TranscriptModal clip={transcript} onClose={() => setTranscript(null)} />
       {(newGameExe || showAddGame) && (
         <AddGameModal

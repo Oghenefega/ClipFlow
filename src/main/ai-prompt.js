@@ -9,7 +9,7 @@ const DEFAULT_CREATOR_PROFILE = {
   archetype: "variety",
   description: "",
   signaturePhrases: [],
-  momentPriorities: ["funny", "clutch", "emotional", "fails"],
+  momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
   voiceMode: "hype",
 };
 
@@ -293,6 +293,16 @@ function buildPickCriteria(priorities) {
       "Spectacular failures that the creator reacts to with humor, not genuine frustration",
       "Overconfident predictions followed by immediate punishment",
       "Moments so bad they loop back around to being entertaining",
+    ],
+    skillful: [
+      "Impressive mechanical skill, aim, or movement that stands out",
+      "Creative strategies, flanks, or game-sense plays that show mastery",
+      "Smooth execution under pressure — the play looks effortless",
+    ],
+    educational: [
+      "Tips, explanations, or strategies delivered with engaging commentary",
+      "Moments where the creator breaks down what happened and why it matters",
+      "Real-time decision-making narration that teaches while entertaining",
     ],
   };
 
