@@ -107,7 +107,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       window.clipflow.ffmpegProbe(r.filePath).then((probe) => {
         const dur = probe?.duration || probe?.format?.duration || 0;
         const thresholdSec = splitThreshold * 60;
-        const splitCount = dur > thresholdSec ? Math.ceil(dur / thresholdSec) : 0;
+        const MIN_TAIL = 120; // Don't split if last segment would be < 2 minutes
+        const tailLength = dur % thresholdSec;
+        const splitCount = dur > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(dur / thresholdSec) : 0;
         setSplitInfo((prev) => ({
           ...prev,
           [r.id]: { durationSeconds: dur, splitCount, probing: false, skipSplit: false },
@@ -125,7 +127,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       for (const [id, info] of Object.entries(prev)) {
         if (!info.durationSeconds) { updated[id] = info; continue; }
         const thresholdSec = splitThreshold * 60;
-        const splitCount = info.durationSeconds > thresholdSec ? Math.ceil(info.durationSeconds / thresholdSec) : 0;
+        const MIN_TAIL = 120;
+        const tailLength = info.durationSeconds % thresholdSec;
+        const splitCount = info.durationSeconds > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(info.durationSeconds / thresholdSec) : 0;
         updated[id] = { ...info, splitCount };
       }
       return updated;

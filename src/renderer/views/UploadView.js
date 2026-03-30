@@ -325,7 +325,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     } catch (_) {}
 
     const thresholdSec = splitThreshold * 60;
-    const splitCount = autoSplitEnabled && durationSeconds > thresholdSec ? Math.ceil(durationSeconds / thresholdSec) : 0;
+    const MIN_TAIL = 120; // Don't split if last segment would be < 2 minutes
+    const tailLength = durationSeconds % thresholdSec;
+    const splitCount = autoSplitEnabled && durationSeconds > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(durationSeconds / thresholdSec) : 0;
 
     // Open quick-import modal
     setQuickImport({
