@@ -4,6 +4,93 @@
 
 ---
 
+## 🔲 In Progress — Video Splitting & Drag-and-Drop (Phase 1)
+
+**Spec:** `video-splitting-spec-v3.md` (Section 13, Phase 1)
+
+### Step 1 — Settings additions ✅
+**Files:** `src/main/main.js` (store defaults + migration), `src/renderer/views/SettingsView.js` (UI)
+- [x] Add `splitThresholdMinutes: 30`, `autoSplitEnabled: true`, `splitSourceRetention: "keep"` to electron-store defaults
+- [x] Add migration block for existing installs (set defaults if keys don't exist)
+- [x] Add "Video Splitting" section in SettingsView near Watch Folder — toggle for auto-split, threshold slider (10-120), keep originals toggle, help text
+- [x] Verify: app builds, Settings shows new section, values persist across restart
+
+### Step 2 — Schema migration ✅
+**Files:** `src/main/database.js`, `src/main/main.js`, `src/main/ai-pipeline.js`, `src/main/naming-presets.js`
+- [x] Add columns: `split_from_id TEXT`, `split_timestamp_start REAL`, `split_timestamp_end REAL`, `is_split_source INTEGER DEFAULT 0`, `import_source_path TEXT`
+- [x] Add index: `idx_file_split_from` on `split_from_id`
+- [x] Update `allRenamed` query to exclude `status = 'split'`
+- [x] `byStatus` already accepts any status string — no change needed
+- [x] `updateFileStatus` guards against overwriting `"split"` status
+- [x] `applyPendingRenames` skips files with `"split"` status
+- [x] `isFileInUse` returns false for `"split"` files
+- [x] Verify: app builds, migration v3 runs, existing data loads, schema verified
+
+### Step 3 — FFmpeg split module ✅
+**Files:** `src/main/ffmpeg.js` (new `splitFile` function)
+- [x] Add `splitFile(inputPath, splitPoints, outputDir)` — stream copy, `-avoid_negative_ts make_zero`
+- [x] All-or-nothing: if any segment fails, delete partial outputs, throw error
+- [x] Post-split probe: run `probe()` on each output, calculate keyframe-adjusted cumulative times
+- [x] Return array of `{filePath, actualStartSeconds, actualEndSeconds}`
+
+### Step 4 — `splitFile` IPC endpoint ✅
+**Files:** `src/main/main.js` (handler), `src/main/preload.js` (bridge)
+- [x] Add `ipcMain.handle("split:execute", ...)` — resolves parent file, calls `ffmpeg.splitFile()`, creates child `file_metadata` records, sets parent `is_split_source=1` + `status="split"`
+- [x] Logs split action in `rename_history` with `action = "split"` and child IDs in metadata_snapshot
+- [x] Add `splitExecute` to preload bridge
+
+### Step 5 — `importExternalFile` IPC endpoint
+**Files:** `src/main/main.js` (handler + `pendingImports` Set), `src/main/preload.js` (bridge)
+- [ ] Add `pendingImports = new Set()` in main process scope
+- [ ] Add `ipcMain.handle("import:externalFile", ...)` — validates .mp4, adds `{filename, sizeBytes}` to `pendingImports`, copies to `{watchFolder}/{YYYY-MM}/filename.mp4`, removes from set on completion
+- [ ] Add `ipcMain.handle("import:cancel", ...)` — deletes copied file, removes from `pendingImports`
+- [ ] Emit progress events during copy for large files
+- [ ] Add `importExternalFile`, `importCancel` to preload bridge
+- [ ] Verify: file copies correctly, progress events fire
+
+### Step 6 — File watcher suppression
+**Files:** `src/main/main.js` (watcher `add` handler)
+- [ ] In chokidar `watcher.on("add")`, check `pendingImports` before processing — if filename+size matches an entry, skip (the drag-and-drop flow owns this file)
+- [ ] Verify: dropping a file doesn't create duplicate entries
+
+### Step 7 — Auto-split integration in Rename tab
+**Files:** `src/renderer/views/RenameView.js`
+- [ ] On file detection (watcher or drop), probe duration via `clipflow.ffmpegProbe()`
+- [ ] If duration > threshold and `autoSplitEnabled`: show split badge on card ("2h 14m — will split into 5 parts")
+- [ ] Add "Don't split" per-file toggle
+- [ ] On rename confirm: if splitting, call `clipflow.splitExecute()`, show split preview with resulting filenames + time ranges, then show progress ("Splitting... 3 of 5 done")
+- [ ] After split: child files appear as new pending cards (or go straight to renamed if auto-split during rename)
+- [ ] Verify: long file shows indicator, split produces correct files, short files unaffected
+
+### Step 8 — Drag-and-drop on Rename tab
+**Files:** `src/renderer/views/RenameView.js`
+- [ ] Add drop zone overlay (dashed border, "Drop recording here") on dragover
+- [ ] Validate `.mp4` only — toast for non-mp4
+- [ ] Single file only — toast "Drop one file at a time" for multi
+- [ ] On drop: call `clipflow.importExternalFile(sourcePath)` → show copy progress → file appears in Pending list
+- [ ] If no watch folder configured: show folder picker prompt first
+- [ ] Verify: drag .mp4 from Downloads → appears in Pending, drag .mkv → rejected with toast
+
+### Step 9 — Drag-and-drop on Recordings tab + Quick-import modal
+**Files:** `src/renderer/views/UploadView.js`, new modal component
+- [ ] Add same drop zone overlay as Rename tab
+- [ ] On drop: copy file, then show quick-import modal
+- [ ] Modal Step 1: game/content dropdown (required)
+- [ ] Modal Step 2 (conditional): split proposal — green "Split & Generate" primary, gray "Skip splitting" secondary
+- [ ] Modal Step 3: confirm preview — filenames + time ranges, "Generate Clips" button
+- [ ] On confirm: create `file_metadata` with preset 3 (Tag+Date), set status `processing`, start pipeline
+- [ ] On cancel/dismiss: delete copy, remove from pendingImports
+- [ ] Verify: drop → modal → pick game → generate → file appears in grid with processing status
+
+### Step 10 — Rename history logging for splits
+**Files:** `src/main/database.js` or split handler in main.js
+- [ ] Log split operations with `action = "split"` in `rename_history`
+- [ ] Store child file IDs in `metadata_snapshot` JSON
+- [ ] No undo button in v1 — informational only
+- [ ] Verify: History sub-tab shows split entries
+
+---
+
 ## 🔲 In Progress — Remove Legacy Features (OBS Log Parser + Voice Modes)
 
 ### Goal

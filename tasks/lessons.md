@@ -493,3 +493,7 @@
 ### Don't patch around problems — find the real root cause
 - **Mistake:** Attempted multiple patches for drag/resize overlap: direction-based logic, minimum size blocking, shrink-to-0.001. Each fix introduced new edge cases. User had to say "stop eating my tokens — find out what the problem really is."
 - **Rule:** When a fix creates new bugs, STOP patching. Re-read the problem statement, trace the actual data flow, identify the single root cause (stale closures + string coercion in this case), and fix that. One correct fix > five patches.
+
+### Always re-read files when the user sends them — never assume unchanged
+- **Mistake:** User sent an updated spec file (v3 with Section 14 amendments). I assumed it was the same file I'd already read and gave feedback saying two issues were still unresolved — when they'd actually been addressed in the updated file.
+- **Rule:** When the user sends a file with `@` or asks you to read it, ALWAYS re-read it with the Read tool. Never assume file contents are unchanged from a previous read, even if the filename is the same.

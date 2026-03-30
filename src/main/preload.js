@@ -95,6 +95,9 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("render:progress");
   },
 
+  // Video splitting
+  splitExecute: (fileId, splitPoints) => ipcRenderer.invoke("split:execute", fileId, splitPoints),
+
   // File metadata (Rename system)
   fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
   fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),

@@ -253,6 +253,66 @@ function extractWaveformPeaks(filePath, peakCount = 400) {
   });
 }
 
+/**
+ * Split a video file into segments using stream copy (no re-encode).
+ * All-or-nothing: if any segment fails, partial outputs are deleted.
+ * @param {string} inputPath - Source video file
+ * @param {Array<{startSeconds: number, endSeconds: number, outputFilename: string}>} splitPoints
+ * @param {string} outputDir - Directory for output files
+ * @returns {Promise<Array<{filePath: string, actualStartSeconds: number, actualEndSeconds: number}>>}
+ */
+async function splitFile(inputPath, splitPoints, outputDir) {
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  const completedFiles = [];
+
+  try {
+    let cumulativeActualEnd = 0;
+
+    for (let i = 0; i < splitPoints.length; i++) {
+      const { startSeconds, endSeconds, outputFilename } = splitPoints[i];
+      const outPath = path.join(outputDir, outputFilename);
+
+      await new Promise((resolve, reject) => {
+        const args = [
+          "-ss", String(startSeconds),
+          "-to", String(endSeconds),
+          "-i", inputPath,
+          "-c", "copy",
+          "-avoid_negative_ts", "make_zero",
+          "-y",
+          outPath,
+        ];
+        execFile("ffmpeg", args, { timeout: 300000 }, (err) => {
+          if (err) return reject(new Error(`Split segment ${i + 1} failed: ${err.message}`));
+          resolve();
+        });
+      });
+
+      // Probe the output to get actual keyframe-snapped duration
+      const probeResult = await probe(outPath);
+      const actualDuration = probeResult.duration;
+      const actualStart = cumulativeActualEnd;
+      const actualEnd = actualStart + actualDuration;
+      cumulativeActualEnd = actualEnd;
+
+      completedFiles.push({
+        filePath: outPath,
+        actualStartSeconds: Math.round(actualStart * 100) / 100,
+        actualEndSeconds: Math.round(actualEnd * 100) / 100,
+      });
+    }
+
+    return completedFiles;
+  } catch (err) {
+    // All-or-nothing: delete any partial outputs on failure
+    for (const { filePath } of completedFiles) {
+      try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (_) {}
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   checkFfmpeg,
   probe,
@@ -261,4 +321,5 @@ module.exports = {
   generateThumbnail,
   analyzeLoudness,
   extractWaveformPeaks,
+  splitFile,
 };

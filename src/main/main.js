@@ -175,6 +175,10 @@ const store = new Store({
       momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
     },
     onboardingComplete: false,
+    // Video splitting
+    splitThresholdMinutes: 30,
+    autoSplitEnabled: true,
+    splitSourceRetention: "keep",
   },
 });
 
@@ -187,6 +191,11 @@ if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
 if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
 if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
 if (!store.has("devMode")) store.set("devMode", false);
+
+// ── Migration: add video splitting settings ──
+if (!store.has("splitThresholdMinutes")) store.set("splitThresholdMinutes", 30);
+if (!store.has("autoSplitEnabled")) store.set("autoSplitEnabled", true);
+if (!store.has("splitSourceRetention")) store.set("splitSourceRetention", "keep");
 
 // ── Migration: expand momentPriorities from 4 to 6 items ──
 // Adds "skillful" and "educational" for users who set up before this update.
@@ -491,6 +500,106 @@ ipcMain.handle("ffmpeg:analyzeLoudness", async (_, audioPath, segmentDuration) =
 ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => {
   try { return await ffmpeg.extractWaveformPeaks(filePath, peakCount || 400); }
   catch (err) { return { error: err.message, peaks: [] }; }
+});
+
+// ============ VIDEO SPLITTING ============
+ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
+  try {
+    const db = database.getDb();
+    if (!db) return { error: "Database not initialized" };
+
+    // Resolve parent file
+    const result = db.exec("SELECT * FROM file_metadata WHERE id = ?", [fileId]);
+    const rows = database.toRows(result);
+    if (rows.length === 0) return { error: "File not found" };
+    const parentFile = rows[0];
+
+    const outputDir = path.dirname(parentFile.current_path);
+
+    // Build split points with output filenames
+    const ffmpegSplitPoints = splitPoints.map((sp, i) => ({
+      startSeconds: sp.startSeconds,
+      endSeconds: sp.endSeconds,
+      outputFilename: `_split_${i}_${Date.now()}.mp4`, // temp name, renamed after metadata creation
+    }));
+
+    // Execute FFmpeg splits (all-or-nothing)
+    const results = await ffmpeg.splitFile(parentFile.current_path, ffmpegSplitPoints, outputDir);
+
+    // Create file_metadata records for each child
+    const childIds = [];
+    for (let i = 0; i < results.length; i++) {
+      const sp = splitPoints[i];
+      const r = results[i];
+      const childId = `fm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      // Format the child filename using the preset engine
+      const childTag = sp.tag || parentFile.tag;
+      const childFilename = sp.filename || path.basename(r.filePath);
+      const childPath = r.filePath;
+
+      db.run(
+        `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, split_from_id, split_timestamp_start, split_timestamp_end)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          childId,
+          parentFile.original_filename,
+          childFilename,
+          parentFile.original_path,
+          childPath,
+          childTag,
+          sp.entryType || parentFile.entry_type,
+          parentFile.date,
+          parentFile.day_number,
+          sp.partNumber || null,
+          parentFile.custom_label,
+          parentFile.naming_preset,
+          r.actualEndSeconds - r.actualStartSeconds,
+          null, // file_size_bytes — could probe but not critical
+          "renamed",
+          fileId,
+          r.actualStartSeconds,
+          r.actualEndSeconds,
+        ]
+      );
+      childIds.push(childId);
+    }
+
+    // Mark parent as split source
+    db.run(
+      "UPDATE file_metadata SET is_split_source = 1, status = 'split', updated_at = datetime('now') WHERE id = ?",
+      [fileId]
+    );
+    database.save();
+
+    // Log split in rename_history
+    const historyId = `rh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    db.run(
+      `INSERT INTO rename_history (id, file_metadata_id, action, previous_filename, previous_path, new_filename, new_path, metadata_snapshot)
+       VALUES (?, ?, 'split', ?, ?, ?, ?, ?)`,
+      [
+        historyId,
+        fileId,
+        parentFile.current_filename,
+        parentFile.current_path,
+        parentFile.current_filename,
+        parentFile.current_path,
+        JSON.stringify({ childIds, splitPoints: results }),
+      ]
+    );
+    database.save();
+
+    return {
+      success: true,
+      childIds,
+      results: results.map((r, i) => ({
+        ...r,
+        childId: childIds[i],
+      })),
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // ============ WHISPER (BetterWhisperX) ============
@@ -933,7 +1042,7 @@ ipcMain.handle("metadata:search", async (_, filters) => {
         params = [filters.startDate, filters.endDate];
         break;
       case "allRenamed":
-        sql = "SELECT * FROM file_metadata WHERE status != 'pending' ORDER BY date DESC, renamed_at DESC";
+        sql = "SELECT * FROM file_metadata WHERE status != 'pending' AND status != 'split' ORDER BY date DESC, renamed_at DESC";
         params = [];
         break;
       default:

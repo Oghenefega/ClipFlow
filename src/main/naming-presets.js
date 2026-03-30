@@ -287,6 +287,8 @@ function isFileInUse(fileId) {
   );
   const rows = database.toRows(result);
   if (rows.length > 0 && rows[0].status === "processing") return true;
+  // Split parent files are inert — their children may be in use, but the parent itself is not
+  if (rows.length > 0 && rows[0].status === "split") return false;
 
   // TODO: Editor check will be added when editor integration is built (step 4+)
   // For now, pipeline status is the only check.

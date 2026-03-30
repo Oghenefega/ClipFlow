@@ -21,6 +21,10 @@ function updateFileStatus(fileMetadataId, status) {
   try {
     const db = database.getDb();
     if (!db) return;
+    // Never overwrite "split" status — split parents are inert and should not re-enter the pipeline
+    const result = db.exec("SELECT status FROM file_metadata WHERE id = ?", [fileMetadataId]);
+    const rows = database.toRows(result);
+    if (rows.length > 0 && rows[0].status === "split") return;
     db.run("UPDATE file_metadata SET status = ?, updated_at = datetime('now') WHERE id = ?", [status, fileMetadataId]);
     database.save();
   } catch (e) { /* non-critical — don't crash pipeline */ }
@@ -35,9 +39,11 @@ function applyPendingRenames(fileMetadataId) {
   try {
     const db = database.getDb();
     if (!db) return;
-    const result = db.exec("SELECT has_pending_rename, pending_rename_data, current_path FROM file_metadata WHERE id = ?", [fileMetadataId]);
+    const result = db.exec("SELECT has_pending_rename, pending_rename_data, current_path, status FROM file_metadata WHERE id = ?", [fileMetadataId]);
     const rows = database.toRows(result);
     if (rows.length === 0 || !rows[0].has_pending_rename) return;
+    // Skip split parent files — they are no longer active in the pipeline
+    if (rows[0].status === "split") return;
 
     const row = rows[0];
     const renameData = JSON.parse(row.pending_rename_data);

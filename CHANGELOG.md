@@ -12,10 +12,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - IPC bridge for file metadata, labels, and rename history
 - File metadata migration and electron-store migration path
 - Recordings tab SQLite migration and AI pipeline refactor
+- **Video splitting infrastructure (Phase 1, steps 1-4):** Settings for auto-split threshold (10-120 min), source file retention, and enable/disable toggle. Schema migration v3 adds split lineage columns (`split_from_id`, `split_timestamp_start/end`, `is_split_source`, `import_source_path`). FFmpeg `splitFile()` function with stream copy, all-or-nothing error handling, and post-split probe for keyframe-adjusted times. `split:execute` IPC endpoint creates child `file_metadata` records, marks parent as split source, and logs to rename history.
+- **"Video Splitting" section in Settings UI** with enable toggle, threshold slider, and keep/delete originals toggle
 
 ### Changed
 - Refactored Rename tab UI with preset system
 - Updated Settings UI for rename redesign
+- `allRenamed` query now excludes files with `"split"` status so split parents don't appear in Recordings
+- `updateFileStatus` guards against overwriting `"split"` status on parent files
+- `applyPendingRenames` skips files with `"split"` status
+- `isFileInUse` returns false for `"split"` files (parent is inert, children may be active)
 
 ---
 

@@ -63,6 +63,10 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [whisperStatus, setWhisperStatus] = useState(null);
   const [whisperPythonPath, setWhisperPythonPath] = useState("");
   const [whisperModel, setWhisperModel] = useState("large-v3-turbo");
+  // Video splitting settings
+  const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
+  const [splitThreshold, setSplitThreshold] = useState(30);
+  const [splitSourceRetention, setSplitSourceRetention] = useState("keep");
 
   // Check ffmpeg + whisper on mount
   useEffect(() => {
@@ -79,6 +83,13 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (wm) setWhisperModel(wm);
         const np = await window.clipflow.storeGet("namingPreset");
         if (np) setNamingPreset(np);
+        // Load video splitting settings
+        const ase = await window.clipflow.storeGet("autoSplitEnabled");
+        if (ase !== undefined && ase !== null) setAutoSplitEnabled(ase);
+        const stm = await window.clipflow.storeGet("splitThresholdMinutes");
+        if (stm !== undefined && stm !== null) setSplitThreshold(stm);
+        const ssr = await window.clipflow.storeGet("splitSourceRetention");
+        if (ssr) setSplitSourceRetention(ssr);
         // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
           const r = await window.clipflow.whisperCheck(pp || undefined);
@@ -279,6 +290,78 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         ) : (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{watchFolder}</p>
         )}
+      </Card>
+
+      {/* Video Splitting */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Video Splitting</div>
+          <button
+            onClick={() => {
+              const next = !autoSplitEnabled;
+              setAutoSplitEnabled(next);
+              window.clipflow?.storeSet("autoSplitEnabled", next);
+            }}
+            style={{
+              ...BTN,
+              background: autoSplitEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${autoSplitEnabled ? "rgba(34,197,94,0.4)" : T.border}`,
+              color: autoSplitEnabled ? T.green : T.textTertiary,
+              fontWeight: 700,
+            }}
+          >
+            {autoSplitEnabled ? "Enabled" : "Disabled"}
+          </button>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 16px 0", lineHeight: 1.5 }}>
+          ClipFlow works best with recordings under 30 minutes. Longer recordings will be split into parts during rename.
+        </p>
+
+        {/* Threshold */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+            Split threshold: <span style={{ color: T.text, fontFamily: T.mono }}>{splitThreshold} min</span>
+          </div>
+          <input
+            type="range"
+            min={10}
+            max={120}
+            step={5}
+            value={splitThreshold}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setSplitThreshold(val);
+              window.clipflow?.storeSet("splitThresholdMinutes", val);
+            }}
+            style={{ width: "100%", accentColor: T.accent }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
+            <span>10 min</span>
+            <span>120 min</span>
+          </div>
+        </div>
+
+        {/* Keep originals */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600 }}>Keep original files after splitting</div>
+          <button
+            onClick={() => {
+              const next = splitSourceRetention === "keep" ? "delete" : "keep";
+              setSplitSourceRetention(next);
+              window.clipflow?.storeSet("splitSourceRetention", next);
+            }}
+            style={{
+              ...BTN,
+              background: splitSourceRetention === "keep" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${splitSourceRetention === "keep" ? "rgba(34,197,94,0.4)" : T.border}`,
+              color: splitSourceRetention === "keep" ? T.green : T.textTertiary,
+              fontWeight: 700,
+              fontSize: 11,
+            }}
+          >
+            {splitSourceRetention === "keep" ? "Keep" : "Delete"}
+          </button>
+        </div>
       </Card>
 
       {/* Main Game Pool */}

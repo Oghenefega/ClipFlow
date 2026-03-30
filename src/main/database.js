@@ -120,6 +120,18 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_history_triggered ON rename_history(triggered_by)`);
     },
   },
+  {
+    version: 3,
+    description: "Add split lineage tracking columns to file_metadata",
+    up(database) {
+      database.run(`ALTER TABLE file_metadata ADD COLUMN split_from_id TEXT REFERENCES file_metadata(id)`);
+      database.run(`ALTER TABLE file_metadata ADD COLUMN split_timestamp_start REAL`);
+      database.run(`ALTER TABLE file_metadata ADD COLUMN split_timestamp_end REAL`);
+      database.run(`ALTER TABLE file_metadata ADD COLUMN is_split_source INTEGER NOT NULL DEFAULT 0`);
+      database.run(`ALTER TABLE file_metadata ADD COLUMN import_source_path TEXT`);
+      database.run(`CREATE INDEX idx_file_split_from ON file_metadata(split_from_id)`);
+    },
+  },
 ];
 
 /**
