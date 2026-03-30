@@ -451,11 +451,14 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     await feedback.init();
     const approvedClips = feedback.getApprovedClips(gameData.gameTag, 20);
 
+    const creatorProfile = store.get("creatorProfile") || undefined;
+
     const systemPrompt = aiPrompt.buildSystemPrompt({
       gameTag: gameData.gameTag,
       gameName: gameData.game,
       gameContext,
       approvedClips,
+      creatorProfile,
     });
 
     const userContent = aiPrompt.buildUserContent({

@@ -156,6 +156,13 @@ const store = new Store({
     tiktokClientSecret: "",
     styleGuide: "",
     titleCaptionHistory: [],
+    creatorProfile: {
+      archetype: "variety",
+      description: "",
+      signaturePhrases: [],
+      momentPriorities: ["funny", "clutch", "emotional", "fails"],
+      voiceMode: "hype",
+    },
   },
 });
 
@@ -168,6 +175,30 @@ if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
 if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
 if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
 if (!store.has("devMode")) store.set("devMode", false);
+
+// ── Migration: populate Fega's creatorProfile ──
+// Detect if creatorProfile is still the generic default (empty description) and migrate.
+// Once a user sets their own profile via onboarding, this won't overwrite it.
+const existingProfile = store.get("creatorProfile");
+if (!existingProfile || !existingProfile.description) {
+  store.set("creatorProfile", {
+    archetype: "hype",
+    description: `High energy & hype: Genuinely loud and reactive. Gets excited easily. Celebrations are big and loud.
+Fake rage: ALL dramatic negative reactions are for entertainment. "GET HIM OUT OF MY FACE" means he scored or made a great play. He is NEVER actually angry. Interpret aggression as hype.
+Self-deprecating: Constantly roasts his own gameplay. Bad aim, wrong decisions, forgetting items — all comedy material he leans into.
+Community first: Talks TO chat, not AT them. Reads names, responds mid-game, acknowledges everyone who shows up.
+Sarcasm: Delivered dry, often at peak energy. The contrast makes it land.
+Always fun: These games are ALWAYS ultimately a fun time. Never interpret his commentary as genuine negativity.`,
+    signaturePhrases: [
+      "Oh my goodness", "bruh", "lads", "boys", "bro", "man",
+      "by fire by force", "oh goodness gracious", "let's freaking go",
+      "it's giving", "that is dangerous",
+    ],
+    momentPriorities: ["funny", "emotional", "clutch", "fails"],
+    voiceMode: "hype",
+  });
+  logger.info(logger.MODULES.system, "Migrated Fega creatorProfile into electron-store");
+}
 
 // ── Migration: remove stale whisper.cpp store keys ──
 if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");

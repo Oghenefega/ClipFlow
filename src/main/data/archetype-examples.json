@@ -1,0 +1,231 @@
+{
+  "_comment": "Static few-shot examples for cold-start clip detection. These teach STRUCTURE (timestamps, narrative arc, JSON format, confidence scoring), NOT personality. The archetype determines the TYPE of moments shown. Real approved clips replace these as they accumulate.",
+  "hype": [
+    {
+      "clip_number": 1,
+      "start": "00:12:15",
+      "end": "00:13:05",
+      "title": "Absolute Chaos in the Final Circle",
+      "why": "High-energy team fight with rapid escalation. Clean narrative arc from spotting enemies through the full engagement to the aftermath reaction.",
+      "peak_quote": "No no no — YES! Did that just happen?!",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.95
+    },
+    {
+      "clip_number": 2,
+      "start": "00:27:40",
+      "end": "00:28:30",
+      "title": "This Was Not the Plan",
+      "why": "Unexpected moment where a routine play goes completely sideways. Setup of confidence followed by instant reversal creates a strong reaction beat.",
+      "peak_quote": "Wait wait wait — oh we are SO dead",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.88
+    },
+    {
+      "clip_number": 3,
+      "start": "00:45:02",
+      "end": "00:46:10",
+      "title": "The Whole Lobby Heard That",
+      "why": "Big reaction moment with clear buildup. Energy ramps from medium through the trigger event to an explosive peak with extended reaction.",
+      "peak_quote": "OH. MY. GOODNESS. What was that?!",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.92
+    },
+    {
+      "clip_number": 4,
+      "start": "01:03:20",
+      "end": "01:04:15",
+      "title": "They Did Not See That Coming",
+      "why": "Surprise play that catches everyone off guard. The gap between expectation and outcome drives the energy spike. Clean start at a natural speech boundary.",
+      "peak_quote": "Bro WHAT — how did that even work?!",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.85
+    },
+    {
+      "clip_number": 5,
+      "start": "01:22:50",
+      "end": "01:23:55",
+      "title": "Peak Energy Right Here",
+      "why": "Extended hype sequence with multiple energy peaks. Starts with setup context, builds through the action, and lands on a sustained reaction moment.",
+      "peak_quote": "Let's GO! That's what I'm talking about!",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.90
+    }
+  ],
+  "competitive": [
+    {
+      "clip_number": 1,
+      "start": "00:08:30",
+      "end": "00:09:45",
+      "title": "Clutch Round with No Resources",
+      "why": "1vX situation with dwindling resources. Clear setup showing the disadvantage, followed by methodical execution and a decisive outcome. Strong narrative arc.",
+      "peak_quote": "One more — just one more. There it is.",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.94
+    },
+    {
+      "clip_number": 2,
+      "start": "00:23:10",
+      "end": "00:24:20",
+      "title": "Read Them Like a Book",
+      "why": "Strategic prediction that pays off exactly as called. Setup includes the verbal prediction, execution shows the read, payoff is the confirmation. Textbook competitive moment.",
+      "peak_quote": "I knew it — I called that, watch the replay",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.91
+    },
+    {
+      "clip_number": 3,
+      "start": "00:41:55",
+      "end": "00:43:00",
+      "title": "Down Bad to Comeback King",
+      "why": "Comeback from a significant deficit. The low point establishes stakes, the turning point creates tension, and the finish delivers the payoff. Duration captures the full arc.",
+      "peak_quote": "We're not out yet — we are NOT out yet",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.93
+    },
+    {
+      "clip_number": 4,
+      "start": "00:58:05",
+      "end": "00:59:10",
+      "title": "Perfect Timing on That Play",
+      "why": "Mechanically precise moment with tight execution window. Clean timestamp boundaries capture the approach, the key moment, and the immediate aftermath.",
+      "peak_quote": "That timing — you cannot teach that",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.82
+    },
+    {
+      "clip_number": 5,
+      "start": "01:15:40",
+      "end": "01:16:50",
+      "title": "Match Point Pressure Delivered",
+      "why": "High-stakes decisive moment with clear win condition. Tension builds naturally from the situation, execution under pressure provides the peak, reaction seals the clip.",
+      "peak_quote": "That's the game. That is the game right there.",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.89
+    }
+  ],
+  "chill": [
+    {
+      "clip_number": 1,
+      "start": "00:15:20",
+      "end": "00:16:30",
+      "title": "Wait That Actually Works?",
+      "why": "Discovery moment during relaxed gameplay. Natural curiosity leads to an unexpected finding. The genuine surprise reaction carries the clip despite lower overall energy.",
+      "peak_quote": "Hold on — since when does that work? That changes everything",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.86
+    },
+    {
+      "clip_number": 2,
+      "start": "00:32:45",
+      "end": "00:33:50",
+      "title": "The Chat Called It First",
+      "why": "Interaction with chat that leads to an interesting outcome. Setup shows the suggestion, middle shows the attempt, payoff shows the result. Conversational energy throughout.",
+      "peak_quote": "Chat said try it and honestly... they were right",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.83
+    },
+    {
+      "clip_number": 3,
+      "start": "00:50:10",
+      "end": "00:51:15",
+      "title": "This Detail Is Actually Insane",
+      "why": "Observational moment where a game detail gets noticed and appreciated. Low-key energy but high engagement value. Commentary carries the clip rather than action.",
+      "peak_quote": "Look at this — the devs actually put that in. That's attention to detail",
+      "energy_level": "LOW",
+      "has_frame": true,
+      "confidence": 0.80
+    },
+    {
+      "clip_number": 4,
+      "start": "01:08:30",
+      "end": "01:09:40",
+      "title": "Story Time Mid-Game",
+      "why": "Natural storytelling moment that flows from gameplay context. The anecdote has a clear beginning, middle, and punchline. Clip boundaries capture the full story without cutting off.",
+      "peak_quote": "So what happened was — and this is the best part",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.81
+    },
+    {
+      "clip_number": 5,
+      "start": "01:25:00",
+      "end": "01:26:05",
+      "title": "Accidentally Brilliant Play",
+      "why": "Unintentional good play with self-aware commentary. The humor comes from honesty about the accident rather than pretending it was intentional. Understated energy.",
+      "peak_quote": "I have no idea what I just did but it worked perfectly",
+      "energy_level": "MED",
+      "has_frame": true,
+      "confidence": 0.84
+    }
+  ],
+  "variety": [
+    {
+      "clip_number": 1,
+      "start": "00:10:05",
+      "end": "00:11:10",
+      "title": "Nobody Expected That Outcome",
+      "why": "Surprising turn of events with a strong reaction. Combines action with genuine surprise. Clean narrative arc from setup through the unexpected moment to the reaction.",
+      "peak_quote": "I did NOT see that coming — nobody saw that coming",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.90
+    },
+    {
+      "clip_number": 2,
+      "start": "00:29:15",
+      "end": "00:30:10",
+      "title": "The Confidence Was Misplaced",
+      "why": "Overconfident prediction followed by immediate punishment. Setup shows the bold claim, reality delivers the reversal. The contrast makes the moment land regardless of energy level.",
+      "peak_quote": "Watch this, watch this — oh. Oh no.",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.87
+    },
+    {
+      "clip_number": 3,
+      "start": "00:47:30",
+      "end": "00:48:35",
+      "title": "Clutch Save Out of Nowhere",
+      "why": "Last-second play that prevents a loss. Stakes are clear from context, execution is tight, and the relief reaction provides the ending beat. Balanced energy throughout.",
+      "peak_quote": "How did I survive that — I should not be alive right now",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.88
+    },
+    {
+      "clip_number": 4,
+      "start": "01:05:45",
+      "end": "01:06:50",
+      "title": "Chat Interaction Gone Right",
+      "why": "Viewer interaction that creates a memorable moment. The suggestion, the attempt, and the outcome form a complete mini-story. Works because it involves the audience.",
+      "peak_quote": "Alright chat, you asked for this — and it actually worked",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.83
+    },
+    {
+      "clip_number": 5,
+      "start": "01:20:10",
+      "end": "01:21:20",
+      "title": "That Was Actually Incredible",
+      "why": "Standout moment that combines skill with a genuine reaction. Energy builds naturally through the sequence. Extended reaction at the end provides a clean clip ending.",
+      "peak_quote": "That was actually incredible — I need to clip that",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.91
+    }
+  ]
+}

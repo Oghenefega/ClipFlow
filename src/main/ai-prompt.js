@@ -1,23 +1,16 @@
 const gameProfiles = require("./game-profiles");
+const archetypeExamples = require("./data/archetype-examples.json");
 
-// ── Default Creator Profile (Fega) ──
-// Goal B will migrate this into electron-store as `creatorProfile`.
-// For now, this is the hardcoded default used when no profile exists.
+// ── Default Creator Profile (generic fallback for fresh installs) ──
+// Used when no creatorProfile exists in electron-store (before onboarding).
+// Fega's personal data lives in electron-store via migration, not here.
 const DEFAULT_CREATOR_PROFILE = {
-  name: "Fega",
-  archetype: "hype",
-  description: `High energy & hype: Genuinely loud and reactive. Gets excited easily. Celebrations are big and loud.
-Fake rage: ALL dramatic negative reactions are for entertainment. "GET HIM OUT OF MY FACE" means he scored or made a great play. He is NEVER actually angry. Interpret aggression as hype.
-Self-deprecating: Constantly roasts his own gameplay. Bad aim, wrong decisions, forgetting items — all comedy material he leans into.
-Community first: Talks TO chat, not AT them. Reads names, responds mid-game, acknowledges everyone who shows up.
-Sarcasm: Delivered dry, often at peak energy. The contrast makes it land.
-Always fun: These games are ALWAYS ultimately a fun time. Never interpret his commentary as genuine negativity.`,
-  signaturePhrases: [
-    "Oh my goodness", "bruh", "lads", "boys", "bro", "man",
-    "by fire by force", "oh goodness gracious", "let's freaking go",
-    "it's giving", "that is dangerous",
-  ],
-  momentPriorities: ["funny", "emotional", "clutch", "fails"],
+  name: "",
+  archetype: "variety",
+  description: "",
+  signaturePhrases: [],
+  momentPriorities: ["funny", "clutch", "emotional", "fails"],
+  voiceMode: "hype",
 };
 
 /**
@@ -49,13 +42,23 @@ You will receive:
 You must return: a JSON array of 10-25 clip recommendations, ordered by confidence (highest first).`);
 
   // ── Section 2: Creator Profile ──
+  const archetype = creator.archetype || "variety";
   let creatorSection = `# CREATOR PROFILE
 
-Name: ${creator.name || "Unknown"}
-Content archetype: ${creator.archetype || "variety"}`;
+Content archetype: ${archetype}`;
+
+  if (creator.name) {
+    creatorSection = `# CREATOR PROFILE
+
+Name: ${creator.name}
+Content archetype: ${archetype}`;
+  }
 
   if (creator.description) {
     creatorSection += `\n\nPersonality & style:\n${creator.description}`;
+  } else {
+    // Generic personality from archetype when no description provided (pre-onboarding)
+    creatorSection += `\n\nPersonality & style:\n${getArchetypePersonality(archetype)}`;
   }
 
   if (creator.signaturePhrases && creator.signaturePhrases.length > 0) {
@@ -145,25 +148,121 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - Do not return fewer than 10 clips unless the video genuinely has fewer than 10 interesting moments
 - Do not repeat the same title pattern across multiple clips`);
 
-  // ── Section 7: Few-Shot Examples ──
-  // Three-tier system: archetypes for cold start, real clips when available
-  // Goal B will add Tier 1 (archetype examples) and Tier 2 (blending).
-  // For now, only Tier 3 (real approved clips) is implemented.
-  if (approvedClips && approvedClips.length >= 5) {
-    let fewShot = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
-
-Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
-    for (const clip of approvedClips.slice(0, 20)) {
-      fewShot += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
-      fewShot += `\n  Title: ${clip.title || "(untitled)"}`;
-      fewShot += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
-      fewShot += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
-      fewShot += `\n  Energy: ${clip.energy_level || "unknown"}`;
-    }
-    sections.push(fewShot);
+  // ── Section 7: Few-Shot Examples (Three-Tier Blending) ──
+  const fewShotSection = buildFewShotSection(approvedClips, archetype);
+  if (fewShotSection) {
+    sections.push(fewShotSection);
   }
 
   return sections.join("\n\n---\n\n");
+}
+
+/**
+ * Get a generic personality description based on archetype.
+ * Used when the creator hasn't written a custom description yet (pre-onboarding).
+ */
+function getArchetypePersonality(archetype) {
+  const personalities = {
+    hype: "High energy gaming content. Big reactions to intense moments, chaos, and unexpected events. Expressive and animated commentary style.",
+    competitive: "Skill-focused gaming content. Values clutch plays, strategic reads, and mechanical precision. Commentary centers on decisions, execution, and improvement.",
+    chill: "Laid-back gaming content. Conversational tone with storytelling, observations, and relaxed commentary. Moments land through insight and humor rather than volume.",
+    variety: "Balanced gaming content mixing action, humor, and commentary. Values both high-energy moments and interesting observations. Adaptable tone that matches the moment.",
+  };
+  return personalities[archetype] || personalities.variety;
+}
+
+/**
+ * Build the few-shot examples section using three-tier blending.
+ *
+ * Tier 1 (cold start, 0 approved clips): 5 static archetype examples
+ * Tier 2 (warming up, 1-19 approved clips): real clips + static padding to reach 5 minimum
+ * Tier 3 (dialed in, 20+ approved clips): only real approved clips, no static examples
+ *
+ * @param {Array|null} approvedClips - Real approved clips from feedback DB
+ * @param {string} archetype - Creator's archetype for selecting static examples
+ * @returns {string|null} The few-shot section string, or null if nothing to show
+ */
+function buildFewShotSection(approvedClips, archetype) {
+  const realClips = approvedClips || [];
+  const realCount = realClips.length;
+
+  // Tier 3: 20+ real clips — only real data, no static examples
+  if (realCount >= 20) {
+    return formatRealClipsSection(realClips.slice(0, 20));
+  }
+
+  // Get static archetype examples for Tier 1 and Tier 2
+  const staticExamples = archetypeExamples[archetype] || archetypeExamples.variety || [];
+
+  // Tier 1: 0 real clips — all static archetype examples
+  if (realCount === 0) {
+    if (staticExamples.length === 0) return null;
+    let section = `# EXAMPLE CLIPS (Reference Format)
+
+These examples show the expected output format, timestamp boundaries, and narrative arc structure. Use them as a structural reference.\n`;
+    for (const ex of staticExamples) {
+      section += formatStaticExample(ex);
+    }
+    return section;
+  }
+
+  // Tier 2: 1-19 real clips — blend real + static to reach minimum 5
+  const MIN_EXAMPLES = 5;
+  const staticNeeded = Math.max(0, MIN_EXAMPLES - realCount);
+  const staticToUse = staticExamples.slice(0, staticNeeded);
+
+  let section = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
+
+Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
+
+  // Real clips first (they take priority)
+  for (const clip of realClips.slice(0, 20)) {
+    section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
+    section += `\n  Title: ${clip.title || "(untitled)"}`;
+    section += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
+    section += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
+    section += `\n  Energy: ${clip.energy_level || "unknown"}`;
+  }
+
+  // Pad with static examples if needed
+  if (staticToUse.length > 0) {
+    section += `\n\n## Additional Reference Examples (structural format guides)\n`;
+    for (const ex of staticToUse) {
+      section += formatStaticExample(ex);
+    }
+  }
+
+  return section;
+}
+
+/**
+ * Format a real approved clips section (Tier 3).
+ */
+function formatRealClipsSection(clips) {
+  let section = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
+
+Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
+  for (const clip of clips) {
+    section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
+    section += `\n  Title: ${clip.title || "(untitled)"}`;
+    section += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
+    section += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
+    section += `\n  Energy: ${clip.energy_level || "unknown"}`;
+  }
+  return section;
+}
+
+/**
+ * Format a single static archetype example for the prompt.
+ */
+function formatStaticExample(ex) {
+  let s = `\n- Timestamp: ${ex.start} > ${ex.end}`;
+  s += `\n  Title: ${ex.title}`;
+  s += `\n  Why it worked: ${ex.why}`;
+  s += `\n  Peak quote: ${ex.peak_quote}`;
+  s += `\n  Energy: ${ex.energy_level}`;
+  s += `\n  Confidence: ${ex.confidence}`;
+  return s;
 }
 
 /**
