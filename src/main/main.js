@@ -13,6 +13,7 @@ const aiPipeline = require("./ai-pipeline");
 const database = require("./database");
 const feedbackDb = require("./feedback");
 const namingPresets = require("./naming-presets");
+const fileMigration = require("./file-migration");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
@@ -276,6 +277,26 @@ app.whenReady().then(async () => {
   });
   // Initialize shared SQLite database (feedback + file metadata)
   await database.init();
+
+  // Run one-time migrations for rename redesign
+  fileMigration.migrateStoreData(store);
+  const watchFolder = store.get("watchFolder");
+  if (watchFolder) {
+    // Run file migration in background (non-blocking) — probes can be slow
+    fileMigration.runFileMigration(watchFolder, store, async (filePath) => {
+      try { return await ffmpeg.probe(filePath); } catch (e) { return null; }
+    }).then((result) => {
+      if (result.migrated > 0) {
+        logger.info(logger.MODULES.system, `File migration: ${result.migrated} files migrated, ${result.skipped} skipped`);
+      }
+      if (result.errors.length > 0) {
+        logger.warn(logger.MODULES.system, `File migration had ${result.errors.length} errors`, { errors: result.errors.slice(0, 5) });
+      }
+    }).catch((err) => {
+      logger.error(logger.MODULES.system, `File migration failed: ${err.message}`);
+    });
+  }
+
   createWindow();
 });
 
