@@ -7,8 +7,58 @@ const whisper = require("./whisper");
 const aiPrompt = require("./ai-prompt");
 const gameProfiles = require("./game-profiles");
 const feedback = require("./feedback");
+const database = require("./database");
 const { PipelineLogger } = require("./pipeline-logger");
 const { getProvider } = require("./ai/llm-provider");
+
+/**
+ * Update file_metadata status in SQLite.
+ * @param {string} fileMetadataId - UUID of the file_metadata row
+ * @param {string} status - New status value
+ */
+function updateFileStatus(fileMetadataId, status) {
+  if (!fileMetadataId) return;
+  try {
+    const db = database.getDb();
+    if (!db) return;
+    db.run("UPDATE file_metadata SET status = ?, updated_at = datetime('now') WHERE id = ?", [status, fileMetadataId]);
+    database.save();
+  } catch (e) { /* non-critical — don't crash pipeline */ }
+}
+
+/**
+ * Apply any pending retroactive renames that were queued while this file was in use.
+ * @param {string} fileMetadataId - UUID of the file_metadata row
+ */
+function applyPendingRenames(fileMetadataId) {
+  if (!fileMetadataId) return;
+  try {
+    const db = database.getDb();
+    if (!db) return;
+    const result = db.exec("SELECT has_pending_rename, pending_rename_data, current_path FROM file_metadata WHERE id = ?", [fileMetadataId]);
+    const rows = database.toRows(result);
+    if (rows.length === 0 || !rows[0].has_pending_rename) return;
+
+    const row = rows[0];
+    const renameData = JSON.parse(row.pending_rename_data);
+    if (!renameData || !renameData.newFilename) return;
+
+    const oldPath = row.current_path;
+    const newPath = path.join(path.dirname(oldPath), renameData.newFilename);
+
+    // Rename the physical file
+    if (fs.existsSync(oldPath)) {
+      fs.renameSync(oldPath, newPath);
+    }
+
+    // Update the database record
+    db.run(
+      "UPDATE file_metadata SET current_filename = ?, current_path = ?, part_number = ?, has_pending_rename = 0, pending_rename_data = NULL, updated_at = datetime('now') WHERE id = ?",
+      [renameData.newFilename, newPath, renameData.partNumber || null, fileMetadataId]
+    );
+    database.save();
+  } catch (e) { /* non-critical */ }
+}
 
 // Default processing directory
 const DEFAULT_PROCESSING_DIR = path.join(__dirname, "..", "..", "processing");
@@ -353,9 +403,14 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
 
   const videoName = path.basename(sourceFile, path.extname(sourceFile));
   const logger = new PipelineLogger(processingDir, videoName);
+  const fileMetadataId = gameData.fileMetadataId || null;
 
   logger.info(`Source: ${sourceFile}`);
   logger.info(`Game: ${gameData.game} (${gameData.gameTag})`);
+  if (fileMetadataId) logger.info(`File metadata ID: ${fileMetadataId}`);
+
+  // Mark file as processing in SQLite
+  updateFileStatus(fileMetadataId, "processing");
 
   try {
     // ============ Stage 0: Probe source file ============
@@ -374,6 +429,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       game: gameData.game || "Unknown",
       gameTag: gameData.gameTag || "",
       gameColor: gameData.gameColor || "#888",
+      fileMetadataId: fileMetadataId,
       sourceDuration: probeResult.duration,
     });
     if (projResult.error) throw new Error(projResult.error);
@@ -394,6 +450,18 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     // ============ Stage 3: Transcribe (stable-ts) ============
     sendProgress("transcribing", 10, "Transcribing with stable-ts...");
     logger.startStep("Transcription");
+
+    // Build game-aware vocabulary prompt for Whisper
+    const gamesDb = store.get("gamesDb") || [];
+    const gameEntry = (Array.isArray(gamesDb) ? gamesDb : Object.values(gamesDb)).find((g) => g.tag === gameData.gameTag);
+    const entryType = gameEntry?.entryType || "game";
+    let gameVocab = "";
+    if (entryType === "game" && gameData.game) {
+      // Include game name + hashtag as vocabulary hints
+      gameVocab = `, ${gameData.game}`;
+      if (gameEntry?.hashtag) gameVocab += `, ${gameEntry.hashtag}`;
+    }
+
     const whisperOpts = {
       pythonPath: store.get("whisperPythonPath") || "",
       model: store.get("whisperModel") || "large-v3-turbo",
@@ -402,6 +470,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       computeType: "float16",
       hfToken: store.get("hfToken") || "",
       hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
+      gameVocab,
       onProgress: (pct) => {
         sendProgress("transcribing", 10 + Math.round(pct * 0.3), `Transcribing... ${pct}%`);
       },
@@ -439,12 +508,12 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     sendProgress("claude", 65, "Claude is analyzing highlights...");
     logger.startStep("Claude Analysis");
 
-    // Ensure game profile exists
-    gameProfiles.ensureProfile(gameData.gameTag, gameData.game);
+    // Ensure game profile exists (skip for content types)
+    if (entryType === "game") {
+      gameProfiles.ensureProfile(gameData.gameTag, gameData.game);
+    }
 
     // Get game context (AI-researched description from game library)
-    const gamesDb = store.get("gamesDb") || {};
-    const gameEntry = Object.values(gamesDb).find((g) => g.tag === gameData.gameTag);
     const gameContext = gameEntry?.aiContext || "";
 
     // Get few-shot examples from feedback DB
@@ -456,6 +525,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       gameTag: gameData.gameTag,
       gameName: gameData.game,
       gameContext,
+      entryType,
       approvedClips,
       creatorProfile,
     });
@@ -547,6 +617,10 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     // Increment game session count (for profile auto-update)
     const thresholdReached = gameProfiles.incrementSessionCount(gameData.gameTag);
 
+    // Mark file as done in SQLite + apply any queued retroactive renames
+    updateFileStatus(fileMetadataId, "done");
+    applyPendingRenames(fileMetadataId);
+
     sendProgress("complete", 100, `Generated ${project.clips.length} clips`);
     logger.info(`Pipeline complete: ${project.clips.length} clips generated`);
     const logPath = logger.finalize();
@@ -561,6 +635,10 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       apiCost: logger.apiCost,
     };
   } catch (err) {
+    // Revert status back to renamed on failure
+    updateFileStatus(fileMetadataId, "renamed");
+    applyPendingRenames(fileMetadataId);
+
     logger.failStep("Pipeline", err.message);
     logger.finalize();
     sendProgress("failed", 0, err.message);

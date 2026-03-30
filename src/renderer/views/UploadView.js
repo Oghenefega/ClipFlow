@@ -3,8 +3,6 @@ import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
 
-const RENAMED_PATTERN = /^\d{4}-\d{2}-\d{2}\s+\S+\s+Day\d+\s+Pt\d+\.(mp4|mkv)$/i;
-
 function formatSize(bytes) {
   if (!bytes || bytes === 0) return "0 B";
   const k = 1024;
@@ -13,30 +11,29 @@ function formatSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
-function monthLabel(folder) {
-  if (folder === "root") return "Root Folder";
-  const parts = folder.split("-");
-  if (parts.length !== 2) return folder;
+function monthLabel(monthKey) {
+  if (monthKey === "unknown") return "Other";
+  const parts = monthKey.split("-");
+  if (parts.length !== 2) return monthKey;
   const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
   return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 }
 
-function extractTag(name) {
-  const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(\S+)\s+Day/);
-  return m ? m[1] : "";
-}
-
-function shortName(name) {
-  const m = name.match(/^\d{4}-\d{2}-\d{2}\s+(.+)\.(mp4|mkv)$/i);
-  return m ? m[1] : name;
+function shortName(row) {
+  // Build a display name from metadata fields, stripping the tag prefix
+  const name = row.current_filename || "";
+  // Remove extension and date prefix for compact display
+  const noExt = name.replace(/\.(mp4|mkv)$/i, "");
+  const m = noExt.match(/^\d{4}-\d{2}-\d{2}\s+(.+)$/);
+  return m ? m[1] : noExt;
 }
 
 function findGameByTag(tag, gamesDb) {
   return gamesDb.find((g) => g.tag === tag) || null;
 }
 
-function findProjectForFile(name, localProjects) {
-  const baseName = name.replace(/\.(mp4|mkv)$/i, "");
+function findProjectForFile(row, localProjects) {
+  const baseName = (row.current_filename || "").replace(/\.(mp4|mkv)$/i, "");
   return localProjects.find((p) => p.name === baseName) || null;
 }
 
@@ -69,7 +66,7 @@ const STAGE_LABELS = {
 
 const PILL_MIN = 200;
 
-export default function RecordingsView({ watchFolder, gamesDb = [], localProjects = [], onProjectCreated }) {
+export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
@@ -77,7 +74,7 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
   const [progress, setProgress] = useState(null);
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
-  const [profileDiff, setProfileDiff] = useState(null); // { gameTag, gameName, oldProfile, newProfile }
+  const [profileDiff, setProfileDiff] = useState(null);
 
   // Load done files + collapsed state from store on mount
   useEffect(() => {
@@ -99,43 +96,29 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     }
   }, []);
 
-  // Scan watch folder
+  // Load files from SQLite file_metadata table
   useEffect(() => {
-    async function scan() {
-      if (!window.clipflow || !watchFolder) { setLoading(false); return; }
+    async function loadFiles() {
+      if (!window.clipflow?.fileMetadataSearch) { setLoading(false); return; }
       setLoading(true);
       try {
-        const rootFiles = await window.clipflow.readDir(watchFolder);
-        let all = [];
-        if (!rootFiles.error) {
-          const rootRenamed = rootFiles
-            .filter((f) => !f.isDirectory && RENAMED_PATTERN.test(f.name))
-            .map((f) => ({ ...f, folder: "root" }));
-          all = [...all, ...rootRenamed];
-
-          const subfolders = rootFiles.filter((f) => f.isDirectory && /^\d{4}-\d{2}$/.test(f.name));
-          for (const sub of subfolders) {
-            try {
-              const subFiles = await window.clipflow.readDir(sub.path);
-              if (!subFiles.error) {
-                const subRenamed = subFiles
-                  .filter((f) => !f.isDirectory && RENAMED_PATTERN.test(f.name))
-                  .map((f) => ({ ...f, folder: sub.name }));
-                all = [...all, ...subRenamed];
-              }
-            } catch (_) { /* skip */ }
-          }
+        const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+        if (Array.isArray(rows)) {
+          // Sort ascending by date then renamed_at (oldest first)
+          rows.sort((a, b) => {
+            const dateComp = (a.date || "").localeCompare(b.date || "");
+            if (dateComp !== 0) return dateComp;
+            return (a.renamed_at || "").localeCompare(b.renamed_at || "");
+          });
+          setFiles(rows);
         }
-        // Sort ascending by name (oldest first — filenames start with date)
-        all.sort((a, b) => a.name.localeCompare(b.name));
-        setFiles(all);
       } catch (e) {
-        console.error("Failed to scan watch folder:", e);
+        console.error("Failed to load file metadata:", e);
       }
       setLoading(false);
     }
-    scan();
-  }, [watchFolder]);
+    loadFiles();
+  }, []);
 
   // Pipeline progress events
   useEffect(() => {
@@ -146,16 +129,16 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
 
   const handleGenerate = useCallback(async (file) => {
     if (generating) return;
-    const tag = extractTag(file.name);
-    const game = findGameByTag(tag, gamesDb);
-    setGenerating(file.path);
+    const game = findGameByTag(file.tag, gamesDb);
+    setGenerating(file.current_path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
     try {
-      const result = await window.clipflow.generateClips(file.path, {
-        name: file.name.replace(/\.(mp4|mkv)$/i, ""),
-        game: game?.name || tag,
-        gameTag: tag,
+      const result = await window.clipflow.generateClips(file.current_path, {
+        name: (file.current_filename || "").replace(/\.(mp4|mkv)$/i, ""),
+        game: game?.name || file.tag,
+        gameTag: file.tag,
         gameColor: game?.color || "#888",
+        fileMetadataId: file.id,
         keywords: [],
       });
       if (result.error) {
@@ -164,6 +147,18 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
       } else {
         setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
         onProjectCreated?.(result.projectId);
+        // Refresh file list to pick up status changes
+        try {
+          const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+          if (Array.isArray(rows)) {
+            rows.sort((a, b) => {
+              const dateComp = (a.date || "").localeCompare(b.date || "");
+              if (dateComp !== 0) return dateComp;
+              return (a.renamed_at || "").localeCompare(b.renamed_at || "");
+            });
+            setFiles(rows);
+          }
+        } catch (_) {}
         setTimeout(() => { setGenerating(null); setProgress(null); }, 3000);
 
         // Check if play style profile update is needed
@@ -190,23 +185,23 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
   }, [generating, gamesDb, onProjectCreated]);
 
   // --- Selection helpers ---
-  const toggle = (path) => setSelected((p) => ({ ...p, [path]: !p[path] }));
+  const toggle = (id) => setSelected((p) => ({ ...p, [id]: !p[id] }));
 
-  const selectAllInFolder = (folder) => {
-    const items = grouped[folder] || [];
-    const allSelected = items.every((f) => selected[f.path]);
+  const selectAllInFolder = (monthKey) => {
+    const items = grouped[monthKey] || [];
+    const allSelected = items.every((f) => selected[f.id]);
     setSelected((p) => {
       const next = { ...p };
-      items.forEach((f) => { next[f.path] = !allSelected; });
+      items.forEach((f) => { next[f.id] = !allSelected; });
       return next;
     });
   };
 
   const selectAll = () => {
-    const allSelected = files.length > 0 && files.every((f) => selected[f.path]);
+    const allSelected = files.length > 0 && files.every((f) => selected[f.id]);
     setSelected((p) => {
       const next = { ...p };
-      files.forEach((f) => { next[f.path] = !allSelected; });
+      files.forEach((f) => { next[f.id] = !allSelected; });
       return next;
     });
   };
@@ -214,12 +209,12 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
   const selCount = Object.values(selected).filter(Boolean).length;
 
   // --- Done helpers ---
-  const isDone = (f) => !!doneFiles[f.name] || !!findProjectForFile(f.name, localProjects);
+  const isDone = (f) => f.status === "done" || !!doneFiles[f.current_filename] || !!findProjectForFile(f, localProjects);
 
   const markSelectedDone = () => {
     const next = { ...doneFiles };
     files.forEach((f) => {
-      if (selected[f.path]) next[f.name] = true;
+      if (selected[f.id]) next[f.current_filename] = true;
     });
     persistDone(next);
     setSelected({});
@@ -231,23 +226,24 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
     persistDone(next);
   };
 
-  // --- Group files by folder ---
+  // --- Group files by month (from date column) ---
   const grouped = {};
   files.forEach((f) => {
-    if (!grouped[f.folder]) grouped[f.folder] = [];
-    grouped[f.folder].push(f);
+    const monthKey = f.date ? f.date.slice(0, 7) : "unknown"; // "2026-03" from "2026-03-15"
+    if (!grouped[monthKey]) grouped[monthKey] = [];
+    grouped[monthKey].push(f);
   });
 
-  // Sort oldest month first (ascending), root last
+  // Sort oldest month first (ascending), unknown last
   const folderKeys = Object.keys(grouped).sort((a, b) => {
-    if (a === "root") return 1;
-    if (b === "root") return -1;
+    if (a === "unknown") return 1;
+    if (b === "unknown") return -1;
     return a.localeCompare(b);
   });
 
-  const toggleCollapse = (folder) => {
+  const toggleCollapse = (monthKey) => {
     setCollapsed((p) => {
-      const next = { ...p, [folder]: !p[folder] };
+      const next = { ...p, [monthKey]: !p[monthKey] };
       if (window.clipflow?.storeSet) window.clipflow.storeSet("recordingsCollapsed", next);
       return next;
     });
@@ -260,7 +256,7 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
       <div>
         <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
         <div style={{ textAlign: "center", padding: 40, color: T.textTertiary }}>
-          Scanning watch folder...
+          Loading recordings...
         </div>
       </div>
     );
@@ -363,24 +359,24 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
           onClick={selectAll}
           style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
         >
-          {files.length > 0 && files.every((f) => selected[f.path]) ? "Deselect All" : "Select All"}
+          {files.length > 0 && files.every((f) => selected[f.id]) ? "Deselect All" : "Select All"}
         </button>
       </div>
 
-      {/* Folder groups */}
+      {/* Month groups */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {folderKeys.map((folder) => {
-          const items = grouped[folder];
-          const isCollapsed = collapsed[folder];
+        {folderKeys.map((monthKey) => {
+          const items = grouped[monthKey];
+          const isCollapsed = collapsed[monthKey];
           const folderDoneCount = items.filter((f) => isDone(f)).length;
-          const folderSelCount = items.filter((f) => selected[f.path]).length;
-          const allFolderSelected = items.length > 0 && items.every((f) => selected[f.path]);
+          const folderSelCount = items.filter((f) => selected[f.id]).length;
+          const allFolderSelected = items.length > 0 && items.every((f) => selected[f.id]);
 
           return (
-            <div key={folder}>
-              {/* Folder header */}
+            <div key={monthKey}>
+              {/* Month header */}
               <div
-                onClick={() => toggleCollapse(folder)}
+                onClick={() => toggleCollapse(monthKey)}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "10px 14px", borderRadius: T.radius.md,
@@ -394,7 +390,7 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                 }}>{"\u25BC"}</span>
                 <span style={{ fontSize: 18 }}>{"\uD83D\uDCC1"}</span>
                 <span style={{ color: T.text, fontSize: 14, fontWeight: 700, flex: 1 }}>
-                  {monthLabel(folder)}
+                  {monthLabel(monthKey)}
                 </span>
                 <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
                   {items.length} file{items.length !== 1 ? "s" : ""}
@@ -410,7 +406,7 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                   </span>
                 )}
                 <button
-                  onClick={(e) => { e.stopPropagation(); selectAllInFolder(folder); }}
+                  onClick={(e) => { e.stopPropagation(); selectAllInFolder(monthKey); }}
                   style={{
                     background: "none", border: `1px solid ${T.border}`, borderRadius: 6,
                     padding: "4px 10px", color: T.textSecondary, fontSize: 11,
@@ -429,20 +425,19 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                   gap: 6,
                 }}>
                   {items.map((f) => {
-                    const tag = extractTag(f.name);
-                    const game = findGameByTag(tag, gamesDb);
+                    const game = findGameByTag(f.tag, gamesDb);
                     const tagColor = game?.color || T.accent;
-                    const project = findProjectForFile(f.name, localProjects);
+                    const project = findProjectForFile(f, localProjects);
                     const clipCount = project?.clipCount || project?.clips?.length || 0;
                     const fileDone = isDone(f);
-                    const manualDone = !!doneFiles[f.name] && !project;
-                    const isSel = !!selected[f.path];
-                    const isGenerating = generating === f.path;
+                    const manualDone = !!doneFiles[f.current_filename] && !project && f.status !== "done";
+                    const isSel = !!selected[f.id];
+                    const isGenerating = generating === f.current_path;
 
                     return (
                       <div
-                        key={f.path}
-                        onClick={() => toggle(f.path)}
+                        key={f.id}
+                        onClick={() => toggle(f.id)}
                         style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "7px 10px", borderRadius: T.radius.md,
@@ -454,14 +449,14 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                       >
                         <Checkbox checked={isSel || fileDone} size={16} />
 
-                        {tag && (
+                        {f.tag && (
                           <span style={{
                             display: "inline-flex", padding: "2px 5px",
                             background: `${tagColor}18`, border: `1px solid ${tagColor}44`,
                             borderRadius: 4, fontSize: 9, fontWeight: 700, color: tagColor,
                             fontFamily: T.mono, letterSpacing: "0.5px", flexShrink: 0,
                           }}>
-                            {tag}
+                            {f.tag}
                           </span>
                         )}
 
@@ -469,11 +464,11 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                           color: T.text, fontSize: 12, fontWeight: 600,
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1,
                         }}>
-                          {shortName(f.name)}
+                          {shortName(f)}
                         </span>
 
                         <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono, flexShrink: 0 }}>
-                          {formatSize(f.size)}
+                          {formatSize(f.file_size_bytes)}
                         </span>
 
                         {/* Status badges */}
@@ -496,12 +491,22 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
                           }}>
                             DONE
                             <span
-                              onClick={(e) => { e.stopPropagation(); unmarkDone(f.name); }}
+                              onClick={(e) => { e.stopPropagation(); unmarkDone(f.current_filename); }}
                               title="Unmark as done"
                               style={{ cursor: "pointer", color: T.textMuted, fontSize: 10, fontWeight: 700, marginLeft: 2, lineHeight: 1 }}
                               onMouseEnter={(e) => { e.currentTarget.style.color = T.red; }}
                               onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; }}
                             >{"\u00d7"}</span>
+                          </span>
+                        )}
+
+                        {f.status === "done" && !project && !doneFiles[f.current_filename] && (
+                          <span style={{
+                            display: "inline-flex", padding: "1px 5px", borderRadius: 4,
+                            fontSize: 8, fontWeight: 700, textTransform: "uppercase",
+                            color: T.green, background: "rgba(52,211,153,0.12)", flexShrink: 0,
+                          }}>
+                            DONE
                           </span>
                         )}
 
@@ -529,19 +534,19 @@ export default function RecordingsView({ watchFolder, gamesDb = [], localProject
           <>
             <button
               onClick={() => {
-                const selectedFiles = files.filter((f) => selected[f.path] && !isDone(f));
+                const selectedFiles = files.filter((f) => selected[f.id] && !isDone(f));
                 if (selectedFiles.length > 0) handleGenerate(selectedFiles[0]);
               }}
-              disabled={!!generating || files.filter((f) => selected[f.path] && !isDone(f)).length === 0}
+              disabled={!!generating || files.filter((f) => selected[f.id] && !isDone(f)).length === 0}
               style={{
                 padding: "10px 18px", borderRadius: T.radius.md, border: "none",
                 background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
                 color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
                 fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
-                opacity: files.filter((f) => selected[f.path] && !isDone(f)).length === 0 ? 0.5 : 1,
+                opacity: files.filter((f) => selected[f.id] && !isDone(f)).length === 0 ? 0.5 : 1,
               }}
             >
-              Generate Clips ({files.filter((f) => selected[f.path] && !isDone(f)).length})
+              Generate Clips ({files.filter((f) => selected[f.id] && !isDone(f)).length})
             </button>
             <button
               onClick={markSelectedDone}

@@ -56,7 +56,7 @@ const REAL_YT_DESCRIPTIONS = {
   "Prince of Persia": { desc: "\u{1F534}Live every day 5PM\nFunniest Prince of Persia moments\u{1F602}\n\n\u{1F514}SUBSCRIBE https://www.youtube.com/@Fega\n\u{1F4AA}\u{1F3FD} Become a member: https://www.youtube.com/@Fega/join\n\n#princeofpersia #gamingshorts #Fega" },
 };
 
-// No more mock data — managedFiles are scanned from filesystem, renameHistory is persisted
+// No more mock data — file metadata stored in SQLite, renameHistory is persisted
 
 // ============ PERSIST HELPER ============
 const persist = (key, value) => {
@@ -75,10 +75,9 @@ export default function App() {
   const [gamesDb, setGamesDb] = useState(INITIAL_GAMES);
   const mainGameTag = (gamesDb.find((g) => g.name === mainGame)?.hashtag) || "arcraiders";
 
-  // Rename state — starts empty; managedFiles populated from filesystem scan, renameHistory from electron-store
+  // Rename state — renameHistory from electron-store
   const [pendingRenames, setPendingRenames] = useState([]);
   const [renameHistory, setRenameHistory] = useState([]);
-  const [managedFiles, setManagedFiles] = useState([]);
 
   // Local projects
   const [localProjects, setLocalProjects] = useState([]);
@@ -89,8 +88,8 @@ export default function App() {
   // Editor context — which project/clip to open
   const [editorContext, setEditorContext] = useState(null); // { projectId, clipId }
 
-  // Add Game modal
-  const [showAddGame, setShowAddGame] = useState(false);
+  // Add Game modal — null or "game" or "content"
+  const [showAddGame, setShowAddGame] = useState(null);
   const [newGameExe, setNewGameExe] = useState(null);
 
   // Settings
@@ -220,24 +219,18 @@ export default function App() {
           setYtDescriptions({ ...REAL_YT_DESCRIPTIONS, ...all.ytDescriptions });
         }
 
-        // Scan the actual filesystem to build managedFiles from real renamed files
-        const folder = all.watchFolder || "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards";
-        if (window.clipflow.scanWatchFolder) {
-          const result = await window.clipflow.scanWatchFolder(folder);
-          if (result.files && result.files.length > 0) {
-            setManagedFiles(result.files);
-
-            // Migration: initialize dayCount/lastDayDate from filesystem for games that have dayCount 0
-            // This runs once when a game has never had its dayCount set (first run or new game)
-            const games = all.gamesDb || INITIAL_GAMES;
-            const needsMigration = games.filter((g) => !g.dayCount || g.dayCount === 0);
-            if (needsMigration.length > 0) {
+        // dayCount migration: initialize from SQLite file_metadata for games with dayCount 0
+        if (window.clipflow.fileMetadataSearch) {
+          const games = all.gamesDb || INITIAL_GAMES;
+          const needsMigration = games.filter((g) => !g.dayCount || g.dayCount === 0);
+          if (needsMigration.length > 0) {
+            const allFiles = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+            if (Array.isArray(allFiles) && allFiles.length > 0) {
               const migrated = games.map((g) => {
                 if (g.dayCount && g.dayCount > 0) return g;
-                // Count unique dates for this game's renamed files
-                const gameFiles = result.files.filter((f) => f.tag === g.tag);
+                const gameFiles = allFiles.filter((f) => f.tag === g.tag);
                 if (gameFiles.length === 0) return g;
-                const uniqueDates = new Set(gameFiles.map((f) => f.name.slice(0, 10)));
+                const uniqueDates = new Set(gameFiles.map((f) => f.date).filter(Boolean));
                 const sortedDates = [...uniqueDates].sort();
                 const dayCount = sortedDates.length;
                 const lastDayDate = sortedDates[sortedDates.length - 1];
@@ -308,7 +301,7 @@ export default function App() {
 
   // ============ HANDLERS ============
   const handleNewGame = (gd) => {
-    setGamesDb((p) => [...p, { ...gd, dayCount: 1 }]);
+    setGamesDb((p) => [...p, { ...gd, entryType: gd.entryType || showAddGame || "game", dayCount: gd.entryType === "content" || showAddGame === "content" ? 0 : 1 }]);
     // Build full YouTube description from template — swap game-specific parts
     const gameName = gd.name;
     const hashtag = gd.hashtag || gameName.toLowerCase().replace(/\s+/g, "");
@@ -418,10 +411,8 @@ export default function App() {
           setPendingRenames={setPendingRenames}
           renameHistory={renameHistory}
           setRenameHistory={setRenameHistory}
-          onAddGame={() => setShowAddGame(true)}
+          onAddGame={(entryType) => setShowAddGame(entryType || "game")}
           onGameDayUpdate={handleGameDayUpdate}
-          managedFiles={managedFiles}
-          setManagedFiles={setManagedFiles}
           watchFolder={watchFolder}
         />
       );
@@ -429,7 +420,6 @@ export default function App() {
     if (view === "recordings") {
       return (
         <RecordingsView
-          watchFolder={watchFolder}
           gamesDb={gamesDb}
           localProjects={localProjects}
           onProjectCreated={(projectId) => {
@@ -498,6 +488,7 @@ export default function App() {
           gamesDb={gamesDb}
           setGamesDb={setGamesDb}
           onEditGame={handleEditGame}
+          onAddGame={(entryType) => setShowAddGame(entryType || "game")}
           watchFolder={watchFolder}
           setWatchFolder={setWatchFolder}
           platforms={platforms}
@@ -609,8 +600,9 @@ export default function App() {
       {(newGameExe || showAddGame) && (
         <AddGameModal
           exe={newGameExe}
+          entryType={showAddGame || "game"}
           onConfirm={handleNewGame}
-          onDismiss={() => { setNewGameExe(null); setShowAddGame(false); }}
+          onDismiss={() => { setNewGameExe(null); setShowAddGame(null); }}
           onIgnore={newGameExe ? (exe) => { setIgnoredProcesses((p) => [...p, exe]); setNewGameExe(null); } : null}
         />
       )}

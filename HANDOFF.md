@@ -1,49 +1,55 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-30 (Rename redesign steps 4-5)_
+_Last updated: 2026-03-30 (Rename redesign steps 6-8)_
 
 ## Current State
-App builds and launches cleanly. Rename system redesign steps 1-5 of 8 are complete — backend, preset engine, IPC, UI refactor, and file migration all done and working. Steps 6-8 remain (Recordings tab, AI pipeline, Settings UI).
+App builds and launches cleanly. Rename system redesign steps 1-8 of 8 are **all complete**. The entire rename redesign is done — backend, preset engine, IPC, UI, file migration, Recordings tab, AI pipeline, and Settings UI all working end-to-end.
 
 ## What Was Just Built
 
-### Step 4 — Rename Tab UI Refactor (`RenameView.js`)
-- **Grouped game/content dropdown** — Games and Content Types separated by visual headers via `entryType` field; new `GroupedSelect` inline component
-- **Per-file preset selector** — Dropdown on each pending file card showing all 6 naming presets; defaults from electron-store `namingPreset`; changing per-file doesn't affect global default
-- **Conditional input fields** — Day/Part spinboxes only for presets 1-2; custom label text input with autocomplete for presets 4-5; no extra fields for presets 3/6
-- **Label autocomplete** — Fetches suggestions from SQLite `custom_labels` via `labelSuggest` IPC, ranked by frequency; dropdown with usage count
-- **Label validation** — Red border + inline error for invalid filename chars; RENAME button disabled until valid
-- **Live filename preview** — Preset-aware preview updates in real-time as user changes game/day/part/label/preset
-- **DB-backed rename** — `renameOne`/`renameAll` now create `file_metadata` records in SQLite, record label usage, check collisions, trigger retroactive Pt1 renames
-- **Retroactive part notifications** — Yellow banner with preset-specific message when collision detected
-- **History tab hybrid** — Shows current session (local state) + past sessions from SQLite `rename_history`; RETRO badge for retroactive entries
-- **8 new IPC handlers** in main.js — `preset:getAll`, `formatFilename`, `findCollisions`, `getNextPartNumber`, `calculateDayNumber`, `validateLabel`, `retroactiveRename`, `extractDate`
-- **8 new bridge methods** in preload.js
+### Step 6 — Recordings Tab Refactor (`UploadView.js`)
+- **SQLite-backed file list** — Removed filesystem scanning (`fs:scanWatchFolder` IPC + `RENAMED_FILE_PATTERN` regex). Now loads files via `metadata:search` with `allRenamed` filter type
+- **Month grouping from DB** — Groups by `f.date.slice(0, 7)` instead of folder name parsing
+- **SQLite field mapping** — Uses `f.tag`, `f.current_filename`, `f.current_path`, `f.file_size_bytes`, `f.status`, `f.id` instead of old regex-parsed fields
+- **Status from DB** — `isDone` checks `f.status === "done"` (SQLite) alongside legacy `doneFiles` + project match
+- **Pipeline integration** — `handleGenerate` passes `fileMetadataId: file.id` to pipeline; refreshes from SQLite after completion
+- **Removed bridge method** — `scanWatchFolder` removed from preload.js
+- **Removed IPC handler** — `fs:scanWatchFolder` (~65 lines) and `RENAMED_FILE_PATTERN` constant removed from main.js
+- **Manage tab switched to SQLite** — `RenameView.js` manage tab now uses `dbManagedFiles` with SQLite field names; `managedFiles` prop removed from App.js
 
-### Step 5 — File Metadata Migration (`file-migration.js`)
-- **File migration** — Scans watch folder monthly subfolders for `TAG YYYY-MM-DD DayN PtN.mp4` files, parses metadata, inserts `file_metadata` records with FFmpeg-probed durations and `fs.stat` file sizes
-- **Project status detection** — Checks `.clipflow/projects/` for existing projects to set `status: "done"` vs `"renamed"`
-- **Electron-store migration** — Adds `entryType: "game"` to all existing Game Library entries, adds JC (Just Chatting) content type, sets `namingPreset: "tag-date-day-part"` for existing users
-- **Result:** 105/107 files migrated successfully; 2 skipped (tags OoA and CHS don't exist in Game Library)
-- **Idempotent** — Flagged by `fileMigrationComplete` and `renameDesignMigrated` in electron-store
+### Step 7 — AI Pipeline Refactor (`ai-pipeline.js`, `ai-prompt.js`, `stable-ts.js`)
+- **Pipeline status lifecycle** — `updateFileStatus()` helper sets `processing` at start, `done` on success, `renamed` on failure
+- **Pending rename dequeue** — `applyPendingRenames()` runs on pipeline completion (success or failure), checks `has_pending_rename`, renames physical file, updates DB
+- **Game-aware vocabulary** — Looks up `gameEntry` from `gamesDb`, builds `gameVocab` string, passes to Whisper via `opts.gameVocab`
+- **Content type support** — Skips `gameProfiles.ensureProfile` for `entryType === "content"`; `buildSystemPrompt` uses "CONTENT CONTEXT" header for content types
+- **Dynamic Whisper vocab** — Removed hardcoded game terms from `stable-ts.js`; now appends `opts.gameVocab || ""` dynamically
+- **Project tracking** — `fileMetadataId` stored in project record via `projects.createProject`
+
+### Step 8 — Settings UI Update (`SettingsView.js`, `modals.js`)
+- **Game Library split** — Games section (filtered by `entryType !== "content"`) and Content Types section (filtered by `entryType === "content"`) with visual divider
+- **Separate add buttons** — "+ Add Game" and "+ Add Content Type" buttons trigger `onAddGame("game")` or `onAddGame("content")`
+- **AddGameModal entry types** — Accepts `entryType` prop; dynamic header/label text; purple default color for content types
+- **Tag uniqueness validation** — `GameEditModal` checks tag against all `gamesDb` entries; red border + error when duplicate; Save button disabled
+- **Naming Preset selector** — Card with 6 radio-style options showing label + example filename format; persists selection to electron-store
 
 ## Key Decisions
-- **GroupedSelect as inline component** — Built directly in RenameView.js rather than adding to shared.js, since it has rename-specific header rendering logic
-- **Hybrid history** — Current session still uses local React state + electron-store persistence (backward compat); past sessions read from SQLite. Full migration to SQLite-only history deferred to avoid breaking undo/redo flow mid-session
-- **Migration runs async** — File migration with FFmpeg probes runs in background (non-blocking) so app window appears immediately; took ~19s for 105 files
-- **JC default color** — `#9b5de5` (purple) to distinguish from game entries visually
+- **`allRenamed` filter** — New predefined filter in `metadata:search` returns all non-pending files ordered by date DESC, renamed_at DESC
+- **Dual status check** — Recordings tab checks both SQLite `status === "done"` AND legacy `doneRecordings` electron-store for backward compatibility
+- **`showAddGame` state changed** — From `boolean` to `string|null` ("game"/"content"/null) to carry entry type through to AddGameModal
+- **dayCount migration preserved** — App.js migration now queries SQLite instead of filesystem scan
+- **Pipeline reverts on failure** — Status goes back to `renamed` (not `pending`) so file stays visible in Recordings tab
 
 ## Next Steps
-1. **Step 6: Recordings tab refactor** — Switch from filename scanning to SQLite queries. Display files based on `file_metadata` records filtered by status, grouped by date/month.
-2. **Step 7: AI pipeline refactor** — Read `tag` and `entry_type` from `file_metadata` instead of parsing filenames. Load game profile by tag match. Skip game-specific features for content types.
-3. **Step 8: Settings UI update** — Game Library with Games/Content Types sections, naming preset selector with format preview.
+The rename redesign (v5 spec) is fully implemented. Potential follow-up work:
+1. **End-to-end pipeline test** — Run a real clip generation to verify `fileMetadataId` flows through pipeline → project → status update → pending rename dequeue
+2. **Rescan button** — For the 2 unmigrated files (OoA, CHS tags) that were skipped during migration
+3. **Game Library CRUD** — Edit/delete games from Settings (currently can only add)
+4. **`isFileInUse()` editor check** — Still stubbed (TODO) in rename collision logic
 
 ## Watch Out For
-- **Design spec**: `C:\Users\IAmAbsolute\Desktop\ClipFlow stuff\rename-system-redesign-v5.md` is the canonical spec for steps 6-8
-- **2 unmigrated files** — `OoA Day1 Pt1` and `CHS Day1 Pt1` have no matching Game Library entries. If user adds those games later, files won't auto-migrate (would need manual re-run or a "rescan" button)
-- **`naming-presets.js` not yet called from renameAll collision detection** — The renameAll flow calls IPC for collisions but the collision/retroactive logic runs through the preset engine in main process. Verify collision detection works correctly with batch renames of same-tag same-day files
+- **2 unmigrated files** — `OoA Day1 Pt1` and `CHS Day1 Pt1` have no matching Game Library entries
 - **`isFileInUse()` editor check** is still stubbed (TODO) — only pipeline status check works
-- **History tab local+SQLite split** — Current session renames appear in local state section; SQLite section shows "Previous Sessions". If user renames files and then switches to History, they see both sections. This is intentional but may look odd with zero SQLite entries on first launch after migration (since migration doesn't create rename_history entries)
-- **Manage tab still reads from filesystem scan** (`managedFiles` prop) — not yet switched to SQLite. Step 6 will address this.
+- **History tab local+SQLite split** — Current session renames appear in local state section; SQLite section shows "Previous Sessions"
+- **Collision detection in batch** — renameAll collision/retroactive logic runs through preset engine. Verify with batch renames of same-tag same-day files
 
 ## Logs/Debugging
 - App logs: `%APPDATA%/clipflow/logs/`

@@ -46,6 +46,7 @@ function createProject(watchFolder, data) {
     game: data.game || "Unknown",
     gameTag: data.gameTag || "",
     gameColor: data.gameColor || "#888",
+    fileMetadataId: data.fileMetadataId || null,
     status: "created", // created → transcribing → analyzing → clipping → ready
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

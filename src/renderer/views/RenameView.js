@@ -16,7 +16,7 @@ const PRESETS_USING_DAY = new Set(["tag-date-day-part", "tag-day-part"]);
 const PRESETS_USING_LABEL = new Set(["tag-label", "tag-date-label"]);
 const PRESETS_ALWAYS_PARTS = new Set(["tag-date-day-part", "tag-day-part"]);
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, managedFiles, setManagedFiles, watchFolder }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -89,11 +89,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     setHistoryLoading(false);
   };
 
-  // Load managed files from SQLite when Manage tab is opened
+  // Load managed files from SQLite on mount + when Manage tab is opened
+  useEffect(() => {
+    if (!isElectron) return;
+    loadDbManagedFiles();
+  }, [isElectron]);
+
   useEffect(() => {
     if (subTab !== "manage" || !isElectron) return;
     loadDbManagedFiles();
-  }, [subTab, isElectron]);
+  }, [subTab]);
 
   const loadDbManagedFiles = async () => {
     if (!isElectron) return;
@@ -103,10 +108,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     } catch (e) { console.error("Failed to load managed files:", e); }
   };
 
-  // Recalculate pending PART numbers once managedFiles loads from filesystem scan.
+  // Recalculate pending PART numbers once dbManagedFiles loads from SQLite.
   const managedLoaded = useRef(false);
   useEffect(() => {
-    if (managedFiles.length === 0 || managedLoaded.current) return;
+    if (dbManagedFiles.length === 0 || managedLoaded.current) return;
     managedLoaded.current = true;
 
     setPendingRenames((prev) => {
@@ -115,7 +120,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       for (const r of prev) {
         const fileDate = r.fileName.slice(0, 10);
         const existingParts = [
-          ...managedFiles.filter((f) => f.tag === r.tag && f.name.startsWith(fileDate) && f.day === r.day).map((f) => f.part),
+          ...dbManagedFiles.filter((f) => f.tag === r.tag && f.date === fileDate && f.day_number === r.day).map((f) => f.part_number).filter(Boolean),
           ...renameHistory.filter((h) => !h.undone && h.tag === r.tag && h.newName?.startsWith(fileDate)).map((h) => h.part),
           ...updated.filter((p) => p.tag === r.tag && p.fileName.slice(0, 10) === fileDate && p.day === r.day).map((p) => p.part),
         ];
@@ -124,7 +129,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       }
       return updated;
     });
-  }, [managedFiles]);
+  }, [dbManagedFiles]);
 
   // Recalculate pending DAY numbers when gamesDb changes
   const prevGamesRef = useRef(null);
@@ -189,7 +194,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const day = dateToDay[fileDate] !== undefined ? dateToDay[fileDate] : baseDayCount + 1;
 
     const existingParts = [
-      ...managedFiles.filter((f) => f.tag === game.tag && f.name.startsWith(fileDate) && f.day === day).map((f) => f.part),
+      ...dbManagedFiles.filter((f) => f.tag === game.tag && f.date === fileDate && f.day_number === day).map((f) => f.part_number).filter(Boolean),
       ...renameHistory.filter((h) => !h.undone && h.tag === game.tag && h.newName?.startsWith(fileDate)).map((h) => h.part),
       ...(currentPending || []).filter((p) => p.tag === game.tag && p.fileName.slice(0, 10) === fileDate).map((p) => p.part),
     ];
@@ -576,31 +581,40 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return options;
   };
 
-  // Manage tab
-  const folders = [...new Set(managedFiles.map((f) => f.folder))].sort().reverse();
-  const folderFiles = managedFiles.filter((f) => f.folder === manageFolder).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  // Manage tab — group by month from date column
+  const folders = [...new Set(dbManagedFiles.map((f) => f.date ? f.date.slice(0, 7) : "unknown"))].sort().reverse();
+  const folderFiles = dbManagedFiles.filter((f) => (f.date ? f.date.slice(0, 7) : "unknown") === manageFolder).sort((a, b) => (a.renamed_at || "").localeCompare(b.renamed_at || ""));
   const toggleMS = (id) => setManageSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const selectAllM = () => setManageSelected((p) => p.size === folderFiles.length ? new Set() : new Set(folderFiles.map((f) => f.id)));
 
-  const applyBatch = () => {
+  const applyBatch = async () => {
     if (!batchAction || manageSelected.size === 0) return;
-    const sf = folderFiles.filter((f) => manageSelected.has(f.id)).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const sf = folderFiles.filter((f) => manageSelected.has(f.id)).sort((a, b) => (a.renamed_at || "").localeCompare(b.renamed_at || ""));
     if (batchAction === "part") {
       const sp = parseInt(batchValue); if (isNaN(sp)) return;
-      setManagedFiles((prev) => { const u = [...prev]; sf.forEach((s, idx) => { const fi = u.findIndex((f) => f.id === s.id); if (fi !== -1) u[fi] = { ...u[fi], part: sp + idx, name: u[fi].name.replace(/Pt\d+/, `Pt${sp + idx}`) }; }); return u; });
+      for (let idx = 0; idx < sf.length; idx++) {
+        await window.clipflow.fileMetadataUpdate(sf[idx].id, { part_number: sp + idx });
+      }
     } else if (batchAction === "day") {
       const n = parseInt(batchValue); if (isNaN(n)) return;
-      setManagedFiles((prev) => prev.map((f) => manageSelected.has(f.id) ? { ...f, day: n, name: f.name.replace(/Day\d+/, `Day${n}`) } : f));
+      for (const f of sf) {
+        await window.clipflow.fileMetadataUpdate(f.id, { day_number: n });
+      }
     } else if (batchAction === "tag") {
       const g = gamesDb.find((x) => x.tag === batchValue || x.name === batchValue);
-      if (g) setManagedFiles((prev) => prev.map((f) => manageSelected.has(f.id) ? { ...f, tag: g.tag, game: g.name, color: g.color, name: f.name.replace(/\s\w+\sDay/, ` ${g.tag} Day`) } : f));
+      if (g) {
+        for (const f of sf) {
+          await window.clipflow.fileMetadataUpdate(f.id, { tag: g.tag, entry_type: g.entryType || "game" });
+        }
+      }
     }
     setBatchAction(null); setBatchValue(""); setManageSelected(new Set());
+    loadDbManagedFiles(); // Refresh from SQLite
   };
 
   // Computed stats
   const mainGameObj = gamesDb.find((g) => g.name === mainGameName) || gamesDb[0];
-  const totalRenamed = managedFiles.length + renameHistory.filter((h) => !h.undone).length;
+  const totalRenamed = dbManagedFiles.length + renameHistory.filter((h) => !h.undone).length;
   let mainDayCount = mainGameObj?.dayCount || 0;
   pendingRenames.forEach((p) => {
     if (p.tag === mainGameObj?.tag && p.day > mainDayCount) mainDayCount = p.day;
@@ -837,15 +851,18 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
-              {folderFiles.map((f) => (
-                <Card key={f.id} onClick={() => toggleMS(f.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: manageSelected.has(f.id) ? T.accentGlow : T.surface, borderColor: manageSelected.has(f.id) ? T.accentBorder : T.border }}>
-                  <Checkbox checked={manageSelected.has(f.id)} />
-                  <GamePill tag={f.tag} color={f.color} size="sm" />
-                  <div style={{ flex: 1, color: T.text, fontSize: 14, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
-                  <span style={{ color: T.accent, fontSize: 12, fontFamily: T.mono }}>Day{f.day}</span>
-                  <span style={{ color: T.green, fontSize: 12, fontFamily: T.mono }}>Pt{f.part}</span>
-                </Card>
-              ))}
+              {folderFiles.map((f) => {
+                const game = gamesDb.find((g) => g.tag === f.tag);
+                return (
+                  <Card key={f.id} onClick={() => toggleMS(f.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: manageSelected.has(f.id) ? T.accentGlow : T.surface, borderColor: manageSelected.has(f.id) ? T.accentBorder : T.border }}>
+                    <Checkbox checked={manageSelected.has(f.id)} />
+                    <GamePill tag={f.tag} color={game?.color || "#888"} size="sm" />
+                    <div style={{ flex: 1, color: T.text, fontSize: 14, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.current_filename}</div>
+                    {f.day_number != null && <span style={{ color: T.accent, fontSize: 12, fontFamily: T.mono }}>Day{f.day_number}</span>}
+                    {f.part_number != null && <span style={{ color: T.green, fontSize: 12, fontFamily: T.mono }}>Pt{f.part_number}</span>}
+                  </Card>
+                );
+              })}
             </div>
 
             {manageSelected.size > 0 && (

@@ -457,73 +457,6 @@ ipcMain.handle("dialog:openFile", async (_, options) => {
   return result.filePaths[0];
 });
 
-// ============ SCAN WATCH FOLDER: build managedFiles from actual filesystem ============
-// Parses renamed files like "2026-03-03 AR Day25 Pt1.mp4" in monthly subfolders
-const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)\.(mp4|mkv)$/i;
-
-ipcMain.handle("fs:scanWatchFolder", async (_, watchFolderPath) => {
-  try {
-    if (!fs.existsSync(watchFolderPath)) return { error: "Watch folder not found", files: [] };
-
-    const entries = fs.readdirSync(watchFolderPath, { withFileTypes: true });
-    const gamesDb = store.get("gamesDb") || [];
-    const managed = [];
-
-    // Scan monthly subfolders (e.g., 2026-03, 2026-02)
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      // Match YYYY-MM folder pattern
-      if (!/^\d{4}-\d{2}$/.test(entry.name)) continue;
-
-      const subfolderPath = path.join(watchFolderPath, entry.name);
-      let files;
-      try {
-        files = fs.readdirSync(subfolderPath);
-      } catch (e) {
-        continue;
-      }
-
-      for (const fileName of files) {
-        const match = fileName.match(RENAMED_FILE_PATTERN);
-        if (!match) continue;
-
-        const [, fileDate, tag, dayStr, partStr] = match;
-        const day = parseInt(dayStr, 10);
-        const part = parseInt(partStr, 10);
-
-        // Look up game info from gamesDb
-        const game = gamesDb.find((g) => g.tag === tag);
-        const gameName = game ? game.name : tag;
-        const color = game ? game.color : "#888";
-
-        let createdAt;
-        try {
-          const stat = fs.statSync(path.join(subfolderPath, fileName));
-          createdAt = stat.birthtime.toISOString();
-        } catch (e) {
-          createdAt = `${fileDate}T00:00:00.000Z`;
-        }
-
-        managed.push({
-          id: `m-${entry.name}-${fileName}`,
-          name: fileName,
-          tag,
-          game: gameName,
-          color,
-          day,
-          part,
-          folder: entry.name,
-          createdAt,
-        });
-      }
-    }
-
-    return { files: managed };
-  } catch (err) {
-    return { error: err.message, files: [] };
-  }
-});
-
 // ============ FFMPEG ============
 ipcMain.handle("ffmpeg:checkInstalled", async () => {
   try { return await ffmpeg.checkFfmpeg(); }
@@ -998,6 +931,10 @@ ipcMain.handle("metadata:search", async (_, filters) => {
       case "byDateRange":
         sql = "SELECT * FROM file_metadata WHERE date >= ? AND date <= ? ORDER BY date DESC, renamed_at DESC";
         params = [filters.startDate, filters.endDate];
+        break;
+      case "allRenamed":
+        sql = "SELECT * FROM file_metadata WHERE status != 'pending' ORDER BY date DESC, renamed_at DESC";
+        params = [];
         break;
       default:
         return [];

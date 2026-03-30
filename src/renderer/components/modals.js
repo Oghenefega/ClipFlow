@@ -3,14 +3,16 @@ import T from "../styles/theme";
 import { GamePill, Card, SectionLabel, ColorPicker } from "./shared";
 
 // ============ ADD GAME MODAL ============
-export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
+export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore }) => {
+  const isContent = entryType === "content";
   const rawName = exe ? exe.replace(/\.exe$/i, "").replace(/[-_]/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Win64.*|Shipping.*/i, "").trim() : "";
   const [gameName, setGameName] = useState(rawName);
   const [tag, setTag] = useState(rawName ? rawName.split(" ").map((w) => w[0] || "").join("") : "");
   const [hashtag, setHashtag] = useState(rawName ? rawName.replace(/\s+/g, "").toLowerCase() : "");
-  const [color, setColor] = useState("#8b5cf6");
+  const [color, setColor] = useState(isContent ? "#9b5de5" : "#8b5cf6");
   const [step, setStep] = useState(1);
   const isFromExe = !!exe;
+  const typeLabel = isContent ? "Content Type" : "Game";
   const timerRef = useRef(null);
   // Clean up timeout on unmount to prevent state updates after unmount
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -21,9 +23,9 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
         {/* Header */}
         <div style={{ background: T.accentGlow, padding: "24px 28px 20px", borderBottom: `1px solid ${T.accentBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎮</div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{isContent ? "💬" : "🎮"}</div>
             <div>
-              <div style={{ color: T.accentLight, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{isFromExe ? "New Game Detected" : "Add New Game"}</div>
+              <div style={{ color: T.accentLight, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{isFromExe ? "New Game Detected" : `Add New ${typeLabel}`}</div>
               {isFromExe && <div style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono, marginTop: 2 }}>{exe}</div>}
             </div>
           </div>
@@ -34,8 +36,8 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
           {step === 1 && (
             <>
               <div style={{ marginBottom: 18 }}>
-                <SectionLabel>Game Name</SectionLabel>
-                <input value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder="e.g. Subway Surfers" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 16, fontWeight: 600, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
+                <SectionLabel>{isContent ? "Content Type Name" : "Game Name"}</SectionLabel>
+                <input value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder={isContent ? "e.g. Just Chatting" : "e.g. Subway Surfers"} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 16, fontWeight: 600, fontFamily: T.font, outline: "none", marginTop: 8, boxSizing: "border-box" }} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
@@ -86,7 +88,7 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
             <div style={{ textAlign: "center", padding: "10px 0" }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
               <div style={{ color: T.green, fontSize: 18, fontWeight: 800, marginBottom: 12 }}>{gameName} Added!</div>
-              <button onClick={() => onConfirm({ name: gameName, tag, hashtag, color, exe: exe ? [exe] : [] })} style={{ width: "100%", padding: 14, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Done</button>
+              <button onClick={() => onConfirm({ name: gameName, tag, hashtag, color, entryType, exe: exe ? [exe] : [] })} style={{ width: "100%", padding: 14, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Done</button>
             </div>
           )}
         </div>
@@ -96,7 +98,7 @@ export const AddGameModal = ({ exe, onConfirm, onDismiss, onIgnore }) => {
 };
 
 // ============ GAME EDIT MODAL ============
-export const GameEditModal = ({ game, onSave, onClose, anthropicApiKey }) => {
+export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicApiKey }) => {
   const [tag, setTag] = useState(game.tag);
   const [hashtag, setHashtag] = useState(game.hashtag || "");
   const [color, setColor] = useState(game.color);
@@ -152,7 +154,10 @@ export const GameEditModal = ({ game, onSave, onClose, anthropicApiKey }) => {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
           <div>
             <SectionLabel>Tag</SectionLabel>
-            <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+            {(() => { const dup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name); return (<>
+              <input value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${dup ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none", marginTop: 8, boxSizing: "border-box", letterSpacing: "1px" }} />
+              {dup && <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Tag already in use by another entry</div>}
+            </>); })()}
           </div>
           <div>
             <SectionLabel>Last Day #</SectionLabel>
@@ -275,12 +280,14 @@ export const GameEditModal = ({ game, onSave, onClose, anthropicApiKey }) => {
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
           <button onClick={() => {
+            const tagDup = tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name);
+            if (tagDup) return;
             // Save threshold to game profiles backend
             if (window.clipflow.gameProfilesSetThreshold) {
               window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
             }
             onSave({ ...game, tag, hashtag, color, dayCount, active, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
-          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save Changes</button>
+          }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(255,255,255,0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
         </div>
       </div>
     </div>

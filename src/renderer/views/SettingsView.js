@@ -10,12 +10,13 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
   const [showAddMain, setShowAddMain] = useState(false);
   const [selGameLib, setSelGameLib] = useState(null);
+  const [namingPreset, setNamingPreset] = useState("tag-date-day-part");
   const [copiedField, setCopiedField] = useState(null);
   // API Credentials — pill bar
   const [activeApi, setActiveApi] = useState(null); // "anthropic" | "youtube" | "meta" | "tiktok" | null
@@ -76,6 +77,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         const wm = await window.clipflow.storeGet("whisperModel");
         if (pp) setWhisperPythonPath(pp);
         if (wm) setWhisperModel(wm);
+        const np = await window.clipflow.storeGet("namingPreset");
+        if (np) setNamingPreset(np);
         // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
           const r = await window.clipflow.whisperCheck(pp || undefined);
@@ -308,11 +311,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
-      {/* Game Library */}
+      {/* Game Library — Games + Content Types */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Game Library</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {gamesDb.map((g) => {
+        {/* Games section */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Games</div>
+          <button onClick={() => onAddGame("game")} style={{ background: T.accentDim, border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "4px 10px", color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {gamesDb.filter((g) => g.entryType !== "content").map((g) => {
             const isSel = selGameLib === g.name;
             return (
               <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
@@ -320,6 +327,72 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
                 {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
                 <button onClick={(e) => { e.stopPropagation(); delGame(g.name); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>{"\u2715"}</button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: `1px solid ${T.border}`, marginBottom: 16 }} />
+
+        {/* Content Types section */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Content Types</div>
+          <button onClick={() => onAddGame("content")} style={{ background: T.accentDim, border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "4px 10px", color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Content Type</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {gamesDb.filter((g) => g.entryType === "content").map((g) => {
+            const isSel = selGameLib === g.name;
+            return (
+              <div key={g.name} onClick={() => { setSelGameLib(isSel ? null : g.name); setEditGD(g); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${isSel ? T.accentBorder : T.border}`, background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)", cursor: "pointer", opacity: g.active === false ? 0.5 : 1 }}>
+                <GamePill tag={g.tag} color={g.color} size="sm" />
+                <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                {g.active === false && <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 600, fontStyle: "italic" }}>inactive</span>}
+                <button onClick={(e) => { e.stopPropagation(); delGame(g.name); }} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "0 0 0 2px" }}>{"\u2715"}</button>
+              </div>
+            );
+          })}
+          {gamesDb.filter((g) => g.entryType === "content").length === 0 && (
+            <div style={{ color: T.textTertiary, fontSize: 12, fontStyle: "italic" }}>No content types added yet</div>
+          )}
+        </div>
+      </Card>
+
+      {/* Naming Preset */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Default Naming Preset</div>
+        <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 14 }}>Controls how renamed files are named. Can be overridden per-file in the Rename tab.</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {[
+            { id: "tag-date-day-part", label: "Tag + Date + Day + Part", example: "AR 2026-03-15 Day30 Pt1" },
+            { id: "tag-day-part", label: "Tag + Day + Part", example: "AR Day30 Pt1" },
+            { id: "tag-date", label: "Tag + Date", example: "AR 2026-03-15" },
+            { id: "tag-label", label: "Tag + Custom Label", example: "AR ranked-grind" },
+            { id: "tag-date-label", label: "Tag + Date + Label", example: "AR 2026-03-15 ranked-grind" },
+            { id: "original-tag", label: "Tag + Original", example: "AR 2026-03-15 14-30-22" },
+          ].map((p) => {
+            const isSel = namingPreset === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() => {
+                  setNamingPreset(p.id);
+                  if (window.clipflow?.storeSet) window.clipflow.storeSet("namingPreset", p.id);
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                  borderRadius: T.radius.md, cursor: "pointer",
+                  border: `1px solid ${isSel ? T.accentBorder : T.border}`,
+                  background: isSel ? T.accentGlow : "rgba(255,255,255,0.02)",
+                }}
+              >
+                <div style={{ width: 16, height: 16, borderRadius: 8, border: `2px solid ${isSel ? T.accent : T.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {isSel && <div style={{ width: 8, height: 8, borderRadius: 4, background: T.accent }} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: isSel ? T.text : T.textSecondary, fontSize: 13, fontWeight: 600 }}>{p.label}</div>
+                </div>
+                <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{p.example}.mp4</div>
               </div>
             );
           })}
@@ -906,7 +979,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Dev Dashboard — hidden behind version click counter */}
       <DevDashboard />
 
-      {editGD && <GameEditModal game={editGD} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
+      {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
   );
 }

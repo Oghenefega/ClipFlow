@@ -92,15 +92,15 @@ function transcribe(wavPath, opts = {}) {
     const batchSize = opts.batchSize || 16;
     const computeType = opts.computeType || "float16";
 
-    // Slang/vocabulary hints
+    // Slang/vocabulary hints + game-specific terms
     const defaultSlangPrompt = [
       "ain't, gonna, gotta, wanna, y'all, bro, nah, fam, dawg, bruh",
       "tryna, finna, boutta, lowkey, highkey, deadass, bussin, sus, cap, no cap",
       "lit, fire, bet, dope, vibe, salty, clutch, cracked, goated, mid",
       "GG, OP, nerf, buff, AFK, respawn, aggro, ADS, headshot, one-shot",
       "let's go, oh my god, what the, are you kidding me",
-      "Fega, Arc Raiders, bioscanner, reagents",
-    ].join(", ");
+      "Fega",
+    ].join(", ") + (opts.gameVocab || "");
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 
     // Build command

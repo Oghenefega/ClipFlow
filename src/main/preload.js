@@ -4,7 +4,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   // File system
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
   readDir: (dir) => ipcRenderer.invoke("fs:readDir", dir),
-  scanWatchFolder: (folder) => ipcRenderer.invoke("fs:scanWatchFolder", folder),
   renameFile: (oldPath, newPath) => ipcRenderer.invoke("fs:renameFile", oldPath, newPath),
   fileExists: (path) => ipcRenderer.invoke("fs:exists", path),
   readFile: (path) => ipcRenderer.invoke("fs:readFile", path),

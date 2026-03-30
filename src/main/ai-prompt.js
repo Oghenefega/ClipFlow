@@ -25,7 +25,7 @@ const DEFAULT_CREATOR_PROFILE = {
  * @param {object} [opts.creatorProfile] - Creator profile (falls back to DEFAULT_CREATOR_PROFILE)
  * @returns {string} Full system prompt
  */
-function buildSystemPrompt({ gameTag, gameName, gameContext, approvedClips, creatorProfile }) {
+function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, creatorProfile }) {
   const creator = creatorProfile || DEFAULT_CREATOR_PROFILE;
   const sections = [];
 
@@ -66,13 +66,16 @@ Content archetype: ${archetype}`;
 
   sections.push(creatorSection);
 
-  // ── Section 3: Game Context ──
-  const profile = gameProfiles.getProfile(gameTag);
-  let gameSection = `# GAME CONTEXT
+  // ── Section 3: Game/Content Context ──
+  const isContent = entryType === "content";
+  const profile = isContent ? null : gameProfiles.getProfile(gameTag);
+  const contextLabel = isContent ? "CONTENT CONTEXT" : "GAME CONTEXT";
+  const typeLabel = isContent ? "Content type" : "Game";
+  let gameSection = `# ${contextLabel}
 
-Game: ${gameName || gameTag}`;
+${typeLabel}: ${gameName || gameTag}`;
   if (gameContext) {
-    gameSection += `\n\nAbout this game:\n${gameContext}`;
+    gameSection += `\n\nAbout this ${isContent ? "content type" : "game"}:\n${gameContext}`;
   }
   if (profile && profile.playStyle) {
     gameSection += `\n\nHow this creator plays ${gameName || gameTag}:\n${profile.playStyle}`;
