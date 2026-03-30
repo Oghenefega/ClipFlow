@@ -944,7 +944,7 @@ function AIPreferencesSection() {
     (async () => {
       if (window.clipflow?.storeGet) {
         const p = await window.clipflow.storeGet("creatorProfile");
-        setProfile(p || { archetype: "variety", description: "", signaturePhrases: [], momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"], voiceMode: "hype" });
+        setProfile(p || { archetype: "variety", description: "", signaturePhrases: [], momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"] });
       }
       setLoading(false);
     })();
@@ -970,7 +970,6 @@ function AIPreferencesSection() {
       description: "",
       signaturePhrases: [],
       momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
-      voiceMode: "hype",
     };
     save(defaults);
     setShowResetConfirm(false);
@@ -1069,31 +1068,6 @@ function AIPreferencesSection() {
           rows={3}
           style={{ ...inputStyle, resize: "vertical", minHeight: 72, lineHeight: 1.5, marginTop: 8 }}
         />
-      </div>
-
-      {/* Voice mode */}
-      <div style={{ marginBottom: 20 }}>
-        <SectionLabel>Default Title Style</SectionLabel>
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          {[{ id: "hype", label: "Hype" }, { id: "chill", label: "Chill" }].map((v) => {
-            const sel = profile.voiceMode === v.id;
-            return (
-              <button
-                key={v.id}
-                onClick={() => save({ ...profile, voiceMode: v.id })}
-                style={{
-                  padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  cursor: "pointer", fontFamily: T.font, transition: "all 0.15s",
-                  background: sel ? T.accentDim : "rgba(255,255,255,0.04)",
-                  color: sel ? T.accent : T.textTertiary,
-                  border: sel ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
-                }}
-              >
-                {v.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Reset */}

@@ -24,9 +24,6 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("watcher:fileRemoved");
   },
 
-  // OBS
-  parseOBSLog: (logDir) => ipcRenderer.invoke("obs:parseLog", logDir),
-
   // Shell
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
 

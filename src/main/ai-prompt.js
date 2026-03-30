@@ -10,7 +10,6 @@ const DEFAULT_CREATOR_PROFILE = {
   description: "",
   signaturePhrases: [],
   momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
-  voiceMode: "hype",
 };
 
 /**

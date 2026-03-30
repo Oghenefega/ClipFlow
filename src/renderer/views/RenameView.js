@@ -294,7 +294,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   return (
     <div>
-      <PageHeader title="Rename" subtitle="OBS recordings → structured names">
+      <PageHeader title="Rename" subtitle="Recordings → structured names">
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={refresh} disabled={refreshing} style={{ padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
           <button onClick={onAddGame} style={{ padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
@@ -302,15 +302,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       </PageHeader>
 
       {/* Watch status */}
-      <Card style={{ padding: "16px 20px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Card style={{ padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <PulseDot />
           <span style={{ color: T.green, fontSize: 13, fontWeight: 600 }}>WATCHING</span>
           <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <PulseDot color={T.cyan} />
-          <span style={{ color: T.cyan, fontSize: 12, fontWeight: 600 }}>OBS LOG</span>
         </div>
       </Card>
 

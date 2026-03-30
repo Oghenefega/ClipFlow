@@ -28,14 +28,6 @@ const ARCHETYPE_MOMENT_ORDER = {
   variety: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
 };
 
-// ── Default voice mode per archetype ──
-const ARCHETYPE_VOICE = {
-  hype: "hype",
-  competitive: "chill",
-  chill: "chill",
-  variety: "hype",
-};
-
 // ── Shared styles ──
 const stepDot = (active) => ({
   width: 8, height: 8, borderRadius: "50%",
@@ -68,7 +60,6 @@ export default function OnboardingView({ onComplete }) {
 
   // Step 3 state
   const [description, setDescription] = useState("");
-  const [voiceMode, setVoiceMode] = useState("hype");
 
   // Safety fallback: track that wizard was shown
   const wizardShown = useRef(false);
@@ -80,7 +71,6 @@ export default function OnboardingView({ onComplete }) {
       description: "",
       signaturePhrases: [],
       momentPriorities: [...ARCHETYPE_MOMENT_ORDER.variety],
-      voiceMode: "hype",
     });
   };
 
@@ -89,7 +79,6 @@ export default function OnboardingView({ onComplete }) {
       // Moving from archetype to moments — pre-populate order
       const selected = archetype || "variety";
       setMoments([...ARCHETYPE_MOMENT_ORDER[selected]]);
-      setVoiceMode(ARCHETYPE_VOICE[selected]);
       setStep(1);
     } else if (step === 1) {
       setStep(2);
@@ -102,7 +91,6 @@ export default function OnboardingView({ onComplete }) {
       description: description.trim(),
       signaturePhrases: [],
       momentPriorities: [...moments],
-      voiceMode,
     });
   };
 
@@ -163,7 +151,6 @@ export default function OnboardingView({ onComplete }) {
           {step === 2 && (
             <PersonalityStep
               description={description} setDescription={setDescription}
-              voiceMode={voiceMode} setVoiceMode={setVoiceMode}
             />
           )}
         </div>
@@ -313,13 +300,8 @@ function MomentsStep({ moments, onMove }) {
   );
 }
 
-// ── Step 3: Personality Description + Voice Mode ──
-function PersonalityStep({ description, setDescription, voiceMode, setVoiceMode }) {
-  const voiceOptions = [
-    { id: "hype", label: "Hype", desc: "Punchy, exclamatory titles" },
-    { id: "chill", label: "Chill", desc: "Conversational, understated titles" },
-  ];
-
+// ── Step 3: Personality Description ──
+function PersonalityStep({ description, setDescription }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Description */}
@@ -340,37 +322,6 @@ function PersonalityStep({ description, setDescription, voiceMode, setVoiceMode 
         />
         <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 6 }}>
           This helps the AI understand what kind of moments to look for. You can always change this later in Settings.
-        </div>
-      </div>
-
-      {/* Voice mode */}
-      <div>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-          Default title style
-        </label>
-        <div style={{ display: "flex", gap: 10 }}>
-          {voiceOptions.map((v) => {
-            const selected = voiceMode === v.id;
-            return (
-              <div
-                key={v.id}
-                onClick={() => setVoiceMode(v.id)}
-                style={{
-                  flex: 1, padding: "14px 16px", borderRadius: T.radius.md,
-                  background: selected ? T.accentDim : T.surface,
-                  border: `1px solid ${selected ? T.accentBorder : T.border}`,
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600, color: selected ? T.accent : T.text }}>
-                  {v.label}
-                </div>
-                <div style={{ fontSize: 12, color: T.textSecondary, marginTop: 4 }}>
-                  {v.desc}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

@@ -3,7 +3,6 @@ import useEditorStore from "./useEditorStore";
 import useCaptionStore from "./useCaptionStore";
 
 const useAIStore = create((set, get) => ({
-  voiceMode: "hype",
   aiContext: "",
   aiGame: "Arc Raiders",
   aiGenerating: false,
@@ -14,12 +13,11 @@ const useAIStore = create((set, get) => ({
   acceptedCaptionIdx: null,
 
   // ── Actions ──
-  setVoiceMode: (m) => set({ voiceMode: m }),
   setAiContext: (c) => set({ aiContext: c }),
   setAiGame: (g) => set({ aiGame: g }),
 
   generate: async (anthropicApiKey, gamesDb) => {
-    const { aiGenerating, aiGame, aiContext, voiceMode, aiRejections } = get();
+    const { aiGenerating, aiGame, aiContext, aiRejections } = get();
     const { clip, project } = useEditorStore.getState();
     if (!clip || !project || aiGenerating) return;
     if (!anthropicApiKey) {
@@ -42,7 +40,7 @@ const useAIStore = create((set, get) => ({
       const activeGame = gamesDb.find((g) => g.name === aiGame);
       const result = await window.clipflow.anthropicGenerate({
         transcript,
-        userContext: `${voiceMode === "hype" ? "Use HYPE energy — punchy, exciting, gaming energy." : "Use CHILL tone — laid-back, conversational, relatable."} ${aiContext}`.trim(),
+        userContext: aiContext.trim(),
         gameName: aiGame,
         gameContextAuto: activeGame?.aiContextAuto || "",
         gameContextUser: activeGame?.aiContextUser || "",
@@ -92,7 +90,6 @@ const useAIStore = create((set, get) => ({
   },
 
   reset: () => set({
-    voiceMode: "hype",
     aiContext: "",
     aiGenerating: false,
     aiError: "",

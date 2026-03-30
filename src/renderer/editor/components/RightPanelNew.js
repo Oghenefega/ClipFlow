@@ -629,8 +629,6 @@ function DropZone({ accept, label, icon: Icon = UploadCloud }) {
 //  DRAWER 1: AI TOOLS
 // ════════════════════════════════════════════════════════════════
 function AIToolsPanel({ gamesDb, anthropicApiKey }) {
-  const voiceMode = useAIStore((s) => s.voiceMode);
-  const setVoiceMode = useAIStore((s) => s.setVoiceMode);
   const aiContext = useAIStore((s) => s.aiContext);
   const setAiContext = useAIStore((s) => s.setAiContext);
   const aiGame = useAIStore((s) => s.aiGame);
@@ -648,19 +646,6 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
 
   return (
     <div className="p-3 space-y-3">
-      {/* Voice mode */}
-      <div>
-        <SectionLabel>Voice</SectionLabel>
-        <div className="flex gap-1.5">
-          {["hype", "chill"].map((m) => (
-            <button key={m} onClick={() => setVoiceMode(m)}
-              className={`flex-1 h-8 rounded-md text-xs font-medium transition-colors ${voiceMode === m ? "bg-primary/15 text-primary border border-primary/30" : "bg-secondary/50 text-muted-foreground border border-transparent hover:bg-secondary"}`}>
-              {m === "hype" ? "🔥 Hype" : "😎 Chill"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Context */}
       <div>
         <SectionLabel>Context (optional)</SectionLabel>

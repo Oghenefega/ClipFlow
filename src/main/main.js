@@ -161,7 +161,6 @@ const store = new Store({
       description: "",
       signaturePhrases: [],
       momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
-      voiceMode: "hype",
     },
     onboardingComplete: false,
   },
@@ -396,49 +395,6 @@ ipcMain.handle("watcher:stop", async () => {
     watcher = null;
   }
   return { success: true };
-});
-
-// OBS log parser: find most recent log and extract game exe
-ipcMain.handle("obs:parseLog", async (_, obsLogDir) => {
-  try {
-    if (!fs.existsSync(obsLogDir)) return { error: "OBS log directory not found" };
-
-    const logFiles = fs
-      .readdirSync(obsLogDir)
-      .filter((f) => f.endsWith(".txt"))
-      .sort()
-      .reverse();
-
-    if (logFiles.length === 0) return { error: "No OBS log files found" };
-
-    const logContent = fs.readFileSync(path.join(obsLogDir, logFiles[0]), "utf-8");
-
-    // Extract game capture source exe names
-    const exeMatches = logContent.match(/game_capture.*?:\s*(\w+\.exe)/gi) || [];
-    const exes = [...new Set(exeMatches.map((m) => {
-      const match = m.match(/(\w+\.exe)/i);
-      return match ? match[1] : null;
-    }).filter(Boolean))];
-
-    // Extract recording start/stop times
-    const recordings = [];
-    const startMatches = logContent.matchAll(/(\d{2}:\d{2}:\d{2}\.\d+).*Recording Start/g);
-    const stopMatches = logContent.matchAll(/(\d{2}:\d{2}:\d{2}\.\d+).*Recording Stop/g);
-    const starts = [...startMatches].map((m) => m[1]);
-    const stops = [...stopMatches].map((m) => m[1]);
-
-    for (let i = 0; i < starts.length; i++) {
-      recordings.push({
-        start: starts[i],
-        stop: stops[i] || null,
-        exe: exes[exes.length - 1] || null, // most recent game exe
-      });
-    }
-
-    return { logFile: logFiles[0], exes, recordings };
-  } catch (err) {
-    return { error: err.message };
-  }
 });
 
 // Shell: open folder in explorer
