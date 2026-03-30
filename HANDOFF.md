@@ -51,6 +51,7 @@ App builds and launches cleanly. Video splitting Phase 1 is **complete** — all
 - No UNDO button for split entries (deferred per spec)
 
 ## Key Decisions
+- **2-minute minimum tail segment** — files barely over the threshold (e.g. 30:04 at 30-min threshold) don't split. The last segment must be >= 2 minutes, otherwise the file is treated as a single recording. Prevents useless micro-segments.
 - `pendingImports` is an in-memory Set — if ClipFlow crashes mid-import, watcher picks up file normally (acceptable)
 - Quick-import modal uses native `<select>` for game picker (lightweight, no custom dropdown needed in modal)
 - Split progress updates per-segment via `setSplitProgress` state
