@@ -15,6 +15,10 @@ ClipFlow is a **commercial software product** being built for public release wit
 
 Commit and push directly to master. No PRs, no feature branches.
 
+## Changelog (Non-Negotiable)
+
+Update `CHANGELOG.md` at the end of **every session** before the final commit. Categorize entries under the current date using Added/Changed/Fixed/Removed. Each entry should be descriptive enough that someone reading the changelog understands the change without digging into code — 1-2 sentences per item. Not too terse, not a journal.
+
 ## Tech Stack
 
 Electron 28, React 18 (CRA), Tailwind CSS 3 + shadcn/ui, Zustand 5 (editor state), electron-store 8, chokidar 3, FFmpeg (local), whisper.cpp (local), Anthropic API (Claude Sonnet 4 / Opus 4), lucide-react, DM Sans + JetBrains Mono fonts.
