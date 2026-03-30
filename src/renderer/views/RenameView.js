@@ -41,7 +41,29 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // Manage from SQLite
   const [dbManagedFiles, setDbManagedFiles] = useState([]);
 
+  // Auto-split state: { [fileId]: { durationSeconds, splitCount, probing, skipSplit } }
+  const [splitInfo, setSplitInfo] = useState({});
+  const [splitThreshold, setSplitThreshold] = useState(30);
+  const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
+  const [splitProgress, setSplitProgress] = useState(null); // { fileId, current, total }
+
+  // Drag-and-drop state
+  const [dragOver, setDragOver] = useState(false);
+  const [importing, setImporting] = useState(null); // { filename, pct }
+
   const isElectron = typeof window !== "undefined" && window.clipflow;
+
+  // Load split settings from store
+  useEffect(() => {
+    if (!isElectron) return;
+    Promise.all([
+      window.clipflow.storeGet("splitThresholdMinutes"),
+      window.clipflow.storeGet("autoSplitEnabled"),
+    ]).then(([threshold, enabled]) => {
+      if (threshold != null) setSplitThreshold(threshold);
+      if (enabled != null) setAutoSplitEnabled(enabled);
+    });
+  }, []);
 
   // Load default preset from electron-store on mount
   useEffect(() => {
@@ -72,6 +94,43 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     });
     return () => { window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb, defaultPreset]);
+
+  // Probe duration for new pending files (auto-split detection)
+  useEffect(() => {
+    if (!isElectron || !autoSplitEnabled) return;
+    const unprobed = pendingRenames.filter((r) => r.filePath && !splitInfo[r.id]);
+    if (unprobed.length === 0) return;
+
+    for (const r of unprobed) {
+      // Mark as probing immediately to avoid re-triggering
+      setSplitInfo((prev) => ({ ...prev, [r.id]: { probing: true } }));
+      window.clipflow.ffmpegProbe(r.filePath).then((probe) => {
+        const dur = probe?.duration || probe?.format?.duration || 0;
+        const thresholdSec = splitThreshold * 60;
+        const splitCount = dur > thresholdSec ? Math.ceil(dur / thresholdSec) : 0;
+        setSplitInfo((prev) => ({
+          ...prev,
+          [r.id]: { durationSeconds: dur, splitCount, probing: false, skipSplit: false },
+        }));
+      }).catch(() => {
+        setSplitInfo((prev) => ({ ...prev, [r.id]: { durationSeconds: 0, splitCount: 0, probing: false, skipSplit: false } }));
+      });
+    }
+  }, [pendingRenames, isElectron, autoSplitEnabled, splitThreshold]);
+
+  // Recalculate split counts when threshold changes
+  useEffect(() => {
+    setSplitInfo((prev) => {
+      const updated = {};
+      for (const [id, info] of Object.entries(prev)) {
+        if (!info.durationSeconds) { updated[id] = info; continue; }
+        const thresholdSec = splitThreshold * 60;
+        const splitCount = info.durationSeconds > thresholdSec ? Math.ceil(info.durationSeconds / thresholdSec) : 0;
+        updated[id] = { ...info, splitCount };
+      }
+      return updated;
+    });
+  }, [splitThreshold]);
 
   // Load history from SQLite when History tab is opened
   useEffect(() => {
@@ -203,6 +262,34 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return { game: game.name, tag: game.tag, color: game.color, day, part };
   };
 
+  // ============ SPLIT HELPERS ============
+  const formatDuration = (seconds) => {
+    if (!seconds || seconds <= 0) return "0m";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  const getSplitPreview = (r) => {
+    const info = splitInfo[r.id];
+    if (!info || !info.splitCount || info.skipSplit) return null;
+    const thresholdSec = splitThreshold * 60;
+    const parts = [];
+    for (let i = 0; i < info.splitCount; i++) {
+      const start = i * thresholdSec;
+      const end = Math.min((i + 1) * thresholdSec, info.durationSeconds);
+      parts.push({ start, end, partNumber: i + 1 });
+    }
+    return parts;
+  };
+
+  const toggleSkipSplit = (fileId) => {
+    setSplitInfo((prev) => ({
+      ...prev,
+      [fileId]: { ...prev[fileId], skipSplit: !prev[fileId]?.skipSplit },
+    }));
+  };
+
   // ============ LIVE FILENAME PREVIEW (preset-aware) ============
   const getProposed = (r) => {
     const preset = r.preset || defaultPreset;
@@ -282,6 +369,181 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   };
 
   // ============ RENAME HANDLERS (DB-backed) ============
+
+  // Helper: rename a single file (no split) — extracted for reuse
+  const renameSingleFile = async (r, preset, fileDate) => {
+    const meta = {
+      tag: r.tag,
+      date: fileDate,
+      dayNumber: r.day,
+      partNumber: PRESETS_ALWAYS_PARTS.has(preset) ? r.part : null,
+      customLabel: r.customLabel || null,
+      originalFilename: r.fileName,
+    };
+
+    let newName;
+
+    if (isElectron) {
+      // Check collisions for conditional-part presets
+      if (!PRESETS_ALWAYS_PARTS.has(preset)) {
+        const collisions = await window.clipflow.presetFindCollisions(meta, preset);
+        if (collisions && collisions.length > 0) {
+          for (const existing of collisions) {
+            await window.clipflow.presetRetroactiveRename(existing, null);
+          }
+          const nextPart = await window.clipflow.presetGetNextPartNumber(meta, preset);
+          meta.partNumber = nextPart.partNumber;
+          const collisionMsg = getRetroNotificationMessage(preset, r.tag, r.customLabel);
+          setRetroNotification(collisionMsg);
+          setTimeout(() => setRetroNotification(null), 6000);
+        }
+      }
+
+      const result = await window.clipflow.presetFormatFilename(meta, preset);
+      if (result.error) { console.error("Format failed:", result.error); return null; }
+      newName = result.filename;
+    } else {
+      newName = getProposed(r);
+    }
+
+    if (isElectron && r.filePath) {
+      const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
+      const monthFolder = r.fileName.slice(0, 7);
+      const targetDir = `${dir}\\${monthFolder}`;
+      const newPath = `${targetDir}\\${newName}`;
+      const result = await window.clipflow.renameFile(r.filePath, newPath);
+      if (result.error) { console.error("Rename failed:", result.error); return null; }
+
+      const game = gamesDb.find((g) => g.tag === r.tag);
+      await window.clipflow.fileMetadataCreate({
+        originalFilename: r.fileName,
+        currentFilename: newName,
+        originalPath: r.filePath,
+        currentPath: newPath,
+        tag: r.tag,
+        entryType: game?.entryType || "game",
+        date: fileDate,
+        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+        partNumber: meta.partNumber,
+        customLabel: r.customLabel || null,
+        namingPreset: preset,
+        status: "renamed",
+      });
+
+      if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
+        await window.clipflow.labelRecord(r.tag, r.customLabel);
+      }
+    }
+
+    return { newName, partNumber: meta.partNumber };
+  };
+
+  // Helper: split a file then rename all children
+  const splitAndRename = async (r, preset, fileDate) => {
+    const info = splitInfo[r.id];
+    if (!info || !info.splitCount) return null;
+
+    const thresholdSec = splitThreshold * 60;
+    const game = gamesDb.find((g) => g.tag === r.tag);
+
+    // First, create a parent file_metadata record so split:execute can find it
+    const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
+    const monthFolder = r.fileName.slice(0, 7);
+    const targetDir = `${dir}\\${monthFolder}`;
+
+    // Rename source to monthly subfolder first
+    const tempName = r.fileName; // keep original name for now
+    const parentPath = `${targetDir}\\${tempName}`;
+    const moveResult = await window.clipflow.renameFile(r.filePath, parentPath);
+    if (moveResult.error) { console.error("Move to subfolder failed:", moveResult.error); return null; }
+
+    const parentResult = await window.clipflow.fileMetadataCreate({
+      originalFilename: r.fileName,
+      currentFilename: tempName,
+      originalPath: r.filePath,
+      currentPath: parentPath,
+      tag: r.tag,
+      entryType: game?.entryType || "game",
+      date: fileDate,
+      dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+      partNumber: null,
+      customLabel: r.customLabel || null,
+      namingPreset: preset,
+      durationSeconds: info.durationSeconds,
+      status: "pending",
+    });
+
+    if (!parentResult?.id) { console.error("Failed to create parent metadata"); return null; }
+
+    // Build split points
+    const splitPoints = [];
+    for (let i = 0; i < info.splitCount; i++) {
+      const start = i * thresholdSec;
+      const end = Math.min((i + 1) * thresholdSec, info.durationSeconds);
+      splitPoints.push({
+        startSeconds: start,
+        endSeconds: end,
+        tag: r.tag,
+        entryType: game?.entryType || "game",
+        partNumber: i + 1,
+      });
+    }
+
+    setSplitProgress({ fileId: r.id, current: 0, total: info.splitCount });
+
+    const splitResult = await window.clipflow.splitExecute(parentResult.id, splitPoints);
+    if (splitResult.error) {
+      console.error("Split failed:", splitResult.error);
+      setSplitProgress(null);
+      return null;
+    }
+
+    // Now rename each child file using the preset engine with part numbers
+    const renamedChildren = [];
+    for (let i = 0; i < splitResult.results.length; i++) {
+      const child = splitResult.results[i];
+      const partNum = i + 1;
+      setSplitProgress({ fileId: r.id, current: i + 1, total: info.splitCount });
+
+      const childMeta = {
+        tag: r.tag,
+        date: fileDate,
+        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+        partNumber: partNum,
+        customLabel: r.customLabel || null,
+        originalFilename: r.fileName,
+      };
+
+      const fmtResult = await window.clipflow.presetFormatFilename(childMeta, preset);
+      if (fmtResult.error) continue;
+
+      const childNewName = fmtResult.filename;
+      const childNewPath = `${targetDir}\\${childNewName}`;
+
+      // Rename the temp split file
+      const renResult = await window.clipflow.renameFile(child.filePath, childNewPath);
+      if (renResult.error) continue;
+
+      // Update the child metadata record
+      await window.clipflow.fileMetadataUpdate(child.childId, {
+        current_filename: childNewName,
+        current_path: childNewPath,
+        part_number: partNum,
+        day_number: PRESETS_USING_DAY.has(preset) ? r.day : null,
+      });
+
+      renamedChildren.push({ newName: childNewName, partNumber: partNum });
+    }
+
+    // Record label usage
+    if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
+      await window.clipflow.labelRecord(r.tag, r.customLabel);
+    }
+
+    setSplitProgress(null);
+    return renamedChildren;
+  };
+
   const renameOne = async (id) => {
     const r = pendingRenames.find((x) => x.id === id);
     if (!r) return;
@@ -300,99 +562,40 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       }
     }
 
-    // Build metadata for the preset engine
-    const meta = {
-      tag: r.tag,
-      date: fileDate,
-      dayNumber: r.day,
-      partNumber: PRESETS_ALWAYS_PARTS.has(preset) ? r.part : null,
-      customLabel: r.customLabel || null,
-      originalFilename: r.fileName,
-    };
+    // Check if this file needs splitting
+    const info = splitInfo[r.id];
+    const needsSplit = isElectron && info && info.splitCount > 0 && !info.skipSplit;
 
-    let newName;
-    let collisionResult = null;
-    let retroHistoryId = null;
+    if (needsSplit) {
+      setRenaming(true);
+      const children = await splitAndRename(r, preset, fileDate);
+      setRenaming(false);
 
-    if (isElectron) {
-      // Check for collisions on conditional-part presets
-      if (!PRESETS_ALWAYS_PARTS.has(preset)) {
-        const collisions = await window.clipflow.presetFindCollisions(meta, preset);
-        if (collisions && collisions.length > 0) {
-          // Collision detected — trigger retroactive Pt1 on existing file(s)
-          for (const existing of collisions) {
-            const retroResult = await window.clipflow.presetRetroactiveRename(existing, null);
-            if (retroResult.historyId) retroHistoryId = retroResult.historyId;
-          }
-          // Get next part number (will be Pt2+ since Pt1 was assigned retroactively)
-          const nextPart = await window.clipflow.presetGetNextPartNumber(meta, preset);
-          meta.partNumber = nextPart.partNumber;
+      if (!children || children.length === 0) return;
 
-          // Show notification
-          const collisionMsg = getRetroNotificationMessage(preset, r.tag, r.customLabel);
-          setRetroNotification(collisionMsg);
-          setTimeout(() => setRetroNotification(null), 6000);
-        }
-      }
-
-      // Format filename via preset engine
-      const result = await window.clipflow.presetFormatFilename(meta, preset);
-      if (result.error) { console.error("Format failed:", result.error); return; }
-      newName = result.filename;
+      // Add all children to history
+      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const historyEntries = children.map((c) => ({
+        id: `h-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        oldName: r.fileName, newName: c.newName, game: r.game,
+        tag: r.tag, color: r.color, day: r.day, part: c.partNumber,
+        time, undone: false,
+      }));
+      setRenameHistory((prev) => [...historyEntries, ...prev]);
     } else {
-      newName = getProposed(r);
+      const result = await renameSingleFile(r, preset, fileDate);
+      if (!result) return;
+
+      setRenameHistory((prev) => [{
+        id: `h-${Date.now()}`, oldName: r.fileName, newName: result.newName, game: r.game,
+        tag: r.tag, color: r.color, day: r.day, part: result.partNumber || r.part,
+        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        undone: false,
+      }, ...prev]);
     }
 
-    // Perform filesystem rename
-    if (isElectron && r.filePath) {
-      const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
-      const monthFolder = r.fileName.slice(0, 7);
-      const targetDir = `${dir}\\${monthFolder}`;
-      const newPath = `${targetDir}\\${newName}`;
-      const result = await window.clipflow.renameFile(r.filePath, newPath);
-      if (result.error) { console.error("Rename failed:", result.error); return; }
-
-      // Get file size for metadata
-      let fileSizeBytes = null;
-      try {
-        // File size populated by main process during metadata:create if available
-      } catch (e) {}
-
-      // Create file_metadata record in SQLite
-      const game = gamesDb.find((g) => g.tag === r.tag);
-      const metadataResult = await window.clipflow.fileMetadataCreate({
-        originalFilename: r.fileName,
-        currentFilename: newName,
-        originalPath: r.filePath,
-        currentPath: newPath,
-        tag: r.tag,
-        entryType: game?.entryType || "game",
-        date: fileDate,
-        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
-        partNumber: meta.partNumber,
-        customLabel: r.customLabel || null,
-        namingPreset: preset,
-        fileSizeBytes,
-        status: "renamed",
-      });
-
-      // Log to rename_history
-      if (metadataResult?.id) {
-        // Record label usage if applicable
-        if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
-          await window.clipflow.labelRecord(r.tag, r.customLabel);
-        }
-      }
-    }
-
-    // Add to local renameHistory (for backward compat with electron-store persistence)
-    setRenameHistory((prev) => [{
-      id: `h-${Date.now()}`, oldName: r.fileName, newName, game: r.game,
-      tag: r.tag, color: r.color, day: r.day, part: meta.partNumber || r.part,
-      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-      undone: false,
-    }, ...prev]);
-
+    // Clean up split info and remove from pending
+    setSplitInfo((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
 
     // Persist the game's dayCount and lastDayDate
@@ -420,71 +623,34 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         continue;
       }
 
-      const meta = {
-        tag: r.tag,
-        date: fileDate,
-        dayNumber: r.day,
-        partNumber: PRESETS_ALWAYS_PARTS.has(preset) ? r.part : null,
-        customLabel: r.customLabel || null,
-        originalFilename: r.fileName,
-      };
+      // Check if this file needs splitting
+      const info = splitInfo[r.id];
+      const needsSplit = isElectron && info && info.splitCount > 0 && !info.skipSplit;
 
-      let newName;
-
-      if (isElectron) {
-        // Check collisions for conditional-part presets
-        if (!PRESETS_ALWAYS_PARTS.has(preset)) {
-          const collisions = await window.clipflow.presetFindCollisions(meta, preset);
-          if (collisions && collisions.length > 0) {
-            for (const existing of collisions) {
-              await window.clipflow.presetRetroactiveRename(existing, null);
-            }
-            const nextPart = await window.clipflow.presetGetNextPartNumber(meta, preset);
-            meta.partNumber = nextPart.partNumber;
+      if (needsSplit) {
+        const children = await splitAndRename(r, preset, fileDate);
+        if (children && children.length > 0) {
+          const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          for (const c of children) {
+            corrected.push({
+              id: `h-${Date.now()}-${r.id}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
+              game: r.game, tag: r.tag, color: r.color, day: r.day,
+              part: c.partNumber, time, undone: false,
+            });
           }
         }
-
-        const result = await window.clipflow.presetFormatFilename(meta, preset);
-        if (result.error) { console.error("Format failed for", r.fileName, result.error); continue; }
-        newName = result.filename;
       } else {
-        newName = getProposed(r);
-      }
+        const result = await renameSingleFile(r, preset, fileDate);
+        if (!result) continue;
 
-      if (isElectron && r.filePath) {
-        const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
-        const monthFolder = r.fileName.slice(0, 7);
-        const newPath = `${dir}\\${monthFolder}\\${newName}`;
-        await window.clipflow.renameFile(r.filePath, newPath);
-
-        const game = gamesDb.find((g) => g.tag === r.tag);
-        await window.clipflow.fileMetadataCreate({
-          originalFilename: r.fileName,
-          currentFilename: newName,
-          originalPath: r.filePath,
-          currentPath: newPath,
-          tag: r.tag,
-          entryType: game?.entryType || "game",
-          date: fileDate,
-          dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
-          partNumber: meta.partNumber,
-          customLabel: r.customLabel || null,
-          namingPreset: preset,
-          status: "renamed",
+        corrected.push({
+          id: `h-${Date.now()}-${r.id}`, oldName: r.fileName, newName: result.newName,
+          game: r.game, tag: r.tag, color: r.color, day: r.day,
+          part: result.partNumber || r.part,
+          time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+          undone: false,
         });
-
-        if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
-          await window.clipflow.labelRecord(r.tag, r.customLabel);
-        }
       }
-
-      corrected.push({
-        id: `h-${Date.now()}-${r.id}`, oldName: r.fileName, newName,
-        game: r.game, tag: r.tag, color: r.color, day: r.day,
-        part: meta.partNumber || r.part,
-        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-        undone: false,
-      });
     }
 
     // Persist dayCount/lastDayDate for all affected games
@@ -505,6 +671,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
 
     setRenameHistory((prev) => [...corrected, ...prev]);
+    setSplitInfo({});
     setPendingRenames([]);
     setRenaming(false);
     setRenameDone(true);
@@ -581,6 +748,80 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return options;
   };
 
+  // ============ DRAG-AND-DROP IMPORT ============
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+
+    if (!isElectron || !watchFolder) return;
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    // Single file only
+    if (files.length > 1) {
+      setRetroNotification("Drop one file at a time");
+      setTimeout(() => setRetroNotification(null), 3000);
+    }
+
+    const file = files[0];
+    if (!file.name.toLowerCase().endsWith(".mp4")) {
+      setRetroNotification("Only .mp4 files are supported");
+      setTimeout(() => setRetroNotification(null), 3000);
+      return;
+    }
+
+    // Get the file path (Electron gives us the path property)
+    const filePath = file.path;
+    if (!filePath) return;
+
+    setImporting({ filename: file.name, pct: 0 });
+
+    // Listen for import progress
+    const progressHandler = (data) => {
+      setImporting({ filename: data.filename, pct: data.pct });
+    };
+    window.clipflow.onImportProgress(progressHandler);
+
+    const result = await window.clipflow.importExternalFile(filePath, watchFolder);
+
+    window.clipflow.removeImportProgressListener();
+    setImporting(null);
+
+    if (result.error) {
+      setRetroNotification(`Import failed: ${result.error}`);
+      setTimeout(() => setRetroNotification(null), 4000);
+      return;
+    }
+
+    // File is now in the watch folder — add to pending manually
+    // (watcher is suppressed for this file)
+    const detected = detectGame(result.filename, gamesDb, pendingRenames);
+    setPendingRenames((prev) => {
+      if (prev.find((p) => p.fileName === result.filename)) return prev;
+      return [...prev, {
+        id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        fileName: result.filename,
+        filePath: result.targetPath,
+        game: detected.game, tag: detected.tag, color: detected.color,
+        day: detected.day, part: detected.part,
+        preset: defaultPreset,
+        customLabel: "",
+        createdAt: new Date().toISOString(),
+        importEntry: result.importEntry, // Store for cleanup
+      }];
+    });
+
+    // Clear suppression after file is in pending
+    if (result.importEntry) {
+      await window.clipflow.importClearSuppression(result.importEntry.filename, result.importEntry.sizeBytes);
+    }
+  };
+
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); };
+
   // Manage tab — group by month from date column
   const folders = [...new Set(dbManagedFiles.map((f) => f.date ? f.date.slice(0, 7) : "unknown"))].sort().reverse();
   const folderFiles = dbManagedFiles.filter((f) => (f.date ? f.date.slice(0, 7) : "unknown") === manageFolder).sort((a, b) => (a.renamed_at || "").localeCompare(b.renamed_at || ""));
@@ -623,7 +864,39 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const gameOptions = getGroupedGameOptions();
 
   return (
-    <div>
+    <div
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      style={{ position: "relative" }}
+    >
+      {/* Drop zone overlay */}
+      {dragOver && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 100,
+          background: "rgba(139,92,246,0.08)",
+          border: "2px dashed rgba(139,92,246,0.5)",
+          borderRadius: T.radius.lg || 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none",
+        }}>
+          <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
+            Drop recording here
+            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+          </div>
+        </div>
+      )}
+
+      {/* Import progress banner */}
+      {importing && (
+        <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Rename" subtitle="Recordings → structured names">
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={refresh} disabled={refreshing} style={{ padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
@@ -679,6 +952,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   const showDay = PRESETS_USING_DAY.has(preset);
                   const showLabel = PRESETS_USING_LABEL.has(preset);
                   const showPart = PRESETS_ALWAYS_PARTS.has(preset);
+                  const info = splitInfo[r.id];
+                  const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
+                  const splitPreview = getSplitPreview(r);
 
                   return (
                     <Card key={r.id} style={{ padding: "18px 20px" }} borderColor={`${r.color}44`}>
@@ -686,9 +962,47 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                       <div style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono, marginBottom: 8 }}>{r.fileName}</div>
 
                       {/* Live filename preview */}
-                      <div style={{ color: T.yellow, fontSize: 16, fontWeight: 700, fontFamily: T.mono, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ color: T.yellow, fontSize: 16, fontWeight: 700, fontFamily: T.mono, marginBottom: hasSplit ? 8 : 14, display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ color: T.textMuted }}>→</span>{getProposed(r)}
                       </div>
+
+                      {/* Auto-split indicator */}
+                      {info && info.probing && (
+                        <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 10 }}>Checking duration...</div>
+                      )}
+                      {hasSplit && (
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span style={{ padding: "3px 8px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 700 }}>
+                              {formatDuration(info.durationSeconds)} — will split into {info.splitCount} parts
+                            </span>
+                            <button onClick={() => toggleSkipSplit(r.id)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", fontFamily: T.font, textDecoration: "underline" }}>Don't split</button>
+                          </div>
+                          {/* Split preview */}
+                          <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "8px 12px", fontSize: 11 }}>
+                            {splitPreview && splitPreview.map((p, i) => {
+                              const startM = Math.floor(p.start / 60);
+                              const startS = Math.floor(p.start % 60);
+                              const endM = Math.floor(p.end / 60);
+                              const endS = Math.floor(p.end % 60);
+                              return (
+                                <div key={i} style={{ display: "flex", gap: 8, padding: "2px 0", color: T.textSecondary }}>
+                                  <span style={{ color: T.accent, fontFamily: T.mono, minWidth: 30 }}>Pt{p.partNumber}</span>
+                                  <span style={{ fontFamily: T.mono }}>{startM}:{String(startS).padStart(2, "0")} – {endM}:{String(endS).padStart(2, "0")}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {info && info.skipSplit && info.splitCount > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                          <span style={{ padding: "3px 8px", borderRadius: 6, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 11, fontWeight: 700 }}>
+                            {formatDuration(info.durationSeconds)} — splitting skipped
+                          </span>
+                          <button onClick={() => toggleSkipSplit(r.id)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", fontFamily: T.font, textDecoration: "underline" }}>Enable split</button>
+                        </div>
+                      )}
 
                       {/* Controls row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -768,18 +1082,23 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
                         {/* Action buttons */}
                         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                          <button onClick={() => renameOne(r.id)} disabled={showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel)) ? 0.4 : 1 }}>RENAME</button>
+                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
                           <button onClick={() => hideOne(r.id)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.redDim, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
                         </div>
                       </div>
                     </Card>
                   );
                 })}
-                <PrimaryButton onClick={renameAll} disabled={renaming}>{renaming ? "Renaming..." : `Rename All ${pendingRenames.length} Files`}</PrimaryButton>
+                {splitProgress && (
+                  <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Splitting file... ({splitProgress.current} of {splitProgress.total} parts done)</span>
+                  </div>
+                )}
+                <PrimaryButton onClick={renameAll} disabled={renaming}>{renaming ? (splitProgress ? `Splitting... (${splitProgress.current}/${splitProgress.total})` : "Renaming...") : `Rename All ${pendingRenames.length} Files`}</PrimaryButton>
               </div>
             ) : (
               <Card style={{ padding: "40px 20px", textAlign: "center" }}>
-                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>No pending files — watching for new recordings...</div></>)}
+                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>No pending files — watching for new recordings...</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 file here</div></>)}
               </Card>
             )}
           </>
@@ -828,7 +1147,12 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         {h.action === "retroactive_part" && (
                           <span style={{ padding: "3px 8px", borderRadius: 6, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>RETRO</span>
                         )}
-                        <button onClick={() => undoDbHistory(h.id)} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>UNDO</button>
+                        {h.action === "split" && (
+                          <span style={{ padding: "3px 8px", borderRadius: 6, background: T.accentDim, color: T.accentLight, fontSize: 10, fontWeight: 700 }}>SPLIT</span>
+                        )}
+                        {h.action !== "split" && (
+                          <button onClick={() => undoDbHistory(h.id)} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>UNDO</button>
+                        )}
                         <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono, flexShrink: 0 }}>{h.created_at ? new Date(h.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}</span>
                       </div>
                     </Card>

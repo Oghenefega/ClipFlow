@@ -237,6 +237,10 @@ if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
 let mainWindow;
 let watcher = null;
 
+// Pending imports — suppresses chokidar for drag-and-drop copies
+// Entries: { filename: string, sizeBytes: number }
+const pendingImports = new Set();
+
 const isDev = false;
 
 function createWindow() {
@@ -414,6 +418,12 @@ ipcMain.handle("watcher:start", async (_, folderPath) => {
     // Only pick up raw OBS recordings; skip already-renamed files and non-video files
     if (!RAW_OBS_PATTERN.test(name)) return;
     const stat = fs.statSync(filePath);
+
+    // Check pendingImports — skip files being imported via drag-and-drop
+    for (const entry of pendingImports) {
+      if (entry.filename === name && entry.sizeBytes === stat.size) return;
+    }
+
     mainWindow?.webContents.send("watcher:fileAdded", {
       name,
       path: filePath,
@@ -597,6 +607,96 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
         childId: childIds[i],
       })),
     };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============ IMPORT EXTERNAL FILE (Drag-and-Drop) ============
+ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder) => {
+  try {
+    if (!sourcePath || !watchFolder) return { error: "Missing sourcePath or watchFolder" };
+
+    const filename = path.basename(sourcePath);
+    const ext = path.extname(filename).toLowerCase();
+    if (ext !== ".mp4") return { error: "Only .mp4 files are supported" };
+
+    // Build target path in monthly subfolder
+    const now = new Date();
+    const monthFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const targetDir = path.join(watchFolder, monthFolder);
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+    const targetPath = path.join(targetDir, filename);
+
+    // Get source file size for pendingImports suppression
+    const srcStat = fs.statSync(sourcePath);
+    const importEntry = { filename, sizeBytes: srcStat.size };
+    pendingImports.add(importEntry);
+
+    // Copy with progress events
+    const totalBytes = srcStat.size;
+    let copiedBytes = 0;
+
+    await new Promise((resolve, reject) => {
+      const readStream = fs.createReadStream(sourcePath);
+      const writeStream = fs.createWriteStream(targetPath);
+
+      readStream.on("data", (chunk) => {
+        copiedBytes += chunk.length;
+        mainWindow?.webContents.send("import:progress", {
+          filename,
+          copiedBytes,
+          totalBytes,
+          pct: Math.round((copiedBytes / totalBytes) * 100),
+        });
+      });
+
+      readStream.on("error", (err) => {
+        writeStream.destroy();
+        reject(err);
+      });
+
+      writeStream.on("error", (err) => {
+        readStream.destroy();
+        reject(err);
+      });
+
+      writeStream.on("finish", resolve);
+      readStream.pipe(writeStream);
+    });
+
+    return { success: true, targetPath, filename, importEntry: { filename, sizeBytes: srcStat.size } };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// Remove a file from pendingImports (after rename completes or on cancel)
+ipcMain.handle("import:clearSuppression", async (_, filename, sizeBytes) => {
+  for (const entry of pendingImports) {
+    if (entry.filename === filename && entry.sizeBytes === sizeBytes) {
+      pendingImports.delete(entry);
+      return { success: true };
+    }
+  }
+  return { success: true }; // Already cleared
+});
+
+// Cancel an import — delete the copied file and clear suppression
+ipcMain.handle("import:cancel", async (_, targetPath, filename, sizeBytes) => {
+  try {
+    // Clear suppression
+    for (const entry of pendingImports) {
+      if (entry.filename === filename && entry.sizeBytes === sizeBytes) {
+        pendingImports.delete(entry);
+        break;
+      }
+    }
+    // Delete the copied file
+    if (targetPath && fs.existsSync(targetPath)) {
+      fs.unlinkSync(targetPath);
+    }
+    return { success: true };
   } catch (err) {
     return { error: err.message };
   }

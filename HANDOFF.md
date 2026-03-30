@@ -1,61 +1,75 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-30 (Video Splitting Phase 1, steps 1-4)_
+_Last updated: 2026-03-30 (Video Splitting Phase 1, steps 1-10 complete)_
 
 ## Current State
-App builds and launches cleanly. Video splitting Phase 1 steps 1-4 of 10 are **complete** (backend infrastructure). Steps 5-10 (import IPC, watcher suppression, Rename/Recordings tab UI, drag-and-drop) remain for next session.
+App builds and launches cleanly. Video splitting Phase 1 is **complete** — all 10 steps implemented. Phase 2 (game-switch scrubber, steps 11-14) remains for a future session.
 
 ## What Was Just Built
 
-### Video Splitting Phase 1 — Backend Infrastructure
+### Video Splitting Phase 1 — Steps 5-10
 
-**Step 1 — Settings**
-- Three new electron-store keys: `splitThresholdMinutes` (default 30), `autoSplitEnabled` (default true), `splitSourceRetention` (default "keep")
-- Migration block for existing installs
-- "Video Splitting" card in SettingsView with enable toggle, threshold slider (10-120 min), keep/delete originals toggle
+**Step 5 — `importExternalFile` IPC + `pendingImports` Set**
+- `import:externalFile` handler copies .mp4 to watch folder's monthly subfolder with streaming progress events
+- `pendingImports` Set in main process stores `{filename, sizeBytes}` entries
+- `import:clearSuppression` and `import:cancel` IPC endpoints for cleanup
+- Bridge methods in preload.js: `importExternalFile`, `importClearSuppression`, `importCancel`, `onImportProgress`
 
-**Step 2 — Schema Migration v3**
-- 5 new columns on `file_metadata`: `split_from_id`, `split_timestamp_start`, `split_timestamp_end`, `is_split_source`, `import_source_path`
-- Index `idx_file_split_from` on `split_from_id`
-- `"split"` status handling across all affected queries:
-  - `allRenamed` excludes `"split"` files
-  - `updateFileStatus` guards against overwriting `"split"`
-  - `applyPendingRenames` skips `"split"` files
-  - `isFileInUse` returns false for `"split"` files
+**Step 6 — File watcher suppression**
+- Chokidar `add` handler checks `pendingImports` before processing (filename + size match per spec v3.1)
+- Prevents duplicate `file_metadata` records during drag-and-drop imports
 
-**Step 3 — FFmpeg Split Module**
-- `splitFile(inputPath, splitPoints, outputDir)` in `ffmpeg.js`
-- Stream copy (`-c copy -avoid_negative_ts make_zero`), no re-encode
-- All-or-nothing: partial outputs deleted on failure
-- Post-split probe calculates actual keyframe-snapped times
+**Step 7 — Auto-split integration in Rename tab**
+- Probes duration via `ffmpegProbe` when files enter pending
+- Split badge: "2h 14m — will split into 5 parts" with purple accent styling
+- Split preview panel showing Pt1-PtN with time ranges
+- Per-file "Don't split" / "Enable split" toggle
+- RENAME button becomes "SPLIT & RENAME" for split files
+- `splitAndRename()` function: creates parent metadata → executes split → renames children via preset engine
+- Split progress indicator: "Splitting file... (3 of 5 parts done)"
+- `renameAll` also handles splits transparently
 
-**Step 4 — Split IPC Endpoint**
-- `split:execute` handler in main.js
-- Creates child `file_metadata` records with `split_from_id` lineage
-- Sets parent `is_split_source=1` + `status="split"`
-- Logs to `rename_history` with `action="split"` and child IDs in `metadata_snapshot`
-- `splitExecute` bridge method in preload.js
+**Step 8 — Drag-and-drop on Rename tab**
+- Drop zone overlay (dashed purple border, "Drop recording here")
+- Accepts .mp4 only, single file, shows toast for invalid drops
+- Copies to watch folder with suppression → adds to pending manually
+- Import progress bar for large files
+- Empty state updated: "Or drag and drop an .mp4 file here"
+
+**Step 9 — Drag-and-drop on Recordings tab + quick-import modal**
+- Same drop zone treatment with "Drop recording to generate clips"
+- Quick-import modal with 3-step flow:
+  1. Pick game/content (required)
+  2. Split proposal — green "Split into N parts" primary, gray "Process as single file" secondary
+  3. Preview + "Generate Clips" confirm
+- Uses preset 3 (Tag + Date) automatically
+- Prompts for watch folder if not configured
+- On confirm: creates metadata, splits if needed, renames, starts pipeline
+
+**Step 10 — Rename history for splits**
+- Already logged by step 4's `split:execute` handler (action="split", childIds in metadata_snapshot)
+- Added SPLIT badge (purple) in History tab for split entries
+- No UNDO button for split entries (deferred per spec)
 
 ## Key Decisions
-- FFmpeg split uses `-ss` before `-i` for fast seeking with stream copy
-- Child files get temp names (`_split_N_timestamp.mp4`) — will be renamed by the preset engine when the Rename tab UI integration is built (step 7)
-- `split:execute` handler creates metadata records immediately after FFmpeg completes (not deferred)
-- Schema version is now 3
+- `pendingImports` is an in-memory Set — if ClipFlow crashes mid-import, watcher picks up file normally (acceptable)
+- Quick-import modal uses native `<select>` for game picker (lightweight, no custom dropdown needed in modal)
+- Split progress updates per-segment via `setSplitProgress` state
+- `renameSingleFile` and `splitAndRename` extracted as reusable helpers from `renameOne`
+- Import progress uses streaming `fs.createReadStream` → `fs.createWriteStream` with `data` event counting
 
 ## Next Steps
-Continue Phase 1 from step 5:
-5. `importExternalFile` IPC + `pendingImports` Set
-6. File watcher suppression (chokidar handler check)
-7. Auto-split integration in Rename tab (probe, badge, preview, execute)
-8. Drag-and-drop on Rename tab
-9. Drag-and-drop on Recordings tab + quick-import modal
-10. Rename history logging for splits (step 4 already logs basic split history — step 10 may just need refinement)
+Phase 2 (game-switch scrubber): steps 11-14
+11. Thumbnail generation — FFmpeg strip pipeline, temp storage, caching
+12. `generateThumbnails` / `cleanupThumbnails` IPC endpoints
+13. Scrubber UI — read-only thumbnail strip, click-to-place markers, per-segment game dropdown
+14. "Multiple games" button in Rename tab, compound splitting
 
 **Spec:** `C:\Users\IAmAbsolute\Desktop\ClipFlow stuff\video-splitting-spec-v3.md` (v3.1)
 
 ## Watch Out For
-- Child files currently get temp names — step 7 must integrate with preset engine to produce proper names like `AR 2026-03-15 Pt1.mp4`
-- `pendingImports` suppression (step 6) must use `{filename, sizeBytes}` matching per spec v3.1 Section 14.1
-- The `split:execute` handler doesn't yet handle `splitSourceRetention: "delete"` — add source file deletion after successful split in step 7
+- `splitSourceRetention: "delete"` is not yet implemented — source files are always kept after split. Add deletion in a future pass if the setting is "delete" and split succeeds.
+- Quick-import on Recordings tab starts pipeline immediately — if multiple splits produce many files, they'll queue up. Only one pipeline runs at a time (no parallel processing).
+- The `pendingImports` Set comparison iterates all entries (O(n)) — fine for the expected small set, but don't let it grow unbounded if imports never clear.
 - 2 unmigrated files from rename redesign (`OoA Day1 Pt1` and `CHS Day1 Pt1`) still have no matching Game Library entries
 - Legacy feature removal (OBS log parser + voice modes) is still in `tasks/todo.md` but not yet started
 

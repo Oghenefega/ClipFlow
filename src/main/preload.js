@@ -98,6 +98,17 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Video splitting
   splitExecute: (fileId, splitPoints) => ipcRenderer.invoke("split:execute", fileId, splitPoints),
 
+  // Import external file (drag-and-drop)
+  importExternalFile: (sourcePath, watchFolder) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder),
+  importClearSuppression: (filename, sizeBytes) => ipcRenderer.invoke("import:clearSuppression", filename, sizeBytes),
+  importCancel: (targetPath, filename, sizeBytes) => ipcRenderer.invoke("import:cancel", targetPath, filename, sizeBytes),
+  onImportProgress: (callback) => {
+    ipcRenderer.on("import:progress", (_, data) => callback(data));
+  },
+  removeImportProgressListener: () => {
+    ipcRenderer.removeAllListeners("import:progress");
+  },
+
   // File metadata (Rename system)
   fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
   fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),

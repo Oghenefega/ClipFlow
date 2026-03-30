@@ -76,6 +76,29 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
 
+  // Drag-and-drop + quick-import state
+  const [dragOver, setDragOver] = useState(false);
+  const [importing, setImporting] = useState(null); // { filename, pct }
+  const [quickImport, setQuickImport] = useState(null); // { filename, targetPath, importEntry, durationSeconds, splitCount }
+  const [quickImportGame, setQuickImportGame] = useState("");
+  const [quickImportStep, setQuickImportStep] = useState(1); // 1=pick game, 2=split proposal, 3=confirm
+  const [quickImportSplitSkip, setQuickImportSplitSkip] = useState(false);
+  const [splitThreshold, setSplitThreshold] = useState(30);
+  const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
+
+  // Load split settings
+  useEffect(() => {
+    (async () => {
+      if (!window.clipflow?.storeGet) return;
+      const [threshold, enabled] = await Promise.all([
+        window.clipflow.storeGet("splitThresholdMinutes"),
+        window.clipflow.storeGet("autoSplitEnabled"),
+      ]);
+      if (threshold != null) setSplitThreshold(threshold);
+      if (enabled != null) setAutoSplitEnabled(enabled);
+    })();
+  }, []);
+
   // Load done files + collapsed state from store on mount
   useEffect(() => {
     (async () => {
@@ -251,6 +274,241 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
   const totalDone = files.filter((f) => isDone(f)).length;
 
+  // ============ DRAG-AND-DROP IMPORT ============
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+
+    const droppedFiles = e.dataTransfer?.files;
+    if (!droppedFiles || droppedFiles.length === 0) return;
+
+    if (droppedFiles.length > 1) {
+      // Toast-like feedback — brief visual
+      return;
+    }
+
+    const file = droppedFiles[0];
+    if (!file.name.toLowerCase().endsWith(".mp4")) return;
+    const filePath = file.path;
+    if (!filePath) return;
+
+    // Check if watch folder is configured
+    let watchFolder = await window.clipflow?.storeGet("watchFolder");
+    if (!watchFolder) {
+      // Prompt for watch folder
+      const result = await window.clipflow?.pickFolder();
+      if (!result) return;
+      watchFolder = result;
+      await window.clipflow.storeSet("watchFolder", watchFolder);
+    }
+
+    setImporting({ filename: file.name, pct: 0 });
+
+    const progressHandler = (data) => {
+      setImporting({ filename: data.filename, pct: data.pct });
+    };
+    window.clipflow.onImportProgress(progressHandler);
+
+    const result = await window.clipflow.importExternalFile(filePath, watchFolder);
+
+    window.clipflow.removeImportProgressListener();
+    setImporting(null);
+
+    if (result.error) return;
+
+    // Probe duration
+    let durationSeconds = 0;
+    try {
+      const probe = await window.clipflow.ffmpegProbe(result.targetPath);
+      durationSeconds = probe?.duration || probe?.format?.duration || 0;
+    } catch (_) {}
+
+    const thresholdSec = splitThreshold * 60;
+    const splitCount = autoSplitEnabled && durationSeconds > thresholdSec ? Math.ceil(durationSeconds / thresholdSec) : 0;
+
+    // Open quick-import modal
+    setQuickImport({
+      filename: result.filename,
+      targetPath: result.targetPath,
+      importEntry: result.importEntry,
+      durationSeconds,
+      splitCount,
+    });
+    setQuickImportGame("");
+    setQuickImportStep(1);
+    setQuickImportSplitSkip(false);
+  };
+
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); };
+
+  const cancelQuickImport = async () => {
+    if (quickImport) {
+      await window.clipflow?.importCancel(quickImport.targetPath, quickImport.importEntry?.filename, quickImport.importEntry?.sizeBytes);
+    }
+    setQuickImport(null);
+  };
+
+  const confirmQuickImport = async () => {
+    if (!quickImport || !quickImportGame) return;
+
+    const game = gamesDb.find((g) => g.name === quickImportGame);
+    if (!game) return;
+
+    const fileDate = quickImport.filename.slice(0, 10) || new Date().toISOString().slice(0, 10);
+    const needsSplit = quickImport.splitCount > 0 && !quickImportSplitSkip;
+
+    // Create parent file_metadata using preset 3 (Tag + Date)
+    const parentMeta = {
+      tag: game.tag,
+      date: fileDate,
+      dayNumber: null,
+      partNumber: needsSplit ? null : null,
+      customLabel: null,
+      originalFilename: quickImport.filename,
+    };
+
+    // Check collisions
+    const collisions = await window.clipflow.presetFindCollisions(parentMeta, "tag-date");
+    if (collisions && collisions.length > 0) {
+      for (const existing of collisions) {
+        await window.clipflow.presetRetroactiveRename(existing, null);
+      }
+      const nextPart = await window.clipflow.presetGetNextPartNumber(parentMeta, "tag-date");
+      parentMeta.partNumber = nextPart.partNumber;
+    }
+
+    if (needsSplit) {
+      // Create parent record, split, rename children, then start pipeline for each
+      const parentResult = await window.clipflow.fileMetadataCreate({
+        originalFilename: quickImport.filename,
+        currentFilename: quickImport.filename,
+        originalPath: quickImport.targetPath,
+        currentPath: quickImport.targetPath,
+        tag: game.tag,
+        entryType: game.entryType || "game",
+        date: fileDate,
+        namingPreset: "tag-date",
+        durationSeconds: quickImport.durationSeconds,
+        status: "pending",
+      });
+
+      if (!parentResult?.id) { setQuickImport(null); return; }
+
+      const thresholdSec = splitThreshold * 60;
+      const splitPoints = [];
+      for (let i = 0; i < quickImport.splitCount; i++) {
+        const start = i * thresholdSec;
+        const end = Math.min((i + 1) * thresholdSec, quickImport.durationSeconds);
+        splitPoints.push({ startSeconds: start, endSeconds: end, tag: game.tag, entryType: game.entryType || "game", partNumber: i + 1 });
+      }
+
+      const splitResult = await window.clipflow.splitExecute(parentResult.id, splitPoints);
+      if (splitResult.error) { setQuickImport(null); return; }
+
+      // Rename each child and start pipeline
+      const dir = quickImport.targetPath.substring(0, quickImport.targetPath.lastIndexOf("\\"));
+      for (let i = 0; i < splitResult.results.length; i++) {
+        const child = splitResult.results[i];
+        const childMeta = { tag: game.tag, date: fileDate, dayNumber: null, partNumber: i + 1, customLabel: null, originalFilename: quickImport.filename };
+        const fmtResult = await window.clipflow.presetFormatFilename(childMeta, "tag-date");
+        if (fmtResult.error) continue;
+
+        const childNewName = fmtResult.filename;
+        const childNewPath = `${dir}\\${childNewName}`;
+        await window.clipflow.renameFile(child.filePath, childNewPath);
+        await window.clipflow.fileMetadataUpdate(child.childId, {
+          current_filename: childNewName,
+          current_path: childNewPath,
+          part_number: i + 1,
+          status: "processing",
+        });
+
+        // Start pipeline for this child
+        window.clipflow.generateClips(childNewPath, {
+          name: childNewName.replace(/\.(mp4|mkv)$/i, ""),
+          game: game.name,
+          gameTag: game.tag,
+          gameColor: game.color,
+          fileMetadataId: child.childId,
+          keywords: [],
+        });
+      }
+    } else {
+      // Single file — rename then start pipeline
+      const fmtResult = await window.clipflow.presetFormatFilename(parentMeta, "tag-date");
+      if (fmtResult.error) { setQuickImport(null); return; }
+
+      const newName = fmtResult.filename;
+      const dir = quickImport.targetPath.substring(0, quickImport.targetPath.lastIndexOf("\\"));
+      const newPath = `${dir}\\${newName}`;
+      await window.clipflow.renameFile(quickImport.targetPath, newPath);
+
+      const metaResult = await window.clipflow.fileMetadataCreate({
+        originalFilename: quickImport.filename,
+        currentFilename: newName,
+        originalPath: quickImport.targetPath,
+        currentPath: newPath,
+        tag: game.tag,
+        entryType: game.entryType || "game",
+        date: fileDate,
+        partNumber: parentMeta.partNumber,
+        namingPreset: "tag-date",
+        durationSeconds: quickImport.durationSeconds,
+        status: "processing",
+      });
+
+      // Start pipeline
+      handleGenerate({ current_path: newPath, current_filename: newName, tag: game.tag, id: metaResult?.id });
+    }
+
+    // Clear suppression and close modal
+    if (quickImport.importEntry) {
+      await window.clipflow.importClearSuppression(quickImport.importEntry.filename, quickImport.importEntry.sizeBytes);
+    }
+    setQuickImport(null);
+
+    // Refresh file list
+    try {
+      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+      if (Array.isArray(rows)) {
+        rows.sort((a, b) => {
+          const dateComp = (a.date || "").localeCompare(b.date || "");
+          if (dateComp !== 0) return dateComp;
+          return (a.renamed_at || "").localeCompare(b.renamed_at || "");
+        });
+        setFiles(rows);
+      }
+    } catch (_) {}
+  };
+
+  // Quick-import game options (grouped)
+  const getGroupedGameOptions = () => {
+    const games = gamesDb.filter((g) => !g.entryType || g.entryType === "game");
+    const contentTypes = gamesDb.filter((g) => g.entryType === "content");
+    const options = [];
+    if (games.length > 0) {
+      options.push({ value: "__header_games__", label: "── Games ──", disabled: true });
+      games.forEach((g) => options.push({ value: g.name, label: g.name }));
+    }
+    if (contentTypes.length > 0) {
+      options.push({ value: "__header_content__", label: "── Content ──", disabled: true });
+      contentTypes.forEach((g) => options.push({ value: g.name, label: g.name }));
+    }
+    if (options.length === 0) {
+      gamesDb.forEach((g) => options.push({ value: g.name, label: g.name }));
+    }
+    return options;
+  };
+
+  const formatDuration = (seconds) => {
+    if (!seconds || seconds <= 0) return "0m";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
   if (loading) {
     return (
       <div>
@@ -264,7 +522,27 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
   if (files.length === 0) {
     return (
-      <div>
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        style={{ position: "relative" }}
+      >
+        {dragOver && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 100,
+            background: "rgba(139,92,246,0.08)",
+            border: "2px dashed rgba(139,92,246,0.5)",
+            borderRadius: 12,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            pointerEvents: "none",
+          }}>
+            <div style={{ color: "#a78bfa", fontSize: 16, fontWeight: 700, textAlign: "center" }}>
+              Drop recording to generate clips
+              <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+            </div>
+          </div>
+        )}
         <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
         <Card style={{ padding: 40, textAlign: "center", marginTop: 16 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>{"\uD83C\uDFAC"}</div>
@@ -274,13 +552,217 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>
             Rename files in the Rename tab first, then they'll appear here.
           </div>
+          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>
+            Or drag and drop an .mp4 file here to quick-generate clips
+          </div>
         </Card>
+        {quickImport && renderQuickImportModal()}
       </div>
     );
   }
 
+  // Quick-import modal renderer
+  const renderQuickImportModal = () => {
+    if (!quickImport) return null;
+    const gameOptions = getGroupedGameOptions();
+    const needsSplit = quickImport.splitCount > 0 && !quickImportSplitSkip;
+    const thresholdSec = splitThreshold * 60;
+
+    return (
+      <div
+        onClick={cancelQuickImport}
+        style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
+            padding: 24, width: 420, maxHeight: "80vh", overflowY: "auto",
+            boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Quick Import</div>
+          <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, fontFamily: T.mono }}>{quickImport.filename}</div>
+
+          {/* Step 1: Pick Game */}
+          {quickImportStep === 1 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.textSecondary, marginBottom: 8 }}>Select game or content type</div>
+              <select
+                value={quickImportGame}
+                onChange={(e) => setQuickImportGame(e.target.value)}
+                style={{
+                  width: "100%", padding: "10px 12px", borderRadius: 8,
+                  background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                  color: T.text, fontSize: 14, fontFamily: T.font, outline: "none",
+                  marginBottom: 16,
+                }}
+              >
+                <option value="">Choose...</option>
+                {gameOptions.filter((o) => !o.disabled).map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => {
+                  if (!quickImportGame) return;
+                  // Skip to step 2 if split needed, else step 3
+                  if (quickImport.splitCount > 0 && autoSplitEnabled) {
+                    setQuickImportStep(2);
+                  } else {
+                    setQuickImportStep(3);
+                  }
+                }}
+                disabled={!quickImportGame}
+                style={{
+                  width: "100%", padding: "10px 16px", borderRadius: 8, border: "none",
+                  background: quickImportGame ? `linear-gradient(135deg, ${T.accent}, #a78bfa)` : "rgba(255,255,255,0.06)",
+                  color: quickImportGame ? "#fff" : T.textMuted,
+                  fontSize: 13, fontWeight: 700, cursor: quickImportGame ? "pointer" : "default",
+                  fontFamily: T.font, opacity: quickImportGame ? 1 : 0.5,
+                }}
+              >
+                Next
+              </button>
+            </>
+          )}
+
+          {/* Step 2: Split Proposal */}
+          {quickImportStep === 2 && (
+            <>
+              <div style={{ fontSize: 13, color: T.textSecondary, marginBottom: 12 }}>
+                This recording is <strong style={{ color: T.text }}>{formatDuration(quickImport.durationSeconds)}</strong>. For best results, we recommend splitting it into {quickImport.splitCount} parts.
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                {/* Split & Generate — primary green */}
+                <button
+                  onClick={() => { setQuickImportSplitSkip(false); setQuickImportStep(3); }}
+                  style={{
+                    padding: "12px 16px", borderRadius: 8,
+                    background: T.greenDim, border: `1px solid ${T.greenBorder}`,
+                    color: T.green, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    fontFamily: T.font, textAlign: "left",
+                  }}
+                >
+                  Split into {quickImport.splitCount} parts for best results
+                </button>
+
+                {/* Skip splitting — secondary gray */}
+                <button
+                  onClick={() => { setQuickImportSplitSkip(true); setQuickImportStep(3); }}
+                  style={{
+                    padding: "10px 16px", borderRadius: 8,
+                    background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`,
+                    color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    fontFamily: T.font, textAlign: "left",
+                  }}
+                >
+                  Process as single file
+                  <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2 }}>Not recommended for recordings over {splitThreshold} minutes</div>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Confirm & Go */}
+          {quickImportStep === 3 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.textSecondary, marginBottom: 8 }}>Preview</div>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+                {needsSplit ? (
+                  <>
+                    <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 6 }}>This will create {quickImport.splitCount} files:</div>
+                    {Array.from({ length: quickImport.splitCount }, (_, i) => {
+                      const start = i * thresholdSec;
+                      const end = Math.min((i + 1) * thresholdSec, quickImport.durationSeconds);
+                      const startM = Math.floor(start / 60);
+                      const endM = Math.floor(end / 60);
+                      const game = gamesDb.find((g) => g.name === quickImportGame);
+                      return (
+                        <div key={i} style={{ display: "flex", gap: 8, padding: "2px 0", color: T.textSecondary, fontSize: 12, fontFamily: T.mono }}>
+                          <span style={{ color: T.accent }}>{game?.tag || "??"}</span>
+                          <span>Pt{i + 1}</span>
+                          <span style={{ color: T.textMuted }}>({startM}m – {endM}m)</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div style={{ color: T.textSecondary, fontSize: 12, fontFamily: T.mono }}>
+                    {gamesDb.find((g) => g.name === quickImportGame)?.tag || "??"} {quickImport.filename.slice(0, 10)}.mp4
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={confirmQuickImport}
+                style={{
+                  width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
+                  background: `linear-gradient(135deg, ${T.accent}, #a78bfa)`,
+                  color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                  fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
+                }}
+              >
+                Generate Clips
+              </button>
+            </>
+          )}
+
+          {/* Cancel link */}
+          <button
+            onClick={cancelQuickImport}
+            style={{
+              width: "100%", padding: "8px 16px", borderRadius: 8, border: "none",
+              background: "transparent", color: T.textMuted, fontSize: 12,
+              cursor: "pointer", fontFamily: T.font, marginTop: 8,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div>
+    <div
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      style={{ position: "relative" }}
+    >
+      {/* Drop zone overlay */}
+      {dragOver && (
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 100,
+          background: "rgba(139,92,246,0.08)",
+          border: "2px dashed rgba(139,92,246,0.5)",
+          borderRadius: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none",
+        }}>
+          <div style={{ color: "#a78bfa", fontSize: 16, fontWeight: 700, textAlign: "center" }}>
+            Drop recording to generate clips
+            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+          </div>
+        </div>
+      )}
+
+      {/* Import progress banner */}
+      {importing && (
+        <div style={{ padding: "10px 16px", borderRadius: 8, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 600 }}>Importing {importing.filename}... {importing.pct}%</span>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 2, background: T.accent, width: `${importing.pct}%`, transition: "width 0.3s ease" }} />
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
 
       {/* Pipeline progress panel — multi-step status */}
@@ -573,6 +1055,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           onDismiss={() => setProfileDiff(null)}
         />
       )}
+
+      {/* Quick-Import Modal */}
+      {renderQuickImportModal()}
     </div>
   );
 }
