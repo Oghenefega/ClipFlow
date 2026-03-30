@@ -96,6 +96,16 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("render:progress");
   },
 
+  // File metadata (Rename system)
+  fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
+  fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),
+  fileMetadataSearch: (filters) => ipcRenderer.invoke("metadata:search", filters),
+  fileMetadataGetById: (fileId) => ipcRenderer.invoke("metadata:getById", fileId),
+  labelSuggest: (tag, prefix) => ipcRenderer.invoke("labels:suggest", tag, prefix),
+  labelRecord: (tag, label) => ipcRenderer.invoke("labels:record", tag, label),
+  renameHistoryRecent: (limit) => ipcRenderer.invoke("renameHistory:recent", limit),
+  renameHistoryUndo: (historyId) => ipcRenderer.invoke("renameHistory:undo", historyId),
+
   // Feedback database
   feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
   feedbackGetApproved: (gameTag, limit) => ipcRenderer.invoke("feedback:getApproved", gameTag, limit),

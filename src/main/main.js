@@ -12,6 +12,7 @@ const render = require("./render");
 const aiPipeline = require("./ai-pipeline");
 const database = require("./database");
 const feedbackDb = require("./feedback");
+const namingPresets = require("./naming-presets");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
@@ -32,6 +33,15 @@ const transcriptionProvider = require("./ai/transcription-provider");
 require("./ai/providers/anthropic");
 require("./ai/providers/openai-compat");
 require("./ai/transcription/stable-ts");
+
+/** Generate a UUID v4 */
+function _uuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 /**
  * Generate a clip title from its transcript segments.
@@ -884,6 +894,229 @@ ipcMain.handle("feedback:getCounts", async (_, gameTag) => {
     return feedbackDb.getFeedbackCounts(gameTag);
   } catch (err) { return { approved: 0, rejected: 0, total: 0 }; }
 });
+
+// ============ FILE METADATA (Rename System) ============
+ipcMain.handle("metadata:create", async (_, data) => {
+  try {
+    const db = database.getDb();
+    if (!db) return { error: "Database not initialized" };
+
+    const id = _uuid();
+    db.run(
+      `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        data.originalFilename,
+        data.currentFilename,
+        data.originalPath,
+        data.currentPath,
+        data.tag,
+        data.entryType || "game",
+        data.date || null,
+        data.dayNumber != null ? data.dayNumber : null,
+        data.partNumber != null ? data.partNumber : null,
+        data.customLabel || null,
+        data.namingPreset,
+        data.durationSeconds || null,
+        data.fileSizeBytes || null,
+        data.status || "renamed",
+      ]
+    );
+    database.save();
+    return { success: true, id };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("metadata:update", async (_, fileId, data) => {
+  try {
+    const db = database.getDb();
+    if (!db) return { error: "Database not initialized" };
+
+    const fields = [];
+    const values = [];
+    for (const [key, value] of Object.entries(data)) {
+      // Map camelCase to snake_case column names
+      const col = key.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
+      fields.push(`${col} = ?`);
+      values.push(value);
+    }
+    fields.push("updated_at = datetime('now')");
+    values.push(fileId);
+
+    db.run(`UPDATE file_metadata SET ${fields.join(", ")} WHERE id = ?`, values);
+    database.save();
+    return { success: true };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("metadata:search", async (_, filters) => {
+  try {
+    const db = database.getDb();
+    if (!db) return [];
+
+    let sql, params;
+
+    switch (filters.type) {
+      case "byTag":
+        sql = "SELECT * FROM file_metadata WHERE tag = ? ORDER BY renamed_at DESC";
+        params = [filters.tag];
+        break;
+      case "byStatus":
+        sql = "SELECT * FROM file_metadata WHERE status = ? ORDER BY renamed_at DESC";
+        params = [filters.status];
+        break;
+      case "byTagDate":
+        sql = "SELECT * FROM file_metadata WHERE tag = ? AND date = ? ORDER BY part_number ASC";
+        params = [filters.tag, filters.date];
+        break;
+      case "byTagLabel":
+        sql = "SELECT * FROM file_metadata WHERE tag = ? AND custom_label = ? ORDER BY part_number ASC";
+        params = [filters.tag, filters.label];
+        break;
+      case "byDateRange":
+        sql = "SELECT * FROM file_metadata WHERE date >= ? AND date <= ? ORDER BY date DESC, renamed_at DESC";
+        params = [filters.startDate, filters.endDate];
+        break;
+      default:
+        return [];
+    }
+
+    if (filters.limit) {
+      sql += " LIMIT ?";
+      params.push(filters.limit);
+    }
+
+    const result = db.exec(sql, params);
+    return database.toRows(result);
+  } catch (err) { return []; }
+});
+
+ipcMain.handle("metadata:getById", async (_, fileId) => {
+  try {
+    const db = database.getDb();
+    if (!db) return null;
+
+    const result = db.exec("SELECT * FROM file_metadata WHERE id = ?", [fileId]);
+    const rows = database.toRows(result);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (err) { return null; }
+});
+
+ipcMain.handle("labels:suggest", async (_, tag, prefix) => {
+  try {
+    const db = database.getDb();
+    if (!db) return [];
+
+    let sql, params;
+    if (prefix) {
+      sql = "SELECT label, use_count FROM custom_labels WHERE tag = ? AND label LIKE ? ORDER BY use_count DESC LIMIT 20";
+      params = [tag, prefix + "%"];
+    } else {
+      sql = "SELECT label, use_count FROM custom_labels WHERE tag = ? ORDER BY use_count DESC LIMIT 20";
+      params = [tag];
+    }
+
+    const result = db.exec(sql, params);
+    return database.toRows(result);
+  } catch (err) { return []; }
+});
+
+ipcMain.handle("labels:record", async (_, tag, label) => {
+  try {
+    const db = database.getDb();
+    if (!db) return { error: "Database not initialized" };
+
+    // Upsert: increment count if exists, insert if new
+    const existing = db.exec(
+      "SELECT id FROM custom_labels WHERE tag = ? AND label = ?",
+      [tag, label]
+    );
+    const rows = database.toRows(existing);
+
+    if (rows.length > 0) {
+      db.run(
+        "UPDATE custom_labels SET use_count = use_count + 1, last_used_at = datetime('now') WHERE tag = ? AND label = ?",
+        [tag, label]
+      );
+    } else {
+      db.run(
+        "INSERT INTO custom_labels (id, tag, label) VALUES (?, ?, ?)",
+        [_uuid(), tag, label]
+      );
+    }
+
+    database.save();
+    return { success: true };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("renameHistory:recent", async (_, limit) => {
+  try {
+    const db = database.getDb();
+    if (!db) return [];
+
+    const result = db.exec(
+      "SELECT * FROM rename_history WHERE undone = 0 ORDER BY created_at DESC LIMIT ?",
+      [limit || 50]
+    );
+    return database.toRows(result);
+  } catch (err) { return []; }
+});
+
+ipcMain.handle("renameHistory:undo", async (_, historyId) => {
+  try {
+    return _undoRenameHistory(historyId);
+  } catch (err) { return { error: err.message }; }
+});
+
+/** Undo a rename history entry and cascade to triggered entries */
+function _undoRenameHistory(historyId) {
+  const db = database.getDb();
+  if (!db) return { error: "Database not initialized" };
+
+  const result = db.exec("SELECT * FROM rename_history WHERE id = ?", [historyId]);
+  const entries = database.toRows(result);
+  if (entries.length === 0) return { error: "History entry not found" };
+
+  const entry = entries[0];
+  if (entry.undone) return { error: "Already undone" };
+
+  // Restore metadata from snapshot
+  const snapshot = entry.metadata_snapshot ? JSON.parse(entry.metadata_snapshot) : null;
+  if (snapshot) {
+    const fields = [];
+    const values = [];
+    for (const [key, value] of Object.entries(snapshot)) {
+      fields.push(`${key} = ?`);
+      values.push(value);
+    }
+    fields.push("updated_at = datetime('now')");
+    values.push(entry.file_metadata_id);
+    db.run(`UPDATE file_metadata SET ${fields.join(", ")} WHERE id = ?`, values);
+  }
+
+  // Rename physical file back
+  if (fs.existsSync(entry.new_path)) {
+    fs.renameSync(entry.new_path, entry.previous_path);
+  }
+
+  // Mark as undone
+  db.run("UPDATE rename_history SET undone = 1 WHERE id = ?", [historyId]);
+
+  // Cascade: undo any retroactive renames triggered by this one
+  const triggered = db.exec(
+    "SELECT id FROM rename_history WHERE triggered_by = ? AND undone = 0",
+    [historyId]
+  );
+  const triggeredRows = database.toRows(triggered);
+  for (const row of triggeredRows) {
+    _undoRenameHistory(row.id);
+  }
+
+  database.save();
+  return { success: true };
+}
 
 // ============ GAME PROFILES ============
 ipcMain.handle("gameProfiles:getAll", async () => {
