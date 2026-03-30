@@ -10,6 +10,7 @@ const projects = require("./projects");
 const highlights = require("./highlights");
 const render = require("./render");
 const aiPipeline = require("./ai-pipeline");
+const database = require("./database");
 const feedbackDb = require("./feedback");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
@@ -251,7 +252,7 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Initialize electron-log (must happen before BrowserWindow creation)
   logger.initialize();
   // Clean up old-format log files
@@ -263,11 +264,14 @@ app.whenReady().then(() => {
     platform: process.platform,
     logsDir: logger.getLogsDirPath(),
   });
+  // Initialize shared SQLite database (feedback + file metadata)
+  await database.init();
   createWindow();
 });
 
 app.on("window-all-closed", () => {
   if (watcher) watcher.close();
+  database.close();
   if (process.platform !== "darwin") app.quit();
 });
 
@@ -865,21 +869,18 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
 // ============ FEEDBACK DATABASE ============
 ipcMain.handle("feedback:log", async (_, entry) => {
   try {
-    await feedbackDb.init();
     return feedbackDb.logFeedback(entry);
   } catch (err) { return { error: err.message }; }
 });
 
 ipcMain.handle("feedback:getApproved", async (_, gameTag, limit) => {
   try {
-    await feedbackDb.init();
     return feedbackDb.getApprovedClips(gameTag, limit || 20);
   } catch (err) { return []; }
 });
 
 ipcMain.handle("feedback:getCounts", async (_, gameTag) => {
   try {
-    await feedbackDb.init();
     return feedbackDb.getFeedbackCounts(gameTag);
   } catch (err) { return { approved: 0, rejected: 0, total: 0 }; }
 });

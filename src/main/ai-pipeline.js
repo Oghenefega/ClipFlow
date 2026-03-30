@@ -448,7 +448,6 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     const gameContext = gameEntry?.aiContext || "";
 
     // Get few-shot examples from feedback DB
-    await feedback.init();
     const approvedClips = feedback.getApprovedClips(gameData.gameTag, 20);
 
     const creatorProfile = store.get("creatorProfile") || undefined;
