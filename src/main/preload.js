@@ -106,6 +106,16 @@ contextBridge.exposeInMainWorld("clipflow", {
   renameHistoryRecent: (limit) => ipcRenderer.invoke("renameHistory:recent", limit),
   renameHistoryUndo: (historyId) => ipcRenderer.invoke("renameHistory:undo", historyId),
 
+  // Naming presets
+  presetGetAll: () => ipcRenderer.invoke("preset:getAll"),
+  presetFormatFilename: (meta, presetId) => ipcRenderer.invoke("preset:formatFilename", meta, presetId),
+  presetFindCollisions: (meta, presetId) => ipcRenderer.invoke("preset:findCollisions", meta, presetId),
+  presetGetNextPartNumber: (meta, presetId) => ipcRenderer.invoke("preset:getNextPartNumber", meta, presetId),
+  presetCalculateDayNumber: (gameEntry, recordingDate) => ipcRenderer.invoke("preset:calculateDayNumber", gameEntry, recordingDate),
+  presetValidateLabel: (label) => ipcRenderer.invoke("preset:validateLabel", label),
+  presetRetroactiveRename: (existingFile, triggeringHistoryId) => ipcRenderer.invoke("preset:retroactiveRename", existingFile, triggeringHistoryId),
+  presetExtractDate: (filename, filePath) => ipcRenderer.invoke("preset:extractDate", filename, filePath),
+
   // Feedback database
   feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
   feedbackGetApproved: (gameTag, limit) => ipcRenderer.invoke("feedback:getApproved", gameTag, limit),

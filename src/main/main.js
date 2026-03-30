@@ -1118,6 +1118,49 @@ function _undoRenameHistory(historyId) {
   return { success: true };
 }
 
+// ============ NAMING PRESETS (Renderer-accessible) ============
+ipcMain.handle("preset:getAll", async () => {
+  return namingPresets.PRESETS;
+});
+
+ipcMain.handle("preset:formatFilename", async (_, meta, presetId) => {
+  try {
+    return { filename: namingPresets.formatFilename(meta, presetId) };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("preset:findCollisions", async (_, meta, presetId) => {
+  try {
+    return namingPresets.findCollisions(meta, presetId);
+  } catch (err) { return []; }
+});
+
+ipcMain.handle("preset:getNextPartNumber", async (_, meta, presetId) => {
+  try {
+    return { partNumber: namingPresets.getNextPartNumber(meta, presetId) };
+  } catch (err) { return { partNumber: 1 }; }
+});
+
+ipcMain.handle("preset:calculateDayNumber", async (_, gameEntry, recordingDate) => {
+  try {
+    return namingPresets.calculateDayNumber(gameEntry, recordingDate);
+  } catch (err) { return { dayNumber: 1, newDayCount: 1, newLastDayDate: recordingDate }; }
+});
+
+ipcMain.handle("preset:validateLabel", async (_, label) => {
+  return namingPresets.validateLabel(label);
+});
+
+ipcMain.handle("preset:retroactiveRename", async (_, existingFile, triggeringHistoryId) => {
+  try {
+    return namingPresets.retroactiveRename(existingFile, triggeringHistoryId);
+  } catch (err) { return { executed: false, error: err.message }; }
+});
+
+ipcMain.handle("preset:extractDate", async (_, filename, filePath) => {
+  return namingPresets.extractDateFromFilename(filename, filePath);
+});
+
 // ============ GAME PROFILES ============
 ipcMain.handle("gameProfiles:getAll", async () => {
   return gameProfiles.loadProfiles();
