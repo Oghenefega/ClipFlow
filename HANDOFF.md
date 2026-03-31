@@ -1,57 +1,51 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-31 (Subtitle segmentation overhaul + audio track fix + ghost subtitle fix)_
+_Last updated: 2026-03-31 (Subtitle segmentation v2 — pure function + preview overhaul)_
 
 ## Current State
-App builds and launches cleanly. Subtitle chunking algorithm significantly improved with phrase-aware segmentation. Audio extraction now targets mic track (track 2). Ghost subtitle bug from mega-segments identified and filtered. User still needs to test all fixes across clips and re-transcribe to verify audio track change.
+App builds and launches. Subtitle segmentation extracted to canonical pure function with 29 regression tests. Project preview tab now uses same segmentation logic as editor with word-level karaoke rendering. Template styling in preview partially working — newer projects show correct template, older saved projects now merge with template defaults for missing fields.
 
-## What Was Just Built
+## What Was Built
 
-### Audio Track Selection Fix
-- `extractAudio()` in `ffmpeg.js` now accepts an `audioTrackIndex` parameter and uses `-map 0:a:N` instead of defaulting to the first stream
-- New `transcriptionAudioTrack` setting in electron-store (default: 1 = track 2, user's mic)
-- All 3 call sites updated: pipeline transcription, IPC handler, and re-transcribe
-- Automatic fallback: if configured track doesn't exist (e.g., single-track clips), falls back to track 0
-- Migration added for existing installs
+### Subtitle Segmentation Pure Function (`segmentWords.js`)
+- Extracted all segmentation logic from useSubtitleStore.js (~217 lines removed) into standalone pure function
+- 8 rules in priority order: repeated phrases, filler isolation (um/uh/ah), forward look (0.5s), max 3 words, char limit (20), never end on "I", comma flush, atomic phrase protection
+- Hard wall pre-partitioning: sentence enders (.!?) and 0.7s gaps split before chunking
+- Timing rules: gap closing (<0.15s), min duration (0.3s), linger extension (0.4s into empty space)
+- 29 regression tests passing (segmentWords.test.js)
 
-### Subtitle Chunking Overhaul (`useSubtitleStore.js`)
-- **Phase 1 Pre-scan:** Before chunking, scans entire word list for adjacent repeated phrases (length 2-3). Marks start indices so the main loop groups them correctly, overriding pauses and MAX_WORDS
-- **Rule 0b — Known phrase recall:** Tracks all 2-3 word phrases as they're flushed. If upcoming words match a previously-seen phrase, flushes current chunk first (handles non-adjacent repeats like "there we go baby there we go")
-- **Rule 0c — Known phrase protection:** If current chunk IS a known phrase, don't let an unrelated word extend it (prevents "let's go I" grouping)
-- **Rule 5 — Never end on "I":** Flushes chunk before adding "I" so it always starts the next segment
-- **MAX_CHARS (16) split:** 3-word segments exceeding 16 characters get split 2+1 for better display fit (e.g., "we're clutching this" → "we're clutching" + "this")
+### New Rules This Session
+- **Rule 7 — Comma flush:** Words ending with `,` or `;` always end their segment, never start the next one
+- **Rule 8 — Atomic phrases:** Common 2-word phrases ("as always", "of course", "by the way", "let's go", etc.) are never split across segments
+- **Linger duration (0.4s):** Segments extend 0.4s into empty space after last word, clamped to never overlap next segment
 
-### Ghost Subtitle Fix
-- `initSegments()` now filters "mega-segments" — transcription artifacts where stable-ts outputs one segment spanning the entire clip with all words compressed into wrong timestamps
-- Detection: segment duration > 85% of clip duration AND > 20 words AND other segments exist
-- Logged to console for debugging
+### Project Preview Overhaul (`ProjectsView.js`)
+- Replaced inline 3-word chunking with canonical `segmentWords()` function via `buildPreviewSubtitles.js`
+- Word-level karaoke rendering: each word is a `<span>` with highlight color on active word + pop animation
+- Template resolution: `clip.subtitleStyle` merged with default template (handles old clips missing new fields)
+- Punctuation stripping via `stripPunct()` from template config
+- `onBack` from editor now reloads project from disk so saved styles are picked up immediately
+
+### Editor Save Expanded
+- `handleSave()` now persists: `highlightColor`, `punctuationRemove`, `animateOn`, `animateScale`, `animateGrowFrom`, `animateSpeed`, `segmentMode` to `clip.subtitleStyle`
 
 ## Key Decisions
-- **Pre-scan over inline detection:** Inline repeat detection failed when pauses separated the first word of a repeating phrase (e.g., 1.2s gap before "we got this we got this"). Pre-scan identifies the pattern across the full word list first, so phrase boundaries always win over pauses.
-- **Audio track fallback, not failure:** Clips extracted from multi-track originals typically have only 1 audio track. Instead of failing with "track 1 not found", it silently falls back to track 0.
-- **Mega-segment filter, not transcription fix:** The ghost subtitle root cause is in stable-ts output (sometimes produces a full-text segment alongside sentence segments). Filtering at load time is safer than modifying the Python transcription script, which could break other edge cases.
-- **MAX_CHARS=16 for display fit:** Based on vertical video subtitle width constraints. "we got this" (10 chars) stays together; "we're clutching this" (20 chars) splits 2+1.
+- Linger duration set to 0.4s (no previous linger existed — segments ended at word.end)
+- MAX_CHARS changed from 16→20 per user approval
+- FORWARD_LOOK_GAP changed from 1.0→0.5s (old value could never fire inside partitions)
+- Comma words flush immediately even as single words (reads as natural pause beat)
+- Atomic phrases are 2-word only — longer phrases handled by repeated phrase detection
 
 ## Next Steps
-1. **User testing** — Re-transcribe clips to verify audio track fix (mic only, no game/teammate audio). Switch segment modes to verify chunking improvements across all games.
-2. **Investigate stable-ts mega-segment source** — Why does it sometimes output a full-text segment? May need to check stable-ts version or refine() step in transcribe.py.
-3. **Test game-switch scrubber end-to-end** — Still untested from two sessions ago.
-4. **Investigate thumbnail generation hang** — "Preparing preview..." stuck, root cause unknown.
-5. **Backfill file sizes for existing imports** — Already-imported files still show "0 B".
-6. **Wire `splitSourceRetention: "delete"`** — Source files always kept after split.
+1. **Preview template styling still needs work** — old projects with stale `subtitleStyle` now merge with template defaults, but user reports effects (glow, shadow) still don't fully match the editor. The `_buildAllShadows()` in ProjectsView uses simpler shadow computation than the editor's `buildAllShadows()`. May need to extract the editor's shadow builder as a shared utility.
+2. **"as always" phrase rule logged** — implemented as atomic phrase. User may want to add more phrases over time.
+3. **Spec document** (`reference/subtitle-segmentation-spec.md`) needs updating with Rule 7 (comma flush), Rule 8 (atomic phrases), and linger duration.
+4. **Council reports** generated but not committed yet — 4 HTML reports + 3 transcripts from this session's councils.
 
 ## Watch Out For
-- **Clips need re-transcription** to pick up the audio track fix — existing transcriptions used the wrong track. The chunking and mega-segment fixes apply immediately on segment mode switch.
-- **Audio track fallback is silent** — If a clip has only 1 track, it falls back to track 0 without warning. This is correct behavior but means re-transcribing a clip uses track 0, not the mic, if the clip was extracted with a single stream.
-- **Pre-scan only detects ADJACENT repeats** — Non-adjacent repeats (like "there we go baby there we go") are handled by the runtime knownPhrases recall, which depends on the first occurrence being flushed first.
-- **MAX_CHARS=16 is hardcoded** — May need tuning based on font size and subtitle style settings.
-- **Mega-segment filter thresholds** (85% duration, 20+ words) are heuristic — could theoretically filter a legitimate long monologue segment, but only when other segments also exist.
+- The `_buildAllShadows()` in ProjectsView.js is a SIMPLER version than the editor's `buildAllShadows()` in PreviewPanelNew.js — they compute text-shadows differently. This is why preview styling doesn't perfectly match the editor.
+- Old clips saved before this session have `subtitleStyle` missing `highlightColor`, `animateOn`, `punctuationRemove`, etc. The merge fix handles this, but re-saving from editor would be the cleanest fix.
+- `punctuationRemove` was NOT previously persisted on editor save — now it is.
 
-## Logs/Debugging
-- App logs: `%APPDATA%/clipflow/logs/`
-- Pipeline logs: `processing/logs/`
-- Dev dashboard: Settings > click version 7x > purple card
-- Store file: `%APPDATA%/clipflow/clipflow-settings.json`
-- Database file: `data/clipflow.db` (schema v3)
-- Subtitle debug: thumbs up/down in editor toolbar → Settings > Diagnostics > Subtitle Debug Log
-- Mega-segment filter: check DevTools console for `[initSegments] Filtering mega-segment:` messages
-- Chunking debug: switch segment modes and check console for `[initSegments]` logs
+## Logs / Debugging
+- Debug log `[PreviewSub] subTpl:` still in ProjectsView.js (line ~203) — remove after debugging is complete
+- All 29 segmentation tests: `node src/renderer/editor/utils/segmentWords.test.js`

@@ -432,7 +432,19 @@ export default function App() {
       );
     }
     if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={() => { setEditorContext(null); setView("clips"); }} onClipRendered={async (projectId) => {
+      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={async () => {
+        // Refresh project from disk so saved subtitleStyle/captionStyle are picked up
+        if (editorContext?.projectId) {
+          try {
+            const full = await window.clipflow.projectLoad(editorContext.projectId);
+            if (full?.project) {
+              setLocalProjects((prev) => prev.map((p) => p.id === editorContext.projectId ? full.project : p));
+              setSelProj((prev) => prev && prev.id === editorContext.projectId ? full.project : prev);
+            }
+          } catch (e) { console.error("Failed to refresh project after editor:", e); }
+        }
+        setEditorContext(null); setView("clips");
+      }} onClipRendered={async (projectId) => {
         try {
           const full = await window.clipflow.projectLoad(projectId);
           if (full?.project) {

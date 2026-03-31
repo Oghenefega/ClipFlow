@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — Preview Subtitle Rendering</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem; }
+  .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.2rem; color: #c084fc; margin: 1.8rem 0 0.8rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.4rem; }
+  h3 { font-size: 1rem; color: #a78bfa; margin: 1rem 0 0.4rem; }
+  p { margin-bottom: 0.8rem; }
+  .question-box { background: #1a1a2e; border-left: 3px solid #c084fc; padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; font-size: 0.95rem; }
+  .verdict-box { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; }
+  .verdict-box h2 { color: #c084fc; border: none; margin-top: 0; }
+  .agreement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .agree-card, .clash-card { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+  .agree-card { background: #0d2818; border: 1px solid #166534; }
+  .agree-card .label { color: #4ade80; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .clash-card { background: #2a1a0a; border: 1px solid #92400e; }
+  .clash-card .label { color: #fbbf24; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .blind-card { background: #1a0a2a; border: 1px solid #6b21a8; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.8rem; }
+  .blind-card .label { color: #c084fc; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .recommendation { background: #111827; border: 2px solid #4ade80; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .first-step { background: linear-gradient(135deg, #1a0a2e, #0a1a2e); border: 2px solid #8b5cf6; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; text-align: center; }
+  .first-step h3 { color: #a78bfa; font-size: 1.1rem; margin-bottom: 0.6rem; }
+  .first-step p { font-size: 1rem; color: #e0e0e0; }
+  .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .status-go { background: #14532d; color: #86efac; }
+  details { margin: 0.8rem 0; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+  summary { padding: 0.8rem 1rem; background: #1a1a1a; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+  summary:hover { background: #222; }
+  .advisor-content { padding: 1rem; font-size: 0.85rem; border-top: 1px solid #2a2a2a; background: #111; }
+  .advisor-tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-right: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tag-contrarian { background: #7f1d1d; color: #fca5a5; }
+  .tag-principles { background: #1e3a5f; color: #93c5fd; }
+  .tag-expansionist { background: #14532d; color: #86efac; }
+  .tag-outsider { background: #4a1d96; color: #c4b5fd; }
+  .tag-executor { background: #78350f; color: #fcd34d; }
+  .advisor-positions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0; }
+  .position-chip { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.8rem; background: #1a1a1a; border: 1px solid #333; }
+  .position-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-go { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .dot-caution { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+  .legend { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+  strong { color: #f0f0f0; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #2a2a2a; font-size: 0.75rem; color: #555; text-align: center; }
+  ul { margin-left: 1.2rem; margin-bottom: 0.8rem; }
+  li { margin-bottom: 0.3rem; }
+  code { background: #2a2a2a; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; }
+  pre { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin: 0.8rem 0; font-family: 'JetBrains Mono', monospace; }
+  .note { background: #1a1a0a; border: 1px solid #78350f; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.8rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+
+<h1>LLM Council Report &mdash; Preview Subtitle Rendering</h1>
+<p class="subtitle">Council session &mdash; March 31, 2026</p>
+
+<div class="question-box">
+  <strong>Question:</strong> How should ClipFlow's project preview tab render subtitle/caption overlays to match the editor's template from the moment clips load &mdash; without requiring users to open each clip in the editor first?
+</div>
+
+<!-- Verdict Banner -->
+<div style="background: #0d2818; border: 1px solid #166534; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 2rem;">
+  <span class="status-badge status-go">CLEAR PATH FORWARD</span>
+  <span style="margin-left: 0.6rem; font-size: 0.9rem;">Extract a shared pure function. One new utility file, ~50 lines. No architectural redesign needed.</span>
+</div>
+
+<!-- Advisor Positions -->
+<h2>Advisor Positions</h2>
+<div class="advisor-positions">
+  <div class="position-chip"><div class="dot dot-caution"></div><span class="advisor-tag tag-contrarian">Contrarian</span> Questions if preview even needs subtitles</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-principles">First Principles</span> One shared pure function layer</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-expansionist">Expansionist</span> Canonical renderer for everything</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-outsider">Outsider</span> Stop building two renderers</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-executor">Executor</span> 50 lines, 2-3 hours, ship it</div>
+</div>
+<p class="legend"><span style="color:#4ade80">&#9679;</span> Aligned &nbsp; <span style="color:#fbbf24">&#9679;</span> Conditional</p>
+
+<!-- Chairman's Verdict -->
+<div class="verdict-box">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <div class="agreement-grid">
+    <div class="agree-card">
+      <div class="label">Unanimous</div>
+      <p><strong>One shared pure function.</strong> All 5 advisors independently converged on: extract a pure function that takes words + template and returns display-ready segments. No React, no Zustand. Editor and preview both consume it.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Unanimous</div>
+      <p><strong>Skip karaoke/animation in preview.</strong> At 220px, word-level highlighting and scale animations are wasted. The preview needs: correct text (punctuation stripped), correct position (yPercent), correct style (font/color/effects).</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Strong Agreement</div>
+      <p><strong>Default template as fallback.</strong> Unsaved clips use the user's default template (from electron-store). Saved clips use their persisted <code>subtitleStyle</code>. The fallback chain is: <code>clip.subtitleStyle ?? defaultTemplate</code>.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Strong Agreement</div>
+      <p><strong>"Two renderers" is the root cause.</strong> The preview diverged because it was built as a separate, simplified renderer. Every editor feature addition widens the gap. Fix the architecture, not the symptoms.</p>
+    </div>
+  </div>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Scope Disagreement</div>
+      <p><strong>Preview-only utility vs. canonical renderer.</strong> The Executor says build a focused <code>buildPreviewSubtitles.js</code> (~50 lines, ships fast). The Expansionist says build a canonical renderer the editor also uses. Chairman sides with: <strong>build the preview utility now</strong>. The editor's rendering pipeline is deeply integrated with Zustand stores and karaoke state &mdash; refactoring it to use a shared function is a separate, larger task that risks regressions.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Validity Questioned</div>
+      <p><strong>Does preview need subtitles at all?</strong> The Contrarian asks why render subtitles at 220px. Chairman overrules: <strong>yes, it does.</strong> The user explicitly wants to preview clips with subtitles in the project tab. This is a confirmed product requirement, not an assumption.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots the Council Caught</h3>
+  <div class="blind-card">
+    <div class="label">Critical &mdash; Verified Resolved</div>
+    <p><strong>Word data availability.</strong> 3 of 5 peer reviewers flagged: does <code>clip.words</code> actually exist on clips that have never been opened in the editor? <strong>Answer: Yes.</strong> Word timestamps live at <code>clip.subtitles.sub1[].words[]</code> and are written at pipeline time (<code>ai-pipeline.js</code> line 601). The data is always there for pipeline-generated clips.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Important</div>
+    <p><strong>punctuationRemove not persisted to clip.</strong> Even after editor save, the clip object gets <code>subtitleStyle</code> (fonts, colors, position) but NOT the <code>punctuationRemove</code> config. The preview must read punctuation settings from the template, not the clip. Fix: persist <code>punctuationRemove</code> as part of <code>subtitleStyle</code> on save, OR always read it from the active template.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Edge Case</div>
+    <p><strong>Template change after clip save.</strong> If user saves clips with Template A, then changes default to Template B, what should unsaved clips show? B (default). What should saved clips show? Their saved style. This is already handled by the <code>clip.subtitleStyle ?? defaultTemplate</code> fallback.</p>
+  </div>
+
+  <div class="recommendation">
+    <h3>The Recommendation</h3>
+    <p><strong>Build <code>buildPreviewSubtitles.js</code></strong> &mdash; a pure function that takes <code>(subtitleSegments, template)</code> and returns display-ready subtitle data. It does 3 things:</p>
+    <ul>
+      <li><strong>1. Gather words</strong> from <code>clip.subtitles.sub1</code> segments, run through <code>segmentWords()</code></li>
+      <li><strong>2. Strip punctuation</strong> per <code>template.punctuationRemove</code> config (~15 lines, copy from editor's <code>stripPunct</code>)</li>
+      <li><strong>3. Return segments + style object</strong> built from template fields (font, color, yPercent, stroke, glow, shadow, bg)</li>
+    </ul>
+    <p>In <code>ClipVideoPlayer</code>, replace the inline <code>buildSubPreviewStyle()</code> + manual segmentation with a single <code>useMemo</code> call to this function. Template resolution: <code>clip.subtitleStyle ?? previewTemplate</code>.</p>
+    <p>Also persist <code>punctuationRemove</code> to <code>clip.subtitleStyle</code> during editor save so saved clips render correctly regardless of template changes.</p>
+  </div>
+
+  <div class="first-step">
+    <h3>The One Thing to Do First</h3>
+    <p>Create <code>buildPreviewSubtitles.js</code> with the pure function, wire it into <code>ClipVideoPlayer</code>, and persist <code>punctuationRemove</code> on editor save. This is a single focused task that fixes all three symptoms: wrong positioning, missing punctuation stripping, and template mismatch.</p>
+  </div>
+</div>
+
+<!-- Advisor Responses -->
+<h2>Advisor Responses</h2>
+
+<details>
+  <summary><span class="advisor-tag tag-contrarian">Contrarian</span> "Why does preview need subtitles at 220px?"</summary>
+  <div class="advisor-content">
+    <p>Raised three flaws: (1) hidden state problem when default template changes after clips are saved, (2) punctuationRemove not persisted means saved clips still render wrong, (3) performance cliff with 10-20 clips running segmentation. Questioned whether preview subtitles are even needed.</p>
+    <p><em>Chairman's note: State problem is handled by the fallback chain. Performance is fine with useMemo (runs once per clip, not per frame). Preview subtitles are a confirmed user requirement.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-principles">First Principles</span> "Rendering logic exists in two places &mdash; that's the bug"</summary>
+  <div class="advisor-content">
+    <p>Reframed the problem: this isn't a preview bug, it's the tax of duplicated rendering logic. Proposed a single pure function <code>renderSubtitleSegments(words, template)</code> called by both editor and preview. The absence of saved style is the default state &mdash; design for it explicitly.</p>
+    <p><em>Chairman's note: Correct diagnosis. The pure function approach is the consensus path forward. Editor integration is a future improvement.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-expansionist">Expansionist</span> "Build the canonical subtitle renderer"</summary>
+  <div class="advisor-content">
+    <p>Saw the opportunity: a template-aware render function decoupled from the editor can be used in render queue preview, bulk style workflow, and thumbnail generation. "Don't build a preview approximation. Build the canonical subtitle renderer."</p>
+    <p><em>Chairman's note: Right long-term vision. For now, the preview utility is step one. It naturally evolves into the canonical renderer as other consumers adopt it.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-outsider">Outsider</span> "Opening editor to fix preview is a data leak"</summary>
+  <div class="advisor-content">
+    <p>Identified the UX absurdity: a new user would find it baffling that opening a clip in the editor "fixes" the preview. That's not a feature, it's a broken data flow. The preview should never depend on whether someone has visited a different view.</p>
+    <p><em>Chairman's note: This is the clearest articulation of why this matters for a commercial product. Users will report this as a bug.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-executor">Executor</span> "50 lines, 2-3 hours, ship it"</summary>
+  <div class="advisor-content">
+    <p>Gave the implementation path: create <code>buildPreviewSubtitles.js</code> with three steps (segmentWords, stripPunct, return {segments, style}). useMemo keyed on clip.words runs once per clip. Skip karaoke/animation. Per-clip fallback: <code>clip.subtitleStyle ?? previewTemplate</code>.</p>
+    <p><em>Chairman's note: This is the implementation plan. Adopted as-is with the addition of persisting punctuationRemove on save.</em></p>
+  </div>
+</details>
+
+<div class="footer">
+  LLM Council &mdash; March 31, 2026 &mdash; Preview subtitle rendering architecture
+</div>
+
+</body>
+</html>

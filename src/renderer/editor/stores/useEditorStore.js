@@ -741,6 +741,10 @@ const useEditorStore = create((set, get) => ({
         bgOn: subState.bgOn, bgOpacity: subState.bgOpacity, bgColor: subState.bgColor,
         bgPaddingX: subState.bgPaddingX, bgPaddingY: subState.bgPaddingY, bgRadius: subState.bgRadius,
         yPercent: subState.subPos != null ? (subState.subPos / 10) * 100 : 80,
+        highlightColor: subState.highlightColor, punctuationRemove: subState.punctuationRemove,
+        animateOn: subState.animateOn, animateScale: subState.animateScale,
+        animateGrowFrom: subState.animateGrowFrom, animateSpeed: subState.animateSpeed,
+        segmentMode: subState.segmentMode,
       };
       const captionStyle = {
         fontFamily: capState.fontFamily, fontWeight: capState.fontWeight || 900,

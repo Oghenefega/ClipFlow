@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — Subtitle Segmentation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem; }
+  .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.2rem; color: #c084fc; margin: 1.8rem 0 0.8rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.4rem; }
+  h3 { font-size: 1rem; color: #a78bfa; margin: 1rem 0 0.4rem; }
+  p { margin-bottom: 0.8rem; }
+  .question-box {
+    background: #1a1a2e;
+    border-left: 3px solid #c084fc;
+    padding: 1rem 1.2rem;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+  .verdict-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .verdict-box h2 { color: #c084fc; border: none; margin-top: 0; }
+  .agreement-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .agree-card, .clash-card {
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  .agree-card { background: #0d2818; border: 1px solid #166534; }
+  .agree-card .label { color: #4ade80; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .clash-card { background: #2a1a0a; border: 1px solid #92400e; }
+  .clash-card .label { color: #fbbf24; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .blind-card { background: #1a0a2a; border: 1px solid #6b21a8; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.8rem; }
+  .blind-card .label { color: #c084fc; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .recommendation {
+    background: #111827;
+    border: 2px solid #c084fc;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .first-step {
+    background: linear-gradient(135deg, #1a0a2e, #0a1a2e);
+    border: 2px solid #8b5cf6;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  .first-step h3 { color: #a78bfa; font-size: 1.1rem; margin-bottom: 0.6rem; }
+  .first-step p { font-size: 1rem; color: #e0e0e0; }
+  details {
+    margin: 0.8rem 0;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  summary {
+    padding: 0.8rem 1rem;
+    background: #1a1a1a;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    user-select: none;
+  }
+  summary:hover { background: #222; }
+  .advisor-content {
+    padding: 1rem;
+    font-size: 0.85rem;
+    border-top: 1px solid #2a2a2a;
+    background: #111;
+  }
+  .advisor-tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tag-contrarian { background: #7f1d1d; color: #fca5a5; }
+  .tag-principles { background: #1e3a5f; color: #93c5fd; }
+  .tag-expansionist { background: #14532d; color: #86efac; }
+  .tag-outsider { background: #4a1d96; color: #c4b5fd; }
+  .tag-executor { background: #78350f; color: #fcd34d; }
+  .advisor-positions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0;
+  }
+  .position-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    background: #1a1a1a;
+    border: 1px solid #333;
+  }
+  .position-chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .dot-extract { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .dot-test { background: #60a5fa; box-shadow: 0 0 6px #60a5fa; }
+  .dot-ship { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+  .dot-rewrite { background: #f87171; box-shadow: 0 0 6px #f87171; }
+  .legend { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #2a2a2a;
+    font-size: 0.75rem;
+    color: #555;
+    text-align: center;
+  }
+  strong { color: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<h1>LLM Council Report</h1>
+<p class="subtitle">Subtitle Segmentation Approach Review &mdash; March 31, 2026</p>
+
+<div class="question-box">
+  <strong>Question:</strong> Is ClipFlow's subtitle segmentation approach fundamentally sound? The algorithm is a ~250-line procedural chunker with 6+ priority-ordered rules inside a Zustand store. It has regressed 3 times on the same 3 bugs. This is ship-blocking.
+</div>
+
+<!-- Advisor Position Map -->
+<h2>Advisor Positions</h2>
+<div class="advisor-positions">
+  <div class="position-chip"><div class="dot dot-extract"></div><span class="advisor-tag tag-contrarian">Contrarian</span> Extract + Test</div>
+  <div class="position-chip"><div class="dot dot-extract"></div><span class="advisor-tag tag-principles">First Principles</span> Extract + Test</div>
+  <div class="position-chip"><div class="dot dot-ship"></div><span class="advisor-tag tag-expansionist">Expansionist</span> Ship, Fortify Later</div>
+  <div class="position-chip"><div class="dot dot-rewrite"></div><span class="advisor-tag tag-outsider">Outsider</span> FSM Rewrite</div>
+  <div class="position-chip"><div class="dot dot-ship"></div><span class="advisor-tag tag-executor">Executor</span> Pre-partition + Ship</div>
+</div>
+<p class="legend"><span style="color:#4ade80">&#9679;</span> Extract first &nbsp; <span style="color:#60a5fa">&#9679;</span> Test first &nbsp; <span style="color:#fbbf24">&#9679;</span> Ship now &nbsp; <span style="color:#f87171">&#9679;</span> Rewrite</p>
+<p style="font-size:0.85rem; color:#aaa; margin-top:0.6rem;"><strong>Peer review consensus:</strong> 5/5 reviewers picked First Principles (extract + test) as strongest response. 4/5 flagged Expansionist's "ship now" as biggest blind spot.</p>
+
+<!-- Chairman's Verdict -->
+<div class="verdict-box">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <div class="agreement-grid">
+    <div class="agree-card">
+      <div class="label">High Confidence</div>
+      <p>Architecture is the root cause, not the algorithm. A pure function has no business living inside a Zustand store action.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">High Confidence</div>
+      <p>The regression pattern (3x same bugs) is a process problem, not a logic problem. Manual eyeball validation is why it keeps breaking.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">High Confidence</div>
+      <p>Extract to a pure function first. Zero framework dependencies. Inputs in, segments out. This is the precondition for everything else.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">High Confidence</div>
+      <p>Tests must cover the three known regressions before any further changes. The regression patterns are already documented &mdash; they just haven't been encoded as tests.</p>
+    </div>
+  </div>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Genuine Disagreement</div>
+      <p><strong>Ship now vs. extract first.</strong> Executor's pre-partition idea is technically sound, but the framing of "30 minutes and ship" ignores that the codebase has already proven it breaks in unanticipated ways.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Genuine Disagreement</div>
+      <p><strong>FSM rewrite vs. incremental fix.</strong> The Outsider's FSM diagnosis may be correct, but peer reviews unanimously called it disproportionate for a ship-blocking bug.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Genuine Disagreement</div>
+      <p><strong>Complexity as differentiator vs. liability.</strong> Resolution: complexity becomes a differentiator only after it is reliable. Right now it is neither.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots Caught in Peer Review</h3>
+  <div class="blind-card">
+    <div class="label">Blind Spot</div>
+    <p><strong>Whisper output is noisy.</strong> The algorithm receives missing punctuation, merged words, and mis-timed boundaries. Tests built against clean prose test the wrong thing. The suite must use actual Whisper transcripts from gaming clips.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Blind Spot</div>
+    <p><strong>No written spec for "correct" segmentation.</strong> Without a canonical definition, tests only codify current behavior &mdash; a wrong algorithm with tests is still wrong.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Blind Spot</div>
+    <p><strong>Bad subtitles reach the creator's audience.</strong> The commercial risk is asymmetric &mdash; broken subtitles ship to viewers, not just the creator's private workflow.</p>
+  </div>
+
+  <div class="recommendation">
+    <h3>The Recommendation</h3>
+    <p>The approach is <strong>fundamentally sound but architecturally misplaced and operationally unprotected.</strong> The algorithm's complexity is justified by the content format. The regression problem is not that the rules are wrong &mdash; it is that there is no floor under them.</p>
+    <p><strong>Do not rewrite to FSM. Do not simplify the rules. Do not ship without a safety net.</strong></p>
+    <p>The correct path: extract the algorithm to a pure function, write a segmentation spec (one page, explicit rules and thresholds), encode the three known regressions as named test cases using actual Whisper output, then run those tests before every future change. The Executor's pre-partition idea (sentence/pause boundaries as hard walls before chunking) is the best structural insight &mdash; implement it after extraction and testing, not instead of them.</p>
+  </div>
+
+  <div class="first-step">
+    <h3>The One Thing to Do First</h3>
+    <p>Write the segmentation spec before touching any code. One page. Define what a correct subtitle segment is: maximum word count, sentence boundary characters, pause split threshold, what constitutes a repeated phrase, and the expected output for the three known regression cases. This spec becomes the definition of done for every future change.</p>
+  </div>
+</div>
+
+<!-- Advisor Responses -->
+<h2>Advisor Responses</h2>
+
+<details>
+  <summary><span class="advisor-tag tag-contrarian">Contrarian</span> "The regression pattern is the real problem"</summary>
+  <div class="advisor-content">
+    <p>Three separate regressions of the same three bugs tells you there is no regression test suite. Every "fix" is a manual eyeball pass. Rules 0b/0c (stateful phrase recall) interact badly with Rule 1 (sentence boundaries) &mdash; a phrase protected earlier will be recalled later, but what happens when it falls after a sentence-ending period? The code says priority order, but stateful phrase memory doesn't reset at sentence boundaries. That's a latent bug.</p>
+    <p>The 250 lines inside a Zustand store action is untestable in isolation. You cannot write a unit test without spinning up React context. The actual ship risk is not launch day &mdash; it's breaking on a clip that gets traction, embarrassing the product.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-principles">First Principles</span> "The real problem is architecture, not algorithm"</summary>
+  <div class="advisor-content">
+    <p>The actual question is "why does the same logic keep regressing?" &mdash; because it's a stateful blob inside a Zustand store action, designed for state transitions not parsing pipelines. The segmentation algorithm is a pure function: words-with-timestamps in, segments out. It should live in a standalone module with zero framework dependencies.</p>
+    <p>Once it's a pure function, write 20 hardcoded test cases covering every regression. The algorithm itself is probably fine &mdash; the complexity is warranted for gaming speech. But complexity without test coverage is a time bomb that's already detonated three times.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-expansionist">Expansionist</span> "Gaming speech complexity is the differentiator"</summary>
+  <div class="advisor-content">
+    <p>Gaming speech isn't an edge case &mdash; it's the defining characteristic. The phrase detection, gap logic, sentence boundary rules are exactly what a gaming-specific product should be doing. Don't simplify &mdash; extract and test. This becomes a marketing story: "Built specifically for how gamers actually talk."</p>
+    <p>Ship what you have. Then fortify with unit tests covering known failure patterns. Every regression would have been caught before shipping. That investment pays compound returns.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-outsider">Outsider</span> "This is a finite state machine problem"</summary>
+  <div class="advisor-content">
+    <p>The three regressions are the same design failure in three costumes. You're solving a sequencing problem with a priority system that fails when two rules fire simultaneously. The rule list keeps growing because each edge case requires a higher-priority override. The next regression will require Rule 0d.</p>
+    <p>The segmentation problem is fundamentally a finite state machine problem. Deterministic state transitions eliminate rule priority issues. Pull into a pure function. Write three test cases per regression.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-executor">Executor</span> "Pre-partition as hard walls, ship now"</summary>
+  <div class="advisor-content">
+    <p>Pre-partition the word list into sentence-boundary groups and pause-boundary groups as hard walls before any chunking runs. Chunking only operates within partitions. This is a 30-minute change: write <code>partitionWords(words)</code> that splits on .!? and gaps > 0.7s, then run the existing 3-word chunker on each group independently.</p>
+    <p>The reason it keeps regressing is rules run on a flat word list and compete. Partitioning first makes the rules physically unable to cross boundaries they shouldn't.</p>
+  </div>
+</details>
+
+<!-- Peer Reviews -->
+<h2>Peer Review Highlights</h2>
+<details>
+  <summary>View all peer review findings</summary>
+  <div class="advisor-content">
+    <p><strong>Strongest response (unanimous):</strong> First Principles Thinker &mdash; correctly identifies root cause as architecture, prescribes concrete actionable fix.</p>
+    <p><strong>Biggest blind spot (4/5):</strong> Expansionist &mdash; "ship now, fortify later" is exactly what produced three regressions. Shipping a known regressor to paying users gambles reputation on confidence rather than evidence.</p>
+    <p><strong>Key blind spots identified across all reviews:</strong></p>
+    <ul style="margin-left: 1.2rem; margin-top: 0.4rem;">
+      <li>Whisper output is noisy for gaming speech &mdash; tests need real transcripts, not clean prose</li>
+      <li>The three documented regressions in lessons.md ARE the test suite &mdash; just in the wrong format</li>
+      <li>No canonical spec for "correct" segmentation exists &mdash; tests without a spec just codify current bugs</li>
+      <li>Bad subtitles ship to the creator's audience, raising stakes beyond typical developer-facing bugs</li>
+      <li>The Executor's pre-partition idea is the best structural insight but should follow extraction, not replace it</li>
+    </ul>
+  </div>
+</details>
+
+<div class="footer">
+  LLM Council &mdash; March 31, 2026 &mdash; Counciled: "Is ClipFlow's subtitle segmentation approach fundamentally sound?"
+</div>
+
+</body>
+</html>

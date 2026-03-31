@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — Spec Review</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem; }
+  .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.2rem; color: #c084fc; margin: 1.8rem 0 0.8rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.4rem; }
+  h3 { font-size: 1rem; color: #a78bfa; margin: 1rem 0 0.4rem; }
+  p { margin-bottom: 0.8rem; }
+  .question-box { background: #1a1a2e; border-left: 3px solid #c084fc; padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; font-size: 0.95rem; }
+  .verdict-box { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; }
+  .verdict-box h2 { color: #c084fc; border: none; margin-top: 0; }
+  .agreement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .agree-card, .clash-card { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+  .agree-card { background: #0d2818; border: 1px solid #166534; }
+  .agree-card .label { color: #4ade80; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .clash-card { background: #2a1a0a; border: 1px solid #92400e; }
+  .clash-card .label { color: #fbbf24; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .blind-card { background: #1a0a2a; border: 1px solid #6b21a8; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.8rem; }
+  .blind-card .label { color: #c084fc; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .recommendation { background: #111827; border: 2px solid #c084fc; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .first-step { background: linear-gradient(135deg, #1a0a2e, #0a1a2e); border: 2px solid #8b5cf6; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; text-align: center; }
+  .first-step h3 { color: #a78bfa; font-size: 1.1rem; margin-bottom: 0.6rem; }
+  .first-step p { font-size: 1rem; color: #e0e0e0; }
+  .fix-item { background: #111; border: 1px solid #333; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; font-size: 0.85rem; }
+  .fix-number { display: inline-block; background: #c084fc; color: #000; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 0.75rem; margin-right: 0.5rem; }
+  details { margin: 0.8rem 0; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+  summary { padding: 0.8rem 1rem; background: #1a1a1a; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+  summary:hover { background: #222; }
+  .advisor-content { padding: 1rem; font-size: 0.85rem; border-top: 1px solid #2a2a2a; background: #111; }
+  .advisor-tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-right: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tag-contrarian { background: #7f1d1d; color: #fca5a5; }
+  .tag-principles { background: #1e3a5f; color: #93c5fd; }
+  .tag-expansionist { background: #14532d; color: #86efac; }
+  .tag-outsider { background: #4a1d96; color: #c4b5fd; }
+  .tag-executor { background: #78350f; color: #fcd34d; }
+  .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .status-fix { background: #7f1d1d; color: #fca5a5; }
+  .status-ok { background: #14532d; color: #86efac; }
+  .advisor-positions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0; }
+  .position-chip { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.8rem; background: #1a1a1a; border: 1px solid #333; }
+  .position-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-fix { background: #f87171; box-shadow: 0 0 6px #f87171; }
+  .dot-ok { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .dot-expand { background: #60a5fa; box-shadow: 0 0 6px #60a5fa; }
+  .legend { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+  strong { color: #f0f0f0; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #2a2a2a; font-size: 0.75rem; color: #555; text-align: center; }
+  ul { margin-left: 1.2rem; margin-bottom: 0.8rem; }
+  li { margin-bottom: 0.3rem; }
+</style>
+</head>
+<body>
+
+<h1>LLM Council Report — Spec Review</h1>
+<p class="subtitle">Subtitle Segmentation Spec v1.0 Validation &mdash; March 31, 2026</p>
+
+<div class="question-box">
+  <strong>Question:</strong> Is the subtitle segmentation spec complete and correct before we implement it? The spec defines hard walls, 5 chunking rules, timing rules, 6 test cases, and pure function architecture.
+</div>
+
+<!-- Verdict Summary -->
+<div style="background: #1c1017; border: 1px solid #7f1d1d; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 2rem;">
+  <span class="status-badge status-fix">NOT READY TO IMPLEMENT</span>
+  <span style="margin-left: 0.6rem; font-size: 0.9rem;">4 spec gaps must be fixed first. Architecture is sound.</span>
+</div>
+
+<!-- Advisor Positions -->
+<h2>Advisor Positions</h2>
+<div class="advisor-positions">
+  <div class="position-chip"><div class="dot dot-fix"></div><span class="advisor-tag tag-contrarian">Contrarian</span> 3 gaps found</div>
+  <div class="position-chip"><div class="dot dot-fix"></div><span class="advisor-tag tag-principles">First Principles</span> Missing input layer</div>
+  <div class="position-chip"><div class="dot dot-expand"></div><span class="advisor-tag tag-expansionist">Expansionist</span> Add virality features</div>
+  <div class="position-chip"><div class="dot dot-fix"></div><span class="advisor-tag tag-outsider">Outsider</span> Rule 5 will regress</div>
+  <div class="position-chip"><div class="dot dot-fix"></div><span class="advisor-tag tag-executor">Executor</span> 2 blockers, rest is mechanical</div>
+</div>
+<p class="legend"><span style="color:#f87171">&#9679;</span> Fix before implementing &nbsp; <span style="color:#60a5fa">&#9679;</span> Expand scope &nbsp; <span style="color:#4ade80">&#9679;</span> Ready</p>
+<p style="font-size:0.85rem; color:#aaa; margin-top:0.6rem;"><strong>Peer review consensus:</strong> Outsider (D) rated strongest by 3/5 reviewers. Expansionist (C) rated weakest by 5/5 reviewers (scope pollution, not a spec critique).</p>
+
+<!-- Chairman's Verdict -->
+<div class="verdict-box">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <div class="agreement-grid">
+    <div class="agree-card">
+      <div class="label">Sound</div>
+      <p>Pre-partitioning architecture (hard walls before chunking) is correct and will prevent the three historical regressions.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Sound</div>
+      <p>Pure function extraction and 6 test cases are the right shape. Don't discard them.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Not Ready</div>
+      <p>Rule 5 (character limit split) is the vaguest rule and the most likely regression point. Needs worked examples.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Not Ready</div>
+      <p>Spec reads as a feature list, not an algorithm. Missing: input contract, conflict resolution table, and explicit worked examples.</p>
+    </div>
+  </div>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Clash</div>
+      <p><strong>Filler detection depth.</strong> Contrarian wants recurrence counting. First Principles wants tokenization definition first. Both right, different layers.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Clash</div>
+      <p><strong>"you know?" collision.</strong> Both a filler phrase AND a sentence ender. Hard wall runs first &mdash; is that correct? Spec doesn't say.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Clash</div>
+      <p><strong>0.7s vs 1.0s.</strong> Hard wall at 0.7s, forward look at 1.0s. What fires between 0.7&ndash;1.0s? Two numbers, no stated relationship.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots Caught in Peer Review</h3>
+  <div class="blind-card">
+    <div class="label">Critical</div>
+    <p><strong>Input contract is undefined.</strong> Does the function receive word objects with timestamps? What shape? What happens with malformed input, timestamp drift, non-monotonic timestamps, or overlapping tokens from Whisper? The entire spec assumes clean input. That assumption is wrong for a Whisper pipeline.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">High</div>
+    <p><strong>No conflict resolution table.</strong> When two rules fire on the same token ("um um um" = filler + repeat, "you know?" = filler + sentence ender), there is no declared winner. This is normal for gaming audio, not an edge case.</p>
+  </div>
+
+  <div class="recommendation">
+    <h3>4 Fixes Before Implementation</h3>
+
+    <div class="fix-item">
+      <span class="fix-number">1</span>
+      <strong>Define the input contract.</strong> Function signature, word object shape (fields, types, units), what to do with malformed/overlapping/drifting timestamps (skip, clamp, throw).
+    </div>
+
+    <div class="fix-item">
+      <span class="fix-number">2</span>
+      <strong>Write a conflict resolution table.</strong> Every pair of rules that can fire on the same token &mdash; declare the winner. "you know?" &rarr; hard wall wins. "um um um" &rarr; repeat wins. 5-10 rows, not fifty.
+    </div>
+
+    <div class="fix-item">
+      <span class="fix-number">3</span>
+      <strong>Specify Rule 5 with worked examples.</strong> 3-word over limit: split 2+1 (first 2 + last 1). 2-word over limit: split 1+1. Single word over 20 chars: keep as-is (can't split a word). Show the math.
+    </div>
+
+    <div class="fix-item">
+      <span class="fix-number">4</span>
+      <strong>Resolve the 0.7s / 1.0s relationship.</strong> One sentence: "0.7s is a hard wall (pre-partition). 1.0s forward look only operates within partitions and is irrelevant when a hard wall already fired." Or whatever the answer is. State it.
+    </div>
+  </div>
+
+  <div class="first-step">
+    <h3>The One Thing to Do First</h3>
+    <p>Write the input contract. One function signature, one type definition, one paragraph on what "clean enough" Whisper output means. Everything else operates on the input &mdash; if the input schema is ambiguous, every rule is ambiguous.</p>
+  </div>
+</div>
+
+<!-- Advisor Responses -->
+<h2>Advisor Responses</h2>
+
+<details>
+  <summary><span class="advisor-tag tag-contrarian">Contrarian</span> "Three gaps that will cause implementation bugs"</summary>
+  <div class="advisor-content">
+    <p><strong>Gap 1:</strong> Filler "like" detection is handwaved &mdash; no way to distinguish filler from verb. "I like this game" vs "like, I dunno." The implementer will guess, it'll be wrong.</p>
+    <p><strong>Gap 2:</strong> Repeated phrase detection needs a minimum recurrence count and adjacency requirement. A phrase at 0:05 and 2:30 shouldn't trigger the same as "go go go."</p>
+    <p><strong>Gap 3:</strong> Priority conflicts unresolved &mdash; "um um um" hits both filler and repeat rules. Which wins? Also: char split direction not specified, single long words unaddressed.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-principles">First Principles</span> "Missing layer: input normalization"</summary>
+  <div class="advisor-content">
+    <p>What counts as a "word" is undefined &mdash; hyphenated terms, contractions, "360fps." Filler detection needs a concrete heuristic, not "like when filler." The 6 test cases capture behavior not intent.</p>
+    <p>Missing layer: input tokenization/normalization before hard walls. Add a named pre-processing stage. Define "filler" with a concrete detection rule, even a naive one.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-expansionist">Expansionist</span> "Correctness is the floor, not the ceiling"</summary>
+  <div class="advisor-content">
+    <p>Spec solves for correctness but not virality. Gaming subtitles need emotional pacing &mdash; high-energy words isolated for impact. Adjacent opportunities: emphasis detection via audio energy levels, style presets per mode ("Streamer" vs "Documentary").</p>
+    <p><em>Note: Rated weakest by all 5 peer reviews. Valid future direction but not a spec-level concern.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-outsider">Outsider</span> "Rule 5 will cause the next regression"</summary>
+  <div class="advisor-content">
+    <p>0.7s hard wall vs 1.0s forward look &mdash; what happens between? Rule 5 (char split) is the vaguest rule. "um I" creates two ugly tiny segments. Gap closing direction unspecified (earlier extends or later starts early?).</p>
+    <p>Test cases mentioned but not shown inline. Fix Rule 5 first &mdash; it has the highest regression probability.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-executor">Executor</span> "Two blockers, then it's mechanical"</summary>
+  <div class="advisor-content">
+    <p><strong>Blocker 1:</strong> "you know?" is both a filler phrase AND a sentence ender. Hard walls run first, so it never reaches filler isolation. Is that correct? Spell it out.</p>
+    <p><strong>Blocker 2:</strong> 20-char split needs worked examples. Single-word partitions > 20 chars undefined.</p>
+    <p>Pre-partitioning is architecturally sound. Add edge case tests, then implementation is a mechanical translation job.</p>
+  </div>
+</details>
+
+<!-- Peer Reviews -->
+<details>
+  <summary><h2 style="display:inline; border:none; margin:0; padding:0;">Peer Review Highlights</h2></summary>
+  <div class="advisor-content">
+    <p><strong>Strongest response:</strong> Outsider (D) &mdash; 3/5 votes. Catches highest-density implementation blockers.</p>
+    <p><strong>Weakest response:</strong> Expansionist (C) &mdash; 5/5 votes. Feature pitch, not spec critique.</p>
+    <p><strong>Critical blind spot (all 5 reviews):</strong> Input contract is undefined. The function's input schema &mdash; word object shape, timestamp reliability, malformed input handling &mdash; is the foundation everything sits on. Without it, every rule is undefined behavior.</p>
+    <p><strong>Second blind spot:</strong> No conflict resolution table. When rules collide (normal for gaming audio), no declared winner.</p>
+  </div>
+</details>
+
+<div class="footer">
+  LLM Council &mdash; March 31, 2026 &mdash; Counciled: "Is the subtitle segmentation spec ready for implementation?"
+</div>
+
+</body>
+</html>

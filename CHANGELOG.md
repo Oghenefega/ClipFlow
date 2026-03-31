@@ -7,15 +7,29 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-03-31
 
 ### Added
-- **Audio track selection for transcription:** New `transcriptionAudioTrack` setting (default: track 2 / index 1) allows targeting the mic track in multi-track recordings. Previously, FFmpeg extracted the first audio stream by default, which could be game audio or a full mix instead of the mic. Automatic fallback to track 0 for single-track clips.
-- **Phrase-aware subtitle chunking:** Pre-scan algorithm detects repeated phrases (e.g., "let's go let's go let's go", "we got this we got this") and groups them at correct phrase boundaries instead of blindly splitting every 3 words. Includes runtime phrase recall for non-adjacent repeats.
-- **Known phrase protection:** Subtitle segments that match a previously-seen phrase won't be extended with unrelated words (prevents "let's go I" grouping).
-- **"Never end on I" rule:** Segments no longer end with the word "I" — it always starts the next segment, since "I" virtually always begins or continues a sentence.
-- **Character-based segment splitting:** 3-word segments exceeding 16 characters are automatically split 2+1 for better subtitle display fit on vertical video.
+- **Canonical subtitle segmentation function (`segmentWords.js`):** Extracted all segmentation logic from Zustand store into a standalone pure function with 29 regression tests. Eight rules in priority order: repeated phrases, filler isolation, forward look, max 3 words, 20-char limit, never end on "I", comma flush, atomic phrase protection. Hard wall pre-partitioning on sentence enders and 0.7s gaps.
+- **Subtitle linger duration (0.4s):** Segments now extend 0.4s into empty space after the last word is spoken, so subtitles don't vanish instantly. Never overlaps the next segment.
+- **Comma flush rule:** Words ending with commas or semicolons always end their segment — prevents awkward segments starting with "some," or "it,". A comma signals a natural phrase boundary.
+- **Atomic phrase protection:** Common 2-word phrases ("as always", "of course", "by the way", "let's go", "trust me", etc.) are never split across segments. The chunker flushes early to keep phrases together.
+- **Project preview word-level karaoke:** Preview cards now render subtitles with per-word highlighting, matching the editor's karaoke behavior. Each word is an individual span with highlight color on the active word and pop animation support.
+- **Preview uses canonical segmentation:** Project preview tab now uses the same `segmentWords()` function as the editor instead of its own simplified 3-word chunking. Punctuation stripping applied per template config.
+- **Editor save expanded:** Now persists `highlightColor`, `punctuationRemove`, `animateOn`, `animateScale`, `animateGrowFrom`, `animateSpeed`, and `segmentMode` to the clip's `subtitleStyle` for accurate preview rendering.
+- **Preview template merging:** Clips with stale saved styles (missing new fields) now merge with the default template, so old projects pick up glow/highlight/animation settings.
+- **Pure function for preview subtitles (`buildPreviewSubtitles.js`):** Shared utility that handles word gathering, segmentation, punctuation stripping, and active word detection — used by the project preview tab.
+- **Audio track selection for transcription:** New `transcriptionAudioTrack` setting (default: track 2 / index 1) allows targeting the mic track in multi-track recordings.
+- **LLM Council reports:** Four council sessions run during this session covering segmentation approach, spec v1.0 review, spec v1.1 review, and preview rendering architecture.
+
+### Changed
+- **MAX_CHARS raised from 16 to 20:** Better fit for subtitle display — "unfortunately I died" (20 chars) now stays as one segment.
+- **FORWARD_LOOK_GAP changed from 1.0s to 0.5s:** Old value could never fire since all gaps ≥0.7s were already walled off by hard partitioning.
+- **Segmentation logic removed from useSubtitleStore.js:** ~217 lines of inline chunking logic replaced with a single import of `segmentWords()`. Store now delegates entirely to the pure function.
+- **Project preview onBack reloads from disk:** Returning from editor to projects view now reloads the project data so saved subtitle/caption styles are picked up immediately instead of showing stale state.
 
 ### Fixed
-- **Ghost subtitle bug:** Transcription data sometimes contained a mega-segment spanning the entire clip with all words compressed into incorrect timestamps, alongside proper sentence-level segments. This caused subtitles to race ahead during pauses. Now filtered out during segment initialization.
-- **Subtitle chunking regression (recurring):** Repeated phrases like "let's go", "come on", "we got this" were being split mid-phrase by the blind 3-word chunker. The new pre-scan approach detects phrase patterns before chunking begins, ensuring phrase boundaries always take priority over word count limits and pauses.
+- **Ghost subtitle bug:** Transcription data sometimes contained a mega-segment spanning the entire clip. Now filtered out during segment initialization.
+- **Subtitle segmentation regression (final fix):** Three recurring regressions (sentence boundary crossing, time gap grouping, phrase splitting) are now structurally impossible due to hard wall pre-partitioning architecture. Enforced by 29 regression tests.
+- **Preview subtitle ghost double effect:** Project preview was running its own separate segmentation logic that produced poorly-timed segments. Now unified with editor's canonical function.
+- **Stale preview after editor save:** Saved subtitle styles weren't reflected in the project preview because `onBack` didn't reload the project from disk. Fixed.
 
 ## [Unreleased] — 2026-03-30
 

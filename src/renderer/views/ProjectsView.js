@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
+import { buildPreviewSegments, findActiveWord, stripPunct } from "../editor/utils/buildPreviewSubtitles";
 
 // Pure helper — determine project game color
 const getGameColor = (p, gamesDb) => {
@@ -195,57 +196,34 @@ function ClipVideoPlayer({ clip, template }) {
   const tpl = template || FALLBACK_TEMPLATE;
   const CONTAINER_W = 220;
 
-  // Build word-level micro-segments (3 words each) for subtitle preview
-  // Handles both pipeline format { sub1: [...] } and editor-saved format [...]
+  // Resolve effective template — per-clip saved style wins, merged with template defaults
+  // for any missing fields (handles clips saved before new fields were added)
+  const subTpl = useMemo(() => {
+    const base = tpl?.subtitle || {};
+    const saved = clip.subtitleStyle;
+    if (!saved) return base;
+    // Merge: saved fields win, but fall back to template for anything missing
+    return { ...base, ...saved };
+  }, [clip.subtitleStyle, tpl]);
+  const capTplObj = useMemo(() => {
+    const base = tpl?.caption || {};
+    const saved = clip.captionStyle;
+    if (!saved) return base;
+    return { ...base, ...saved };
+  }, [clip.captionStyle, tpl]);
+
+  // Build display-ready subtitle segments (segmented + punctuation stripped)
   const microSegments = useMemo(() => {
-    const raw = clip.subtitles;
-    if (!raw) return [];
-
-    // Editor-saved format: flat array of already-split segments (1-word or 3-word)
-    if (Array.isArray(raw)) return raw;
-
-    // Pipeline format: { sub1: [...], sub2: [...] } — paragraph-level with word timestamps
-    const sub1 = raw.sub1 || [];
-    const micros = [];
-    const WORDS_PER_SEG = 3;
-    for (const seg of sub1) {
-      const words = seg.words || [];
-      if (words.length === 0) {
-        // No word data — split text manually with even timing
-        const textWords = (seg.text || "").trim().split(/\s+/).filter(Boolean);
-        const segDur = (seg.end || 0) - (seg.start || 0);
-        for (let i = 0; i < textWords.length; i += WORDS_PER_SEG) {
-          const chunk = textWords.slice(i, i + WORDS_PER_SEG);
-          const frac0 = i / textWords.length;
-          const frac1 = Math.min(1, (i + chunk.length) / textWords.length);
-          micros.push({
-            text: chunk.join(" "),
-            startSec: (seg.start || 0) + frac0 * segDur,
-            endSec: (seg.start || 0) + frac1 * segDur,
-          });
-        }
-      } else {
-        // Has word timestamps — group into 3-word chunks
-        for (let i = 0; i < words.length; i += WORDS_PER_SEG) {
-          const chunk = words.slice(i, i + WORDS_PER_SEG);
-          micros.push({
-            text: chunk.map(w => w.word || w.text || "").join(" "),
-            startSec: chunk[0].start ?? chunk[0].startSec ?? 0,
-            endSec: chunk[chunk.length - 1].end ?? chunk[chunk.length - 1].endSec ?? 0,
-          });
-        }
-      }
-    }
-    return micros;
-  }, [clip.subtitles]);
+    return buildPreviewSegments(clip.subtitles, { subtitle: subTpl });
+  }, [clip.subtitles, subTpl]);
 
   // Caption segments from saved clip data
   const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
 
-  // Find active micro-segment at current time
-  const activeSubtitle = useMemo(() => {
-    if (!microSegments.length || !isPlaying) return null;
-    return microSegments.find(s => currentTime >= s.startSec && currentTime <= s.endSec);
+  // Find active segment + word at current time
+  const { seg: activeSeg, wordIdx: activeWordIdx } = useMemo(() => {
+    if (!microSegments.length || !isPlaying) return { seg: null, wordIdx: -1 };
+    return findActiveWord(microSegments, currentTime);
   }, [microSegments, currentTime, isPlaying]);
 
   // Find active caption at current time
@@ -254,19 +232,41 @@ function ClipVideoPlayer({ clip, template }) {
     return captions.find(s => currentTime >= s.startSec && currentTime <= (s.endSec || Infinity));
   }, [captions, currentTime, isPlaying]);
 
-  // Pre-built styles — prefer per-clip saved styling, fall back to template
-  const subStyle = useMemo(() => {
-    if (clip.subtitleStyle) return buildSubPreviewStyle({ subtitle: clip.subtitleStyle }, CONTAINER_W);
-    return buildSubPreviewStyle(tpl, CONTAINER_W);
-  }, [clip.subtitleStyle, tpl]);
+  // Pre-built base text style (font, stroke, shadow — NOT color, that's per-word)
+  const subBaseStyle = useMemo(() => {
+    return buildSubPreviewStyle({ subtitle: subTpl }, CONTAINER_W);
+  }, [subTpl]);
   const capStyle = useMemo(() => {
-    if (clip.captionStyle) return buildCapPreviewStyle({ caption: clip.captionStyle }, CONTAINER_W);
-    return buildCapPreviewStyle(tpl, CONTAINER_W);
-  }, [clip.captionStyle, tpl]);
+    return buildCapPreviewStyle({ caption: capTplObj }, CONTAINER_W);
+  }, [capTplObj]);
 
-  // Position percentages — prefer per-clip, fall back to template
-  const subYPct = clip.subtitleStyle?.yPercent ?? tpl?.subtitle?.yPercent ?? 80;
-  const capYPct = clip.captionStyle?.yPercent ?? tpl?.caption?.yPercent ?? 15;
+  // Karaoke/animation config from template
+  const highlightColor = subTpl.highlightColor || "#39ff14";
+  const normalColor = subTpl.subColor || "#ffffff";
+  const animateOn = subTpl.animateOn || false;
+  const animateScale = subTpl.animateScale || 1.2;
+  const animateSpeed = animateOn ? (subTpl.animateSpeed || 0.1) : 0.1;
+
+  // Build per-word shadow variants — active word gets glow swapped to highlightColor
+  const subShadows = useMemo(() => {
+    const sf = CONTAINER_W / 1080;
+    const normal = _buildAllShadows(subTpl, sf);
+    // Active word: swap glow color to highlightColor (matches editor behavior)
+    const activeTpl = {
+      ...subTpl,
+      glowOn: subTpl.glowOn,
+      glowColor: highlightColor,
+    };
+    const active = _buildAllShadows(activeTpl, sf);
+    return {
+      normal: normal || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+      active: active || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+    };
+  }, [subTpl, highlightColor]);
+
+  // Position percentages
+  const subYPct = subTpl.yPercent ?? tpl?.subtitle?.yPercent ?? 80;
+  const capYPct = capTplObj.yPercent ?? tpl?.caption?.yPercent ?? 15;
 
   // Time update handler
   useEffect(() => {
@@ -347,15 +347,32 @@ function ClipVideoPlayer({ clip, template }) {
           </div>
         )}
 
-        {/* Subtitle overlay — only during playback */}
-        {isPlaying && activeSubtitle && (
+        {/* Subtitle overlay — word-level karaoke during playback */}
+        {isPlaying && activeSeg && (
           <div style={{
             position: "absolute", left: 4, right: 4,
             top: `${subYPct}%`, transform: "translateY(-50%)",
             display: "flex", justifyContent: "center", pointerEvents: "none",
           }}>
-            <span style={subStyle}>
-              {activeSubtitle.text}
+            <span style={{ ...subBaseStyle, color: undefined, display: "block", textAlign: "center" }}>
+              {(activeSeg.words || []).map((w, i) => {
+                const isActive = i === activeWordIdx;
+                return (
+                  <span key={i} style={{
+                    color: isActive ? highlightColor : normalColor,
+                    textShadow: isActive ? subShadows.active : subShadows.normal,
+                    display: "inline-block",
+                    transformOrigin: "center bottom",
+                    verticalAlign: "baseline",
+                    transition: `color ${animateSpeed}s, transform ${animateSpeed}s ease-out`,
+                    transform: animateOn && isActive ? `scale(${animateScale})` : "scale(1)",
+                  }}>
+                    {w.word}{i < activeSeg.words.length - 1 ? "\u00A0" : ""}
+                  </span>
+                );
+              })}
+              {/* Fallback if no words array */}
+              {(!activeSeg.words || activeSeg.words.length === 0) && activeSeg.text}
             </span>
           </div>
         )}

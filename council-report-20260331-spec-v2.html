@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — Spec v1.1 Final Review</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem; }
+  .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { font-size: 1.2rem; color: #c084fc; margin: 1.8rem 0 0.8rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 0.4rem; }
+  h3 { font-size: 1rem; color: #a78bfa; margin: 1rem 0 0.4rem; }
+  p { margin-bottom: 0.8rem; }
+  .question-box { background: #1a1a2e; border-left: 3px solid #c084fc; padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; font-size: 0.95rem; }
+  .verdict-box { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; }
+  .verdict-box h2 { color: #c084fc; border: none; margin-top: 0; }
+  .agreement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .agree-card, .clash-card { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+  .agree-card { background: #0d2818; border: 1px solid #166534; }
+  .agree-card .label { color: #4ade80; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .clash-card { background: #2a1a0a; border: 1px solid #92400e; }
+  .clash-card .label { color: #fbbf24; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .blind-card { background: #1a0a2a; border: 1px solid #6b21a8; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 0.8rem; }
+  .blind-card .label { color: #c084fc; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .recommendation { background: #111827; border: 2px solid #4ade80; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .first-step { background: linear-gradient(135deg, #1a0a2e, #0a1a2e); border: 2px solid #8b5cf6; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; text-align: center; }
+  .first-step h3 { color: #a78bfa; font-size: 1.1rem; margin-bottom: 0.6rem; }
+  .first-step p { font-size: 1rem; color: #e0e0e0; }
+  .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .status-go { background: #14532d; color: #86efac; }
+  details { margin: 0.8rem 0; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+  summary { padding: 0.8rem 1rem; background: #1a1a1a; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+  summary:hover { background: #222; }
+  .advisor-content { padding: 1rem; font-size: 0.85rem; border-top: 1px solid #2a2a2a; background: #111; }
+  .advisor-tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-right: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tag-contrarian { background: #7f1d1d; color: #fca5a5; }
+  .tag-principles { background: #1e3a5f; color: #93c5fd; }
+  .tag-expansionist { background: #14532d; color: #86efac; }
+  .tag-outsider { background: #4a1d96; color: #c4b5fd; }
+  .tag-executor { background: #78350f; color: #fcd34d; }
+  .advisor-positions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0; }
+  .position-chip { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.8rem; background: #1a1a1a; border: 1px solid #333; }
+  .position-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-go { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .dot-caution { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+  .dot-block { background: #f87171; box-shadow: 0 0 6px #f87171; }
+  .legend { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+  strong { color: #f0f0f0; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #2a2a2a; font-size: 0.75rem; color: #555; text-align: center; }
+  ul { margin-left: 1.2rem; margin-bottom: 0.8rem; }
+  li { margin-bottom: 0.3rem; }
+  .note { background: #1a1a0a; border: 1px solid #78350f; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.8rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+
+<h1>LLM Council Report — Spec v1.1 Final Review</h1>
+<p class="subtitle">Second council review &mdash; March 31, 2026</p>
+
+<div class="question-box">
+  <strong>Question:</strong> Is the subtitle segmentation spec v1.1 now ready to implement? All 4 gaps from the first council have been patched (input contract, conflict resolution, Rule 5 examples, 0.7s/1.0s fix).
+</div>
+
+<!-- Verdict Banner -->
+<div style="background: #0d2818; border: 1px solid #166534; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 2rem;">
+  <span class="status-badge status-go">READY TO IMPLEMENT</span>
+  <span style="margin-left: 0.6rem; font-size: 0.9rem;">One sentence to add first. Remaining gaps are implementation-time decisions.</span>
+</div>
+
+<!-- Advisor Positions -->
+<h2>Advisor Positions</h2>
+<div class="advisor-positions">
+  <div class="position-chip"><div class="dot dot-block"></div><span class="advisor-tag tag-contrarian">Contrarian</span> Not ready (4 edge cases)</div>
+  <div class="position-chip"><div class="dot dot-caution"></div><span class="advisor-tag tag-principles">First Principles</span> Implementable, not regression-proof</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-expansionist">Expansionist</span> Ship it</div>
+  <div class="position-chip"><div class="dot dot-caution"></div><span class="advisor-tag tag-outsider">Outsider</span> One precision pass needed</div>
+  <div class="position-chip"><div class="dot dot-go"></div><span class="advisor-tag tag-executor">Executor</span> Ready (one flag)</div>
+</div>
+<p class="legend"><span style="color:#4ade80">&#9679;</span> Ship &nbsp; <span style="color:#fbbf24">&#9679;</span> Almost &nbsp; <span style="color:#f87171">&#9679;</span> Not ready</p>
+
+<div class="note">
+  <strong>Chairman's note:</strong> Several peer reviewers flagged "missing" spec content that already exists (conflict resolution table, sentence enders as hard walls, test expected outputs). These phantom gaps have been filtered from the verdict.
+</div>
+
+<!-- Chairman's Verdict -->
+<div class="verdict-box">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <div class="agreement-grid">
+    <div class="agree-card">
+      <div class="label">Genuine Gap</div>
+      <p><strong>Forward look + filler interaction.</strong> A filler word ("um") sitting in a 0.5&ndash;0.69s gap &mdash; is it absorbed, isolated, or suppressed? This sits at the intersection of two recently-patched rules.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Genuine Gap</div>
+      <p><strong>Single word &gt; 20 chars.</strong> The spec says "keep as-is, let renderer handle" but three advisors independently flagged this needs one more sentence of clarity.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Sound</div>
+      <p><strong>Hard wall pre-partitioning is correct.</strong> No advisor questioned the architecture. The structural approach will prevent the 3 historical regressions.</p>
+    </div>
+    <div class="agree-card">
+      <div class="label">Sound</div>
+      <p><strong>Conflict resolution table works.</strong> Priority ordering is clear. Reviewers who missed it confirmed it solves their own concerns once they found it.</p>
+    </div>
+  </div>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Split Decision</div>
+      <p><strong>Ready vs one more pass.</strong> Executor/Expansionist say ship. Contrarian says no. First Principles/Outsider say "almost." Chairman sides with: ship after one sentence added.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Overengineering Risk</div>
+      <p><strong>Test harness formality.</strong> First Principles wants build-failing test harness spec. For a solo developer, the 9 test cases with expected outputs are sufficient. Harness is an implementation detail, not a spec concern.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots Caught</h3>
+  <div class="blind-card">
+    <div class="label">Real but Minor</div>
+    <p><strong>Gap-closing at start of file.</strong> If the first segment has a tiny gap before it, there's no previous segment to extend. Resolution: do nothing &mdash; the first segment simply starts at its own start time. Worth one sentence in the spec.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Real but Minor</div>
+    <p><strong>0.3s minimum vs short filler.</strong> A quick "um" (0.15s of audio) must still display for 0.3s. Resolution: extend end time forward per existing min-duration rule. No conflict &mdash; the rules already handle this in order.</p>
+  </div>
+  <div class="blind-card">
+    <div class="label">Future Work</div>
+    <p><strong>Emphasis-word detection</strong> ("CLUTCH", "INSANE" isolated for impact). Valid product differentiator but not a v1.1 spec concern. Flag for v1.2.</p>
+  </div>
+
+  <div class="recommendation">
+    <h3>The Recommendation</h3>
+    <p><strong>Ship it.</strong> The remaining issues are edge cases that occur in a small fraction of real transcripts. The spec is coherent, has priority ordering, has hard walls, and has expected outputs. A developer hitting edge cases during implementation will make consistent local decisions because the surrounding rules are tight enough to constrain them.</p>
+    <p>The three genuine remaining gaps (filler + forward look, gap-close at start, single word overflow) each need one sentence &mdash; not a new section, not a redesign. Add those sentences, then implement.</p>
+  </div>
+
+  <div class="first-step">
+    <h3>The One Thing to Do First</h3>
+    <p>Add one sentence to the spec: "A filler word (um/uh/ah) landing in a forward-look gap (0.5&ndash;0.69s) is still isolated as its own segment &mdash; filler isolation (Rule 2) takes priority over forward look (Rule 3) per the priority order." Then implement.</p>
+  </div>
+</div>
+
+<!-- Advisor Responses -->
+<h2>Advisor Responses</h2>
+
+<details>
+  <summary><span class="advisor-tag tag-contrarian">Contrarian</span> "Not ready &mdash; 4 underspecified branches"</summary>
+  <div class="advisor-content">
+    <p>Forward look + filler interaction. Rule 3 as intra-segment aggressor. Gap-closing after hard wall with no previous segment. Tests have no assertion format.</p>
+    <p><em>Chairman's note: Test assertion concern is overengineered for solo dev stage. Gap-close and forward look are real but each need one sentence, not a redesign.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-principles">First Principles</span> "Implementable, not regression-proof"</summary>
+  <div class="advisor-content">
+    <p>Spec needs to be executable, not just readable. Test harness spec needed. Rule 3-5 tiebreaker should be mechanical.</p>
+    <p><em>Chairman's note: The conflict resolution table already provides the mechanical tiebreaker. Test harness is an implementation concern.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-expansionist">Expansionist</span> "Ship it &mdash; emphasis detection is the missed lever"</summary>
+  <div class="advisor-content">
+    <p>Spec is implementable today. Emphasis-word detection (isolating high-energy words for impact) should be decided now as v1.1 or v1.2.</p>
+    <p><em>Chairman's note: Valid future direction. Flagged for v1.2, not a blocker.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-outsider">Outsider</span> "One precision pass needed"</summary>
+  <div class="advisor-content">
+    <p>20-char/3-word interaction needs inline note. 0.3s min vs filler conflict. Repeated phrase adjacency definition.</p>
+    <p><em>Chairman's note: Adjacency was already clarified in v1.1 ("adjacent" = back-to-back). Min vs filler resolves via existing priority order.</em></p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="advisor-tag tag-executor">Executor</span> "Ready &mdash; extract first, test second"</summary>
+  <div class="advisor-content">
+    <p>One flag: track changes mid-chunk. Forward look 1.0&rarr;0.5 is highest regression risk. Implementation sequence: extract pure function, pass all 9 tests, then swap into store.</p>
+    <p><em>Chairman's note: Track-switch is a valid edge case worth one line in the spec. Implementation sequence is correct.</em></p>
+  </div>
+</details>
+
+<div class="footer">
+  LLM Council &mdash; March 31, 2026 &mdash; Second review of subtitle segmentation spec v1.1
+</div>
+
+</body>
+</html>

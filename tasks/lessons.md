@@ -501,3 +501,12 @@
 ### Always re-read files when the user sends them — never assume unchanged
 - **Mistake:** User sent an updated spec file (v3 with Section 14 amendments). I assumed it was the same file I'd already read and gave feedback saying two issues were still unresolved — when they'd actually been addressed in the updated file.
 - **Rule:** When the user sends a file with `@` or asks you to read it, ALWAYS re-read it with the Read tool. Never assume file contents are unchanged from a previous read, even if the filename is the same.
+
+### Comma-bearing words should END segments, never START them (Subtitle Segmentation Rule)
+- **Observation:** User noticed "some, you guessed" as a segment where "some," (with trailing comma) starts the segment. This looks wrong — the comma signals a pause/breath that belongs at the END of the previous thought, not the beginning of the next one. The viewer reads a pause before the sentence continues, which feels unnatural.
+- **Rule:** A word with trailing soft punctuation (comma, semicolon) is a **natural phrase-ender**. It should be the LAST word in its segment, never the first word of the next segment. After adding a comma-bearing word to a chunk, flush immediately. This is a soft break within partitions (unlike sentence enders which create hard walls). Implementation: add a comma-flush rule to `chunkPartition()` in `segmentWords.js` — after pushing a word that ends with `,` or `;` to the chunk, flush the chunk. This ensures commas always terminate segments.
+- **Example:** "gonna be playing some, you guessed it" → current: ["gonna be playing", "some, you guessed", "it..."] → correct: ["gonna be", "playing some,", "you guessed it"]
+
+### Common phrases should be kept together (Subtitle Segmentation — Future Rule)
+- **Observation:** User noticed "as always" split across segments. This is a phrase the user says often and should always be grouped as a unit.
+- **Rule (for future implementation):** Certain common multi-word phrases should be treated as atomic units that never split across segments. Examples: "as always", "of course", "by the way", "at least", "right now", "let's go". Could be implemented as a phrase dictionary checked during chunking — if upcoming words form a known phrase, group them together even if it means a shorter previous segment. Similar to the repeated-phrase detection but for common English phrases rather than repetition.
