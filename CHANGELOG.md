@@ -26,6 +26,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Game-switch split integration in Rename tab (Phase 2, step 14):** "Multiple games" button on every pending file card — clicking it generates thumbnails and expands the ThumbnailScrubber below the card. `gameSwitchSplitAndRename()` splits the source file at marker positions with per-segment game tags. Compound splitting: after game-switch split, each resulting segment is independently checked against the auto-split threshold and further split into parts if it exceeds it. RENAME button shows "SPLIT & RENAME" when markers are placed. `renameOne` and `renameAll` both handle game-switch splits. Scrubber state and thumbnails cleaned up on rename, cancel, hide, and rename-all.
 
 ### Changed
+- Replaced native `<select>` in Quick Import modal (Recordings tab) with styled `Select` component — now shows GamePill color tags and matches Rename tab dropdown styling
+- Renamed "Multiple games" button to "split by game" and moved it from a confusing standalone button to a subtle text link in the action buttons row (next to RENAME/HIDE)
 - Refactored Rename tab UI with preset system
 - Updated Settings UI for rename redesign
 - `allRenamed` query now excludes files with `"split"` status so split parents don't appear in Recordings
