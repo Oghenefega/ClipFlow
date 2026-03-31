@@ -576,7 +576,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
     if (isElectron) {
       try {
+        console.log("[Scrubber] Generating thumbnails for:", filePath);
         const result = await window.clipflow.generateThumbnails(filePath);
+        console.log("[Scrubber] Result:", result.error || `${result.thumbnails?.length} thumbnails`);
         if (result.error) {
           console.error("Thumbnail generation failed:", result.error);
           setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
@@ -586,9 +588,12 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       } catch (err) {
         console.error("Thumbnail generation failed:", err);
         setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+      } finally {
+        setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
       }
+    } else {
+      setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
     }
-    setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
   };
 
   const updateScrubberMarkers = (fileId, markers) => {
@@ -1257,45 +1262,31 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         </div>
                       )}
 
-                      {/* Multiple games button + scrubber */}
-                      {r.filePath && (
-                        <div style={{ marginBottom: scrubberOpen[r.id] ? 14 : 0 }}>
-                          <button
-                            onClick={() => toggleScrubber(r.id, r.filePath)}
-                            disabled={renaming}
-                            style={{
-                              background: scrubberOpen[r.id] ? T.accentDim : "rgba(255,255,255,0.03)",
-                              border: `1px solid ${scrubberOpen[r.id] ? T.accentBorder : T.border}`,
-                              borderRadius: T.radius.sm,
-                              padding: "5px 12px",
-                              color: scrubberOpen[r.id] ? T.accentLight : T.textSecondary,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              cursor: renaming ? "default" : "pointer",
-                              fontFamily: T.font,
-                              marginBottom: scrubberOpen[r.id] ? 8 : 14,
-                              opacity: renaming ? 0.4 : 1,
-                            }}
-                          >
-                            {scrubberOpen[r.id] ? "✕ Close scrubber" : "Multiple games"}
-                          </button>
-                          {scrubberOpen[r.id] && (
-                            <ThumbnailScrubber
-                              thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
-                              duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
-                              games={gamesDb}
-                              markers={scrubberMarkers[r.id] || []}
-                              onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
-                              loading={!!scrubberLoading[r.id]}
-                              defaultGameTag={r.tag}
-                            />
-                          )}
+                      {/* Game-switch scrubber (expanded below card controls) */}
+                      {scrubberOpen[r.id] && r.filePath && (
+                        <div style={{ marginBottom: 14, padding: "12px 0", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600 }}>Mark where games change in this recording</span>
+                            <button
+                              onClick={() => toggleScrubber(r.id, r.filePath)}
+                              style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", padding: "2px 6px", fontFamily: T.font }}
+                            >✕</button>
+                          </div>
+                          <ThumbnailScrubber
+                            thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
+                            duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
+                            games={gamesDb}
+                            markers={scrubberMarkers[r.id] || []}
+                            onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
+                            loading={!!scrubberLoading[r.id]}
+                            defaultGameTag={r.tag}
+                          />
                         </div>
                       )}
 
                       {/* Controls row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        {/* Game dropdown (grouped) — hide when scrubber is open (games assigned per-segment) */}
+                        {/* Game dropdown (grouped) */}
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <GroupedSelect
                             value={r.game}
@@ -1370,7 +1361,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         )}
 
                         {/* Action buttons */}
-                        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                          {/* Split by game — subtle text link, only when file has been probed */}
+                          {r.filePath && !scrubberOpen[r.id] && (
+                            <button
+                              onClick={() => toggleScrubber(r.id, r.filePath)}
+                              disabled={renaming}
+                              style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: renaming ? "default" : "pointer", fontFamily: T.font, padding: "8px 6px", opacity: renaming ? 0.4 : 1 }}
+                              title="Split this recording at points where you switched games"
+                            >split by game</button>
+                          )}
                           <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasGameSwitch || hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
                           <button onClick={() => hideOne(r.id)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.redDim, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
                         </div>

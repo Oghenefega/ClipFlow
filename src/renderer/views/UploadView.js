@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import T from "../styles/theme";
-import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox } from "../components/shared";
+import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
 
 function formatSize(bytes) {
@@ -491,15 +491,15 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const contentTypes = gamesDb.filter((g) => g.entryType === "content");
     const options = [];
     if (games.length > 0) {
-      options.push({ value: "__header_games__", label: "── Games ──", disabled: true });
-      games.forEach((g) => options.push({ value: g.name, label: g.name }));
+      options.push({ value: "__header_games__", label: "Games", isHeader: true });
+      games.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
     }
     if (contentTypes.length > 0) {
-      options.push({ value: "__header_content__", label: "── Content ──", disabled: true });
-      contentTypes.forEach((g) => options.push({ value: g.name, label: g.name }));
+      options.push({ value: "__header_content__", label: "Content Types", isHeader: true });
+      contentTypes.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
     }
     if (options.length === 0) {
-      gamesDb.forEach((g) => options.push({ value: g.name, label: g.name }));
+      gamesDb.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
     }
     return options;
   };
@@ -594,21 +594,26 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           {quickImportStep === 1 && (
             <>
               <div style={{ fontSize: 13, fontWeight: 700, color: T.textSecondary, marginBottom: 8 }}>Select game or content type</div>
-              <select
+              <Select
                 value={quickImportGame}
-                onChange={(e) => setQuickImportGame(e.target.value)}
-                style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 8,
-                  background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
-                  color: T.text, fontSize: 14, fontFamily: T.font, outline: "none",
-                  marginBottom: 16,
-                }}
-              >
-                <option value="">Choose...</option>
-                {gameOptions.filter((o) => !o.disabled).map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                onChange={(val) => setQuickImportGame(val)}
+                options={[{ value: "", label: "Choose..." }, ...gameOptions.filter((o) => !o.isHeader)]}
+                style={{ width: "100%", marginBottom: 16 }}
+                renderSelected={(o) => (
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}
+                    {o.label}
+                  </span>
+                )}
+                renderOption={(o) => o.isHeader ? (
+                  <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", pointerEvents: "none" }}>{o.label}</span>
+                ) : (
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {o.tag && <GamePill tag={o.tag} color={o.color} size="sm" />}
+                    {o.label}
+                  </span>
+                )}
+              />
               <button
                 onClick={() => {
                   if (!quickImportGame) return;

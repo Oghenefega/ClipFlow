@@ -624,17 +624,28 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
 // ============ THUMBNAIL STRIP (Game-Switch Scrubber) ============
 ipcMain.handle("thumbs:generate", async (_, filePath) => {
   try {
+    logger.info("(thumbs)", `Generating thumbnails for: ${filePath}`);
+
+    // Validate file exists
+    if (!fs.existsSync(filePath)) {
+      logger.error("(thumbs)", `File not found: ${filePath}`);
+      return { error: `File not found: ${filePath}` };
+    }
+
     // Return cached result if available
     if (thumbnailCache.has(filePath)) {
+      logger.info("(thumbs)", "Returning cached thumbnails");
       return thumbnailCache.get(filePath);
     }
 
     // Generate a stable fileId from the file path
     const fileId = Buffer.from(filePath).toString("base64url").slice(0, 32);
     const result = await ffmpeg.generateThumbnailStrip(filePath, fileId);
+    logger.info("(thumbs)", `Generated ${result.thumbnails.length} thumbnails (${result.duration}s)`);
     thumbnailCache.set(filePath, result);
     return result;
   } catch (err) {
+    logger.error("(thumbs)", `Thumbnail generation failed: ${err.message}`);
     return { error: err.message };
   }
 });
