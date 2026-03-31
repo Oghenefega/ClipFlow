@@ -6,6 +6,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-03-30
 
+### Changed
+- **Settings page reorganized into 6 collapsible groups:** Files & Folders, Content Library, AI & Style, Publishing, Tools & Credentials, and Diagnostics. Related settings are now grouped together instead of scattered in a flat list. Groups 3/5/6 (AI, tools, diagnostics) start collapsed since they're rarely changed. Each group header is clickable to expand/collapse.
+- Moved Output Folder and Sound Effects Folder from the middle of Settings to the Files & Folders group at the top, alongside Watch Folder and Video Splitting.
+
+### Fixed
+- Quick Import now correctly stores file size in the database. Previously, imported files always showed "0 B" in the Recordings tab because `fileSizeBytes` was not passed to `fileMetadataCreate()`. Fixed for both single-file and split import paths.
+
 ### Added
 - Shared SQLite database with automatic migration system (rename redesign)
 - Naming preset engine for file rename workflows
