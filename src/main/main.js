@@ -179,6 +179,8 @@ const store = new Store({
     splitThresholdMinutes: 30,
     autoSplitEnabled: true,
     splitSourceRetention: "keep",
+    // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
+    transcriptionAudioTrack: 1,
   },
 });
 
@@ -196,6 +198,9 @@ if (!store.has("devMode")) store.set("devMode", false);
 if (!store.has("splitThresholdMinutes")) store.set("splitThresholdMinutes", 30);
 if (!store.has("autoSplitEnabled")) store.set("autoSplitEnabled", true);
 if (!store.has("splitSourceRetention")) store.set("splitSourceRetention", "keep");
+
+// ── Migration: add transcription audio track setting ──
+if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 1);
 
 // ── Migration: expand momentPriorities from 4 to 6 items ──
 // Adds "skillful" and "educational" for users who set up before this update.
@@ -497,7 +502,10 @@ ipcMain.handle("ffmpeg:probe", async (_, filePath) => {
 });
 
 ipcMain.handle("ffmpeg:extractAudio", async (_, videoPath, wavPath) => {
-  try { return await ffmpeg.extractAudio(videoPath, wavPath); }
+  try {
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 1;
+    return await ffmpeg.extractAudio(videoPath, wavPath, audioTrack);
+  }
   catch (err) { return { error: err.message }; }
 });
 
@@ -984,10 +992,11 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
       return { error: `Clip file not found: ${clipPath}` };
     }
 
-    // Step 1: Extract audio from clip video
+    // Step 1: Extract audio from clip video (use configured mic track)
     const wavPath = clipPath.replace(/\.[^.]+$/, "-retranscribe.wav");
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "extracting", pct: 10 });
-    await ffmpeg.extractAudio(clipPath, wavPath);
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 1;
+    await ffmpeg.extractAudio(clipPath, wavPath, audioTrack);
 
     // Step 2: Transcribe with whisperx
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 });

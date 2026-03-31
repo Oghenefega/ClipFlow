@@ -65,15 +65,19 @@ function probe(filePath) {
  * Extract audio from a video file as WAV (16kHz mono — optimal for Whisper).
  * @param {string} videoPath - Source video
  * @param {string} wavPath - Output WAV path
+ * @param {number} [audioTrackIndex=0] - 0-based audio stream index (0 = track 1, 1 = track 2, etc.)
  * @returns {Promise<{success: true, path: string}>}
  */
-function extractAudio(videoPath, wavPath) {
-  return new Promise((resolve, reject) => {
-    const dir = path.dirname(wavPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
+  const dir = path.dirname(wavPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
+  const trackIdx = Number.isFinite(audioTrackIndex) && audioTrackIndex >= 0 ? audioTrackIndex : 0;
+
+  const run = (idx) => new Promise((resolve, reject) => {
     const args = [
       "-i", videoPath,
+      "-map", `0:a:${idx}`,  // select specific audio track
       "-vn",                  // no video
       "-acodec", "pcm_s16le", // 16-bit PCM
       "-ar", "16000",         // 16kHz sample rate (Whisper optimal)
@@ -82,10 +86,16 @@ function extractAudio(videoPath, wavPath) {
       wavPath,
     ];
     execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) return reject(new Error(`Audio extraction failed: ${err.message}`));
+      if (err) return reject(new Error(`Audio extraction failed (track ${idx}): ${err.message}`));
       resolve({ success: true, path: wavPath });
     });
   });
+
+  // Try configured track first; if it fails (e.g. clip has fewer tracks), fall back to track 0
+  if (trackIdx > 0) {
+    return run(trackIdx).catch(() => run(0));
+  }
+  return run(0);
 }
 
 /**

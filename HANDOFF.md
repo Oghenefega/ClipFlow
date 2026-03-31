@@ -1,48 +1,50 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-03-30 (Settings reorganization + Quick Import file size fix)_
+_Last updated: 2026-03-31 (Subtitle segmentation overhaul + audio track fix + ghost subtitle fix)_
 
 ## Current State
-App builds and launches cleanly. Settings page reorganized into 6 collapsible groups. Quick Import file size bug fixed.
+App builds and launches cleanly. Subtitle chunking algorithm significantly improved with phrase-aware segmentation. Audio extraction now targets mic track (track 2). Ghost subtitle bug from mega-segments identified and filtered. User still needs to test all fixes across clips and re-transcribe to verify audio track change.
 
 ## What Was Just Built
 
-### Settings Page Reorganization
-- Restructured flat list of 17+ cards into **6 logical collapsible groups**:
-  1. **Files & Folders** (expanded) — Watch Folder, Output Folder, SFX Folder, Video Splitting
-  2. **Content Library** (expanded) — Main Game Pool, Games & Content Types, Naming Preset
-  3. **AI & Style** (collapsed) — Title & Caption Style Guide, AI Preferences
-  4. **Publishing** (expanded) — Connected Platforms, Queue Settings
-  5. **Tools & Credentials** (collapsed) — Local Tools, BetterWhisperX Config, API Credentials
-  6. **Diagnostics** (collapsed) — Pipeline Logs, Report an Issue, Subtitle Debug Log
-- Each group has a clickable header with chevron indicator and Show/Hide text
-- Groups 3, 5, 6 start collapsed (set-once or troubleshooting sections)
-- Dev Dashboard remains outside groups (hidden behind version click counter)
+### Audio Track Selection Fix
+- `extractAudio()` in `ffmpeg.js` now accepts an `audioTrackIndex` parameter and uses `-map 0:a:N` instead of defaulting to the first stream
+- New `transcriptionAudioTrack` setting in electron-store (default: 1 = track 2, user's mic)
+- All 3 call sites updated: pipeline transcription, IPC handler, and re-transcribe
+- Automatic fallback: if configured track doesn't exist (e.g., single-track clips), falls back to track 0
+- Migration added for existing installs
 
-### Quick Import File Size Bug Fix
-- `UploadView.js` now passes `fileSizeBytes: quickImport.importEntry?.sizeBytes` to `fileMetadataCreate()` for both single-file and split import paths
-- Previously, imported files always showed "0 B" because `fileSizeBytes` was never sent to the database
+### Subtitle Chunking Overhaul (`useSubtitleStore.js`)
+- **Phase 1 Pre-scan:** Before chunking, scans entire word list for adjacent repeated phrases (length 2-3). Marks start indices so the main loop groups them correctly, overriding pauses and MAX_WORDS
+- **Rule 0b — Known phrase recall:** Tracks all 2-3 word phrases as they're flushed. If upcoming words match a previously-seen phrase, flushes current chunk first (handles non-adjacent repeats like "there we go baby there we go")
+- **Rule 0c — Known phrase protection:** If current chunk IS a known phrase, don't let an unrelated word extend it (prevents "let's go I" grouping)
+- **Rule 5 — Never end on "I":** Flushes chunk before adding "I" so it always starts the next segment
+- **MAX_CHARS (16) split:** 3-word segments exceeding 16 characters get split 2+1 for better display fit (e.g., "we're clutching this" → "we're clutching" + "this")
+
+### Ghost Subtitle Fix
+- `initSegments()` now filters "mega-segments" — transcription artifacts where stable-ts outputs one segment spanning the entire clip with all words compressed into wrong timestamps
+- Detection: segment duration > 85% of clip duration AND > 20 words AND other segments exist
+- Logged to console for debugging
 
 ## Key Decisions
-- Group-level collapse only (no individual card collapse) — keeps the UX simple, one click to show/hide a whole category
-- Groups 1, 2, 4 expanded by default — these are day-to-day settings users check frequently
-- Groups 3, 5, 6 collapsed by default — AI preferences, tool config, and diagnostics are set-once or troubleshooting
-- Disconnect confirmation dialog is inside the Publishing group conditional — fine since it's `position: fixed` and only triggered when viewing platforms
-- Output Folder and SFX Folder moved from random middle positions to Files & Folders group at the top
+- **Pre-scan over inline detection:** Inline repeat detection failed when pauses separated the first word of a repeating phrase (e.g., 1.2s gap before "we got this we got this"). Pre-scan identifies the pattern across the full word list first, so phrase boundaries always win over pauses.
+- **Audio track fallback, not failure:** Clips extracted from multi-track originals typically have only 1 audio track. Instead of failing with "track 1 not found", it silently falls back to track 0.
+- **Mega-segment filter, not transcription fix:** The ghost subtitle root cause is in stable-ts output (sometimes produces a full-text segment alongside sentence segments). Filtering at load time is safer than modifying the Python transcription script, which could break other edge cases.
+- **MAX_CHARS=16 for display fit:** Based on vertical video subtitle width constraints. "we got this" (10 chars) stays together; "we're clutching this" (20 chars) splits 2+1.
 
 ## Next Steps
-1. **Test game-switch scrubber end-to-end** — still untested from previous session
-2. **Investigate thumbnail generation hang** — "Preparing preview..." stuck, debug logging added but root cause unknown
-3. **Backfill file sizes for existing imports** — already-imported files still show "0 B" (would need a DB migration or one-time backfill script)
-4. **Wire `splitSourceRetention: "delete"`** — source files always kept after split, delete path not implemented
-5. **Legacy feature removal** — OBS log parser + voice modes still in `tasks/todo.md`
-6. **Instagram/Facebook login flow split** — paused, plan exists
+1. **User testing** — Re-transcribe clips to verify audio track fix (mic only, no game/teammate audio). Switch segment modes to verify chunking improvements across all games.
+2. **Investigate stable-ts mega-segment source** — Why does it sometimes output a full-text segment? May need to check stable-ts version or refine() step in transcribe.py.
+3. **Test game-switch scrubber end-to-end** — Still untested from two sessions ago.
+4. **Investigate thumbnail generation hang** — "Preparing preview..." stuck, root cause unknown.
+5. **Backfill file sizes for existing imports** — Already-imported files still show "0 B".
+6. **Wire `splitSourceRetention: "delete"`** — Source files always kept after split.
 
 ## Watch Out For
-- **Already-imported files still show 0 B** — the fix only applies to new imports going forward
-- **Disconnect dialog inside collapsed group** — if Publishing group is collapsed, the disconnect dialog won't render. This is fine because you can only trigger disconnect from the Connected Platforms card (which requires the group to be expanded)
-- **Thumbnail generation not yet verified** — "Preparing preview..." was stuck during previous session's testing
-- `splitSourceRetention: "delete"` not implemented — source files always kept
-- DB was re-migrated last session (105 files) — if DB gets recreated again, same issue will recur
+- **Clips need re-transcription** to pick up the audio track fix — existing transcriptions used the wrong track. The chunking and mega-segment fixes apply immediately on segment mode switch.
+- **Audio track fallback is silent** — If a clip has only 1 track, it falls back to track 0 without warning. This is correct behavior but means re-transcribing a clip uses track 0, not the mic, if the clip was extracted with a single stream.
+- **Pre-scan only detects ADJACENT repeats** — Non-adjacent repeats (like "there we go baby there we go") are handled by the runtime knownPhrases recall, which depends on the first occurrence being flushed first.
+- **MAX_CHARS=16 is hardcoded** — May need tuning based on font size and subtitle style settings.
+- **Mega-segment filter thresholds** (85% duration, 20+ words) are heuristic — could theoretically filter a legitimate long monologue segment, but only when other segments also exist.
 
 ## Logs/Debugging
 - App logs: `%APPDATA%/clipflow/logs/`
@@ -50,5 +52,6 @@ App builds and launches cleanly. Settings page reorganized into 6 collapsible gr
 - Dev dashboard: Settings > click version 7x > purple card
 - Store file: `%APPDATA%/clipflow/clipflow-settings.json`
 - Database file: `data/clipflow.db` (schema v3)
-- Thumbnail temp dir: `%TEMP%/clipflow-thumbs/` (cleaned up on app quit)
-- Thumbnail debug: check `(thumbs)` scope in app logs + `[Scrubber]` in DevTools console
+- Subtitle debug: thumbs up/down in editor toolbar → Settings > Diagnostics > Subtitle Debug Log
+- Mega-segment filter: check DevTools console for `[initSegments] Filtering mega-segment:` messages
+- Chunking debug: switch segment modes and check console for `[initSegments]` logs

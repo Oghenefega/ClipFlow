@@ -3,6 +3,10 @@
 > After ANY correction from the user, add the pattern here.
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## Subtitle Segmentation Rules Keep Regressing (RECURRING)
+**Mistake:** Subtitle segmentation fix was applied but later regressed — same issues reappeared across sessions. Two rules violated: (1) segments crossing sentence boundaries ("for sure. I"), (2) words grouped together despite long pauses between them ("guy baby" when 2s gap exists).
+**Rule:** TWO non-negotiable segmentation rules: (A) Never group tail of one sentence with start of next — split at sentence-ending punctuation. (B) Never group words separated by significant pauses (2s+) — each word after a gap gets its own segment. Any fix to segmentation MUST include guards/tests for both rules to prevent future regression.
+
 ## Don't recommend deleting user data without explicit ask
 **Mistake:** Research summary recommended "auto-delete pipeline logs after 30 days on startup." Then when user asked about it, claimed "I never added auto-deletion" — contradicting what was written in the plan. Pipeline logs contain API cost data and performance history that has long-term value for a commercial product.
 **Rule:** Never recommend or implement auto-deletion of user data. If retention limits are needed, always ask the user first. And don't contradict your own written plan — if something was stated, own it.

@@ -334,7 +334,24 @@ const useSubtitleStore = create((set, get) => ({
 
     console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, clipStart=${clipStart.toFixed(2)}, segments=${segments.length}`);
 
-    const segs = segments
+    // Filter out "mega-segments" — transcription artifacts where stable-ts/Whisper
+    // outputs a single segment spanning the entire audio with all words crammed in,
+    // alongside proper sentence-level segments. The mega-segment has compressed
+    // word timestamps that cause ghost subtitles racing ahead during pauses.
+    const clipDur = clip.endTime && clip.startTime ? (clip.endTime - clip.startTime) : (clip.duration || 0);
+    const filteredSegments = segments.length > 1
+      ? segments.filter((s) => {
+          const segDur = (s.end || 0) - (s.start || 0);
+          const wordCount = s.words?.length || 0;
+          const isMega = segDur > 0 && clipDur > 0 && segDur > clipDur * 0.85 && wordCount > 20;
+          if (isMega) {
+            console.warn(`[initSegments] Filtering mega-segment: ${segDur.toFixed(1)}s, ${wordCount} words (clip ${clipDur.toFixed(1)}s)`);
+          }
+          return !isMega;
+        })
+      : segments;
+
+    const segs = filteredSegments
       .filter((s) => {
         if (clipEnd === Infinity) return true;
         return s.start < clipEnd && s.end > clipStart;
@@ -911,6 +928,7 @@ const useSubtitleStore = create((set, get) => ({
     const SILENCE_GAP_THRESHOLD = 0.15; // seconds — only close tiny timing gaps, preserve real pauses
     const FORWARD_LOOK_GAP = 1.0; // seconds — if next word is this far, don't orphan current word
     const MAX_WORDS = 3;
+    const MAX_CHARS = 16; // max characters per segment — longer segments get split 2+1
     const rawSegs = [];
 
     // Helper: does this word end a sentence? (.!? but not just a comma)
@@ -920,8 +938,8 @@ const useSubtitleStore = create((set, get) => ({
       return /[.!?]$/.test(w) || /[.!?]['""\u2019]$/.test(w);
     };
 
-    // Helper: flush a chunk of words into a segment
-    const flushChunk = (chunk) => {
+    // Helper: push a chunk of words as a single segment
+    const pushSeg = (chunk) => {
       if (chunk.length === 0) return;
       const startSec = chunk[0].start;
       const endSec = chunk[chunk.length - 1].end;
@@ -938,6 +956,19 @@ const useSubtitleStore = create((set, get) => ({
         warning: null,
         words: [...chunk],
       });
+    };
+
+    // Helper: flush a chunk, splitting into 2+1 if the text is too long for display
+    const flushChunk = (chunk) => {
+      if (chunk.length === 0) return;
+      const text = chunk.map((cw) => cw.word).join(" ");
+      if (chunk.length === 3 && text.length > MAX_CHARS) {
+        // Split as [first 2 words] + [last word]
+        pushSeg(chunk.slice(0, 2));
+        pushSeg(chunk.slice(2));
+      } else {
+        pushSeg(chunk);
+      }
     };
 
     if (mode === "1word") {
@@ -959,17 +990,105 @@ const useSubtitleStore = create((set, get) => ({
         });
       }
     } else {
-      // Smart 3-word mode with hierarchy:
-      // Rule 1: SENTENCE BOUNDARY — never group end of sentence with start of next
-      //         If prev word ends with .!?, flush before adding this word
-      // Rule 2: PAUSE SPLIT — gap > 0.7s between words = new segment
-      // Rule 3: FORWARD LOOK — if adding this word makes 3, but there's a big gap
-      //         after this word (>1s to next word), don't add it — let it start next group
-      //         This prevents orphaning sentence starters at the end of a group
-      // Rule 4: MAX 3 WORDS — never exceed 3 words per segment
+      // Smart 3-word mode with phrase-aware chunking.
+      //
+      // Phase 1: PRE-SCAN — detect adjacent repeated phrases (len 2-3) across
+      //          the entire word list. Mark start indices so the main loop can
+      //          group them correctly, overriding pauses and MAX_WORDS.
+      //
+      // Phase 2: MAIN LOOP — process words with these rules in priority order:
+      //   Rule 0: PRE-SCANNED PHRASE — word starts a detected repeated phrase
+      //   Rule 0b: KNOWN PHRASE RECALL — upcoming words match a previously-flushed phrase
+      //   Rule 0c: KNOWN PHRASE PROTECTION — current chunk IS a known phrase, don't extend
+      //   Rule 1: SENTENCE BOUNDARY — never group end of sentence with start of next
+      //   Rule 2: PAUSE SPLIT — gap > 0.7s between words = new segment
+      //   Rule 3: FORWARD LOOK — don't orphan words at group boundaries
+      //   Rule 4: MAX 3 WORDS — never exceed 3 words per segment
+
+      // Helper: normalize word for comparison
+      const norm = (w) => (w.word || "").toLowerCase().replace(/[.,!?;:'"]+$/, "");
+
+      // ── Phase 1: Pre-scan for adjacent repeated phrases ──
+      // phraseAt[i] = phraseLen if word i starts a repeated phrase instance, 0 otherwise
+      const phraseAt = new Array(allWords.length).fill(0);
+
+      for (let phraseLen = 3; phraseLen >= 2; phraseLen--) {
+        for (let i = 0; i <= allWords.length - phraseLen * 2; i++) {
+          // Skip if any word in this range is already claimed by a longer phrase
+          let claimed = false;
+          for (let j = i; j < i + phraseLen; j++) {
+            if (phraseAt[j] > 0) { claimed = true; break; }
+          }
+          if (claimed) continue;
+
+          // Check if phrase at [i, i+phraseLen) matches [i+phraseLen, i+2*phraseLen)
+          let match = true;
+          for (let j = 0; j < phraseLen; j++) {
+            if (norm(allWords[i + j]) !== norm(allWords[i + phraseLen + j])) {
+              match = false;
+              break;
+            }
+          }
+          if (!match) continue;
+
+          // Found adjacent repeat — mark this instance and all subsequent repetitions
+          phraseAt[i] = phraseLen;
+          let next = i + phraseLen;
+          while (next + phraseLen <= allWords.length) {
+            // Check for conflicts with already-marked phrases
+            let conflict = false;
+            for (let j = next; j < next + phraseLen; j++) {
+              if (phraseAt[j] > 0) { conflict = true; break; }
+            }
+            if (conflict) break;
+
+            // Check if this is another repetition of the same phrase
+            let stillMatch = true;
+            for (let j = 0; j < phraseLen; j++) {
+              if (norm(allWords[next + j]) !== norm(allWords[i + j])) {
+                stillMatch = false;
+                break;
+              }
+            }
+            if (!stillMatch) break;
+
+            phraseAt[next] = phraseLen;
+            next += phraseLen;
+          }
+        }
+      }
+
+      // ── Phase 2: Main chunking loop ──
       let chunk = [];
+      const knownPhrases = new Set();
+
+      // Wrap flushChunk to also record known phrases for recall
+      const flushAndTrack = (c) => {
+        if (c.length === 0) return;
+        flushChunk(c);
+        if (c.length >= 2 && c.length <= 3) {
+          knownPhrases.add(c.map((cw) => norm(cw)).join(" "));
+        }
+      };
 
       for (let i = 0; i < allWords.length; i++) {
+        // Rule 0: Pre-scanned phrase — this word starts a detected repeated phrase.
+        // Flush any current chunk, collect the full phrase, flush it, and skip ahead.
+        if (phraseAt[i] > 0) {
+          if (chunk.length > 0) {
+            flushAndTrack(chunk);
+            chunk = [];
+          }
+          const pLen = phraseAt[i];
+          const phraseChunk = [];
+          for (let j = 0; j < pLen && i + j < allWords.length; j++) {
+            phraseChunk.push(allWords[i + j]);
+          }
+          flushAndTrack(phraseChunk);
+          i += pLen - 1; // -1 because loop will i++
+          continue;
+        }
+
         const w = allWords[i];
         const prevWord = chunk.length > 0 ? chunk[chunk.length - 1] : null;
         const gapBefore = prevWord ? w.start - prevWord.end : 0;
@@ -978,21 +1097,45 @@ const useSubtitleStore = create((set, get) => ({
 
         // --- Pre-flush checks (flush BEFORE adding this word) ---
 
+        // Rule 0b: Known phrase recall — upcoming words match a previously-flushed phrase
+        if (chunk.length > 0) {
+          for (let pLen = 3; pLen >= 2; pLen--) {
+            if (i + pLen > allWords.length) continue;
+            const upcoming = [];
+            for (let j = 0; j < pLen; j++) upcoming.push(norm(allWords[i + j]));
+            if (knownPhrases.has(upcoming.join(" "))) {
+              flushAndTrack(chunk);
+              chunk = [];
+              break;
+            }
+          }
+        }
+
+        // Rule 0c: Known phrase protection — current chunk IS a known phrase,
+        // don't extend it with an unrelated word
+        if (chunk.length >= 2) {
+          const chunkPhrase = chunk.map((cw) => norm(cw)).join(" ");
+          if (knownPhrases.has(chunkPhrase)) {
+            flushAndTrack(chunk);
+            chunk = [];
+          }
+        }
+
         // Rule 1: Previous word ended a sentence — start fresh
         if (chunk.length > 0 && prevWord && isSentenceEnder(prevWord.word)) {
-          flushChunk(chunk);
+          flushAndTrack(chunk);
           chunk = [];
         }
 
         // Rule 2: Significant pause before this word
         if (chunk.length > 0 && gapBefore >= PAUSE_SPLIT_THRESHOLD) {
-          flushChunk(chunk);
+          flushAndTrack(chunk);
           chunk = [];
         }
 
         // Rule 4: Chunk already full
         if (chunk.length >= MAX_WORDS) {
-          flushChunk(chunk);
+          flushAndTrack(chunk);
           chunk = [];
         }
 
@@ -1000,7 +1143,15 @@ const useSubtitleStore = create((set, get) => ({
         // but there's a big gap AFTER this word. This word likely belongs
         // with the NEXT group, not this one. Flush current chunk first.
         if (chunk.length >= 2 && gapAfter >= FORWARD_LOOK_GAP) {
-          flushChunk(chunk);
+          flushAndTrack(chunk);
+          chunk = [];
+        }
+
+        // Rule 5: Never end a segment on "I" — it almost always starts/continues
+        // a sentence and looks wrong dangling at the end of a subtitle.
+        // If chunk has words and this word is "I", flush chunk first so "I" starts next.
+        if (chunk.length > 0 && norm(w) === "i") {
+          flushAndTrack(chunk);
           chunk = [];
         }
 
@@ -1009,14 +1160,14 @@ const useSubtitleStore = create((set, get) => ({
         // --- Post-add check ---
         // If this word ends a sentence, flush immediately
         if (isSentenceEnder(w.word)) {
-          flushChunk(chunk);
+          flushAndTrack(chunk);
           chunk = [];
         }
       }
 
       // Flush remaining words
       if (chunk.length > 0) {
-        flushChunk(chunk);
+        flushAndTrack(chunk);
       }
     }
 

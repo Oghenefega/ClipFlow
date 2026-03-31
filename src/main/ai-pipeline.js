@@ -449,7 +449,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     projects.saveProject(watchFolder, project);
 
     const wavPath = path.join(projects.getProjectsRoot(watchFolder), project.id, "audio.wav");
-    const audioResult = await ffmpeg.extractAudio(sourceFile, wavPath);
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 1;
+    const audioResult = await ffmpeg.extractAudio(sourceFile, wavPath, audioTrack);
     if (audioResult.error) throw new Error(`Audio extraction failed: ${audioResult.error}`);
     logger.endStep("Extract Audio", wavPath);
 
