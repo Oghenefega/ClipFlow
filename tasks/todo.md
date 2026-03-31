@@ -4,7 +4,7 @@
 
 ---
 
-## 🔲 In Progress — Video Splitting & Drag-and-Drop (Phase 1)
+## ✅ Complete — Video Splitting & Drag-and-Drop (Phase 1)
 
 **Spec:** `video-splitting-spec-v3.md` (Section 13, Phase 1)
 
@@ -88,6 +88,47 @@
 - [ ] Store child file IDs in `metadata_snapshot` JSON
 - [ ] No undo button in v1 — informational only
 - [ ] Verify: History sub-tab shows split entries
+
+---
+
+## ✅ Complete — Video Splitting Phase 2: Game-Switch Scrubber
+
+**Spec:** `video-splitting-spec-v3.md` (Section 13, Phase 2)
+
+### Step 11 — Thumbnail generation ✅
+**Files:** `src/main/ffmpeg.js`
+- [x] Add `generateThumbnailStrip(inputPath, fileId)` — FFmpeg `fps=1/30,scale=320:-1`, returns thumbnails array with timestamps
+- [x] Add `cleanupThumbnailStrip(thumbDir)` — removes temp directory
+- [x] Stores thumbnails in `os.tmpdir()/clipflow-thumbs/{fileId}/`
+
+### Step 12 — `generateThumbnails` / `cleanupThumbnails` IPC endpoints ✅
+**Files:** `src/main/main.js`, `src/main/preload.js`
+- [x] `ipcMain.handle("thumbs:generate")` with in-memory cache by filePath
+- [x] `ipcMain.handle("thumbs:cleanup")` removes from cache and deletes temp dir
+- [x] Cleanup all cached thumb dirs on `window-all-closed`
+- [x] Bridge: `clipflow.generateThumbnails(filePath)`, `clipflow.cleanupThumbnails(filePath)`
+
+### Step 13 — Scrubber UI component ✅
+**Files:** `src/renderer/components/ThumbnailScrubber.js` (new)
+- [x] Horizontal scrollable thumbnail strip with time labels every 5/10 min
+- [x] Click-to-place split markers (purple vertical lines with dot handles)
+- [x] Click existing markers to remove them
+- [x] Per-segment game/content dropdown (grouped, reuses shared Select + GamePill)
+- [x] 1-minute minimum segment enforcement
+- [x] Loading state with animated progress bar
+- [x] Segment list with time ranges, durations, and color indicators
+- [x] Hover time preview on strip
+
+### Step 14 — Game-switch split integration in Rename tab ✅
+**Files:** `src/renderer/views/RenameView.js`
+- [x] "Multiple games" button on every pending file card (subtle, toggles scrubber)
+- [x] ThumbnailScrubber expands below file card when opened
+- [x] `gameSwitchSplitAndRename()` — splits by markers with per-segment tags
+- [x] Compound splitting: game-switch → auto-split per long segment
+- [x] RENAME button text updates to "SPLIT & RENAME" when markers are placed
+- [x] `renameOne` and `renameAll` both handle game-switch splits
+- [x] Scrubber cleanup on rename, cancel, hide, and rename-all
+- [x] Thumbnail cleanup via IPC on close/rename
 
 ---
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, Checkbox } from "../components/shared";
+import ThumbnailScrubber from "../components/ThumbnailScrubber";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
 const PRESET_LIST = [
@@ -46,6 +47,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [splitThreshold, setSplitThreshold] = useState(30);
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitProgress, setSplitProgress] = useState(null); // { fileId, current, total }
+
+  // Game-switch scrubber state
+  // scrubberOpen: { [fileId]: true } — which files have scrubber expanded
+  // scrubberMarkers: { [fileId]: [{timeSeconds, gameBefore, gameAfter}] }
+  // scrubberThumbs: { [fileId]: {thumbnails, duration} }
+  // scrubberLoading: { [fileId]: true }
+  const [scrubberOpen, setScrubberOpen] = useState({});
+  const [scrubberMarkers, setScrubberMarkers] = useState({});
+  const [scrubberThumbs, setScrubberThumbs] = useState({});
+  const [scrubberLoading, setScrubberLoading] = useState({});
 
   // Drag-and-drop state
   const [dragOver, setDragOver] = useState(false);
@@ -548,6 +559,196 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return renamedChildren;
   };
 
+  // ============ GAME-SWITCH SCRUBBER ============
+  const toggleScrubber = async (fileId, filePath) => {
+    if (scrubberOpen[fileId]) {
+      // Close scrubber and clean up thumbnails
+      setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+      if (isElectron && filePath) window.clipflow.cleanupThumbnails(filePath);
+      setScrubberThumbs((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+      setScrubberMarkers((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+      return;
+    }
+
+    // Open scrubber — generate thumbnails
+    setScrubberOpen((prev) => ({ ...prev, [fileId]: true }));
+    setScrubberLoading((prev) => ({ ...prev, [fileId]: true }));
+
+    if (isElectron) {
+      try {
+        const result = await window.clipflow.generateThumbnails(filePath);
+        if (result.error) {
+          console.error("Thumbnail generation failed:", result.error);
+          setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+        } else {
+          setScrubberThumbs((prev) => ({ ...prev, [fileId]: { thumbnails: result.thumbnails, duration: result.duration } }));
+        }
+      } catch (err) {
+        console.error("Thumbnail generation failed:", err);
+        setScrubberOpen((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+      }
+    }
+    setScrubberLoading((prev) => { const n = { ...prev }; delete n[fileId]; return n; });
+  };
+
+  const updateScrubberMarkers = (fileId, markers) => {
+    setScrubberMarkers((prev) => ({ ...prev, [fileId]: markers }));
+  };
+
+  /**
+   * Game-switch split + rename: split by markers, then auto-split long segments.
+   * Each segment gets its own tag based on scrubber assignments.
+   */
+  const gameSwitchSplitAndRename = async (r, preset, fileDate) => {
+    const markers = scrubberMarkers[r.id] || [];
+    if (markers.length === 0) return null;
+
+    const thumbData = scrubberThumbs[r.id];
+    if (!thumbData) return null;
+
+    const sorted = [...markers].sort((a, b) => a.timeSeconds - b.timeSeconds);
+
+    // Build segments from markers
+    const segments = [];
+    let prevTime = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      const gameTag = i === 0 ? (sorted[i].gameBefore || r.tag) : (sorted[i - 1].gameAfter || r.tag);
+      segments.push({ startSeconds: prevTime, endSeconds: sorted[i].timeSeconds, gameTag });
+      prevTime = sorted[i].timeSeconds;
+    }
+    // Last segment
+    segments.push({
+      startSeconds: prevTime,
+      endSeconds: thumbData.duration,
+      gameTag: sorted[sorted.length - 1].gameAfter || r.tag,
+    });
+
+    // Create parent file_metadata record
+    const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
+    const game = gamesDb.find((g) => g.tag === r.tag);
+
+    const parentResult = await window.clipflow.fileMetadataCreate({
+      originalFilename: r.fileName,
+      currentFilename: r.fileName,
+      originalPath: r.filePath,
+      currentPath: r.filePath,
+      tag: r.tag,
+      entryType: game?.entryType || "game",
+      date: fileDate,
+      dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+      partNumber: null,
+      customLabel: r.customLabel || null,
+      namingPreset: preset,
+      durationSeconds: thumbData.duration,
+      status: "pending",
+    });
+
+    if (!parentResult?.id) { console.error("Failed to create parent metadata"); return null; }
+
+    // Build split points with per-segment tags
+    const thresholdSec = splitThreshold * 60;
+    const MIN_TAIL = 120;
+    const allSplitPoints = [];
+
+    for (const seg of segments) {
+      const segDuration = seg.endSeconds - seg.startSeconds;
+      const segGame = gamesDb.find((g) => g.tag === seg.gameTag);
+
+      // Check if this segment itself needs auto-splitting
+      const tailLength = segDuration % thresholdSec;
+      const needsAutoSplit = autoSplitEnabled && segDuration > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL);
+
+      if (needsAutoSplit) {
+        const subCount = Math.ceil(segDuration / thresholdSec);
+        for (let j = 0; j < subCount; j++) {
+          const subStart = seg.startSeconds + j * thresholdSec;
+          const subEnd = Math.min(seg.startSeconds + (j + 1) * thresholdSec, seg.endSeconds);
+          allSplitPoints.push({
+            startSeconds: subStart,
+            endSeconds: subEnd,
+            tag: seg.gameTag,
+            entryType: segGame?.entryType || "game",
+            partNumber: subCount > 1 ? (j + 1) : null,
+          });
+        }
+      } else {
+        allSplitPoints.push({
+          startSeconds: seg.startSeconds,
+          endSeconds: seg.endSeconds,
+          tag: seg.gameTag,
+          entryType: segGame?.entryType || "game",
+          partNumber: null,
+        });
+      }
+    }
+
+    setSplitProgress({ fileId: r.id, current: 0, total: allSplitPoints.length });
+
+    const splitResult = await window.clipflow.splitExecute(parentResult.id, allSplitPoints);
+    if (splitResult.error) {
+      console.error("Game-switch split failed:", splitResult.error);
+      setSplitProgress(null);
+      return null;
+    }
+
+    // Rename each child file using the preset engine
+    const renamedChildren = [];
+    for (let i = 0; i < splitResult.results.length; i++) {
+      const child = splitResult.results[i];
+      const sp = allSplitPoints[i];
+      setSplitProgress({ fileId: r.id, current: i + 1, total: allSplitPoints.length });
+
+      const childMeta = {
+        tag: sp.tag,
+        date: fileDate,
+        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+        partNumber: sp.partNumber,
+        customLabel: r.customLabel || null,
+        originalFilename: r.fileName,
+      };
+
+      const fmtResult = await window.clipflow.presetFormatFilename(childMeta, preset);
+      if (fmtResult.error) continue;
+
+      const childNewName = fmtResult.filename;
+      const childNewPath = `${dir}\\${childNewName}`;
+
+      const renResult = await window.clipflow.renameFile(child.filePath, childNewPath);
+      if (renResult.error) continue;
+
+      await window.clipflow.fileMetadataUpdate(child.childId, {
+        current_filename: childNewName,
+        current_path: childNewPath,
+        tag: sp.tag,
+        part_number: sp.partNumber,
+        day_number: PRESETS_USING_DAY.has(preset) ? r.day : null,
+      });
+
+      const segGame = gamesDb.find((g) => g.tag === sp.tag);
+      renamedChildren.push({
+        newName: childNewName,
+        partNumber: sp.partNumber,
+        tag: sp.tag,
+        color: segGame?.color || r.color,
+        game: segGame?.name || r.game,
+      });
+    }
+
+    // Record label usage
+    if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
+      await window.clipflow.labelRecord(r.tag, r.customLabel);
+    }
+
+    // Clean up scrubber thumbnails
+    if (isElectron && r.filePath) window.clipflow.cleanupThumbnails(r.filePath);
+    setScrubberOpen((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
+    setScrubberThumbs((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
+    setScrubberMarkers((prev) => { const n = { ...prev }; delete n[r.id]; return n; });
+
+    setSplitProgress(null);
+    return renamedChildren;
+  };
+
   const renameOne = async (id) => {
     const r = pendingRenames.find((x) => x.id === id);
     if (!r) return;
@@ -566,11 +767,30 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       }
     }
 
-    // Check if this file needs splitting
+    // Check if this file needs game-switch splitting (scrubber markers)
+    const hasGameSwitch = isElectron && scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
+
+    // Check if this file needs auto-splitting
     const info = splitInfo[r.id];
     const needsSplit = isElectron && info && info.splitCount > 0 && !info.skipSplit;
 
-    if (needsSplit) {
+    if (hasGameSwitch) {
+      // Game-switch split (may also compound with auto-split)
+      setRenaming(true);
+      const children = await gameSwitchSplitAndRename(r, preset, fileDate);
+      setRenaming(false);
+
+      if (!children || children.length === 0) return;
+
+      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const historyEntries = children.map((c) => ({
+        id: `h-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        oldName: r.fileName, newName: c.newName, game: c.game || r.game,
+        tag: c.tag || r.tag, color: c.color || r.color, day: r.day, part: c.partNumber,
+        time, undone: false,
+      }));
+      setRenameHistory((prev) => [...historyEntries, ...prev]);
+    } else if (needsSplit) {
       setRenaming(true);
       const children = await splitAndRename(r, preset, fileDate);
       setRenaming(false);
@@ -611,7 +831,17 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
   };
 
-  const hideOne = (id) => setPendingRenames((prev) => prev.filter((x) => x.id !== id));
+  const hideOne = (id) => {
+    // Clean up scrubber if open
+    const r = pendingRenames.find((x) => x.id === id);
+    if (r && scrubberOpen[id] && isElectron && r.filePath) {
+      window.clipflow.cleanupThumbnails(r.filePath);
+    }
+    setScrubberOpen((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setScrubberMarkers((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setScrubberThumbs((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setPendingRenames((prev) => prev.filter((x) => x.id !== id));
+  };
 
   const renameAll = async () => {
     setRenaming(true);
@@ -627,11 +857,24 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         continue;
       }
 
-      // Check if this file needs splitting
+      // Check game-switch markers first, then auto-split
+      const hasGameSwitch = isElectron && scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
       const info = splitInfo[r.id];
       const needsSplit = isElectron && info && info.splitCount > 0 && !info.skipSplit;
 
-      if (needsSplit) {
+      if (hasGameSwitch) {
+        const children = await gameSwitchSplitAndRename(r, preset, fileDate);
+        if (children && children.length > 0) {
+          const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          for (const c of children) {
+            corrected.push({
+              id: `h-${Date.now()}-${r.id}-${c.tag}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
+              game: c.game || r.game, tag: c.tag || r.tag, color: c.color || r.color, day: r.day,
+              part: c.partNumber, time, undone: false,
+            });
+          }
+        }
+      } else if (needsSplit) {
         const children = await splitAndRename(r, preset, fileDate);
         if (children && children.length > 0) {
           const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -676,6 +919,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
     setRenameHistory((prev) => [...corrected, ...prev]);
     setSplitInfo({});
+    // Clean up all scrubber state
+    setScrubberOpen({});
+    setScrubberMarkers({});
+    setScrubberThumbs({});
+    setScrubberLoading({});
     setPendingRenames([]);
     setRenaming(false);
     setRenameDone(true);
@@ -958,6 +1206,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   const showPart = PRESETS_ALWAYS_PARTS.has(preset);
                   const info = splitInfo[r.id];
                   const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
+                  const hasGameSwitch = scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
                   const splitPreview = getSplitPreview(r);
 
                   return (
@@ -1008,9 +1257,45 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         </div>
                       )}
 
+                      {/* Multiple games button + scrubber */}
+                      {r.filePath && (
+                        <div style={{ marginBottom: scrubberOpen[r.id] ? 14 : 0 }}>
+                          <button
+                            onClick={() => toggleScrubber(r.id, r.filePath)}
+                            disabled={renaming}
+                            style={{
+                              background: scrubberOpen[r.id] ? T.accentDim : "rgba(255,255,255,0.03)",
+                              border: `1px solid ${scrubberOpen[r.id] ? T.accentBorder : T.border}`,
+                              borderRadius: T.radius.sm,
+                              padding: "5px 12px",
+                              color: scrubberOpen[r.id] ? T.accentLight : T.textSecondary,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: renaming ? "default" : "pointer",
+                              fontFamily: T.font,
+                              marginBottom: scrubberOpen[r.id] ? 8 : 14,
+                              opacity: renaming ? 0.4 : 1,
+                            }}
+                          >
+                            {scrubberOpen[r.id] ? "✕ Close scrubber" : "Multiple games"}
+                          </button>
+                          {scrubberOpen[r.id] && (
+                            <ThumbnailScrubber
+                              thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
+                              duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
+                              games={gamesDb}
+                              markers={scrubberMarkers[r.id] || []}
+                              onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
+                              loading={!!scrubberLoading[r.id]}
+                              defaultGameTag={r.tag}
+                            />
+                          )}
+                        </div>
+                      )}
+
                       {/* Controls row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        {/* Game dropdown (grouped) */}
+                        {/* Game dropdown (grouped) — hide when scrubber is open (games assigned per-segment) */}
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <GroupedSelect
                             value={r.game}
@@ -1086,7 +1371,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
                         {/* Action buttons */}
                         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
+                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasGameSwitch || hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
                           <button onClick={() => hideOne(r.id)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.redDim, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
                         </div>
                       </div>

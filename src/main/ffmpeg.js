@@ -1,6 +1,7 @@
 const { execFile } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 
 /**
  * Check if ffmpeg/ffprobe are available in PATH.
@@ -313,6 +314,64 @@ async function splitFile(inputPath, splitPoints, outputDir) {
   }
 }
 
+/**
+ * Generate a thumbnail strip for the game-switch scrubber.
+ * One frame every 30 seconds at 320px wide — stored in a temp directory.
+ * @param {string} inputPath - Source video file
+ * @param {string} fileId - Unique ID for cache directory naming
+ * @returns {Promise<{thumbDir: string, thumbnails: Array<{path: string, timestampSeconds: number}>, duration: number}>}
+ */
+async function generateThumbnailStrip(inputPath, fileId) {
+  const thumbDir = path.join(os.tmpdir(), "clipflow-thumbs", fileId);
+  if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
+
+  // Probe to get duration
+  const probeResult = await probe(inputPath);
+  const duration = probeResult.duration;
+
+  // Generate thumbnails: one every 30 seconds
+  await new Promise((resolve, reject) => {
+    const args = [
+      "-i", inputPath,
+      "-vf", "fps=1/30,scale=320:-1",
+      "-q:v", "5",
+      "-y",
+      path.join(thumbDir, "thumb_%04d.jpg"),
+    ];
+    // Generous timeout — large files can take 30-60s
+    execFile("ffmpeg", args, { timeout: 120000 }, (err) => {
+      if (err) return reject(new Error(`Thumbnail strip generation failed: ${err.message}`));
+      resolve();
+    });
+  });
+
+  // Read generated thumbnails and map to timestamps
+  const files = fs.readdirSync(thumbDir)
+    .filter(f => f.startsWith("thumb_") && f.endsWith(".jpg"))
+    .sort();
+
+  const thumbnails = files.map((filename, i) => ({
+    path: path.join(thumbDir, filename),
+    timestampSeconds: i * 30,
+  }));
+
+  return { thumbDir, thumbnails, duration };
+}
+
+/**
+ * Clean up thumbnail strip temp directory.
+ * @param {string} thumbDir - The temp directory to delete
+ */
+function cleanupThumbnailStrip(thumbDir) {
+  try {
+    if (fs.existsSync(thumbDir)) {
+      fs.rmSync(thumbDir, { recursive: true, force: true });
+    }
+  } catch (_) {
+    // Best-effort cleanup — ignore errors
+  }
+}
+
 module.exports = {
   checkFfmpeg,
   probe,
@@ -322,4 +381,6 @@ module.exports = {
   analyzeLoudness,
   extractWaveformPeaks,
   splitFile,
+  generateThumbnailStrip,
+  cleanupThumbnailStrip,
 };

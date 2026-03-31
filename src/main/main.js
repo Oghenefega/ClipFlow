@@ -241,6 +241,10 @@ let watcher = null;
 // Entries: { filename: string, sizeBytes: number }
 const pendingImports = new Set();
 
+// Thumbnail cache — maps filePath to { thumbDir, thumbnails, duration }
+// Cleaned up on app quit
+const thumbnailCache = new Map();
+
 const isDev = false;
 
 function createWindow() {
@@ -316,6 +320,11 @@ app.whenReady().then(async () => {
 app.on("window-all-closed", () => {
   if (watcher) watcher.close();
   database.close();
+  // Clean up cached thumbnail directories
+  for (const [, cached] of thumbnailCache) {
+    ffmpeg.cleanupThumbnailStrip(cached.thumbDir);
+  }
+  thumbnailCache.clear();
   if (process.platform !== "darwin") app.quit();
 });
 
@@ -607,6 +616,37 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
         childId: childIds[i],
       })),
     };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============ THUMBNAIL STRIP (Game-Switch Scrubber) ============
+ipcMain.handle("thumbs:generate", async (_, filePath) => {
+  try {
+    // Return cached result if available
+    if (thumbnailCache.has(filePath)) {
+      return thumbnailCache.get(filePath);
+    }
+
+    // Generate a stable fileId from the file path
+    const fileId = Buffer.from(filePath).toString("base64url").slice(0, 32);
+    const result = await ffmpeg.generateThumbnailStrip(filePath, fileId);
+    thumbnailCache.set(filePath, result);
+    return result;
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("thumbs:cleanup", async (_, filePath) => {
+  try {
+    const cached = thumbnailCache.get(filePath);
+    if (cached) {
+      ffmpeg.cleanupThumbnailStrip(cached.thumbDir);
+      thumbnailCache.delete(filePath);
+    }
+    return { success: true };
   } catch (err) {
     return { error: err.message };
   }
