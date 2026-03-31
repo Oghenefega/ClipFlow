@@ -257,17 +257,45 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "tiktok", label: "TikTok", configured: tiktokConfigured },
   ];
 
-  const collapsibleHeaderStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    cursor: "pointer",
-    userSelect: "none",
-  };
+  // ── Collapsible group state ──
+  const [collapsedGroups, setCollapsedGroups] = useState({
+    files: false,      // expanded
+    content: false,    // expanded
+    aiStyle: true,     // collapsed
+    publishing: false, // expanded
+    tools: true,       // collapsed
+    diagnostics: true, // collapsed
+  });
+  const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const GroupHeader = ({ groupKey, label, description }) => (
+    <div
+      onClick={() => toggleGroup(groupKey)}
+      style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        cursor: "pointer", userSelect: "none",
+        padding: "10px 0", marginBottom: collapsedGroups[groupKey] ? 8 : 12, marginTop: 20,
+        borderBottom: `1px solid ${T.border}`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ color: T.textTertiary, fontSize: 10, transition: "transform 0.15s", display: "inline-block", transform: collapsedGroups[groupKey] ? "rotate(-90deg)" : "rotate(0deg)" }}>{"\u25BC"}</span>
+        <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>{label}</span>
+        {description && <span style={{ color: T.textMuted, fontSize: 11 }}>{description}</span>}
+      </div>
+      <span style={{ color: T.textMuted, fontSize: 10 }}>{collapsedGroups[groupKey] ? "Show" : "Hide"}</span>
+    </div>
+  );
 
   return (
     <div>
       <PageHeader title="Settings" />
+
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 1: FILES & FOLDERS                */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="files" label="Files & Folders" />
+      {!collapsedGroups.files && <>
 
       {/* Watch Folder */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
@@ -290,6 +318,34 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         ) : (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{watchFolder}</p>
         )}
+      </Card>
+
+      {/* Output Folder */}
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Output Folder</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: outputFolder ? T.text : T.textTertiary }}>
+            {outputFolder || "Not set \u2014 rendered clips will be saved here"}
+          </span>
+          <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setOutputFolder(f); }}
+            style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
+            Browse
+          </button>
+        </div>
+      </Card>
+
+      {/* Sound Effects Folder */}
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Sound Effects Folder</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: sfxFolder ? T.text : T.textTertiary }}>
+            {sfxFolder || "Not set \u2014 browse your sound effects folder"}
+          </span>
+          <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setSfxFolder(f); }}
+            style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
+            Browse
+          </button>
+        </div>
       </Card>
 
       {/* Video Splitting */}
@@ -363,6 +419,14 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </button>
         </div>
       </Card>
+
+      </>}
+
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 2: CONTENT LIBRARY                */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="content" label="Content Library" />
+      {!collapsedGroups.content && <>
 
       {/* Main Game Pool */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
@@ -482,6 +546,53 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
+      </>}
+
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 3: AI & STYLE                     */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="aiStyle" label="AI & Style" />
+      {!collapsedGroups.aiStyle && <>
+
+      {/* Title & Caption Style Guide */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Title & Caption Style Guide</div>
+          {!editGuide ? (
+            <button onClick={() => { setEditGuide(true); setGuideVal(styleGuide || ""); }} style={btnSecondary}>Edit</button>
+          ) : (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setEditGuide(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setStyleGuide(guideVal); setEditGuide(false); }} style={btnSave}>Save</button>
+            </div>
+          )}
+        </div>
+        {editGuide ? (
+          <textarea
+            value={guideVal}
+            onChange={(e) => setGuideVal(e.target.value)}
+            rows={8}
+            placeholder="Paste your YouTube titling best practices, rules, and preferences here. This will be included in every AI generation call as context."
+            style={{ ...inputStyle, resize: "vertical", minHeight: 120, lineHeight: 1.5 }}
+          />
+        ) : styleGuide ? (
+          <p style={{ color: T.textTertiary, fontSize: 12, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.6, maxHeight: 120, overflow: "auto" }}>{styleGuide}</p>
+        ) : (
+          <p style={{ color: T.textMuted, fontSize: 12, margin: 0, fontStyle: "italic" }}>No style guide set. Click Edit to paste your titling rules and preferences.</p>
+        )}
+      </Card>
+
+      {/* AI Preferences (Creator Profile) */}
+      <AIPreferencesSection />
+
+      </>}
+
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 4: PUBLISHING                     */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="publishing" label="Publishing" />
+      {!collapsedGroups.publishing && <>
+
       {/* Connected Platforms */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -566,34 +677,6 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         );
       })()}
 
-      {/* Output Folder */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Output Folder</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: outputFolder ? T.text : T.textTertiary }}>
-            {outputFolder || "Not set \u2014 rendered clips will be saved here"}
-          </span>
-          <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setOutputFolder(f); }}
-            style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
-            Browse
-          </button>
-        </div>
-      </Card>
-
-      {/* Sound Effects Folder */}
-      <Card style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Sound Effects Folder</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: sfxFolder ? T.text : T.textTertiary }}>
-            {sfxFolder || "Not set \u2014 browse your sound effects folder"}
-          </span>
-          <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setSfxFolder(f); }}
-            style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
-            Browse
-          </button>
-        </div>
-      </Card>
-
       {/* Queue Settings */}
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Queue Settings</div>
@@ -620,6 +703,14 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </button>
         </div>
       </Card>
+
+      </>}
+
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 5: TOOLS & CREDENTIALS            */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="tools" label="Tools & Credentials" />
+      {!collapsedGroups.tools && <>
 
       {/* Local Tools Status */}
       <Card style={{ marginBottom: 16, padding: 16 }}>
@@ -1019,36 +1110,16 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         )}
       </Card>
 
-      {/* Title & Caption Style Guide */}
-      <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Title & Caption Style Guide</div>
-          {!editGuide ? (
-            <button onClick={() => { setEditGuide(true); setGuideVal(styleGuide || ""); }} style={btnSecondary}>Edit</button>
-          ) : (
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setEditGuide(false)} style={btnSecondary}>Cancel</button>
-              <button onClick={() => { setStyleGuide(guideVal); setEditGuide(false); }} style={btnSave}>Save</button>
-            </div>
-          )}
-        </div>
-        {editGuide ? (
-          <textarea
-            value={guideVal}
-            onChange={(e) => setGuideVal(e.target.value)}
-            rows={8}
-            placeholder="Paste your YouTube titling best practices, rules, and preferences here. This will be included in every AI generation call as context."
-            style={{ ...inputStyle, resize: "vertical", minHeight: 120, lineHeight: 1.5 }}
-          />
-        ) : styleGuide ? (
-          <p style={{ color: T.textTertiary, fontSize: 12, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.6, maxHeight: 120, overflow: "auto" }}>{styleGuide}</p>
-        ) : (
-          <p style={{ color: T.textMuted, fontSize: 12, margin: 0, fontStyle: "italic" }}>No style guide set. Click Edit to paste your titling rules and preferences.</p>
-        )}
-      </Card>
+      </>}
 
-      {/* AI Preferences (Creator Profile) */}
-      <AIPreferencesSection />
+      {/* ════════════════════════════════════════ */}
+      {/* GROUP 6: DIAGNOSTICS                    */}
+      {/* ════════════════════════════════════════ */}
+      <GroupHeader groupKey="diagnostics" label="Diagnostics" />
+      {!collapsedGroups.diagnostics && <>
+
+      {/* Pipeline Logs & Cost Tracking */}
+      <PipelineLogsSection />
 
       {/* Report an Issue */}
       <ReportIssueSection />
@@ -1056,8 +1127,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Subtitle Debug Log */}
       <SubtitleDebugSection />
 
-      {/* Pipeline Logs & Cost Tracking */}
-      <PipelineLogsSection />
+      </>}
 
       {/* Dev Dashboard — hidden behind version click counter */}
       <DevDashboard />

@@ -393,6 +393,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         date: fileDate,
         namingPreset: "tag-date",
         durationSeconds: quickImport.durationSeconds,
+        fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
         status: "pending",
       });
 
@@ -458,6 +459,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         partNumber: parentMeta.partNumber,
         namingPreset: "tag-date",
         durationSeconds: quickImport.durationSeconds,
+        fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
         status: "processing",
       });
 
