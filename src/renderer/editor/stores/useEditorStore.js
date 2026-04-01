@@ -165,19 +165,64 @@ const useEditorStore = create((set, get) => ({
     });
   },
 
-  deleteAudioSegment: (segId) => {
+  deleteAudioSegment: async (segId) => {
     get()._pushAudioUndo();
-    set((s) => ({
-      audioSegments: s.audioSegments.filter((seg) => seg.id !== segId),
-    }));
-    get()._trimToAudioBounds();
+    const remaining = get().audioSegments.filter((seg) => seg.id !== segId);
+    set({ audioSegments: remaining });
+
+    if (remaining.length === 0) {
+      usePlaybackStore.getState().setDuration(0);
+      return;
+    }
+
+    // Capture remaining bounds BEFORE _trimToAudioBounds shifts them
+    const sorted = [...remaining].sort((a, b) => a.startSec - b.startSec);
+    const origFirstStart = sorted[0].startSec;
+    const origLastEnd = sorted[sorted.length - 1].endSec;
+    const needsRecut = origFirstStart > 0.01;
+
+    if (needsRecut) {
+      set({ extending: true });
+      try {
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        }
+        get()._trimToAudioBounds();
+        await get()._recutAfterDelete(origFirstStart, origLastEnd);
+        get().markDirty();
+      } catch (err) {
+        console.error("[DeleteAudio] Recut error:", err);
+      } finally {
+        set({ extending: false, videoVersion: get().videoVersion + 1 });
+      }
+    } else {
+      get()._trimToAudioBounds();
+    }
   },
 
-  rippleDeleteAudioSegment: (segId) => {
+  rippleDeleteAudioSegment: async (segId) => {
     get()._pushAudioUndo();
     const { audioSegments } = get();
     const seg = audioSegments.find(s => s.id === segId);
     if (!seg) return;
+
+    const remainingOrig = audioSegments.filter(s => s.id !== segId);
+    if (remainingOrig.length === 0) {
+      set({ audioSegments: [] });
+      usePlaybackStore.getState().setDuration(0);
+      return;
+    }
+
+    // Capture original first start BEFORE ripple shift — needed for recut calculation
+    const sortedOrig = [...remainingOrig].sort((a, b) => a.startSec - b.startSec);
+    const origFirstStart = sortedOrig[0].startSec;
+    const origLastEnd = sortedOrig[sortedOrig.length - 1].endSec;
+    const deletedIsFirst = seg.startSec < origFirstStart + 0.01;
+
+    // Perform ripple shift
     const gap = seg.endSec - seg.startSec;
     const next = audioSegments
       .filter(s => s.id !== segId)
@@ -188,7 +233,27 @@ const useEditorStore = create((set, get) => ({
         return s;
       });
     set({ audioSegments: next });
-    get()._trimToAudioBounds();
+
+    if (deletedIsFirst) {
+      set({ extending: true });
+      try {
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        }
+        get()._trimToAudioBounds();
+        await get()._recutAfterDelete(origFirstStart, origLastEnd);
+        get().markDirty();
+      } catch (err) {
+        console.error("[RippleDeleteAudio] Recut error:", err);
+      } finally {
+        set({ extending: false, videoVersion: get().videoVersion + 1 });
+      }
+    } else {
+      get()._trimToAudioBounds();
+    }
   },
 
   resizeAudioSegment: (id, newStart, newEnd) => {
@@ -242,6 +307,29 @@ const useEditorStore = create((set, get) => ({
     // Check if we've extended LEFT past 0
     if (newAudioStart < -0.1) {
       return get().commitLeftExtend();
+    }
+
+    // Check if we've TRIMMED from the left (first segment starts past 0)
+    if (newAudioStart > 0.01) {
+      set({ extending: true });
+      try {
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        }
+        const origStart = newAudioStart;
+        const origEnd = newAudioEnd;
+        get()._trimToAudioBounds();
+        await get()._recutAfterDelete(origStart, origEnd);
+        get().markDirty();
+      } catch (err) {
+        console.error("[LeftTrim] Error:", err);
+      } finally {
+        set({ extending: false, videoVersion: get().videoVersion + 1 });
+      }
+      return;
     }
 
     // Check if we've extended PAST the current clip duration
@@ -554,6 +642,57 @@ const useEditorStore = create((set, get) => ({
     capStore.setCaptionSegments(updated);
   },
 
+  // Recut the video file after operations that shift the source start.
+  // origAudioStart/origAudioEnd are the clip-relative bounds of remaining content BEFORE shifting.
+  // Caller is responsible for: setting extending=true, unloading video, and resetting extending in finally.
+  _recutAfterDelete: async (origAudioStart, origAudioEnd) => {
+    const { clip, project, sourceStartTime, sourceDuration } = get();
+    if (!clip || !project) return;
+
+    const newSourceStart = sourceStartTime + origAudioStart;
+    const newSourceEnd = sourceStartTime + origAudioEnd;
+    console.log("[Recut] sourceStartTime:", sourceStartTime,
+      "origAudioStart:", origAudioStart, "origAudioEnd:", origAudioEnd,
+      "newSourceStart:", newSourceStart, "newSourceEnd:", newSourceEnd);
+
+    // Brief delay for OS file handle release (video already unloaded by caller)
+    await new Promise((r) => setTimeout(r, 150));
+
+    const result = await window.clipflow.recutClip(
+      project.id, clip.id, newSourceStart, newSourceEnd
+    );
+
+    if (result?.error) {
+      console.error("[Recut] Failed:", result.error);
+      throw new Error(result.error);
+    }
+
+    const newDuration = result.duration;
+    const newClip = {
+      ...clip,
+      startTime: newSourceStart,
+      endTime: newSourceEnd,
+      duration: newDuration,
+      filePath: result.filePath,
+    };
+    const newProject = {
+      ...project,
+      clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
+    };
+    const maxExtend = sourceDuration > 0 ? sourceDuration - newSourceStart : newDuration;
+    set({
+      clip: newClip,
+      project: newProject,
+      sourceStartTime: newSourceStart,
+      sourceEndTime: newSourceEnd,
+      maxExtendSec: maxExtend > 0 ? maxExtend : newDuration,
+      maxExtendLeftSec: newSourceStart,
+      videoVersion: get().videoVersion + 1,
+    });
+    usePlaybackStore.getState().setDuration(newDuration);
+    console.log("[Recut] Success — newDuration:", newDuration, "videoVersion:", get().videoVersion);
+  },
+
   // Trim subtitle & caption segments so nothing extends past the last audio segment's end
   _trimToAudioBounds: () => {
     const { audioSegments } = get();
@@ -649,6 +788,13 @@ const useEditorStore = create((set, get) => ({
 
     if (needsSubUpdate) subStore.setEditSegments(subs);
     if (needsCapUpdate) capStore.setCaptionSegments(caps);
+
+    // Always sync playback duration to final audio bounds
+    const finalSegs = get().audioSegments;
+    if (finalSegs.length > 0) {
+      const finalSorted = [...finalSegs].sort((a, b) => a.startSec - b.startSec);
+      usePlaybackStore.getState().setDuration(finalSorted[finalSorted.length - 1].endSec);
+    }
   },
 
   // Revert clip to previous boundaries (called by undo when extension is undone)

@@ -1,42 +1,48 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-01 (Claude Code config upgrade from fakegurus-claude-md council review)_
+_Last updated: 2026-04-01 (Audio delete/trim recut fix + Project Folders spec)_
 
 ## Current State
-App builds and launches. No code changes to the app itself this session — only Claude Code configuration upgrades.
+App builds and launches. Audio segment delete and left-trim recut bug fixed and verified on a fresh clip.
 
 ## What Was Built
 
-### Claude Code Config Upgrades (Council-Reviewed)
-- Analyzed fakegurus-claude-md repo (fork) — 10 proposed behavioral directives for Claude Code
-- Ran full LLM Council (5 advisors + anonymized peer review + chairman synthesis)
-- Cross-referenced all 10 proposals against ClipFlow's 56KB `tasks/lessons.md` (50+ documented failures)
-- Merged 3 items, upgraded 1 skill, rejected 6 with evidence:
-  - **Global CLAUDE.md Rule 1:** Added failure recovery protocol — after 2 failed attempts, STOP, re-read all files, propose new approach
-  - **Global CLAUDE.md Rule 5:** Added context decay awareness — re-read files after 10+ messages since last read
-  - **Global CLAUDE.md Rule 5:** Added large file read safety — files >500 LOC must use chunked reads, 50K char truncation warning
-  - **Project CLAUDE.md:** Added "Interaction Shortcuts" section — one-word confirmations (yes/do it/go) = execute immediately
-  - **Code review skill:** Upgraded rename check to 6-category safety checklist (calls, types, strings, dynamic imports, re-exports, tests)
+### Bug Fix: Audio Delete/Trim Video Recut
+- **Root cause:** Deleting or trimming audio segments from the left shifted timeline timestamps to start at 0, but never recut the actual video file. The `<video>` element still played from the beginning of the original file, so users saw the first N seconds instead of the remaining content.
+- **Fix:** Three operations now trigger an FFmpeg recut via `recutClip` IPC when content is removed from the left:
+  - `deleteAudioSegment` — split + delete left portion
+  - `rippleDeleteAudioSegment` — ripple delete first segment
+  - `commitAudioResize` — drag left edge rightward to trim
+- **New helper:** `_recutAfterDelete(origAudioStart, origAudioEnd)` — async method that unloads video, calls IPC recut, updates clip/project/source metadata, bumps `videoVersion` for cache-bust reload
+- **Also fixed:** `_trimToAudioBounds` now always syncs `playbackStore.duration` to final audio bounds (previously only updated during left-shifts)
 
-### Council Artifacts
-- `council-report-20260401-094651.html` — visual HTML report with verdict, advisor positions, evidence map
-- `council-transcript-20260401-094651.md` — full transcript with all advisor responses, peer reviews, lessons.md cross-reference
+### Project Folders Spec v1.1 (Council-Reviewed)
+- Wrote full implementation spec: `reference/project-folders-spec.md`
+- Ran two LLM Council sessions:
+  1. **Feature design council** — 5 advisors designed the folder system. Key decisions: flat folders, metadata-only (no filesystem changes), electron-store persistence, skip DnD for V1.
+  2. **Spec review council** — 5 advisors reviewed the written spec. Caught 7 issues: move-from-old-folder behavior, persistence failure handling, project deletion cleanup, IPC reduction (8→6), empty folder state, "All Projects" rules, undo toasts for destructive ops.
+- All 7 fixes + user's 3 design decisions baked into v1.1
 
 ## Key Decisions
-- **Rejected Senior Dev Override (#10)** — directly conflicts with "Plan Before Code → wait for approval" and lessons.md entry "Never remove working features without explicit approval"
-- **Rejected Phased Execution (#3)** — lessons.md says the opposite: "Batch related fixes, don't iterate one at a time"
-- **Rejected Verification Gate upgrade (#6)** — already covered by Global Rule 4 + two lessons.md entries; duplication dilutes, not strengthens
-- **Rejected context-log.md (#7)** — duplicates HANDOFF.md; two sources of truth is a bug
-- **Rename Safety added to skill, not CLAUDE.md** — too niche for permanent config, perfect for code review checklist
+- **Audio recut uses existing `recutClip` IPC** — same pattern as `commitLeftExtend`/`revertClipBoundaries`. No new IPC needed.
+- **Caller manages `extending` state** — `_recutAfterDelete` is a pure async helper; callers set/clear `extending` and unload video themselves. Prevents double-management bugs.
+- **Project folders: 6 IPC handlers** (not 8) — merged rename+recolor into `folder:update(id, patch)`, made `addProjects(null)` handle unassign
+- **Folder sort modes** — creation order (default), A-Z, Z-A. Stored in `folderSortMode` electron-store key.
+- **One project per folder** — council debated many-to-many but rejected for V1. Structurally extensible to tags later.
+- **Undo toasts** — 5-second undo for folder delete and bulk move (unanimous council blind spot catch)
 
 ## Next Steps
-1. **Preview template styling** — `_buildAllShadows()` in ProjectsView still simpler than editor's `buildAllShadows()` (from last session's handoff)
-2. **Subtitle segmentation spec** needs updating with Rule 7 (comma flush), Rule 8 (atomic phrases), and linger duration
-3. **Council reports cleanup** — multiple council reports from previous sessions in repo root; consider moving to a `councils/` directory
+1. **Build Project Folders** — spec is ready at `reference/project-folders-spec.md`. Follow the 5-phase build sequence. Start with Phase 1 (data layer).
+2. **Preview template styling** — `_buildAllShadows()` in ProjectsView still simpler than editor's `buildAllShadows()` (carried from prior session)
+3. **Subtitle segmentation spec update** — needs Rule 7 (comma flush), Rule 8 (atomic phrases), and linger duration (carried from prior session)
+4. **Council reports cleanup** — multiple council reports in repo root; consider `councils/` directory
 
 ## Watch Out For
-- Global CLAUDE.md (`~/.claude/CLAUDE.md`) is outside the repo — changes there can't be committed to ClipFlow. The file is saved to disk and active, just not version-controlled.
-- The 3 new global rules apply to ALL projects, not just ClipFlow. They're general-purpose and shouldn't conflict with other projects.
+- **First clip was corrupted** by the old buggy trim/delete operations. Regenerating the clip fixes it. Any clip that was trimmed/deleted before this fix may have stale video content — must be regenerated.
+- **`_recutAfterDelete` throws on IPC failure** — callers must catch and handle (they do via try/catch/finally).
+- **Project Folders spec lives at `reference/project-folders-spec.md`** — read this before building. It has the exact data model, IPC shapes, UI layout, and build sequence.
 
 ## Logs / Debugging
-- No app code changes this session — no build/launch needed
-- Council report viewable at `council-report-20260401-094651.html` (open in browser)
+- Audio recut logs: `[Recut]` prefix in console — shows sourceStartTime, origAudioStart/End, newSourceStart/End, and success/failure
+- Left-trim logs: `[TrimToAudio]` prefix — shows shift amount
+- Delete logs: `[DeleteAudio]` / `[RippleDeleteAudio]` prefixes
+- Council reports: `council-report-20260401-160557.html` (feature design), `council-report-20260401-spec-review.html` (spec review)

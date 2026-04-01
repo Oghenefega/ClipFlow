@@ -6,7 +6,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-01
 
+### Fixed
+- **Audio segment delete/trim now recuts the video file:** Deleting or left-trimming audio segments previously shifted timeline timestamps but never recut the actual video, causing the `<video>` element to show the wrong section (first N seconds instead of the remaining content). All three left-shift operations (delete, ripple delete, drag-trim) now trigger an FFmpeg recut via `recutClip` IPC, updating clip metadata, source boundaries, and `videoVersion` for cache-bust reload. Also fixed `_trimToAudioBounds` to always sync playback duration to final audio bounds.
+
 ### Added
+- **Project Folders spec v1.1 (council-reviewed):** Full implementation spec at `reference/project-folders-spec.md`. Flat folders stored as metadata in electron-store, 6 IPC handlers, sidebar folder panel with filtering, multi-select floating action bar, undo toasts for destructive ops. Two council sessions (feature design + spec review) caught 7 issues and produced 3 design decisions.
 - **Claude Code behavioral directives (council-reviewed):** Analyzed fakegurus-claude-md repo and ran a full 5-advisor LLM Council with peer review. Cross-referenced 10 proposed directives against 50+ documented failures in lessons.md. Merged 3 evidence-backed rules: failure recovery protocol (stop after 2 failed attempts, re-read, new approach), context decay awareness (re-read files after 10+ messages), and large file read safety (chunked reads for 500+ LOC files). Also added one-word mode to project config for faster interaction flow.
 - **Rename safety checklist in code review skill:** Upgraded the existing "grep for ALL references" check to a 6-category safety checklist covering direct calls, type references, string literals, dynamic imports, re-exports/barrel files, and test files/mocks. Addresses a documented failure where a renamed variable was missed in JSX, causing a blank screen crash.
 

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report: Project Folders Spec Review</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 2rem; }
+  .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section h2 { font-size: 1.15rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e8e8e8; }
+  .section.required { border-left: 4px solid #ef4444; }
+  .section.fine { border-left: 4px solid #22c55e; }
+  .section.question { border-left: 4px solid #f59e0b; }
+  .section.action { border-left: 4px solid #8b5cf6; background: #faf5ff; }
+  .item { padding: 0.6rem 0; border-bottom: 1px solid #f0f0f0; }
+  .item:last-child { border-bottom: none; }
+  .item strong { display: block; margin-bottom: 0.25rem; }
+  .item em { color: #666; font-size: 0.9rem; }
+  .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+  .tag-fix { background: #fef2f2; color: #dc2626; }
+  .tag-ok { background: #f0fdf4; color: #16a34a; }
+  .tag-ask { background: #fffbeb; color: #d97706; }
+  code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; font-family: 'JetBrains Mono', monospace; }
+  ul { padding-left: 1.25rem; }
+  li { margin-bottom: 0.35rem; }
+  details { margin-bottom: 1rem; }
+  details summary { cursor: pointer; font-weight: 600; padding: 0.5rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.9rem; }
+  details .detail-content { padding: 1rem; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 6px 6px; font-size: 0.9rem; background: #fff; }
+  .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; color: #999; font-size: 0.8rem; text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+  th { background: #f8fafc; padding: 0.5rem; text-align: left; border-bottom: 2px solid #e0e0e0; }
+  td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #f0f0f0; }
+</style>
+</head>
+<body>
+
+<h1>Spec Review: Project Folders v1.0</h1>
+<p class="subtitle">Council reviewed the implementation spec &mdash; April 1, 2026</p>
+
+<!-- CHANGES REQUIRED -->
+<div class="section required">
+  <h2>Spec Changes Required <span class="tag tag-fix">7 FIXES</span></h2>
+
+  <div class="item">
+    <strong>1. Define move-from-old-folder behavior</strong>
+    When <code>addProjects</code> targets a project already in another folder, what happens? Silent move? Confirmation? The IPC handler must return <code>{ movedFrom: oldFolderName }</code> so the UI can show a toast. This is the #1 ambiguity in the spec.
+    <br><em>Flagged by: Contrarian</em>
+  </div>
+
+  <div class="item">
+    <strong>2. Add persistence failure handling</strong>
+    Every mutating IPC handler needs try/catch returning <code>{ success: false, error }</code>. UI must handle errors gracefully. One paragraph covers this.
+    <br><em>Flagged by: Contrarian + First Principles</em>
+  </div>
+
+  <div class="item">
+    <strong>3. Add project deletion cleanup path</strong>
+    When a project is deleted via existing <code>project:delete</code>, its ID must be pruned from folder <code>projectIds</code>. Specify who owns this: reconciliation on next <code>folder:list</code>, or explicit call during delete flow.
+    <br><em>Flagged by: Contrarian + First Principles</em>
+  </div>
+
+  <div class="item">
+    <strong>4. Reduce IPC handlers from 8 to 6</strong>
+    <ul>
+      <li>Merge <code>rename</code> + <code>recolor</code> &rarr; <code>updateFolder(id, patch)</code></li>
+      <li>Make <code>addProjects(folderId: null)</code> handle unassign (drop separate <code>removeProjects</code>)</li>
+      <li>Keep: <code>list</code>, <code>create</code>, <code>updateFolder</code>, <code>delete</code>, <code>addProjects</code>, <code>reorder</code></li>
+    </ul>
+    <em>Flagged by: Contrarian + First Principles</em>
+  </div>
+
+  <div class="item">
+    <strong>5. Specify empty folder state</strong>
+    When a folder has zero projects, the main panel shows "No projects in this folder" message with a hint to use "Move to Folder" from All Projects.
+    <br><em>Flagged by: Outsider</em>
+  </div>
+
+  <div class="item">
+    <strong>6. Specify "All Projects" interaction rules</strong>
+    "All Projects" cannot be renamed, deleted, or recolored. Right-click does nothing (no context menu). Count = total projects, not just unassigned.
+    <br><em>Flagged by: Outsider + Executor</em>
+  </div>
+
+  <div class="item">
+    <strong>7. Add undo toast for destructive folder operations</strong>
+    Folder deletion and bulk move show a 5-second undo toast. "Folder deleted. [Undo]" / "3 projects moved to Production. [Undo]". This is data safety for a paid product, not scope creep.
+    <br><em>Flagged by: All 5 peer reviews (unanimous blind spot)</em>
+  </div>
+</div>
+
+<!-- FINE AS-IS -->
+<div class="section fine">
+  <h2>Spec Is Fine As-Is <span class="tag tag-ok">NO CHANGE</span></h2>
+
+  <div class="item">
+    <strong>One project per folder</strong>
+    Council debated many-to-many but one-per-folder is correct for V1. Simpler mental model, matches physical folder metaphor. Tags are a different feature if needed later.
+  </div>
+  <div class="item">
+    <strong>No drag-and-drop in V1</strong>
+    Right-click "Move to folder" is adequate for &lt;100 projects. DnD is a V1.1 enhancement.
+  </div>
+  <div class="item">
+    <strong>No keyboard shortcuts in V1</strong>
+    Folder operations are low-frequency. Shortcuts are polish, not structure.
+  </div>
+  <div class="item">
+    <strong>160px sidebar width</strong>
+    Fine for V1. Collapsible sidebar is V1.1.
+  </div>
+  <div class="item">
+    <strong>Simple folder counts (no status breakdown)</strong>
+    Single number, not "3 ready, 2 drafts." Status filtering within a folder handles this.
+  </div>
+  <div class="item">
+    <strong>Migration path (existing projects start unassigned)</strong>
+    Already addressed in spec. Correct and sufficient.
+  </div>
+</div>
+
+<!-- OPEN QUESTIONS -->
+<div class="section question">
+  <h2>Open Questions for You <span class="tag tag-ask">DECIDE</span></h2>
+
+  <div class="item">
+    <strong>1. Duplicate folder colors &mdash; allow or prevent?</strong>
+    Two blue folders: confusing or non-issue? Show "already used" indicators on color picker, or ignore?
+  </div>
+  <div class="item">
+    <strong>2. Folder ordering in sidebar &mdash; creation order or manual reorder?</strong>
+    Creation order is simpler. Manual drag-reorder adds <code>sortOrder</code> field. Which for V1?
+  </div>
+  <div class="item">
+    <strong>3. Folder limit?</strong>
+    Cap at 20 to prevent sidebar scroll? Or unlimited?
+  </div>
+</div>
+
+<!-- ONE THING -->
+<div class="section action">
+  <h2>The One Thing to Fix First</h2>
+  <p><strong>Define the move-from-old-folder behavior.</strong> When <code>addProjects</code> targets a project already in another folder: silent move with toast notification ("Moved from X to Y"), not a confirmation dialog. The IPC response includes <code>movedFrom</code> so the UI can display it. This is the single interaction that causes the most confusion if left ambiguous.</p>
+</div>
+
+<!-- ADVISOR DETAILS -->
+<details>
+  <summary>Advisor Responses (click to expand)</summary>
+  <div class="detail-content">
+    <table>
+      <thead><tr><th>Advisor</th><th>Key Points</th><th>Peer Rating</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Contrarian</strong></td><td>One-per-folder underspecified, reconciliation landmine, 8 IPC &rarr; 5, persistence failures, 160px truncation</td><td>Strongest (tied w/ Executor)</td></tr>
+        <tr><td><strong>First Principles</strong></td><td>Many-to-many day one, single updateFolder handler, collapsible sidebar, Zustand interaction</td><td>Mixed &mdash; many-to-many rejected by peers</td></tr>
+        <tr><td><strong>Expansionist</strong></td><td>DnD is a mistake to skip, keyboard shortcuts, status counts, batch ops, 200px sidebar</td><td>Weakest &mdash; UX wishlist without structural engagement</td></tr>
+        <tr><td><strong>Outsider</strong></td><td>"All Projects" confusing pseudo-folder, empty state missing, color uniqueness, keyboard shortcuts</td><td>Caught important UX gaps</td></tr>
+        <tr><td><strong>Executor</strong></td><td>Sidebar integration riskiest, 3+ new components needed, rapid persistence, count ambiguity</td><td>Strongest (tied w/ Contrarian)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>Peer Review Consensus</summary>
+  <div class="detail-content">
+    <ul>
+      <li><strong>Unanimous blind spot:</strong> Undo/redo for folder operations &mdash; no recovery path for accidental bulk moves or folder deletion</li>
+      <li><strong>Strongest advisors:</strong> Contrarian (A) and Executor (E) &mdash; actionable engineering feedback</li>
+      <li><strong>Weakest:</strong> Expansionist (C) &mdash; UX wishlist without structural engagement</li>
+      <li><strong>Many-to-many debate:</strong> First Principles pushed it, but 3/5 reviewers rejected as scope creep for V1</li>
+    </ul>
+  </div>
+</details>
+
+<div class="footer">
+  Spec review council &mdash; April 1, 2026 &mdash; 5 advisors, 5 peer reviews, 1 chairman synthesis<br>
+  Spec: Project Folders v1.0 (<code>reference/project-folders-spec.md</code>)
+</div>
+
+</body>
+</html>

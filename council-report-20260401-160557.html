@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report: Project Folders Feature</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 2rem; }
+  .verdict-section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .verdict-section h2 { font-size: 1.15rem; color: #1a1a1a; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e8e8e8; }
+  .verdict-section.highlight { border-left: 4px solid #2563eb; }
+  .verdict-section.action { border-left: 4px solid #16a34a; background: #f0fdf4; }
+  .agree-item { padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
+  .agree-item:last-child { border-bottom: none; }
+  .agree-item strong { color: #2563eb; }
+  .clash-block { padding: 0.75rem; background: #fffbeb; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #fde68a; }
+  .clash-block:last-child { margin-bottom: 0; }
+  .blind-spot { padding: 0.5rem 0.75rem; background: #fef2f2; border-radius: 6px; margin-bottom: 0.5rem; border-left: 3px solid #ef4444; }
+  code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin: 0.75rem 0; }
+  ul { padding-left: 1.25rem; }
+  li { margin-bottom: 0.35rem; }
+
+  /* Advisor grid */
+  .advisor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+  @media (max-width: 600px) { .advisor-grid { grid-template-columns: 1fr; } }
+  .advisor-card { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+  .advisor-header { padding: 0.6rem 1rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  .advisor-header:hover { filter: brightness(0.95); }
+  .advisor-header .arrow { transition: transform 0.2s; font-size: 0.75rem; }
+  .advisor-body { padding: 0.75rem 1rem; font-size: 0.85rem; display: none; border-top: 1px solid #e0e0e0; background: #fff; }
+  .advisor-body.open { display: block; }
+
+  .contrarian .advisor-header { background: #fef2f2; color: #991b1b; }
+  .first-principles .advisor-header { background: #eff6ff; color: #1e40af; }
+  .expansionist .advisor-header { background: #f0fdf4; color: #166534; }
+  .outsider .advisor-header { background: #fefce8; color: #854d0e; }
+  .executor .advisor-header { background: #f5f3ff; color: #5b21b6; }
+
+  /* Alignment matrix */
+  .alignment-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+  .alignment-table th { background: #f8fafc; padding: 0.5rem; text-align: left; border-bottom: 2px solid #e0e0e0; }
+  .alignment-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #f0f0f0; }
+  .vote-yes { color: #16a34a; font-weight: 600; }
+  .vote-no { color: #dc2626; font-weight: 600; }
+  .vote-partial { color: #d97706; font-weight: 600; }
+
+  details { margin-bottom: 1rem; }
+  details summary { cursor: pointer; font-weight: 600; padding: 0.5rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.9rem; }
+  details summary:hover { background: #f1f5f9; }
+  details .detail-content { padding: 1rem; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 6px 6px; font-size: 0.9rem; background: #fff; }
+
+  .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+function toggleAdvisor(el) {
+  const body = el.parentElement.querySelector('.advisor-body');
+  const arrow = el.querySelector('.arrow');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '\u25B2' : '\u25BC';
+}
+</script>
+</head>
+<body>
+
+<h1>Council Report: Project Folders Feature</h1>
+<p class="subtitle">ClipFlow Projects View &mdash; April 1, 2026</p>
+
+<!-- VERDICT -->
+<div class="verdict-section highlight">
+  <h2>Council Verdict</h2>
+  <p>Build <strong>flat, user-created folders</strong> stored as metadata in electron-store. Sidebar folder list with counts, multi-select with floating action bar, right-click context menus. Color dots, no icons. Delete folder returns projects to "All Projects" &mdash; never deletes files. Skip nested folders, drag-and-drop, smart folders, tags, and templates for V1.</p>
+</div>
+
+<!-- AGREEMENT MATRIX -->
+<div class="verdict-section">
+  <h2>Advisor Alignment</h2>
+  <table class="alignment-table">
+    <thead>
+      <tr><th>Topic</th><th>Contrarian</th><th>1st Principles</th><th>Expansionist</th><th>Outsider</th><th>Executor</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Flat folders (no nesting)</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td><td class="vote-partial">--</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td></tr>
+      <tr><td>Metadata, not filesystem</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td></tr>
+      <tr><td>electron-store persistence</td><td class="vote-yes">Yes</td><td class="vote-partial">--</td><td class="vote-partial">--</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td></tr>
+      <tr><td>Skip drag-and-drop V1</td><td class="vote-yes">Yes</td><td class="vote-partial">--</td><td class="vote-no">No</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td></tr>
+      <tr><td>User-created folders (not hardcoded)</td><td class="vote-no">No</td><td class="vote-partial">Partial</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td><td class="vote-yes">Yes</td></tr>
+      <tr><td>Color per folder</td><td class="vote-no">No</td><td class="vote-partial">--</td><td class="vote-yes">Yes</td><td class="vote-partial">--</td><td class="vote-yes">Yes</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- WHERE THEY AGREE -->
+<div class="verdict-section">
+  <h2>Where the Council Agrees</h2>
+  <div class="agree-item"><strong>Flat folders, not nested.</strong> Every advisor who engaged with folders said one level deep. No one argued for hierarchy.</div>
+  <div class="agree-item"><strong>Metadata layer, not filesystem.</strong> Universal: folder membership stored in electron-store, not by moving project files into OS directories. Projects stay where they are.</div>
+  <div class="agree-item"><strong>The Executor's data model is correct.</strong> All 5 peer reviews named it strongest. <code>{ id, name, color, projectIds[] }</code></div>
+  <div class="agree-item"><strong>Skip drag-and-drop for V1.</strong> Multi-select + action bar achieves the same result without DnD complexity.</div>
+  <div class="agree-item"><strong>Delete folder must NOT delete projects.</strong> Deleting a folder removes the grouping. Projects return to All Projects. File deletion is separate.</div>
+</div>
+
+<!-- WHERE THEY CLASH -->
+<div class="verdict-section">
+  <h2>Where the Council Clashes</h2>
+  <div class="clash-block">
+    <strong>Folders vs. Tags vs. Filters</strong><br>
+    First Principles + Outsider argue the real need is filtering, not folders &mdash; building folders may paint you into a corner when you need tags later. Executor + Contrarian say: user asked for folders, folders are the simplest mental model, ship folders.<br>
+    <em>Resolution:</em> Folders-as-metadata (projectIds arrays) is structurally identical to single-value tags. Extending to multi-tag later is straightforward. Not a dead end.
+  </div>
+  <div class="clash-block">
+    <strong>How minimal is too minimal?</strong><br>
+    Contrarian: hardcoded Dev/Prod toggle. First Principles: single archive boolean. Executor: user-created folders with colors.<br>
+    <em>Resolution:</em> ClipFlow is a commercial product heading to release. Hardcoded categories won't survive real users with their own mental models. Build user-created folders.
+  </div>
+</div>
+
+<!-- BLIND SPOTS -->
+<div class="verdict-section">
+  <h2>Blind Spots Caught in Peer Review</h2>
+  <div class="blind-spot"><strong>Migration path:</strong> Existing projects need to appear in "All Projects" on upgrade. Must be explicit &mdash; zero-friction, no prompts.</div>
+  <div class="blind-spot"><strong>Folder + pipeline filter interaction:</strong> Folder selection must compose WITH existing status filtering (ready/processing/done), not replace it. Folder narrows, then status narrows further.</div>
+  <div class="blind-spot"><strong>Sort order within folders:</strong> Use ordered <code>projectIds[]</code> array. Default to existing sort (status then date). Manual reorder is V2.</div>
+</div>
+
+<!-- RECOMMENDATION -->
+<div class="verdict-section action">
+  <h2>The Recommendation</h2>
+  <p><strong>Data model</strong> in electron-store:</p>
+  <pre>folders: [{ id, name, color, projectIds: [] }]</pre>
+  <p><strong>UI changes:</strong></p>
+  <ul>
+    <li>Sidebar folder list (or top bar tabs) with project counts</li>
+    <li>"All Projects" pseudo-entry always at top, showing everything</li>
+    <li>Projects not in any folder appear under "All Projects" (no "Uncategorized" noise)</li>
+    <li>Multi-select via checkboxes, floating action bar: "Move to folder" dropdown</li>
+    <li>Right-click on projects: "Move to folder" submenu</li>
+    <li>Right-click on folders: Rename, Change color, Delete</li>
+    <li>"+ New Folder" button in sidebar</li>
+    <li>Color dot only &mdash; no icons, no emoji</li>
+  </ul>
+  <p><strong>Critical behaviors:</strong></p>
+  <ul>
+    <li>Existing filters (status, pipeline) compose with folder selection</li>
+    <li>Delete folder prompt: "This will remove the folder. Your X projects will still be available in All Projects."</li>
+    <li>On upgrade: all existing projects in "All Projects", no folders created &mdash; zero friction</li>
+    <li>projectIds array is ordered for future manual sort</li>
+  </ul>
+  <p><strong>Skip for V1:</strong> nested folders, drag-and-drop, smart folders, tags, templates, batch render/schedule, cross-folder references</p>
+</div>
+
+<div class="verdict-section" style="border-left: 4px solid #8b5cf6; background: #faf5ff;">
+  <h2>The One Thing to Do First</h2>
+  <p>Define the electron-store schema for <code>folders</code> and write the IPC handlers (create, rename, delete, recolor, addProjects, removeProjects) in <code>main.js</code> &mdash; then expose through the preload bridge. Data layer first, UI second.</p>
+</div>
+
+<!-- ADVISOR RESPONSES (collapsed) -->
+<h2 style="margin: 1.5rem 0 0.75rem;">Advisor Responses</h2>
+<div class="advisor-grid">
+  <div class="advisor-card contrarian">
+    <div class="advisor-header" onclick="toggleAdvisor(this)">The Contrarian <span class="arrow">&#9660;</span></div>
+    <div class="advisor-body">
+      <p>The fatal flaw is scope creep disguised as a simple feature. Nested folders, drag-and-drop, smart folders &mdash; all traps.</p>
+      <p>Store folder assignments in electron-store with a reconciliation check on startup. Multi-select + "Move to folder" dropdown does drag-and-drop's job in 10% of the dev time.</p>
+      <p>What's actually needed: two hardcoded categories (Development/Production) with a toggle. Solve the real pain point in an afternoon. If that proves insufficient after two weeks of real use, then build the full folder system with actual usage data.</p>
+      <p><strong>Key insight:</strong> Don't build folder infrastructure for a one-person test phase. Build a filter.</p>
+    </div>
+  </div>
+  <div class="advisor-card first-principles">
+    <div class="advisor-header" onclick="toggleAdvisor(this)">The First Principles Thinker <span class="arrow">&#9660;</span></div>
+    <div class="advisor-body">
+      <p>The real problem isn't folders &mdash; it's filtering. Folders force a single axis of organization. "Do I put this Valorant TikTok in the Valorant folder or the TikTok folder?"</p>
+      <p>Minimum viable solution: a single archive/hide boolean. Right-click, "Archive." Toggle "Show archived." Ships in an hour.</p>
+      <p>If building folders anyway: flat, metadata-only, one folder per project, invisible until first creation.</p>
+      <p><strong>Key insight:</strong> Will this need tags/smart filters within 6 months? If yes, build the thin metadata layer that supports all three.</p>
+    </div>
+  </div>
+  <div class="advisor-card expansionist">
+    <div class="advisor-header" onclick="toggleAdvisor(this)">The Expansionist <span class="arrow">&#9660;</span></div>
+    <div class="advisor-body">
+      <p>Smart folders that auto-populate from filters. Folder-level batch operations: render all, schedule all. Folder templates with pre-configured platform defaults. Color + emoji tags. Cross-folder project references.</p>
+      <p><strong>Key insight:</strong> Model folders as lightweight metadata layers, not filesystem directories. This keeps every expansion path open.</p>
+      <p><em>Note: Peer review unanimously rated this the least grounded response &mdash; too much scope for current stage.</em></p>
+    </div>
+  </div>
+  <div class="advisor-card outsider">
+    <div class="advisor-header" onclick="toggleAdvisor(this)">The Outsider <span class="arrow">&#9660;</span></div>
+    <div class="advisor-body">
+      <p>You said "folders" but described "tags." Pick one. Don't restructure the filesystem.</p>
+      <p>V1: Uncategorized pseudo-folder, sidebar with counts, click to filter, right-click to move.</p>
+      <p><strong>Key insight:</strong> Delete folder must distinguish "remove from folder" vs "delete project files from disk." These are extremely different operations and conflating them will cause data loss.</p>
+    </div>
+  </div>
+  <div class="advisor-card executor" style="grid-column: 1 / -1;">
+    <div class="advisor-header" onclick="toggleAdvisor(this)">The Executor <span class="arrow">&#9660;</span></div>
+    <div class="advisor-body">
+      <p>Flat folder list in electron-store: <code>{ id, name, color, projectIds[] }</code>. Sidebar folder panel with "All Projects" at top, user folders below, "+ New Folder" at bottom. Click folder to filter. Multi-select via checkboxes, floating action bar with "Move to Folder" dropdown.</p>
+      <p>Right-click folder: Rename, Change Color, Delete. Delete shows confirmation with project count.</p>
+      <p>Skip: nested folders, drag-drop, auto-folders, folder icons. Color dot is enough. Six to eight files, one session.</p>
+      <p><em>Rated strongest by all 5 peer reviews.</em></p>
+    </div>
+  </div>
+</div>
+
+<!-- PEER REVIEW HIGHLIGHTS (collapsed) -->
+<details>
+  <summary>Peer Review Highlights</summary>
+  <div class="detail-content">
+    <p><strong>Unanimous strongest:</strong> The Executor (Response E) &mdash; the only concrete, buildable spec.</p>
+    <p><strong>Unanimous weakest:</strong> The Expansionist (Response C) &mdash; feature fantasy for a solo-tester product.</p>
+    <p><strong>Recurring blind spots flagged:</strong></p>
+    <ul>
+      <li>Migration path for existing projects on upgrade (flagged by 3/5 reviewers)</li>
+      <li>Sort order within folders (flagged by 2/5 reviewers)</li>
+      <li>Folder + pipeline status filter interaction (flagged by 1 reviewer &mdash; but critical)</li>
+      <li>electron-store vs SQLite persistence decision (flagged by 1 reviewer)</li>
+    </ul>
+  </div>
+</details>
+
+<div class="footer">
+  Council convened April 1, 2026 &mdash; 5 advisors, 5 peer reviews, 1 chairman synthesis<br>
+  Question: "Design a Project Folders feature for ClipFlow's Projects view"
+</div>
+
+</body>
+</html>
