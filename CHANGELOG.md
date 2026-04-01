@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-01
+
+### Added
+- **Claude Code behavioral directives (council-reviewed):** Analyzed fakegurus-claude-md repo and ran a full 5-advisor LLM Council with peer review. Cross-referenced 10 proposed directives against 50+ documented failures in lessons.md. Merged 3 evidence-backed rules: failure recovery protocol (stop after 2 failed attempts, re-read, new approach), context decay awareness (re-read files after 10+ messages), and large file read safety (chunked reads for 500+ LOC files). Also added one-word mode to project config for faster interaction flow.
+- **Rename safety checklist in code review skill:** Upgraded the existing "grep for ALL references" check to a 6-category safety checklist covering direct calls, type references, string literals, dynamic imports, re-exports/barrel files, and test files/mocks. Addresses a documented failure where a renamed variable was missed in JSX, causing a blank screen crash.
+
 ## [Unreleased] — 2026-03-31
 
 ### Added
