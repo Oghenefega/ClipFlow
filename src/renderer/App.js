@@ -69,6 +69,10 @@ export default function App() {
   const [selProj, setSelProj] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Project folders
+  const [projectFolders, setProjectFolders] = useState([]);
+  const [activeFolder, setActiveFolder] = useState(null);
+
   // Core data
   const [mainGame, setMainGame] = useState("Arc Raiders");
   const [mainPool, setMainPool] = useState(INITIAL_MAIN_POOL);
@@ -197,6 +201,11 @@ export default function App() {
           }
         } else if (all.localProjects) {
           setLocalProjects(all.localProjects);
+        }
+        // Load project folders
+        if (window.clipflow?.folderList) {
+          const folderResult = await window.clipflow.folderList();
+          if (folderResult?.folders) setProjectFolders(folderResult.folders);
         }
         if (all.outputFolder) setOutputFolder(all.outputFolder);
         if (all.sfxFolder) setSfxFolder(all.sfxFolder);
@@ -347,6 +356,12 @@ export default function App() {
     setView("editor");
   }, []);
 
+  // Refresh folder list from store (call after any folder mutation or project deletion)
+  const refreshFolders = useCallback(async () => {
+    const result = await window.clipflow.folderList();
+    if (result?.folders) setProjectFolders(result.folders);
+  }, []);
+
   // Delete projects by IDs
   const handleDeleteProjects = useCallback(async (projectIds) => {
     for (const id of projectIds) {
@@ -358,7 +373,9 @@ export default function App() {
       setSelProj(null);
       setView("projects");
     }
-  }, [selProj]);
+    // Reconcile folder references for deleted projects
+    refreshFolders();
+  }, [selProj, refreshFolders]);
 
   // Load full project data (with transcription + clips) when entering ClipBrowser
   const handleSelectProject = useCallback(async (project) => {
@@ -545,6 +562,10 @@ export default function App() {
         return (
           <ProjectsListView
             localProjects={localProjects}
+            projectFolders={projectFolders}
+            activeFolder={activeFolder}
+            onSelectFolder={setActiveFolder}
+            onFoldersChanged={refreshFolders}
             onSelect={handleSelectProject}
             onDeleteProjects={handleDeleteProjects}
             mainGame={mainGame}
@@ -574,6 +595,10 @@ export default function App() {
     return (
       <ProjectsListView
         localProjects={localProjects}
+        projectFolders={projectFolders}
+        activeFolder={activeFolder}
+        onSelectFolder={setActiveFolder}
+        onFoldersChanged={refreshFolders}
         onSelect={handleSelectProject}
         onDeleteProjects={handleDeleteProjects}
         mainGame={mainGame}

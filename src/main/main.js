@@ -181,6 +181,9 @@ const store = new Store({
     splitSourceRetention: "keep",
     // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
     transcriptionAudioTrack: 1,
+    // Project folders
+    projectFolders: [],
+    folderSortMode: "created",
   },
 });
 
@@ -238,6 +241,10 @@ if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
     logger.info(logger.MODULES.system, "Cleared hardcoded placeholder platforms (migration)");
   }
 }
+
+// ── Migration: add project folders ──
+if (!store.has("projectFolders")) store.set("projectFolders", []);
+if (!store.has("folderSortMode")) store.set("folderSortMode", "created");
 
 let mainWindow;
 let watcher = null;
@@ -2373,5 +2380,122 @@ ipcMain.handle("app:getVersion", async () => {
 // Get logs directory path (for dev / Claude Code access)
 ipcMain.handle("logs:getDir", async () => {
   return logger.getLogsDirPath();
+});
+
+// ── Project Folders ──
+
+function reconcileFolders(folders, existingProjectIds) {
+  return folders.map((folder) => ({
+    ...folder,
+    projectIds: folder.projectIds.filter((id) => existingProjectIds.includes(id)),
+  }));
+}
+
+ipcMain.handle("folder:list", async () => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const watchFolder = store.get("watchFolder");
+    const result = projects.listProjects(watchFolder);
+    const existingIds = (result.projects || []).map((p) => p.id);
+    const reconciled = reconcileFolders(folders, existingIds);
+    // Persist if reconciliation pruned any stale IDs
+    if (JSON.stringify(reconciled) !== JSON.stringify(folders)) {
+      store.set("projectFolders", reconciled);
+    }
+    return { folders: reconciled };
+  } catch (err) {
+    return { folders: store.get("projectFolders") || [] };
+  }
+});
+
+ipcMain.handle("folder:create", async (_, { name, color }) => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const folder = {
+      id: `folder_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: name || "New Folder",
+      color: color || "#3b82f6",
+      createdAt: new Date().toISOString(),
+      projectIds: [],
+    };
+    folders.push(folder);
+    store.set("projectFolders", folders);
+    return { success: true, folder };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("folder:update", async (_, folderId, patch) => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const idx = folders.findIndex((f) => f.id === folderId);
+    if (idx === -1) return { success: false, error: "Folder not found" };
+    if (patch.name !== undefined) folders[idx].name = patch.name;
+    if (patch.color !== undefined) folders[idx].color = patch.color;
+    store.set("projectFolders", folders);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("folder:delete", async (_, folderId) => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const idx = folders.findIndex((f) => f.id === folderId);
+    if (idx === -1) return { success: false, error: "Folder not found" };
+    const freedProjectIds = folders[idx].projectIds || [];
+    folders.splice(idx, 1);
+    store.set("projectFolders", folders);
+    return { success: true, freedProjectIds };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("folder:addProjects", async (_, folderId, projectIds) => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const movedFrom = [];
+    // Remove each project from its current folder
+    for (const pid of projectIds) {
+      let fromFolder = null;
+      for (const f of folders) {
+        const pidIdx = f.projectIds.indexOf(pid);
+        if (pidIdx !== -1) {
+          fromFolder = f.name;
+          f.projectIds.splice(pidIdx, 1);
+          break;
+        }
+      }
+      movedFrom.push({ projectId: pid, folderName: fromFolder });
+    }
+    // Add to target folder (or leave unassigned if folderId is null)
+    if (folderId !== null) {
+      const target = folders.find((f) => f.id === folderId);
+      if (!target) return { success: false, error: "Target folder not found" };
+      for (const pid of projectIds) {
+        if (!target.projectIds.includes(pid)) target.projectIds.push(pid);
+      }
+    }
+    store.set("projectFolders", folders);
+    return { success: true, movedFrom };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("folder:reorder", async (_, folderIds) => {
+  try {
+    const folders = store.get("projectFolders") || [];
+    const reordered = folderIds
+      .map((id) => folders.find((f) => f.id === id))
+      .filter(Boolean);
+    store.set("projectFolders", reordered);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 

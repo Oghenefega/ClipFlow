@@ -238,6 +238,14 @@ contextBridge.exposeInMainWorld("clipflow", {
   // App version
   getAppVersion: () => ipcRenderer.invoke("app:getVersion"),
 
+  // Project Folders
+  folderList: () => ipcRenderer.invoke("folder:list"),
+  folderCreate: (data) => ipcRenderer.invoke("folder:create", data),
+  folderUpdate: (folderId, patch) => ipcRenderer.invoke("folder:update", folderId, patch),
+  folderDelete: (folderId) => ipcRenderer.invoke("folder:delete", folderId),
+  folderAddProjects: (folderId, projectIds) => ipcRenderer.invoke("folder:addProjects", folderId, projectIds),
+  folderReorder: (folderIds) => ipcRenderer.invoke("folder:reorder", folderIds),
+
   // Logging & Bug Reports
   logsGetModules: () => ipcRenderer.invoke("logs:getModules"),
   logsGetSessionLogs: (modules) => ipcRenderer.invoke("logs:getSessionLogs", modules),

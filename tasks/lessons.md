@@ -75,6 +75,19 @@
 - **Mistake:** Queue filter used `trackerData.map(t => t.clipId)` but tracker entries had no `clipId` field — filter matched nothing.
 - **Rule:** Before filtering on a field, verify it exists in the data creation code, not just the reading code.
 
+### replace_all only matches EXACT text — verify ALL render sites
+- **Mistake:** Used `replace_all` to add folder props to `<ProjectsListView>` in App.js. It matched 2 of 3 render sites because the third had different formatting. The missing props caused `onFoldersChanged` to be `undefined`, silently breaking folder creation.
+- **Rule:** After any `replace_all` edit, grep for the component name and verify ALL instances were updated. Different indentation/formatting = different match.
+
+### React synthetic stopPropagation doesn't stop native events reaching window listeners
+- **Mistake:** Used `onMouseDown={(e) => e.stopPropagation()}` in React to prevent a `window.addEventListener("mousedown")` handler from firing. React's synthetic stopPropagation only stops other React handlers — the native event still reaches window.
+- **Fix:** Use `data-menu` attribute on menu containers. In the window handler, check `e.target.closest("[data-menu]")` and skip closing if inside a menu.
+- **Rule:** Never rely on React synthetic `stopPropagation` to block native DOM listeners on `window`/`document`. Use `data-*` attributes + `closest()` checks instead.
+
+### overflow: hidden clips absolutely-positioned submenus
+- **Mistake:** Context menu had `overflow: hidden` which clipped the color picker submenu positioned at `left: 100%` (outside the menu bounds).
+- **Rule:** Don't use `overflow: hidden` on containers that have children with `position: absolute` extending beyond bounds. Use `overflow: visible` or render the submenu outside the parent.
+
 ---
 
 ## Data / Persistence
