@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report — Claude Code Config Merge Decision</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; color: #1a1a1a; line-height: 1.6; max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: #666; font-size: 14px; margin-bottom: 32px; }
+  .question-box { background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 32px; }
+  .question-box p { font-size: 15px; color: #333; }
+  h2 { font-size: 18px; font-weight: 600; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0; }
+  h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; }
+  p, li { font-size: 15px; margin-bottom: 8px; }
+  ul { padding-left: 20px; }
+  .verdict { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 24px; margin: 24px 0; }
+  .verdict h2 { border-bottom-color: #86efac; color: #166534; }
+  .first-step { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 20px; margin: 24px 0; }
+  .first-step h2 { border-bottom-color: #93c5fd; color: #1e40af; }
+  .clash { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin: 24px 0; }
+  .clash h2 { border-bottom-color: #fcd34d; color: #92400e; }
+  .blind { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 20px; margin: 24px 0; }
+  .blind h2 { border-bottom-color: #fca5a5; color: #991b1b; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .merge-item, .skip-item { border-radius: 6px; padding: 12px 16px; font-size: 14px; }
+  .merge-item { background: #f0fdf4; border: 1px solid #86efac; }
+  .skip-item { background: #f9fafb; border: 1px solid #e5e7eb; color: #6b7280; }
+  .merge-item strong { color: #166534; }
+  .skip-item strong { color: #6b7280; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .tag-yes { background: #dcfce7; color: #166534; }
+  .tag-no { background: #f3f4f6; color: #6b7280; }
+  .tag-evidence { background: #dbeafe; color: #1e40af; }
+
+  .advisor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .advisor-card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+  .advisor-card summary { padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .advisor-card summary:hover { background: #f8f9fa; }
+  .advisor-card .content { padding: 12px 16px; font-size: 13px; border-top: 1px solid #e2e8f0; }
+  .advisor-card.full-width { grid-column: 1 / -1; }
+
+  .position-map { margin: 16px 0; }
+  .position-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+  .position-row:last-child { border-bottom: none; }
+  .advisor-name { width: 160px; font-weight: 600; font-size: 13px; }
+  .position-bar { flex: 1; height: 8px; background: #f3f4f6; border-radius: 4px; position: relative; }
+  .position-dot { width: 14px; height: 14px; border-radius: 50%; position: absolute; top: -3px; }
+  .position-count { width: 80px; text-align: right; font-size: 13px; color: #666; }
+
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; color: #999; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Council Verdict</h1>
+<p class="subtitle">Should ClipFlow merge behavioral directives from fakegurus-claude-md?</p>
+
+<div class="question-box">
+  <p><strong>Decision:</strong> Which of 10 proposed Claude Code behavioral directives from the fakegurus-claude-md repo should be merged into ClipFlow's existing (already mature) configuration?</p>
+  <p style="margin-top: 8px; color: #666;"><strong>Stakes:</strong> Solo dev, commercial product. Too few rules = avoidable bugs that cost money. Too many = ignored rules + token waste + prompt cache instability.</p>
+</div>
+
+<!-- AGREEMENT MAP -->
+<h2>Advisor Position Map</h2>
+<p style="font-size: 13px; color: #666; margin-bottom: 12px;">How many of the 10 items each advisor recommended merging:</p>
+
+<div class="position-map">
+  <div class="position-row">
+    <span class="advisor-name">🔴 Contrarian</span>
+    <div class="position-bar"><div class="position-dot" style="background: #ef4444; left: 15%;"></div></div>
+    <span class="position-count">2 of 10</span>
+  </div>
+  <div class="position-row">
+    <span class="advisor-name">🧠 First Principles</span>
+    <div class="position-bar"><div class="position-dot" style="background: #8b5cf6; left: 10%;"></div></div>
+    <span class="position-count">1-2 of 10</span>
+  </div>
+  <div class="position-row">
+    <span class="advisor-name">🚀 Expansionist</span>
+    <div class="position-bar"><div class="position-dot" style="background: #22c55e; left: 35%;"></div></div>
+    <span class="position-count">3 of 10</span>
+  </div>
+  <div class="position-row">
+    <span class="advisor-name">👁️ Outsider</span>
+    <div class="position-bar"><div class="position-dot" style="background: #3b82f6; left: 10%;"></div></div>
+    <span class="position-count">1 of 10</span>
+  </div>
+  <div class="position-row">
+    <span class="advisor-name">⚡ Executor</span>
+    <div class="position-bar"><div class="position-dot" style="background: #f59e0b; left: 35%;"></div></div>
+    <span class="position-count">4 of 10</span>
+  </div>
+</div>
+
+<!-- WHERE THEY AGREE -->
+<div class="verdict">
+  <h2>Where the Council Agrees</h2>
+  <ul>
+    <li><strong>Context Decay Awareness (#2) earns its place.</strong> Three advisors endorsed it independently. The codebase is large enough that stale context is a credible failure mode. lessons.md confirms: "Always verify which component is ACTUALLY rendering" — stale mental model caused wasted work.</li>
+    <li><strong>Failure Recovery Protocol (#5) is concrete and valuable.</strong> Three advisors converged. lessons.md has MULTIPLE entries: "When a fix doesn't work, change the approach entirely," "Diagnose root cause BEFORE writing code — never guess-patch," and the pattern-matching CSS lesson (wasted an entire afternoon).</li>
+    <li><strong>Senior Dev Override (#10) is dangerous.</strong> Four advisors flagged conflict with "Plan Before Code → wait for approval." lessons.md confirms: "Never remove working features without explicit approval."</li>
+    <li><strong>Verification Gate (#6) is already covered.</strong> Global CLAUDE.md Rule 4 + two separate lessons.md entries. Adding it again creates competing sources of truth.</li>
+  </ul>
+</div>
+
+<div class="clash">
+  <h2>Where the Council Clashes</h2>
+  <ul>
+    <li><strong>One-Word Mode (#9):</strong> Expansionist and Outsider say pure friction reduction. Executor says it doesn't affect output quality. Both are right — it's a quality-of-life improvement, not a safety improvement. The question is: does the token cost of the rule justify the friction saved?</li>
+    <li><strong>Rename Safety (#8) as permanent rule vs. on-demand skill:</strong> Contrarian says permanent. Expansionist says skill. lessons.md has a direct match ("After renaming, grep for ALL references"). The question is placement, not value.</li>
+    <li><strong>Phased Execution (#3):</strong> lessons.md actually says the OPPOSITE — "Batch related fixes, don't iterate one at a time." This directly contradicts the 5-file-per-phase rule for ClipFlow's workflow.</li>
+  </ul>
+</div>
+
+<div class="blind">
+  <h2>Blind Spots the Council Caught</h2>
+  <ul>
+    <li><strong>lessons.md is the authoritative data source.</strong> All 5 peer reviews flagged this independently — the council debated theory when the evidence was on disk. The 56KB lessons.md contains 50+ documented failures and validates/invalidates every proposal.</li>
+    <li><strong>Removal should be on the table, not just addition.</strong> Three peer reviews raised this. If existing rules overlap with proposals, consolidation beats addition.</li>
+    <li><strong>context-log.md duplicates HANDOFF.md.</strong> ClipFlow already writes session state at end. A second file creates maintenance debt.</li>
+  </ul>
+</div>
+
+<!-- THE RECOMMENDATION -->
+<div class="verdict">
+  <h2>The Recommendation</h2>
+  <p><strong>Merge 3 items. Upgrade 1 existing skill. Skip the other 6.</strong></p>
+
+  <h3 style="margin-top: 16px;">Merge into global CLAUDE.md:</h3>
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="merge-item">
+      <strong>#5 — Failure Recovery Protocol</strong> <span class="tag tag-evidence">3 lessons.md matches</span><br>
+      <em>Add to Rule 1:</em> "After 2 failed attempts on the same problem, stop, re-read all affected files from scratch, then propose a new approach."
+    </div>
+    <div class="merge-item">
+      <strong>#2 — Context Decay Awareness</strong> <span class="tag tag-evidence">1 lessons.md match</span><br>
+      <em>Add to Rule 5:</em> "Re-read any file not freshly loaded if 10+ messages have passed since last read."
+    </div>
+  </div>
+
+  <h3>Merge into project CLAUDE.md:</h3>
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="merge-item">
+      <strong>#9 — One-Word Mode</strong> <span class="tag tag-yes">Friction reduction</span><br>
+      <em>New section:</em> "'yes', 'do it', 'go' = execute immediately. No restatement, no recap."
+    </div>
+  </div>
+
+  <h3>Upgrade existing code-review skill:</h3>
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="merge-item">
+      <strong>#8 — Rename Safety</strong> <span class="tag tag-evidence">Direct lessons.md match</span><br>
+      <em>Add to clipflow-code-review skill checklist:</em> After any rename, search: direct calls, type refs, string literals, dynamic imports, re-exports, tests.
+    </div>
+  </div>
+
+  <h3>Skip these 6:</h3>
+  <div class="grid">
+    <div class="skip-item"><strong>#1 Edit Safety</strong> <span class="tag tag-no">Redundant</span><br>Covered by verification + code review skill</div>
+    <div class="skip-item"><strong>#3 Phased Execution</strong> <span class="tag tag-no">Contradicted</span><br>lessons.md says "batch fixes together"</div>
+    <div class="skip-item"><strong>#4 Dead Code Cleanup</strong> <span class="tag tag-no">Task, not rule</span><br>Judgment call for specific sessions</div>
+    <div class="skip-item"><strong>#6 Verification Gate</strong> <span class="tag tag-no">Already exists</span><br>Global Rule 4 + 2 lessons entries</div>
+    <div class="skip-item"><strong>#7 context-log.md</strong> <span class="tag tag-no">Duplicates HANDOFF.md</span><br>Two sources of truth is a bug</div>
+    <div class="skip-item"><strong>#10 Senior Dev Override</strong> <span class="tag tag-no">Dangerous</span><br>Conflicts with Plan Before Code gate</div>
+  </div>
+</div>
+
+<div class="first-step">
+  <h2>The One Thing to Do First</h2>
+  <p>Add the <strong>Failure Recovery Protocol</strong> (#5) to the global CLAUDE.md — it's one sentence, zero risk, and directly addresses the most expensive documented failure pattern in lessons.md (the CSS pattern-matching afternoon that "wasted the user's entire afternoon on a 5-second fix").</p>
+</div>
+
+<!-- ADVISOR RESPONSES (COLLAPSIBLE) -->
+<h2>Full Advisor Responses</h2>
+<div class="advisor-grid">
+  <details class="advisor-card">
+    <summary>🔴 The Contrarian</summary>
+    <div class="content">
+      <p>Three of these ten items are solving problems that don't exist in this config yet. The rest are either redundant, dangerous, or theater.</p>
+      <p><strong>Redundant:</strong> Verification Gate duplicates existing global rule almost word-for-word. Adding it creates two competing sources of truth that drift over time.</p>
+      <p><strong>Fatal flaw in #3 and #4:</strong> Phased Execution and Dead Code Cleanup directly conflict with "Plan Before Code → wait for approval." Claude making autonomous scope decisions = invisible regressions.</p>
+      <p><strong>Worth considering: exactly 2.</strong> Context Decay Awareness (addresses real LLM behavior) and Rename Safety Checklist (applicable to IPC bridge system).</p>
+      <p>Merge two items. Delete the rest.</p>
+    </div>
+  </details>
+  <details class="advisor-card">
+    <summary>🧠 First Principles Thinker</summary>
+    <div class="content">
+      <p>The real question isn't "which rules to add" — it's "what failure modes is ClipFlow actually experiencing?"</p>
+      <p>Most proposals solve hypothetical problems. Strip it back: what has Claude actually gotten wrong?</p>
+      <p><strong>Keep:</strong> Failure Recovery (#5) — two failed attempts is a real signal. <strong>Keep conditionally:</strong> Verification Gate (#6) — only if Claude currently declares "done" prematurely.</p>
+      <p>A 600-word config with 8 sharp rules outperforms a 1,200-word config with 16 fuzzy ones.</p>
+      <p>Add #5. Audit #6 against existing rule. Reject rest unless you can name a specific incident each would have prevented.</p>
+    </div>
+  </details>
+  <details class="advisor-card">
+    <summary>🚀 The Expansionist</summary>
+    <div class="content">
+      <p>This isn't a rules question, it's a leverage question. Every hour Claude wastes on avoidable mistakes is an hour the solo dev doesn't get back.</p>
+      <p><strong>One-Word Mode (#9)</strong> is pure upside — removing friction compounds across every session.</p>
+      <p><strong>Senior Dev Override (#10)</strong> is undervalued — blocking structural improvements mid-task is leaving money on the floor.</p>
+      <p><strong>Context Decay (#2)</strong> has asymmetric upside as the codebase grows.</p>
+      <p>Put niche items (Dead Code, Rename Safety) into on-demand skills rather than permanent config.</p>
+    </div>
+  </details>
+  <details class="advisor-card">
+    <summary>👁️ The Outsider</summary>
+    <div class="content">
+      <p>Reading this cold: you're asking whether to add rules to fix Claude, but haven't shown evidence that Claude is actually breaking in these specific ways.</p>
+      <p>"Edit Safety Protocol" — is Claude currently corrupting files? "Context Decay" — actually causing bugs? "Dead Code Cleanup" — that's a workflow preference dressed as safety protocol.</p>
+      <p>One-Word Mode solves real observable friction. Senior Dev Override risks silent reorganizations.</p>
+      <p>Before merging anything, check the lessons-learned file — that's where actual problems live, not a generic repo from someone else's context.</p>
+    </div>
+  </details>
+  <details class="advisor-card full-width">
+    <summary>⚡ The Executor</summary>
+    <div class="content">
+      <p>Merge exactly 4: Failure Recovery (#5) as one sentence. Verification Gate (#6) by strengthening existing rule. Context Decay (#2) as one line. context-log.md (#7) into tasks/ directory.</p>
+      <p>Skip the other 6. Edit Safety is redundant. Phased Execution slows a solo dev. Dead Code Cleanup is a one-time audit. Rename Safety too niche. One-Word Mode doesn't affect output quality. Senior Dev Override is a vibe, not a directive.</p>
+      <p>Total additions: approximately 6 lines across 2 files.</p>
+    </div>
+  </details>
+</div>
+
+<!-- PEER REVIEW HIGHLIGHTS (COLLAPSIBLE) -->
+<details style="margin-top: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+  <summary style="padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 15px;">Peer Review Highlights</summary>
+  <div style="padding: 16px; font-size: 14px; border-top: 1px solid #e2e8f0;">
+    <p><strong>Strongest response:</strong> Outsider (D) and First Principles (B) tied — both anchored the decision in evidence rather than theory. The Executor (E) was praised for operational clarity but criticized for not justifying selections.</p>
+    <p><strong>Biggest blind spot:</strong> Expansionist's advocacy for Senior Dev Override without addressing conflict with Plan Before Code gate.</p>
+    <p><strong>Unanimous finding:</strong> All 5 reviewers independently flagged that <code>tasks/lessons.md</code> should have been read BEFORE the council deliberated. The actual failure history was on disk and nobody consulted it. Post-council validation confirmed: lessons.md validates #5 and #8 strongly, #2 indirectly, and contradicts #3 and #10.</p>
+  </div>
+</details>
+
+<div class="footer">
+  <p>Council convened: 2026-04-01 09:46 UTC | Project: ClipFlow | Topic: fakegurus-claude-md config merge</p>
+  <p>5 advisors &times; independent analysis &times; anonymized peer review &times; chairman synthesis</p>
+</div>
+
+</body>
+</html>

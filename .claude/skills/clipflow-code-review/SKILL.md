@@ -28,7 +28,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] All store subscriptions use selectors: `useStore((s) => s.field)`
 - [ ] No `getState()` in render paths
 - [ ] Hooks reference values declared ABOVE them (no TDZ)
-- [ ] After renaming a variable, grep for ALL old references
+- [ ] **Rename safety:** After renaming ANY variable, function, or export — search ALL 6 categories for the old name: (1) direct calls, (2) type-level references, (3) string literals, (4) dynamic imports, (5) re-exports/barrel files, (6) test files/mocks. Assume grep missed something.
 
 ### 5. CSS/Layout Sanity
 - [ ] ResizablePanel `defaultSize` values sum to exactly 100%

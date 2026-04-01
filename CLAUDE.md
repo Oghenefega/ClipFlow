@@ -11,6 +11,10 @@ ClipFlow is a **commercial software product** being built for public release wit
 - Platform publishing: built for "publish on behalf of users" — each user connects their own social accounts via OAuth
 - Platform scope: YouTube, TikTok, Instagram, Facebook, X (Twitter), Kick, and others added over time
 
+## Interaction Shortcuts
+
+When the user responds with "yes", "do it", "go", "proceed", or similar single-word confirmations — execute the last proposed plan immediately. No restatement, no recap, no asking for clarification. They've already approved it.
+
 ## Git Workflow
 
 Commit and push directly to master. No PRs, no feature branches.
