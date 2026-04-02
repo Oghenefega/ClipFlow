@@ -298,6 +298,13 @@
 - **Why:** Reused a store boolean for dropdown open/close instead of using local component state.
 - **Rule:** UI visibility (dropdown open, panel expanded) must ALWAYS use local `useState`. Store state must ONLY control feature behavior (what gets stripped, what gets shown). If a single boolean serves two purposes, it WILL break one of them.
 
+## Preload Script is Fatal — Never Add Unguarded Requires
+
+### Any uncaught error in preload.js kills the entire IPC bridge
+- **Mistake:** Added `require("@sentry/electron/preload")` at the top of preload.js without a try/catch. The module failed to resolve, which crashed the preload script entirely. Since `contextBridge.exposeInMainWorld("clipflow", ...)` never ran, `window.clipflow` was `undefined` in the renderer — the app loaded as an empty shell with zero data.
+- **Why:** Assumed the npm-installed module would resolve cleanly in Electron's preload context. Did not verify with DevTools after the change. Multiple `npm start` launches showed "no errors" in the terminal but the preload failure only surfaces in the renderer's DevTools console.
+- **Rule:** NEVER add a bare `require()` to preload.js. Always wrap third-party requires in try/catch. The preload script is the single point of failure for the entire renderer — if it dies, the app is a shell. After ANY preload.js change, open DevTools and check for red errors before declaring success.
+
 ## Timeline Split Operations
 
 ### Always handle null/undefined endSec in time comparisons

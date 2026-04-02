@@ -1,5 +1,6 @@
 // Sentry preload — sets up IPC bridge for renderer → main error reporting
-require("@sentry/electron/preload");
+// Wrapped in try/catch so a Sentry failure never kills the entire preload bridge
+try { require("@sentry/electron/preload"); } catch (_) {}
 
 const { contextBridge, ipcRenderer } = require("electron");
 
