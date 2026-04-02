@@ -530,3 +530,7 @@
 ### Common phrases should be kept together (Subtitle Segmentation — Future Rule)
 - **Observation:** User noticed "as always" split across segments. This is a phrase the user says often and should always be grouped as a unit.
 - **Rule (for future implementation):** Certain common multi-word phrases should be treated as atomic units that never split across segments. Examples: "as always", "of course", "by the way", "at least", "right now", "let's go". Could be implemented as a phrase dictionary checked during chunking — if upcoming words form a known phrase, group them together even if it means a shorter previous segment. Similar to the repeated-phrase detection but for common English phrases rather than repetition.
+
+### Never penalize silence in Whisper flags (Gaming Audio)
+- **Observation:** Added `no_speech_threshold=0.6` to Whisper which would skip transcribing audio chunks with >60% silence. User correctly pointed out that gaming content regularly has long silences (boss fights, stealth, exploration) followed by loud reactions — this flag would drop those moments entirely, losing the celebration shout after a quiet boss fight.
+- **Rule:** Never add Whisper flags that penalize silence. Gaming audio has legitimate long silences. Only use flags that target repetition/hallucination specifically (`condition_on_previous_text=False`, `compression_ratio_threshold`, `log_prob_threshold`).

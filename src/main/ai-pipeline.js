@@ -611,6 +611,34 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
 
     logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully`);
 
+    // ============ Stage 7b: Per-Clip Retranscription ============
+    // Source-level transcription can hallucinate on long gaming audio.
+    // Each clip is short (30-90s) — retranscribing directly on the clip audio
+    // produces far more accurate word-level subtitles with no slicing artifacts.
+    sendProgress("transcribing-clips", 95, "Retranscribing clips for accurate subtitles...");
+    logger.startStep("Clip Retranscription");
+    let retranscribeCount = 0;
+    for (let i = 0; i < project.clips.length; i++) {
+      const clip = project.clips[i];
+      if (!clip.filePath || !fs.existsSync(clip.filePath)) continue;
+      try {
+        const clipWav = clip.filePath.replace(/\.[^.]+$/, "-retranscribe.wav");
+        await ffmpeg.extractAudio(clip.filePath, clipWav, audioTrack);
+        const clipTranscription = await whisper.transcribe(clipWav, whisperOpts);
+        try { fs.unlinkSync(clipWav); } catch (_) {}
+        clip.transcription = clipTranscription;
+        retranscribeCount++;
+        const pct = 95 + Math.round(((i + 1) / project.clips.length) * 2);
+        sendProgress("transcribing-clips", pct, `Retranscribed clip ${i + 1}/${project.clips.length}`);
+      } catch (e) {
+        // Flag the clip so the user knows retranscription failed
+        clip.transcriptionFailed = true;
+        clip.transcriptionError = e.message;
+        logger.warn(`Clip ${i + 1} retranscription failed: ${e.message}`);
+      }
+    }
+    logger.endStep("Clip Retranscription", `${retranscribeCount}/${project.clips.length} clips retranscribed`);
+
     // ============ Stage 8: Save Project ============
     sendProgress("saving", 97, "Saving project...");
     logger.startStep("Save Project");

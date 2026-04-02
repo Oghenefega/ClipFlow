@@ -10,15 +10,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **AI titles/captions persisting between clips:** Generated titles, captions, and accepted/rejected state from one clip were leaking into the next when switching clips in the editor. Added `useAIStore.getState().reset()` to the clip-switching logic in `useEditorStore.initFromContext()`.
 - **Cloudflare AI Gateway 2009 Unauthorized on all requests:** The default gateway URL had a truncated Cloudflare account ID (29 chars instead of 32, missing `ef9` segment). Every gateway request hit a nonexistent endpoint. Fixed the stored URL default in `main.js`.
 - **Gateway BYOK auth conflict:** When using Cloudflare Provider Keys (BYOK), the app was sending both `x-api-key` and `cf-aig-authorization`, causing Cloudflare to reject requests. BYOK mode now sends only `cf-aig-authorization`; direct/passthrough mode sends only `x-api-key`.
+- **Delete project not allowing re-generation:** Deleting a project didn't clear the SQLite "done" status or electron-store doneRecordings entry. The `isDone()` check has three conditions; now all three are cleared on deletion via fileMetadataId lookup, project name fallback, and doneRecordings key matching. Added orphan reconciliation on project list load for files stuck from pre-fix deletions.
+- **"Unmark done" button missing on SQLite-status files:** Files marked as "done" by SQLite status (not manual mark) had no way to reset. Added an × button on the DONE badge that resets SQLite status to "renamed" and refreshes the file list.
+- **Subtitle/caption Y positions wrong in Projects preview:** Editor save code read `yPercent` from the wrong store (`subPos` legacy slider instead of `useLayoutStore.subYPercent`). Fixed save to read from layout store. Projects view now prefers template positions over saved clip values.
+- **Pop animation missing in Projects preview:** FALLBACK_TEMPLATE was missing animation fields (`animateOn`, `animateScale`, `animateGrowFrom`, `animateSpeed`). Added them and made animation config prefer the user's selected template over per-clip saved values.
+- **Subtitle timing drift in Projects preview:** Time updates used `timeupdate` event (~4Hz) causing words to be skipped. Replaced with `requestAnimationFrame` loop (~60Hz) matching the editor's approach. Also added `syncOffset` support from saved clip data.
+- **Whisper hallucination cascade ("Let's go" bug):** Whisper's `condition_on_previous_text=True` default caused hallucination loops on gaming audio — one hallucinated phrase would feed back into the next 30-second chunk and repeat for the entire recording. Set `condition_on_previous_text=False` so each chunk is transcribed independently.
 
 ### Added
+- **Per-clip retranscription in pipeline (Stage 7b):** After clips are cut, each clip gets its own fresh Whisper run on its short audio. Produces far more accurate subtitles than slicing from the source transcription. Stored in `clip.transcription` which the editor already prioritizes.
+- **Retranscription failure flag:** If per-clip retranscription fails, the clip is flagged with `transcriptionFailed: true` and `transcriptionError`. A red "⚠ Subs failed" badge appears in the Projects tab so the user knows which clips need manual re-transcription.
+- **Shared subtitle rendering engine:** Extracted pure functions (`buildSubtitleStyle`, `buildSubtitleShadows`, `buildCaptionStyle`, etc.) into `subtitleStyleEngine.js`. Both editor and Projects preview now use the same rendering logic, eliminating visual drift.
+- **Video pause on play another:** Playing a preview video in the Projects tab now pauses any other playing video via a module-level singleton ref.
 - **Three gateway routing modes:** Refactored Anthropic provider to support BYOK (cf-aig-authorization, no API key), passthrough (API key through gateway for logging/analytics), and direct (API key to Anthropic). Mode is determined by which Settings fields are populated.
 - **BYOK-only mode:** Users with Cloudflare Provider Keys no longer need a local Anthropic API key configured.
 - **Gateway error detection:** Cloudflare returns errors as JSON arrays, not Anthropic-style objects. Added proper detection, logging, and user-facing error messages for gateway-specific failures.
 - **HTTP status code logging:** All Anthropic API responses now log HTTP status codes and response size for debugging.
+- **Subtitle segmentation spec v1.2:** Added Rules 6 (Never End on "I"), 7 (Comma Flush), 8 (Atomic Phrase Protection), linger duration, updated constants, 6 conflict resolution entries, and 4 regression test cases.
 
 ### Changed
 - **Settings sections all start collapsed:** All 6 collapsible sections in Settings now start collapsed on fresh launch instead of a mix of expanded/collapsed. Expanded/collapsed state persists across tab switches within the same session (lifted state from SettingsView to App.js).
+- **Editor save now persists layout positions correctly:** `yPercent` for subtitles and captions is read from `useLayoutStore` (the actual rendered position) instead of the legacy subtitle store slider. `syncOffset` is also persisted for Projects preview sync.
 
 ## [Unreleased] — 2026-04-01
 

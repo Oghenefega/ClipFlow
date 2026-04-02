@@ -100,7 +100,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     })();
   }, []);
 
-  // Load done files + collapsed state from store on mount
+  // Load done files + collapsed state from store (re-read when projects change,
+  // e.g. after project deletion clears a doneRecordings entry in main process)
+  const projectCount = localProjects.length;
   useEffect(() => {
     (async () => {
       if (window.clipflow?.storeGet) {
@@ -110,7 +112,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         if (savedCollapsed && typeof savedCollapsed === "object") setCollapsed(savedCollapsed);
       }
     })();
-  }, []);
+  }, [projectCount]);
 
   // Persist done files to store
   const persistDone = useCallback(async (next) => {
@@ -251,6 +253,16 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const next = { ...doneFiles };
     delete next[fileName];
     persistDone(next);
+  };
+
+  // Reset a file's SQLite status from "done" back to "renamed" so it can be re-generated
+  const resetFileDone = async (fileId) => {
+    if (window.clipflow?.fileMetadataUpdate) {
+      await window.clipflow.fileMetadataUpdate(fileId, { status: "renamed" });
+      // Refresh file list from DB
+      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+      if (Array.isArray(rows)) setFiles(rows);
+    }
   };
 
   // --- Group files by month (from date column) ---
@@ -997,11 +1009,19 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
                         {f.status === "done" && !project && !doneFiles[f.current_filename] && (
                           <span style={{
-                            display: "inline-flex", padding: "1px 5px", borderRadius: 4,
+                            display: "inline-flex", alignItems: "center", gap: 3,
+                            padding: "1px 5px", borderRadius: 4,
                             fontSize: 8, fontWeight: 700, textTransform: "uppercase",
                             color: T.green, background: "rgba(52,211,153,0.12)", flexShrink: 0,
                           }}>
                             DONE
+                            <span
+                              onClick={(e) => { e.stopPropagation(); resetFileDone(f.id); }}
+                              title="Reset — allow re-generation"
+                              style={{ cursor: "pointer", color: T.textMuted, fontSize: 10, fontWeight: 700, marginLeft: 2, lineHeight: 1 }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = T.red; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; }}
+                            >{"\u00d7"}</span>
                           </span>
                         )}
 

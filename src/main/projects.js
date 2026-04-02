@@ -141,17 +141,30 @@ function listProjects(watchFolder) {
 
 /**
  * Delete a project and all its files.
+ * Returns the fileMetadataId so the caller can reset the recording's status.
  * @param {string} watchFolder
  * @param {string} projectId
- * @returns {{ success: true }}
+ * @returns {{ success: true, fileMetadataId?: string }}
  */
 function deleteProject(watchFolder, projectId) {
   const projectDir = path.join(getProjectsRoot(watchFolder), projectId);
   if (!fs.existsSync(projectDir)) return { success: true };
 
+  // Read project.json before deleting to get identifiers for status reset
+  let fileMetadataId = null;
+  let projectName = null;
+  try {
+    const projectJsonPath = path.join(projectDir, "project.json");
+    if (fs.existsSync(projectJsonPath)) {
+      const project = JSON.parse(fs.readFileSync(projectJsonPath, "utf-8"));
+      fileMetadataId = project.fileMetadataId || null;
+      projectName = project.name || null;
+    }
+  } catch (e) { /* non-critical — proceed with deletion */ }
+
   // Recursive delete
   fs.rmSync(projectDir, { recursive: true, force: true });
-  return { success: true };
+  return { success: true, fileMetadataId, projectName };
 }
 
 /**

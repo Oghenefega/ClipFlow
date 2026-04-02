@@ -2,6 +2,7 @@ import { create } from "zustand";
 import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
+import useLayoutStore from "./useLayoutStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
@@ -870,6 +871,7 @@ const useEditorStore = create((set, get) => ({
       const subState = useSubtitleStore.getState();
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
+      const layState = useLayoutStore.getState();
       const { audioSegments } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
@@ -887,17 +889,18 @@ const useEditorStore = create((set, get) => ({
         glowOffsetX: subState.glowOffsetX, glowOffsetY: subState.glowOffsetY,
         bgOn: subState.bgOn, bgOpacity: subState.bgOpacity, bgColor: subState.bgColor,
         bgPaddingX: subState.bgPaddingX, bgPaddingY: subState.bgPaddingY, bgRadius: subState.bgRadius,
-        yPercent: subState.subPos != null ? (subState.subPos / 10) * 100 : 80,
+        yPercent: layState.subYPercent ?? 80,
         highlightColor: subState.highlightColor, punctuationRemove: subState.punctuationRemove,
         animateOn: subState.animateOn, animateScale: subState.animateScale,
         animateGrowFrom: subState.animateGrowFrom, animateSpeed: subState.animateSpeed,
         segmentMode: subState.segmentMode,
+        syncOffset: subState.syncOffset || 0,
       };
       const captionStyle = {
         fontFamily: capState.fontFamily, fontWeight: capState.fontWeight || 900,
         fontSize: capState.fontSize, bold: capState.bold, italic: capState.italic,
         color: capState.color, lineSpacing: capState.lineSpacing,
-        yPercent: capState.yPercent ?? 15,
+        yPercent: layState.capYPercent ?? 15,
       };
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,

@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": false
-  },
   "permissions": {
     "allow": [
       "Bash(npm *)",
@@ -22,12 +19,17 @@
       "Grep",
       "Bash(xargs wc:*)",
       "Bash(grep -rn \"setTimeout.*[0-9]\\\\{3,\\\\}\" src/renderer/ --include=\"*.js\" --include=\"*.jsx\")",
-      "Bash(gh project:*)"
+      "Bash(gh project:*)",
+      "mcp__Windows-MCP__Screenshot",
+      "Bash(taskkill //F //IM electron.exe)"
     ],
     "deny": [
       "Bash(rm -rf *)",
       "Read(./.env*)",
       "Read(./.*secret*)"
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false
   }
 }

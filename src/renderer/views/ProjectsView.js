@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 import { buildPreviewSegments, findActiveWord, stripPunct } from "../editor/utils/buildPreviewSubtitles";
+import { buildSubtitleShadows, buildSubtitleStyle, buildCaptionStyle } from "../editor/utils/subtitleStyleEngine";
 
 // Pure helper — determine project game color
 const getGameColor = (p, gamesDb) => {
@@ -51,120 +52,43 @@ const fmtTimestamp = (sec) => {
 };
 
 // ============ TEMPLATE → CSS STYLE HELPERS ============
-// Convert hex + opacity → rgba string
-function _hexToRgba(hex, opacity) {
-  const c = (hex || "#000000").replace("#", "").padEnd(6, "0");
-  const r = parseInt(c.slice(0, 2), 16) || 0;
-  const g = parseInt(c.slice(2, 4), 16) || 0;
-  const b = parseInt(c.slice(4, 6), 16) || 0;
-  return `rgba(${r},${g},${b},${opacity / 100})`;
-}
+// All rendering logic delegated to shared subtitleStyleEngine.js
+// These thin wrappers adapt template shape to the engine's config shape
 
-// Build stroke text-shadow (ring of shadows around text)
-function _buildStroke(width, color, opacity, blur = 0, offX = 0, offY = 0) {
-  if (width <= 0) return "";
-  const rgba = _hexToRgba(color, opacity);
-  const shadows = [];
-  const steps = Math.max(16, Math.round(width * 6));
-  for (let i = 0; i < steps; i++) {
-    const angle = (2 * Math.PI * i) / steps;
-    const x = (Math.cos(angle) * width + offX).toFixed(1);
-    const y = (Math.sin(angle) * width + offY).toFixed(1);
-    shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
-  }
-  return shadows.join(", ");
-}
-
-// Build glow text-shadow
-function _buildGlow(color, opacity, intensity, blur, blend, offX = 0, offY = 0) {
-  const layers = [];
-  const layerCount = Math.max(1, Math.round(intensity / 25));
-  for (let i = 0; i < layerCount; i++) {
-    const layerBlur = blur * (0.5 + i * 0.5);
-    const layerOpacity = opacity * (1 - i * 0.15) * (blend / 100);
-    layers.push(`${offX}px ${offY}px ${layerBlur}px ${_hexToRgba(color, Math.max(5, layerOpacity))}`);
-  }
-  return layers.join(", ");
-}
-
-// Build all text-shadows from template style data
-function _buildAllShadows(s, sf) {
-  const parts = [];
-  // Stroke
-  if (s.strokeOn && s.strokeWidth > 0) {
-    const w = Math.max(0.3, (s.strokeWidth || 2) * sf * 0.5);
-    parts.push(_buildStroke(w, s.strokeColor || "#000", s.strokeOpacity ?? 100, (s.strokeBlur || 0) * sf * 0.3, (s.strokeOffsetX || 0) * sf * 0.5, (s.strokeOffsetY || 0) * sf * 0.5));
-  }
-  // Glow
-  if (s.glowOn) {
-    parts.push(_buildGlow(s.glowColor || "#fff", s.glowOpacity ?? 25, s.glowIntensity ?? 80, (s.glowBlur || 15) * sf * 0.4, s.glowBlend ?? 20, (s.glowOffsetX || 0) * sf * 0.5, (s.glowOffsetY || 0) * sf * 0.5));
-  }
-  // Shadow
-  if (s.shadowOn) {
-    parts.push(`${(s.shadowOffsetX || 4) * sf * 0.5}px ${(s.shadowOffsetY || 4) * sf * 0.5}px ${(s.shadowBlur || 8) * sf * 0.3}px ${_hexToRgba(s.shadowColor || "#000", s.shadowOpacity ?? 70)}`);
-  }
-  return parts.filter(Boolean).join(", ");
-}
-
-// Build CSS style object for subtitle overlay from template
 function buildSubPreviewStyle(tpl, containerWidth) {
-  const s = tpl?.subtitle || {};
-  const sf = containerWidth / 1080; // scale relative to 1080p base
-  const fontSize = Math.max(7, (s.fontSize || 52) * sf);
-  const shadows = _buildAllShadows(s, sf);
-  const style = {
-    fontFamily: `'${s.fontFamily || "Latina Essential"}', sans-serif`,
-    fontSize: `${fontSize}px`,
-    fontWeight: s.fontWeight || (s.bold ? 700 : 400),
-    fontStyle: s.italic ? "italic" : "normal",
-    color: s.subColor || "#ffffff",
-    textAlign: "center",
-    lineHeight: 1.2,
-    maxWidth: "95%",
-    wordBreak: "break-word",
-    textShadow: shadows || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-    textDecoration: s.underline ? "underline" : "none",
-  };
-  if (s.bgOn) {
-    style.background = _hexToRgba(s.bgColor || "#000", s.bgOpacity ?? 80);
-    style.padding = `${Math.max(1, (s.bgPaddingY || 8) * sf)}px ${Math.max(2, (s.bgPaddingX || 12) * sf)}px`;
-    style.borderRadius = `${Math.max(1, (s.bgRadius || 6) * sf)}px`;
+  try {
+    const s = tpl?.subtitle || {};
+    const sf = containerWidth / 1080;
+    const style = buildSubtitleStyle(s, sf);
+    // Projects preview overrides: tighter line height, max-width constrained
+    style.lineHeight = 1.2;
+    style.maxWidth = "95%";
+    delete style.width; // projects uses maxWidth, not full width
+    delete style.whiteSpace; // not needed for preview cards
+    // Apply text-shadow from engine's shadow builder
+    const { normal } = buildSubtitleShadows(s, sf);
+    style.textShadow = normal || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
+    return style;
+  } catch (err) {
+    console.error("[ProjectsView] buildSubPreviewStyle error:", err);
+    return { fontFamily: "'Latina Essential', sans-serif", fontSize: "12px", color: "#fff", textAlign: "center" };
   }
-  return style;
 }
 
-// Build CSS style object for caption overlay from template
 function buildCapPreviewStyle(tpl, containerWidth) {
-  const c = tpl?.caption || {};
-  const sf = containerWidth / 1080;
-  const fontSize = Math.max(6, (c.fontSize || 30) * 2.4 * sf);
-  const shadows = _buildAllShadows({
-    strokeOn: c.strokeOn, strokeWidth: c.strokeWidth, strokeColor: c.strokeColor,
-    strokeOpacity: c.strokeOpacity, strokeBlur: c.strokeBlur, strokeOffsetX: c.strokeOffsetX, strokeOffsetY: c.strokeOffsetY,
-    glowOn: c.glowOn, glowColor: c.glowColor, glowOpacity: c.glowOpacity,
-    glowIntensity: c.glowIntensity, glowBlur: c.glowBlur, glowBlend: c.glowBlend, glowOffsetX: c.glowOffsetX, glowOffsetY: c.glowOffsetY,
-    shadowOn: c.shadowOn, shadowColor: c.shadowColor, shadowOpacity: c.shadowOpacity,
-    shadowBlur: c.shadowBlur, shadowOffsetX: c.shadowOffsetX, shadowOffsetY: c.shadowOffsetY,
-  }, sf);
-  const style = {
-    fontFamily: `'${c.fontFamily || "Latina Essential"}', sans-serif`,
-    fontSize: `${fontSize}px`,
-    fontWeight: c.fontWeight || (c.bold ? 700 : 400),
-    fontStyle: c.italic ? "italic" : "normal",
-    color: c.color || "#ffffff",
-    textAlign: "center",
-    lineHeight: c.lineSpacing || 1.3,
-    maxWidth: "95%",
-    wordBreak: "break-word",
-    textShadow: shadows || `0 ${2 * sf}px ${8 * sf}px rgba(0,0,0,0.6)`,
-    textDecoration: c.underline ? "underline" : "none",
-  };
-  if (c.bgOn) {
-    style.background = _hexToRgba(c.bgColor || "#000", c.bgOpacity ?? 70);
-    style.padding = `${Math.max(1, (c.bgPaddingY || 8) * sf)}px ${Math.max(2, (c.bgPaddingX || 12) * sf)}px`;
-    style.borderRadius = `${Math.max(1, (c.bgRadius || 6) * sf)}px`;
+  try {
+    const c = tpl?.caption || {};
+    const sf = containerWidth / 1080;
+    const style = buildCaptionStyle(c, sf);
+    // Projects preview overrides: max-width constrained
+    style.maxWidth = "95%";
+    delete style.width;
+    delete style.whiteSpace;
+    return style;
+  } catch (err) {
+    console.error("[ProjectsView] buildCapPreviewStyle error:", err);
+    return { fontFamily: "'Latina Essential', sans-serif", fontSize: "10px", color: "#fff", textAlign: "center" };
   }
-  return style;
 }
 
 // Default template fallback (matches BUILTIN_TEMPLATE from templateUtils)
@@ -173,6 +97,8 @@ const FALLBACK_TEMPLATE = {
     fontFamily: "Latina Essential", fontWeight: 900, fontSize: 52, italic: true, bold: true, subColor: "#ffffff",
     strokeOn: true, strokeWidth: 7, strokeColor: "#000000", strokeOpacity: 100, strokeBlur: 0,
     glowOn: false, shadowOn: false, bgOn: false, yPercent: 80,
+    highlightColor: "#4cce8a", animateOn: false, animateScale: 1.2, animateGrowFrom: 0.8, animateSpeed: 0.2,
+    segmentMode: "3word", punctuationRemove: false,
   },
   caption: {
     fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff",
@@ -182,6 +108,9 @@ const FALLBACK_TEMPLATE = {
 };
 
 // ============ CLIP VIDEO PLAYER ============
+// Module-level ref: only one preview video plays at a time
+let _activeVideoRef = null;
+
 function ClipVideoPlayer({ clip, template }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -221,17 +150,21 @@ function ClipVideoPlayer({ clip, template }) {
   // Caption segments from saved clip data
   const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
 
+  // Apply syncOffset if the clip was saved from the editor with a timing adjustment
+  const syncOffset = clip.subtitleStyle?.syncOffset || 0;
+  const adjustedTime = currentTime - syncOffset;
+
   // Find active segment + word at current time
   const { seg: activeSeg, wordIdx: activeWordIdx } = useMemo(() => {
     if (!microSegments.length || !isPlaying) return { seg: null, wordIdx: -1 };
-    return findActiveWord(microSegments, currentTime);
-  }, [microSegments, currentTime, isPlaying]);
+    return findActiveWord(microSegments, adjustedTime);
+  }, [microSegments, adjustedTime, isPlaying]);
 
   // Find active caption at current time
   const activeCaption = useMemo(() => {
     if (!captions.length || !isPlaying) return null;
-    return captions.find(s => currentTime >= s.startSec && currentTime <= (s.endSec || Infinity));
-  }, [captions, currentTime, isPlaying]);
+    return captions.find(s => adjustedTime >= s.startSec && adjustedTime <= (s.endSec || Infinity));
+  }, [captions, adjustedTime, isPlaying]);
 
   // Pre-built base text style (font, stroke, shadow — NOT color, that's per-word)
   const subBaseStyle = useMemo(() => {
@@ -241,50 +174,64 @@ function ClipVideoPlayer({ clip, template }) {
     return buildCapPreviewStyle({ caption: capTplObj }, CONTAINER_W);
   }, [capTplObj]);
 
-  // Karaoke/animation config from template
-  const highlightColor = subTpl.highlightColor || "#39ff14";
+  // Karaoke/animation config — prefer template settings (user's selected template
+  // defines the intended look), fall back to per-clip saved values
+  const tplSub = tpl?.subtitle || {};
+  const highlightColor = tplSub.highlightColor || subTpl.highlightColor || "#39ff14";
   const normalColor = subTpl.subColor || "#ffffff";
-  const animateOn = subTpl.animateOn || false;
-  const animateScale = subTpl.animateScale || 1.2;
-  const animateSpeed = animateOn ? (subTpl.animateSpeed || 0.1) : 0.1;
+  const animateOn = tplSub.animateOn ?? subTpl.animateOn ?? false;
+  const animateScale = tplSub.animateScale || subTpl.animateScale || 1.2;
+  const animateSpeed = animateOn ? (tplSub.animateSpeed || subTpl.animateSpeed || 0.2) : 0.1;
 
-  // Build per-word shadow variants — active word gets glow swapped to highlightColor
+  // Build per-word shadow variants — shared engine handles both normal + active
   const subShadows = useMemo(() => {
-    const sf = CONTAINER_W / 1080;
-    const normal = _buildAllShadows(subTpl, sf);
-    // Active word: swap glow color to highlightColor (matches editor behavior)
-    const activeTpl = {
-      ...subTpl,
-      glowOn: subTpl.glowOn,
-      glowColor: highlightColor,
-    };
-    const active = _buildAllShadows(activeTpl, sf);
-    return {
-      normal: normal || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-      active: active || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-    };
+    try {
+      const sf = CONTAINER_W / 1080;
+      const config = { ...subTpl, highlightColor };
+      const { normal, active } = buildSubtitleShadows(config, sf);
+      const fallback = "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
+      return { normal: normal || fallback, active: active || fallback };
+    } catch (err) {
+      console.error("[ProjectsView] subShadows error:", err);
+      const fallback = "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
+      return { normal: fallback, active: fallback };
+    }
   }, [subTpl, highlightColor]);
 
-  // Position percentages
-  const subYPct = subTpl.yPercent ?? tpl?.subtitle?.yPercent ?? 80;
-  const capYPct = capTplObj.yPercent ?? tpl?.caption?.yPercent ?? 15;
+  // Position percentages — prefer template positions (layout concern, not per-clip style)
+  // Saved clip yPercent was historically wrong (read from wrong store), so template wins
+  const subYPct = tpl?.subtitle?.yPercent ?? subTpl.yPercent ?? 80;
+  const capYPct = tpl?.caption?.yPercent ?? capTplObj.yPercent ?? 15;
 
-  // Time update handler
+  // Metadata + external pause handlers
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    const onTimeUpdate = () => { if (!isSeeking) setCurrentTime(vid.currentTime); };
     const onDurationChange = () => setVideoDuration(vid.duration || 0);
     const onLoadedMetadata = () => setVideoDuration(vid.duration || 0);
-    vid.addEventListener("timeupdate", onTimeUpdate);
+    const onExternalPause = () => setIsPlaying(false);
     vid.addEventListener("durationchange", onDurationChange);
     vid.addEventListener("loadedmetadata", onLoadedMetadata);
+    vid.addEventListener("clipflow-paused", onExternalPause);
     return () => {
-      vid.removeEventListener("timeupdate", onTimeUpdate);
       vid.removeEventListener("durationchange", onDurationChange);
       vid.removeEventListener("loadedmetadata", onLoadedMetadata);
+      vid.removeEventListener("clipflow-paused", onExternalPause);
     };
-  }, [showVideo, isSeeking]);
+  }, [showVideo]);
+
+  // High-frequency time updates via rAF (matches editor's ~60Hz for smooth subtitle sync)
+  useEffect(() => {
+    if (!isPlaying) return;
+    let rafId;
+    const tick = () => {
+      const vid = videoRef.current;
+      if (vid && !isSeeking) setCurrentTime(vid.currentTime);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isPlaying, isSeeking]);
 
   const togglePlay = useCallback((e) => {
     // Don't toggle when clicking the seek bar
@@ -295,10 +242,18 @@ function ClipVideoPlayer({ clip, template }) {
       const vid = videoRef.current;
       if (!vid) return;
       if (vid.paused) {
+        // Pause any other playing preview video first
+        if (_activeVideoRef && _activeVideoRef !== vid && !_activeVideoRef.paused) {
+          _activeVideoRef.pause();
+          // Dispatch a custom event so the other player's React state updates
+          _activeVideoRef.dispatchEvent(new Event("clipflow-paused"));
+        }
+        _activeVideoRef = vid;
         vid.play().then(() => setIsPlaying(true)).catch(() => {});
       } else {
         vid.pause();
         setIsPlaying(false);
+        if (_activeVideoRef === vid) _activeVideoRef = null;
       }
     }, 50);
   }, [filePath]);
@@ -693,6 +648,18 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
             {fmtHMS(clip.startTime)} → {fmtHMS(clip.endTime)}
           </span>
 
+          {clip.transcriptionFailed && (
+            <span
+              title={`Retranscription failed: ${clip.transcriptionError || "unknown error"}. Subtitles may be inaccurate. Use Re-transcribe in the editor to retry.`}
+              style={{
+                display: "inline-flex", padding: "2px 7px", borderRadius: 4,
+                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                fontSize: 10, fontWeight: 700, color: "#ef4444",
+                fontFamily: T.mono, cursor: "default",
+              }}>
+              ⚠ Subs failed
+            </span>
+          )}
           {ca && <Badge color={T.green}>Approved</Badge>}
           {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}

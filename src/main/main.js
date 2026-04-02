@@ -1082,14 +1082,110 @@ ipcMain.handle("project:save", async (_, project) => {
 ipcMain.handle("project:list", async () => {
   try {
     const watchFolder = store.get("watchFolder");
-    return projects.listProjects(watchFolder);
+    const result = projects.listProjects(watchFolder);
+
+    // Reconciliation: reset orphaned "done" files whose projects no longer exist.
+    // This catches files stuck from deletions that happened before the cleanup fix.
+    try {
+      const db = database.getDb();
+      if (db && result.projects) {
+        const projectNames = new Set(result.projects.map(p => p.name));
+        const doneRows = database.toRows(db.exec("SELECT id, current_filename FROM file_metadata WHERE status = 'done'"));
+        let resetCount = 0;
+        const doneRecordings = store.get("doneRecordings") || {};
+        let doneChanged = false;
+        for (const row of doneRows) {
+          const baseName = row.current_filename.replace(/\.(mp4|mkv)$/i, "");
+          if (!projectNames.has(baseName)) {
+            db.run("UPDATE file_metadata SET status = 'renamed', updated_at = datetime('now') WHERE id = ?", [row.id]);
+            resetCount++;
+            // Also clear any stale doneRecordings entry
+            if (doneRecordings[row.current_filename]) {
+              delete doneRecordings[row.current_filename];
+              doneChanged = true;
+            }
+          }
+        }
+        if (resetCount > 0) {
+          database.save();
+          log.info(`Reconciliation: reset ${resetCount} orphaned "done" file(s) with no matching project`);
+        }
+        if (doneChanged) store.set("doneRecordings", doneRecordings);
+      }
+    } catch (reconcileErr) { log.warn("Reconciliation failed:", reconcileErr.message); }
+
+    return result;
   } catch (err) { return { error: err.message, projects: [] }; }
 });
 
 ipcMain.handle("project:delete", async (_, projectId) => {
   try {
     const watchFolder = store.get("watchFolder");
-    return projects.deleteProject(watchFolder, projectId);
+    const result = projects.deleteProject(watchFolder, projectId);
+    // Reset recording file status so it can be re-generated
+    // Two paths: (A) via fileMetadataId if stored, (B) via project name as fallback
+    try {
+      const db = database.getDb();
+      let filename = null;
+
+      // Path A: look up by fileMetadataId
+      if (result.fileMetadataId && db) {
+        const rows = database.toRows(db.exec("SELECT current_filename, status FROM file_metadata WHERE id = ?", [result.fileMetadataId]));
+        if (rows.length > 0) {
+          filename = rows[0].current_filename;
+          if (rows[0].status === "done") {
+            db.run("UPDATE file_metadata SET status = 'renamed', updated_at = datetime('now') WHERE id = ?", [result.fileMetadataId]);
+            database.save();
+          }
+        }
+      }
+
+      // Path B: fallback — find file by project name (name = filename without extension)
+      if (!filename && result.projectName && db) {
+        for (const ext of [".mp4", ".mkv"]) {
+          const candidate = result.projectName + ext;
+          const rows = database.toRows(db.exec("SELECT id, current_filename, status FROM file_metadata WHERE current_filename = ?", [candidate]));
+          if (rows.length > 0) {
+            filename = rows[0].current_filename;
+            if (rows[0].status === "done") {
+              db.run("UPDATE file_metadata SET status = 'renamed', updated_at = datetime('now') WHERE id = ?", [rows[0].id]);
+              database.save();
+            }
+            break;
+          }
+        }
+      }
+
+      // Clear doneRecordings entry in electron-store (isDone condition 2)
+      if (filename) {
+        const doneRecordings = store.get("doneRecordings") || {};
+        if (doneRecordings[filename]) {
+          delete doneRecordings[filename];
+          store.set("doneRecordings", doneRecordings);
+        }
+        result.clearedFilename = filename;
+      }
+
+      // Last resort: clear any doneRecordings key matching the project name
+      if (!filename && result.projectName) {
+        const doneRecordings = store.get("doneRecordings") || {};
+        let cleared = false;
+        for (const key of Object.keys(doneRecordings)) {
+          const baseName = key.replace(/\.(mp4|mkv)$/i, "");
+          if (baseName === result.projectName) {
+            delete doneRecordings[key];
+            result.clearedFilename = key;
+            cleared = true;
+          }
+        }
+        if (cleared) store.set("doneRecordings", doneRecordings);
+      }
+
+      if (filename || result.projectName) {
+        log.info(`Reset file status after project deletion: file=${filename || "?"}, project=${result.projectName || "?"}`);
+      }
+    } catch (dbErr) { log.warn("Failed to reset file status after project deletion:", dbErr.message); }
+    return result;
   } catch (err) { return { error: err.message }; }
 });
 

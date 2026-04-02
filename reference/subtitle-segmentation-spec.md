@@ -1,4 +1,4 @@
-# Subtitle Segmentation Spec v1.1
+# Subtitle Segmentation Spec v1.2
 
 This is the canonical definition of correct subtitle segmentation in ClipFlow. Every segmentation change must be validated against this spec. No exceptions.
 
@@ -143,7 +143,7 @@ Words must not appear on screen before they are spoken. The gap wall ensures thi
 
 ## Chunking Rules (Within Partitions)
 
-After hard walls have partitioned the word list, the chunking rules operate WITHIN each partition independently. Rules are listed in priority order — higher priority rules override lower ones.
+After hard walls have partitioned the word list, the chunking rules operate WITHIN each partition independently. Rules are listed in priority order — higher priority rules override lower ones. There are 8 rules total: Rules 1-5 were defined in v1.1, Rules 6-8 were added in v1.2.
 
 ### Rule 1: Repeated Phrase Detection (Highest Priority)
 
@@ -244,6 +244,68 @@ Input chunk:  ["Supercalifragilistic"]
 Output:       ["Supercalifragilistic"]  (keep as-is, let renderer handle)
 ```
 
+### Rule 6: Never End on "I"
+
+The word "I" almost always starts or continues a sentence ("I don't", "I think"). Leaving it dangling at the end of a subtitle segment looks wrong and reads unnaturally.
+
+If "I" would become the last word in a segment that already has 2+ words, flush the current chunk BEFORE adding "I" so it starts the next segment instead.
+
+Do NOT flush if the chunk is empty or has only 1 word — let "I" join naturally in short segments.
+
+```
+Input:  ["doesn't", "click,", "I", "don't", "know", "what's"]
+Output: ["doesn't click,"] ["I don't know"] ["what's"]
+         (NOT ["doesn't click, I"] ["don't know"] ["what's"])
+```
+
+**Interaction with comma flush (Rule 7):** In the example above, "click," triggers a comma flush (Rule 7) before Rule 6 can fire. When both would apply to the same boundary, comma flush wins because it runs first in the loop (the comma word is added and flushed, then "I" starts a fresh chunk). The result is the same either way — "I" starts the next segment.
+
+### Rule 7: Comma Flush
+
+A word ending with a comma (`,`) or semicolon (`;`) is a natural phrase-ender. After adding such a word to the current chunk, flush immediately. The comma/semicolon word becomes the LAST word of its segment, never the first word of the next one.
+
+This produces cleaner reading rhythm — commas mark natural pause points in speech, and flushing here keeps phrases intact.
+
+```
+Input:  ["gonna", "be", "playing", "some,", "you", "guessed", "it"]
+Output: ["gonna be"] ["playing some,"] ["you guessed"] ["it"]
+         ("some," ends a segment, never starts one)
+
+Input:  ["yes.", "well,", "I", "think"]
+Output: ["yes."] | WALL | ["well,"] ["I think"]
+         ("well," is a pause beat — flushes as a single-word segment)
+```
+
+**Note:** Commas do NOT create hard walls (Wall 1 only splits on `.` `!` `?`). Comma flush is a soft grouping hint within partitions. Whisper's comma placement is unreliable, but incorrect comma placement only causes suboptimal grouping — it never violates structural integrity.
+
+### Rule 8: Atomic Phrase Protection
+
+Certain common 2-word phrases should never be split across segments. If the current word and the next word form a known atomic phrase, and adding the current word would fill the chunk to max capacity (pushing the next word to a new segment), flush the current chunk BEFORE adding so the phrase stays together in the next segment.
+
+**Atomic phrase list:**
+```
+"as always", "of course", "by the way", "at least", "right now",
+"let's go", "you know", "I mean", "in fact", "so far",
+"at all", "no way", "oh my", "come on", "for real",
+"hold on", "watch this", "trust me", "believe me", "check this"
+```
+
+These are high-frequency gaming/streaming phrases that sound wrong when split. The list is intentionally short — only phrases where splitting is always wrong.
+
+```
+Input:  ["great", "and", "awesome", "as", "always", "today"]
+Output: ["great and"] ["awesome"] ["as always"] ["today"]
+         (NOT ["great and awesome"] ["as"] ["always today"])
+
+Input:  ["well", "yeah", "of", "course", "dude"]
+Output: ["well yeah"] ["of course"] ["dude"]
+         (NOT ["well yeah of"] ["course dude"])
+```
+
+**Interaction with repeated phrases (Rule 1):** If an atomic phrase like "let's go" also appears as a repeated phrase, Rule 1 handles it first (higher priority). The atomic phrase list includes "let's go" as a safety net for non-repeated occurrences.
+
+**Phrase matching is case-insensitive.** Whisper may capitalize inconsistently. The normalized (lowercased) form is compared against the list.
+
 ---
 
 ## Timing Rules
@@ -266,6 +328,30 @@ Auto-generated segments must have a duration of at least 0.3 seconds. If a segme
 - If still under 0.3s (extremely fast speech), keep as-is — don't merge with another segment
 
 This floor applies only to auto-generated output. The user may manually resize segments below 0.3s on the timeline.
+
+### Linger Duration
+
+After all gap closing and min-duration adjustments, extend each segment's end time by 0.4 seconds into the empty space following the last word. This prevents subtitles from vanishing the instant the last word ends — they linger briefly for readability.
+
+**Constraint:** A lingering segment must NEVER overlap the next segment's start time. The extended end is clamped to `min(endSec + 0.4, nextSegment.startSec)`.
+
+**Last segment:** The final segment in the sequence has no next segment to collide with — it always gets the full 0.4s linger.
+
+```
+Example — plenty of empty space:
+  Segment 1 words end at 0.8s, next segment starts at 3.0s
+  → Segment 1 end = 0.8 + 0.4 = 1.2s  (full linger)
+
+Example — tight spacing:
+  Segment 1 words end at 0.8s, next segment starts at 0.85s
+  → Segment 1 end = 0.85s  (clamped to avoid overlap)
+
+Example — last segment:
+  Segment 5 words end at 5.4s, no next segment
+  → Segment 5 end = 5.4 + 0.4 = 5.8s  (full linger)
+```
+
+**Processing order:** Linger runs AFTER gap closing and min-duration floor. It is the final timing adjustment.
 
 ### Word Timestamp Integrity
 
@@ -421,6 +507,60 @@ Output: ["I was just"] | ["chilling"]
 
 The 0.55s gap is under the 0.7s hard wall, so no partition. But it exceeds the 0.5s forward look — if "just" would be the 3rd word, flush the chunk before adding it. Since "just" is the 3rd word here, flush ["I was just"], then "chilling" starts a new chunk.
 
+### Test 10: Never End on "I"
+
+```
+Input words:  ["doesn't", "click,", "I", "don't", "know", "what's"]
+              (continuous speech, no significant gaps)
+
+WRONG output: ["doesn't click, I"] ["don't know"] ["what's"]
+RIGHT output: ["doesn't click,"] ["I don't know"] ["what's"]
+```
+
+"I" must never dangle at the end of a multi-word segment. Here "click," triggers a comma flush (Rule 7) first, then "I" starts the next chunk naturally. Even without the comma, Rule 6 would flush before adding "I" to a 2+ word chunk.
+
+### Test 11: Comma Flush
+
+```
+Input words:  ["gonna", "be", "playing", "some,", "you", "guessed", "it"]
+              (continuous speech, no significant gaps)
+
+WRONG output: ["gonna be playing"] ["some, you guessed"] ["it"]
+RIGHT output: ["gonna be"] ["playing some,"] ["you guessed"] ["it"]
+```
+
+"some," ends with a comma — it must be the last word of its segment, never the first word of the next. The comma triggers an immediate flush after the word is added.
+
+### Test 12: Atomic Phrase Protection
+
+```
+Input words:  ["great", "and", "awesome", "as", "always", "today"]
+              (continuous speech, no significant gaps)
+
+WRONG output: ["great and awesome"] ["as"] ["always today"]
+RIGHT output: ["great and"] ["awesome"] ["as always"] ["today"]
+```
+
+"as always" is an atomic phrase. Without Rule 8, "awesome" would fill the chunk to 3 words, pushing "as" and "always" into separate segments. Rule 8 detects that "as" + "always" form an atomic pair and flushes ["great and"] before adding "awesome", keeping "as always" together.
+
+### Test 13: Linger Duration
+
+```
+Input words:  ["let's", "go", "baby"]
+              last word ends at 0.8s, next word at 3.0s
+
+Output: Segment 1 endSec = 1.2  (0.8 + 0.4 linger, next segment at 3.0 — no clamping needed)
+```
+
+```
+Input words:  ["I'm", "that", "guy", "baby"]
+              "guy" ends at 0.8s, "baby" starts at 0.85s
+
+Output: Segment 1 endSec = 0.85  (0.8 + 0.4 = 1.2 would overlap next at 0.85 — clamped)
+```
+
+Linger extends segments by 0.4s into empty space for readability, but never encroaches on the next segment's start time.
+
 ---
 
 ## Conflict Resolution Table
@@ -438,8 +578,13 @@ When two rules could fire on the same word or span, this table declares the winn
 | Filler word at start of partition | Filler isolation vs chunk start | **Filler isolated** | Filler creates its own 1-word segment. Next word starts a new chunk. |
 | Filler in forward-look gap | Filler isolation vs forward look | **Filler isolated** | Rule 2 (filler) has higher priority than Rule 3 (forward look). "um" is always its own segment, even if it sits in a 0.5-0.69s gap. |
 | Short filler vs min duration | Filler isolation vs 0.3s floor | **Both apply** | Filler gets its own segment (Rule 2), then min-duration extends its end time forward (timing rule). No conflict — rules apply in sequence. |
+| Comma word + "I" next | Comma flush (Rule 7) vs never-end-on-I (Rule 6) | **Both produce same result** | Comma flush fires first (word is added then flushed). "I" then starts a fresh chunk. Rule 6 would also flush before "I" — but comma flush already did the work. No conflict in practice. |
+| Atomic phrase at chunk boundary | Atomic phrase (Rule 8) vs max words (Rule 4) | **Atomic phrase wins** | Rule 8 checks BEFORE adding the current word. If the phrase would be split by the max-word boundary, Rule 8 flushes early so the phrase stays together in the next segment. |
+| Atomic phrase + comma | Atomic phrase (Rule 8) vs comma flush (Rule 7) | **Both apply sequentially** | Rule 8 may flush before adding the first word of the phrase. Rule 7 then flushes after the comma word if the phrase contains one. No conflict — different points in the loop. |
+| "I" at start of chunk | Never-end-on-I (Rule 6) vs chunk start | **No conflict** | Rule 6 only fires when chunk has 2+ words. "I" at the start of a chunk (0-1 words) joins normally. |
+| Linger vs gap closing | Linger vs silence gap threshold | **Sequential — no conflict** | Gap closing runs first (Phase 3a), linger runs last (Phase 3c). Linger extends the already-adjusted end time. |
 
-**General principle:** Hard walls always win (they run first, structurally). Within partitions, rules are evaluated in numbered priority order — if Rule 1 handles a word, Rules 2-5 don't touch it.
+**General principle:** Hard walls always win (they run first, structurally). Within partitions, rules are evaluated in numbered priority order — if Rule 1 handles a word, Rules 2-8 don't touch it.
 
 ---
 
@@ -453,6 +598,8 @@ When two rules could fire on the same word or span, this table declares the winn
 | FORWARD_LOOK_GAP | 0.5s | Gap after current word that triggers early flush (within partitions only) |
 | SILENCE_GAP_THRESHOLD | 0.15s | Gaps smaller than this are closed between segments |
 | MIN_DISPLAY_DURATION | 0.3s | Minimum auto-generated segment duration |
+| LINGER_DURATION | 0.4s | Extend segment end into empty space after last word (never overlap next segment) |
+| ATOMIC_PHRASES | (set of 20) | 2-word phrases that must never be split across segments (see Rule 8) |
 
 ---
 

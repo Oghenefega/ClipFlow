@@ -5,6 +5,13 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import {
+  hexToRgba as _hexToRgba,
+  buildStrokeShadows as _buildStrokeShadows,
+  buildGlowShadow as _buildGlowShadow,
+  buildAllShadows as _buildAllShadows,
+  stripPunctuation,
+} from "../utils/subtitleStyleEngine";
+import {
   Maximize,
   ChevronDown,
   Minus,
@@ -883,83 +890,25 @@ export default function PreviewPanelNew() {
   // Scale proportionally to actual canvas width
   const scaleFactor = canvasWidth / 1080;
 
-  // ── Helper: parse hex to rgba string ──
-  const hexToRgba = useCallback((hex, opacity) => {
-    const c = hex || "#000000";
-    const r = parseInt(c.slice(1, 3), 16) || 0;
-    const g = parseInt(c.slice(3, 5), 16) || 0;
-    const b = parseInt(c.slice(5, 7), 16) || 0;
-    return `rgba(${r},${g},${b},${opacity / 100})`;
-  }, []);
+  // ── Helper: parse hex to rgba string (delegates to shared engine) ──
+  const hexToRgba = useCallback((hex, opacity) => _hexToRgba(hex, opacity), []);
 
-  // Generate outside stroke via multi-ring text-shadow (adaptive point count for smooth edges)
-  const buildStrokeShadows = useCallback((width, colorHex, opacity, blur = 0, offX = 0, offY = 0) => {
-    if (width <= 0) return "";
-    const rgba = hexToRgba(colorHex, opacity);
-    const shadows = [];
-    // Adaptive: more points for larger widths to avoid jagged edges
-    const steps = Math.max(24, Math.round(width * 8));
-    // Multiple rings from 40% to 100% width for solid fill (no gaps)
-    const rings = width > 3 ? 3 : width > 1 ? 2 : 1;
-    for (let ring = 1; ring <= rings; ring++) {
-      const r = width * (ring / rings);
-      for (let i = 0; i < steps; i++) {
-        const angle = (i / steps) * Math.PI * 2;
-        const x = (Math.cos(angle) * r + offX).toFixed(2);
-        const y = (Math.sin(angle) * r + offY).toFixed(2);
-        shadows.push(`${x}px ${y}px ${blur}px ${rgba}`);
-      }
-    }
-    return shadows.join(", ");
-  }, [hexToRgba]);
+  // Generate outside stroke via multi-ring text-shadow (delegates to shared engine)
+  const buildStrokeShadows = useCallback(
+    (width, colorHex, opacity, blur = 0, offX = 0, offY = 0) =>
+      _buildStrokeShadows(width, colorHex, opacity, blur, offX, offY),
+    []
+  );
 
-  // Generate glow via text-shadow (large soft halo)
-  const buildGlowShadow = useCallback((colorHex, opacity, intensity, blur, blend, offX, offY, sf) => {
-    const scaledBlur = blur * sf * 0.5;
-    const scaledIntensity = intensity / 100;
-    const effectiveOpacity = (opacity / 100) * (blend / 100 + (1 - blend / 100) * scaledIntensity);
-    const rgba = hexToRgba(colorHex, effectiveOpacity * 100);
-    const ox = (offX * sf * 0.5).toFixed(1);
-    const oy = (offY * sf * 0.5).toFixed(1);
-    const layers = Math.max(1, Math.round(scaledIntensity * 3));
-    const parts = [];
-    for (let i = 0; i < layers; i++) {
-      parts.push(`${ox}px ${oy}px ${scaledBlur}px ${rgba}`);
-    }
-    return parts.join(", ");
-  }, [hexToRgba]);
+  // Generate glow via text-shadow (delegates to shared engine)
+  const buildGlowShadow = useCallback(
+    (colorHex, opacity, intensity, blur, blend, offX, offY, sf) =>
+      _buildGlowShadow(colorHex, opacity, intensity, blur, blend, offX, offY, sf),
+    []
+  );
 
-  // ── Build unified text-shadow respecting effect order ──
-  const buildAllShadows = useCallback((opts) => {
-    const { sf, stroke, glow: glowOpts, shadow: shadowOpts, order } = opts;
-    // Render in reverse order: last in array = closest to text (drawn last by CSS)
-    // So we iterate in order and CSS paints first entries on top
-    const builders = {
-      shadow: () => {
-        if (!shadowOpts.on) return "";
-        const scaledBlur = shadowOpts.blur * sf * 0.5;
-        const ox = (shadowOpts.offX * sf * 0.5).toFixed(1);
-        const oy = (shadowOpts.offY * sf * 0.5).toFixed(1);
-        return `${ox}px ${oy}px ${scaledBlur}px ${hexToRgba(shadowOpts.color, shadowOpts.opacity)}`;
-      },
-      glow: () => {
-        if (!glowOpts.on) return "";
-        return buildGlowShadow(glowOpts.color, glowOpts.opacity, glowOpts.intensity, glowOpts.blur, glowOpts.blend, glowOpts.offX, glowOpts.offY, sf);
-      },
-      stroke: () => {
-        if (!stroke.on) return "";
-        const scaledW = Math.max(0.5, stroke.width * sf * 0.5);
-        const scaledBlur = stroke.blur * sf * 0.3;
-        return buildStrokeShadows(scaledW, stroke.color, stroke.opacity, scaledBlur, stroke.offX * sf * 0.5, stroke.offY * sf * 0.5);
-      },
-      background: () => "", // background is handled via CSS background, not text-shadow
-    };
-    // CSS text-shadow: first shadow listed is drawn on top (closest to text)
-    // So the effect at index 0 in order should appear on top = listed first
-    const effectOrder = order || ["glow", "stroke", "shadow", "background"];
-    const parts = effectOrder.map(key => builders[key] ? builders[key]() : "").filter(Boolean);
-    return parts.join(", ");
-  }, [hexToRgba, buildStrokeShadows, buildGlowShadow]);
+  // ── Build unified text-shadow respecting effect order (delegates to shared engine) ──
+  const buildAllShadows = useCallback((opts) => _buildAllShadows(opts), []);
 
   // Build subtitle text style (scales proportionally with preview canvas)
   // textShadow is NOT included here — it's applied per-word so active word can have highlight-colored glow
@@ -1058,23 +1007,8 @@ export default function PreviewPanelNew() {
     captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionShadowOffsetX, captionShadowOffsetY,
     scaleFactor, hexToRgba, buildAllShadows, captionEffectOrder]);
 
-  // Strip punctuation from a word based on per-character config
-  const stripPunct = useCallback((word) => {
-    if (!word) return word;
-    const rm = punctuationRemove || {};
-    // Check if any removal is active
-    const hasAny = Object.values(rm).some(Boolean);
-    if (!hasAny) return word;
-    let result = word;
-    if (rm.ellipsis) result = result.replace(/\.\.\./g, "");
-    if (rm.period) result = result.replace(/\./g, "");
-    if (rm.comma) result = result.replace(/,/g, "");
-    if (rm.question) result = result.replace(/\?/g, "");
-    if (rm.exclamation) result = result.replace(/!/g, "");
-    if (rm.semicolon) result = result.replace(/;/g, "");
-    if (rm.colon) result = result.replace(/:/g, "");
-    return result;
-  }, [punctuationRemove]);
+  // Strip punctuation from a word (delegates to shared engine)
+  const stripPunct = useCallback((word) => stripPunctuation(word, punctuationRemove), [punctuationRemove]);
 
   // Build character-limit chunks: instead of fixed 3-word chunks, group words
   // until the line exceeds ~20 characters. Long words get fewer per line.

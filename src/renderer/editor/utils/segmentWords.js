@@ -1,13 +1,13 @@
 /**
  * Subtitle Segmentation — Pure Function
  *
- * Canonical implementation per subtitle-segmentation-spec v1.1.
+ * Canonical implementation per subtitle-segmentation-spec v1.2.
  * Input: word[] with timestamps → Output: segment[]
  *
  * No Zustand, no React, no side effects.
  */
 
-// ── Constants (from spec v1.1) ──
+// ── Constants (from spec v1.2) ──
 const MAX_WORDS = 3;
 const MAX_CHARS = 20;
 const PAUSE_SPLIT_THRESHOLD = 0.7;   // seconds — hard wall

@@ -554,6 +554,10 @@ def main():
         print_progress(20, "Transcribing...")
         transcribe_kwargs = {
             "language": args.language,
+            # Anti-hallucination: prevent Whisper from conditioning on its own
+            # previous output, which causes repeated phrases (e.g. "Let's go."
+            # echoed across silent/unclear sections of gaming audio)
+            "condition_on_previous_text": False,
         }
         if args.initial_prompt:
             transcribe_kwargs["initial_prompt"] = args.initial_prompt
