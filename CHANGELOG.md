@@ -6,7 +6,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-01
 
+### Added
+- **Sentry error tracking (@sentry/electron v7.10.0):** Remote crash reporting in both main and renderer processes. `Sentry.init()` runs before all other code in main.js and before React mounts in index.js. New `AppErrorBoundary` wraps the entire app and reports caught React errors to Sentry with a user-facing "Reload App" button. Existing `EditorErrorBoundary` now also reports via `Sentry.captureException()`. Removed `electronLog.errorHandler.startCatching()` so Sentry is the sole crash handler; electron-log remains the local file-based diagnostic logger.
+- **PostHog product analytics (posthog-js):** Tracks 7 custom events (`clipflow_tab_changed`, `clipflow_pipeline_started`, `clipflow_pipeline_completed`, `clipflow_pipeline_failed`, `clipflow_clip_approved`, `clipflow_clip_rejected`, `clipflow_publish_triggered`) with no PII. Stable device ID generated on first launch via electron-store UUID and used with `posthog.identify()` for consistent cross-session tracking. Autocapture and pageview capture disabled (Electron SPA generates noise). Event queue flushed on quit via `posthog.shutdown()`.
+- **Analytics opt-out toggle:** "Send anonymous usage data" toggle in Settings > Diagnostics. Persists to electron-store and calls `posthog.opt_out_capturing()` / `posthog.opt_in_capturing()` immediately. Defaults to enabled.
+
 ### Fixed
+- **Preload script crash from @sentry/electron/preload:** The bare `require("@sentry/electron/preload")` failed to resolve in Electron's preload context, crashing the entire preload script and preventing `window.clipflow` from being exposed — making the app an empty shell with no data. Wrapped in try/catch so Sentry gracefully falls back to protocol mode while the IPC bridge loads normally.
 - **Audio segment delete/trim now recuts the video file:** Deleting or left-trimming audio segments previously shifted timeline timestamps but never recut the actual video, causing the `<video>` element to show the wrong section (first N seconds instead of the remaining content). All three left-shift operations (delete, ripple delete, drag-trim) now trigger an FFmpeg recut via `recutClip` IPC, updating clip metadata, source boundaries, and `videoVersion` for cache-bust reload. Also fixed `_trimToAudioBounds` to always sync playback duration to final audio bounds.
 
 ### Added
