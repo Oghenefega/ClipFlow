@@ -166,7 +166,7 @@ const store = new Store({
     localProjects: [],
     renameHistory: [],
     anthropicApiKey: "",
-    gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
+    gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
     gatewayAuthToken: "",
     youtubeClientId: "",
     youtubeClientSecret: "",

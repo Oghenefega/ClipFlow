@@ -39,6 +39,7 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().clearAll();
     useCaptionStore.getState().initFromClip(null);
     usePlaybackStore.getState().reset();
+    try { require("./useAIStore").default.getState().reset(); } catch (e) { /* lazy import — avoid cycle */ }
     set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [] });
 
     // Load full project via IPC — localProjects are summaries without clips

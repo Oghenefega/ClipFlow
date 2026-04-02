@@ -45,7 +45,8 @@ function anthropicRequest(apiKey, body, opts = {}) {
     let path = DIRECT_PATH;
     let port;
 
-    if (gateway && gateway.url && gateway.authToken) {
+    // Route through gateway when URL is configured
+    if (gateway && gateway.url) {
       try {
         const parsed = new URL(gateway.url.replace(/\/+$/, ""));
         hostname = parsed.hostname;
@@ -56,36 +57,48 @@ function anthropicRequest(apiKey, body, opts = {}) {
       }
     }
 
+    const routed = hostname !== DIRECT_HOST;
+
     const headers = {
-      "x-api-key": apiKey,
       "anthropic-version": ANTHROPIC_VERSION,
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(payload),
     };
 
-    // Cloudflare AI Gateway auth header
-    // Docs: https://developers.cloudflare.com/ai-gateway/configuration/authentication/
-    if (gateway && gateway.authToken) {
-      headers["cf-aig-authorization"] = `Bearer ${gateway.authToken}`;
+    if (routed && gateway.authToken) {
+      // BYOK mode: Cloudflare injects API key server-side via Provider Keys.
+      // Docs: https://developers.cloudflare.com/ai-gateway/configuration/authentication/
+      const token = gateway.authToken.trim();
+      headers["cf-aig-authorization"] = `Bearer ${token}`;
+    } else {
+      // Direct or passthrough: client sends the API key
+      headers["x-api-key"] = apiKey;
     }
 
     const options = { hostname, path, method: "POST", headers };
     if (port) options.port = port;
 
-    log.info(`[anthropic] ${hostname === DIRECT_HOST ? "Direct" : "Gateway"} → ${hostname}${path}`);
+    const mode = hostname === DIRECT_HOST ? "Direct" : (gateway.authToken ? "Gateway (BYOK)" : "Gateway (passthrough)");
+    log.info(`[anthropic] ${mode} → ${hostname}${path}`);
 
     const req = https.request(options, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
+        log.info(`[anthropic] Response: HTTP ${res.statusCode} (${data.length} bytes)`);
         try {
           const result = JSON.parse(data);
           if (result.error) {
             return reject(new Error(`Anthropic API error: ${result.error.message || JSON.stringify(result.error)}`));
           }
+          // Cloudflare gateway errors come back as arrays, not objects with .error
+          if (Array.isArray(result) && result[0]?.code) {
+            log.error(`[anthropic] Gateway error: HTTP ${res.statusCode} — ${JSON.stringify(result)}`);
+            return reject(new Error(`Gateway error (HTTP ${res.statusCode}): ${result[0].message || JSON.stringify(result)}`));
+          }
           resolve(result);
         } catch (e) {
-          reject(new Error(`Failed to parse Anthropic response: ${data.substring(0, 300)}`));
+          reject(new Error(`Failed to parse response (HTTP ${res.statusCode}): ${data.substring(0, 300)}`));
         }
       });
     });
@@ -148,7 +161,14 @@ const provider = {
   async chat({ model, system, messages, maxTokens, tools, timeout }) {
     const store = getStore();
     const apiKey = store ? store.get("anthropicApiKey") : null;
-    if (!apiKey) {
+
+    // Build gateway config — URL alone = passthrough, URL + token = BYOK
+    const gatewayAuthToken = store ? store.get("gatewayAuthToken", "") : "";
+    const gatewayUrl = store ? store.get("gatewayUrl", "") : "";
+    const gateway = gatewayUrl ? { url: gatewayUrl, authToken: gatewayAuthToken } : undefined;
+
+    // BYOK: Anthropic key not required when gateway handles auth via Provider Keys
+    if (!apiKey && !(gateway && gateway.authToken)) {
       throw new Error("Anthropic API key not configured. Go to Settings.");
     }
 
@@ -163,11 +183,6 @@ const provider = {
     if (tools && tools.length > 0) {
       body.tools = tools;
     }
-
-    // Build gateway config if token is set
-    const gatewayAuthToken = store ? store.get("gatewayAuthToken", "") : "";
-    const gatewayUrl = store ? store.get("gatewayUrl", "") : "";
-    const gateway = gatewayAuthToken ? { url: gatewayUrl, authToken: gatewayAuthToken } : undefined;
 
     const result = await anthropicRequest(apiKey, body, { timeout: timeout || DEFAULT_TIMEOUT, gateway });
 
