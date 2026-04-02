@@ -4,6 +4,22 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-02
+
+### Fixed
+- **AI titles/captions persisting between clips:** Generated titles, captions, and accepted/rejected state from one clip were leaking into the next when switching clips in the editor. Added `useAIStore.getState().reset()` to the clip-switching logic in `useEditorStore.initFromContext()`.
+- **Cloudflare AI Gateway 2009 Unauthorized on all requests:** The default gateway URL had a truncated Cloudflare account ID (29 chars instead of 32, missing `ef9` segment). Every gateway request hit a nonexistent endpoint. Fixed the stored URL default in `main.js`.
+- **Gateway BYOK auth conflict:** When using Cloudflare Provider Keys (BYOK), the app was sending both `x-api-key` and `cf-aig-authorization`, causing Cloudflare to reject requests. BYOK mode now sends only `cf-aig-authorization`; direct/passthrough mode sends only `x-api-key`.
+
+### Added
+- **Three gateway routing modes:** Refactored Anthropic provider to support BYOK (cf-aig-authorization, no API key), passthrough (API key through gateway for logging/analytics), and direct (API key to Anthropic). Mode is determined by which Settings fields are populated.
+- **BYOK-only mode:** Users with Cloudflare Provider Keys no longer need a local Anthropic API key configured.
+- **Gateway error detection:** Cloudflare returns errors as JSON arrays, not Anthropic-style objects. Added proper detection, logging, and user-facing error messages for gateway-specific failures.
+- **HTTP status code logging:** All Anthropic API responses now log HTTP status codes and response size for debugging.
+
+### Changed
+- **Settings sections all start collapsed:** All 6 collapsible sections in Settings now start collapsed on fresh launch instead of a mix of expanded/collapsed. Expanded/collapsed state persists across tab switches within the same session (lifted state from SettingsView to App.js).
+
 ## [Unreleased] — 2026-04-01
 
 ### Added
