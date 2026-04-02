@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report — PostHog Analytics for ClipFlow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 2rem; }
+  .question-box { background: #f0f4ff; border-left: 4px solid #4a6cf7; padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; }
+  .question-box p { font-size: 1rem; font-weight: 500; color: #2a2a2a; }
+  .verdict { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .verdict h2 { font-size: 1.3rem; color: #1a1a1a; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #4a6cf7; }
+  .verdict h3 { font-size: 1.05rem; color: #333; margin: 1.5rem 0 0.5rem; }
+  .verdict h3:first-of-type { margin-top: 0; }
+  .verdict p, .verdict li { font-size: 0.95rem; color: #444; }
+  .verdict ul, .verdict ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .verdict li { margin-bottom: 0.4rem; }
+  .verdict strong { color: #1a1a1a; }
+  .verdict code { background: #f3f3f3; padding: 2px 6px; border-radius: 4px; font-size: 0.88rem; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  .first-thing { background: #e8f5e9; border-left: 4px solid #43a047; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin-top: 1.5rem; }
+  .first-thing p { color: #2e7d32; font-weight: 500; }
+  .agreement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .agree-card, .clash-card { padding: 1rem; border-radius: 8px; font-size: 0.9rem; }
+  .agree-card { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  .clash-card { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .agree-card .label { color: #2e7d32; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .clash-card .label { color: #e65100; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .positions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin: 1rem 0 2rem; }
+  .position { text-align: center; padding: 0.75rem 0.5rem; border-radius: 8px; font-size: 0.78rem; }
+  .position .name { font-weight: 700; margin-bottom: 0.25rem; }
+  .position .stance { font-size: 0.75rem; color: #555; }
+  .pos-minimal { background: #e3f2fd; border: 1px solid #bbdefb; }
+  .pos-foundation { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  .pos-expand { background: #f3e5f5; border: 1px solid #e1bee7; }
+  .pos-unified { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .pos-ship { background: #e0f2f1; border: 1px solid #b2dfdb; }
+  details { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 0.75rem; }
+  details summary { padding: 1rem 1.25rem; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: #333; user-select: none; }
+  details summary:hover { background: #f8f8f8; border-radius: 8px; }
+  details .content { padding: 0 1.25rem 1.25rem; font-size: 0.9rem; color: #444; line-height: 1.7; }
+  details .content p { margin-bottom: 0.75rem; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; font-size: 0.8rem; color: #999; text-align: center; }
+  @media (max-width: 700px) { .agreement-grid { grid-template-columns: 1fr; } .positions { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+
+<h1>Council Report</h1>
+<p class="subtitle">PostHog Product Analytics Integration for ClipFlow &mdash; April 1, 2026</p>
+
+<div class="question-box">
+  <p>Is this PostHog product analytics integration plan correct and complete? Install posthog-js, init in App.js, track 6 custom events, no PII, hardcoded API key, renderer-side only.</p>
+</div>
+
+<h2 style="font-size:1.1rem; margin-bottom:0.5rem;">Advisor Positions</h2>
+<div class="positions">
+  <div class="position pos-foundation">
+    <div class="name">Contrarian</div>
+    <div class="stance">Init location wrong, offline gaps, double-fire risk</div>
+  </div>
+  <div class="position pos-minimal">
+    <div class="name">First Principles</div>
+    <div class="stance">Events mirror UI not business questions</div>
+  </div>
+  <div class="position pos-expand">
+    <div class="name">Expansionist</div>
+    <div class="stance">6 events too few, add feature flags</div>
+  </div>
+  <div class="position pos-unified">
+    <div class="name">Outsider &#9733;</div>
+    <div class="stance">Missing identity, autocapture, opt-out toggle</div>
+  </div>
+  <div class="position pos-ship">
+    <div class="name">Executor</div>
+    <div class="stance">90% ready, fix toggle bug + add consent</div>
+  </div>
+</div>
+
+<div class="verdict">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <ul>
+    <li><strong>No stable user identity = useless analytics.</strong> Without <code>posthog.identify()</code> using a persistent device ID, every app launch creates a new anonymous user. Retention, funnels, per-user metrics &mdash; all broken.</li>
+    <li><strong>Disable autocapture.</strong> In Electron, autocapture fires on internal DOM elements and generates garbage data. Must set <code>autocapture: false</code> and <code>capture_pageview: false</code>.</li>
+    <li><strong>Opt-out toggle is mandatory.</strong> Commercial product shipping analytics without a user-facing off switch is a non-starter for trust and privacy regulations.</li>
+    <li><strong>Skip @posthog/react.</strong> Unanimous &mdash; thin wrapper adds nothing for 6 manual capture calls.</li>
+    <li><strong>Hardcoded API key is fine.</strong> PostHog project keys are public by design (write-only). Not a secret.</li>
+  </ul>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Init Location</div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;"><strong>Contrarian:</strong> App.js useEffect is wrong &mdash; child effects fire first.</p>
+      <p style="font-size:0.88rem;"><strong>First Principles:</strong> Doesn't matter, App mounts once.</p>
+      <p style="font-size:0.88rem;"><em>Verdict:</em> Init in <code>index.js</code> outside the React tree. Avoids React 18 strict mode double-mount and guarantees PostHog is ready before any component renders.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">Event Count</div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;"><strong>Expansionist:</strong> 6 events too few &mdash; add 15+ events and feature flags.</p>
+      <p style="font-size:0.88rem;"><strong>Executor:</strong> 6 is fine, expand later.</p>
+      <p style="font-size:0.88rem;"><em>Verdict:</em> 6 events + <code>pipeline_failed</code> = 7. Foundation first. You can always add events later but can't easily rename them after data flows.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots the Council Caught</h3>
+  <ul>
+    <li><strong>Electron CSP will silently block PostHog.</strong> If Content-Security-Policy doesn't whitelist <code>https://us.posthog.com</code> in <code>connect-src</code>, every capture call fails silently. No errors, no events. You'll think it's working when nothing is sent.</li>
+    <li><strong>Flush-on-quit is unreliable.</strong> <code>beforeunload</code> in Electron doesn't guarantee enough time for posthog-js to flush via sendBeacon. Last-session events will be lost without explicit shutdown handling.</li>
+    <li><strong>Pipeline events originate in main process.</strong> FFmpeg/Whisper run in main &mdash; renderer only learns through IPC callbacks. If callback doesn't fire (crash/timeout), tracking misses the event. Acceptable for now but inherent funnel drop-off won't be real user behavior.</li>
+    <li><strong>Toggle logic bug.</strong> <code>handleDecision</code> toggles: clicking "approve" on an already-approved clip sets status to "none". Must only capture on resulting state, not on every click.</li>
+  </ul>
+
+  <h3>The Recommendation</h3>
+  <p><strong>Ship the plan with these mandatory additions:</strong></p>
+  <ol>
+    <li><strong>Init in <code>index.js</code></strong> (not App.js) with <code>autocapture: false</code>, <code>capture_pageview: false</code></li>
+    <li><strong>Stable device ID</strong> via electron-store UUID, passed through preload bridge, call <code>posthog.identify(deviceId)</code> after init</li>
+    <li><strong>Add <code>pipeline_failed</code></strong> event (7 total)</li>
+    <li><strong>CSP whitelist</strong> for <code>https://us.posthog.com</code> in BrowserWindow config</li>
+    <li><strong>Opt-out toggle</strong> in Settings &mdash; <code>posthog.opt_out_capturing()</code> / <code>opt_in_capturing()</code>, persisted in electron-store</li>
+    <li><strong>Flush on quit</strong> &mdash; call <code>posthog.shutdown()</code> before app exits</li>
+    <li><strong>Namespace prefix</strong> &mdash; <code>clipflow_</code> on all event names</li>
+  </ol>
+  <p><strong>Do NOT add yet:</strong> feature flags, super properties, editor tracking, onboarding funnels, or any expansion beyond these 7 events.</p>
+
+  <div class="first-thing">
+    <p><strong>The One Thing to Do First:</strong> Verify CSP. Open DevTools in Electron, check the Network tab, and confirm requests to <code>https://us.posthog.com</code> aren't being blocked. If you have a CSP header set, add <code>connect-src https://us.posthog.com</code> before writing any tracking code.</p>
+  </div>
+</div>
+
+<h2 style="font-size:1.1rem; margin-bottom:0.75rem;">Advisor Responses</h2>
+
+<details>
+  <summary>The Contrarian</summary>
+  <div class="content">
+    <p><strong>Init in App.js useEffect is wrong.</strong> Child effects fire first &mdash; captures could silently fail. Init in index.js instead.</p>
+    <p><strong>Offline will eat events.</strong> posthog-js has no persistent offline queue in Electron. If app closes before queue flushes, events are gone.</p>
+    <p><strong>tab_changed will double-fire</strong> from React re-renders. Need deduplication guard.</p>
+    <p>Missing event: <code>pipeline_failed</code>. Add namespace prefix (<code>clipflow_</code>) to all events. Skip @posthog/react is correct.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The First Principles Thinker</summary>
+  <div class="content">
+    <p>Events mirror UI navigation, not business questions. Before instrumenting, write down what decisions analytics will inform.</p>
+    <p>No <code>posthog.identify()</code> means can't distinguish users. Missing: <code>clip_edited</code> event and <code>source</code> property on <code>pipeline_started</code>.</p>
+    <p>Init location doesn't matter functionally. No double-fire risk with the described placement.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Expansionist</summary>
+  <div class="content">
+    <p>Only 6 events leaves value on the table. Missing: editor sessions, subtitle changes, AI generation, render events, export format, project folder creation, onboarding steps.</p>
+    <p>Feature flags should be enabled day one. Set super properties on init (app version, OS, license tier). Singleton guard for React 18 strict mode.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Outsider &mdash; &#9733; Unanimously rated strongest</summary>
+  <div class="content">
+    <p><strong>Missing posthog.identify()</strong> with stable anonymous ID. Without it, every launch creates a new user &mdash; inflated counts, no retention tracking.</p>
+    <p><strong>Missing app lifecycle events</strong> (app_opened, app_closed). Can't measure DAU/MAU or session length without these.</p>
+    <p><strong>Disable autocapture explicitly</strong> &mdash; <code>autocapture: false</code>, <code>capture_pageview: false</code>. Electron SPA generates noise.</p>
+    <p><strong>Need opt-out toggle</strong> in Settings for commercial product. Legal and trust requirement.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Executor</summary>
+  <div class="content">
+    <p>90% ready. One bug: <code>handleDecision</code> toggles &mdash; must only capture on resulting state (approved/rejected), not toggle-off to "none".</p>
+    <p>Need consent toggle (<code>opt_out_capturing</code>/<code>opt_in_capturing</code>). Need stable device ID via electron-store + <code>identify()</code>. Call <code>posthog.shutdown()</code> on beforeunload to flush queue.</p>
+    <p>Four files, ~60 lines total.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Peer Review Highlights</summary>
+  <div class="content">
+    <p><strong>Unanimous strongest:</strong> The Outsider (D) &mdash; identified the three most commercially critical gaps.</p>
+    <p><strong>Unanimous weakest:</strong> The Expansionist (C) &mdash; focuses on adding more without addressing foundation.</p>
+    <p><strong>Blind spots caught by peer review:</strong></p>
+    <ul>
+      <li>Electron CSP will silently block PostHog requests (all 5 reviewers)</li>
+      <li>posthog-js sendBeacon/flush unreliable in Electron quit lifecycle (4 of 5)</li>
+      <li>Pipeline events originate in main process via IPC (2 of 5)</li>
+      <li>Context isolation affects reading machine identifiers for device ID (2 of 5)</li>
+    </ul>
+  </div>
+</details>
+
+<div class="footer">
+  Council convened April 1, 2026 &bull; 5 advisors, 5 peer reviews, 1 chairman synthesis &bull; Topic: PostHog analytics integration for ClipFlow
+</div>
+
+</body>
+</html>

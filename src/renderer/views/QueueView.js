@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag } from "../components/shared";
 
@@ -231,6 +232,7 @@ export default function QueueView({
     }
 
     publishingRef.current = true;
+    posthog.capture("clipflow_publish_triggered");
 
     // Initialize platform statuses
     const platStatuses = {};

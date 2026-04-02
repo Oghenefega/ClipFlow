@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 import { buildPreviewSegments, findActiveWord, stripPunct } from "../editor/utils/buildPreviewSubtitles";
@@ -501,6 +502,8 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
 
   const handleDecision = async (decision) => {
     const newStatus = (decision === "approved" && ca) || (decision === "rejected" && rej) ? "none" : decision;
+    if (newStatus === "approved") posthog.capture("clipflow_clip_approved");
+    if (newStatus === "rejected") posthog.capture("clipflow_clip_rejected");
     onUpdateClip(projectId, clip.id, newStatus);
 
     // Log to feedback DB (only when actually approving/rejecting, not toggling off)

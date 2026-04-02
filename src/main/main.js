@@ -190,8 +190,19 @@ const store = new Store({
     // Project folders
     projectFolders: [],
     folderSortMode: "created",
+    // Analytics
+    deviceId: "",
+    analyticsEnabled: true,
   },
 });
+
+// ── Migration: analytics deviceId (generate once, persist forever) ──
+if (!store.get("deviceId")) {
+  store.set("deviceId", _uuid());
+}
+if (store.get("analyticsEnabled") === undefined) {
+  store.set("analyticsEnabled", true);
+}
 
 // ── Initialize provider registries with store ──
 llmProvider.init(store);

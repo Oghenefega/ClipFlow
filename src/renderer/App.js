@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import posthog from "posthog-js";
 import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import { AddGameModal, TranscriptModal } from "./components/modals";
@@ -406,7 +407,7 @@ export default function App() {
     return Object.values(allClips).flat().filter((c) => c.status === "approved" || c.status === "ready").length;
   }, [allClips]);
 
-  const nav = (id) => { setView(id); setSelProj(null); };
+  const nav = (id) => { setView(id); setSelProj(null); posthog.capture("clipflow_tab_changed", { tab_name: id }); };
 
   const navItems = [
     { id: "rename", icon: "\u270f\ufe0f", label: "Rename" },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
@@ -155,6 +156,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const game = findGameByTag(file.tag, gamesDb);
     setGenerating(file.current_path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
+    posthog.capture("clipflow_pipeline_started");
     try {
       const result = await window.clipflow.generateClips(file.current_path, {
         name: (file.current_filename || "").replace(/\.(mp4|mkv)$/i, ""),
@@ -166,9 +168,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       });
       if (result.error) {
         setProgress({ stage: "failed", pct: 0, detail: result.error });
+        posthog.capture("clipflow_pipeline_failed");
         setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
       } else {
         setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
+        posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
         onProjectCreated?.(result.projectId);
         // Refresh file list to pick up status changes
         try {

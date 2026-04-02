@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot } from "../components/shared";
 import { GameEditModal } from "../components/modals";
@@ -1118,6 +1119,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       <GroupHeader groupKey="diagnostics" label="Diagnostics" />
       {!collapsedGroups.diagnostics && <>
 
+      {/* Analytics Opt-Out */}
+      <AnalyticsToggle />
+
       {/* Pipeline Logs & Cost Tracking */}
       <PipelineLogsSection />
 
@@ -1134,6 +1138,61 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
+  );
+}
+
+// ============ ANALYTICS TOGGLE ============
+function AnalyticsToggle() {
+  const [enabled, setEnabled] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.storeGet) {
+        const val = await window.clipflow.storeGet("analyticsEnabled");
+        if (val !== undefined && val !== null) setEnabled(val);
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const toggle = async () => {
+    const next = !enabled;
+    setEnabled(next);
+    await window.clipflow.storeSet("analyticsEnabled", next);
+    if (next) {
+      posthog.opt_in_capturing();
+    } else {
+      posthog.opt_out_capturing();
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <Card>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Send anonymous usage data</div>
+          <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 2 }}>Helps improve ClipFlow. No filenames, usernames, or personal data is collected.</div>
+        </div>
+        <button
+          onClick={toggle}
+          style={{
+            width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+            background: enabled ? T.green : "rgba(255,255,255,0.1)",
+            position: "relative", transition: "background 0.2s ease", flexShrink: 0, marginLeft: 16,
+          }}
+        >
+          <div style={{
+            width: 18, height: 18, borderRadius: 9, background: "#fff",
+            position: "absolute", top: 3,
+            left: enabled ? 23 : 3,
+            transition: "left 0.2s ease",
+          }} />
+        </button>
+      </div>
+    </Card>
   );
 }
 

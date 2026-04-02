@@ -54,6 +54,7 @@
     "electron-store": "^8.1.0",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
+    "posthog-js": "^1.364.5",
     "react-resizable-panels": "^0.0.55",
     "sql.js": "^1.14.1",
     "tailwind-merge": "^3.5.0",
