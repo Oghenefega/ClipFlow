@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import * as Sentry from "@sentry/electron/renderer";
 import useEditorStore from "./stores/useEditorStore";
 import EditorLayout from "./components/EditorLayout";
 
@@ -13,6 +14,7 @@ class EditorErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     this.setState({ info });
     console.error("EditorErrorBoundary caught:", error, info?.componentStack);
+    Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack } } });
   }
   render() {
     if (this.state.error) {

@@ -123,12 +123,8 @@ function getScoped(module) {
  */
 function initialize() {
   electronLog.initialize();
-  electronLog.errorHandler.startCatching({
-    showDialog: false,
-    onError: ({ error }) => {
-      getScoped("system").error("Uncaught exception:", error.message);
-    },
-  });
+  // Note: errorHandler.startCatching() was removed — Sentry owns crash capture.
+  // electron-log remains the local file-based diagnostic logger.
 }
 
 function logMsg(level, module, message, context) {

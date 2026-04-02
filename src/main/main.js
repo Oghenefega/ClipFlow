@@ -1,4 +1,10 @@
 require("dotenv").config();
+const Sentry = require("@sentry/electron/main");
+
+Sentry.init({
+  dsn: "https://849738274a045a047fd2068789244d13@o4511147466752000.ingest.us.sentry.io/4511147471077376",
+});
+
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");

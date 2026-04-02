@@ -1,3 +1,6 @@
+// Sentry preload — sets up IPC bridge for renderer → main error reporting
+require("@sentry/electron/preload");
+
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("clipflow", {

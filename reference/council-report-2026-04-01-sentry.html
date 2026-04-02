@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report — Sentry Integration for ClipFlow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 2rem; }
+  .question-box { background: #f0f4ff; border-left: 4px solid #4a6cf7; padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; }
+  .question-box p { font-size: 1rem; font-weight: 500; color: #2a2a2a; }
+  .verdict { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .verdict h2 { font-size: 1.3rem; color: #1a1a1a; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #4a6cf7; }
+  .verdict h3 { font-size: 1.05rem; color: #333; margin: 1.5rem 0 0.5rem; }
+  .verdict h3:first-of-type { margin-top: 0; }
+  .verdict p, .verdict li { font-size: 0.95rem; color: #444; }
+  .verdict ul, .verdict ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .verdict li { margin-bottom: 0.4rem; }
+  .verdict strong { color: #1a1a1a; }
+  .verdict code { background: #f3f3f3; padding: 2px 6px; border-radius: 4px; font-size: 0.88rem; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  .first-thing { background: #e8f5e9; border-left: 4px solid #43a047; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin-top: 1.5rem; }
+  .first-thing p { color: #2e7d32; font-weight: 500; }
+
+  /* Agreement grid */
+  .agreement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .agree-card, .clash-card { padding: 1rem; border-radius: 8px; font-size: 0.9rem; }
+  .agree-card { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  .clash-card { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .agree-card .label { color: #2e7d32; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .clash-card .label { color: #e65100; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Advisor positions */
+  .positions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin: 1rem 0 2rem; }
+  .position { text-align: center; padding: 0.75rem 0.5rem; border-radius: 8px; font-size: 0.78rem; }
+  .position .name { font-weight: 700; margin-bottom: 0.25rem; }
+  .position .stance { font-size: 0.75rem; color: #555; }
+  .pos-minimal { background: #e3f2fd; border: 1px solid #bbdefb; }
+  .pos-foundation { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  .pos-expand { background: #f3e5f5; border: 1px solid #e1bee7; }
+  .pos-unified { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .pos-ship { background: #e0f2f1; border: 1px solid #b2dfdb; }
+
+  /* Collapsible */
+  details { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 0.75rem; }
+  details summary { padding: 1rem 1.25rem; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: #333; user-select: none; }
+  details summary:hover { background: #f8f8f8; border-radius: 8px; }
+  details .content { padding: 0 1.25rem 1.25rem; font-size: 0.9rem; color: #444; line-height: 1.7; }
+  details .content p { margin-bottom: 0.75rem; }
+
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; font-size: 0.8rem; color: #999; text-align: center; }
+  @media (max-width: 700px) { .agreement-grid { grid-template-columns: 1fr; } .positions { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+
+<h1>Council Report</h1>
+<p class="subtitle">Sentry Error Tracking Integration for ClipFlow &mdash; April 1, 2026</p>
+
+<div class="question-box">
+  <p>How should ClipFlow integrate Sentry error tracking using @sentry/electron, and what should the relationship be between Sentry and the existing electron-log logger? Should all error tracking move to Sentry, or keep dual systems?</p>
+</div>
+
+<!-- Advisor Position Spectrum -->
+<h2 style="font-size:1.1rem; margin-bottom:0.5rem;">Advisor Positions</h2>
+<div class="positions">
+  <div class="position pos-minimal">
+    <div class="name">First Principles</div>
+    <div class="stance">Minimal &mdash; 4 touch points, don't over-engineer</div>
+  </div>
+  <div class="position pos-ship">
+    <div class="name">Executor</div>
+    <div class="stance">Ship it &mdash; 4 steps, iterate later</div>
+  </div>
+  <div class="position pos-foundation">
+    <div class="name">Contrarian</div>
+    <div class="stance">Foundation first &mdash; resolve handler collisions</div>
+  </div>
+  <div class="position pos-unified">
+    <div class="name">Outsider</div>
+    <div class="stance">Unified pipeline &mdash; correlate both systems</div>
+  </div>
+  <div class="position pos-expand">
+    <div class="name">Expansionist</div>
+    <div class="stance">Full instrumentation &mdash; perf monitoring + release health</div>
+  </div>
+</div>
+
+<!-- Chairman's Verdict -->
+<div class="verdict">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <ul>
+    <li><strong>Manual <code>process.on</code> handlers are wrong.</strong> @sentry/electron hooks <code>uncaughtException</code> and <code>unhandledRejection</code> automatically. Adding manual handlers creates double-reporting or swallows errors. Remove them from the plan entirely.</li>
+    <li><strong>Renderer <code>Sentry.init()</code> goes in <code>src/index.js</code></strong>, before <code>ReactDOM.render()</code>. Not in App.js. No dissent.</li>
+    <li><strong>electron-log stays, but its role changes.</strong> It remains the local diagnostic log. It does not compete with Sentry for crash handling. Two systems, two purposes: local file debugging vs. remote crash intelligence.</li>
+    <li><strong>CRA source maps require tooling.</strong> Need <code>craco</code> or <code>react-app-rewired</code> + <code>@sentry/webpack-plugin</code>. Without this, production stack traces are useless.</li>
+    <li><strong>The Contrarian's analysis was unanimously rated strongest</strong> by all 5 peer reviewers. The triple-handler collision insight is the critical finding.</li>
+  </ul>
+
+  <h3>Where the Council Clashes</h3>
+  <div class="agreement-grid">
+    <div class="clash-card">
+      <div class="label">Scope of Integration</div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;"><strong>First Principles + Executor:</strong> Keep it minimal &mdash; 4 touch points, iterate later. You're pre-launch with one tester.</p>
+      <p style="font-size:0.88rem;"><strong>Expansionist:</strong> Instrument everything now &mdash; perf monitoring, release health, Sentry.setUser().</p>
+      <p style="font-size:0.88rem;"><em>Resolution:</em> Foundation first. Expansion is valid but premature before the error pipeline works correctly.</p>
+    </div>
+    <div class="clash-card">
+      <div class="label">startCatching() Resolution</div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;"><strong>Contrarian:</strong> Must remove <code>startCatching()</code> &mdash; it's a competing crash handler.</p>
+      <p style="font-size:0.88rem;"><strong>First Principles + Executor:</strong> Leave electron-log alone.</p>
+      <p style="font-size:0.88rem;"><em>Resolution:</em> Contrarian is right. <code>startCatching()</code> installs its own <code>process.on('uncaughtException')</code>. Remove it. Keep electron-log for routine logging.</p>
+    </div>
+  </div>
+
+  <h3>Blind Spots the Council Caught</h3>
+  <p>These emerged <strong>only</strong> through peer review &mdash; no individual advisor addressed them:</p>
+  <ul>
+    <li><strong>Offline error queuing.</strong> ClipFlow is a fully local pipeline. Users run long FFmpeg transcodes and gaming sessions without internet. Sentry must queue events and flush when connectivity returns.</li>
+    <li><strong>GDPR/privacy consent.</strong> Sentry captures file paths, system info, potentially usernames. A commercial product needs a user-facing opt-in/out toggle for telemetry.</li>
+    <li><strong>IPC boundary error correlation.</strong> Errors crossing the preload bridge appear as disconnected events. A shared session/trace ID is needed to link main &harr; renderer errors.</li>
+    <li><strong>Electron 28 compatibility.</strong> @sentry/electron v4+ needs verification against Electron 28. A 5-minute check that prevents hours of debugging.</li>
+  </ul>
+
+  <h3>The Recommendation</h3>
+  <p><strong>Implement Sentry in four touch points, resolve the handler collision, defer everything else.</strong></p>
+  <ol>
+    <li><strong><code>src/main/main.js</code></strong> &mdash; <code>Sentry.init({ dsn })</code> at the very top. No manual <code>process.on</code> handlers. <strong>Remove <code>errorHandler.startCatching()</code></strong> from electron-log. Keep all <code>log.info/warn/error</code> calls.</li>
+    <li><strong><code>src/index.js</code></strong> &mdash; <code>Sentry.init({ dsn })</code> before <code>ReactDOM.render()</code>.</li>
+    <li><strong><code>App.js</code></strong> &mdash; Wrap top-level with <code>Sentry.ErrorBoundary</code>. Keep EditorErrorBoundary for recovery UI, add <code>Sentry.captureException()</code> inside its <code>componentDidCatch</code>.</li>
+    <li><strong>Source maps</strong> &mdash; Add craco + @sentry/webpack-plugin for readable production traces.</li>
+  </ol>
+  <p><strong>What you do NOT do yet:</strong> performance monitoring, transaction instrumentation, breadcrumb customization, user identification, release health dashboards.</p>
+  <p><strong>Backlog items:</strong> GDPR opt-in/out toggle, offline queuing verification, IPC error correlation via shared session ID.</p>
+
+  <div class="first-thing">
+    <p><strong>The One Thing to Do First:</strong> Verify @sentry/electron v4+ compatibility with Electron 28. Run <code>npm install @sentry/electron</code>, check for peer dependency warnings, confirm the SDK initializes in both processes. If it doesn't work, everything else is moot. This is a 10-minute task that gates the entire plan.</p>
+  </div>
+</div>
+
+<!-- Advisor Full Responses -->
+<h2 style="font-size:1.1rem; margin-bottom:0.75rem;">Advisor Responses</h2>
+
+<details>
+  <summary>The Contrarian &mdash; &#9733; Unanimously rated strongest</summary>
+  <div class="content">
+    <p>The plan has three problems that will bite you in production.</p>
+    <p><strong>1. Manual process.on handlers are redundant and dangerous.</strong> @sentry/electron already hooks uncaughtException and unhandledRejection automatically. Adding your own handlers will either double-report every crash or swallow exceptions before Sentry's handler sees them. Delete step 3 entirely.</p>
+    <p><strong>2. "Keep electron-log completely untouched" is the wrong call.</strong> You have <code>errorHandler.startCatching()</code> which also intercepts uncaught exceptions. That's a third handler competing with Sentry's. You'll get race conditions. You need to either remove startCatching() or wire it as a Sentry beforeSend integration.</p>
+    <p><strong>3. CRA + @sentry/electron renderer setup is fragile.</strong> CRA's webpack config is locked down. You can't easily add Sentry's webpack plugin for source maps without ejecting or using craco/react-app-rewired. Without source maps, every renderer error shows minified garbage.</p>
+    <p>Also missing: user consent for telemetry, rate limiting, PII scrubbing config, Electron 28 compatibility verification.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The First Principles Thinker</summary>
+  <div class="content">
+    <p>The real question isn't "how do I integrate Sentry" &mdash; it's "what failure information do I actually need to ship a commercial product?"</p>
+    <p>You're pre-launch with one tester. Sentry costs money at scale. Before wiring anything up, ask: what decisions will Sentry data enable that local logs won't? Right now, the answer is nothing.</p>
+    <p>Minimal correct architecture: Sentry.init() in main.js (SDK handles both processes), one AppErrorBoundary, keep electron-log for local diagnostics, add Sentry.captureException to EditorErrorBoundary's componentDidCatch. Four touch points. No manual process handlers. No architectural astronautics.</p>
+    <p>The dual system question is a false choice. electron-log is your local debug tool. Sentry is your remote crash intelligence. They serve different purposes. Don't merge them.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Expansionist</summary>
+  <div class="content">
+    <p>Sentry isn't just error tracking. It's your product intelligence layer for a commercial app you haven't launched yet.</p>
+    <p>Instrument FFmpeg/Whisper pipelines with Sentry transactions for performance monitoring. Use release health (crash-free session rates) as your objective "ready to ship" metric. Breadcrumbs auto-capture console logs alongside errors &mdash; so electron-log and Sentry are complementary, not competing.</p>
+    <p>Renderer init goes in src/index.js before ReactDOM.render. Add Sentry.setUser() when the license system is wired &mdash; correlating errors to subscription tiers is critical business data.</p>
+    <p>Don't think of this as "adding error tracking." Think of it as instrumenting your product for commercial operation.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Outsider</summary>
+  <div class="content">
+    <p>You're building two independent error systems and calling it a plan. Why keep electron-log "completely untouched" when it has session tracking, redaction, and structured reports? Six months from now, someone debugging a crash will check Sentry, see a stack trace, then hunt through local log files for context. That's not integration, that's accumulation.</p>
+    <p>The real question you're not asking: What happens when a paying user hits a crash and you need to correlate Sentry events with their local logs? You need a shared session/trace ID that both systems know about. Define that contract before writing code.</p>
+    <p>Also: CRA's production builds mangle React component names. Source maps are mandatory, not optional.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Executor</summary>
+  <div class="content">
+    <p>Here's what you do Monday morning:</p>
+    <p><strong>Step 1:</strong> Install @sentry/electron. That's it for dependencies.</p>
+    <p><strong>Step 2:</strong> Two Sentry.init() calls. One in src/main/main.js at the very top. One in src/index.js before ReactDOM.render. Not in App.js &mdash; that's too late.</p>
+    <p><strong>Step 3:</strong> Wrap the app root in Sentry.ErrorBoundary from the SDK. Keep EditorErrorBoundary for recovery UI &mdash; different jobs.</p>
+    <p><strong>Step 4:</strong> Leave electron-log alone. They serve different purposes.</p>
+    <p>CRA needs @sentry/webpack-plugin via craco for readable stack traces. Check @sentry/electron v4+ Electron 28 compatibility. Ship it, iterate.</p>
+  </div>
+</details>
+
+<!-- Peer Review Highlights -->
+<details>
+  <summary>Peer Review Highlights</summary>
+  <div class="content">
+    <p><strong>Unanimous strongest:</strong> The Contrarian (Response A) &mdash; all 5 reviewers selected it independently for identifying the triple-handler collision.</p>
+    <p><strong>Unanimous weakest:</strong> The Expansionist (Response C) &mdash; all 5 reviewers flagged it for premature optimization and ignoring actual integration conflicts.</p>
+    <p><strong>Blind spots caught by peer review (missed by all advisors):</strong></p>
+    <ul>
+      <li>Offline error queuing for a desktop app (cited by all 5 reviewers)</li>
+      <li>GDPR/privacy consent requirements (cited by 4 of 5)</li>
+      <li>IPC boundary error correlation via shared session ID (cited by 2 of 5)</li>
+    </ul>
+  </div>
+</details>
+
+<div class="footer">
+  Council convened April 1, 2026 &bull; 5 advisors, 5 peer reviews, 1 chairman synthesis &bull; Topic: Sentry integration architecture for ClipFlow
+</div>
+
+</body>
+</html>
