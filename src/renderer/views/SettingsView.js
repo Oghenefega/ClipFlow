@@ -11,7 +11,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
@@ -26,6 +26,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [anthropicVal, setAnthropicVal] = useState(anthropicApiKey || "");
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showAnthropicKeyEdit, setShowAnthropicKeyEdit] = useState(false);
+  // Gateway
+  const [gatewayUrlVal, setGatewayUrlVal] = useState(gatewayUrl || "");
+  const [gatewayTokenVal, setGatewayTokenVal] = useState(gatewayAuthToken || "");
+  const [showGatewayToken, setShowGatewayToken] = useState(false);
+  const [showGatewayTokenEdit, setShowGatewayTokenEdit] = useState(false);
   // YouTube
   const [editYouTube, setEditYouTube] = useState(false);
   const [ytClientIdVal, setYtClientIdVal] = useState(youtubeClientId || "");
@@ -813,11 +818,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Anthropic AI</span>
               {!editAnthropic ? (
-                <button onClick={() => { setEditAnthropic(true); setAnthropicVal(anthropicApiKey || ""); }} style={btnSecondary}>Edit</button>
+                <button onClick={() => { setEditAnthropic(true); setAnthropicVal(anthropicApiKey || ""); setGatewayUrlVal(gatewayUrl || ""); setGatewayTokenVal(gatewayAuthToken || ""); }} style={btnSecondary}>Edit</button>
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditAnthropic(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setAnthropicApiKey(anthropicVal); setEditAnthropic(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setAnthropicApiKey(anthropicVal); setGatewayUrl(gatewayUrlVal.replace(/\/+$/, "")); setGatewayAuthToken(gatewayTokenVal); setEditAnthropic(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
@@ -829,6 +834,17 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <button onClick={() => setShowAnthropicKeyEdit(!showAnthropicKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showAnthropicKeyEdit ? "Hide" : "Show"}>{showAnthropicKeyEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
                 </div>
                 <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Used for AI title/caption generation (Sonnet) and game research (Opus).</p>
+                <SectionLabel style={{ marginTop: 16 }}>Gateway URL</SectionLabel>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <input value={gatewayUrlVal} onChange={(e) => setGatewayUrlVal(e.target.value)} type="text" style={{ ...inputStyle, flex: 1 }} placeholder="https://gateway.ai.cloudflare.com/v1/.../anthropic" />
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Cloudflare AI Gateway base URL. Leave default unless you have a custom gateway.</p>
+                <SectionLabel style={{ marginTop: 16 }}>Gateway Auth Token</SectionLabel>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <input value={gatewayTokenVal} onChange={(e) => setGatewayTokenVal(e.target.value)} type={showGatewayTokenEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="cf-aig token (leave empty to call Anthropic directly)" />
+                  <button onClick={() => setShowGatewayTokenEdit(!showGatewayTokenEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGatewayTokenEdit ? "Hide" : "Show"}>{showGatewayTokenEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>If set, all API calls route through the gateway. Clear to call Anthropic directly.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -845,9 +861,25 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Gateway</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {!gatewayAuthToken ? "Direct (no gateway)" : showGatewayToken ? gatewayAuthToken : maskKey(gatewayAuthToken)}
+                  </span>
+                  {gatewayAuthToken && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowGatewayToken(!showGatewayToken)} style={{ ...iconBtn, color: T.textTertiary }} title={showGatewayToken ? "Hide" : "Show"}>{showGatewayToken ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
+                      <button onClick={() => copyToClipboard(gatewayAuthToken, "gw-token")} style={{ ...iconBtn, color: copiedField === "gw-token" ? T.green : T.textTertiary }}>{copiedField === "gw-token" ? "\u2713" : "\ud83d\udccb"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Status</span>
                   <PulseDot color={anthropicConfigured ? T.green : T.red} size={6} />
                   <span style={{ color: anthropicConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{anthropicConfigured ? "Configured" : "Not set"}</span>
+                  {gatewayAuthToken && (<>
+                    <span style={{ color: T.textTertiary, fontSize: 12, margin: "0 4px" }}>&middot;</span>
+                    <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>Gateway active</span>
+                  </>)}
                 </div>
               </div>
             )}

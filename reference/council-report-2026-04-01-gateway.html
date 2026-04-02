@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — Cloudflare AI Gateway</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e1e4ea; line-height: 1.6; padding: 40px 20px; }
+  .container { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .subtitle { color: #8b8fa3; font-size: 14px; margin-bottom: 32px; }
+  .question-box { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 10px; padding: 20px 24px; margin-bottom: 32px; }
+  .question-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; font-weight: 600; margin-bottom: 8px; }
+  .question-box p { color: #c4c8d4; font-size: 14px; }
+
+  /* Verdict */
+  .verdict { background: linear-gradient(135deg, #1a1d27 0%, #1e2233 100%); border: 1px solid #2a2d3a; border-radius: 12px; padding: 28px; margin-bottom: 28px; }
+  .verdict h2 { font-size: 18px; color: #fff; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #2a2d3a; }
+  .verdict h3 { font-size: 15px; color: #a5b4fc; margin: 20px 0 8px; }
+  .verdict h3:first-of-type { margin-top: 0; }
+  .verdict p, .verdict li { color: #c4c8d4; font-size: 14px; }
+  .verdict ul { padding-left: 20px; }
+  .verdict li { margin-bottom: 6px; }
+  .verdict strong { color: #e1e4ea; }
+  .verdict .rec-num { display: inline-block; background: #6366f1; color: #fff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 700; margin-right: 8px; flex-shrink: 0; }
+  .rec-item { display: flex; align-items: flex-start; margin-bottom: 10px; }
+  .rec-item p { flex: 1; }
+
+  /* First action */
+  .first-action { background: #1c1f2e; border: 2px solid #6366f1; border-radius: 10px; padding: 20px 24px; margin-bottom: 32px; }
+  .first-action .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; font-weight: 600; margin-bottom: 8px; }
+  .first-action p { color: #e1e4ea; font-size: 14px; }
+  .first-action code { background: #2a2d3a; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; color: #a5b4fc; }
+
+  /* Agreement grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  .grid-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 10px; padding: 16px 18px; }
+  .grid-card .icon { font-size: 18px; margin-bottom: 6px; }
+  .grid-card h4 { font-size: 13px; color: #a5b4fc; margin-bottom: 6px; font-weight: 600; }
+  .grid-card p { font-size: 13px; color: #9ca0b0; }
+  .advisors-agree { border-left: 3px solid #22c55e; }
+  .advisors-clash { border-left: 3px solid #f59e0b; }
+  .blind-spot { border-left: 3px solid #ef4444; }
+
+  /* Advisor alignment */
+  .alignment { margin-bottom: 32px; }
+  .alignment h2 { font-size: 16px; color: #fff; margin-bottom: 16px; }
+  .advisor-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; margin-bottom: 8px; }
+  .advisor-name { font-size: 13px; font-weight: 600; color: #e1e4ea; width: 160px; flex-shrink: 0; }
+  .advisor-stance { font-size: 12px; color: #9ca0b0; flex: 1; }
+  .advisor-vote { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .vote-approve { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .vote-improve { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .vote-expand { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .peer-winner { font-size: 12px; color: #6366f1; margin-top: 4px; }
+
+  /* Collapsibles */
+  details { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 10px; margin-bottom: 12px; }
+  summary { padding: 14px 18px; cursor: pointer; font-size: 14px; font-weight: 600; color: #e1e4ea; user-select: none; }
+  summary:hover { color: #a5b4fc; }
+  .detail-content { padding: 0 18px 16px; color: #9ca0b0; font-size: 13px; line-height: 1.7; }
+  .detail-content p { margin-bottom: 10px; }
+  .detail-content strong { color: #c4c8d4; }
+
+  .footer { text-align: center; color: #4a4e5e; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #1e2130; }
+  .footer a { color: #6366f1; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>LLM Council Report</h1>
+<p class="subtitle">Cloudflare AI Gateway Implementation Plan &mdash; April 1, 2026</p>
+
+<div class="question-box">
+  <div class="label">Question</div>
+  <p>Is the implementation plan for routing ClipFlow's Anthropic API calls through a Cloudflare AI Gateway proxy sound? The plan modifies 4 files: electron-store defaults, the Anthropic provider, App.js state, and SettingsView UI. Fallback: direct to api.anthropic.com when gateway token is empty.</p>
+</div>
+
+<!-- Chairman's Verdict -->
+<div class="verdict">
+  <h2>Chairman's Verdict</h2>
+
+  <h3>Where the Council Agrees</h3>
+  <ul>
+    <li><strong>4-file scope is correct.</strong> No one argues the plan is missing subsystems or fundamentally wrong.</li>
+    <li><strong>URL construction is the #1 bug source.</strong> Trailing slashes, doubled paths, malformed URLs from user paste. Strip and normalize.</li>
+    <li><strong>Fallback keyed on "token is empty" is fragile.</strong> Use an explicit <code>gatewayEnabled</code> boolean instead.</li>
+    <li><strong>Positional parameters are a mistake.</strong> Use an options object: <code>{ timeout, gateway }</code>.</li>
+    <li><strong><code>cf-aig-authorization</code> needs a doc-link comment</strong> and must be conditionally omitted, never sent empty.</li>
+  </ul>
+
+  <h3>Where the Council Clashes</h3>
+  <p><strong>Config reads: inside chat() vs. passed from the boundary.</strong> First Principles says read at the IPC boundary and pass in as parameters for testability. Executor assumes the provider reads its own config. <strong>Verdict: pass config in.</strong> The options object makes this natural, and it costs nothing extra.</p>
+  <p style="margin-top: 10px;"><strong>Runtime fallback on gateway 5xx.</strong> Auto-fallback to direct Anthropic when gateway is down is nice for reliability but defeats the purpose if the gateway enforces rate limits or acts as a license gate. <strong>Verdict: nice-to-have for v1, not a blocker.</strong> Add it later with clear logging.</p>
+
+  <h3>Blind Spots Caught in Peer Review</h3>
+  <ul>
+    <li><strong>Credential security:</strong> API key and gateway token stored as plaintext JSON in <code>%APPDATA%</code>. Use Electron's <code>safeStorage.encryptString()</code> / <code>decryptString()</code> &mdash; delegates to OS credential store (DPAPI on Windows), no new dependency.</li>
+    <li><strong>Gateway token in renderer process:</strong> Token should never live in React state. Renderer sees <code>gatewayConfigured: boolean</code> and <code>gatewayUrl: string</code> only. Token is write-only via IPC save.</li>
+    <li><strong>Testing strategy:</strong> Log resolved URL and headers (minus secrets) before each request. Consider a "test connection" button in Settings.</li>
+  </ul>
+
+  <h3>The Recommendation</h3>
+  <p>The plan is sound. Ship it with these five modifications:</p>
+  <div style="margin-top: 12px;">
+    <div class="rec-item"><span class="rec-num">1</span><p>Add <strong>gatewayEnabled</strong> boolean to electron-store and SettingsView. This is the routing switch.</p></div>
+    <div class="rec-item"><span class="rec-num">2</span><p>Use an <strong>options object</strong> for anthropicRequest: <code>anthropicRequest(apiKey, body, { timeout, gateway })</code></p></div>
+    <div class="rec-item"><span class="rec-num">3</span><p><strong>Encrypt credentials</strong> with <code>safeStorage</code> before writing to electron-store. ~20 lines total.</p></div>
+    <div class="rec-item"><span class="rec-num">4</span><p><strong>Keep secrets out of the renderer.</strong> Auth token never crosses to renderer except as write-only save.</p></div>
+    <div class="rec-item"><span class="rec-num">5</span><p><strong>Validate and normalize the URL on save</strong> &mdash; strip trailing slashes, reject URLs containing <code>/v1/messages</code>.</p></div>
+  </div>
+</div>
+
+<!-- First Action -->
+<div class="first-action">
+  <div class="label">The One Thing to Do First</div>
+  <p>Refactor <code>anthropicRequest()</code> to accept an options object as its third parameter instead of positional args. This is the foundation everything else plugs into &mdash; gateway routing, config injection, and fallback logic all depend on this function's signature. Get the interface right before wiring up the plumbing.</p>
+</div>
+
+<!-- Agreement/Disagreement Grid -->
+<div class="grid">
+  <div class="grid-card advisors-agree">
+    <div class="icon">&#10003;</div>
+    <h4>5/5 Agree</h4>
+    <p>4-file scope is correct. No missing subsystems.</p>
+  </div>
+  <div class="grid-card advisors-agree">
+    <div class="icon">&#10003;</div>
+    <h4>4/5 Agree</h4>
+    <p>URL construction is the top bug risk. Normalize on save.</p>
+  </div>
+  <div class="grid-card advisors-agree">
+    <div class="icon">&#10003;</div>
+    <h4>4/5 Agree</h4>
+    <p>Use options object, not 4th positional parameter.</p>
+  </div>
+  <div class="grid-card advisors-clash">
+    <div class="icon">&#9888;</div>
+    <h4>Contested</h4>
+    <p>Config reads in chat() vs. boundary injection. Verdict: boundary.</p>
+  </div>
+  <div class="grid-card blind-spot">
+    <div class="icon">!</div>
+    <h4>Blind Spot</h4>
+    <p>Plaintext credentials in electron-store. Encrypt with safeStorage.</p>
+  </div>
+  <div class="grid-card blind-spot">
+    <div class="icon">!</div>
+    <h4>Blind Spot</h4>
+    <p>Gateway token should never enter React state / renderer process.</p>
+  </div>
+</div>
+
+<!-- Advisor Alignment -->
+<div class="alignment">
+  <h2>Advisor Alignment</h2>
+  <div class="advisor-row">
+    <span class="advisor-name">The Contrarian</span>
+    <span class="advisor-stance">URL fragility, missing validation, unhandled gateway errors, missing logging</span>
+    <span class="advisor-vote vote-improve">Improve</span>
+  </div>
+  <div class="advisor-row">
+    <span class="advisor-name">First Principles</span>
+    <span class="advisor-stance">Right primitive, wrong config location. Push reads to boundary.</span>
+    <span class="advisor-vote vote-improve">Improve</span>
+  </div>
+  <div class="advisor-row">
+    <span class="advisor-name">The Expansionist</span>
+    <span class="advisor-stance">Multi-provider gateway, caching, usage analytics, hosted tier potential</span>
+    <span class="advisor-vote vote-expand">Expand</span>
+  </div>
+  <div class="advisor-row">
+    <span class="advisor-name">The Outsider</span>
+    <span class="advisor-stance">Boolean toggle, options object, doc-link comment, URL format clarity</span>
+    <span class="advisor-vote vote-improve">Improve</span>
+  </div>
+  <div class="advisor-row">
+    <span class="advisor-name">The Executor</span>
+    <span class="advisor-stance">Build order, URL parsing gotchas, conditional headers, clear action in UI</span>
+    <span class="advisor-vote vote-approve">Ship It</span>
+  </div>
+  <p class="peer-winner" style="margin-top: 12px;">Peer review winner: <strong>The Outsider</strong> &mdash; voted strongest by all 5 reviewers</p>
+</div>
+
+<!-- Full Advisor Responses -->
+<h2 style="font-size: 16px; color: #fff; margin-bottom: 12px;">Full Advisor Responses</h2>
+
+<details>
+  <summary>The Contrarian</summary>
+  <div class="detail-content">
+    <p><strong>URL construction is fragile.</strong> Trailing slashes, doubled paths, user-pasted URLs with /v1/messages already included &mdash; raw string concatenation on user-provided URLs is a bug factory. Needs explicit normalization.</p>
+    <p><strong>No validation on save.</strong> The user types a gateway URL and token, hits save, and nothing tells them if it works. The first signal is a failed AI generation. Need a "Test Connection" button or validation ping.</p>
+    <p><strong>Error handling is unspecified.</strong> Gateway returns non-Anthropic errors (401 from Cloudflare, 403, gateway-specific JSON). Current parsing expects Anthropic-shaped responses. Gateway errors will have different shapes.</p>
+    <p><strong>No migration.</strong> Fine if electron-store handles new defaults for existing stores gracefully &mdash; verify this.</p>
+    <p><strong>Missing: logging.</strong> Need to log which path (direct vs. gateway) each request takes.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The First Principles Thinker</summary>
+  <div class="detail-content">
+    <p><strong>The gateway object parameter is the right primitive.</strong> Passing {url, authToken} as a nullable object cleanly separates routing from request logic.</p>
+    <p><strong>But reading from electron-store inside chat() is wrong.</strong> Creates a hidden dependency. The caller should read the store and pass gateway config down. Keeps chat() testable and data flow visible.</p>
+    <p><strong>URL simplification:</strong> Store the full base URL, let anthropicRequest just append the path. One URL, one code path. No special-casing beyond "which base URL."</p>
+    <p><strong>Four files is correct. Scope is right.</strong> Push config reads to the edges and keep internals parameter-driven.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Expansionist</summary>
+  <div class="detail-content">
+    <p><strong>Thinking too small.</strong> Configurable proxy URL is one abstraction from multi-provider gateway support. CF Gateway normalizes OpenAI, Gemini, Mistral.</p>
+    <p><strong>Free usage analytics.</strong> Gateway gives per-request logging, token counts, cost tracking, latency &mdash; none surfaced to user. Creators care about API spend.</p>
+    <p><strong>Caching as a feature.</strong> Identical prompts return instantly at zero cost. Improves UX and margins.</p>
+    <p><strong>Foundation for hosted tier.</strong> Gateway URL becomes the license mechanism &mdash; your gateway for free users, BYOK for power users.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Outsider &mdash; Peer Review Winner</summary>
+  <div class="detail-content">
+    <p><strong>Fallback logic is confusing.</strong> Token emptiness as routing switch while URL always has a default creates a hidden invariant. Fix: explicit <code>gatewayEnabled: false</code> boolean.</p>
+    <p><strong>Positional args will cause confusion.</strong> 4th nullable arg on a 3-arg function. Use options object: <code>anthropicRequest(apiKey, body, { timeout, gateway })</code>.</p>
+    <p><strong><code>cf-aig-authorization</code> looks like a typo.</strong> Add a doc link comment where it's set.</p>
+    <p><strong>URL in settings != URL that gets called.</strong> Appending /v1/messages is surprising. Document expected format with placeholder example.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The Executor</summary>
+  <div class="detail-content">
+    <p><strong>Build order:</strong> anthropic.js &rarr; main.js &rarr; App.js &rarr; SettingsView. Test at each step.</p>
+    <p><strong>URL parsing landmine:</strong> <code>new URL()</code> pathname needs trailing slash stripped before appending /v1/messages.</p>
+    <p><strong>hostname vs host:</strong> Use both hostname and port from parsed URL for custom port support.</p>
+    <p><strong>Conditional headers:</strong> cf-aig-authorization must be omitted when empty, not present-but-empty.</p>
+    <p><strong>SettingsView:</strong> Needs a "clear" action for disabling gateway. Clearing sets to "", not undefined.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Peer Review Highlights</summary>
+  <div class="detail-content">
+    <p><strong>Unanimous winner:</strong> The Outsider &mdash; voted strongest by all 5 peer reviewers for identifying the most consequential design flaws.</p>
+    <p><strong>Unanimous blind spot:</strong> The Expansionist &mdash; flagged by all 5 reviewers as ignoring the actual implementation to pitch product strategy.</p>
+    <p><strong>Critical gap all advisors missed:</strong></p>
+    <p>1. <strong>Credential security</strong> &mdash; API keys stored as plaintext JSON in %APPDATA%. Use Electron safeStorage for encryption.</p>
+    <p>2. <strong>Token in renderer</strong> &mdash; Gateway auth token should never enter React state. Main-process only, boolean exposed to renderer.</p>
+    <p>3. <strong>Runtime fallback</strong> &mdash; Gateway 5xx should fall back to direct Anthropic (debatable, nice-to-have for v1).</p>
+    <p>4. <strong>Testing strategy</strong> &mdash; No plan for verifying both paths without burning API credits.</p>
+  </div>
+</details>
+
+<div class="footer">
+  <p>LLM Council &mdash; 5 advisors, 5 peer reviews, 1 synthesis &bull; April 1, 2026</p>
+  <p style="margin-top: 4px;">ClipFlow &bull; <a href="https://github.com/Oghenefega/ClipFlow">github.com/Oghenefega/ClipFlow</a></p>
+</div>
+
+</div>
+</body>
+</html>

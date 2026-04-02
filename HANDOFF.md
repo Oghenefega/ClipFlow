@@ -1,59 +1,57 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-01 (Sentry + PostHog analytics infrastructure)_
+_Last updated: 2026-04-01 (Cloudflare AI Gateway proxy support)_
 
 ## Current State
-App builds and launches with Sentry error tracking and PostHog product analytics both active. All existing features (folders, rename, recordings, editor, queue, publishing) working and verified.
+App builds and launches with Cloudflare AI Gateway proxy support wired into the Anthropic provider — all existing features working, gateway routes conditionally when auth token is configured.
 
 ## What Was Just Built
 
-### Sentry Error Tracking (@sentry/electron v7.10.0)
-- `Sentry.init()` at top of `src/main/main.js` (before all other code) — captures main process crashes
-- `Sentry.init()` in `src/index.js` (before React mounts) — captures renderer errors
-- `AppErrorBoundary` wrapping entire app in `src/index.js` — catches React tree errors, reports to Sentry, shows reload button
-- `EditorErrorBoundary` wired to `Sentry.captureException()` — editor crashes now report remotely
-- Removed `electronLog.errorHandler.startCatching()` from logger.js — Sentry owns crash capture, electron-log remains local file logger
-- Sentry preload module wrapped in try/catch after it crashed the entire preload bridge (see Watch Out For)
+### Cloudflare AI Gateway Proxy Support
+- Refactored `anthropicRequest()` in `src/main/ai/providers/anthropic.js` from positional args to options object: `anthropicRequest(apiKey, body, { timeout, gateway })`
+- When `gatewayAuthToken` is set in electron-store, all Anthropic API calls route through the configured gateway URL with `cf-aig-authorization: Bearer <token>` header
+- When `gatewayAuthToken` is empty, calls go direct to `api.anthropic.com` as before — zero behavior change for unconfigured installs
+- Gateway URL stored in electron-store under `gatewayUrl` with default: `https://gateway.ai.cloudflare.com/v1/58332e30c2b9de6c53d37ee9fd3dc/clipflow-prod/anthropic`
+- URL normalization: trailing slashes stripped before path construction
+- Logging: every request logs `[anthropic] Direct → api.anthropic.com/v1/messages` or `[anthropic] Gateway → gateway.ai.cloudflare.com/...`
+- Invalid gateway URLs caught and logged, falling back to direct
+- Doc-link comment on `cf-aig-authorization` header pointing to Cloudflare docs
 
-### PostHog Product Analytics (posthog-js)
-- Initialized in `src/index.js` with `autocapture: false`, `capture_pageview: false`
-- Stable device ID generated via electron-store UUID on first launch, used with `posthog.identify()`
-- 7 events tracked (all prefixed `clipflow_`):
-  - `clipflow_tab_changed` (property: `tab_name`) — App.js nav()
-  - `clipflow_pipeline_started` — UploadView handleGenerate()
-  - `clipflow_pipeline_completed` (property: `clip_count`) — UploadView success handler
-  - `clipflow_pipeline_failed` — UploadView error handler
-  - `clipflow_clip_approved` — ProjectsView handleDecision() (guarded on resulting state, not toggle-off)
-  - `clipflow_clip_rejected` — ProjectsView handleDecision() (same guard)
-  - `clipflow_publish_triggered` — QueueView publishClip()
-- Opt-out toggle in Settings > Diagnostics: "Send anonymous usage data" with toggle switch, persists to electron-store, calls `posthog.opt_out_capturing()` / `posthog.opt_in_capturing()`
-- `posthog.shutdown()` called on `beforeunload` to flush event queue before quit
+### Settings UI — Gateway Credentials
+- New fields in Settings > API Credentials > Anthropic detail panel:
+  - **Edit mode:** Gateway URL (text input, prefilled with default), Gateway Auth Token (password input with show/hide toggle)
+  - **Display mode:** "Gateway" row showing masked token (first 4 + last 4 chars) or "Direct (no gateway)" when empty, with show/hide/copy buttons
+  - **Status row:** Shows "Gateway active" in green when token is configured, alongside existing "Configured" API key status
+- URL trailing slashes stripped on save
+- All fields persist via existing `useEffect` → `persist()` → electron-store pattern
 
-### Council Reviews
-- Two full LLM Council sessions (5 advisors + 5 peer reviews + chairman synthesis each)
-- Reports saved: `reference/council-report-2026-04-01-sentry.html`, `reference/council-report-2026-04-01-posthog.html`
-- Full transcripts: `reference/council-transcript-2026-04-01-sentry.md`, `reference/council-transcript-2026-04-01-posthog.md`
+### LLM Council Review
+- Full 5-advisor council session reviewing the implementation plan
+- Council recommended 5 modifications; 2 adopted (options object, URL normalization), 3 deferred to a future security hardening pass (safeStorage encryption, renderer-side token isolation, gatewayEnabled boolean)
+- Reports saved: `reference/council-report-2026-04-01-gateway.html`, `reference/council-transcript-2026-04-01-gateway.md`
 
 ## Key Decisions
-- **Dual system (Sentry + electron-log):** Sentry = remote crash intelligence. electron-log = local file-based diagnostics. They coexist independently, serve different purposes. Don't merge them.
-- **No manual process.on handlers:** @sentry/electron hooks uncaughtException and unhandledRejection automatically. Manual handlers would double-report or swallow errors.
-- **PostHog in index.js, not App.js:** Init outside React tree avoids React 18 strict mode double-mount issues and guarantees PostHog is ready before any component renders.
-- **clipflow_ event prefix:** Prevents namespace collisions with PostHog autocapture defaults and any future analytics consolidation.
-- **Approve/reject guard on resulting state:** `handleDecision` toggles — clicking "approve" on an already-approved clip sets status to "none". Events only fire when the resulting state is actually "approved" or "rejected", not on toggle-off.
+- **Options object over positional args:** Council unanimously recommended this. `anthropicRequest(apiKey, body, { timeout, gateway })` instead of a 4th positional parameter. Cleaner, extensible, less error-prone.
+- **Token presence = gateway switch (no boolean):** Council suggested `gatewayEnabled` boolean. Rejected — adding a toggle creates three things to sync (boolean + token + URL) and worse UX. Token set = gateway, token empty = direct. Simple, clear.
+- **No safeStorage encryption in this change:** The existing Anthropic API key and all OAuth secrets are already plaintext in electron-store. Encrypting just the gateway token would be inconsistent. This is a valid concern but belongs in a dedicated security hardening pass that encrypts ALL credentials at once.
+- **Token flows through renderer (same as all other credentials):** Council flagged renderer exposure but every other credential in the app follows this pattern. Changing it for one token would be inconsistent. Future security pass should address all credentials uniformly.
 
 ## Next Steps
-1. **Sentry backlog (see memory: project_sentry_backlog.md):** 7 deferred items — GDPR opt-in toggle (#1) and source maps (#7) are hard blockers before public launch
-2. **Preview template styling** — `_buildAllShadows()` in ProjectsView still simpler than editor's `buildAllShadows()` (carried from prior session)
-3. **Subtitle segmentation spec update** — needs Rule 7 (comma flush), Rule 8 (atomic phrases), and linger duration (carried from prior session)
-4. **Video splitting phases 3-5** — phases 1-2 complete (steps 1-14), remaining: Phase 3 (split UI in recordings view), Phase 4 (post-split pipeline), Phase 5 (polish)
+1. **Test gateway end-to-end** — Set the gateway auth token in Settings and trigger an AI generation to confirm requests route through Cloudflare successfully
+2. **Sentry backlog (see memory: project_sentry_backlog.md):** 7 deferred items — GDPR opt-in toggle (#1) and source maps (#7) are hard blockers before public launch
+3. **Security hardening pass** — safeStorage encryption for ALL credentials in electron-store (Anthropic key, gateway token, YouTube/Meta/TikTok/Instagram secrets), renderer-side token isolation
+4. **Preview template styling** — `_buildAllShadows()` in ProjectsView still simpler than editor's `buildAllShadows()`
+5. **Subtitle segmentation spec update** — needs Rule 7 (comma flush), Rule 8 (atomic phrases), and linger duration
+6. **Video splitting phases 3-5** — phases 1-2 complete, remaining: Phase 3 (split UI), Phase 4 (post-split pipeline), Phase 5 (polish)
 
 ## Watch Out For
-- **Preload script is FATAL territory:** Any uncaught error in `preload.js` kills the entire IPC bridge — `window.clipflow` becomes `undefined` and the app loads as an empty shell. The `@sentry/electron/preload` require crashed the preload this session. It's now wrapped in try/catch. NEVER add bare `require()` calls to preload.js without try/catch. After ANY preload.js change, open DevTools and check for red errors.
-- **Sentry preload fallback:** The Sentry preload IPC bridge isn't loading (module resolution fails in preload context). Sentry falls back to protocol mode automatically, which works fine. Not a blocking issue but renderer errors may have slightly different transport path than expected.
-- **PostHog offline behavior:** posthog-js has no persistent offline queue in Electron. Events during offline periods may be lost. Acceptable for now, flagged in Sentry backlog for pre-launch verification.
-- **Three render sites for ProjectsListView in App.js** — lines ~563, ~574 (fallback), and ~596 (main path). ALL three must receive folder props. (Carried from prior session.)
+- **Gateway URL format:** The stored URL is the base (e.g. `.../anthropic`), and `/v1/messages` is appended in code. If someone pastes a URL that already includes `/v1/messages`, it will double up. The placeholder text in edit mode shows the expected format.
+- **`cf-aig-authorization` header name:** Looks like a typo but it's the real Cloudflare header name. There's a doc-link comment in the code — don't "fix" it.
+- **Empty auth headers:** The header is only added when `gateway.authToken` is truthy. Some proxies choke on empty auth headers, so this is intentional.
+- **Preload script is FATAL territory** (carried from prior session): Any uncaught error in preload.js kills the IPC bridge. Never add bare `require()` calls without try/catch.
+- **Three render sites for ProjectsListView in App.js** (carried): lines ~563, ~574, ~596 — all must receive folder props.
 
 ## Logs / Debugging
-- Sentry events confirmed received in dashboard (tested with `captureMessage` in both processes)
-- PostHog events confirmed received (verified `clipflow_tab_changed` via PostHog verification flow)
-- electron-log still writes to `%APPDATA%/ClipFlow/logs/app.log` — use `console.warn` (level 2+) for debug logging visible in terminal, or open DevTools
-- Preload failures only surface in renderer DevTools console, NOT in terminal output — always check DevTools after preload.js changes
+- Every Anthropic API request now logs its routing path: `[anthropic] Direct → ...` or `[anthropic] Gateway → ...` in electron-log
+- Invalid gateway URLs log a warning: `[anthropic] Invalid gateway URL, falling back to direct: <url>`
+- electron-log still writes to `%APPDATA%/ClipFlow/logs/app.log`
+- Preload failures only surface in renderer DevTools console, NOT in terminal output

@@ -15,34 +15,64 @@
 
 const https = require("https");
 const { registerProvider, getStore } = require("../llm-provider");
+const log = require("electron-log");
 
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_TIMEOUT = 120000; // 120 seconds
 const DEFAULT_MODEL = "claude-sonnet-4-6";
+const DIRECT_HOST = "api.anthropic.com";
+const DIRECT_PATH = "/v1/messages";
 
 /**
  * Make a raw HTTPS request to the Anthropic Messages API.
  *
  * @param {string} apiKey
  * @param {object} body - Full request body (model, system, messages, max_tokens, etc.)
- * @param {number} [timeout=120000]
+ * @param {object} [opts]
+ * @param {number} [opts.timeout=120000]
+ * @param {object} [opts.gateway] - Cloudflare AI Gateway config
+ * @param {string} opts.gateway.url - Gateway base URL (e.g. https://gateway.ai.cloudflare.com/v1/.../anthropic)
+ * @param {string} opts.gateway.authToken - cf-aig-authorization bearer token
  * @returns {Promise<object>} Raw API response
  */
-function anthropicRequest(apiKey, body, timeout = DEFAULT_TIMEOUT) {
+function anthropicRequest(apiKey, body, opts = {}) {
+  const { timeout = DEFAULT_TIMEOUT, gateway } = opts;
+
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
 
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
+    let hostname = DIRECT_HOST;
+    let path = DIRECT_PATH;
+    let port;
+
+    if (gateway && gateway.url && gateway.authToken) {
+      try {
+        const parsed = new URL(gateway.url.replace(/\/+$/, ""));
+        hostname = parsed.hostname;
+        port = parsed.port || undefined;
+        path = parsed.pathname + DIRECT_PATH;
+      } catch (e) {
+        log.warn("[anthropic] Invalid gateway URL, falling back to direct:", gateway.url);
+      }
+    }
+
+    const headers = {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(payload),
     };
+
+    // Cloudflare AI Gateway auth header
+    // Docs: https://developers.cloudflare.com/ai-gateway/configuration/authentication/
+    if (gateway && gateway.authToken) {
+      headers["cf-aig-authorization"] = `Bearer ${gateway.authToken}`;
+    }
+
+    const options = { hostname, path, method: "POST", headers };
+    if (port) options.port = port;
+
+    log.info(`[anthropic] ${hostname === DIRECT_HOST ? "Direct" : "Gateway"} → ${hostname}${path}`);
 
     const req = https.request(options, (res) => {
       let data = "";
@@ -134,7 +164,12 @@ const provider = {
       body.tools = tools;
     }
 
-    const result = await anthropicRequest(apiKey, body, timeout || DEFAULT_TIMEOUT);
+    // Build gateway config if token is set
+    const gatewayAuthToken = store ? store.get("gatewayAuthToken", "") : "";
+    const gatewayUrl = store ? store.get("gatewayUrl", "") : "";
+    const gateway = gatewayAuthToken ? { url: gatewayUrl, authToken: gatewayAuthToken } : undefined;
+
+    const result = await anthropicRequest(apiKey, body, { timeout: timeout || DEFAULT_TIMEOUT, gateway });
 
     const text = extractText(result.content);
     const toolCalls = extractToolCalls(result.content);
