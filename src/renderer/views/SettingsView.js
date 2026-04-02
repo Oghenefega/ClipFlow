@@ -11,7 +11,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editGD, setEditGD] = useState(null);
@@ -263,15 +263,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     { id: "tiktok", label: "TikTok", configured: tiktokConfigured },
   ];
 
-  // ── Collapsible group state ──
-  const [collapsedGroups, setCollapsedGroups] = useState({
-    files: false,      // expanded
-    content: false,    // expanded
-    aiStyle: true,     // collapsed
-    publishing: false, // expanded
-    tools: true,       // collapsed
-    diagnostics: true, // collapsed
-  });
+  // ── Collapsible group state (lifted to App.js for session persistence) ──
   const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const GroupHeader = ({ groupKey, label, description }) => (

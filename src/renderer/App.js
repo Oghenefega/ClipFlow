@@ -104,6 +104,11 @@ export default function App() {
   const [outputFolder, setOutputFolder] = useState("");
   const [sfxFolder, setSfxFolder] = useState("");
 
+  // Settings section collapse state — persists across tab switches, resets on app launch
+  const [settingsCollapsed, setSettingsCollapsed] = useState({
+    files: true, content: true, aiStyle: true, publishing: true, tools: true, diagnostics: true,
+  });
+
   // Queue / Tracker
   const [weeklyTemplate, setWeeklyTemplate] = useState(JSON.parse(JSON.stringify(DEFAULT_TEMPLATE)));
   const [trackerData, setTrackerData] = useState([]);
@@ -559,6 +564,8 @@ export default function App() {
           setStyleGuide={setStyleGuide}
           requireHashtagInTitle={requireHashtagInTitle}
           setRequireHashtagInTitle={setRequireHashtagInTitle}
+          collapsedGroups={settingsCollapsed}
+          setCollapsedGroups={setSettingsCollapsed}
         />
       );
     }
