@@ -7,8 +7,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-04-03
 
 ### Added
+- **Shared preview overlays:** Extracted `SubtitleOverlay` and `CaptionOverlay` into shared components (`PreviewOverlays.js`) used by both Editor and Projects tabs, eliminating ~200 lines of duplicate rendering code and ensuring Projects preview matches Editor exactly.
 - **Tracker tab:** Extracted the full schedule tracker (stat cards, weekly grid, Edit Template, Export/Import, presets, undo/redo, drag-to-reorder, popovers) out of Queue into its own standalone TrackerView tab with a 📊 icon in the nav bar.
 - **Captions section in Queue tab:** The Captions & Descriptions content (YouTube descriptions + Other Platforms templates) is now embedded directly in the Queue tab below the publish log as a natural scroll continuation, replacing the standalone Captions tab.
+
+### Fixed
+- **Projects preview yPercent:** Projects tab now reads saved clip position values instead of always falling back to template defaults, so subtitle/caption positions saved in the Editor are correctly reflected in Projects preview.
+- **DraggableOverlay blank screen:** Gated DraggableOverlay on `editSegments.length > 0` to prevent it from mounting when no segments exist, which was contributing to app blank screen crashes.
 
 ### Changed
 - **Navigation restructured:** Tab order is now Rename → Recordings → Projects → Editor → Queue → Tracker → Settings. The Captions tab has been removed from the nav bar.
