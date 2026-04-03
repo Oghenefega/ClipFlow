@@ -32,6 +32,12 @@ App builds and launches. Test watch folder feature is fully implemented across t
 - Render output routed by project tags, not file_metadata is_test — the project is the unit of work at render time
 - Test files use the same collision/naming system as real files — no special casing (user will use custom label presets like `tag-label` for test content)
 
+### Bug Fix: Preview Thumbnail Collision
+- `fileId` for preview frame temp directories was `base64url(filePath).slice(0, 32)` — files in the same folder share a long path prefix, so the first 32 chars were identical, causing all files to write frames to the same directory and overwrite each other
+- Fix: replaced with `crypto.createHash("md5").update(filePath).digest("hex")` — 32 unique hex chars per file
+- Same fix applied to the scrubber thumbnail strip `fileId` (line 708) which had the same pattern
+- Users need to clear `%TEMP%\clipflow-preview\` after updating to flush stale cached frames
+
 ## Next Steps
 1. **Full end-to-end test** — set test folder, drop OBS file, rename, generate clips, render, verify all artifacts land in test folder tree
 2. **Project tags UI** — general-purpose tag CRUD (add/remove/edit arbitrary tags), filtering in Projects tab
