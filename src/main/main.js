@@ -705,7 +705,7 @@ ipcMain.handle("thumbs:generate", async (_, filePath) => {
     }
 
     // Generate a stable fileId from the file path
-    const fileId = Buffer.from(filePath).toString("base64url").slice(0, 32);
+    const fileId = require("crypto").createHash("md5").update(filePath).digest("hex");
     const result = await ffmpeg.generateThumbnailStrip(filePath, fileId);
     logger.info("(thumbs)", `Generated ${result.thumbnails.length} thumbnails (${result.duration}s)`);
     thumbnailCache.set(filePath, result);
@@ -755,7 +755,7 @@ async function runPreviewGeneration(filePath) {
     return { error: `File not found: ${filePath}` };
   }
 
-  const fileId = Buffer.from(filePath).toString("base64url").slice(0, 32);
+  const fileId = require("crypto").createHash("md5").update(filePath).digest("hex");
   const probeResult = await ffmpeg.probe(filePath);
   const duration = probeResult.duration;
 
