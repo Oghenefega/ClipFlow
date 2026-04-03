@@ -4,13 +4,8 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
-import {
-  hexToRgba as _hexToRgba,
-  buildStrokeShadows as _buildStrokeShadows,
-  buildGlowShadow as _buildGlowShadow,
-  buildAllShadows as _buildAllShadows,
-  stripPunctuation,
-} from "../utils/subtitleStyleEngine";
+import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
+import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import {
   Maximize,
   ChevronDown,
@@ -467,7 +462,7 @@ export default function PreviewPanelNew() {
   const highlightColor = useSubtitleStore((s) => s.highlightColor);
   const subMode = useSubtitleStore((s) => s.subMode);
   const syncOffset = useSubtitleStore((s) => s.syncOffset);
-  const lineMode = useSubtitleStore((s) => s.lineMode);
+
   const punctuationRemove = useSubtitleStore((s) => s.punctuationRemove);
   const animateOn = useSubtitleStore((s) => s.animateOn);
   const animateScale = useSubtitleStore((s) => s.animateScale);
@@ -516,7 +511,7 @@ export default function PreviewPanelNew() {
   const captionBgPaddingY = useCaptionStore((s) => s.captionBgPaddingY);
   const captionBgRadius = useCaptionStore((s) => s.captionBgRadius);
   const captionEffectOrder = useCaptionStore((s) => s.captionEffectOrder);
-  const setCaptionText = useCaptionStore((s) => s.setCaptionText);
+
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const setCaptionFontWeight = useCaptionStore((s) => s.setCaptionFontWeight);
   const setCaptionFontSize = useCaptionStore((s) => s.setCaptionFontSize);
@@ -531,6 +526,53 @@ export default function PreviewPanelNew() {
   const setCapYPercent = useLayoutStore((s) => s.setCapYPercent);
   const capWidthPercent = useLayoutStore((s) => s.capWidthPercent);
   const setCapWidthPercent = useLayoutStore((s) => s.setCapWidthPercent);
+
+  // ── Construct style config objects for shared overlays ──
+  // Same shape as clip.subtitleStyle / clip.captionStyle (what handleSave persists)
+  const subtitleStyleConfig = useMemo(() => ({
+    fontFamily: subFontFamily, fontWeight: subFontWeight,
+    fontSize, bold: subBold, italic: subItalic, underline: subUnderline,
+    subColor,
+    strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
+    shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
+    glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
+    bgOn, bgOpacity, bgColor, bgPaddingX, bgPaddingY, bgRadius,
+    effectOrder, highlightColor,
+    animateOn, animateScale, animateGrowFrom, animateSpeed,
+    segmentMode, punctuationRemove,
+  }), [subFontFamily, subFontWeight, fontSize, subBold, subItalic, subUnderline, subColor,
+    strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
+    shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
+    glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
+    bgOn, bgOpacity, bgColor, bgPaddingX, bgPaddingY, bgRadius,
+    effectOrder, highlightColor, animateOn, animateScale, animateGrowFrom, animateSpeed,
+    segmentMode, punctuationRemove]);
+
+  const captionStyleConfig = useMemo(() => ({
+    fontFamily: captionFontFamily, fontWeight: captionFontWeight,
+    fontSize: captionFontSize, bold: captionBold, italic: captionItalic,
+    underline: captionUnderline, color: captionColor, lineSpacing: captionLineSpacing,
+    strokeOn: captionStrokeOn, strokeColor: captionStrokeColor, strokeWidth: captionStrokeWidth,
+    strokeOpacity: captionStrokeOpacity, strokeBlur: captionStrokeBlur,
+    strokeOffsetX: captionStrokeOffsetX, strokeOffsetY: captionStrokeOffsetY,
+    glowOn: captionGlowOn, glowColor: captionGlowColor, glowOpacity: captionGlowOpacity,
+    glowIntensity: captionGlowIntensity, glowBlur: captionGlowBlur, glowBlend: captionGlowBlend,
+    glowOffsetX: captionGlowOffsetX, glowOffsetY: captionGlowOffsetY,
+    shadowOn: captionShadowOn, shadowColor: captionShadowColor, shadowOpacity: captionShadowOpacity,
+    shadowBlur: captionShadowBlur, shadowOffsetX: captionShadowOffsetX, shadowOffsetY: captionShadowOffsetY,
+    bgOn: captionBgOn, bgColor: captionBgColor, bgOpacity: captionBgOpacity,
+    bgPaddingX: captionBgPaddingX, bgPaddingY: captionBgPaddingY, bgRadius: captionBgRadius,
+    effectOrder: captionEffectOrder,
+  }), [captionFontFamily, captionFontWeight, captionFontSize, captionBold, captionItalic,
+    captionUnderline, captionColor, captionLineSpacing,
+    captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur,
+    captionStrokeOffsetX, captionStrokeOffsetY,
+    captionGlowOn, captionGlowColor, captionGlowOpacity, captionGlowIntensity, captionGlowBlur,
+    captionGlowBlend, captionGlowOffsetX, captionGlowOffsetY,
+    captionShadowOn, captionShadowColor, captionShadowOpacity, captionShadowBlur,
+    captionShadowOffsetX, captionShadowOffsetY,
+    captionBgOn, captionBgColor, captionBgOpacity, captionBgPaddingX, captionBgPaddingY,
+    captionBgRadius, captionEffectOrder]);
 
   // Local state
   const [zoom, setZoomState] = useState(-1); // -1 = fit
@@ -684,72 +726,9 @@ export default function PreviewPanelNew() {
     if (e.button === 1) e.preventDefault();
   }, []);
 
-  // Current subtitle segment and word — WORD-DRIVEN approach
-  // Instead of finding the segment first (which can show stale words due to
-  // gap-closing extending segment boundaries), we find the active WORD first
-  // across ALL segments, then display its containing segment.
-  // This ensures words appear exactly when spoken, not delayed by segment boundaries.
+  // Adjusted time for subtitle sync
   const adjustedTime = currentTime - syncOffset;
   const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
-
-  // Build flat word index across all segments (memoized on editSegments change)
-  const globalWordIndex = useMemo(() => {
-    const index = [];
-    for (let si = 0; si < editSegments.length; si++) {
-      const seg = editSegments[si];
-      if (seg.words && seg.words.length > 0) {
-        for (let wi = 0; wi < seg.words.length; wi++) {
-          index.push({ segIdx: si, wordIdx: wi, word: seg.words[wi] });
-        }
-      }
-    }
-    return index;
-  }, [editSegments]);
-
-  // Find current segment + word index using word-driven lookup
-  const { currentSeg, currentWordIdx } = useMemo(() => {
-    if (!showSubs || editSegments.length === 0) return { currentSeg: null, currentWordIdx: -1 };
-
-    // Strategy: find the active word globally, then derive the segment from it
-    // BUT respect segment boundaries — if the playhead is outside a segment's
-    // startSec/endSec range (e.g., user trimmed it on the timeline), don't show it.
-    if (globalWordIndex.length > 0) {
-      // Find the most recent word that has started (word-driven)
-      let bestGlobal = -1;
-      for (let i = 0; i < globalWordIndex.length; i++) {
-        if (adjustedTime >= globalWordIndex[i].word.start) bestGlobal = i;
-        else break; // sorted by time
-      }
-
-      if (bestGlobal >= 0) {
-        const entry = globalWordIndex[bestGlobal];
-        const seg = editSegments[entry.segIdx];
-        // Must be within the segment's timeline boundaries AND not too far past the word
-        if (adjustedTime >= seg.startSec && adjustedTime < seg.endSec &&
-            adjustedTime <= entry.word.end + 1.5) {
-          return { currentSeg: seg, currentWordIdx: entry.wordIdx };
-        }
-      }
-
-      // Before any word: check if we're close to the first word (< 0.15s)
-      // AND within the segment's timeline boundaries
-      if (bestGlobal < 0 && globalWordIndex.length > 0) {
-        const firstWord = globalWordIndex[0];
-        const seg = editSegments[firstWord.segIdx];
-        if (adjustedTime >= firstWord.word.start - 0.15 &&
-            adjustedTime >= seg.startSec && adjustedTime < seg.endSec) {
-          return { currentSeg: seg, currentWordIdx: firstWord.wordIdx };
-        }
-      }
-    }
-
-    // Fallback for segments without word-level data: use segment boundaries
-    // Use strict < for endSec to avoid showing stale segments at boundaries
-    const seg = editSegments.find(
-      (s) => adjustedTime >= s.startSec && adjustedTime < s.endSec
-    ) || null;
-    return { currentSeg: seg, currentWordIdx: -1 };
-  }, [editSegments, adjustedTime, showSubs, globalWordIndex]);
 
   // Audio segments from editor store — used to skip gaps during playback
   const audioSegments = useEditorStore((s) => s.audioSegments);
@@ -890,236 +869,11 @@ export default function PreviewPanelNew() {
   // Scale proportionally to actual canvas width
   const scaleFactor = canvasWidth / 1080;
 
-  // ── Helper: parse hex to rgba string (delegates to shared engine) ──
-  const hexToRgba = useCallback((hex, opacity) => _hexToRgba(hex, opacity), []);
-
-  // Generate outside stroke via multi-ring text-shadow (delegates to shared engine)
-  const buildStrokeShadows = useCallback(
-    (width, colorHex, opacity, blur = 0, offX = 0, offY = 0) =>
-      _buildStrokeShadows(width, colorHex, opacity, blur, offX, offY),
-    []
+  // Caption text style — needed for inline editing textarea
+  const capTextStyle = useMemo(
+    () => buildCaptionStyle(captionStyleConfig, scaleFactor),
+    [captionStyleConfig, scaleFactor]
   );
-
-  // Generate glow via text-shadow (delegates to shared engine)
-  const buildGlowShadow = useCallback(
-    (colorHex, opacity, intensity, blur, blend, offX, offY, sf) =>
-      _buildGlowShadow(colorHex, opacity, intensity, blur, blend, offX, offY, sf),
-    []
-  );
-
-  // ── Build unified text-shadow respecting effect order (delegates to shared engine) ──
-  const buildAllShadows = useCallback((opts) => _buildAllShadows(opts), []);
-
-  // Build subtitle text style (scales proportionally with preview canvas)
-  // textShadow is NOT included here — it's applied per-word so active word can have highlight-colored glow
-  const subTextStyle = useMemo(() => {
-    const scaledFontSize = fontSize * scaleFactor;
-    const style = {
-      fontFamily: `'${subFontFamily}', sans-serif`,
-      fontSize: `${scaledFontSize}px`,
-      fontWeight: subFontWeight || 700,
-      fontStyle: subItalic ? "italic" : "normal",
-      textDecoration: subUnderline ? "underline" : "none",
-      color: subColor || "#ffffff",
-      textAlign: "center",
-      lineHeight: 1.3,
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      width: "100%",
-    };
-    // Background
-    if (bgOn) {
-      const bgRgba = hexToRgba(bgColor, bgOpacity);
-      style.background = bgRgba;
-      style.padding = `${bgPaddingY * scaleFactor * 0.5}px ${bgPaddingX * scaleFactor * 0.5}px`;
-      style.borderRadius = bgRadius * scaleFactor * 0.5;
-    } else {
-      style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
-      style.borderRadius = 4 * scaleFactor;
-    }
-    return style;
-  }, [subFontFamily, subFontWeight, subItalic, subUnderline, fontSize, subColor,
-    bgOn, bgOpacity, bgColor, bgPaddingX, bgPaddingY, bgRadius,
-    scaleFactor, hexToRgba]);
-
-  // Per-word text-shadow: normal (subtitle glow color) + active (highlight glow color)
-  const subWordShadows = useMemo(() => {
-    const shadowOpts = { sf: scaleFactor,
-      stroke: { on: strokeOn, width: strokeWidth, color: strokeColor, opacity: strokeOpacity, blur: strokeBlur, offX: strokeOffsetX, offY: strokeOffsetY },
-      shadow: { on: shadowOn, color: shadowColor, opacity: shadowOpacity, blur: shadowBlur, offX: shadowOffsetX, offY: shadowOffsetY },
-      order: effectOrder,
-    };
-    const normal = buildAllShadows({ ...shadowOpts,
-      glow: { on: glowOn, color: glowColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
-    });
-    // Active word: use highlightColor for glow instead of glowColor
-    const active = buildAllShadows({ ...shadowOpts,
-      glow: { on: glowOn, color: highlightColor, opacity: glowOpacity, intensity: glowIntensity, blur: glowBlur, blend: glowBlend, offX: glowOffsetX, offY: glowOffsetY },
-    });
-    return { normal, active };
-  }, [strokeOn, strokeWidth, strokeColor, strokeOpacity, strokeBlur, strokeOffsetX, strokeOffsetY,
-    glowOn, glowColor, glowOpacity, glowIntensity, glowBlur, glowBlend, glowOffsetX, glowOffsetY,
-    shadowOn, shadowBlur, shadowColor, shadowOpacity, shadowOffsetX, shadowOffsetY,
-    scaleFactor, buildAllShadows, effectOrder, highlightColor]);
-
-  // Build caption text style (scales proportionally with preview canvas)
-  const capTextStyle = useMemo(() => {
-    const scaledFontSize = captionFontSize * 2.4 * scaleFactor;
-    const style = {
-      fontFamily: `'${captionFontFamily}', sans-serif`,
-      fontSize: `${scaledFontSize}px`,
-      fontWeight: captionFontWeight || (captionBold ? 700 : 400),
-      fontStyle: captionItalic ? "italic" : "normal",
-      textDecoration: captionUnderline ? "underline" : "none",
-      color: captionColor,
-      textAlign: "center",
-      lineHeight: captionLineSpacing,
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      width: "100%",
-    };
-    // Background
-    if (captionBgOn) {
-      style.background = hexToRgba(captionBgColor, captionBgOpacity);
-      style.padding = `${captionBgPaddingY * scaleFactor * 0.5}px ${captionBgPaddingX * scaleFactor * 0.5}px`;
-      style.borderRadius = captionBgRadius * scaleFactor * 0.5;
-    } else {
-      style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
-    }
-    // Text shadows (stroke + glow + shadow)
-    const allShadows = buildAllShadows({
-      sf: scaleFactor,
-      stroke: { on: captionStrokeOn, width: captionStrokeWidth, color: captionStrokeColor, opacity: captionStrokeOpacity, blur: captionStrokeBlur, offX: captionStrokeOffsetX, offY: captionStrokeOffsetY },
-      glow: { on: captionGlowOn, color: captionGlowColor, opacity: captionGlowOpacity, intensity: captionGlowIntensity, blur: captionGlowBlur, blend: captionGlowBlend, offX: captionGlowOffsetX, offY: captionGlowOffsetY },
-      shadow: { on: captionShadowOn, color: captionShadowColor, opacity: captionShadowOpacity, blur: captionShadowBlur, offX: captionShadowOffsetX, offY: captionShadowOffsetY },
-      order: captionEffectOrder,
-    });
-    if (allShadows) {
-      style.textShadow = allShadows;
-    } else {
-      style.textShadow = `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
-    }
-    return style;
-  }, [captionFontFamily, captionFontSize, captionFontWeight, captionBold, captionItalic, captionUnderline, captionColor, captionLineSpacing,
-    captionBgOn, captionBgColor, captionBgOpacity, captionBgPaddingX, captionBgPaddingY, captionBgRadius,
-    captionStrokeOn, captionStrokeColor, captionStrokeWidth, captionStrokeOpacity, captionStrokeBlur, captionStrokeOffsetX, captionStrokeOffsetY,
-    captionGlowOn, captionGlowColor, captionGlowOpacity, captionGlowIntensity, captionGlowBlur, captionGlowBlend, captionGlowOffsetX, captionGlowOffsetY,
-    captionShadowOn, captionShadowColor, captionShadowBlur, captionShadowOpacity, captionShadowOffsetX, captionShadowOffsetY,
-    scaleFactor, hexToRgba, buildAllShadows, captionEffectOrder]);
-
-  // Strip punctuation from a word (delegates to shared engine)
-  const stripPunct = useCallback((word) => stripPunctuation(word, punctuationRemove), [punctuationRemove]);
-
-  // Build character-limit chunks: instead of fixed 3-word chunks, group words
-  // until the line exceeds ~20 characters. Long words get fewer per line.
-  const buildCharChunks = useCallback((words) => {
-    const CHAR_LIMIT = 16;
-    const chunks = [];
-    let current = [];
-    let currentLen = 0;
-    for (const w of words) {
-      const wordLen = w.word ? w.word.length : 0;
-      // If adding this word exceeds the limit AND we already have words, start new chunk
-      if (current.length > 0 && currentLen + wordLen + 1 > CHAR_LIMIT) {
-        chunks.push(current);
-        current = [w];
-        currentLen = wordLen;
-      } else {
-        current.push(w);
-        currentLen += (current.length > 1 ? 1 : 0) + wordLen; // +1 for space
-      }
-    }
-    if (current.length > 0) chunks.push(current);
-    return chunks;
-  }, []);
-
-  // Render subtitle words with karaoke highlight (always 1 line per screen)
-  // Track previous single-word segment for grow animation
-  const prevSingleWordRef = useRef(null);
-  const [singleWordKey, setSingleWordKey] = useState(0);
-
-  const renderSubtitleText = () => {
-    if (!currentSeg) return null;
-    const words = currentSeg.words || [];
-    const isSingleWord = segmentMode === "1word";
-    const speed = animateOn ? animateSpeed : 0.1;
-
-    if (words.length > 0) {
-      // Character-limit chunking — group words until line exceeds char limit
-      const chunks = buildCharChunks(words);
-      const activeIdx = currentWordIdx >= 0 ? currentWordIdx : 0;
-      // Find which chunk contains the active word
-      let cumulative = 0;
-      let chunkIdx = 0;
-      for (let c = 0; c < chunks.length; c++) {
-        if (activeIdx < cumulative + chunks[c].length) {
-          chunkIdx = c;
-          break;
-        }
-        cumulative += chunks[c].length;
-      }
-      const visibleWords = chunks[chunkIdx] || chunks[0];
-      // Calculate offset for correct karaoke highlight index
-      let visibleOffset = 0;
-      for (let c = 0; c < chunkIdx; c++) visibleOffset += chunks[c].length;
-
-      // Single-word grow animation: track segment changes
-      if (isSingleWord && animateOn) {
-        const segId = currentSeg.id;
-        if (prevSingleWordRef.current !== segId) {
-          prevSingleWordRef.current = segId;
-          setSingleWordKey(k => k + 1);
-        }
-      }
-
-      return (
-        <div style={{ ...subTextStyle, display: "block" }}>
-          {visibleWords.map((w, i) => {
-            const globalIdx = i + visibleOffset;
-            const isActive = karaokeActive && globalIdx === currentWordIdx;
-            const wordShadow = isActive ? subWordShadows.active : subWordShadows.normal;
-
-            // Animation styles
-            const wordStyle = {
-              color: isActive ? highlightColor : (subColor || "#ffffff"),
-              textShadow: wordShadow || undefined,
-              display: "inline-block", // required for transform
-              transformOrigin: "center bottom", // anchor at bottom so pop goes upward
-              verticalAlign: "baseline",
-              transition: `color ${speed}s, transform ${speed}s ease-out`,
-            };
-
-            if (animateOn) {
-              if (isSingleWord) {
-                // Single word mode: grow from animateGrowFrom to 1.0
-                wordStyle.animation = `subGrow ${speed}s ease-out forwards`;
-              } else if (isActive) {
-                // Karaoke mode: active word pops up to animateScale
-                wordStyle.transform = `scale(${animateScale})`;
-              } else {
-                wordStyle.transform = "scale(1)";
-              }
-            }
-
-            return (
-              <span key={isSingleWord ? `sw-${singleWordKey}-${globalIdx}` : globalIdx} style={wordStyle}>
-                {stripPunct(w.word)}{i < visibleWords.length - 1 ? " " : ""}
-              </span>
-            );
-          })}
-        </div>
-      );
-    }
-
-    // Fallback: no word-level data, use segment text with char-limit chunking
-    const textWords = currentSeg.text.split(/\s+/);
-    const chunks = buildCharChunks(textWords.map(w => ({ word: w })));
-    const segDuration = currentSeg.endSec - currentSeg.startSec;
-    const progress = segDuration > 0 ? (currentTime - currentSeg.startSec) / segDuration : 0;
-    const chunkIdx = Math.min(Math.floor(progress * chunks.length), chunks.length - 1);
-    const visibleText = (chunks[chunkIdx] || []).map(w => stripPunct(w.word)).join(" ");
-    return <div style={{ ...subTextStyle, display: "block", textShadow: subWordShadows.normal || undefined }}>{visibleText}</div>;
-  };
 
   // Double-click handler for caption — switch right panel to Text tab
   const onCaptionDoubleClick = useCallback((e) => {
@@ -1139,16 +893,12 @@ export default function PreviewPanelNew() {
   }, [setActivePanel, setDrawerOpen]);
 
 
-  // Dynamic CSS for single-word grow animation
-  const growKeyframes = animateOn ? `@keyframes subGrow { from { transform: scale(${animateGrowFrom}); transform-origin: center bottom; } to { transform: scale(1); transform-origin: center bottom; } }` : "";
-
   return (
     <div
       ref={containerRef}
       className="flex flex-col h-full w-full overflow-hidden relative select-none"
       style={{ background: "hsl(240 8% 3%)" }}
     >
-      {growKeyframes && <style>{growKeyframes}</style>}
       {/* Top controls overlay */}
       <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
         {/* Left: Fullscreen */}
@@ -1318,8 +1068,8 @@ export default function PreviewPanelNew() {
             </DraggableOverlay>
           ))}
 
-          {/* Subtitle overlay (no width resize, just move) */}
-          {showSubs && currentSeg && (
+          {/* Subtitle overlay — shared renderer (no width resize, just move) */}
+          {showSubs && editSegments.length > 0 && (
             <DraggableOverlay
               yPercent={subYPercent}
               onYChange={setSubYPercent}
@@ -1330,7 +1080,14 @@ export default function PreviewPanelNew() {
               overlayRef={subOverlayRef}
             >
               <div onDoubleClick={onSubtitleDoubleClick}>
-                {renderSubtitleText()}
+                <SubtitleOverlay
+                  segments={editSegments}
+                  currentTime={currentTime}
+                  syncOffset={syncOffset}
+                  subtitleStyle={subtitleStyleConfig}
+                  scaleFactor={scaleFactor}
+                  karaokeActive={karaokeActive}
+                />
               </div>
               {/* Inline toolbar below subtitle when selected */}
               {selectedOverlay === "sub" && (

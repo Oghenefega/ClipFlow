@@ -2,8 +2,8 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
-import { buildPreviewSegments, findActiveWord, stripPunct } from "../editor/utils/buildPreviewSubtitles";
-import { buildSubtitleShadows, buildSubtitleStyle, buildCaptionStyle } from "../editor/utils/subtitleStyleEngine";
+import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
+import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
 
 // Pure helper — determine project game color
 const getGameColor = (p, gamesDb) => {
@@ -50,46 +50,6 @@ const fmtTimestamp = (sec) => {
   const s = Math.floor(sec % 60).toString().padStart(2, "0");
   return `[${m}:${s}]`;
 };
-
-// ============ TEMPLATE → CSS STYLE HELPERS ============
-// All rendering logic delegated to shared subtitleStyleEngine.js
-// These thin wrappers adapt template shape to the engine's config shape
-
-function buildSubPreviewStyle(tpl, containerWidth) {
-  try {
-    const s = tpl?.subtitle || {};
-    const sf = containerWidth / 1080;
-    const style = buildSubtitleStyle(s, sf);
-    // Projects preview overrides: tighter line height, max-width constrained
-    style.lineHeight = 1.2;
-    style.maxWidth = "95%";
-    delete style.width; // projects uses maxWidth, not full width
-    delete style.whiteSpace; // not needed for preview cards
-    // Apply text-shadow from engine's shadow builder
-    const { normal } = buildSubtitleShadows(s, sf);
-    style.textShadow = normal || "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
-    return style;
-  } catch (err) {
-    console.error("[ProjectsView] buildSubPreviewStyle error:", err);
-    return { fontFamily: "'Latina Essential', sans-serif", fontSize: "12px", color: "#fff", textAlign: "center" };
-  }
-}
-
-function buildCapPreviewStyle(tpl, containerWidth) {
-  try {
-    const c = tpl?.caption || {};
-    const sf = containerWidth / 1080;
-    const style = buildCaptionStyle(c, sf);
-    // Projects preview overrides: max-width constrained
-    style.maxWidth = "95%";
-    delete style.width;
-    delete style.whiteSpace;
-    return style;
-  } catch (err) {
-    console.error("[ProjectsView] buildCapPreviewStyle error:", err);
-    return { fontFamily: "'Latina Essential', sans-serif", fontSize: "10px", color: "#fff", textAlign: "center" };
-  }
-}
 
 // Default template fallback (matches BUILTIN_TEMPLATE from templateUtils)
 const FALLBACK_TEMPLATE = {
@@ -152,56 +112,13 @@ function ClipVideoPlayer({ clip, template }) {
 
   // Apply syncOffset if the clip was saved from the editor with a timing adjustment
   const syncOffset = clip.subtitleStyle?.syncOffset || 0;
-  const adjustedTime = currentTime - syncOffset;
 
-  // Find active segment + word at current time
-  const { seg: activeSeg, wordIdx: activeWordIdx } = useMemo(() => {
-    if (!microSegments.length || !isPlaying) return { seg: null, wordIdx: -1 };
-    return findActiveWord(microSegments, adjustedTime);
-  }, [microSegments, adjustedTime, isPlaying]);
+  // Position percentages — saved clip values take priority (set in editor),
+  // fall back to template defaults for clips that haven't been edited yet
+  const subYPct = subTpl.yPercent ?? 80;
+  const capYPct = capTplObj.yPercent ?? 15;
 
-  // Find active caption at current time
-  const activeCaption = useMemo(() => {
-    if (!captions.length || !isPlaying) return null;
-    return captions.find(s => adjustedTime >= s.startSec && adjustedTime <= (s.endSec || Infinity));
-  }, [captions, adjustedTime, isPlaying]);
-
-  // Pre-built base text style (font, stroke, shadow — NOT color, that's per-word)
-  const subBaseStyle = useMemo(() => {
-    return buildSubPreviewStyle({ subtitle: subTpl }, CONTAINER_W);
-  }, [subTpl]);
-  const capStyle = useMemo(() => {
-    return buildCapPreviewStyle({ caption: capTplObj }, CONTAINER_W);
-  }, [capTplObj]);
-
-  // Karaoke/animation config — prefer template settings (user's selected template
-  // defines the intended look), fall back to per-clip saved values
-  const tplSub = tpl?.subtitle || {};
-  const highlightColor = tplSub.highlightColor || subTpl.highlightColor || "#39ff14";
-  const normalColor = subTpl.subColor || "#ffffff";
-  const animateOn = tplSub.animateOn ?? subTpl.animateOn ?? false;
-  const animateScale = tplSub.animateScale || subTpl.animateScale || 1.2;
-  const animateSpeed = animateOn ? (tplSub.animateSpeed || subTpl.animateSpeed || 0.2) : 0.1;
-
-  // Build per-word shadow variants — shared engine handles both normal + active
-  const subShadows = useMemo(() => {
-    try {
-      const sf = CONTAINER_W / 1080;
-      const config = { ...subTpl, highlightColor };
-      const { normal, active } = buildSubtitleShadows(config, sf);
-      const fallback = "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
-      return { normal: normal || fallback, active: active || fallback };
-    } catch (err) {
-      console.error("[ProjectsView] subShadows error:", err);
-      const fallback = "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000";
-      return { normal: fallback, active: fallback };
-    }
-  }, [subTpl, highlightColor]);
-
-  // Position percentages — prefer template positions (layout concern, not per-clip style)
-  // Saved clip yPercent was historically wrong (read from wrong store), so template wins
-  const subYPct = tpl?.subtitle?.yPercent ?? subTpl.yPercent ?? 80;
-  const capYPct = tpl?.caption?.yPercent ?? capTplObj.yPercent ?? 15;
+  const scaleFactor = CONTAINER_W / 1080;
 
   // Metadata + external pause handlers
   useEffect(() => {
@@ -303,52 +220,39 @@ function ClipVideoPlayer({ clip, template }) {
           </div>
         )}
 
-        {/* Subtitle overlay — word-level karaoke during playback */}
-        {isPlaying && activeSeg && (
+        {/* Subtitle overlay — shared renderer, word-level karaoke during playback */}
+        {isPlaying && (
           <div style={{
             position: "absolute", left: 4, right: 4,
             top: `${subYPct}%`, transform: "translateY(-50%)",
             display: "flex", justifyContent: "center", pointerEvents: "none",
           }}>
-            <span style={{ ...subBaseStyle, color: undefined, display: "block", textAlign: "center" }}>
-              {(activeSeg.words || []).map((w, i) => {
-                const isActive = i === activeWordIdx;
-                return (
-                  <span key={i} style={{
-                    color: isActive ? highlightColor : normalColor,
-                    textShadow: isActive ? subShadows.active : subShadows.normal,
-                    display: "inline-block",
-                    transformOrigin: "center bottom",
-                    verticalAlign: "baseline",
-                    transition: `color ${animateSpeed}s, transform ${animateSpeed}s ease-out`,
-                    transform: animateOn && isActive ? `scale(${animateScale})` : "scale(1)",
-                  }}>
-                    {w.word}{i < activeSeg.words.length - 1 ? "\u00A0" : ""}
-                  </span>
-                );
-              })}
-              {/* Fallback if no words array */}
-              {(!activeSeg.words || activeSeg.words.length === 0) && activeSeg.text}
-            </span>
+            <SubtitleOverlay
+              segments={microSegments}
+              currentTime={currentTime}
+              syncOffset={syncOffset}
+              subtitleStyle={subTpl}
+              scaleFactor={scaleFactor}
+            />
           </div>
         )}
 
-        {/* Caption overlay — only during playback */}
-        {(() => {
-          if (!isPlaying || !activeCaption) return null;
-          const displayCap = activeCaption;
-          return (
-            <div style={{
-              position: "absolute", left: 4, right: 4,
-              top: `${capYPct}%`, transform: "translateY(-50%)",
-              display: "flex", justifyContent: "center", pointerEvents: "none",
-            }}>
-              <span style={capStyle}>
-                {displayCap.text || displayCap}
-              </span>
-            </div>
-          );
-        })()}
+        {/* Caption overlay — shared renderer, only during playback */}
+        {isPlaying && (
+          <div style={{
+            position: "absolute", left: 4, right: 4,
+            top: `${capYPct}%`, transform: "translateY(-50%)",
+            display: "flex", justifyContent: "center", pointerEvents: "none",
+          }}>
+            <CaptionOverlay
+              segments={captions}
+              currentTime={currentTime}
+              syncOffset={syncOffset}
+              captionStyle={capTplObj}
+              scaleFactor={scaleFactor}
+            />
+          </div>
+        )}
 
         {/* Play/pause overlay */}
         {!isPlaying && (
