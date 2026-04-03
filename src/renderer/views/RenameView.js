@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import T from "../styles/theme";
-import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, Checkbox } from "../components/shared";
+import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, PillSpinbox, Checkbox } from "../components/shared";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
@@ -16,6 +16,119 @@ const PRESET_LIST = [
 const PRESETS_USING_DAY = new Set(["tag-date-day-part", "tag-day-part"]);
 const PRESETS_USING_LABEL = new Set(["tag-label", "tag-date-label"]);
 const PRESETS_ALWAYS_PARTS = new Set(["tag-date-day-part", "tag-day-part"]);
+
+function PreviewThumbnail({ frames, loading }) {
+  const [topIndex, setTopIndex] = useState(0);
+  const [botIndex, setBotIndex] = useState(0);
+  const [topVisible, setTopVisible] = useState(true);
+  const intervalRef = useRef(null);
+  const showingTop = useRef(true);
+
+  const startCycle = useCallback(() => {
+    if (!frames || frames.length <= 1) return;
+    let current = 0;
+    intervalRef.current = setInterval(() => {
+      const next = (current + 1) % frames.length;
+      if (showingTop.current) {
+        // Next image goes on bottom, then fade top out to reveal it
+        setBotIndex(next);
+        setTimeout(() => setTopVisible(false), 20); // small delay so bottom renders first
+      } else {
+        // Next image goes on top, then fade top in to cover bottom
+        setTopIndex(next);
+        setTimeout(() => setTopVisible(true), 20);
+      }
+      showingTop.current = !showingTop.current;
+      current = next;
+    }, 1050);
+  }, [frames]);
+
+  const stopCycle = useCallback(() => {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    setTopIndex(0); setBotIndex(0); setTopVisible(true); showingTop.current = true;
+  }, []);
+
+  useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
+
+  const containerStyle = {
+    width: 160, height: 90, borderRadius: T.radius.md, overflow: "hidden",
+    background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+    flexShrink: 0, position: "relative",
+  };
+
+  if (loading) {
+    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 11 }}>Loading...</span></div>;
+  }
+  if (!frames || frames.length === 0) {
+    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 18, opacity: 0.3 }}>🎬</span></div>;
+  }
+
+  const imgStyle = { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" };
+  const topSrc = `file://${frames[topIndex].path.replace(/\\/g, "/")}`;
+  const botSrc = `file://${frames[botIndex].path.replace(/\\/g, "/")}`;
+
+  return (
+    <div style={containerStyle} onMouseEnter={startCycle} onMouseLeave={stopCycle}>
+      <img src={botSrc} alt="" draggable={false} style={imgStyle} />
+      <img src={topSrc} alt="" draggable={false} style={{ ...imgStyle, opacity: topVisible ? 1 : 0, transition: "opacity 0.35s ease" }} />
+    </div>
+  );
+}
+
+function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPresetChange, color }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const c = color || T.yellow;
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const currentName = getProposed(rename);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
+      <span
+        onClick={() => setOpen(!open)}
+        style={{ color: c, fontSize: 14, fontWeight: 700, fontFamily: T.mono, whiteSpace: "nowrap", cursor: "pointer", borderBottom: `1px dashed ${c}55`, paddingBottom: 1 }}
+        title="Click to change naming format"
+      >{currentName}</span>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 999, width: "max-content",
+          background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 280, overflowY: "auto",
+        }}>
+          {presets.map((p) => {
+            const previewR = { ...rename, preset: p.id };
+            const previewName = getProposed(previewR);
+            const isActive = currentPreset === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() => { onPresetChange(p.id); setOpen(false); }}
+                style={{
+                  padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                  borderLeft: isActive ? `3px solid ${c}` : "3px solid transparent",
+                  marginBottom: 2,
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ color: isActive ? c : T.text, fontSize: 13, fontWeight: 600, fontFamily: T.mono }}>{previewName}</div>
+                <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2 }}>{p.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder }) {
   const [subTab, setSubTab] = useState("pending");
@@ -62,6 +175,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(null); // { filename, pct }
 
+  // Preview frames state: { [fileId]: { frames: [{path, timestampSeconds}], loading: bool } }
+  const [previewFrames, setPreviewFrames] = useState({});
+  const previewRequested = useRef(new Set());
+
+  // Remember last renamed game for auto-selecting on new files
+  const lastRenamedGame = useRef(null);
+
   const isElectron = typeof window !== "undefined" && window.clipflow;
 
   // Load split settings from store
@@ -92,11 +212,20 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       setPendingRenames((prev) => {
         if (prev.find((p) => p.fileName === file.name)) return prev;
         const detected = detectGame(file.name, gamesDb, prev);
+        // If user recently renamed a file, default new files to that game
+        let game = detected.game, tag = detected.tag, color = detected.color, day = detected.day;
+        if (lastRenamedGame.current) {
+          const lastGame = gamesDb.find((g) => g.name === lastRenamedGame.current);
+          if (lastGame) {
+            game = lastGame.name; tag = lastGame.tag; color = lastGame.color;
+            day = (lastGame.dayCount || 0) + 1;
+          }
+        }
         return [...prev, {
           id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           fileName: file.name, filePath: file.path,
-          game: detected.game, tag: detected.tag, color: detected.color,
-          day: detected.day, part: detected.part,
+          game, tag, color,
+          day, part: detected.part,
           preset: defaultPreset,
           customLabel: "",
           createdAt: file.createdAt,
@@ -130,6 +259,25 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       });
     }
   }, [pendingRenames, isElectron, autoSplitEnabled, splitThreshold]);
+
+  // Generate preview frames for pending files (lazy, one-by-one)
+  useEffect(() => {
+    if (!isElectron) return;
+    for (const r of pendingRenames) {
+      if (!r.filePath || previewRequested.current.has(r.id)) continue;
+      previewRequested.current.add(r.id);
+      setPreviewFrames((prev) => ({ ...prev, [r.id]: { frames: [], loading: true } }));
+      window.clipflow.generatePreviewFrames(r.filePath).then((result) => {
+        if (result && !result.error && result.frames) {
+          setPreviewFrames((prev) => ({ ...prev, [r.id]: { frames: result.frames, loading: false } }));
+        } else {
+          setPreviewFrames((prev) => ({ ...prev, [r.id]: { frames: [], loading: false } }));
+        }
+      }).catch(() => {
+        setPreviewFrames((prev) => ({ ...prev, [r.id]: { frames: [], loading: false } }));
+      });
+    }
+  }, [pendingRenames, isElectron]);
 
   // Recalculate split counts when threshold changes
   useEffect(() => {
@@ -823,6 +971,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       }, ...prev]);
     }
 
+    // Remember this game for auto-selecting on future files
+    lastRenamedGame.current = r.game;
+
     // Clean up split info and remove from pending
     setSplitInfo((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
@@ -1214,14 +1365,26 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   const hasGameSwitch = scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
                   const splitPreview = getSplitPreview(r);
 
-                  return (
-                    <Card key={r.id} style={{ padding: "18px 20px" }} borderColor={`${r.color}44`}>
-                      {/* Original filename */}
-                      <div style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono, marginBottom: 8 }}>{r.fileName}</div>
+                  const preview = previewFrames[r.id];
 
-                      {/* Live filename preview */}
-                      <div style={{ color: T.yellow, fontSize: 16, fontWeight: 700, fontFamily: T.mono, marginBottom: hasSplit ? 8 : 14, display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ color: T.textMuted }}>→</span>{getProposed(r)}
+                  return (
+                    <Card key={r.id} style={{ padding: "18px 20px", display: "flex", gap: 16 }} borderColor={`${r.color}44`}>
+                      {/* Preview thumbnail */}
+                      <PreviewThumbnail frames={preview?.frames || []} loading={preview?.loading} />
+                      {/* Card content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Original filename → live rename preview (single line) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: hasSplit ? 8 : 10, flexWrap: "wrap" }}>
+                        <span style={{ color: T.textSecondary, fontSize: 13, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "40%" }}>{r.fileName}</span>
+                        <span style={{ color: T.textMuted, fontSize: 12 }}>→</span>
+                        <PresetNamePicker
+                          rename={r}
+                          presets={PRESET_LIST}
+                          currentPreset={preset}
+                          getProposed={getProposed}
+                          onPresetChange={(v) => updatePending(r.id, "preset", v)}
+                          color={r.color}
+                        />
                       </div>
 
                       {/* Auto-split indicator */}
@@ -1284,8 +1447,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         </div>
                       )}
 
-                      {/* Controls row */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      {/* Controls row — fixed min-height so cards don't shrink when controls change */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
                         {/* Game dropdown (grouped) */}
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <GroupedSelect
@@ -1294,23 +1457,16 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                             options={gameOptions}
                             renderSelected={(o) => <><GamePill tag={o.tag || r.tag} color={o.color || r.color} size="sm" />{o.label}</>}
                             renderOption={(o) => <><GamePill tag={o.tag} color={o.color} size="sm" />{o.label}</>}
-                            style={{ minWidth: 160 }}
+                            style={{ minWidth: 150 }}
+                            borderColor={`${r.color}44`}
                           />
                         </div>
 
-                        {/* Preset selector */}
-                        <Select
-                          value={preset}
-                          onChange={(v) => updatePending(r.id, "preset", v)}
-                          options={PRESET_LIST.map((p) => ({ value: p.id, label: p.label }))}
-                          style={{ minWidth: 140, fontSize: 11 }}
-                        />
+                        {/* Day pill (presets 1-2) */}
+                        {showDay && <PillSpinbox label="Day" value={r.day} onChange={(v) => updatePending(r.id, "day", v)} color={r.color} />}
 
-                        {/* Day spinbox (presets 1-2) */}
-                        {showDay && <MiniSpinbox label="Day" value={r.day} onChange={(v) => updatePending(r.id, "day", v)} />}
-
-                        {/* Part spinbox (presets 1-2) */}
-                        {showPart && <MiniSpinbox label="Pt" value={r.part} onChange={(v) => updatePending(r.id, "part", v)} />}
+                        {/* Part pill (presets 1-2) */}
+                        {showPart && <PillSpinbox label="Pt" value={r.part} onChange={(v) => updatePending(r.id, "part", v)} color={r.color} />}
 
                         {/* Custom label input (presets 4-5) */}
                         {showLabel && (
@@ -1362,19 +1518,20 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
                         {/* Action buttons */}
                         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-                          {/* Split by game — subtle text link, only when file has been probed */}
-                          {r.filePath && !scrubberOpen[r.id] && (
+                          {/* Split video — visible when file has been probed */}
+                          {r.filePath && !scrubberOpen[r.id] && splitInfo[r.id]?.durationSeconds > 0 && (
                             <button
                               onClick={() => toggleScrubber(r.id, r.filePath)}
                               disabled={renaming}
-                              style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: renaming ? "default" : "pointer", fontFamily: T.font, padding: "8px 6px", opacity: renaming ? 0.4 : 1 }}
-                              title="Split this recording at points where you switched games"
-                            >split by game</button>
+                              style={{ background: "none", border: "none", color: T.textSecondary, fontSize: 11, cursor: renaming ? "default" : "pointer", fontFamily: T.font, padding: "6px 6px", opacity: renaming ? 0.4 : 0.8, textDecoration: "underline", textUnderlineOffset: 2 }}
+                              title="Split this recording at specific points"
+                            >split video</button>
                           )}
-                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.greenDim, color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasGameSwitch || hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
-                          <button onClick={() => hideOne(r.id)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: T.redDim, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
+                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: T.greenDim, color: T.green, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasGameSwitch || hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
+                          <button onClick={() => hideOne(r.id)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
                         </div>
                       </div>
+                      </div>{/* end card content wrapper */}
                     </Card>
                   );
                 })}
@@ -1506,7 +1663,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 }
 
 // ── GroupedSelect: Select with section headers ──
-function GroupedSelect({ value, onChange, options, style: x, renderOption, renderSelected }) {
+function GroupedSelect({ value, onChange, options, style: x, renderOption, renderSelected, borderColor }) {
   const [open, setOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(-1);
   const ref = useRef(null);
@@ -1522,7 +1679,7 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-block", ...x }}>
-      <button onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: T.surface, border: `1px solid ${open ? T.accentBorder : T.border}`, borderRadius: T.radius.md, padding: "8px 12px", color: T.text, fontSize: 13, fontFamily: T.font, cursor: "pointer", outline: "none", textAlign: "left" }}>
+      <button onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", height: 36, background: T.surface, border: `1px solid ${borderColor || (open ? T.accentBorder : T.border)}`, borderRadius: T.radius.md, padding: "0 12px", color: T.text, fontSize: 13, fontFamily: T.font, cursor: "pointer", outline: "none", textAlign: "left" }}>
         <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
           {renderSelected && selected ? renderSelected(selected) : (selected?.label || value)}
         </span>

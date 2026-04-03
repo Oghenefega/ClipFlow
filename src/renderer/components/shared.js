@@ -14,9 +14,9 @@ export const PulseDot = ({ color = T.green, size = 8 }) => (
 );
 
 export const GamePill = ({ tag, color, size = "md" }) => {
-  const s = size === "sm" ? { px: 6, py: 2, fs: 9 } : { px: 10, py: 4, fs: 11 };
+  const s = size === "sm" ? { px: 6, py: 3, fs: 10 } : { px: 10, py: 4, fs: 11 };
   return (
-    <span style={{ display: "inline-flex", padding: `${s.py}px ${s.px}px`, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 6, fontSize: s.fs, fontWeight: 700, color, fontFamily: T.mono, letterSpacing: "1px" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py}px ${s.px}px`, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 6, fontSize: s.fs, fontWeight: 700, color, fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1 }}>
       {tag}
     </span>
   );
@@ -136,7 +136,7 @@ export const ViralBar = ({ score }) => {
   );
 };
 
-export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label }) => {
+export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label, compact }) => {
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(String(value));
   const timerRef = useRef(null);
@@ -155,20 +155,78 @@ export const MiniSpinbox = ({ value, onChange, min = 1, max = 999, label }) => {
   const stopHold = () => { clearTimeout(timerRef.current); clearInterval(intRef.current); };
   const commitEdit = () => { const n = parseInt(editVal); if (!isNaN(n) && n >= min && n <= max) onChange(n); setEditing(false); };
 
-  const bs = { width: 28, height: 28, borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, userSelect: "none" };
+  const btnSize = compact ? 22 : 28;
+  const btnFont = compact ? 12 : 14;
+  const valWidth = compact ? 28 : 36;
+  const valFont = compact ? 13 : 14;
+  const editWidth = compact ? 34 : 42;
+  const bs = { width: btnSize, height: btnSize, borderRadius: compact ? 4 : 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: btnFont, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, userSelect: "none" };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      {label && <span style={{ color: T.textTertiary, fontSize: 11, fontWeight: 600, marginRight: 4 }}>{label}</span>}
+    <div style={{ display: "flex", alignItems: "center", gap: compact ? 2 : 4 }}>
+      {label && <span style={{ color: compact ? T.textSecondary : T.textTertiary, fontSize: 11, fontWeight: 600, marginRight: compact ? 2 : 4 }}>{label}</span>}
       <button onMouseDown={() => startHold(-1)} onMouseUp={stopHold} onMouseLeave={stopHold} style={bs}>−</button>
       {editing ? (
-        <input value={editVal} onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))} onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()} autoFocus style={{ width: 42, textAlign: "center", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: 4, color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, outline: "none" }} />
+        <input value={editVal} onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))} onBlur={commitEdit} onKeyDown={(e) => e.key === "Enter" && commitEdit()} autoFocus style={{ width: editWidth, textAlign: "center", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: compact ? 4 : 6, padding: compact ? 2 : 4, color: T.text, fontSize: valFont, fontWeight: 700, fontFamily: T.mono, outline: "none" }} />
       ) : (
-        <div onClick={() => { setEditing(true); setEditVal(String(value)); }} style={{ width: 36, textAlign: "center", color: T.text, fontSize: 14, fontWeight: 700, fontFamily: T.mono, cursor: "text", padding: "4px 0" }}>
+        <div onClick={() => { setEditing(true); setEditVal(String(value)); }} style={{ width: valWidth, textAlign: "center", color: T.text, fontSize: valFont, fontWeight: 700, fontFamily: T.mono, cursor: "text", padding: compact ? "2px 0" : "4px 0" }}>
           {value}
         </div>
       )}
       <button onMouseDown={() => startHold(1)} onMouseUp={stopHold} onMouseLeave={stopHold} style={bs}>+</button>
+    </div>
+  );
+};
+
+export const PillSpinbox = ({ value, onChange, min = 1, max = 999, label, color = T.accent }) => {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(String(value));
+
+  useEffect(() => { setEditVal(String(value)); }, [value]);
+
+  const commitEdit = () => {
+    const n = parseInt(editVal);
+    if (!isNaN(n) && n >= min && n <= max) onChange(n);
+    setEditing(false);
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const d = e.deltaY < 0 ? 1 : -1;
+    const next = Math.max(min, Math.min(max, value + d));
+    onChange(next);
+  };
+
+  return (
+    <div
+      onWheel={handleWheel}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5, height: 36,
+        background: T.surface, border: `1px solid ${color}44`,
+        borderRadius: T.radius.md, padding: "0 12px", cursor: "default", userSelect: "none",
+      }}
+    >
+      <span style={{ color, fontSize: 13, fontWeight: 600, fontFamily: T.font }}>{label}</span>
+      <div style={{ width: value > 99 ? 30 : 20, textAlign: "center" }}>
+        {editing ? (
+          <input
+            value={editVal}
+            onChange={(e) => setEditVal(e.target.value.replace(/\D/g, ""))}
+            onBlur={commitEdit}
+            onKeyDown={(e) => e.key === "Enter" && commitEdit()}
+            autoFocus
+            style={{
+              width: "100%", textAlign: "center", background: "transparent", border: "none",
+              color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.mono, outline: "none", padding: 0,
+            }}
+          />
+        ) : (
+          <span
+            onClick={() => { setEditing(true); setEditVal(String(value)); }}
+            style={{ color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.mono, cursor: "text" }}
+          >{value}</span>
+        )}
+      </div>
     </div>
   );
 };

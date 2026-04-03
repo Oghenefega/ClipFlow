@@ -697,6 +697,62 @@ ipcMain.handle("thumbs:cleanup", async (_, filePath) => {
   }
 });
 
+// ============ PREVIEW FRAMES (Rename Tab Thumbnails) ============
+const previewCache = new Map();
+let previewInFlight = 0;
+const PREVIEW_MAX_CONCURRENT = 2;
+const previewQueue = [];
+
+function processPreviewQueue() {
+  while (previewInFlight < PREVIEW_MAX_CONCURRENT && previewQueue.length > 0) {
+    const { filePath, resolve } = previewQueue.shift();
+    previewInFlight++;
+    runPreviewGeneration(filePath)
+      .then(resolve)
+      .finally(() => { previewInFlight--; processPreviewQueue(); });
+  }
+}
+
+async function runPreviewGeneration(filePath) {
+  // Return cached result if available
+  if (previewCache.has(filePath)) {
+    return previewCache.get(filePath);
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return { error: `File not found: ${filePath}` };
+  }
+
+  const fileId = Buffer.from(filePath).toString("base64url").slice(0, 32);
+  const probeResult = await ffmpeg.probe(filePath);
+  const duration = probeResult.duration;
+
+  const result = await ffmpeg.generatePreviewFrames(filePath, fileId, duration);
+  logger.info("(preview)", `Generated ${result.frames.length} preview frames for ${path.basename(filePath)} (${Math.round(duration)}s)`);
+
+  const cached = { frames: result.frames, thumbDir: result.thumbDir, duration };
+  previewCache.set(filePath, cached);
+  return cached;
+}
+
+ipcMain.handle("thumbs:preview", async (_, filePath) => {
+  try {
+    // Return cached immediately
+    if (previewCache.has(filePath)) {
+      return previewCache.get(filePath);
+    }
+
+    // Queue with concurrency limit
+    return new Promise((resolve) => {
+      previewQueue.push({ filePath, resolve });
+      processPreviewQueue();
+    });
+  } catch (err) {
+    logger.error("(preview)", `Preview generation failed: ${err.message}`);
+    return { error: err.message };
+  }
+});
+
 // ============ IMPORT EXTERNAL FILE (Drag-and-Drop) ============
 ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder) => {
   try {

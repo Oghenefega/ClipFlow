@@ -4,7 +4,23 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-04-02
+## [Unreleased] — 2026-04-03
+
+### Added
+- **Video preview thumbnails in Rename tab:** Each pending file card now shows a 160x90px thumbnail on the left side. Frames are extracted at smart positions based on video duration (1-4 frames scaling with length). On hover, thumbnails crossfade through frames every ~1 second so you can identify the game at a glance without opening the file. Uses a concurrency-limited FFmpeg extraction pipeline (max 2 simultaneous).
+- **Inline preset name picker:** Clicking the colored renamed filename opens a dropdown showing all 6 naming formats with their actual rendered values for that file. Replaces the old preset `<Select>` dropdown, saving significant space in the controls row.
+- **Click-to-edit Day/Pt pill controls:** Replaced the +/- spinbox buttons with clean pill-style controls. Click the number to type a new value, or scroll wheel to increment/decrement. No visible buttons — much more compact.
+- **Last-renamed game auto-selection:** After renaming a file as a specific game, newly detected files automatically default to that game instead of requiring manual selection each time.
+- **"split video" button:** Renamed from "split by game" and now visible for all probed files (previously only showed for recordings over a threshold).
+
+### Changed
+- **Color-matched UI elements:** Day/Pt pills, renamed filename text, preset dropdown highlights, and game dropdown border all use the game's assigned color for visual unity across the card.
+- **Unified control sizing:** Game dropdown, Day pill, and Pt pill all share the same 36px height for consistent alignment.
+- **GamePill centering fix:** Small size variant now properly vertically centers text with explicit alignItems/justifyContent and lineHeight.
+- **RENAME/HIDE buttons tightened:** Smaller padding and font size to match the more compact card layout.
+- **PillSpinbox component (new):** Reusable pill-style number input in shared.js with scroll wheel support and fixed-width editing.
+
+## 2026-04-02
 
 ### Added
 - **Pixel-perfect subtitle/caption burn-in for rendered clips:** Rendered clips now have subtitles and captions that exactly match the editor preview. Uses an offscreen Electron BrowserWindow with the same `subtitleStyleEngine.js` and CSS rendering as the editor, capturing PNG frames and compositing them via FFmpeg. Supports all styling: multi-ring strokes, glow, karaoke word highlighting, DM Sans/Latina Essential fonts, and caption positioning.

@@ -106,6 +106,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   generateThumbnails: (filePath) => ipcRenderer.invoke("thumbs:generate", filePath),
   cleanupThumbnails: (filePath) => ipcRenderer.invoke("thumbs:cleanup", filePath),
 
+  // Preview frames (rename tab thumbnails)
+  generatePreviewFrames: (filePath) => ipcRenderer.invoke("thumbs:preview", filePath),
+
   // Import external file (drag-and-drop)
   importExternalFile: (sourcePath, watchFolder) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder),
   importClearSuppression: (filename, sizeBytes) => ipcRenderer.invoke("import:clearSuppression", filename, sizeBytes),

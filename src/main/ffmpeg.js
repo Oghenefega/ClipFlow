@@ -372,6 +372,55 @@ async function generateThumbnailStrip(inputPath, fileId) {
  * Clean up thumbnail strip temp directory.
  * @param {string} thumbDir - The temp directory to delete
  */
+/**
+ * Generate preview frames for a video, scaled by duration.
+ * <10min: 1 frame (50%), 10-20min: 2 (30%,70%), 20-40min: 3 (25%,50%,75%), 40+min: 4 (20%,40%,60%,80%).
+ * @param {string} inputPath - Video file path
+ * @param {string} fileId - Unique ID for cache directory
+ * @param {number} durationSeconds - Video duration in seconds
+ * @returns {Promise<{thumbDir: string, frames: Array<{path: string, timestampSeconds: number}>}>}
+ */
+async function generatePreviewFrames(inputPath, fileId, durationSeconds) {
+  const thumbDir = path.join(os.tmpdir(), "clipflow-preview", fileId);
+  if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
+
+  // Determine frame count and positions based on duration
+  let positions;
+  if (durationSeconds < 600) {        // < 10 min
+    positions = [0.5];
+  } else if (durationSeconds < 1200) { // 10-20 min
+    positions = [0.3, 0.7];
+  } else if (durationSeconds < 2400) { // 20-40 min
+    positions = [0.25, 0.5, 0.75];
+  } else {                             // 40+ min
+    positions = [0.2, 0.4, 0.6, 0.8];
+  }
+
+  const frames = [];
+  for (let i = 0; i < positions.length; i++) {
+    const time = Math.floor(durationSeconds * positions[i]);
+    const outPath = path.join(thumbDir, `preview_${i}.jpg`);
+    await new Promise((resolve, reject) => {
+      const args = [
+        "-ss", String(time),
+        "-i", inputPath,
+        "-vframes", "1",
+        "-vf", "scale=240:-1",
+        "-q:v", "4",
+        "-y",
+        outPath,
+      ];
+      execFile("ffmpeg", args, { timeout: 30000 }, (err) => {
+        if (err) return reject(new Error(`Preview frame extraction failed at ${time}s: ${err.message}`));
+        resolve();
+      });
+    });
+    frames.push({ path: outPath, timestampSeconds: time });
+  }
+
+  return { thumbDir, frames };
+}
+
 function cleanupThumbnailStrip(thumbDir) {
   try {
     if (fs.existsSync(thumbDir)) {
@@ -393,4 +442,5 @@ module.exports = {
   splitFile,
   generateThumbnailStrip,
   cleanupThumbnailStrip,
+  generatePreviewFrames,
 };
