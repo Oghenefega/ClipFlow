@@ -6,6 +6,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-03
 
+### Added
+- **clipflow-optimize skill:** Profile-driven performance optimization adapted from `extreme-software-optimization`. Covers React re-renders, IPC batching, memory leaks, startup time, FFmpeg pipeline, and Whisper transcription with measure-first methodology and opportunity scoring.
+- **clipflow-mock-finder skill:** Multi-method stub/placeholder detection — keyword search, suspicious return values, short function analysis, behavioral detection (fake delays, hardcoded scores), and caller tracing. Produces categorized findings table.
+- **clipflow-ux-audit skill:** Nielsen's 10 heuristics mapped to ClipFlow's views, Big 4 accessibility checks, user flow analysis with happy/error paths, and prioritized reporting template.
+- **research-software skill (global):** Source-code-first research methodology for investigating dependencies — clone at stable tag, grep for hidden flags/env vars, mine PRs and tests, structured output.
+
 ### Fixed
 - **Critical blank screen crash resolved:** Root cause identified via Sentry as a Chromium renderer process crash (`blink::DOMDataStore::GetWrapper` — EXCEPTION_ACCESS_VIOLATION_READ). Video elements were being removed from the DOM while Chromium's internal fetch stream was still reading the file, causing a null pointer dereference in Blink. Fixed by adding `useEffect` cleanup hooks that abort video loading before unmount (`pause()` + `removeAttribute("src")` + `load()`). Applied to both PreviewPanelNew.js (editor) and ProjectsView.js (projects preview).
 
