@@ -1938,6 +1938,8 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 
     const result = await render.renderClip(clipData, projectData, outputPath, {
       subtitleStyle: options?.subtitleStyle || {},
+      captionStyle: options?.captionStyle || {},
+      captionSegments: options?.captionSegments || [],
       onProgress: (p) => {
         mainWindow?.webContents.send("render:progress", p);
       },
@@ -1956,6 +1958,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 
     return result;
   } catch (err) {
+    console.error("[render:clip] Render failed:", err.message, err.stack);
     return { error: err.message };
   }
 });

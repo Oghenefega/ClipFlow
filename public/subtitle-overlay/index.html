@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html style="background: transparent; margin: 0; padding: 0;">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: transparent;
+    }
+    #canvas {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+    }
+    .overlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      transform: translateY(-50%);
+    }
+    .overlay-inner {
+      max-width: 90%;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas"></div>
+  <script src="./overlay-renderer.js"></script>
+</body>
+</html>

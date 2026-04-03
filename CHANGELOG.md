@@ -6,6 +6,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-02
 
+### Added
+- **Pixel-perfect subtitle/caption burn-in for rendered clips:** Rendered clips now have subtitles and captions that exactly match the editor preview. Uses an offscreen Electron BrowserWindow with the same `subtitleStyleEngine.js` and CSS rendering as the editor, capturing PNG frames and compositing them via FFmpeg. Supports all styling: multi-ring strokes, glow, karaoke word highlighting, DM Sans/Latina Essential fonts, and caption positioning.
+- **Offscreen overlay renderer (`subtitle-overlay-renderer.js`):** New module that creates a transparent BrowserWindow at source video resolution, injects the shared style engine, captures sequential PNG frames at 10fps, and returns them for FFmpeg compositing.
+- **Overlay HTML renderer (`public/subtitle-overlay/`):** DOM-based renderer running inside the offscreen window, implementing the same `findActiveWord`, `buildCharChunks`, `renderSubtitle`, and `renderCaption` logic as `PreviewPanelNew.js`.
+
 ### Fixed
 - **AI titles/captions persisting between clips:** Generated titles, captions, and accepted/rejected state from one clip were leaking into the next when switching clips in the editor. Added `useAIStore.getState().reset()` to the clip-switching logic in `useEditorStore.initFromContext()`.
 - **Cloudflare AI Gateway 2009 Unauthorized on all requests:** The default gateway URL had a truncated Cloudflare account ID (29 chars instead of 32, missing `ef9` segment). Every gateway request hit a nonexistent endpoint. Fixed the stored URL default in `main.js`.
