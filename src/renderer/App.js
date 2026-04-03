@@ -100,6 +100,7 @@ export default function App() {
   // Settings
   const [ignoredProcesses, setIgnoredProcesses] = useState(INITIAL_IGNORED);
   const [watchFolder, setWatchFolder] = useState("W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards");
+  const [testWatchFolder, setTestWatchFolder] = useState("");
   const [platforms, setPlatforms] = useState(PUBLISH_ORDER_INIT);
   const [outputFolder, setOutputFolder] = useState("");
   const [sfxFolder, setSfxFolder] = useState("");
@@ -159,6 +160,7 @@ export default function App() {
       try {
         const all = await window.clipflow.storeGetAll();
         if (all.watchFolder) setWatchFolder(all.watchFolder);
+        if (all.testWatchFolder !== undefined) setTestWatchFolder(all.testWatchFolder || "");
         if (all.mainGame) setMainGame(all.mainGame);
         if (all.mainPool) setMainPool(all.mainPool);
         if (all.gamesDb) setGamesDb(all.gamesDb);
@@ -274,6 +276,11 @@ export default function App() {
     if (!hasLoaded.current) { hasLoaded.current = true; return; }
     persist("watchFolder", watchFolder);
   }, [watchFolder, loaded]);
+  useEffect(() => {
+    if (!loaded) return;
+    if (!hasLoaded.current) return;
+    persist("testWatchFolder", testWatchFolder);
+  }, [testWatchFolder, loaded]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainGame", mainGame); }, [mainGame]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainPool", mainPool); }, [mainPool]);
   useEffect(() => { if (!hasLoaded.current) return; persist("gamesDb", gamesDb); }, [gamesDb]);
@@ -443,6 +450,7 @@ export default function App() {
           onAddGame={(entryType) => setShowAddGame(entryType || "game")}
           onGameDayUpdate={handleGameDayUpdate}
           watchFolder={watchFolder}
+          testWatchFolder={testWatchFolder}
         />
       );
     }
@@ -532,6 +540,8 @@ export default function App() {
           onAddGame={(entryType) => setShowAddGame(entryType || "game")}
           watchFolder={watchFolder}
           setWatchFolder={setWatchFolder}
+          testWatchFolder={testWatchFolder}
+          setTestWatchFolder={setTestWatchFolder}
           platforms={platforms}
           setPlatforms={setPlatforms}
           outputFolder={outputFolder}

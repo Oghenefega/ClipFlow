@@ -1,64 +1,52 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-03 — "Rename Tab Visual Overhaul"_
+_Last updated: 2026-04-03 — "Test Watch Folder"_
 
 ## Current State
-App builds and launches. Rename tab has been significantly redesigned with video thumbnails, inline preset picker, color-matched pills, and a cleaner compact layout. All features working.
+App builds and launches. Test watch folder feature is fully implemented across the entire pipeline: Settings UI, file watcher, rename, recordings grouping, project tagging, and render output isolation. Schema at V4.
 
 ## What Was Just Built
 
-### Video Preview Thumbnails
-- New `generatePreviewFrames()` in ffmpeg.js — extracts frames scaled by duration (<10min: 1, 10-20min: 2, 20-40min: 3, 40+min: 4)
-- New `thumbs:preview` IPC handler with concurrency limiter (max 2 simultaneous FFmpeg extractions)
-- 160x90px thumbnail on left side of each rename card
-- True crossfade between frames on hover (two stacked images, opacity toggle, 350ms transition, 1050ms cycle)
-- Lazy generation per-card (not all at once on tab load)
+### Test Watch Folder (dev-mode second watcher)
+- Settings UI: "Test Folder" card with Browse/Edit/Clear and yellow DEV badge, directly below Watch Folder
+- Stored in electron-store as `testWatchFolder` (default: empty string)
+- When set, activates a second chokidar instance via `watcher:startTest` IPC
+- Shared detection logic: extracted `handleWatcherFileAdded()` and `createOBSWatcher()` — zero duplication between main and test watchers
+- Separate IPC events (`watcher:testFileAdded` / `watcher:testFileRemoved`) prevent listener cross-contamination
+- Same-folder guard prevents setting test folder = main watch folder
 
-### Inline Preset Name Picker
-- Clicking the colored filename opens a dropdown showing all 6 naming formats with actual rendered names
-- Preset `<Select>` dropdown removed from controls row — saves significant horizontal space
-- Active preset highlighted with colored left border
+### is_test Column (Schema V4)
+- `ALTER TABLE file_metadata ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0` with index
+- Set to 1 at `metadata:create` when `data.isTest` is truthy
+- Inherited by split children in `split:execute` handler via `parentFile.is_test`
 
-### Click-to-Edit Pill Controls (Day/Pt)
-- Replaced MiniSpinbox (+/- buttons) with clean pill-style controls matching GamePill aesthetic
-- Click number to type, scroll wheel to increment/decrement
-- Fixed width so pills don't resize during editing
-- All pills (game dropdown, Day, Pt) unified at height: 36px
-
-### Color Matching & Visual Unity
-- Day/Pt pills, renamed filename, and preset dropdown all use the game's color (not hardcoded yellow)
-- Arc Raiders dropdown border matches game color
-- GamePill vertical centering fixed (added alignItems/justifyContent/lineHeight)
-- RENAME/HIDE buttons: filled style, tighter padding (6px 12px), fontSize 11
-
-### Other Changes
-- "split video" button (renamed from "split by game") — visible for all probed files
-- Last-renamed game auto-selects for newly detected files (session-scoped ref)
-- New `PillSpinbox` component in shared.js
-- `GroupedSelect` now accepts `borderColor` prop
+### Pipeline Integration
+- **Rename tab:** Test files show yellow "TEST" pill badge. Pending file dedup changed from `fileName` to `filePath` to handle same-name files in both folders. Test pending files cleared on folder change.
+- **Recordings tab:** `is_test === 1` files grouped as "Test" (pinned to top) instead of month group
+- **Generate:** UploadView passes `isTest: file.is_test === 1` in gameData to pipeline
+- **Projects:** `tags: []` array added to project schema. Test projects get `tags: ["test"]`. Yellow "TEST" pill on project cards.
+- **Render:** Both `render:clip` and `render:batch` check `projectData.tags` for "test" — test project renders go to `{testWatchFolder}\ClipFlow Renders\` instead of main output folder
 
 ## Key Decisions
-- Built new `generatePreviewFrames()` instead of reusing `generateThumbnailStrip` — strip generates every-30s frames for scrubber (overkill for preview), new function does targeted seeks at percentage positions
-- Duration-based frame count: user's insight that even lobby/menu screens identify games at a glance
-- Preset moved into filename click because it rarely changes and was consuming prime controls-row real estate
-- Color matching uses game's hex color with opacity suffixes (18 for bg, 44 for border) — same pattern as GamePill
-- Last-renamed game stored in useRef (session-only, not persisted) — resets on app restart which is intentional
+- Separate IPC events for test watcher (not a flag on the same event) — cleanest isolation for listener lifecycle
+- `tags` array on projects is forward-compatible for future tagging/filtering features
+- Render output routed by project tags, not file_metadata is_test — the project is the unit of work at render time
+- Test files use the same collision/naming system as real files — no special casing (user will use custom label presets like `tag-label` for test content)
 
 ## Next Steps
-1. **Test rename flow end-to-end** — verify renaming, splitting, and game-switch splitting still work with the new layout
-2. **Test with many pending files** — check performance with 10+ files generating thumbnails concurrently
-3. **User mentioned pill sizing still slightly off** — may need one more pass on exact pixel matching between Arc Raiders dropdown and Day/Pt pills
-4. **Consider persisting lastRenamedGame** to electron-store if user wants it across restarts
-5. **Sentry backlog** — 7 deferred items before launch
+1. **Full end-to-end test** — set test folder, drop OBS file, rename, generate clips, render, verify all artifacts land in test folder tree
+2. **Project tags UI** — general-purpose tag CRUD (add/remove/edit arbitrary tags), filtering in Projects tab
+3. **Sentry backlog** — 7 deferred items before launch
+4. **Pill sizing refinement** from previous session
 
 ## Watch Out For
-- `PreviewThumbnail` uses two stacked `<img>` elements with absolute positioning — the container needs `position: relative`
-- `PresetNamePicker` dropdown uses `width: max-content` — could overflow on very long filenames near right edge
-- `PillSpinbox` value area width is conditional: 20px for 1-2 digits, 30px for 3+ — if value changes digit count while editing, width may shift
-- `lastRenamedGame` ref doesn't update existing pending files — only affects newly detected files after a rename
-- Thumbnail preview frames stored in `%TEMP%/clipflow-preview/` — no cleanup on app close (cache persists)
-- `GroupedSelect` borderColor prop only affects closed state — open state still uses `T.accentBorder`
+- `testWatchFolder` empty string is the "not set" state — guard checks use `if (!testWatchFolder)` which treats `""` as falsy. Don't change to `null` without updating all guards.
+- Test watcher cleanup effect in RenameView filters `prev.filter(p => !p.isTest)` — if `isTest` is ever undefined on old pending objects, they'd survive the filter (correct behavior, but be aware)
+- `createOBSWatcher` is called from IPC handlers, not at app startup — the watcher only starts when the renderer calls `startTestWatching()`
+- Existing projects on disk won't have `tags` field — all code uses `proj.tags || []` to handle this gracefully
+- The `ClipFlow Renders` subfolder inside test folder is auto-created by render.js `fs.mkdirSync(dir, { recursive: true })` on first render
 
 ## Logs / Debugging
-- `[preview]` prefix in main process logs — shows frame count, duration, basename for each preview generation
-- Preview cache keyed by filePath — clear `previewCache` Map in main.js if thumbnails seem stale
-- Crossfade uses `showingTop` ref to alternate which layer gets the new image — if animation glitches, check ref state
+- Test watcher logs use the same `[chokidar]` pattern as main watcher — differentiate by the folder path in the log
+- Schema migration logged as `Running migration v4: Add is_test flag to file_metadata for test watch folder files`
+- To check if a file has is_test set: `SELECT id, current_filename, is_test FROM file_metadata WHERE is_test = 1`
+- To check project tags: read `project.json` in `.clipflow/projects/{id}/` and inspect `tags` array

@@ -11,9 +11,11 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
+  const [editTestFolder, setEditTestFolder] = useState(false);
+  const [testFolderVal, setTestFolderVal] = useState(testWatchFolder || "");
   const [editGD, setEditGD] = useState(null);
   const [showAddMain, setShowAddMain] = useState(false);
   const [selGameLib, setSelGameLib] = useState(null);
@@ -119,6 +121,14 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     const result = await window.clipflow.pickFolder();
     if (result) {
       setWatchFolder(result);
+    }
+  };
+
+  const browseTestFolder = async () => {
+    if (!window.clipflow?.pickFolder) return;
+    const result = await window.clipflow.pickFolder();
+    if (result) {
+      setTestWatchFolder(result);
     }
   };
 
@@ -315,6 +325,37 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <input value={folderVal} onChange={(e) => setFolderVal(e.target.value)} style={{ ...inputStyle, border: `1px solid ${T.accentBorder}`, padding: "12px 16px" }} />
         ) : (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{watchFolder}</p>
+        )}
+      </Card>
+
+      {/* Test Folder (dev-mode second watcher) */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Test Folder</div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: T.yellow, background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 4, padding: "1px 6px" }}>DEV</span>
+          </div>
+          {!editTestFolder ? (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={browseTestFolder} style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700 }}>Browse</button>
+              {testWatchFolder && (
+                <button onClick={() => { setEditTestFolder(true); setTestFolderVal(testWatchFolder); }} style={btnSecondary}>Edit</button>
+              )}
+              {testWatchFolder && (
+                <button onClick={() => setTestWatchFolder("")} style={{ ...BTN, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", fontWeight: 700 }}>Clear</button>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setEditTestFolder(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setTestWatchFolder(testFolderVal); setEditTestFolder(false); }} style={btnSave}>Save</button>
+            </div>
+          )}
+        </div>
+        {editTestFolder ? (
+          <input value={testFolderVal} onChange={(e) => setTestFolderVal(e.target.value)} style={{ ...inputStyle, border: `1px solid ${T.accentBorder}`, padding: "12px 16px" }} />
+        ) : (
+          <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{testWatchFolder || "Not set \u2014 files here go through the full pipeline tagged as test"}</p>
         )}
       </Card>
 

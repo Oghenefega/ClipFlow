@@ -13,6 +13,7 @@ function formatSize(bytes) {
 }
 
 function monthLabel(monthKey) {
+  if (monthKey === "test") return "Test";
   if (monthKey === "unknown") return "Other";
   const parts = monthKey.split("-");
   if (parts.length !== 2) return monthKey;
@@ -166,6 +167,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         gameTag: file.tag,
         gameColor: game?.color || "#888",
         fileMetadataId: file.id,
+        isTest: file.is_test === 1,
         keywords: [],
       });
       if (result.error) {
@@ -265,16 +267,18 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
   };
 
-  // --- Group files by month (from date column) ---
+  // --- Group files by month (from date column), test files get their own group ---
   const grouped = {};
   files.forEach((f) => {
-    const monthKey = f.date ? f.date.slice(0, 7) : "unknown"; // "2026-03" from "2026-03-15"
+    const monthKey = f.is_test === 1 ? "test" : (f.date ? f.date.slice(0, 7) : "unknown");
     if (!grouped[monthKey]) grouped[monthKey] = [];
     grouped[monthKey].push(f);
   });
 
-  // Sort oldest month first (ascending), unknown last
+  // Sort oldest month first (ascending), "test" at top, "unknown" last
   const folderKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === "test") return -1;
+    if (b === "test") return 1;
     if (a === "unknown") return 1;
     if (b === "unknown") return -1;
     return a.localeCompare(b);

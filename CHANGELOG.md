@@ -7,6 +7,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-04-03
 
 ### Added
+- **Test watch folder:** Secondary configurable watch folder for testing the full pipeline without polluting real content history. Configurable in Settings under "Files & Folders" with a yellow DEV badge. Runs a separate chokidar watcher instance alongside the main one — same OBS filename pattern detection, same rename/recording/clip/editor/queue pipeline.
+- **Test file tracking (is_test flag):** Files originating from the test folder are flagged `is_test = 1` in the `file_metadata` SQLite table (schema migration V4). The flag propagates through split children automatically.
+- **Test group in Recordings tab:** Test files appear in a dedicated "Test" group pinned to the top of the Recordings tab instead of their date-based month group. Same card style, grid layout, and collapse/expand behavior as normal month groups.
+- **TEST badge in Rename tab:** Pending files from the test watcher show a yellow "TEST" pill between the filename and rename preview arrow so test clips are visually distinguishable.
+- **Project tags system:** Projects now have a `tags` array field in their JSON schema. Projects generated from test recordings automatically receive a `tags: ["test"]` value. A yellow "TEST" pill appears on project cards in the Projects tab.
+- **Test render output isolation:** Rendered clips from test projects are saved to `{testWatchFolder}\ClipFlow Renders\` instead of the main output folder, keeping all test artifacts self-contained for easy cleanup.
+
+### Changed
+- **Watcher refactored to shared handler:** The OBS file detection logic (pattern matching, pendingImports check, IPC dispatch) was extracted into `handleWatcherFileAdded()` and `createOBSWatcher()` functions — both the main and test watchers share the same code path with zero duplication.
+- **Pending file dedup uses filePath instead of fileName:** Prevents edge case where the same OBS filename in both folders would cause the second detection to be silently dropped.
+- **Same-folder guard:** Setting the test folder to the same path as the main watch folder is rejected at the IPC level to prevent duplicate detections.
+
 - **Video preview thumbnails in Rename tab:** Each pending file card now shows a 160x90px thumbnail on the left side. Frames are extracted at smart positions based on video duration (1-4 frames scaling with length). On hover, thumbnails crossfade through frames every ~1 second so you can identify the game at a glance without opening the file. Uses a concurrency-limited FFmpeg extraction pipeline (max 2 simultaneous).
 - **Inline preset name picker:** Clicking the colored renamed filename opens a dropdown showing all 6 naming formats with their actual rendered values for that file. Replaces the old preset `<Select>` dropdown, saving significant space in the controls row.
 - **Click-to-edit Day/Pt pill controls:** Replaced the +/- spinbox buttons with clean pill-style controls. Click the number to type a new value, or scroll wheel to increment/decrement. No visible buttons — much more compact.

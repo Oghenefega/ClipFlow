@@ -27,6 +27,20 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("watcher:fileRemoved");
   },
 
+  // Test file watcher (separate instance, separate events)
+  startTestWatching: (folder) => ipcRenderer.invoke("watcher:startTest", folder),
+  stopTestWatching: () => ipcRenderer.invoke("watcher:stopTest"),
+  onTestFileAdded: (callback) => {
+    ipcRenderer.on("watcher:testFileAdded", (_, data) => callback(data));
+  },
+  onTestFileRemoved: (callback) => {
+    ipcRenderer.on("watcher:testFileRemoved", (_, data) => callback(data));
+  },
+  removeTestFileListeners: () => {
+    ipcRenderer.removeAllListeners("watcher:testFileAdded");
+    ipcRenderer.removeAllListeners("watcher:testFileRemoved");
+  },
+
   // Shell
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
 

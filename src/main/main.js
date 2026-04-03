@@ -131,6 +131,7 @@ const store = new Store({
   name: "clipflow-settings",
   defaults: {
     watchFolder: "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards",
+    testWatchFolder: "",
     mainGame: "Arc Raiders",
     mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
     gamesDb: [
@@ -267,6 +268,7 @@ if (!store.has("folderSortMode")) store.set("folderSortMode", "created");
 
 let mainWindow;
 let watcher = null;
+let testWatcher = null;
 
 // Pending imports — suppresses chokidar for drag-and-drop copies
 // Entries: { filename: string, sizeBytes: number }
@@ -350,6 +352,7 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
   if (watcher) watcher.close();
+  if (testWatcher) testWatcher.close();
   database.close();
   // Clean up cached thumbnail directories
   for (const [, cached] of thumbnailCache) {
@@ -434,15 +437,39 @@ ipcMain.handle("fs:writeFile", async (_, filePath, content) => {
   }
 });
 
-// File watcher: start watching a folder
+// File watcher: shared OBS filename detection
 // Raw OBS files: YYYY-MM-DD HH-MM-SS[optional -vertical].(mp4|mkv)
 // Already-renamed files like "2026-02-06 AR Day25 Pt18.mp4" do NOT match
 const RAW_OBS_PATTERN = /^\d{4}-\d{2}-\d{2}[ _]\d{2}-\d{2}-\d{2}(-vertical)?\.(mp4|mkv)$/i;
 
-ipcMain.handle("watcher:start", async (_, folderPath) => {
-  if (watcher) watcher.close();
+/**
+ * Shared file detection handler for both main and test watchers.
+ * @param {string} filePath - Full path to the detected file
+ * @param {string} addEvent - IPC event name to send on file add
+ * @param {string} removeEvent - IPC event name to send on file remove (unused here, but kept for symmetry)
+ */
+function handleWatcherFileAdded(filePath, addEvent) {
+  const name = path.basename(filePath);
+  // Only pick up raw OBS recordings; skip already-renamed files and non-video files
+  if (!RAW_OBS_PATTERN.test(name)) return;
+  const stat = fs.statSync(filePath);
 
-  watcher = chokidar.watch(folderPath, {
+  // Check pendingImports — skip files being imported via drag-and-drop
+  for (const entry of pendingImports) {
+    if (entry.filename === name && entry.sizeBytes === stat.size) return;
+  }
+
+  mainWindow?.webContents.send(addEvent, {
+    name,
+    path: filePath,
+    size: stat.size,
+    createdAt: stat.birthtime.toISOString(),
+  });
+}
+
+/** Create a chokidar watcher with standard OBS detection config */
+function createOBSWatcher(folderPath, addEvent, removeEvent) {
+  const w = chokidar.watch(folderPath, {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: false,
@@ -453,41 +480,45 @@ ipcMain.handle("watcher:start", async (_, folderPath) => {
     },
   });
 
-  watcher.on("add", (filePath) => {
-    const name = path.basename(filePath);
-    // Only pick up raw OBS recordings; skip already-renamed files and non-video files
-    if (!RAW_OBS_PATTERN.test(name)) return;
-    const stat = fs.statSync(filePath);
+  w.on("add", (fp) => handleWatcherFileAdded(fp, addEvent));
 
-    // Check pendingImports — skip files being imported via drag-and-drop
-    for (const entry of pendingImports) {
-      if (entry.filename === name && entry.sizeBytes === stat.size) return;
-    }
-
-    mainWindow?.webContents.send("watcher:fileAdded", {
-      name,
-      path: filePath,
-      size: stat.size,
-      createdAt: stat.birthtime.toISOString(),
+  w.on("unlink", (fp) => {
+    mainWindow?.webContents.send(removeEvent, {
+      name: path.basename(fp),
+      path: fp,
     });
   });
 
-  watcher.on("unlink", (filePath) => {
-    mainWindow?.webContents.send("watcher:fileRemoved", {
-      name: path.basename(filePath),
-      path: filePath,
-    });
-  });
+  return w;
+}
 
+// Main watcher: start
+ipcMain.handle("watcher:start", async (_, folderPath) => {
+  if (watcher) watcher.close();
+  watcher = createOBSWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved");
   return { success: true };
 });
 
-// File watcher: stop
+// Main watcher: stop
 ipcMain.handle("watcher:stop", async () => {
-  if (watcher) {
-    watcher.close();
-    watcher = null;
-  }
+  if (watcher) { watcher.close(); watcher = null; }
+  return { success: true };
+});
+
+// Test watcher: start (separate instance, separate IPC events)
+ipcMain.handle("watcher:startTest", async (_, folderPath) => {
+  if (!folderPath || !fs.existsSync(folderPath)) return { success: true };
+  // Prevent watching the same folder as the main watcher
+  const mainFolder = store.get("watchFolder");
+  if (folderPath === mainFolder) return { error: "Test folder cannot be the same as the main watch folder" };
+  if (testWatcher) testWatcher.close();
+  testWatcher = createOBSWatcher(folderPath, "watcher:testFileAdded", "watcher:testFileRemoved");
+  return { success: true };
+});
+
+// Test watcher: stop
+ipcMain.handle("watcher:stopTest", async () => {
+  if (testWatcher) { testWatcher.close(); testWatcher = null; }
   return { success: true };
 });
 
@@ -592,8 +623,8 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
       const childPath = r.filePath;
 
       db.run(
-        `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, split_from_id, split_timestamp_start, split_timestamp_end)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, split_from_id, split_timestamp_start, split_timestamp_end, is_test)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           childId,
           parentFile.original_filename,
@@ -613,6 +644,7 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
           fileId,
           r.actualStartSeconds,
           r.actualEndSeconds,
+          parentFile.is_test || 0,
         ]
       );
       childIds.push(childId);
@@ -1304,8 +1336,8 @@ ipcMain.handle("metadata:create", async (_, data) => {
 
     const id = _uuid();
     db.run(
-      `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, is_test)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.originalFilename,
@@ -1322,6 +1354,7 @@ ipcMain.handle("metadata:create", async (_, data) => {
         data.durationSeconds || null,
         data.fileSizeBytes || null,
         data.status || "renamed",
+        data.isTest ? 1 : 0,
       ]
     );
     database.save();
@@ -1986,7 +2019,14 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
   try {
     // Determine output path if not provided
     if (!outputPath) {
-      const outputFolder = store.get("outputFolder");
+      let outputFolder;
+      // Test projects render to a folder inside the test watch folder
+      const testWatchFolder = store.get("testWatchFolder");
+      if (testWatchFolder && (projectData?.tags || []).includes("test")) {
+        outputFolder = path.join(testWatchFolder, "ClipFlow Renders");
+      } else {
+        outputFolder = store.get("outputFolder");
+      }
       if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
       const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
       outputPath = path.join(outputFolder, fileName);
@@ -2022,7 +2062,12 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, options) => {
   try {
     if (!outputDir) {
-      outputDir = store.get("outputFolder");
+      const testWatchFolder = store.get("testWatchFolder");
+      if (testWatchFolder && (projectData?.tags || []).includes("test")) {
+        outputDir = path.join(testWatchFolder, "ClipFlow Renders");
+      } else {
+        outputDir = store.get("outputFolder");
+      }
       if (!outputDir) return { error: "Output folder not configured. Go to Settings." };
     }
 

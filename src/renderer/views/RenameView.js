@@ -130,7 +130,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
   );
 }
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -210,7 +210,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     window.clipflow.startWatching(watchFolder);
     window.clipflow.onFileAdded((file) => {
       setPendingRenames((prev) => {
-        if (prev.find((p) => p.fileName === file.name)) return prev;
+        if (prev.find((p) => p.filePath === file.path)) return prev;
         const detected = detectGame(file.name, gamesDb, prev);
         // If user recently renamed a file, default new files to that game
         let game = detected.game, tag = detected.tag, color = detected.color, day = detected.day;
@@ -229,11 +229,47 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           preset: defaultPreset,
           customLabel: "",
           createdAt: file.createdAt,
+          isTest: false,
         }];
       });
     });
     return () => { window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb, defaultPreset]);
+
+  // Test file watcher integration (separate chokidar instance, separate IPC events)
+  useEffect(() => {
+    if (!isElectron || !testWatchFolder) return;
+    window.clipflow.startTestWatching(testWatchFolder);
+    window.clipflow.onTestFileAdded((file) => {
+      setPendingRenames((prev) => {
+        if (prev.find((p) => p.filePath === file.path)) return prev;
+        const detected = detectGame(file.name, gamesDb, prev);
+        let game = detected.game, tag = detected.tag, color = detected.color, day = detected.day;
+        if (lastRenamedGame.current) {
+          const lastGame = gamesDb.find((g) => g.name === lastRenamedGame.current);
+          if (lastGame) {
+            game = lastGame.name; tag = lastGame.tag; color = lastGame.color;
+            day = (lastGame.dayCount || 0) + 1;
+          }
+        }
+        return [...prev, {
+          id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          fileName: file.name, filePath: file.path,
+          game, tag, color,
+          day, part: detected.part,
+          preset: defaultPreset,
+          customLabel: "",
+          createdAt: file.createdAt,
+          isTest: true,
+        }];
+      });
+    });
+    return () => {
+      window.clipflow.removeTestFileListeners();
+      // Clear test files from pending when test folder changes
+      setPendingRenames((prev) => prev.filter((p) => !p.isTest));
+    };
+  }, [testWatchFolder, isElectron, gamesDb, defaultPreset]);
 
   // Probe duration for new pending files (auto-split detection)
   useEffect(() => {
@@ -591,6 +627,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         customLabel: r.customLabel || null,
         namingPreset: preset,
         status: "renamed",
+        isTest: r.isTest || false,
       });
 
       if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
@@ -634,6 +671,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       namingPreset: preset,
       durationSeconds: info.durationSeconds,
       status: "pending",
+      isTest: r.isTest || false,
     });
 
     if (!parentResult?.id) { console.error("Failed to create parent metadata"); return null; }
@@ -1376,6 +1414,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                       {/* Original filename → live rename preview (single line) */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: hasSplit ? 8 : 10, flexWrap: "wrap" }}>
                         <span style={{ color: T.textSecondary, fontSize: 13, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "40%" }}>{r.fileName}</span>
+                        {r.isTest && <span style={{ fontSize: 9, fontWeight: 700, color: "#facc15", background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 4, padding: "1px 5px", fontFamily: T.mono, letterSpacing: "0.5px", flexShrink: 0 }}>TEST</span>}
                         <span style={{ color: T.textMuted, fontSize: 12 }}>→</span>
                         <PresetNamePicker
                           rename={r}

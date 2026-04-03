@@ -1226,6 +1226,14 @@ export function ProjectsListView({
                                 fontFamily: T.mono,
                               }}>{p.gameTag}</span>
                             )}
+                            {(p.tags || []).includes("test") && (
+                              <span style={{
+                                display: "inline-flex", padding: "1px 5px",
+                                background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.25)",
+                                borderRadius: 4, fontSize: 9, fontWeight: 700, color: "#facc15",
+                                fontFamily: T.mono, letterSpacing: "0.5px",
+                              }}>TEST</span>
+                            )}
                             <span style={{ color: T.textTertiary, fontSize: 12 }}>
                               {st === "processing" ? (
                                 <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>

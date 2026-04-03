@@ -50,6 +50,7 @@ function createProject(watchFolder, data) {
     status: "created", // created → transcribing → analyzing → clipping → ready
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    tags: Array.isArray(data.tags) ? data.tags : [],
     transcription: null,
     clips: [],
   };
@@ -128,6 +129,7 @@ function listProjects(watchFolder) {
         clipCount: (proj.clips || []).length,
         approvedCount: (proj.clips || []).filter((c) => c.status === "approved").length,
         renderedCount: (proj.clips || []).filter((c) => c.renderStatus === "rendered").length,
+        tags: proj.tags || [],
       });
     } catch (e) {
       // Skip corrupted project files

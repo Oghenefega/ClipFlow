@@ -132,6 +132,14 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_file_split_from ON file_metadata(split_from_id)`);
     },
   },
+  {
+    version: 4,
+    description: "Add is_test flag to file_metadata for test watch folder files",
+    up(database) {
+      database.run(`ALTER TABLE file_metadata ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0`);
+      database.run(`CREATE INDEX idx_file_is_test ON file_metadata(is_test)`);
+    },
+  },
 ];
 
 /**
