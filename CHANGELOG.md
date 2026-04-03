@@ -7,6 +7,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-04-03
 
 ### Added
+- **Tracker tab:** Extracted the full schedule tracker (stat cards, weekly grid, Edit Template, Export/Import, presets, undo/redo, drag-to-reorder, popovers) out of Queue into its own standalone TrackerView tab with a 📊 icon in the nav bar.
+- **Captions section in Queue tab:** The Captions & Descriptions content (YouTube descriptions + Other Platforms templates) is now embedded directly in the Queue tab below the publish log as a natural scroll continuation, replacing the standalone Captions tab.
+
+### Changed
+- **Navigation restructured:** Tab order is now Rename → Recordings → Projects → Editor → Queue → Tracker → Settings. The Captions tab has been removed from the nav bar.
+- **Sequential-immediate publishing:** Removed the 30-second stagger delay between platform uploads. Publishing now proceeds immediately from one platform to the next with no artificial wait. The "30s stagger" label has been removed from the publishing accounts info bar.
+
+### Removed
+- **Captions tab:** No longer a standalone tab — content is now part of the Queue tab.
+- **30s stagger delay:** The `STAGGER_MS` constant and `setTimeout` between platform uploads have been removed from the publish pipeline.
+
+## 2026-04-03
+
+### Added
 - **Test watch folder:** Secondary configurable watch folder for testing the full pipeline without polluting real content history. Configurable in Settings under "Files & Folders" with a yellow DEV badge. Runs a separate chokidar watcher instance alongside the main one — same OBS filename pattern detection, same rename/recording/clip/editor/queue pipeline.
 - **Test file tracking (is_test flag):** Files originating from the test folder are flagged `is_test = 1` in the `file_metadata` SQLite table (schema migration V4). The flag propagates through split children automatically.
 - **Test group in Recordings tab:** Test files appear in a dedicated "Test" group pinned to the top of the Recordings tab instead of their date-based month group. Same card style, grid layout, and collapse/expand behavior as normal month groups.

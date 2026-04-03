@@ -8,6 +8,7 @@ import RecordingsView from "./views/UploadView";
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
 import QueueView from "./views/QueueView";
 import CaptionsView from "./views/CaptionsView";
+import TrackerView from "./views/TrackerView";
 import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
@@ -433,7 +434,7 @@ export default function App() {
     { id: "projects", icon: "\ud83d\udcc1", label: "Projects" },
     { id: "editor", icon: "\ud83c\udfac", label: "Editor" },
     { id: "queue", icon: "\ud83d\udccb", label: "Queue", badge: totalApproved },
-    { id: "captions", icon: "\ud83c\udff7\ufe0f", label: "Captions" },
+    { id: "tracker", icon: "\ud83d\udcca", label: "Tracker" },
     { id: "settings", icon: "\u2699\ufe0f", label: "Settings" },
   ];
 
@@ -501,28 +502,31 @@ export default function App() {
           trackerData={trackerData}
           setTrackerData={setTrackerData}
           weeklyTemplate={weeklyTemplate}
-          setWeeklyTemplate={setWeeklyTemplate}
           weekTemplateOverrides={weekTemplateOverrides}
-          setWeekTemplateOverrides={setWeekTemplateOverrides}
-          savedTemplates={savedTemplates}
-          setSavedTemplates={setSavedTemplates}
-          ytDescriptions={ytDescriptions}
-          captionTemplates={captionTemplates}
-          platformOptions={platformOptions}
-          gamesDb={gamesDb}
-          requireHashtagInTitle={requireHashtagInTitle}
-        />
-      );
-    }
-    if (view === "captions") {
-      return (
-        <CaptionsView
           ytDescriptions={ytDescriptions}
           setYtDescriptions={setYtDescriptions}
           captionTemplates={captionTemplates}
           setCaptionTemplates={setCaptionTemplates}
           platformOptions={platformOptions}
           setPlatformOptions={setPlatformOptions}
+          gamesDb={gamesDb}
+          requireHashtagInTitle={requireHashtagInTitle}
+        />
+      );
+    }
+    if (view === "tracker") {
+      return (
+        <TrackerView
+          mainGame={mainGame}
+          mainGameTag={mainGameTag}
+          trackerData={trackerData}
+          setTrackerData={setTrackerData}
+          weeklyTemplate={weeklyTemplate}
+          setWeeklyTemplate={setWeeklyTemplate}
+          weekTemplateOverrides={weekTemplateOverrides}
+          setWeekTemplateOverrides={setWeekTemplateOverrides}
+          savedTemplates={savedTemplates}
+          setSavedTemplates={setSavedTemplates}
           gamesDb={gamesDb}
         />
       );

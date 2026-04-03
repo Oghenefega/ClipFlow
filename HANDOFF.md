@@ -1,58 +1,49 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-03 — "Test Watch Folder"_
+_Last updated: 2026-04-03 — "Tab Restructure: Tracker Split & Captions Merge"_
 
 ## Current State
-App builds and launches. Test watch folder feature is fully implemented across the entire pipeline: Settings UI, file watcher, rename, recordings grouping, project tagging, and render output isolation. Schema at V4.
+App builds and launches. Navigation restructured from 7 tabs to 7 tabs with different content — Captions tab removed from nav, Tracker extracted to its own tab, captions content embedded in Queue.
 
 ## What Was Just Built
 
-### Test Watch Folder (dev-mode second watcher)
-- Settings UI: "Test Folder" card with Browse/Edit/Clear and yellow DEV badge, directly below Watch Folder
-- Stored in electron-store as `testWatchFolder` (default: empty string)
-- When set, activates a second chokidar instance via `watcher:startTest` IPC
-- Shared detection logic: extracted `handleWatcherFileAdded()` and `createOBSWatcher()` — zero duplication between main and test watchers
-- Separate IPC events (`watcher:testFileAdded` / `watcher:testFileRemoved`) prevent listener cross-contamination
-- Same-folder guard prevents setting test folder = main watch folder
+### Tab Restructure
+- **New tab order:** Rename, Recordings, Projects, Editor, Queue, Tracker, Settings
+- **TrackerView.js** — New standalone component extracted from QueueView containing the full tracker: stat cards (This Week / main game / other), weekly schedule grid, Edit Template, Export/Import CSV, template presets, undo/redo, drag-to-reorder, time slot editing, cell popovers
+- **Queue tab restructured** — Now contains: clip picker, publishing accounts display, publish log, and the full Captions & Descriptions section (YouTube descriptions + Other Platforms) embedded below the publish log as a natural scroll continuation
+- **Captions tab removed from nav** — CaptionsView component is now imported and rendered inside QueueView rather than as a standalone route. The component itself is unchanged.
 
-### is_test Column (Schema V4)
-- `ALTER TABLE file_metadata ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0` with index
-- Set to 1 at `metadata:create` when `data.isTest` is truthy
-- Inherited by split children in `split:execute` handler via `parentFile.is_test`
+### 30s Stagger Removed
+- Removed `STAGGER_MS` constant and the `setTimeout` delay between platform uploads in `publishClip()`
+- Publishing is now sequential-immediate: each platform upload completes, then the next starts with no artificial delay
+- "PUBLISHING TO N ACCOUNTS · 30S STAGGER" info bar replaced with "Publishing to N accounts" (no stagger mention)
 
-### Pipeline Integration
-- **Rename tab:** Test files show yellow "TEST" pill badge. Pending file dedup changed from `fileName` to `filePath` to handle same-name files in both folders. Test pending files cleared on folder change.
-- **Recordings tab:** `is_test === 1` files grouped as "Test" (pinned to top) instead of month group
-- **Generate:** UploadView passes `isTest: file.is_test === 1` in gameData to pipeline
-- **Projects:** `tags: []` array added to project schema. Test projects get `tags: ["test"]`. Yellow "TEST" pill on project cards.
-- **Render:** Both `render:clip` and `render:batch` check `projectData.tags` for "test" — test project renders go to `{testWatchFolder}\ClipFlow Renders\` instead of main output folder
+### QueueView Cleanup
+- Removed ~700 lines of tracker-specific state, functions, and JSX from QueueView
+- Removed unused constants: `MONTHS_2026`, `getWeekLabel`, `buildCaption`, `buildYouTubeTitle`, `sortTemplateByTime`, `findGameFromClip`
+- QueueView still retains `logPost`, `snapToSlot`, `effectiveTemplate` for logging publish events to tracker data
+- Added caption-related props (`setYtDescriptions`, `setCaptionTemplates`, `setPlatformOptions`) to QueueView signature
 
 ## Key Decisions
-- Separate IPC events for test watcher (not a flag on the same event) — cleanest isolation for listener lifecycle
-- `tags` array on projects is forward-compatible for future tagging/filtering features
-- Render output routed by project tags, not file_metadata is_test — the project is the unit of work at render time
-- Test files use the same collision/naming system as real files — no special casing (user will use custom label presets like `tag-label` for test content)
-
-### Bug Fix: Preview Thumbnail Collision
-- `fileId` for preview frame temp directories was `base64url(filePath).slice(0, 32)` — files in the same folder share a long path prefix, so the first 32 chars were identical, causing all files to write frames to the same directory and overwrite each other
-- Fix: replaced with `crypto.createHash("md5").update(filePath).digest("hex")` — 32 unique hex chars per file
-- Same fix applied to the scrubber thumbnail strip `fileId` (line 708) which had the same pattern
-- Users need to clear `%TEMP%\clipflow-preview\` after updating to flush stale cached frames
+- CaptionsView is embedded as-is (not duplicated) — imported inside QueueView, all props passed through from App.js
+- TrackerView owns all its own state (weekOffset, editTmpl, popover, undo/redo, etc.) — no shared state with QueueView
+- QueueView keeps tracker data write access (via `logPost`) so publish events still auto-log to the tracker grid
+- `effectiveTemplate` still computed in QueueView (always for current week, weekOffset=0) for `snapToSlot` in `logPost`
+- Tracker icon uses 📊 (bar chart) emoji to differentiate from Queue's 📋 (clipboard)
 
 ## Next Steps
-1. **Full end-to-end test** — set test folder, drop OBS file, rename, generate clips, render, verify all artifacts land in test folder tree
-2. **Project tags UI** — general-purpose tag CRUD (add/remove/edit arbitrary tags), filtering in Projects tab
-3. **Sentry backlog** — 7 deferred items before launch
-4. **Pill sizing refinement** from previous session
+1. **Visual verification** — Open app, navigate all 7 tabs, verify Queue shows captions below publish log, Tracker shows full grid
+2. **Publish flow test** — Verify publishing still logs to tracker data correctly after stagger removal
+3. **Project tags UI** — General-purpose tag CRUD (add/remove/edit arbitrary tags), filtering in Projects tab
+4. **Sentry backlog** — 7 deferred items before launch
 
 ## Watch Out For
-- `testWatchFolder` empty string is the "not set" state — guard checks use `if (!testWatchFolder)` which treats `""` as falsy. Don't change to `null` without updating all guards.
-- Test watcher cleanup effect in RenameView filters `prev.filter(p => !p.isTest)` — if `isTest` is ever undefined on old pending objects, they'd survive the filter (correct behavior, but be aware)
-- `createOBSWatcher` is called from IPC handlers, not at app startup — the watcher only starts when the renderer calls `startTestWatching()`
-- Existing projects on disk won't have `tags` field — all code uses `proj.tags || []` to handle this gracefully
-- The `ClipFlow Renders` subfolder inside test folder is auto-created by render.js `fs.mkdirSync(dir, { recursive: true })` on first render
+- QueueView still imports and uses `DAY_NAMES`, `getWeekDates`, `FULL_DAY_NAMES`, `TIME_OPTIONS`, `parseTimeToMinutes`, `snapToSlot` — these are needed for `logPost` and schedule date generation. Don't remove them thinking they're tracker-only.
+- CaptionsView import exists in both App.js (for the old route reference, now unused at render time but still imported) and QueueView.js (where it's actually rendered). The App.js import of CaptionsView is now dead code but harmless.
+- TrackerView duplicates some helper functions from QueueView (`getWeekDates`, `parseTimeToMinutes`, `sortTemplateByTime`). Could be extracted to a shared utils file later but not worth the churn now.
+- `weekOffset` in QueueView is always 0 now (no UI to change it) — this is correct since publishing always happens "now" or for upcoming dates
 
 ## Logs / Debugging
-- Test watcher logs use the same `[chokidar]` pattern as main watcher — differentiate by the folder path in the log
-- Schema migration logged as `Running migration v4: Add is_test flag to file_metadata for test watch folder files`
-- To check if a file has is_test set: `SELECT id, current_filename, is_test FROM file_metadata WHERE is_test = 1`
-- To check project tags: read `project.json` in `.clipflow/projects/{id}/` and inspect `tags` array
+- No errors during build or launch
+- QueueView went from ~1258 lines to ~610 lines
+- TrackerView is ~520 lines (self-contained)
+- Build output size essentially unchanged (+36B gzipped)
