@@ -78,7 +78,8 @@ function _safeSet(store, setter, value) {
 }
 
 export function applyTemplate(tpl) {
-  const c = tpl.caption; const s = tpl.subtitle;
+  if (!tpl) return;
+  const c = tpl.caption || {}; const s = tpl.subtitle || {};
   const cs = useCaptionStore.getState(); const ss = useSubtitleStore.getState(); const ls = useLayoutStore.getState();
 
   // Caption base

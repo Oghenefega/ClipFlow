@@ -261,6 +261,7 @@ export function SubtitleOverlay({
   }
 
   // Fallback: no word-level data — use segment text with char-limit chunking
+  if (!currentSeg.text) return null;
   const textWords = currentSeg.text.split(/\s+/);
   const chunks = buildCharChunks(textWords.map((w) => ({ word: w })));
   const segDuration = currentSeg.endSec - currentSeg.startSec;

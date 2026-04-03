@@ -311,6 +311,21 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  // Detect renderer process crash — log to main process and attempt reload
+  mainWindow.webContents.on("render-process-gone", (event, details) => {
+    logger.error(logger.MODULES.system, `Renderer process gone: ${details.reason} (exit code: ${details.exitCode})`);
+    // Attempt to reload unless it was intentional
+    if (details.reason !== "clean-exit" && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload();
+    }
+  });
+  mainWindow.webContents.on("unresponsive", () => {
+    logger.error(logger.MODULES.system, "Renderer became unresponsive");
+  });
+  mainWindow.webContents.on("responsive", () => {
+    logger.info(logger.MODULES.system, "Renderer became responsive again");
+  });
 }
 
 app.whenReady().then(async () => {

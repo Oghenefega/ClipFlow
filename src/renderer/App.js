@@ -426,7 +426,7 @@ export default function App() {
     return Object.values(allClips).flat().filter((c) => c.status === "approved" || c.status === "ready").length;
   }, [allClips]);
 
-  const nav = (id) => { setView(id); setSelProj(null); posthog.capture("clipflow_tab_changed", { tab_name: id }); };
+  const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); } catch (_) {} };
 
   const navItems = [
     { id: "rename", icon: "\u270f\ufe0f", label: "Rename" },

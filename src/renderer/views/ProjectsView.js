@@ -1,9 +1,46 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
 import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
+
+// Error boundary for clip preview — prevents bad clip data from crashing the whole app
+class ClipPreviewBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error("[ClipPreview] Render error:", error, info?.componentStack);
+    Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack } } });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          width: "100%", aspectRatio: "9/16", borderRadius: T.radius.sm,
+          background: "rgba(255,0,0,0.05)", border: "1px solid rgba(255,100,100,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexDirection: "column", gap: 8, padding: 16,
+        }}>
+          <span style={{ fontSize: 12, color: "#ff6b6b", fontWeight: 600 }}>Preview error</span>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            style={{ fontSize: 11, color: T.accent, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Pure helper — determine project game color
 const getGameColor = (p, gamesDb) => {
@@ -149,6 +186,18 @@ function ClipVideoPlayer({ clip, template }) {
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [isPlaying, isSeeking]);
+
+  // Abort video fetch on unmount — prevents Chromium renderer crash
+  useEffect(() => {
+    return () => {
+      const vid = videoRef.current;
+      if (vid) {
+        vid.pause();
+        vid.removeAttribute("src");
+        vid.load();
+      }
+    };
+  }, []);
 
   const togglePlay = useCallback((e) => {
     // Don't toggle when clicking the seek bar
@@ -459,7 +508,9 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
       </div>
 
       {/* Video player — larger */}
-      <ClipVideoPlayer clip={clip} template={template || FALLBACK_TEMPLATE} />
+      <ClipPreviewBoundary>
+        <ClipVideoPlayer clip={clip} template={template || FALLBACK_TEMPLATE} />
+      </ClipPreviewBoundary>
 
       {/* Right: details + transcript */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0, overflow: "hidden" }}>

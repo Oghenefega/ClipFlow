@@ -6,7 +6,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-03
 
+### Fixed
+- **Critical blank screen crash resolved:** Root cause identified via Sentry as a Chromium renderer process crash (`blink::DOMDataStore::GetWrapper` — EXCEPTION_ACCESS_VIOLATION_READ). Video elements were being removed from the DOM while Chromium's internal fetch stream was still reading the file, causing a null pointer dereference in Blink. Fixed by adding `useEffect` cleanup hooks that abort video loading before unmount (`pause()` + `removeAttribute("src")` + `load()`). Applied to both PreviewPanelNew.js (editor) and ProjectsView.js (projects preview).
+
 ### Added
+- **Sentry API integration:** Personal API token configured for querying Sentry errors directly from development sessions. Org `flowve`, project `clipflow`.
+- **DOM-level crash recovery:** Added global `window.error` and `unhandledrejection` handlers in index.js that render a crash screen directly to the DOM, bypassing React entirely. Ensures users always see an error message even if the React tree is dead.
+- **Renderer crash detection:** Added `render-process-gone`, `unresponsive`, and `responsive` event handlers on Electron webContents in main.js. Auto-reloads the renderer on non-clean-exit crashes.
+- **ClipPreviewBoundary error boundary:** Wraps clip video players in ProjectsView so bad clip data shows a "Preview error" with retry button instead of crashing the entire app.
+- **Defensive guards:** Protected `currentSeg.text.split()` in PreviewOverlays.js against null text, guarded `applyTemplate()` against malformed templates, wrapped `posthog.capture` in try-catch during tab navigation, made AppErrorBoundary robust against Sentry import failures.
 - **Shared preview overlays:** Extracted `SubtitleOverlay` and `CaptionOverlay` into shared components (`PreviewOverlays.js`) used by both Editor and Projects tabs, eliminating ~200 lines of duplicate rendering code and ensuring Projects preview matches Editor exactly.
 - **Tracker tab:** Extracted the full schedule tracker (stat cards, weekly grid, Edit Template, Export/Import, presets, undo/redo, drag-to-reorder, popovers) out of Queue into its own standalone TrackerView tab with a 📊 icon in the nav bar.
 - **Captions section in Queue tab:** The Captions & Descriptions content (YouTube descriptions + Other Platforms templates) is now embedded directly in the Queue tab below the publish log as a natural scroll continuation, replacing the standalone Captions tab.

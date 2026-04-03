@@ -610,6 +610,19 @@ export default function PreviewPanelNew() {
     initVideoRef(videoRef);
   }, [initVideoRef]);
 
+  // Abort video fetch on unmount — prevents Chromium renderer crash
+  // (blink::DOMDataStore::GetWrapper null deref when stream outlives element)
+  useEffect(() => {
+    return () => {
+      const vid = videoRef.current;
+      if (vid) {
+        vid.pause();
+        vid.removeAttribute("src");
+        vid.load();
+      }
+    };
+  }, []);
+
   // Video source path
   const videoSrc = useMemo(() => {
     if (!clip?.filePath) return null;
