@@ -19,6 +19,12 @@ const LINGER_DURATION = 0.4;         // seconds — extend into empty space afte
 // Filler words (exact match only, per spec)
 const FILLERS = new Set(["um", "uh", "ah"]);
 
+// Words that connect forward — should never end a segment (they start the next one)
+const FORWARD_CONNECTORS = new Set([
+  "i", "to", "a", "an", "the", "in", "on", "at", "for", "of",
+  "with", "from", "by", "and", "but", "or", "so", "if", "as",
+]);
+
 // Common phrases that should never be split across segments (2-word atomic units)
 const ATOMIC_PHRASES = new Set([
   "as always", "of course", "by the way", "at least", "right now",
@@ -322,12 +328,16 @@ function chunkPartition(words, knownPhrases) {
       chunk = [];
     }
 
-    // Rule 6: Never end a segment on "I" — it almost always starts/continues
-    // a sentence and looks wrong dangling at the end of a subtitle.
-    // Only flush if adding "I" would make it the last word in a full chunk (2+ words),
-    // meaning the next word would start a new segment anyway.
-    // Don't flush if the chunk is empty or has only 1 word (let "I" join naturally).
-    if (chunk.length >= 2 && norm(w) === "i") {
+    // Rule 6: Never end a segment on forward-connecting words — they start or
+    // continue a phrase and look wrong dangling at the end of a subtitle.
+    // "I" (pronoun), prepositions (to, in, on, at, for, of, with, from, by),
+    // articles (a, an, the), conjunctions (and, but, or, so, if, as).
+    // Flush the chunk BEFORE this word so it starts the next segment.
+    // Don't flush if the chunk is empty or has only 1 word (let the word join naturally).
+    // Don't flush if this is the LAST word in the partition — better to keep "to"
+    // with the preceding words than leave it dangling alone (e.g. "I'm going to" before a long pause).
+    const isLastInPartition = i === words.length - 1;
+    if (chunk.length >= 2 && FORWARD_CONNECTORS.has(norm(w)) && !isLastInPartition) {
       flushAndTrack(chunk);
       chunk = [];
     }

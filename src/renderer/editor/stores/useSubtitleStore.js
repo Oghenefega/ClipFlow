@@ -283,6 +283,40 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // ── Restore saved styling from clip.subtitleStyle (persisted by handleSave) ──
+  // Called after applyTemplate() so saved customizations override template defaults.
+  restoreSavedStyle: (saved) => {
+    if (!saved || typeof saved !== "object") return;
+    // Map saved subtitleStyle keys → store property names
+    const mapping = {
+      fontFamily: "subFontFamily", fontWeight: "subFontWeight",
+      fontSize: "fontSize", bold: "subBold", italic: "subItalic",
+      underline: "subUnderline", subColor: "subColor",
+      strokeOn: "strokeOn", strokeWidth: "strokeWidth",
+      strokeColor: "strokeColor", strokeOpacity: "strokeOpacity",
+      strokeBlur: "strokeBlur", strokeOffsetX: "strokeOffsetX", strokeOffsetY: "strokeOffsetY",
+      shadowOn: "shadowOn", shadowBlur: "shadowBlur",
+      shadowColor: "shadowColor", shadowOpacity: "shadowOpacity",
+      shadowOffsetX: "shadowOffsetX", shadowOffsetY: "shadowOffsetY",
+      glowOn: "glowOn", glowColor: "glowColor", glowOpacity: "glowOpacity",
+      glowIntensity: "glowIntensity", glowBlur: "glowBlur", glowBlend: "glowBlend",
+      glowOffsetX: "glowOffsetX", glowOffsetY: "glowOffsetY",
+      bgOn: "bgOn", bgOpacity: "bgOpacity", bgColor: "bgColor",
+      bgPaddingX: "bgPaddingX", bgPaddingY: "bgPaddingY", bgRadius: "bgRadius",
+      highlightColor: "highlightColor", segmentMode: "segmentMode",
+      syncOffset: "syncOffset", subMode: "subMode",
+      animateOn: "animateOn", animateScale: "animateScale",
+      animateGrowFrom: "animateGrowFrom", animateSpeed: "animateSpeed",
+    };
+    const patch = {};
+    for (const [savedKey, storeKey] of Object.entries(mapping)) {
+      if (saved[savedKey] !== undefined) patch[storeKey] = saved[savedKey];
+    }
+    // Deep-copy objects
+    if (patch.punctuationRemove) patch.punctuationRemove = { ...saved.punctuationRemove };
+    if (Object.keys(patch).length > 0) set(patch);
+  },
+
   // ── Full reset — clears all segments to prevent data leaking between clips ──
   clearAll: () => {
     set({

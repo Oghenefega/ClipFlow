@@ -6,6 +6,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-03
 
+### Fixed
+- **Editor style persistence:** Saved subtitle and caption customizations (color, position, font, effects) now persist when navigating away from the Editor tab and back. Root cause: `initFromContext()` always applied the default template on mount, overwriting saved `clip.subtitleStyle` and `clip.captionStyle`. Template now provides defaults, then saved customizations are restored on top via new `restoreSavedStyle()` methods on both stores.
+- **Caption style save was silently broken:** `handleSave()` was reading unprefixed property names from the caption store (`capState.fontFamily` instead of `capState.captionFontFamily`), causing all caption styling to save as `undefined`. Fixed to use correct prefixed names and expanded to save all caption effects (stroke, shadow, glow, background) — previously only saved 7 basic fields.
+
+### Improved
+- **Subtitle segmentation — forward connector rule:** Expanded the "never end a segment on 'I'" rule to cover 19 forward-connecting words: prepositions (to, in, on, at, for, of, with, from, by), articles (a, an, the), and conjunctions (and, but, or, so, if, as). Words that grammatically connect forward now start the next segment instead of dangling at the end. Edge case: if the connector is the last word before a hard pause, it stays with the preceding segment.
+
+### Added
+- **Subtitle timing rebuild spec:** Full 4-phase spec for fixing karaoke timing drift, based on research into whisper-timestamped, stable-ts, CrisperWhisper, WhisperX, and Aegisub. Covers word timestamp post-processing, progressive karaoke highlight, unified preview/burn-in algorithms, and segmentation safe fixes. See `tasks/subtitle-timing-rebuild-spec.md`.
+
+---
+
+## [Unreleased] — 2026-04-03
+
 ### Added
 - **clipflow-optimize skill:** Profile-driven performance optimization adapted from `extreme-software-optimization`. Covers React re-renders, IPC batching, memory leaks, startup time, FFmpeg pipeline, and Whisper transcription with measure-first methodology and opportunity scoring.
 - **clipflow-mock-finder skill:** Multi-method stub/placeholder detection — keyword search, suspicious return values, short function analysis, behavioral detection (fake delays, hardcoded scores), and caller tracing. Produces categorized findings table.

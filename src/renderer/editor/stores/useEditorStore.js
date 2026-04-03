@@ -84,8 +84,26 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().initSegments(project, clip);
     usePlaybackStore.getState().reset();
 
-    // Auto-apply default template on editor open
-    // Load the user's chosen default template (or fall back to built-in)
+    // Auto-apply default template on editor open, then restore any saved styling
+    // Template provides defaults; saved clip styling (from handleSave) wins.
+    const restoreSavedStyles = () => {
+      if (clip?.subtitleStyle) {
+        useSubtitleStore.getState().restoreSavedStyle(clip.subtitleStyle);
+      }
+      if (clip?.captionStyle) {
+        useCaptionStore.getState().restoreSavedStyle(clip.captionStyle);
+        // Restore caption position
+        if (clip.captionStyle.yPercent !== undefined) {
+          useLayoutStore.getState().setCapYPercent(clip.captionStyle.yPercent);
+        }
+      }
+      if (clip?.subtitleStyle?.yPercent !== undefined) {
+        useLayoutStore.getState().setSubYPercent(clip.subtitleStyle.yPercent);
+      }
+      // Clear undo/redo stacks — user should not be able to undo past initial state
+      useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
+    };
+
     if (window.clipflow?.storeGet) {
       Promise.all([
         window.clipflow.storeGet("defaultTemplateId"),
@@ -99,16 +117,14 @@ const useEditorStore = create((set, get) => ({
         ];
         const tpl = allTemplates.find((t) => t.id === id) || allTemplates[0];
         if (tpl) applyTemplate(tpl);
-        // Clear undo/redo stacks — user should not be able to undo past initial state
-        useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
+        restoreSavedStyles();
       }).catch(() => {
-        // Fallback: apply built-in template
         applyTemplate(BUILTIN_TEMPLATE);
-        useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
+        restoreSavedStyles();
       });
     } else {
       applyTemplate(BUILTIN_TEMPLATE);
-      useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
+      restoreSavedStyles();
     }
 
     // Reset waveform (real extraction via FFmpeg in main process — TODO)
@@ -897,9 +913,23 @@ const useEditorStore = create((set, get) => ({
         syncOffset: subState.syncOffset || 0,
       };
       const captionStyle = {
-        fontFamily: capState.fontFamily, fontWeight: capState.fontWeight || 900,
-        fontSize: capState.fontSize, bold: capState.bold, italic: capState.italic,
-        color: capState.color, lineSpacing: capState.lineSpacing,
+        fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
+        fontSize: capState.captionFontSize, bold: capState.captionBold, italic: capState.captionItalic,
+        underline: capState.captionUnderline, color: capState.captionColor,
+        lineSpacing: capState.captionLineSpacing,
+        strokeOn: capState.captionStrokeOn, strokeColor: capState.captionStrokeColor,
+        strokeWidth: capState.captionStrokeWidth, strokeOpacity: capState.captionStrokeOpacity,
+        strokeBlur: capState.captionStrokeBlur, strokeOffsetX: capState.captionStrokeOffsetX, strokeOffsetY: capState.captionStrokeOffsetY,
+        shadowOn: capState.captionShadowOn, shadowColor: capState.captionShadowColor,
+        shadowBlur: capState.captionShadowBlur, shadowOpacity: capState.captionShadowOpacity,
+        shadowOffsetX: capState.captionShadowOffsetX, shadowOffsetY: capState.captionShadowOffsetY,
+        glowOn: capState.captionGlowOn, glowColor: capState.captionGlowColor,
+        glowOpacity: capState.captionGlowOpacity, glowIntensity: capState.captionGlowIntensity,
+        glowBlur: capState.captionGlowBlur, glowBlend: capState.captionGlowBlend,
+        glowOffsetX: capState.captionGlowOffsetX, glowOffsetY: capState.captionGlowOffsetY,
+        bgOn: capState.captionBgOn, bgColor: capState.captionBgColor,
+        bgOpacity: capState.captionBgOpacity, bgPaddingX: capState.captionBgPaddingX,
+        bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
         yPercent: layState.capYPercent ?? 15,
       };
       await window.clipflow.projectUpdateClip(project.id, clip.id, {

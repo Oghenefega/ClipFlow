@@ -232,6 +232,36 @@ const useCaptionStore = create((set, get) => ({
   setCaptionBgRadius: (r) => { _pushCrossUndo(); set({ captionBgRadius: r }); },
   setCaptionEffectOrder: (order) => { _pushCrossUndo(); set({ captionEffectOrder: order }); },
 
+  // ── Restore saved styling from clip.captionStyle (persisted by handleSave) ──
+  // Called after applyTemplate() so saved customizations override template defaults.
+  restoreSavedStyle: (saved) => {
+    if (!saved || typeof saved !== "object") return;
+    const mapping = {
+      fontFamily: "captionFontFamily", fontWeight: "captionFontWeight",
+      fontSize: "captionFontSize", bold: "captionBold", italic: "captionItalic",
+      underline: "captionUnderline", color: "captionColor",
+      lineSpacing: "captionLineSpacing",
+      strokeOn: "captionStrokeOn", strokeColor: "captionStrokeColor",
+      strokeWidth: "captionStrokeWidth", strokeOpacity: "captionStrokeOpacity",
+      strokeBlur: "captionStrokeBlur", strokeOffsetX: "captionStrokeOffsetX", strokeOffsetY: "captionStrokeOffsetY",
+      shadowOn: "captionShadowOn", shadowColor: "captionShadowColor",
+      shadowBlur: "captionShadowBlur", shadowOpacity: "captionShadowOpacity",
+      shadowOffsetX: "captionShadowOffsetX", shadowOffsetY: "captionShadowOffsetY",
+      glowOn: "captionGlowOn", glowColor: "captionGlowColor",
+      glowOpacity: "captionGlowOpacity", glowIntensity: "captionGlowIntensity",
+      glowBlur: "captionGlowBlur", glowBlend: "captionGlowBlend",
+      glowOffsetX: "captionGlowOffsetX", glowOffsetY: "captionGlowOffsetY",
+      bgOn: "captionBgOn", bgColor: "captionBgColor",
+      bgOpacity: "captionBgOpacity", bgPaddingX: "captionBgPaddingX",
+      bgPaddingY: "captionBgPaddingY", bgRadius: "captionBgRadius",
+    };
+    const patch = {};
+    for (const [savedKey, storeKey] of Object.entries(mapping)) {
+      if (saved[savedKey] !== undefined) patch[storeKey] = saved[savedKey];
+    }
+    if (Object.keys(patch).length > 0) set(patch);
+  },
+
   initFromClip: (clip) => {
     const text = clip?.caption || clip?.title || "";
     const savedSegments = clip?.captionSegments;
