@@ -1,57 +1,65 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-03 — "Editor Style Persistence Fix + Subtitle Timing Rebuild Plan"_
+_Last updated: 2026-04-03 — "Subtitle Timing Rebuild — Phases 1-3 Implemented, Advance Buffer Reverted"_
 
 ## Current State
-App is stable. Two bugs fixed and shipped. One major rebuild planned and fully specced.
+App is stable. Subtitle timing rebuild (Phases 1-4) implemented and mostly working. One attempted fix (advance buffer) was reverted per user feedback. Header title overflow still broken.
 
 ## What Was Built
 
-### Bug Fix 1: Editor Style Persistence (SHIPPED)
-- **Root cause:** `useEditorStore.initFromContext()` called `applyTemplate()` unconditionally on every editor mount, overwriting saved `clip.subtitleStyle` and `clip.captionStyle`. Save button worked correctly, Projects tab showed saved styles correctly, but the Editor always reset to template defaults.
-- **Fix:** Added `restoreSavedStyle()` methods to both `useSubtitleStore` and `useCaptionStore`. After `applyTemplate()` runs (providing defaults), saved styles are restored on top. Layout positions (yPercent) also restored.
-- **Secondary bug fixed:** `handleSave()` in `useEditorStore` was reading unprefixed property names from caption store (`capState.fontFamily` instead of `capState.captionFontFamily`). All caption style properties were saving as `undefined`. Fixed to use correct prefixed names AND expanded to save all caption effects (stroke, shadow, glow, background).
-- **Files changed:** `useEditorStore.js`, `useSubtitleStore.js`, `useCaptionStore.js`
-- **Status:** Built, tested, verified by user ✅
+### Subtitle Timing Rebuild — Phases 1-4 (SHIPPED)
 
-### Bug Fix 2: Subtitle Segmentation — Forward Connectors (SHIPPED)
-- **Rule expanded:** The existing "never end a segment on 'I'" rule was expanded to cover all forward-connecting words: prepositions (to, in, on, at, for, of, with, from, by), articles (a, an, the), conjunctions (and, but, or, so, if, as).
-- **Edge case handled:** If the connector is the LAST word in a partition (before a hard pause wall), it stays with the preceding segment instead of dangling alone.
-- **File changed:** `segmentWords.js` — `FORWARD_CONNECTORS` set at module level, Rule 6 updated.
-- **Status:** Built, verified by trace analysis ✅
+**Phase 1: Word Timestamp Post-Processing** (`cleanWordTimestamps.js` — NEW)
+- 4-pass pipeline: monotonicity enforcement, min duration (50ms), micro-gap fill (150ms), suspicious detection + character-count redistribution
+- Integrates into `useSubtitleStore.initSegments()` (per-segment with anchors) and `setSegmentMode()` (cross-segment, no anchors)
+- Thresholds: SHORT_COUNT=3, COVERAGE_RATIO=0.6, IDENTICAL_PAIRS=2 (originals restored after revert)
 
-### Subtitle Timing Rebuild — Full Spec (PLANNED, NOT STARTED)
-- **Spec file:** `tasks/subtitle-timing-rebuild-spec.md`
-- **4 phases:** (1) Word timestamp post-processing, (2) Progressive karaoke highlight, (3) Unify preview/burn-in algorithms, (4) Segmentation safe fixes
-- **Research done:** Analyzed whisper-timestamped, stable-ts, WhisperX, CrisperWhisper, Aegisub, Netflix standards
-- **Status:** Fully specced, approved by user, ready to implement in next session
+**Phase 2: Progressive Karaoke Highlight** (OPT-IN)
+- Progressive fill (CSS gradient sweep like Aegisub `\kf`) available as `highlightMode: "progressive"`
+- Default is `"instant"` (original behavior) — user explicitly rejected progressive as default
+- Supported in both PreviewOverlays.js and overlay-renderer.js
+
+**Phase 3: Unified Preview/Burn-in** (`findActiveWord.js` — NEW)
+- Shared word-driven lookup used by both PreviewOverlays.js (ES import) and overlay-renderer.js (CJS require)
+- Returns `{seg, wordIdx, wordProgress}` for karaoke rendering
+- syncOffset now applied in burn-in path (`render.js` → `subtitle-overlay-renderer.js`)
+- **REVERTED**: ADVANCE_BUFFER (40ms delay on non-first words) was removed — made timing visually worse
+
+**Phase 4: Segmentation Safe Fixes** (`segmentWords.js` — MODIFIED)
+- startSec clamping: segment can't start before first word
+- Last-word extension through segment linger time
+- Intra-segment gap fill
+- Expanded FORWARD_CONNECTORS: added contractions (let's, I'm, I'll, we're, etc.), auxiliaries (is, are, was, will, etc.), demonstratives (that, this, these, those)
+- Added ATOMIC_PHRASES: "light work", "let's get", "real quick", "right here", etc.
+- Unicode apostrophe normalization in norm()
+- Context-aware guard: `isLastInPartition` prevents forward connector from firing at partition boundaries
+
+### EditorLayout Header Fix (ATTEMPTED, STILL BROKEN)
+- Two approaches tried: (1) px-[220px] padding, (2) flexbox with flex-1 min-w-0
+- Neither solved the title overflow — needs a different approach next session
 
 ## Key Decisions
-- Template is the starting point; saved customizations always win (merge semantics, not replace)
-- Forward connectors: 19 words in the set, tested against user's real speech data
-- Subtitle timing: adopt CrisperWhisper's 50ms min duration + stable-ts 150ms gap merge + Aegisub progressive fill
-- Progressive karaoke highlight chosen over instant color change (masks timing errors up to ~100ms)
-- Phase execution order: 1 → 4 → 3 → 2 (each independently shippable)
+- Progressive karaoke is opt-in only (`highlightMode: "progressive"`), instant is default
+- Advance buffer (40ms) approach FAILED — made timing visually worse, was reverted
+- Word timestamp cleaning runs at segment init time, not at render time
+- Character-count redistribution uses speech region (word boundaries), not full segment boundaries
+- Forward connector "that" has context sensitivity via partition guard (handles "what is that?" questions)
 
 ## Next Steps
-1. **START HERE:** Implement subtitle timing rebuild per `tasks/subtitle-timing-rebuild-spec.md`
-   - Phase 1: `cleanWordTimestamps.js` (new file, 3-pass post-processor)
-   - Phase 4: segmentWords.js safe fixes (startSec clamp, last-word extension)
-   - Phase 3: Unify `findActiveWord` between preview and burn-in, apply syncOffset in burn-in
-   - Phase 2: Progressive karaoke highlight (CSS gradient sweep)
-2. Test against clip `clip_1773883452956_geog` (the clip with known drift)
-3. Commit each phase separately
+1. **Header title overflow** — still broken, needs a third approach (investigate actual layout/DOM structure more carefully)
+2. **Premature word advance drift** — the core issue of highlight jumping ahead on stretched words remains unsolved. The advance buffer approach failed. Needs a different strategy (possibly adjusting word.start during post-processing rather than at render time)
+3. Test timing rebuild against more clips to confirm improvement
+4. Commit all session work
 
 ## Watch Out For
 - `data/clipflow.db` has changes — don't commit database files
 - `reference/TECHNICAL_SUMMARY.md` was deleted (shows in git status) — verify intentional
-- The forward connector rule may affect existing clips — user needs to re-segment (toggle 3Words mode) to see changes
-- overlay-renderer.js runs in offscreen BrowserWindow (plain JS, no React) — shared code must be vanilla JS
-- `cleanWordTimestamps` must create NEW word objects (no in-place mutation) — undo system deep-copies via JSON.stringify
+- `findActiveWord.js` uses CJS `module.exports` for dual compatibility — don't convert to ES modules
+- `cleanWordTimestamps.js` uses ES `export` — it's only used by React-side code
+- overlay-renderer.js loads findActiveWord via injected `__FIND_ACTIVE_WORD_PATH__` — path must be absolute
 
 ## Logs/Debugging
-- User-confirmed: style persistence fix works ✅
-- User-confirmed: "welcome back / to another" segmentation is correct ✅
-- Clip `clip_1773883452956_geog`: 163 words, 81 segments, 56s duration
-  - 6 words with zero or near-zero duration (Whisper artifacts)
-  - 3 segments start 60-80ms before first word (Phase 3 backward extension)
-  - Drift starts at "as always" (word gap 545ms, word durations 30-40ms)
+- User confirmed: timing is "much better" after Phase 1 post-processing
+- User confirmed: progressive karaoke as default = rejected ("oh hell no")
+- User confirmed: advance buffer (40ms) made things "visually weird and out of sync" — reverted
+- Header overflow: two fix attempts failed, user says "look at it from a different angle"
+- Premature word advance examples: "and" stretched then jumps to "am", "baby" stretched then jumps to "whoa"

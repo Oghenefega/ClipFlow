@@ -19,18 +19,37 @@ const LINGER_DURATION = 0.4;         // seconds — extend into empty space afte
 // Filler words (exact match only, per spec)
 const FILLERS = new Set(["um", "uh", "ah"]);
 
-// Words that connect forward — should never end a segment (they start the next one)
+// Words that connect forward — should never end a segment (they start the next one).
+// Includes pronouns, prepositions, articles, conjunctions, and contractions that
+// always precede another word (you wouldn't say "let's" and stop).
 const FORWARD_CONNECTORS = new Set([
-  "i", "to", "a", "an", "the", "in", "on", "at", "for", "of",
-  "with", "from", "by", "and", "but", "or", "so", "if", "as",
+  // Pronouns, articles & demonstratives
+  "i", "a", "an", "the", "that", "this", "these", "those",
+  // Prepositions
+  "to", "in", "on", "at", "for", "of", "with", "from", "by",
+  // Conjunctions
+  "and", "but", "or", "so", "if", "as",
+  // Contractions — always connect to a following verb/adjective
+  "let's", "i'm", "i'll", "i've", "i'd",
+  "we're", "we'll", "we've", "we'd",
+  "you're", "you'll", "you've", "you'd",
+  "they're", "they'll", "they've", "they'd",
+  "he's", "he'll", "he'd", "she's", "she'll", "she'd",
+  "it's", "it'll",
+  "that's", "there's", "here's", "what's", "who's",
+  // Auxiliary verbs — always need a following word
+  "is", "are", "was", "were", "will", "would", "could", "should",
+  "can", "must", "might", "shall",
 ]);
 
 // Common phrases that should never be split across segments (2-word atomic units)
 const ATOMIC_PHRASES = new Set([
   "as always", "of course", "by the way", "at least", "right now",
-  "let's go", "you know", "I mean", "in fact", "so far",
+  "let's go", "let's get", "you know", "I mean", "in fact", "so far",
   "at all", "no way", "oh my", "come on", "for real",
   "hold on", "watch this", "trust me", "believe me", "check this",
+  "light work", "real quick", "right here", "right there",
+  "one more", "each other", "out here", "out there",
 ]);
 
 // ── Helpers ──
@@ -42,9 +61,9 @@ function isSentenceEnder(wordText) {
   return /[.!?]$/.test(w) || /[.!?]['""\u2019]$/.test(w);
 }
 
-/** Normalize word for comparison (lowercase, strip trailing punctuation) */
+/** Normalize word for comparison (lowercase, strip trailing punctuation, normalize apostrophes) */
 function norm(w) {
-  return (w.word || "").toLowerCase().replace(/[.,!?;:'"]+$/, "");
+  return (w.word || "").toLowerCase().replace(/[\u2019\u2018]/g, "'").replace(/[.,!?;:'"]+$/, "");
 }
 
 /** Is this word a filler? (exact match on normalized form) */
@@ -410,12 +429,53 @@ function applyTimingRules(segments) {
     }
   }
 
+  // Clamp: segment must not appear before first word is spoken.
+  // Min-duration backward extension can push startSec before the first word,
+  // making the subtitle appear "early". Word timing wins over display floor.
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].words && segments[i].words.length > 0) {
+      segments[i].startSec = Math.max(
+        segments[i].startSec,
+        segments[i].words[0].start
+      );
+    }
+  }
+
   // Linger: extend each segment's end into empty space so subtitles don't vanish
   // immediately after the last word. Never overlap the next segment.
   for (let i = 0; i < segments.length; i++) {
     const desiredEnd = segments[i].endSec + LINGER_DURATION;
     const maxEnd = i + 1 < segments.length ? segments[i + 1].startSec : desiredEnd;
     segments[i].endSec = Math.min(desiredEnd, maxEnd);
+  }
+
+  // Extend last word to fill linger period — ensures progressive karaoke sweep
+  // stays active through the linger instead of freezing after last word.end.
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].words && segments[i].words.length > 0) {
+      const lastWord = segments[i].words[segments[i].words.length - 1];
+      if (lastWord.end < segments[i].endSec) {
+        segments[i].words[segments[i].words.length - 1] = {
+          ...lastWord,
+          end: segments[i].endSec,
+        };
+      }
+    }
+  }
+
+  // Close remaining intra-segment micro-gaps — safety net after timing adjustments
+  // may have re-introduced small gaps. Ensures continuous progressive fill.
+  for (let i = 0; i < segments.length; i++) {
+    if (!segments[i].words || segments[i].words.length < 2) continue;
+    for (let j = 0; j < segments[i].words.length - 1; j++) {
+      const gap = segments[i].words[j + 1].start - segments[i].words[j].end;
+      if (gap > 0 && gap < SILENCE_GAP_THRESHOLD) {
+        segments[i].words[j] = {
+          ...segments[i].words[j],
+          end: segments[i].words[j + 1].start,
+        };
+      }
+    }
   }
 
   return segments;

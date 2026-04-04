@@ -89,6 +89,7 @@ async function renderOverlayFrames(params) {
     subtitleStyle = {},
     captionSegments = [],
     captionStyle = {},
+    syncOffset = 0,
     clipStartTime = 0,
     clipEndTime = 0,
     tempDir,
@@ -139,6 +140,7 @@ async function renderOverlayFrames(params) {
   // Determine overlay page path — CRA copies public/ to build/
   const overlayHtmlPath = path.join(__dirname, "../../build/subtitle-overlay/index.html");
   const styleEnginePath = path.join(__dirname, "../../src/renderer/editor/utils/subtitleStyleEngine.js");
+  const findActiveWordPath = path.join(__dirname, "../../src/renderer/editor/utils/findActiveWord.js");
   const fontsPath = path.join(__dirname, "../../src/fonts");
 
   // Verify paths exist
@@ -196,12 +198,14 @@ async function renderOverlayFrames(params) {
 
         window.__SCALE_FACTOR__ = ${scaleFactor};
         window.__STYLE_ENGINE_PATH__ = ${JSON.stringify(styleEnginePath)};
+        window.__FIND_ACTIVE_WORD_PATH__ = ${JSON.stringify(findActiveWordPath)};
         window.__FONTS_PATH__ = ${JSON.stringify(fontsPath)};
         window.__OVERLAY_CONFIG__ = ${JSON.stringify({
           subtitleSegments,
           subtitleStyle,
           captionSegments,
           captionStyle,
+          syncOffset,
           clipStartTime,
           clipEndTime,
         })};

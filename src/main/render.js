@@ -61,6 +61,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           subtitleStyle: options.subtitleStyle || clipData.subtitleStyle || {},
           captionSegments,
           captionStyle: options.captionStyle || clipData.captionStyle || {},
+          syncOffset: clipData.syncOffset || 0,
           clipStartTime: clipData.startTime || 0,
           clipEndTime: clipData.endTime || 0,
           tempDir,

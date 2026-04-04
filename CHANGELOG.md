@@ -6,6 +6,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-03
 
+### Added
+- **Word timestamp post-processing pipeline** (`cleanWordTimestamps.js`): 4-pass correction for Whisper's raw word timestamps — monotonicity enforcement, minimum 50ms duration, micro-gap filling (150ms), and suspicious timestamp detection with character-count redistribution. Runs automatically at segment initialization.
+- **Unified word-driven highlight lookup** (`findActiveWord.js`): Shared algorithm used by both the editor preview and the burn-in renderer, eliminating timing divergence between what you see in the editor and what appears in exported video. syncOffset now applied in burn-in path.
+- **Progressive karaoke highlight** (opt-in): Aegisub-style gradual fill across each word, available as `highlightMode: "progressive"`. Original instant highlight remains the default.
+- **Expanded subtitle segmentation rules**: Added contractions (let's, I'm, I'll, we're, etc.), auxiliaries (is, are, was, will, etc.), and demonstratives (that, this, these, those) to forward connectors. Added atomic phrases ("light work", "let's get", "real quick", etc.) that are never split across segments. Unicode apostrophe normalization for consistent word matching.
+
+### Improved
+- **Segment timing accuracy**: startSec clamped to first word (no early segment display), last word extended through linger time, intra-segment gaps filled. Segments now tightly track actual speech boundaries.
+
+### Fixed
+- **Subtitle timing drift**: Whisper's DTW-based word alignment produces near-zero durations, overestimated gaps, and cumulative drift. The new 4-pass post-processing pipeline corrects these before segmentation, significantly reducing karaoke highlight drift.
+
+---
+
+## [Unreleased] — 2026-04-03
+
 ### Fixed
 - **Editor style persistence:** Saved subtitle and caption customizations (color, position, font, effects) now persist when navigating away from the Editor tab and back. Root cause: `initFromContext()` always applied the default template on mount, overwriting saved `clip.subtitleStyle` and `clip.captionStyle`. Template now provides defaults, then saved customizations are restored on top via new `restoreSavedStyle()` methods on both stores.
 - **Caption style save was silently broken:** `handleSave()` was reading unprefixed property names from the caption store (`capState.fontFamily` instead of `capState.captionFontFamily`), causing all caption styling to save as `undefined`. Fixed to use correct prefixed names and expanded to save all caption effects (stroke, shadow, glow, background) — previously only saved 7 basic fields.

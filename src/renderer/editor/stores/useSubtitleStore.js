@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
+import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
 
 // ── Cross-store styling snapshot keys ──
 // These keys are captured in undo snapshots so styling changes are undoable.
@@ -224,6 +225,7 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Subtitle styling ──
   subMode: "karaoke",
+  highlightMode: "instant", // "instant" (default) or "progressive" (gradient sweep)
   fontSize: 52,
   strokeWidth: 7,
   strokeColor: "#000000",
@@ -415,7 +417,11 @@ const useSubtitleStore = create((set, get) => ({
         const cleanWords = clippedWords.map(({ _originalStart, ...w }) => w);
 
         const rawWords = mergeWordTokens(cleanWords, s.text);
-        const repairedWords = validateWords(rawWords, segStartSec, segEndSec);
+        const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
+        const repairedWords = cleanWordTimestamps(validatedWords, {
+          segStart: segStartSec,
+          segEnd: segEndSec,
+        });
 
         if (i === 0) {
           console.log(`[initSegments] First seg: [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
@@ -867,6 +873,7 @@ const useSubtitleStore = create((set, get) => ({
   // ── Styling setters (all push undo for Ctrl+Z support) ──
   _pushStyleUndo: () => { get()._pushUndo(); },
   setSubMode: (m) => { get()._pushStyleUndo(); set({ subMode: m }); },
+  setHighlightMode: (m) => { get()._pushStyleUndo(); set({ highlightMode: m }); },
   setFontSize: (s) => { get()._pushStyleUndo(); set({ fontSize: s }); },
   setStrokeWidth: (w) => { get()._pushStyleUndo(); set({ strokeWidth: w }); },
   setStrokeColor: (c) => { get()._pushStyleUndo(); set({ strokeColor: c }); },
@@ -959,8 +966,11 @@ const useSubtitleStore = create((set, get) => ({
       }
     });
 
+    // ── Clean word timestamps before segmentation ──
+    const cleanedWords = cleanWordTimestamps(allWords);
+
     // ── Delegate to pure segmentation function (spec v1.1) ──
-    const rawSegs = segmentWords(allWords, mode).map((seg, i) => ({
+    const rawSegs = segmentWords(cleanedWords, mode).map((seg, i) => ({
       id: Date.now() + i,
       start: fmtTime(seg.startSec),
       end: fmtTime(seg.endSec),

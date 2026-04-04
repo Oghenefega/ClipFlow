@@ -618,9 +618,9 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         )}
       </div>
 
-      {/* Center: Editable clip title — absolutely centered on the full topbar */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: navOpen ? 60 : 5 }}>
-        <div className="pointer-events-auto relative">
+      {/* Center: Editable clip title — flex-1 fills remaining space, text centered */}
+      <div className="flex-1 flex items-center justify-center min-w-0 mx-3 relative" style={{ zIndex: navOpen ? 60 : 5 }}>
+        <div className="relative max-w-full min-w-0">
         {editingTitle ? (
           <input
             ref={titleInputRef}
@@ -631,28 +631,29 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
               setEditingTitle(false);
               markDirty();
             }}
-            className="bg-secondary/60 border border-border rounded-md px-3 py-1.5 text-sm font-medium text-foreground text-center outline-none focus:ring-1 focus:ring-primary/50"
+            className="bg-secondary/60 border border-border rounded-md px-3 py-1.5 text-sm font-medium text-foreground text-center outline-none focus:ring-1 focus:ring-primary/50 max-w-full"
             style={{
               fontFamily: "'DM Sans', sans-serif",
               width: `${Math.max(200, Math.min(600, clipTitle.length * 8.5 + 40))}px`,
             }}
           />
         ) : (
-          <div className="flex items-center gap-0 rounded-md hover:bg-secondary/40 transition-colors">
-            {/* Title text — click to edit */}
+          <div className="flex items-center gap-0 rounded-md hover:bg-secondary/40 transition-colors max-w-full min-w-0">
+            {/* Title text — click to edit, truncated with ellipsis */}
             <span
-              className="text-sm font-medium text-foreground cursor-text px-3 py-1.5"
+              className="text-sm font-medium text-foreground cursor-text px-3 py-1.5 truncate min-w-0"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingTitle(true);
               }}
+              title={clipTitle || "Untitled Clip"}
             >
               {clipTitle || "Untitled Clip"}
             </span>
             {/* Chevron — click to open clip navigator */}
             <button
               ref={navChevronRef}
-              className="flex items-center px-1.5 py-1.5 rounded-r-md hover:bg-secondary/80 transition-colors"
+              className="flex-shrink-0 flex items-center px-1.5 py-1.5 rounded-r-md hover:bg-secondary/80 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 setNavOpen(!navOpen);
@@ -680,9 +681,6 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         )}
         </div>
       </div>
-
-      {/* Spacer to push right buttons to edge */}
-      <div className="flex-1" />
 
       {/* Right: Debug + Re-transcribe + Save + Queue buttons */}
       <div className="relative flex items-center gap-2 z-10">

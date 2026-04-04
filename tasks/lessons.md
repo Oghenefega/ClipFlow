@@ -534,3 +534,7 @@
 ### Never penalize silence in Whisper flags (Gaming Audio)
 - **Observation:** Added `no_speech_threshold=0.6` to Whisper which would skip transcribing audio chunks with >60% silence. User correctly pointed out that gaming content regularly has long silences (boss fights, stealth, exploration) followed by loud reactions — this flag would drop those moments entirely, losing the celebration shout after a quiet boss fight.
 - **Rule:** Never add Whisper flags that penalize silence. Gaming audio has legitimate long silences. Only use flags that target repetition/hallucination specifically (`condition_on_previous_text=False`, `compression_ratio_threshold`, `log_prob_threshold`).
+
+### Never replace established visual defaults — new visual styles must be opt-in
+- **Observation:** Replaced the user's instant karaoke highlight with a progressive gradient sweep as the default. User hated it — it fundamentally changed how their subtitles look without consent.
+- **Rule:** New visual behaviors must be additive options (template/setting), never replacements for the existing default. The user's current look is their brand. Always preserve it as the default and offer alternatives as opt-in choices.

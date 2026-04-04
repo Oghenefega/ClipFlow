@@ -15,6 +15,10 @@ import {
   buildCaptionStyle,
   stripPunctuation,
 } from "../utils/subtitleStyleEngine";
+import {
+  findActiveWord,
+  buildGlobalWordIndex,
+} from "../utils/findActiveWord";
 
 // ── Character-limit line chunking ──
 // Groups words into display lines until each line exceeds ~16 chars.
@@ -38,63 +42,6 @@ function buildCharChunks(words) {
   }
   if (current.length > 0) chunks.push(current);
   return chunks;
-}
-
-// ── Build flat word index for word-driven timing ──
-// Word-driven approach: find the active WORD first across ALL segments,
-// then display its containing segment. This ensures words appear exactly
-// when spoken, not delayed by segment boundaries.
-function buildGlobalWordIndex(segments) {
-  const index = [];
-  for (let si = 0; si < segments.length; si++) {
-    const seg = segments[si];
-    if (seg.words && seg.words.length > 0) {
-      for (let wi = 0; wi < seg.words.length; wi++) {
-        index.push({ segIdx: si, wordIdx: wi, word: seg.words[wi] });
-      }
-    }
-  }
-  return index;
-}
-
-// ── Find active segment + word using word-driven lookup ──
-function findActiveSegAndWord(segments, globalWordIndex, adjustedTime) {
-  if (!segments || segments.length === 0) return { seg: null, wordIdx: -1 };
-
-  if (globalWordIndex.length > 0) {
-    // Find the most recent word that has started
-    let bestGlobal = -1;
-    for (let i = 0; i < globalWordIndex.length; i++) {
-      if (adjustedTime >= globalWordIndex[i].word.start) bestGlobal = i;
-      else break; // sorted by time
-    }
-
-    if (bestGlobal >= 0) {
-      const entry = globalWordIndex[bestGlobal];
-      const seg = segments[entry.segIdx];
-      // Must be within segment boundaries AND not too far past the word
-      if (adjustedTime >= seg.startSec && adjustedTime < seg.endSec &&
-          adjustedTime <= entry.word.end + 1.5) {
-        return { seg, wordIdx: entry.wordIdx };
-      }
-    }
-
-    // Before any word: check if we're close to the first word (< 0.15s)
-    if (bestGlobal < 0 && globalWordIndex.length > 0) {
-      const firstWord = globalWordIndex[0];
-      const seg = segments[firstWord.segIdx];
-      if (adjustedTime >= firstWord.word.start - 0.15 &&
-          adjustedTime >= seg.startSec && adjustedTime < seg.endSec) {
-        return { seg, wordIdx: firstWord.wordIdx };
-      }
-    }
-  }
-
-  // Fallback for segments without word-level data: use segment boundaries
-  const seg = segments.find(
-    (s) => adjustedTime >= s.startSec && adjustedTime < s.endSec
-  ) || null;
-  return { seg, wordIdx: -1 };
 }
 
 
@@ -125,6 +72,7 @@ export function SubtitleOverlay({
   const s = subtitleStyle || {};
 
   const segmentMode = s.segmentMode || "3word";
+  const highlightMode = s.highlightMode || "instant"; // "instant" (default) or "progressive"
   const punctuationRemove = s.punctuationRemove || {};
   const highlightColor = s.highlightColor || "#4cce8a";
   const normalColor = s.subColor || "#ffffff";
@@ -166,9 +114,9 @@ export function SubtitleOverlay({
     [segments]
   );
 
-  // Find active segment + word at current time
-  const { seg: currentSeg, wordIdx: currentWordIdx } = useMemo(
-    () => findActiveSegAndWord(segments, globalWordIndex, adjustedTime),
+  // Find active segment + word + progress at current time
+  const { seg: currentSeg, wordIdx: currentWordIdx, wordProgress } = useMemo(
+    () => findActiveWord(segments, globalWordIndex, adjustedTime),
     [segments, globalWordIndex, adjustedTime]
   );
 
@@ -226,7 +174,14 @@ export function SubtitleOverlay({
           {visibleWords.map((w, i) => {
             const globalIdx = i + visibleOffset;
             const isActive = karaokeActive && globalIdx === currentWordIdx;
+            const wordText = stripPunct(w.word);
+            const suffix = i < visibleWords.length - 1 ? " " : "";
 
+            // Progressive mode: active word gets gradient sweep via clip-path overlay
+            const useProgressiveFill = highlightMode === "progressive" &&
+              isActive && karaokeActive && wordProgress > 0 && wordProgress < 1;
+
+            // Instant mode (default): whole word gets highlight color immediately
             const wordStyle = {
               color: isActive ? highlightColor : normalColor,
               textShadow: isActive ? wordShadows.active : wordShadows.normal,
@@ -235,6 +190,14 @@ export function SubtitleOverlay({
               verticalAlign: "baseline",
               transition: `color ${animateSpeed}s, transform ${animateSpeed}s ease-out`,
             };
+
+            // Progressive mode overrides: base color is normal, overlay handles highlight
+            if (useProgressiveFill) {
+              wordStyle.color = normalColor;
+              wordStyle.textShadow = wordShadows.normal;
+              wordStyle.position = "relative";
+              wordStyle.transition = undefined;
+            }
 
             if (animateOn) {
               if (isSingleWord) {
@@ -251,7 +214,22 @@ export function SubtitleOverlay({
                 key={isSingleWord ? `sw-${animKey}-${globalIdx}` : globalIdx}
                 style={wordStyle}
               >
-                {stripPunct(w.word)}{i < visibleWords.length - 1 ? " " : ""}
+                {wordText}{suffix}
+                {useProgressiveFill && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      color: highlightColor,
+                      textShadow: wordShadows.active,
+                      clipPath: `inset(0 ${(100 - wordProgress * 100).toFixed(1)}% 0 0)`,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {wordText}{suffix}
+                  </span>
+                )}
               </span>
             );
           })}
