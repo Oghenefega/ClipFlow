@@ -1,8 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag } from "../components/shared";
 import CaptionsView from "./CaptionsView";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const FULL_DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -82,8 +85,13 @@ const snapToSlot = (timeStr, timeSlots) => {
   return timeSlots[best];
 };
 
+function SortableRow({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return children({ ref: setNodeRef, style: { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }, attributes, listeners });
+}
+
 export default function QueueView({
-  allClips, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
+  allClips, localProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
   platformOptions, setPlatformOptions, gamesDb,
@@ -91,7 +99,17 @@ export default function QueueView({
 }) {
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
   const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
-  const approved = Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && (!requireHashtagInTitle || hasHashtag(c.title)) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title));
+  // Preserve projectId on each clip for IPC calls (dequeue, title edit)
+  const approved = Object.entries(allClips).flatMap(([projectId, clips]) =>
+    clips.filter((c) => (c.status === "approved" || c.status === "ready") && (!requireHashtagInTitle || hasHashtag(c.title)) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title))
+      .map((c) => ({ ...c, _projectId: projectId }))
+  ).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
+  // Build projectId→name lookup
+  const projectNames = React.useMemo(() => {
+    const map = {};
+    for (const p of (localProjects || [])) map[p.id] = p.name || p.sourceName || p.id;
+    return map;
+  }, [localProjects]);
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
@@ -106,6 +124,47 @@ export default function QueueView({
   const [publishLogs, setPublishLogs] = useState([]);
   const [showLogs, setShowLogs] = useState(false);
   const [publishProgress, setPublishProgress] = useState(null); // { stage, pct, detail }
+  const [editingTitle, setEditingTitle] = useState(null); // clipId being edited
+  const [editTitleValue, setEditTitleValue] = useState("");
+
+  // Dequeue a clip (set status to "dequeued" so it leaves the queue but can be re-approved)
+  const dequeueClip = async (clip) => {
+    if (!clip._projectId) return;
+    try {
+      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { status: "dequeued" });
+    } catch (e) { console.error("Dequeue failed:", e); }
+  };
+
+  // Save inline title edit
+  const saveTitle = async (clip) => {
+    const trimmed = editTitleValue.trim();
+    if (!trimmed || trimmed === clip.title || !clip._projectId) { setEditingTitle(null); return; }
+    try {
+      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { title: trimmed });
+    } catch (e) { console.error("Title update failed:", e); }
+    setEditingTitle(null);
+  };
+
+  // Drag-to-reorder
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const clipIds = useMemo(() => approved.map((c) => c.id), [approved]);
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = approved.findIndex((c) => c.id === active.id);
+    const newIdx = approved.findIndex((c) => c.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    // Recompute order values and persist
+    const reordered = [...approved];
+    const [moved] = reordered.splice(oldIdx, 1);
+    reordered.splice(newIdx, 0, moved);
+    for (let i = 0; i < reordered.length; i++) {
+      const c = reordered[i];
+      if (c._projectId && c.queueOrder !== i) {
+        window.clipflow?.projectUpdateClip(c._projectId, c.id, { queueOrder: i }).catch(() => {});
+      }
+    }
+  };
 
   // Load publish logs on mount and after any publish
   const loadPublishLogs = async () => {
@@ -388,141 +447,244 @@ export default function QueueView({
     return { icon: "\u274c", color: T.red };
   };
 
+  // Compute stats
+  const publishedToday = publishLogs.filter((l) => l.status === "success" && new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
+  const failedCount = approved.filter((c) => publishStatus[c.id]?.state === "failed").length;
+  const scheduledCount = Object.keys(scheduled).length;
+
+  // Status badge helper
+  const statusBadge = (clip) => {
+    const ps = publishStatus[clip.id];
+    const isPub = ps?.state === "done";
+    const isPublishing = ps?.state === "publishing";
+    const isFailed = ps?.state === "failed";
+    const isSch = scheduled[clip.id];
+    const hasVideo = !!clip.renderPath;
+    if (isPub) return { label: "Published", bg: "rgba(52,211,153,0.1)", color: T.green };
+    if (isPublishing) return { label: "Publishing...", bg: "rgba(251,191,36,0.1)", color: T.yellow };
+    if (isFailed) return { label: "Failed", bg: "rgba(248,113,113,0.1)", color: T.red };
+    if (isSch) return { label: `Sched ${isSch}`, bg: "rgba(251,191,36,0.1)", color: T.yellow };
+    if (!hasVideo) return { label: "Not rendered", bg: "rgba(251,191,36,0.1)", color: T.yellow };
+    return { label: "Queued", bg: T.accentDim, color: T.accentLight };
+  };
+
   return (
     <div>
       <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} />
 
-      <InfoBanner color={T.accent} icon={"🔌"}>
-        Platform API publishing coming soon. Clips are logged to the tracker for now — upload rendered files manually.
-      </InfoBanner>
-      <div style={{ height: 12 }} />
-
-      {/* Main / Other stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-        <Card style={{ padding: 20, borderColor: T.accentBorder, background: T.accentGlow }}>
-          <SectionLabel>{mainGame}</SectionLabel>
-          <div style={{ color: T.text, fontSize: 34, fontWeight: 800, fontFamily: T.mono, marginTop: 8 }}>{mainCount}</div>
+      {/* Stats bar */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+        <Card style={{ padding: "14px 16px" }}>
+          <SectionLabel>Queued</SectionLabel>
+          <div style={{ color: T.accentLight, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{approved.length}</div>
         </Card>
-        <Card style={{ padding: 20, borderColor: T.greenBorder, background: T.greenDim }}>
-          <SectionLabel>Other</SectionLabel>
-          <div style={{ color: T.text, fontSize: 34, fontWeight: 800, fontFamily: T.mono, marginTop: 8 }}>{approved.length - mainCount}</div>
+        <Card style={{ padding: "14px 16px" }}>
+          <SectionLabel>Scheduled</SectionLabel>
+          <div style={{ color: T.yellow, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{scheduledCount}</div>
+        </Card>
+        <Card style={{ padding: "14px 16px" }}>
+          <SectionLabel>Published Today</SectionLabel>
+          <div style={{ color: T.green, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{publishedToday}</div>
+        </Card>
+        <Card style={{ padding: "14px 16px" }}>
+          <SectionLabel>Failed</SectionLabel>
+          <div style={{ color: T.red, fontSize: 26, fontWeight: 800, fontFamily: T.mono, marginTop: 4 }}>{failedCount}</div>
         </Card>
       </div>
 
-      {/* Approved clips list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+      {/* Dashboard table */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={clipIds} strategy={verticalListSortingStrategy}>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+        {/* Table header */}
+        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+          {["", "Clip", "Title", "Game", "Platforms", "Status", ""].map((h, i) => (
+            <span key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textTertiary }}>{h}</span>
+          ))}
+        </div>
+
+        {approved.length === 0 && (
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>{"\ud83d\udccb"}</div>
+            <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>No clips queued</div>
+            <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Approve clips in the Projects tab to see them here.</div>
+          </div>
+        )}
+
         {approved.map((clip) => {
           const isM = extractGameTag(clip.title) === mainGameTag;
+          const gameTag = extractGameTag(clip.title);
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
           const isPublishing = ps?.state === "publishing";
           const isFailed = ps?.state === "failed";
-          const isSch = scheduled[clip.id];
           const isSel = selClip === clip.id;
           const hasVideoId = !!clip.renderPath;
-          return (
-            <div key={clip.id}>
-              <Card onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }} style={{ padding: "14px 18px", borderLeft: `3px solid ${isM ? T.accent : T.green}`, borderColor: isSel ? T.accentBorder : isPub ? T.greenBorder : isFailed ? T.redBorder : T.border, background: isSel ? T.accentGlow : isPub ? "rgba(52,211,153,0.03)" : T.surface, opacity: isPub ? 0.6 : 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ flex: 1, color: T.text, fontSize: 15, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
-                  {isPub && <span style={{ color: T.green, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Published</span>}
-                  {isPublishing && <span style={{ color: T.yellow, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Publishing...</span>}
-                  {isFailed && !isPub && <span style={{ color: T.red, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Failed</span>}
-                  {isSch && !isPub && !isPublishing && !isFailed && <span style={{ color: T.accent, fontSize: 11, fontWeight: 600, fontFamily: T.mono, flexShrink: 0 }}>Scheduled {isSch}</span>}
-                  {!hasVideoId && <span style={{ color: T.yellow, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Not rendered</span>}
-                </div>
-              </Card>
+          const duration = clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0;
+          const durationStr = duration > 0 ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}` : "";
+          const projName = projectNames[clip._projectId] || "";
+          const badge = statusBadge(clip);
 
-              {/* Publishing progress per platform */}
-              {(isPublishing || isFailed) && ps?.platforms && (
-                <Card style={{ padding: "14px 18px", marginTop: 4, borderColor: isPublishing ? T.yellowBorder : T.redBorder }}>
-                  <SectionLabel>{isPublishing ? "Publishing to platforms..." : "Publish results"}</SectionLabel>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
-                    {activePlat.map((plat) => {
-                      const status = ps.platforms[plat.key] || "pending";
-                      const { icon, color } = getPlatStatusIcon(status);
-                      const isError = status !== "pending" && status !== "publishing" && status !== "done";
-                      return (
-                        <div key={plat.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                          <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>{icon}</span>
-                          <span style={{ color: T.text, fontSize: 13, fontWeight: 600, minWidth: 100 }}>{plat.abbr} — {plat.name}</span>
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ color, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {status === "pending" ? "Waiting..." : status === "publishing" ? (publishProgress?.detail || "Connecting...") : status === "done" ? "Sent" : status}
-                            </span>
-                            {status === "publishing" && publishProgress && (
-                              <div style={{ width: "100%", height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                                <div style={{
-                                  height: "100%",
-                                  width: `${publishProgress.pct || 0}%`,
-                                  borderRadius: 2,
-                                  background: `linear-gradient(90deg, ${T.accent}, ${T.green})`,
-                                  transition: "width 0.4s ease",
-                                }} />
-                              </div>
+          return (
+            <SortableRow key={clip.id} id={clip.id}>
+              {({ ref, style: sortStyle, attributes, listeners }) => (
+                <div ref={ref} style={sortStyle} {...attributes}>
+                  {/* Table row */}
+                  <div
+                    onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? T.accentGlow : "transparent", transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "rgba(255,255,255,0.015)"; }}
+                    onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    {/* Drag handle */}
+                    <div {...listeners} onClick={(e) => e.stopPropagation()} style={{ cursor: "grab", color: T.textMuted, fontSize: 14 }}>{"\u2630"}</div>
+                    {/* Thumbnail */}
+                    <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {clip.thumbnailPath ? (
+                        <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>
+                      )}
+                    </div>
+                    {/* Title + sub */}
+                    <div style={{ minWidth: 0, paddingRight: 8 }}>
+                      <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
+                      <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2 }}>{durationStr}{projName ? ` \u00B7 ${projName}` : ""}</div>
+                    </div>
+                    {/* Game tag */}
+                    <div>{gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag}</span>}</div>
+                    {/* Platform icons */}
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {activePlat.map((p) => (
+                        <span key={p.key} style={{ width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: p.platform === "TikTok" ? "#000" : p.platform === "Instagram" ? "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" : p.platform === "YouTube" ? "#c4302b" : p.platform === "Facebook" ? "#1877f2" : "rgba(255,255,255,0.1)", color: "#fff", border: p.platform === "TikTok" ? "1px solid rgba(255,255,255,0.15)" : "none" }}>{p.abbr?.[0] || p.platform[0]}</span>
+                      ))}
+                    </div>
+                    {/* Status */}
+                    <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
+                    {/* Action button */}
+                    <div style={{ textAlign: "right" }}>
+                      {!isPub && !isPublishing && hasVideoId && (
+                        <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded detail panel */}
+                  {isSel && (
+                    <div style={{ padding: "20px 24px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                      <div style={{ display: "flex", gap: 24 }}>
+                        {/* Large thumbnail */}
+                        <div style={{ width: 120, flexShrink: 0 }}>
+                          <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {clip.thumbnailPath ? (
+                              <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>
                             )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                  {isFailed && ps.error && (
-                    <div style={{ marginTop: 10, color: T.red, fontSize: 12, fontWeight: 600 }}>{ps.error}</div>
-                  )}
-                </Card>
-              )}
+                        {/* Detail content */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Editable title */}
+                          {editingTitle === clip.id ? (
+                            <input
+                              autoFocus
+                              value={editTitleValue}
+                              onChange={(e) => setEditTitleValue(e.target.value)}
+                              onBlur={() => saveTitle(clip)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveTitle(clip); if (e.key === "Escape") setEditingTitle(null); }}
+                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 15, fontWeight: 700, fontFamily: T.font, outline: "none", marginBottom: 8 }}
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => { setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
+                              style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 6, cursor: "text", lineHeight: 1.3 }}
+                              title="Double-click to edit"
+                            >{clip.title}</div>
+                          )}
+                          <div style={{ display: "flex", gap: 10, fontSize: 11, color: T.textTertiary, marginBottom: 12, alignItems: "center" }}>
+                            <span style={{ fontFamily: T.mono }}>{durationStr}</span>
+                            {gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag}</span>}
+                            {projName && <span>{projName}</span>}
+                          </div>
 
-              {/* Publish/Schedule action panel */}
-              {isSel && !isPub && !isPublishing && (
-                <Card style={{ padding: "16px 20px", marginTop: 4, borderColor: T.accentBorder }}>
-                  {!hasVideoId && (
-                    <div style={{ marginBottom: 12 }}>
-                      <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip hasn't been rendered yet. Open it in the Editor and click "Ready to Share" first.</InfoBanner>
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 8, marginBottom: schedAction === "schedule" ? 14 : 0 }}>
-                    <button onClick={() => pubNow(clip.id)} disabled={!hasVideoId || publishingRef.current} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#fff" : T.textMuted, fontSize: 13, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Publish Now</button>
-                    <button onClick={() => setSchedAction("schedule")} disabled={!hasVideoId} style={{ padding: "10px 20px", borderRadius: 8, border: schedAction === "schedule" ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`, background: schedAction === "schedule" ? T.accentDim : "rgba(255,255,255,0.03)", color: schedAction === "schedule" ? T.accentLight : T.textSecondary, fontSize: 13, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
-                  </div>
-                  {schedAction === "schedule" && (
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "10px 14px", fontSize: 13 }} />
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <Select value={schedHour} onChange={setSchedHour} options={HOUR_OPTIONS} style={{ padding: "10px 10px", fontSize: 13, minWidth: 80 }} />
-                        <span style={{ color: T.textMuted, fontSize: 16, fontWeight: 700 }}>:</span>
-                        <Select value={schedMin} onChange={setSchedMin} options={MINUTE_OPTIONS} style={{ padding: "10px 10px", fontSize: 13, minWidth: 64 }} />
+                          {/* Platform icons row */}
+                          <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
+                            <span style={{ fontSize: 10, color: T.textTertiary, marginRight: 2 }}>Publish to:</span>
+                            {activePlat.map((p) => (
+                              <span key={p.key} style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, background: p.platform === "TikTok" ? "#000" : p.platform === "Instagram" ? "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" : p.platform === "YouTube" ? "#c4302b" : p.platform === "Facebook" ? "#1877f2" : "rgba(255,255,255,0.1)", color: "#fff", border: p.platform === "TikTok" ? "1px solid rgba(255,255,255,0.15)" : "none" }}>{p.abbr?.[0] || p.platform[0]}</span>
+                            ))}
+                          </div>
+
+                          {/* Publishing progress (if active) */}
+                          {(isPublishing || isFailed) && ps?.platforms && (
+                            <div style={{ background: T.surface, border: `1px solid ${isPublishing ? T.yellowBorder : T.redBorder}`, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
+                              <SectionLabel>{isPublishing ? "Publishing..." : "Publish results"}</SectionLabel>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                                {activePlat.map((plat) => {
+                                  const st = ps.platforms[plat.key] || "pending";
+                                  const { icon, color } = getPlatStatusIcon(st);
+                                  return (
+                                    <div key={plat.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                                      <span style={{ fontSize: 12 }}>{icon}</span>
+                                      <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
+                                      <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? (publishProgress?.detail || "Connecting...") : st === "done" ? "Sent" : st}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {isFailed && ps.error && <div style={{ marginTop: 8, color: T.red, fontSize: 11, fontWeight: 600 }}>{ps.error}</div>}
+                            </div>
+                          )}
+
+                          {/* Not rendered warning */}
+                          {!hasVideoId && (
+                            <div style={{ marginBottom: 14 }}>
+                              <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>This clip hasn't been rendered yet. Open it in the Editor and click "Ready to Share" first.</InfoBanner>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 14, borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+                            <button
+                              onClick={() => dequeueClip(clip)}
+                              style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.15s" }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.color = T.red; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textTertiary; }}
+                            >Remove</button>
+                            <div style={{ flex: 1 }} />
+                            {schedAction !== "schedule" && (
+                              <button onClick={() => setSchedAction("schedule")} disabled={!hasVideoId} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
+                            )}
+                            {!isPub && !isPublishing && (
+                              <button onClick={() => pubNow(clip.id)} disabled={!hasVideoId || publishingRef.current} style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Publish Now</button>
+                            )}
+                          </div>
+                          {/* Schedule picker */}
+                          {schedAction === "schedule" && (
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+                              <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <Select value={schedHour} onChange={setSchedHour} options={HOUR_OPTIONS} style={{ padding: "8px 8px", fontSize: 12, minWidth: 70 }} />
+                                <span style={{ color: T.textMuted, fontSize: 14, fontWeight: 700 }}>:</span>
+                                <Select value={schedMin} onChange={setSchedMin} options={MINUTE_OPTIONS} style={{ padding: "8px 8px", fontSize: 12, minWidth: 56 }} />
+                              </div>
+                              <button onClick={() => schedClip(clip.id)} disabled={!schedDate || publishingRef.current} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: schedDate ? T.accent : "rgba(255,255,255,0.04)", color: schedDate ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: schedDate ? "pointer" : "default", fontFamily: T.font }}>Confirm</button>
+                              <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <button onClick={() => schedClip(clip.id)} disabled={!schedDate || publishingRef.current} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: schedDate ? T.accent : "rgba(255,255,255,0.04)", color: schedDate ? "#fff" : T.textMuted, fontSize: 13, fontWeight: 700, cursor: schedDate ? "pointer" : "default", fontFamily: T.font }}>Confirm</button>
                     </div>
                   )}
-                </Card>
+                </div>
               )}
-            </div>
+            </SortableRow>
           );
         })}
-        {approved.length === 0 && (
-          <Card style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>{"\ud83d\udccb"}</div>
-            <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>No clips queued</div>
-            <div style={{ color: T.textTertiary, fontSize: 13, marginTop: 8 }}>Approve clips in the Projects tab to see them here.</div>
-          </Card>
-        )}
-      </div>
-
-      {/* Publishing accounts */}
-      <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
-        <SectionLabel>Publishing to {activePlat.length} accounts</SectionLabel>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-          {activePlat.map((p, i) => (
-            <span key={i} style={{ background: "rgba(255,255,255,0.03)", padding: "5px 12px", borderRadius: 8, color: T.textSecondary, fontSize: 12, fontWeight: 600, border: `1px solid ${T.border}` }}>{i + 1}. {p.abbr} — {p.name}</span>
-          ))}
-        </div>
-        {activePlat.length === 0 && (
-          <div style={{ marginTop: 10 }}>
-            <InfoBanner color={T.yellow} icon={"\u26a0\ufe0f"}>No connected platforms. Check Settings.</InfoBanner>
-          </div>
-        )}
       </Card>
+      </SortableContext>
+      </DndContext>
 
       {/* PUBLISH LOG */}
       <Card style={{ padding: "14px 20px", marginBottom: 28 }}>

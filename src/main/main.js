@@ -2056,6 +2056,17 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
       },
     });
 
+    // Extract thumbnail from rendered clip
+    let thumbnailPath = null;
+    try {
+      const thumbName = path.basename(result.path, ".mp4") + "_thumb.jpg";
+      thumbnailPath = path.join(path.dirname(result.path), thumbName);
+      await ffmpeg.generateThumbnail(result.path, thumbnailPath, 1);
+    } catch (e) {
+      console.warn("[render:clip] Thumbnail extraction failed:", e.message);
+      thumbnailPath = null;
+    }
+
     // Update clip renderStatus in project JSON
     if (projectData?.id && clipData?.id) {
       const watchFolder = store.get("watchFolder");
@@ -2063,11 +2074,12 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
         projects.updateClip(watchFolder, projectData.id, clipData.id, {
           renderStatus: "rendered",
           renderPath: result.path,
+          thumbnailPath,
         });
       } catch (e) { /* non-critical */ }
     }
 
-    return result;
+    return { ...result, thumbnailPath };
   } catch (err) {
     console.error("[render:clip] Render failed:", err.message, err.stack);
     return { error: err.message };
@@ -2093,14 +2105,24 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
       },
     });
 
-    // Update render status for each successful clip
+    // Update render status + extract thumbnails for each successful clip
     const watchFolder = store.get("watchFolder");
     for (const r of results) {
       if (r.success && projectData?.id && r.clipId) {
+        let thumbnailPath = null;
+        try {
+          const thumbName = path.basename(r.path, ".mp4") + "_thumb.jpg";
+          thumbnailPath = path.join(path.dirname(r.path), thumbName);
+          await ffmpeg.generateThumbnail(r.path, thumbnailPath, 1);
+        } catch (e) {
+          console.warn("[render:batch] Thumbnail extraction failed:", e.message);
+          thumbnailPath = null;
+        }
         try {
           projects.updateClip(watchFolder, projectData.id, r.clipId, {
             renderStatus: "rendered",
             renderPath: r.path,
+            thumbnailPath,
           });
         } catch (e) { /* non-critical */ }
       }

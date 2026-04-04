@@ -496,6 +496,7 @@ export default function App() {
       return (
         <QueueView
           allClips={allClips}
+          localProjects={localProjects}
           mainGame={mainGame}
           mainGameTag={mainGameTag}
           platforms={platforms}

@@ -1,65 +1,50 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-03 — "Subtitle Timing Rebuild — Phases 1-3 Implemented, Advance Buffer Reverted"_
+_Last updated: 2026-04-03 — "Queue Tab Phase 1: Dashboard Table Redesign"_
 
 ## Current State
-App is stable. Subtitle timing rebuild (Phases 1-4) implemented and mostly working. One attempted fix (advance buffer) was reverted per user feedback. Header title overflow still broken.
+App is stable. Queue tab redesigned from card-based layout to dashboard table with stats bar, expandable rows, and drag-to-reorder. Thumbnail extraction wired into render pipeline.
 
-## What Was Built
+## What Was Just Built
 
-### Subtitle Timing Rebuild — Phases 1-4 (SHIPPED)
+### Queue Tab Phase 1 — Dashboard Table Layout
+- **Stats bar**: 4-stat grid at top — Queued, Scheduled, Published Today, Failed — with live counts
+- **Dashboard table**: Grid-based table with columns for drag handle, 9:16 vertical thumbnail, title + source, game tag, platform icons, status badge, and quick publish button
+- **Expandable rows**: Click any row to expand inline detail panel showing large 9:16 thumbnail, double-click editable title, metadata, platform icons, publish progress, schedule picker, and action buttons (Remove, Schedule, Publish Now)
+- **Drag-to-reorder**: @dnd-kit sortable rows with grip handle, persists `queueOrder` integer on each clip via `projectUpdateClip` IPC
+- **Dequeue status**: New `"dequeued"` clip status — X/Remove button sets status so clip leaves queue without losing approval. Re-approve in Editor to re-queue
+- **Thumbnail extraction at render time**: After `render:clip` and `render:batch` complete, extracts frame at t=1s via `ffmpeg.generateThumbnail()`, saves as `_thumb.jpg` alongside rendered `.mp4`, populates `thumbnailPath` on clip object
+- **Project ID preservation**: `approved` list now carries `_projectId` on each clip for IPC calls. `localProjects` passed to QueueView for project name lookup
 
-**Phase 1: Word Timestamp Post-Processing** (`cleanWordTimestamps.js` — NEW)
-- 4-pass pipeline: monotonicity enforcement, min duration (50ms), micro-gap fill (150ms), suspicious detection + character-count redistribution
-- Integrates into `useSubtitleStore.initSegments()` (per-segment with anchors) and `setSegmentMode()` (cross-segment, no anchors)
-- Thresholds: SHORT_COUNT=3, COVERAGE_RATIO=0.6, IDENTICAL_PAIRS=2 (originals restored after revert)
-
-**Phase 2: Progressive Karaoke Highlight** (OPT-IN)
-- Progressive fill (CSS gradient sweep like Aegisub `\kf`) available as `highlightMode: "progressive"`
-- Default is `"instant"` (original behavior) — user explicitly rejected progressive as default
-- Supported in both PreviewOverlays.js and overlay-renderer.js
-
-**Phase 3: Unified Preview/Burn-in** (`findActiveWord.js` — NEW)
-- Shared word-driven lookup used by both PreviewOverlays.js (ES import) and overlay-renderer.js (CJS require)
-- Returns `{seg, wordIdx, wordProgress}` for karaoke rendering
-- syncOffset now applied in burn-in path (`render.js` → `subtitle-overlay-renderer.js`)
-- **REVERTED**: ADVANCE_BUFFER (40ms delay on non-first words) was removed — made timing visually worse
-
-**Phase 4: Segmentation Safe Fixes** (`segmentWords.js` — MODIFIED)
-- startSec clamping: segment can't start before first word
-- Last-word extension through segment linger time
-- Intra-segment gap fill
-- Expanded FORWARD_CONNECTORS: added contractions (let's, I'm, I'll, we're, etc.), auxiliaries (is, are, was, will, etc.), demonstratives (that, this, these, those)
-- Added ATOMIC_PHRASES: "light work", "let's get", "real quick", "right here", etc.
-- Unicode apostrophe normalization in norm()
-- Context-aware guard: `isLastInPartition` prevents forward connector from firing at partition boundaries
-
-### EditorLayout Header Fix (ATTEMPTED, STILL BROKEN)
-- Two approaches tried: (1) px-[220px] padding, (2) flexbox with flex-1 min-w-0
-- Neither solved the title overflow — needs a different approach next session
+### Design Exploration
+- Created two rounds of HTML mockups (`ClipFlow stuff/queue-mockups.html` and `queue-mockups-v2.html`) with 5 concepts total (A-E)
+- User selected Dashboard Table (D) as the winner
+- Updated `queue-tab-redesign-plan.md` with all resolved questions and decisions
 
 ## Key Decisions
-- Progressive karaoke is opt-in only (`highlightMode: "progressive"`), instant is default
-- Advance buffer (40ms) approach FAILED — made timing visually worse, was reverted
-- Word timestamp cleaning runs at segment init time, not at render time
-- Character-count redistribution uses speech region (word boundaries), not full segment boundaries
-- Forward connector "that" has context sensitivity via partition guard (handles "what is that?" questions)
+- **Dashboard table over card grid**: Cards don't scale when you have 10+ clips. Table is compact, scannable, and expands inline for detail
+- **Dequeued status**: Not back to "none" — separate `"dequeued"` status preserves the distinction from never-approved clips
+- **Queue data on clip object**: `queueOrder`, `platformToggles`, `captionOverrides` stored in project.json (Option A), not a separate store
+- **No stagger**: Publish sequentially without artificial delay between platforms
+- **Reorder across all clips**: Drag-to-reorder works across game types, not within M/O pools
+- **Separate phases**: Queue redesign phases 1-5 are separate specs, separate sessions
+- **Thumbnails at render time**: Not on-demand — extracted immediately after render completes, ~50-100KB per clip
 
 ## Next Steps
-1. **Header title overflow** — still broken, needs a third approach (investigate actual layout/DOM structure more carefully)
-2. **Premature word advance drift** — the core issue of highlight jumping ahead on stretched words remains unsolved. The advance buffer approach failed. Needs a different strategy (possibly adjusting word.start during post-processing rather than at render time)
-3. Test timing rebuild against more clips to confirm improvement
-4. Commit all session work
+1. **Visual polish on dashboard table** — user said "fine, not perfect" — may need spacing, alignment, or interaction tweaks next session
+2. **Phase 2 spec: Per-platform control** — platform toggles per clip, resolved caption preview, per-platform caption edit, character count indicators, YouTube-specific fields
+3. **Legacy feature removal** — OBS log parser + hype/chill voice mode (paused task in todo.md)
+4. **Instagram/Facebook split** — separate login flows (paused task in todo.md)
 
 ## Watch Out For
 - `data/clipflow.db` has changes — don't commit database files
-- `reference/TECHNICAL_SUMMARY.md` was deleted (shows in git status) — verify intentional
-- `findActiveWord.js` uses CJS `module.exports` for dual compatibility — don't convert to ES modules
-- `cleanWordTimestamps.js` uses ES `export` — it's only used by React-side code
-- overlay-renderer.js loads findActiveWord via injected `__FIND_ACTIVE_WORD_PATH__` — path must be absolute
+- `reference/TECHNICAL_SUMMARY.md` was deleted (shows in git status) — was intentional
+- `SortableRow` component uses render-prop pattern: `children({ ref, style, attributes, listeners })` — don't restructure without understanding the dnd-kit integration
+- Thumbnail extraction is fire-and-forget: if FFmpeg fails, `thumbnailPath` stays null and the UI shows a fallback icon — no error surfaced to user
+- `approved` list preserves `_projectId` via `Object.entries(allClips).flatMap()` — if allClips structure changes, this breaks
+- Existing rendered clips won't have thumbnails until re-rendered
 
 ## Logs/Debugging
-- User confirmed: timing is "much better" after Phase 1 post-processing
-- User confirmed: progressive karaoke as default = rejected ("oh hell no")
-- User confirmed: advance buffer (40ms) made things "visually weird and out of sync" — reverted
-- Header overflow: two fix attempts failed, user says "look at it from a different angle"
-- Premature word advance examples: "and" stretched then jumps to "am", "baby" stretched then jumps to "whoa"
+- User confirmed: dashboard table is the right layout direction ("dashboard wins hands down")
+- User confirmed: current implementation is "fine, not perfect" — expect polish requests next session
+- No console errors on launch
+- Build size increased by ~16KB (mainly @dnd-kit)

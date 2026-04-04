@@ -132,7 +132,59 @@
 
 ---
 
-## 🔲 In Progress — Remove Legacy Features (OBS Log Parser + Voice Modes)
+## 🔲 In Progress — Queue Tab Phase 1: Clip Card Redesign
+
+**Plan doc:** `C:\Users\IAmAbsolute\Desktop\ClipFlow stuff\queue-tab-redesign-plan.md`
+
+### Step 1 — Thumbnail extraction at render time
+**Files:** `src/main/main.js` (render:clip handler), `src/main/ffmpeg.js` (new `extractThumbnail` fn), `src/main/projects.js` (updateClip)
+- [ ] Add `extractThumbnail(videoPath, outputPath, timeSeconds=1)` to ffmpeg.js — single frame, JPEG, ~320px wide
+- [ ] In `render:clip` IPC handler: after successful render, call `extractThumbnail(result.path, thumbPath)` where thumbPath = `{renderDir}/{clipTitle}_thumb.jpg`
+- [ ] Pass `thumbnailPath` to `projects.updateClip()` alongside `renderPath` and `renderStatus`
+- [ ] Verify: render a clip → `.jpg` appears next to rendered `.mp4`, clip object has `thumbnailPath` set
+
+### Step 2 — Add `dequeued` status + remove-from-queue button
+**Files:** `src/renderer/views/QueueView.js`, `src/main/projects.js`
+- [ ] Add "X" button on each clip card (visible on hover or always visible)
+- [ ] On click: call `window.clipflow.projectUpdateClip(projectId, clipId, { status: "dequeued" })`
+- [ ] Update QueueView filter to exclude `status === "dequeued"` (currently only includes `"approved"` / `"ready"`)
+- [ ] Verify: X button removes clip from queue, clip doesn't reappear, re-approving in Editor re-queues it
+
+### Step 3 — Clip card redesign (thumbnail + metadata + inline title)
+**Files:** `src/renderer/views/QueueView.js`
+- [ ] Replace text-only card with new layout: `[Thumbnail 80x45] [Title + metadata] [Status badge] [X button]`
+- [ ] Thumbnail: show `clip.thumbnailPath` image if exists, fallback placeholder (film icon) if null
+- [ ] Metadata row below title: duration (`endTime - startTime`), game tag badge (colored pill), source project name, render status
+- [ ] Inline title editing: double-click title → contentEditable or input field → blur/Enter saves via `projectUpdateClip`
+- [ ] Keep existing status badges (Published, Publishing, Failed, Scheduled, Not rendered)
+- [ ] Keep left border color coding (main game = accent, other = green)
+- [ ] Verify: cards show thumbnails, metadata is accurate, title edits persist
+
+### Step 4 — Drag-to-reorder with @dnd-kit
+**Files:** `package.json`, `src/renderer/views/QueueView.js`
+- [ ] Install `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`
+- [ ] Wrap clip list in `DndContext` + `SortableContext`
+- [ ] Each clip card becomes a `useSortable` item with drag handle (grip icon on left)
+- [ ] On reorder: persist `queueOrder` (integer) on each clip via `projectUpdateClip`
+- [ ] QueueView sorts clips by `queueOrder` (nulls sort to end by `createdAt`)
+- [ ] Reorder works across all clips regardless of game type
+- [ ] Verify: drag clips up/down, order persists across tab switch and app restart
+
+### Step 5 — Build + verify all changes
+- [ ] `npx react-scripts build` succeeds
+- [ ] `npm start` — app launches, no console errors
+- [ ] Queue tab shows redesigned cards with thumbnails (for rendered clips)
+- [ ] Remove from queue works (X button → clip disappears)
+- [ ] Inline title edit works (double-click → edit → save)
+- [ ] Drag-to-reorder works (grip handle → drag → new order persists)
+- [ ] Publish flow still works (select clip → Publish Now → sequential platform publish)
+- [ ] No regressions in Editor, Projects, Rename, or Tracker tabs
+
+---
+
+## 🔲 Paused — Remove Legacy Features (OBS Log Parser + Voice Modes)
+
+> Paused — resume after Queue Phase 1.
 
 ### Goal
 Remove two legacy features that are no longer useful for a commercial product: the OBS log parser (game detection) and the hype/chill voice mode toggle. Both are either dead code or redundant with newer systems.

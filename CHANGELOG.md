@@ -7,6 +7,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-04-03
 
 ### Added
+- **Queue tab dashboard layout**: Replaced card-based queue with a dashboard table featuring a 4-stat bar (Queued, Scheduled, Published Today, Failed), sortable table rows with 9:16 vertical thumbnails, and click-to-expand inline detail panels with editable titles, platform icons, schedule picker, and publish actions.
+- **Drag-to-reorder queue clips**: Installed @dnd-kit and added sortable rows with grip handles. Persists `queueOrder` integer on each clip in project.json. Reordering works across all clips regardless of game type.
+- **Thumbnail extraction at render time**: After clip render completes, automatically extracts a frame at t=1s via FFmpeg and saves as `_thumb.jpg` alongside the rendered video. Populates the existing `thumbnailPath` field on the clip object. Works for both single and batch renders.
+- **Dequeue (remove from queue)**: New `"dequeued"` clip status. Remove button on each clip sets this status so the clip leaves the queue without losing its approval — can be re-approved in the Editor to re-queue it.
+
+### Changed
+- **Queue tab layout**: Migrated from inline-style cards to a grid-based dashboard table. Stats bar replaces the old Main/Other game count cards. Publishing accounts section removed (info now visible per-clip via platform icons).
+
+---
+
+## [Unreleased] — 2026-04-03
+
+### Added
 - **Word timestamp post-processing pipeline** (`cleanWordTimestamps.js`): 4-pass correction for Whisper's raw word timestamps — monotonicity enforcement, minimum 50ms duration, micro-gap filling (150ms), and suspicious timestamp detection with character-count redistribution. Runs automatically at segment initialization.
 - **Unified word-driven highlight lookup** (`findActiveWord.js`): Shared algorithm used by both the editor preview and the burn-in renderer, eliminating timing divergence between what you see in the editor and what appears in exported video. syncOffset now applied in burn-in path.
 - **Progressive karaoke highlight** (opt-in): Aegisub-style gradual fill across each word, available as `highlightMode: "progressive"`. Original instant highlight remains the default.
