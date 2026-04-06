@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import useEditorStore from "./useEditorStore";
+import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 
 const useAIStore = create((set, get) => ({
@@ -27,15 +28,13 @@ const useAIStore = create((set, get) => ({
 
     set({ aiGenerating: true, aiError: "" });
     try {
-      const clipStart = clip.startTime || 0;
-      const clipEnd = clip.endTime || 0;
-      const transcript = project?.transcription?.segments
-        ? project.transcription.segments
-            .filter((s) => s.start >= clipStart && s.end <= clipEnd)
-            .map((s) => s.text)
-            .join(" ")
-            .trim()
-        : "";
+      // Use the current editor subtitle segments — these reflect any trims,
+      // deletions, or edits the user has made on the timeline
+      const editSegments = useSubtitleStore.getState().editSegments || [];
+      const transcript = editSegments
+        .map((s) => s.text)
+        .join(" ")
+        .trim();
 
       const activeGame = gamesDb.find((g) => g.name === aiGame);
       const result = await window.clipflow.anthropicGenerate({

@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-06
+
+### Fixed
+- **AI title/caption generation now uses trimmed transcript**: Previously, generating titles and captions in the editor always sent the full original clip transcript to the AI, ignoring timeline trims, segment deletions, and text edits. Now reads the current `editSegments` from the subtitle store, so the AI sees exactly what will appear in the final video. Also means user-corrected transcription text (e.g., fixing Whisper errors) is reflected in generated titles.
+
+---
+
 ## [Unreleased] — 2026-04-03
 
 ### Added
