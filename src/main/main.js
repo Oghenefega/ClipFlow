@@ -189,7 +189,7 @@ const store = new Store({
     autoSplitEnabled: true,
     splitSourceRetention: "keep",
     // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
-    transcriptionAudioTrack: 1,
+    transcriptionAudioTrack: 0,
     // Project folders
     projectFolders: [],
     folderSortMode: "created",
@@ -223,7 +223,12 @@ if (!store.has("autoSplitEnabled")) store.set("autoSplitEnabled", true);
 if (!store.has("splitSourceRetention")) store.set("splitSourceRetention", "keep");
 
 // ── Migration: add transcription audio track setting ──
-if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 1);
+if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 0);
+// ── Migration: fix default audio track from game (1) to mic (0) — one-time ──
+if (!store.has("_migrated_audioTrack_v2") && store.get("transcriptionAudioTrack") === 1) {
+  store.set("transcriptionAudioTrack", 0);
+  store.set("_migrated_audioTrack_v2", true);
+}
 
 // ── Migration: expand momentPriorities from 4 to 6 items ──
 // Adds "skillful" and "educational" for users who set up before this update.
@@ -575,7 +580,7 @@ ipcMain.handle("ffmpeg:probe", async (_, filePath) => {
 
 ipcMain.handle("ffmpeg:extractAudio", async (_, videoPath, wavPath) => {
   try {
-    const audioTrack = store.get("transcriptionAudioTrack") ?? 1;
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
     return await ffmpeg.extractAudio(videoPath, wavPath, audioTrack);
   }
   catch (err) { return { error: err.message }; }
@@ -1124,7 +1129,7 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
     // Step 1: Extract audio from clip video (use configured mic track)
     const wavPath = clipPath.replace(/\.[^.]+$/, "-retranscribe.wav");
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "extracting", pct: 10 });
-    const audioTrack = store.get("transcriptionAudioTrack") ?? 1;
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
     await ffmpeg.extractAudio(clipPath, wavPath, audioTrack);
 
     // Step 2: Transcribe with whisperx
@@ -1854,6 +1859,7 @@ Rules for titles:
 5. Capitalize the first letter of each major word
 6. Do not start more than one title with the same word across the 5 suggestions
 7. Do not use "POV:" in more than one title
+8. NEVER use emojis in titles — plain text only
 
 ## CAPTION
 Scroll-stopping hook text BAKED INTO the video as a visible text overlay. The FIRST thing viewers read while scrolling.
@@ -1865,6 +1871,7 @@ Rules for captions:
 4. NEVER include hashtags — those go in the title only
 5. Must make someone STOP SCROLLING before they even hear the audio
 6. Each caption's "why" must name the specific psychological trigger (curiosity gap, shock value, relatability, FOMO, self-deprecation, etc.)
+7. NEVER use emojis in captions — plain text only, no Unicode emoji characters
 
 ---
 
@@ -1908,7 +1915,8 @@ Schema:
 - Do not add any text before or after the JSON object
 - Do not use placeholder values like "..." or "etc"
 - Do not return fewer than 5 titles or fewer than 5 captions
-- Do not include hashtags in captions — hashtags go in titles only`;
+- Do not include hashtags in captions — hashtags go in titles only
+- Do not use emojis anywhere — no 🔥, 💀, 😭, etc. Plain text only`;
 
     let userMessage = `## Clip Transcript:\n${params.transcript || "(no transcript available)"}`;
     if (params.projectName) userMessage += `\n\n## Project/Game: ${params.projectName}`;
@@ -2519,7 +2527,7 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 
 // ── YouTube Publishing ──
 
-ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags }) => {
+ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "YouTube", accountId, accountName: "", videoPath };
   try {
     const account = tokenStore.getAccount(accountId);
@@ -2562,10 +2570,10 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
       accessToken,
       videoPath,
       {
-        title: title || "Untitled",
+        title: youtubeTitle || title || "Untitled",
         description: caption || "",
         tags: tags || [],
-        privacyStatus: "public",
+        privacyStatus: privacyStatus || "public",
         categoryId: "20", // Gaming
       },
       (progress) => {

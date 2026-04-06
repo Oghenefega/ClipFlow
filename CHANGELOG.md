@@ -6,7 +6,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-06
 
+### Added
+- **Audio track setting for transcription**: New "Audio Track to Transcribe" selector in Settings (BetterWhisperX section) lets users choose which OBS audio track (1-4) to use for transcription. Saves immediately to electron-store.
+
 ### Fixed
+- **Transcription using wrong audio track**: Default audio track was set to Track 2 (game audio) instead of Track 1 (mic). Changed default to Track 0 (Track 1 / mic) across all extraction points — main pipeline, retranscribe handler, and ffmpeg:extractAudio IPC. Includes a one-time migration for existing installs.
+- **AI-generated titles and captions contained emojis**: Added explicit "no emojis" rules to both the title/caption generation prompt and the clip detection prompt. Three layers of reinforcement: per-section rules, DO NOT list, and example emoji characters to avoid.
+- **PostHog shutdown crash on app close (CLIPFLOW-3)**: `posthog.shutdown()` was called on every `beforeunload` event, but PostHog JS SDK v1.364.5 has no `shutdown()` method — causing a TypeError 68 times in Sentry. Removed the broken handler; PostHog handles flush-on-unload automatically.
 - **AI title/caption generation now uses trimmed transcript**: Previously, generating titles and captions in the editor always sent the full original clip transcript to the AI, ignoring timeline trims, segment deletions, and text edits. Now reads the current `editSegments` from the subtitle store, so the AI sees exactly what will appear in the final video. Also means user-corrected transcription text (e.g., fixing Whisper errors) is reflected in generated titles.
 
 ---

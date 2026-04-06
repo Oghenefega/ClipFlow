@@ -148,7 +148,8 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - Do not use placeholder values like "..." or "etc"
 - Do not return confidence as a string (use 0.85 not "0.85" or "high")
 - Do not return fewer than 10 clips unless the video genuinely has fewer than 10 interesting moments
-- Do not repeat the same title pattern across multiple clips`);
+- Do not repeat the same title pattern across multiple clips
+- Do not use emojis in titles or any text fields — plain text only`);
 
   // ── Section 7: Few-Shot Examples (Three-Tier Blending) ──
   const fewShotSection = buildFewShotSection(approvedClips, archetype);

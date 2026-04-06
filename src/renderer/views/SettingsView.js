@@ -71,6 +71,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [whisperStatus, setWhisperStatus] = useState(null);
   const [whisperPythonPath, setWhisperPythonPath] = useState("");
   const [whisperModel, setWhisperModel] = useState("large-v3-turbo");
+  // Audio track selection
+  const [audioTrack, setAudioTrack] = useState(0);
   // Video splitting settings
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitThreshold, setSplitThreshold] = useState(30);
@@ -91,6 +93,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (wm) setWhisperModel(wm);
         const np = await window.clipflow.storeGet("namingPreset");
         if (np) setNamingPreset(np);
+        // Load audio track setting
+        const at = await window.clipflow.storeGet("transcriptionAudioTrack");
+        if (at !== undefined && at !== null) setAudioTrack(at);
         // Load video splitting settings
         const ase = await window.clipflow.storeGet("autoSplitEnabled");
         if (ase !== undefined && ase !== null) setAutoSplitEnabled(ase);
@@ -820,6 +825,28 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             })}
           </div>
           <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>RTX 3090: large-v3-turbo recommended (fastest with near-v3 quality). Models download automatically on first use.</div>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Audio Track to Transcribe</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[0, 1, 2, 3].map((idx) => {
+              const isActive = audioTrack === idx;
+              const labels = ["Track 1 (Mic)", "Track 2 (Game)", "Track 3", "Track 4"];
+              return (
+                <button key={idx} onClick={async () => {
+                  setAudioTrack(idx);
+                  await window.clipflow?.storeSet("transcriptionAudioTrack", idx);
+                }}
+                  style={{
+                    padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
+                    border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                    background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    color: isActive ? T.accentLight : T.textSecondary,
+                  }}>{labels[idx]}</button>
+              );
+            })}
+          </div>
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>Select which audio track from your OBS recording to use for transcription. Most multi-track setups have mic on Track 1 and game audio on Track 2.</div>
         </div>
       </Card>
 
