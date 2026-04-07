@@ -7,6 +7,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-04-07
 
 ### Added
+- **Non-destructive NLE segment model**: New pure-function architecture where audio segments are source-file references (`{ sourceStart, sourceEnd }`), timeline position is always derived (never stored), and edit operations (split, delete, trim, extend) are instant with no FFmpeg calls. Includes 65 unit tests covering all operations, coordinate roundtrips, and subtitle visibility mapping. Foundation for eliminating subtitle sync bugs by construction.
+- **Segment-aware playback engine**: Playback store converts between source time and timeline time, with automatic gap-crossing at segment boundaries. Video element plays the original source file directly instead of re-encoded clips.
+- **Architecture plan**: Full 5-phase implementation plan for non-destructive editing documented in `tasks/nle-architecture-plan.md`, validated by 5-advisor LLM council session.
+- **"Research Before Editing" rule**: Added as non-negotiable section in CLAUDE.md — all affected files must be read before any code changes.
+
+### Changed
+- **Video preview source**: Preview panel now loads from `project.sourceFile` (original recording) instead of `clip.filePath` (re-encoded clip), with legacy fallback for old projects.
+- **Waveform extraction**: Now extracts 800 peaks from source file (up from 400 from clip file), cached once per project since source never changes.
+- **Editor store**: Added `nleSegments` state with migration from old `audioSegments` format on load. New instant actions (`splitAtTimeline`, `deleteNleSegment`, `trimNleSegmentLeft/Right`, `extendNleSegmentLeft/Right`) coexist with legacy destructive actions until Phase 3C wiring.
+
+### Discovered
+- **60fps frame drop bug**: `cutClip` in `ffmpeg.js` is missing `-r 60` flag, causing source 60fps HEVC to be re-encoded to 25fps H.264. Fix planned for Phase 4 export pipeline rebuild.
+
 - **Concat recut for mid-clip deletes**: New `concatCutClip` FFmpeg function and `clip:concatRecut` IPC handler that splices only the kept segments from the source recording, physically removing deleted mid-sections from the clip file instead of just trimming outer bounds.
 - **Audio segment sourceOffset tracking**: Audio segments now track their shift from original file position, used by WaveformTrack to slice correct peaks after ripple shifts.
 
