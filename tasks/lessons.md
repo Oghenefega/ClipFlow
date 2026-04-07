@@ -3,6 +3,14 @@
 > After ANY correction from the user, add the pattern here.
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## Fix-then-break chain: Understand the full pipeline BEFORE patching (2026-04-07)
+**Mistake:** Attempted to fix subtitle misalignment after trim by patching individual symptoms (save format, stale detection, dedup, waveform audio track) without understanding the full architecture. Each fix revealed a deeper issue, leading to a chain of 8+ patches that left things "severely broken." The root cause (video file not matching editor timeline after mid-section deletes) wasn't identified until late in the session.
+**Rule:** When a bug involves data flowing through multiple layers (FFmpeg → file → IPC → store → renderer), trace the ENTIRE pipeline end-to-end BEFORE writing any fix. Draw the data flow on paper: what does the file contain? What does the store expect? What does the renderer display? Identify ALL mismatches first, then fix from the foundation up — not symptom by symptom.
+
+## Video file must match editor timeline model
+**Mistake:** The editor's ripple-delete shifted audio segments and subtitles as if deleted content was removed, but the actual video file still contained the deleted audio (recut only trimmed outer bounds). This fundamental mismatch caused waveform, subtitle, and transcription alignment to break in ways that no amount of offset tracking or dedup could fix.
+**Rule:** Any edit operation that changes the editor's timeline model (delete, ripple, insert) MUST produce a video file that matches. If the file can't be rebuilt immediately (too slow), at minimum track the mapping between editor timeline and file timeline explicitly, and ensure ALL consumers (waveform, subtitles, playback, render) use the correct coordinate system.
+
 ## Subtitle Segmentation Rules Keep Regressing (RECURRING)
 **Mistake:** Subtitle segmentation fix was applied but later regressed — same issues reappeared across sessions. Two rules violated: (1) segments crossing sentence boundaries ("for sure. I"), (2) words grouped together despite long pauses between them ("guy baby" when 2s gap exists).
 **Rule:** TWO non-negotiable segmentation rules: (A) Never group tail of one sentence with start of next — split at sentence-ending punctuation. (B) Never group words separated by significant pauses (2s+) — each word after a gap gets its own segment. Any fix to segmentation MUST include guards/tests for both rules to prevent future regression.
