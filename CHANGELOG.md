@@ -4,6 +4,26 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-07
+
+### Added
+- **Concat recut for mid-clip deletes**: New `concatCutClip` FFmpeg function and `clip:concatRecut` IPC handler that splices only the kept segments from the source recording, physically removing deleted mid-sections from the clip file instead of just trimming outer bounds.
+- **Audio segment sourceOffset tracking**: Audio segments now track their shift from original file position, used by WaveformTrack to slice correct peaks after ripple shifts.
+
+### Fixed
+- **Subtitles not trimmed when clip is trimmed and saved**: `handleSave` now wraps editSegments as `{ sub1: [...] }` matching the format `initSegments` expects on reload. Added legacy flat-array fallback for clips saved before this fix.
+- **Stale transcription overriding saved subtitles after trim**: `initSegments` now detects when `clip.transcription` spans significantly longer than the current clip duration and skips it, falling through to the correctly-saved `clip.subtitles`. Also clears `clip.transcription` on recut.
+- **Waveform not regenerated after recut**: `waveformPeaks` is now set to `null` after any recut operation (delete, trim, revert), triggering fresh FFmpeg extraction from the new video file.
+- **Waveform extracting wrong audio track**: `extractWaveformPeaks` now uses the configured `transcriptionAudioTrack` setting instead of FFmpeg's default stream, ensuring the waveform matches the same audio used for transcription (mic, not game audio).
+- **Duplicate subtitles from whisperx**: Added segment-level and word-level deduplication that strips punctuation before comparing, catching cases like "friendly," and "friendly" being output as separate entries.
+- **EPIPE crash dialog on app quit**: Added uncaughtException handler that suppresses EPIPE errors from Sentry/electron-log writing to a closed stdout pipe.
+- **Missing upper bound filter in initSegments**: When falling back to project transcription with `clipStart=0`, `clipEnd` now uses `clip.duration` instead of `Infinity`, preventing segments past the trimmed end from loading.
+
+### Known Issues
+- **Subtitle/waveform alignment after mid-clip delete is still broken**: The concat recut approach was just introduced and needs testing. Subtitle shifting during `_trimToAudioBounds` may not correctly map to the new concatenated file's timeline. This is the top priority for the next session.
+
+---
+
 ## [Unreleased] — 2026-04-06
 
 ### Added
