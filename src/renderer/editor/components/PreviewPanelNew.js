@@ -623,13 +623,18 @@ export default function PreviewPanelNew() {
     };
   }, []);
 
-  // Video source path
+  // Video source path — use source recording (non-destructive: never modified)
   const videoSrc = useMemo(() => {
+    // Prefer project source file (NLE model: play from original recording)
+    const sourcePath = project?.sourceFile;
+    if (sourcePath) {
+      return `file://${sourcePath.replace(/\\/g, "/")}`;
+    }
+    // Fallback for legacy clips without source file
     if (!clip?.filePath) return null;
-    // videoVersion busts the cache when clip is re-cut (extend left/right) at the same path
     const cacheBuster = videoVersion > 0 ? `?v=${videoVersion}` : "";
     return `file://${clip.filePath.replace(/\\/g, "/")}${cacheBuster}`;
-  }, [clip?.filePath, videoVersion]);
+  }, [project?.sourceFile, clip?.filePath, videoVersion]);
 
   // Force video reload when videoSrc changes (React setAttribute doesn't auto-load)
   const prevVideoSrcRef = useRef(null);
@@ -743,17 +748,12 @@ export default function PreviewPanelNew() {
   const adjustedTime = currentTime - syncOffset;
   const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
 
-  // Audio segments from editor store — used to skip gaps during playback
-  const audioSegments = useEditorStore((s) => s.audioSegments);
-
-  // Pre-sort audio segments once when they change — avoids re-sorting every frame
-  const sortedAudioSegments = useMemo(() => {
-    if (!audioSegments || audioSegments.length === 0) return [];
-    return [...audioSegments].sort((a, b) => a.startSec - b.startSec);
-  }, [audioSegments]);
+  // NLE segments from editor store — used for gap-crossing during playback
+  const nleSegments = useEditorStore((s) => s.nleSegments);
+  const mapSourceTime = usePlaybackStore((s) => s.mapSourceTime);
 
   // 60fps rAF loop — SOLE source of currentTime updates during playback
-  // Also handles audio gap enforcement so time updates and seeks happen in the same frame
+  // Video element plays source file; we map source time → timeline time via NLE segments
   useEffect(() => {
     if (!playing) return;
     let rafId;
@@ -764,73 +764,60 @@ export default function PreviewPanelNew() {
         return;
       }
 
-      const time = video.currentTime;
+      const sourceTime = video.currentTime;
+      const result = mapSourceTime(sourceTime);
 
-      // Enforce audio segment bounds during playback
-      if (sortedAudioSegments.length > 0) {
-        const lastSegEnd = sortedAudioSegments[sortedAudioSegments.length - 1].endSec;
-
-        // Past last segment end — stop
-        if (time >= lastSegEnd - 0.02) {
-          video.pause();
-          video.currentTime = lastSegEnd;
-          setCurrentTime(lastSegEnd);
-          setPlaying(false);
-          return; // Don't schedule next frame — we're done
-        }
-
-        // Check if in a gap — skip to next segment
-        const inSegment = sortedAudioSegments.some(
-          (s) => time >= s.startSec - 0.05 && time <= s.endSec + 0.05
-        );
-        if (!inSegment) {
-          const next = sortedAudioSegments.find((s) => s.startSec > time);
-          if (next) {
-            video.currentTime = next.startSec;
-            setCurrentTime(next.startSec);
-          } else {
-            video.pause();
-            setPlaying(false);
-            return;
-          }
-          rafId = requestAnimationFrame(tick);
-          return;
-        }
+      if (result.atEnd) {
+        // Past last segment — stop playback
+        video.pause();
+        setCurrentTime(result.timelineTime);
+        setPlaying(false);
+        return;
       }
 
-      // Normal tick — update time from video element
-      setCurrentTime(time);
+      if (result.needsSeek) {
+        // At segment boundary or in gap — seek to next segment's source position
+        video.currentTime = result.seekToSource;
+      }
+
+      // Update store with timeline time (not source time)
+      setCurrentTime(result.timelineTime);
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [playing, setCurrentTime, setPlaying, sortedAudioSegments]);
+  }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments]);
 
   // Video event handlers — only enforce bounds when paused (seek while paused)
   const onTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video || !video.paused) return; // rAF handles playback — only act when paused
 
-    const time = video.currentTime;
-    setCurrentTime(time);
+    const sourceTime = video.currentTime;
+    const result = mapSourceTime(sourceTime);
 
-    // Clamp to audio segment bounds on paused seeks
-    if (sortedAudioSegments.length > 0) {
-      const lastSegEnd = sortedAudioSegments[sortedAudioSegments.length - 1].endSec;
-      if (time >= lastSegEnd) {
-        video.currentTime = lastSegEnd;
-        setCurrentTime(lastSegEnd);
-      }
+    if (result.atEnd) {
+      setCurrentTime(result.timelineTime);
+    } else if (result.needsSeek) {
+      video.currentTime = result.seekToSource;
+    } else {
+      setCurrentTime(result.timelineTime);
     }
-  }, [setCurrentTime, sortedAudioSegments]);
+  }, [setCurrentTime, mapSourceTime]);
 
   const onLoadedMetadata = useCallback(() => {
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
-      setDuration(videoRef.current.duration);
+      // Duration comes from NLE segments (timeline duration), not video.duration (source duration)
+      // The editor store sets this when nleSegments change, but set source duration as fallback
+      const editorNleSegs = useEditorStore.getState().nleSegments;
+      if (!editorNleSegs || editorNleSegs.length === 0) {
+        setDuration(videoRef.current.duration);
+      }
 
-      // Extract real waveform peaks via FFmpeg in main process
-      if (clip?.filePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
-        window.clipflow.ffmpegExtractWaveformPeaks(clip.filePath, 400).then((result) => {
+      // Extract waveform peaks from source file (cached — source never changes)
+      const sourcePath = project?.sourceFile || clip?.filePath;
+      if (sourcePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
+        window.clipflow.ffmpegExtractWaveformPeaks(sourcePath, 800).then((result) => {
           if (result?.peaks?.length > 0) {
             setWaveformPeaks(result.peaks);
           }
@@ -839,7 +826,7 @@ export default function PreviewPanelNew() {
         });
       }
     }
-  }, [setDuration, clip?.filePath, setWaveformPeaks]);
+  }, [setDuration, project?.sourceFile, clip?.filePath, setWaveformPeaks]);
 
   const onVideoEnd = useCallback(() => {
     setPlaying(false);

@@ -4,6 +4,10 @@ import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
 import useLayoutStore from "./useLayoutStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
+import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
+import { getTimelineDuration } from "../models/timeMapping";
+import { splitAtTimeline, deleteSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
+
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
   project: null,
@@ -12,21 +16,21 @@ const useEditorStore = create((set, get) => ({
   editingTitle: false,
   dirty: false,
   waveformPeaks: null,
-  // Audio segments — array of { id, startSec, endSec }
-  // Used by timeline for visual rendering AND by preview for playback control
+
+  // ── NLE Segment Model (non-destructive editing) ──
+  // Each segment is { id, sourceStart, sourceEnd } — a window into the source file.
+  // Timeline position is DERIVED from segment order, never stored.
+  nleSegments: [],
+  sourceDuration: 0, // total source file duration
+
+  // Legacy compatibility — kept for gradual migration of timeline UI components
   audioSegments: [],
-  // Source boundaries — used for clip extension
-  // sourceStartTime: where this clip starts in the source video (seconds)
-  // sourceEndTime: where this clip ends in the source video (seconds)
-  // sourceDuration: total duration of the source video (seconds)
-  // maxExtendSec: maximum clip-relative time this clip can extend to
   sourceStartTime: 0,
   sourceEndTime: 0,
-  sourceDuration: 0,
   maxExtendSec: 0,
-  maxExtendLeftSec: 0, // how far LEFT the clip can extend (= clip.startTime in source)
-  extending: false, // true while an extend operation is in progress
-  videoVersion: 0, // incremented on clip re-cut to bust video cache
+  maxExtendLeftSec: 0,
+  extending: false,
+  videoVersion: 0,
 
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
@@ -41,7 +45,7 @@ const useEditorStore = create((set, get) => ({
     useCaptionStore.getState().initFromClip(null);
     usePlaybackStore.getState().reset();
     try { require("./useAIStore").default.getState().reset(); } catch (e) { /* lazy import — avoid cycle */ }
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [] });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [], nleSegments: [] });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -65,19 +69,40 @@ const useEditorStore = create((set, get) => ({
     // Maximum clip-relative time = how far the clip can extend into the source
     const maxExtend = sourceDur > 0 ? sourceDur - sourceStart : clipDuration;
 
+    // ── NLE Segment Initialization (with migration from old format) ──
+    let nleSegs;
+    if (clip?.nleSegments && clip.nleSegments.length > 0) {
+      // New format: NLE segments already stored
+      nleSegs = clip.nleSegments;
+    } else if (clip?.audioSegments && clip.audioSegments.length > 0) {
+      // Old format: convert absolute clip-relative audioSegments to NLE source references
+      nleSegs = clip.audioSegments.map((seg) =>
+        createSegment(sourceStart + seg.startSec, sourceStart + seg.endSec, seg.id)
+      );
+    } else if (sourceStart > 0 || sourceEnd > 0) {
+      // Fresh clip: single segment spanning clip range in source
+      nleSegs = createInitialSegments(sourceStart, sourceEnd);
+    } else {
+      nleSegs = [];
+    }
+
     set({
       project,
       clip,
       clipTitle: clip?.title || "Untitled Clip",
       editingTitle: false,
       dirty: false,
+      nleSegments: nleSegs,
       sourceStartTime: sourceStart,
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
       maxExtendSec: maxExtend > 0 ? maxExtend : clipDuration,
-      maxExtendLeftSec: sourceStart, // how many seconds we can extend backwards
+      maxExtendLeftSec: sourceStart,
       extending: false,
     });
+
+    // Sync NLE segments to playback store for duration and segment-aware playback
+    usePlaybackStore.getState().setNleSegments(nleSegs);
 
     // Initialize other stores from clip data
     useCaptionStore.getState().initFromClip(clip);
@@ -148,7 +173,82 @@ const useEditorStore = create((set, get) => ({
   markDirty: () => set({ dirty: true }),
   setWaveformPeaks: (peaks) => set({ waveformPeaks: peaks }),
 
-  // ── Audio segment actions ──
+  // ── NLE Segment Actions (non-destructive editing) ──
+  // All operations are instant — no FFmpeg, no async, no file modification.
+  // Each action: push undo snapshot → apply pure function → set state → sync playback store.
+
+  setNleSegments: (segs) => {
+    set({ nleSegments: segs });
+    usePlaybackStore.getState().setNleSegments(segs);
+  },
+
+  _pushNleUndo: () => {
+    try {
+      const subStore = require("./useSubtitleStore").default;
+      subStore.getState()._pushUndo();
+    } catch (_) {}
+  },
+
+  initNleSegments: (duration) => {
+    const { nleSegments, sourceStartTime } = get();
+    if (nleSegments.length === 0 && duration > 0) {
+      const segs = createInitialSegments(sourceStartTime, sourceStartTime + duration);
+      set({ nleSegments: segs });
+      usePlaybackStore.getState().setNleSegments(segs);
+    }
+  },
+
+  splitAtTimeline: (timelineTime) => {
+    get()._pushNleUndo();
+    const newSegs = splitAtTimeline(get().nleSegments, timelineTime);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  deleteNleSegment: (segmentId) => {
+    get()._pushNleUndo();
+    const newSegs = deleteSegment(get().nleSegments, segmentId);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  trimNleSegmentLeft: (segmentId, newSourceStart) => {
+    get()._pushNleUndo();
+    const newSegs = trimSegmentLeft(get().nleSegments, segmentId, newSourceStart);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  trimNleSegmentRight: (segmentId, newSourceEnd) => {
+    get()._pushNleUndo();
+    const newSegs = trimSegmentRight(get().nleSegments, segmentId, newSourceEnd);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  extendNleSegmentLeft: (segmentId, newSourceStart) => {
+    get()._pushNleUndo();
+    const { nleSegments, sourceDuration } = get();
+    const newSegs = extendSegmentLeft(nleSegments, segmentId, newSourceStart, sourceDuration);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  extendNleSegmentRight: (segmentId, newSourceEnd) => {
+    get()._pushNleUndo();
+    const { nleSegments, sourceDuration } = get();
+    const newSegs = extendSegmentRight(nleSegments, segmentId, newSourceEnd, sourceDuration);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  // ── Legacy Audio segment actions (kept for gradual migration) ──
   setAudioSegments: (segs) => set({ audioSegments: segs }),
 
   initAudioSegments: (duration) => {
@@ -156,6 +256,8 @@ const useEditorStore = create((set, get) => ({
     if (audioSegments.length === 0 && duration > 0) {
       set({ audioSegments: [{ id: "audio-1", startSec: 0, endSec: duration, sourceOffset: 0 }] });
     }
+    // Also init NLE segments if needed
+    get().initNleSegments(duration);
   },
 
   _pushAudioUndo: () => {
@@ -936,7 +1038,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { audioSegments } = get();
+      const { nleSegments, audioSegments } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -985,7 +1087,8 @@ const useEditorStore = create((set, get) => ({
         caption: capState.captionText,
         captionSegments: capState.captionSegments,
         subtitles: { sub1: editSegments, sub2: [] },
-        audioSegments: audioSegments,
+        nleSegments: nleSegments,
+        audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,
         captionStyle,
       });

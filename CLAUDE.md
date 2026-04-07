@@ -40,6 +40,10 @@ npm run dev                  # Dev mode with hot reload
 
 **After ANY code change:** build + `npm start` to visually verify. Non-negotiable.
 
+## Research Before Editing (Non-Negotiable)
+
+Research the codebase before editing. **Never change code you haven't read.** Read all affected files and understand the existing patterns before proposing or making any modifications.
+
 ## Coding Conventions
 
 - React functional components with hooks
