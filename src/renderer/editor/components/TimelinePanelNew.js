@@ -1059,7 +1059,7 @@ export default function TimelinePanelNew() {
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
                       audioSeg={seg} onResize={handleAudioResize} onResizeEnd={commitAudioResize}
                       maxExtendSec={maxExtendSec} maxExtendLeftSec={maxExtendLeftSec}
-                      segStartSec={seg.startSec} segEndSec={seg.endSec}
+                      segStartSec={seg.startSec} segEndSec={seg.endSec} sourceOffset={seg.sourceOffset || 0}
                       rippleAnimating={rippleAnimating}
                     />
                   </div>

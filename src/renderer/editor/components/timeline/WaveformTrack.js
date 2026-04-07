@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, onResizeEnd, maxExtendSec, maxExtendLeftSec = 0, segStartSec = 0, segEndSec, rippleAnimating }) {
+function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, onResizeEnd, maxExtendSec, maxExtendLeftSec = 0, segStartSec = 0, segEndSec, sourceOffset = 0, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -76,9 +76,13 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       return;
     }
 
+    // Use sourceOffset to map back to the correct position in the file's peaks
+    // After ripple-delete, segments shift left but the file audio doesn't change
     const effectiveEnd = segEndSec ?? duration;
-    const startFrac = duration > 0 ? segStartSec / duration : 0;
-    const endFrac = duration > 0 ? effectiveEnd / duration : 1;
+    const fileStart = segStartSec + sourceOffset;
+    const fileEnd = effectiveEnd + sourceOffset;
+    const startFrac = duration > 0 ? fileStart / duration : 0;
+    const endFrac = duration > 0 ? fileEnd / duration : 1;
     const sliceStart = Math.floor(startFrac * peaks.length);
     const sliceEnd = Math.ceil(endFrac * peaks.length);
     const segPeaks = peaks.slice(sliceStart, sliceEnd);

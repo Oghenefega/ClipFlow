@@ -154,7 +154,7 @@ const useEditorStore = create((set, get) => ({
   initAudioSegments: (duration) => {
     const { audioSegments } = get();
     if (audioSegments.length === 0 && duration > 0) {
-      set({ audioSegments: [{ id: "audio-1", startSec: 0, endSec: duration }] });
+      set({ audioSegments: [{ id: "audio-1", startSec: 0, endSec: duration, sourceOffset: 0 }] });
     }
   },
 
@@ -193,31 +193,25 @@ const useEditorStore = create((set, get) => ({
       return;
     }
 
-    // Capture remaining bounds BEFORE _trimToAudioBounds shifts them
+    // Capture remaining segments BEFORE _trimToAudioBounds shifts them
     const sorted = [...remaining].sort((a, b) => a.startSec - b.startSec);
-    const origFirstStart = sorted[0].startSec;
-    const origLastEnd = sorted[sorted.length - 1].endSec;
-    const needsRecut = origFirstStart > 0.01;
 
-    if (needsRecut) {
-      set({ extending: true });
-      try {
-        const videoRef = usePlaybackStore.getState().getVideoRef();
-        if (videoRef?.current) {
-          videoRef.current.pause();
-          videoRef.current.removeAttribute("src");
-          videoRef.current.load();
-        }
-        get()._trimToAudioBounds();
-        await get()._recutAfterDelete(origFirstStart, origLastEnd);
-        get().markDirty();
-      } catch (err) {
-        console.error("[DeleteAudio] Recut error:", err);
-      } finally {
-        set({ extending: false, videoVersion: get().videoVersion + 1 });
+    // Always concat-recut to rebuild the file from kept segments
+    set({ extending: true });
+    try {
+      const videoRef = usePlaybackStore.getState().getVideoRef();
+      if (videoRef?.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
       }
-    } else {
       get()._trimToAudioBounds();
+      await get()._concatRecutAfterDelete(sorted);
+      get().markDirty();
+    } catch (err) {
+      console.error("[DeleteAudio] ConcatRecut error:", err);
+    } finally {
+      set({ extending: false, videoVersion: get().videoVersion + 1 });
     }
   },
 
@@ -234,43 +228,38 @@ const useEditorStore = create((set, get) => ({
       return;
     }
 
-    // Capture original first start BEFORE ripple shift — needed for recut calculation
+    // Capture remaining segments BEFORE ripple shift (file-relative positions)
     const sortedOrig = [...remainingOrig].sort((a, b) => a.startSec - b.startSec);
-    const origFirstStart = sortedOrig[0].startSec;
-    const origLastEnd = sortedOrig[sortedOrig.length - 1].endSec;
-    const deletedIsFirst = seg.startSec < origFirstStart + 0.01;
 
-    // Perform ripple shift
+    // Perform ripple shift — close the gap
     const gap = seg.endSec - seg.startSec;
     const next = audioSegments
       .filter(s => s.id !== segId)
       .map(s => {
         if (s.startSec >= seg.endSec) {
-          return { ...s, startSec: s.startSec - gap, endSec: s.endSec - gap };
+          return { ...s, startSec: s.startSec - gap, endSec: s.endSec - gap, sourceOffset: 0 };
         }
-        return s;
+        return { ...s, sourceOffset: 0 };
       });
     set({ audioSegments: next });
 
-    if (deletedIsFirst) {
-      set({ extending: true });
-      try {
-        const videoRef = usePlaybackStore.getState().getVideoRef();
-        if (videoRef?.current) {
-          videoRef.current.pause();
-          videoRef.current.removeAttribute("src");
-          videoRef.current.load();
-        }
-        get()._trimToAudioBounds();
-        await get()._recutAfterDelete(origFirstStart, origLastEnd);
-        get().markDirty();
-      } catch (err) {
-        console.error("[RippleDeleteAudio] Recut error:", err);
-      } finally {
-        set({ extending: false, videoVersion: get().videoVersion + 1 });
+    // Always concat-recut: rebuild clip file from only the kept segments
+    // This ensures the file matches the editor's rippled timeline
+    set({ extending: true });
+    try {
+      const videoRef = usePlaybackStore.getState().getVideoRef();
+      if (videoRef?.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
       }
-    } else {
       get()._trimToAudioBounds();
+      await get()._concatRecutAfterDelete(sortedOrig);
+      get().markDirty();
+    } catch (err) {
+      console.error("[RippleDeleteAudio] ConcatRecut error:", err);
+    } finally {
+      set({ extending: false, videoVersion: get().videoVersion + 1 });
     }
   },
 
@@ -705,10 +694,68 @@ const useEditorStore = create((set, get) => ({
       sourceEndTime: newSourceEnd,
       maxExtendSec: maxExtend > 0 ? maxExtend : newDuration,
       maxExtendLeftSec: newSourceStart,
+      waveformPeaks: null, // Invalidate — will re-extract from new video file on loadedmetadata
       videoVersion: get().videoVersion + 1,
     });
     usePlaybackStore.getState().setDuration(newDuration);
     console.log("[Recut] Success — newDuration:", newDuration, "videoVersion:", get().videoVersion);
+  },
+
+  // Concat recut: splice only the kept segments from source into a new clip file.
+  // Used after mid-section deletes so the file matches the editor's rippled timeline.
+  // remainingSegs: audio segments BEFORE ripple shift (original file-relative positions)
+  _concatRecutAfterDelete: async (remainingSegs) => {
+    const { clip, project, sourceStartTime, sourceDuration } = get();
+    if (!clip || !project || !remainingSegs || remainingSegs.length === 0) return;
+
+    // Convert clip-relative positions to source-absolute
+    const sourceSegments = remainingSegs
+      .sort((a, b) => a.startSec - b.startSec)
+      .map(s => ({
+        start: sourceStartTime + s.startSec,
+        end: sourceStartTime + s.endSec,
+      }));
+
+    console.log("[ConcatRecut] sourceSegments:", JSON.stringify(sourceSegments));
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    const result = await window.clipflow.concatRecutClip(
+      project.id, clip.id, sourceSegments
+    );
+
+    if (result?.error) {
+      console.error("[ConcatRecut] Failed:", result.error);
+      throw new Error(result.error);
+    }
+
+    const newDuration = result.duration;
+    const newStart = sourceSegments[0].start;
+    const newEnd = sourceSegments[sourceSegments.length - 1].end;
+    const newClip = {
+      ...clip,
+      startTime: newStart,
+      endTime: newEnd,
+      duration: newDuration,
+      filePath: result.filePath,
+    };
+    const newProject = {
+      ...project,
+      clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
+    };
+    const maxExtend = sourceDuration > 0 ? sourceDuration - newStart : newDuration;
+    set({
+      clip: newClip,
+      project: newProject,
+      sourceStartTime: newStart,
+      sourceEndTime: newEnd,
+      maxExtendSec: maxExtend > 0 ? maxExtend : newDuration,
+      maxExtendLeftSec: newStart,
+      waveformPeaks: null,
+      videoVersion: get().videoVersion + 1,
+    });
+    usePlaybackStore.getState().setDuration(newDuration);
+    console.log("[ConcatRecut] Success — newDuration:", newDuration, "segments:", sourceSegments.length);
   },
 
   // Trim subtitle & caption segments so nothing extends past the last audio segment's end
@@ -864,6 +911,7 @@ const useEditorStore = create((set, get) => ({
           sourceEndTime: clipMeta.sourceEndTime ?? targetEnd,
           maxExtendLeftSec: clipMeta.maxExtendLeftSec ?? targetStart,
           maxExtendSec: clipMeta.maxExtendSec ?? (get().sourceDuration - targetStart),
+          waveformPeaks: null, // Invalidate — re-extract from reverted video file
           videoVersion: get().videoVersion + 1,
         });
 
@@ -936,7 +984,7 @@ const useEditorStore = create((set, get) => ({
         title: clipTitle,
         caption: capState.captionText,
         captionSegments: capState.captionSegments,
-        subtitles: editSegments,
+        subtitles: { sub1: editSegments, sub2: [] },
         audioSegments: audioSegments,
         subtitleStyle,
         captionStyle,

@@ -221,12 +221,15 @@ function analyzeLoudness(audioPath, segmentDuration = 1) {
  * @param {number} peakCount - Number of peaks to extract (default 400)
  * @returns {Promise<{peaks: number[]}>}
  */
-function extractWaveformPeaks(filePath, peakCount = 400) {
-  return new Promise((resolve, reject) => {
+function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
+  const trackIdx = Number.isFinite(audioTrackIndex) && audioTrackIndex >= 0 ? audioTrackIndex : 0;
+
+  const runExtract = (idx) => new Promise((resolve, reject) => {
     // Use FFmpeg to downsample audio and output raw PCM to stdout
     // Then parse the samples to compute peaks
     const args = [
       "-i", filePath,
+      "-map", `0:a:${idx}`,      // select specific audio track (must match transcription track)
       "-vn",                    // no video
       "-ac", "1",               // mono
       "-ar", String(peakCount * 10), // sample rate: ~peakCount*10 samples
@@ -235,12 +238,12 @@ function extractWaveformPeaks(filePath, peakCount = 400) {
       "pipe:1",                 // output to stdout
     ];
 
-    const child = require("child_process").execFile("ffmpeg", args, {
+    require("child_process").execFile("ffmpeg", args, {
       timeout: 60000,
       maxBuffer: 50 * 1024 * 1024,
       encoding: "buffer",
     }, (err, stdout) => {
-      if (err) return reject(new Error(`Waveform extraction failed: ${err.message}`));
+      if (err) return reject(new Error(`Waveform extraction failed (track ${idx}): ${err.message}`));
       if (!stdout || stdout.length < 2) return resolve({ peaks: [] });
 
       // Parse 16-bit samples
@@ -262,6 +265,12 @@ function extractWaveformPeaks(filePath, peakCount = 400) {
       resolve({ peaks });
     });
   });
+
+  // Try configured track first; fall back to track 0 if it fails
+  if (trackIdx > 0) {
+    return runExtract(trackIdx).catch(() => runExtract(0));
+  }
+  return runExtract(0);
 }
 
 /**
@@ -431,11 +440,75 @@ function cleanupThumbnailStrip(thumbDir) {
   }
 }
 
+/**
+ * Concatenate multiple time ranges from a source file into a single output.
+ * Used when a mid-section is deleted — splices out the gap so the output
+ * file only contains the kept segments, properly stitched together.
+ * @param {string} srcPath - Source video
+ * @param {string} outPath - Output clip path
+ * @param {Array<{start: number, end: number}>} segments - Time ranges to keep (source-absolute)
+ * @returns {Promise<{success: true, path: string, duration: number}>}
+ */
+function concatCutClip(srcPath, outPath, segments) {
+  return new Promise((resolve, reject) => {
+    if (!segments || segments.length === 0) {
+      return reject(new Error("No segments to concatenate"));
+    }
+
+    // Single segment: just use regular cutClip
+    if (segments.length === 1) {
+      return cutClip(srcPath, outPath, segments[0].start, segments[0].end)
+        .then(resolve).catch(reject);
+    }
+
+    const dir = path.dirname(outPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    // Build FFmpeg filter_complex for concat:
+    // Each segment gets video trim + audio trim, then all are concatenated
+    const filters = [];
+    const concatInputs = [];
+
+    segments.forEach((seg, i) => {
+      filters.push(
+        `[0:v]trim=start=${seg.start}:end=${seg.end},setpts=PTS-STARTPTS[v${i}]`
+      );
+      filters.push(
+        `[0:a]atrim=start=${seg.start}:end=${seg.end},asetpts=PTS-STARTPTS[a${i}]`
+      );
+      concatInputs.push(`[v${i}][a${i}]`);
+    });
+
+    filters.push(
+      `${concatInputs.join("")}concat=n=${segments.length}:v=1:a=1[outv][outa]`
+    );
+
+    const totalDuration = segments.reduce((sum, s) => sum + (s.end - s.start), 0);
+
+    const args = [
+      "-i", srcPath,
+      "-filter_complex", filters.join(";"),
+      "-map", "[outv]", "-map", "[outa]",
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+      "-c:a", "aac", "-b:a", "192k",
+      "-avoid_negative_ts", "make_zero",
+      "-y",
+      outPath,
+    ];
+
+    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
+      if (err) return reject(new Error(`Concat cut failed: ${err.message}`));
+      resolve({ success: true, path: outPath, duration: totalDuration });
+    });
+  });
+}
+
 module.exports = {
   checkFfmpeg,
   probe,
   extractAudio,
   cutClip,
+  concatCutClip,
   generateThumbnail,
   analyzeLoudness,
   extractWaveformPeaks,

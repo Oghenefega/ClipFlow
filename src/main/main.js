@@ -5,6 +5,13 @@ Sentry.init({
   dsn: "https://849738274a045a047fd2068789244d13@o4511147466752000.ingest.us.sentry.io/4511147471077376",
 });
 
+// Suppress EPIPE errors from Sentry/electron-log writing to a closed stdout pipe on quit
+process.on("uncaughtException", (err) => {
+  if (err.code === "EPIPE") return;
+  // Re-throw non-EPIPE errors so Sentry still captures them
+  throw err;
+});
+
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -602,7 +609,10 @@ ipcMain.handle("ffmpeg:analyzeLoudness", async (_, audioPath, segmentDuration) =
 });
 
 ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => {
-  try { return await ffmpeg.extractWaveformPeaks(filePath, peakCount || 400); }
+  try {
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
+    return await ffmpeg.extractWaveformPeaks(filePath, peakCount || 400, audioTrack);
+  }
   catch (err) { return { error: err.message, peaks: [] }; }
 });
 
@@ -1050,6 +1060,66 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
   }
 });
 
+// ============ CONCAT RE-CUT (splice out deleted sections) ============
+ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    if (!watchFolder) return { error: "Watch folder not set" };
+
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+
+    const sourceFile = project.sourceFile;
+    if (!sourceFile || !fs.existsSync(sourceFile)) {
+      return { error: "Source recording not found. Cannot concat recut." };
+    }
+
+    if (!segments || segments.length === 0) {
+      return { error: "No segments provided for concat recut" };
+    }
+
+    const logger = require("electron-log/main").scope("editor");
+    logger.debug("ConcatRecut", { clipId, segments });
+
+    const clipDir = path.dirname(clip.filePath);
+    const ext = path.extname(clip.filePath);
+    const baseName = path.basename(clip.filePath, ext);
+    const tempPath = path.join(clipDir, `${baseName}_concat${ext}`);
+
+    await ffmpeg.concatCutClip(sourceFile, tempPath, segments);
+
+    const finalPath = clip.filePath;
+    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+    fs.renameSync(tempPath, finalPath);
+
+    const newDuration = segments.reduce((sum, s) => sum + (s.end - s.start), 0);
+    const newStart = segments[0].start;
+    const newEnd = segments[segments.length - 1].end;
+
+    projects.updateClip(watchFolder, projectId, clipId, {
+      startTime: newStart,
+      endTime: newEnd,
+      duration: newDuration,
+      transcription: null,
+    });
+
+    logger.debug("ConcatRecut success", { duration: newDuration, segmentCount: segments.length });
+    return {
+      success: true,
+      filePath: finalPath,
+      duration: newDuration,
+      newStartTime: newStart,
+      newEndTime: newEnd,
+    };
+  } catch (err) {
+    require("electron-log/main").scope("editor").error("ConcatRecut failed", { error: err.message });
+    return { error: err.message };
+  }
+});
+
 // ============ RE-CUT CLIP (arbitrary boundaries — used by undo) ============
 ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTime) => {
   try {
@@ -1094,6 +1164,7 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
       startTime: newStart,
       endTime: newEnd,
       duration: newDuration,
+      transcription: null, // Clear stale transcription — no longer matches recut video
     });
 
     require("electron-log/main").scope("editor").debug("Recut success", { duration: newDuration, start: newStart, end: newEnd });

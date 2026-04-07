@@ -341,21 +341,40 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Priority: 1) clip.transcription (re-transcribed), 2) clip.subtitles.sub1 (pipeline-generated, already clip-relative), 3) project.transcription (source-level, needs offset)
+    // Priority: 1) clip.transcription (re-transcribed, IF still valid for current duration),
+    //           2) clip.subtitles.sub1 (pipeline-generated or editor-saved, already clip-relative),
+    //           3) project.transcription (source-level, needs offset)
     const hasClipTranscription = !!clip?.transcription?.segments?.length;
     const hasClipSubtitles = clip?.subtitles?.sub1?.length > 0;
     const hasProjectTranscription = !!project?.transcription?.segments?.length;
 
+    // Detect stale transcription: if its time span significantly exceeds clip duration,
+    // it was made before a trim and no longer matches the current video file
+    let transcriptionIsStale = false;
+    if (hasClipTranscription) {
+      const segs = clip.transcription.segments;
+      const lastEnd = Math.max(...segs.map(s => s.end || 0));
+      const clipDur = clip.duration || 0;
+      if (clipDur > 0 && lastEnd > clipDur * 1.5) {
+        console.warn(`[initSegments] Stale transcription detected: spans ${lastEnd.toFixed(1)}s but clip is ${clipDur.toFixed(1)}s — skipping`);
+        transcriptionIsStale = true;
+      }
+    }
+
     let segments;
     let clipStart = 0; // offset to subtract from timestamps
 
-    if (hasClipTranscription) {
+    if (hasClipTranscription && !transcriptionIsStale) {
       // Re-transcribed: already clip-relative (0-based)
       segments = clip.transcription.segments;
       clipStart = 0;
     } else if (hasClipSubtitles) {
-      // Pipeline-generated subtitles: already clip-relative (0-based)
+      // Pipeline-generated or editor-saved subtitles: already clip-relative (0-based)
       segments = clip.subtitles.sub1;
+      clipStart = 0;
+    } else if (Array.isArray(clip?.subtitles) && clip.subtitles.length > 0) {
+      // Legacy: editor saved as flat array before format fix
+      segments = clip.subtitles;
       clipStart = 0;
     } else if (hasProjectTranscription) {
       // Source-level transcription: need to offset by clip.startTime
@@ -366,8 +385,9 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Filter and clip-end bounds
-    const clipEnd = clipStart > 0 ? (clip.endTime || Infinity) : Infinity;
+    // Filter and clip-end bounds — always enforce upper bound for project transcription
+    const clipDuration = clip.duration || (clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0);
+    const clipEnd = clipStart > 0 ? (clip.endTime || Infinity) : (clipDuration > 0 ? clipDuration : Infinity);
 
     console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, clipStart=${clipStart.toFixed(2)}, segments=${segments.length}`);
 
@@ -388,7 +408,43 @@ const useSubtitleStore = create((set, get) => ({
         })
       : segments;
 
-    const segs = filteredSegments
+    // Remove overlapping duplicate segments — whisperx sometimes emits two segments
+    // covering the same time range with the same words
+    const stripPunct = (t) => (t || "").toLowerCase().replace(/[.,!?;:'"]+/g, "").trim();
+    const deduped = [];
+    for (const s of filteredSegments) {
+      const overlap = deduped.find(
+        (d) => Math.abs(d.start - s.start) < 0.3 && Math.abs(d.end - s.end) < 0.3
+      );
+      if (!overlap) deduped.push(s);
+    }
+    if (deduped.length < filteredSegments.length) {
+      console.log(`[initSegments] Removed ${filteredSegments.length - deduped.length} duplicate overlapping segments`);
+    }
+
+    // Remove consecutive duplicate words within segments — whisperx sometimes
+    // outputs the same word twice with slightly different timestamps (e.g. "friendly," then "friendly")
+    for (const s of deduped) {
+      if (!s.words || s.words.length < 2) continue;
+      const cleaned = [s.words[0]];
+      for (let i = 1; i < s.words.length; i++) {
+        const prev = s.words[i - 1];
+        const curr = s.words[i];
+        if (stripPunct(curr.word) === stripPunct(prev.word) && Math.abs(curr.start - prev.end) < 0.5) {
+          // Keep the first occurrence but extend its end time
+          cleaned[cleaned.length - 1] = { ...cleaned[cleaned.length - 1], end: curr.end };
+        } else {
+          cleaned.push(curr);
+        }
+      }
+      if (cleaned.length < s.words.length) {
+        console.log(`[initSegments] Deduped ${s.words.length - cleaned.length} consecutive duplicate words in segment "${s.text?.slice(0, 30)}"`);
+        s.words = cleaned;
+        s.text = cleaned.map(w => w.word).join(" ");
+      }
+    }
+
+    const segs = deduped
       .filter((s) => {
         if (clipEnd === Infinity) return true;
         return s.start < clipEnd && s.end > clipStart;
@@ -966,8 +1022,22 @@ const useSubtitleStore = create((set, get) => ({
       }
     });
 
+    // Deduplicate overlapping words — whisperx can output overlapping segments
+    // that contain the same words, causing duplicate subtitle chunks
+    const stripP = (t) => (t || "").toLowerCase().replace(/[.,!?;:'"]+/g, "").trim();
+    const dedupedWords = [];
+    for (const w of allWords) {
+      const isDup = dedupedWords.some(
+        (d) => Math.abs(d.start - w.start) < 0.5 && stripP(d.word) === stripP(w.word)
+      );
+      if (!isDup) dedupedWords.push(w);
+    }
+    if (dedupedWords.length < allWords.length) {
+      console.log(`[setSegmentMode] Deduped ${allWords.length - dedupedWords.length} overlapping words`);
+    }
+
     // ── Clean word timestamps before segmentation ──
-    const cleanedWords = cleanWordTimestamps(allWords);
+    const cleanedWords = cleanWordTimestamps(dedupedWords);
 
     // ── Delegate to pure segmentation function (spec v1.1) ──
     const rawSegs = segmentWords(cleanedWords, mode).map((seg, i) => ({

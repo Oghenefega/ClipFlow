@@ -186,6 +186,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   recutClip: (projectId, clipId, newStartTime, newEndTime) =>
     ipcRenderer.invoke("clip:recut", projectId, clipId, newStartTime, newEndTime),
 
+  // Concat re-cut: splice multiple segments from source into one clip (mid-section delete)
+  concatRecutClip: (projectId, clipId, segments) =>
+    ipcRenderer.invoke("clip:concatRecut", projectId, clipId, segments),
+
   // Re-transcribe a specific clip
   retranscribeClip: (projectId, clipId) =>
     ipcRenderer.invoke("retranscribe:clip", projectId, clipId),
