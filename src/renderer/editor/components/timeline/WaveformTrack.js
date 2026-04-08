@@ -1,58 +1,53 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, onSelect, onContextMenu, audioSeg, onResize, onResizeEnd, maxExtendSec, maxExtendLeftSec = 0, segStartSec = 0, segEndSec, sourceOffset = 0, rippleAnimating }) {
+function WaveformTrack({ peaks, sourceDuration, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
-  const [extendDelta, setExtendDelta] = useState(0); // seconds being added during drag
-  const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
+  const startRef = useRef({ x: 0, sourceStart: 0, sourceEnd: 0 });
   const rafRef = useRef(null);
 
   const onHandleDown = useCallback((side, e) => {
-    if (!audioSeg || !onResize) return;
+    if (!nleSegment) return;
     e.stopPropagation();
     setResizing(side);
-    startRef.current = { x: e.clientX, startSec: audioSeg.startSec, endSec: audioSeg.endSec };
+    startRef.current = { x: e.clientX, sourceStart: nleSegment.sourceStart, sourceEnd: nleSegment.sourceEnd };
     document.body.style.cursor = "col-resize";
 
+    const segSourceDur = nleSegment.sourceEnd - nleSegment.sourceStart;
     const onMove = (ev) => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         const dx = ev.clientX - startRef.current.x;
-        const dtSec = duration > 0 ? (dx / timelineWidth) * duration : 0;
-        let newStart = startRef.current.startSec;
-        let newEnd = startRef.current.endSec;
+        // Convert pixel delta to source-time delta using the segment's own duration
+        const dtSec = segSourceDur > 0 ? (dx / timelineWidth) * segSourceDur : 0;
         if (side === "left") {
-          // Allow extending left past 0 (negative) up to -maxExtendLeftSec
-          const minStart = -(maxExtendLeftSec || 0);
-          newStart = Math.max(minStart, Math.min(startRef.current.startSec + dtSec, newEnd - 0.1));
-          // Only show extension counter when extending past 0 (into pre-clip territory)
-          setExtendDelta(newStart < -0.05 ? Math.abs(newStart) : 0);
+          const newSourceStart = Math.max(0, Math.min(
+            startRef.current.sourceStart + dtSec,
+            startRef.current.sourceEnd - 0.1
+          ));
+          if (onTrimLeft) onTrimLeft(nleSegment.id, newSourceStart);
         } else {
-          // Allow extending past current duration up to maxExtendSec (source boundary)
-          const maxEnd = maxExtendSec || duration;
-          newEnd = Math.min(maxEnd, Math.max(startRef.current.endSec + dtSec, newStart + 0.1));
-          // Only show extension counter when extending past original end
-          const origEnd = startRef.current.endSec;
-          setExtendDelta(newEnd > origEnd + 0.05 ? newEnd - origEnd : 0);
+          const newSourceEnd = Math.max(
+            startRef.current.sourceStart + 0.1,
+            startRef.current.sourceEnd + dtSec
+          );
+          if (onTrimRight) onTrimRight(nleSegment.id, newSourceEnd);
         }
-        onResize(audioSeg.id, newStart, newEnd);
       });
     };
     const onUp = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       setResizing(null);
-      setExtendDelta(0);
       document.body.style.cursor = "";
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      // Commit trim on mouse release
-      if (onResizeEnd) onResizeEnd();
+      // No onResizeEnd needed — NLE trim is instant (pure state update)
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [audioSeg, onResize, duration, timelineWidth, maxExtendLeftSec]);
+  }, [nleSegment, onTrimLeft, onTrimRight, timelineWidth]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,13 +71,11 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       return;
     }
 
-    // Use sourceOffset to map back to the correct position in the file's peaks
-    // After ripple-delete, segments shift left but the file audio doesn't change
-    const effectiveEnd = segEndSec ?? duration;
-    const fileStart = segStartSec + sourceOffset;
-    const fileEnd = effectiveEnd + sourceOffset;
-    const startFrac = duration > 0 ? fileStart / duration : 0;
-    const endFrac = duration > 0 ? fileEnd / duration : 1;
+    // NLE model: slice peaks directly using source coordinates
+    const sourceStart = nleSegment?.sourceStart || 0;
+    const sourceEnd = nleSegment?.sourceEnd || sourceDuration;
+    const startFrac = sourceDuration > 0 ? sourceStart / sourceDuration : 0;
+    const endFrac = sourceDuration > 0 ? sourceEnd / sourceDuration : 1;
     const sliceStart = Math.floor(startFrac * peaks.length);
     const sliceEnd = Math.ceil(endFrac * peaks.length);
     const segPeaks = peaks.slice(sliceStart, sliceEnd);
@@ -141,7 +134,7 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
     ctx.moveTo(0, centerY);
     ctx.lineTo(w, centerY);
     ctx.stroke();
-  }, [peaks, timelineWidth, selected, duration, segStartSec, segEndSec]);
+  }, [peaks, timelineWidth, selected, sourceDuration, nleSegment]);
 
   const showHandles = selected || hovered;
 
@@ -181,27 +174,6 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
       <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: SEGMENT_RADIUS }}>
         <canvas ref={canvasRef} className="absolute inset-0" style={{ margin: 1 }} />
       </div>
-      {/* Extension counter — floating label showing +X.Xs during drag */}
-      {resizing && extendDelta > 0 && (
-        <div
-          className="absolute z-20 pointer-events-none"
-          style={{
-            top: -22,
-            ...(resizing === "left" ? { left: -4 } : { right: -4 }),
-            background: "hsl(25 90% 50% / 0.9)",
-            color: "#fff",
-            fontSize: 10,
-            fontWeight: 700,
-            fontFamily: "'JetBrains Mono', monospace",
-            padding: "1px 5px",
-            borderRadius: 4,
-            whiteSpace: "nowrap",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-          }}
-        >
-          +{extendDelta.toFixed(1)}s
-        </div>
-      )}
       {/* Left handle */}
       <div
         className="absolute left-0 top-0 bottom-0 z-10 cursor-col-resize"
@@ -241,11 +213,10 @@ function WaveformTrack({ peaks, duration, timelineWidth, currentTime, selected, 
 export default React.memo(WaveformTrack, (prev, next) => {
   return (
     prev.peaks === next.peaks &&
-    prev.duration === next.duration &&
+    prev.sourceDuration === next.sourceDuration &&
     prev.timelineWidth === next.timelineWidth &&
     prev.selected === next.selected &&
-    prev.segStartSec === next.segStartSec &&
-    prev.segEndSec === next.segEndSec &&
+    prev.nleSegment === next.nleSegment &&
     prev.rippleAnimating === next.rippleAnimating
   );
 });

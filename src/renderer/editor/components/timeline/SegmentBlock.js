@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, rippleAnimating, leftOffset = 0 }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, rippleAnimating }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -10,7 +10,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
   const dragThresholdRef = useRef(false);
 
   const segDur = seg.endSec - seg.startSec;
-  const leftPx = duration > 0 ? ((seg.startSec + leftOffset) / duration) * timelineWidth : 0;
+  const leftPx = duration > 0 ? (seg.startSec / duration) * timelineWidth : 0;
   const widthPx = duration > 0 ? (segDur / duration) * timelineWidth : 0;
 
   const onHandleDown = useCallback((side, e) => {

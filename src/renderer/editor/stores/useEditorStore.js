@@ -1086,7 +1086,7 @@ const useEditorStore = create((set, get) => ({
         title: clipTitle,
         caption: capState.captionText,
         captionSegments: capState.captionSegments,
-        subtitles: { sub1: editSegments, sub2: [] },
+        subtitles: { sub1: editSegments, sub2: [], _format: "source-absolute" },
         nleSegments: nleSegments,
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,

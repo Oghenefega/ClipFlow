@@ -419,8 +419,8 @@ export default function PreviewPanelNew() {
   const initVideoRef = usePlaybackStore((s) => s.initVideoRef);
   const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
 
-  // Subtitles
-  const editSegments = useSubtitleStore((s) => s.editSegments);
+  // Subtitles — raw segments (source-absolute), mapped to timeline below after nleSegments loads
+  const rawEditSegments = useSubtitleStore((s) => s.editSegments);
   const segmentMode = useSubtitleStore((s) => s.segmentMode);
   const showSubs = useSubtitleStore((s) => s.showSubs);
   const subColor = useSubtitleStore((s) => s.subColor);
@@ -751,6 +751,12 @@ export default function PreviewPanelNew() {
   // NLE segments from editor store — used for gap-crossing during playback
   const nleSegments = useEditorStore((s) => s.nleSegments);
   const mapSourceTime = usePlaybackStore((s) => s.mapSourceTime);
+
+  // Derive timeline-mapped subtitle segments (source-absolute → timeline time)
+  const editSegments = useMemo(
+    () => useSubtitleStore.getState().getTimelineMappedSegments(),
+    [rawEditSegments, nleSegments] // re-derive when either store changes
+  );
 
   // 60fps rAF loop — SOLE source of currentTime updates during playback
   // Video element plays source file; we map source time → timeline time via NLE segments

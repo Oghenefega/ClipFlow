@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
+import { visibleSubtitleSegments } from "../models/timeMapping";
+
+// Format a source-absolute timestamp for display (relative to clip origin)
+function _displayFmt(sourceTimeSec, origin) {
+  return fmtTime(sourceTimeSec - (origin || 0));
+}
 
 // ── Cross-store styling snapshot keys ──
 // These keys are captured in undo snapshots so styling changes are undoable.
@@ -66,32 +72,17 @@ function _snapshotStyling(subState) {
     };
   } catch (_) {}
 
-  // Capture audio segments + clip metadata (for undo of extensions)
-  let audio = null;
-  let clipMeta = null;
+  // Capture NLE segments for undo (replaces old audioSegments + clipMeta)
+  let nleSegments = null;
   try {
     const editorStore = require("./useEditorStore").default;
     const es = editorStore.getState();
-    if (es.audioSegments) {
-      audio = es.audioSegments.map((s) => ({ ...s }));
-    }
-    // Capture clip extension metadata so undo can re-cut the video
-    if (es.clip) {
-      clipMeta = {
-        startTime: es.clip.startTime,
-        endTime: es.clip.endTime,
-        duration: es.clip.duration,
-        filePath: es.clip.filePath,
-        sourceStartTime: es.sourceStartTime,
-        sourceEndTime: es.sourceEndTime,
-        maxExtendLeftSec: es.maxExtendLeftSec,
-        maxExtendSec: es.maxExtendSec,
-        videoVersion: es.videoVersion,
-      };
+    if (es.nleSegments) {
+      nleSegments = es.nleSegments.map((s) => ({ ...s }));
     }
   } catch (_) {}
 
-  return { sub, cap, layout, audio, clipMeta };
+  return { sub, cap, layout, nleSegments };
 }
 
 function _restoreStyling(snapshot, subSet) {
@@ -112,28 +103,14 @@ function _restoreStyling(snapshot, subSet) {
       layoutStore.setState(snapshot.layout);
     } catch (_) {}
   }
-  // Restore audio segments + revert clip boundaries if extension was undone
-  if (snapshot.audio || snapshot.clipMeta) {
+  // Restore NLE segments (instant — no FFmpeg, no clip re-cutting)
+  if (snapshot.nleSegments) {
     try {
       const editorStore = require("./useEditorStore").default;
-      if (snapshot.audio) {
-        editorStore.setState({ audioSegments: snapshot.audio });
-      }
-      // If clip boundaries changed (extension was done), re-cut the video
-      if (snapshot.clipMeta) {
-        const es = editorStore.getState();
-        const currentStart = es.clip?.startTime;
-        const currentEnd = es.clip?.endTime;
-        const snapStart = snapshot.clipMeta.startTime;
-        const snapEnd = snapshot.clipMeta.endTime;
-        // Only re-cut if boundaries actually differ
-        if (currentStart !== undefined && currentEnd !== undefined &&
-            (Math.abs((currentStart || 0) - (snapStart || 0)) > 0.05 ||
-             Math.abs((currentEnd || 0) - (snapEnd || 0)) > 0.05)) {
-          console.log("[Undo] Clip boundaries changed — reverting. Current:", currentStart, "-", currentEnd, "Snapshot:", snapStart, "-", snapEnd);
-          editorStore.getState().revertClipBoundaries(snapshot.clipMeta);
-        }
-      }
+      editorStore.setState({ nleSegments: snapshot.nleSegments });
+      // Sync playback store with restored segments
+      const playbackStore = require("./usePlaybackStore").default;
+      playbackStore.setState({ nleSegments: snapshot.nleSegments });
     } catch (_) {}
   }
 }
@@ -204,9 +181,10 @@ function validateWords(words, segStart, segEnd) {
 }
 
 const useSubtitleStore = create((set, get) => ({
-  // ── Editable segments (source of truth for transcript, edit subs, overlay, timeline) ──
+  // ── Editable segments (source of truth — timestamps are SOURCE-ABSOLUTE) ──
   editSegments: [],
   originalSegments: [], // preserved for segment mode switching
+  _sourceOrigin: 0, // clip.startTime — used to convert source-absolute to display time
 
   // ── Undo/Redo history ──
   _undoStack: [],
@@ -334,6 +312,38 @@ const useSubtitleStore = create((set, get) => ({
     });
   },
 
+  // ── NLE-aware timeline-mapped segments ──
+  // Returns editSegments mapped to timeline coordinates via NLE segments.
+  // Output has startSec/endSec as timeline time (0-based) and words with
+  // timeline start/end — drop-in replacement for old clip-relative segments.
+  getTimelineMappedSegments: () => {
+    const { editSegments, _sourceOrigin } = get();
+    if (!editSegments || editSegments.length === 0) return [];
+
+    let nleSegments;
+    try {
+      const editorStore = require("./useEditorStore").default;
+      nleSegments = editorStore.getState().nleSegments;
+    } catch (_) { return editSegments; }
+
+    if (!nleSegments || nleSegments.length === 0) return editSegments;
+
+    const mapped = visibleSubtitleSegments(editSegments, nleSegments);
+    return mapped.map(seg => ({
+      ...seg,
+      startSec: seg.timelineStartSec,
+      endSec: seg.timelineEndSec,
+      start: fmtTime(seg.timelineStartSec),
+      end: fmtTime(seg.timelineEndSec),
+      dur: (seg.timelineEndSec - seg.timelineStartSec).toFixed(1) + "s",
+      words: (seg.words || []).map(w => ({
+        ...w,
+        start: w.timelineStart !== undefined ? w.timelineStart : w.start - _sourceOrigin,
+        end: w.timelineEnd !== undefined ? w.timelineEnd : w.end - _sourceOrigin,
+      })),
+    }));
+  },
+
   // ── Init from project data ──
   initSegments: (project, clip) => {
     if (!clip) {
@@ -342,11 +352,12 @@ const useSubtitleStore = create((set, get) => ({
     }
 
     // Priority: 1) clip.transcription (re-transcribed, IF still valid for current duration),
-    //           2) clip.subtitles.sub1 (pipeline-generated or editor-saved, already clip-relative),
-    //           3) project.transcription (source-level, needs offset)
+    //           2) clip.subtitles.sub1 (pipeline-generated or editor-saved),
+    //           3) project.transcription (source-level, already source-absolute)
     const hasClipTranscription = !!clip?.transcription?.segments?.length;
     const hasClipSubtitles = clip?.subtitles?.sub1?.length > 0;
     const hasProjectTranscription = !!project?.transcription?.segments?.length;
+    const clipOrigin = clip.startTime || 0; // source-absolute origin for this clip
 
     // Detect stale transcription: if its time span significantly exceeds clip duration,
     // it was made before a trim and no longer matches the current video file
@@ -362,34 +373,47 @@ const useSubtitleStore = create((set, get) => ({
     }
 
     let segments;
-    let clipStart = 0; // offset to subtract from timestamps
+    let sourceOffset = 0;          // amount to ADD to convert raw timestamps → source-absolute
+    let rawIsSourceAbsolute = false; // whether raw data is already in source time
 
     if (hasClipTranscription && !transcriptionIsStale) {
-      // Re-transcribed: already clip-relative (0-based)
+      // Re-transcribed: clip-relative (0-based) → add clipOrigin for source-absolute
       segments = clip.transcription.segments;
-      clipStart = 0;
+      sourceOffset = clipOrigin;
+      rawIsSourceAbsolute = false;
     } else if (hasClipSubtitles) {
-      // Pipeline-generated or editor-saved subtitles: already clip-relative (0-based)
-      segments = clip.subtitles.sub1;
-      clipStart = 0;
+      if (clip.subtitles._format === "source-absolute") {
+        // Editor-saved in new source-absolute format
+        segments = clip.subtitles.sub1;
+        sourceOffset = 0;
+        rawIsSourceAbsolute = true;
+      } else {
+        // Pipeline-generated or old editor-saved: clip-relative (0-based)
+        segments = clip.subtitles.sub1;
+        sourceOffset = clipOrigin;
+        rawIsSourceAbsolute = false;
+      }
     } else if (Array.isArray(clip?.subtitles) && clip.subtitles.length > 0) {
-      // Legacy: editor saved as flat array before format fix
+      // Legacy: editor saved as flat array before format fix (clip-relative)
       segments = clip.subtitles;
-      clipStart = 0;
+      sourceOffset = clipOrigin;
+      rawIsSourceAbsolute = false;
     } else if (hasProjectTranscription) {
-      // Source-level transcription: need to offset by clip.startTime
+      // Source-level transcription: already source-absolute
       segments = project.transcription.segments;
-      clipStart = clip.startTime || 0;
+      sourceOffset = 0;
+      rawIsSourceAbsolute = true;
     } else {
-      set({ editSegments: [], activeSegId: null });
+      set({ editSegments: [], activeSegId: null, _sourceOrigin: clipOrigin });
       return;
     }
 
-    // Filter and clip-end bounds — always enforce upper bound for project transcription
+    // Filter bounds in the raw data's coordinate space
     const clipDuration = clip.duration || (clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0);
-    const clipEnd = clipStart > 0 ? (clip.endTime || Infinity) : (clipDuration > 0 ? clipDuration : Infinity);
+    const rawFilterStart = rawIsSourceAbsolute ? clipOrigin : 0;
+    const rawFilterEnd = rawIsSourceAbsolute ? (clip.endTime || Infinity) : (clipDuration > 0 ? clipDuration : Infinity);
 
-    console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, clipStart=${clipStart.toFixed(2)}, segments=${segments.length}`);
+    console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
 
     // Filter out "mega-segments" — transcription artifacts where stable-ts/Whisper
     // outputs a single segment spanning the entire audio with all words crammed in,
@@ -446,31 +470,31 @@ const useSubtitleStore = create((set, get) => ({
 
     const segs = deduped
       .filter((s) => {
-        if (clipEnd === Infinity) return true;
-        return s.start < clipEnd && s.end > clipStart;
+        if (rawFilterEnd === Infinity) return true;
+        return s.start < rawFilterEnd && s.end > rawFilterStart;
       })
       .map((s, i) => {
-        const segStartSec = Math.max(0, s.start - clipStart);
-        const segEndSec = Math.max(0, s.end - clipStart);
+        // Convert to source-absolute timestamps
+        const segStartSec = s.start + sourceOffset;
+        const segEndSec = s.end + sourceOffset;
 
-        // Build words, then filter out words that were entirely before clip start
-        // (they got clamped to 0 and would cause duplicate phrases at the beginning)
+        // Build words in source-absolute time
         const allWords = (s.words || []).map(w => ({
           word: w.word,
-          start: Math.max(0, (w.start ?? s.start) - clipStart),
-          end: Math.max(0, (w.end ?? s.end) - clipStart),
+          start: (w.start ?? s.start) + sourceOffset,
+          end: (w.end ?? s.end) + sourceOffset,
           probability: w.probability ?? 1,
-          _originalStart: w.start ?? s.start, // keep original for filtering
+          _rawStart: w.start ?? s.start, // keep raw for boundary filtering
         }));
 
-        // Drop words whose original time was entirely before clip start
-        // (these are words from a segment that straddled the clip boundary)
-        const clippedWords = clipStart > 0
-          ? allWords.filter(w => w._originalStart >= clipStart - 0.05)
+        // Drop words outside clip boundaries (needed for project transcription
+        // where data spans the full source but we only want the clip's range)
+        const clippedWords = rawIsSourceAbsolute
+          ? allWords.filter(w => w._rawStart >= rawFilterStart - 0.05)
           : allWords;
 
         // Clean up internal field
-        const cleanWords = clippedWords.map(({ _originalStart, ...w }) => w);
+        const cleanWords = clippedWords.map(({ _rawStart, ...w }) => w);
 
         const rawWords = mergeWordTokens(cleanWords, s.text);
         const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
@@ -480,7 +504,7 @@ const useSubtitleStore = create((set, get) => ({
         });
 
         if (i === 0) {
-          console.log(`[initSegments] First seg: [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
+          console.log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
           if (repairedWords.length > 0) {
             console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
           }
@@ -493,16 +517,16 @@ const useSubtitleStore = create((set, get) => ({
 
         return {
           id: i + 1,
-          start: fmtTime(segStartSec),
-          end: fmtTime(segEndSec),
-          dur: ((s.end - s.start).toFixed(1)) + "s",
+          start: _displayFmt(segStartSec, clipOrigin),   // display: clip-relative
+          end: _displayFmt(segEndSec, clipOrigin),
+          dur: ((segEndSec - segStartSec).toFixed(1)) + "s",
           text: segText || s.text,
           track: "s1",
           conf: "high",
-          startSec: segStartSec,
-          endSec: segEndSec,
-          warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
-          words: repairedWords,
+          startSec: segStartSec,   // SOURCE-ABSOLUTE
+          endSec: segEndSec,       // SOURCE-ABSOLUTE
+          warning: (segEndSec - segStartSec) > 10 ? "Long segment — consider splitting" : null,
+          words: repairedWords,    // word.start/end are SOURCE-ABSOLUTE
         };
       })
       .filter((s) => s.words.length > 0 || s.text.trim().length > 0); // Drop empty segments from boundary trim
@@ -510,6 +534,7 @@ const useSubtitleStore = create((set, get) => ({
     segs.forEach((s, i) => { s.id = i + 1; });
     // Store original sentence-level segments for transcript tab and mode switching
     set({
+      _sourceOrigin: clipOrigin,
       originalSegments: segs,
       activeRow: 0,
       selectedWordInfo: null,
@@ -606,14 +631,15 @@ const useSubtitleStore = create((set, get) => ({
       // This segment should become multiple segments
       const segDur = seg.endSec - seg.startSec;
       const perWord = segDur / inputWords.length;
+      const origin = get()._sourceOrigin || 0;
       const newSegs = inputWords.map((word, i) => ({
         ...seg,
         id: i === 0 ? seg.id : Date.now() + i,
         text: word,
         startSec: seg.startSec + i * perWord,
         endSec: seg.startSec + (i + 1) * perWord,
-        start: fmtTime(seg.startSec + i * perWord),
-        end: fmtTime(seg.startSec + (i + 1) * perWord),
+        start: _displayFmt(seg.startSec + i * perWord, origin),
+        end: _displayFmt(seg.startSec + (i + 1) * perWord, origin),
         dur: perWord.toFixed(1) + "s",
         words: [{
           word,
@@ -687,12 +713,13 @@ const useSubtitleStore = create((set, get) => ({
           }
         }
 
+        const origin = get()._sourceOrigin || 0;
         return {
           ...seg,
           startSec,
           endSec,
-          start: fmtTime(startSec),
-          end: fmtTime(endSec),
+          start: _displayFmt(startSec, origin),
+          end: _displayFmt(endSec, origin),
           dur: (endSec - startSec).toFixed(1) + "s",
           words: updatedWords,
         };
@@ -703,12 +730,13 @@ const useSubtitleStore = create((set, get) => ({
   // Add a new segment at a specific time range (used by drag-split)
   addSegmentAt: (startSec, endSec, text) => {
     get()._pushUndo();
+    const origin = get()._sourceOrigin || 0;
     const newSeg = {
       id: "seg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
       startSec,
       endSec,
-      start: fmtTime(startSec),
-      end: fmtTime(endSec),
+      start: _displayFmt(startSec, origin),
+      end: _displayFmt(endSec, origin),
       dur: (endSec - startSec).toFixed(1) + "s",
       text: text || "",
       words: [],
@@ -774,10 +802,11 @@ const useSubtitleStore = create((set, get) => ({
       splitSec = (seg.startSec + seg.endSec) / 2;
     }
 
+    const origin = get()._sourceOrigin || 0;
     const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec + 0.01) : [];
     const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec - 0.01) : [];
-    const seg1 = { ...seg, endSec: splitSec, end: fmtTime(splitSec), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
-    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: fmtTime(splitSec), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
+    const seg1 = { ...seg, endSec: splitSec, end: _displayFmt(splitSec, origin), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
+    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     set({ editSegments: next, selectedWordInfo: null, activeSegId: seg1.id });
@@ -791,7 +820,8 @@ const useSubtitleStore = create((set, get) => ({
     if (idx < 0 || idx >= editSegments.length - 1) return;
     const seg = editSegments[idx];
     const next = editSegments[idx + 1];
-    const merged = { ...seg, endSec: next.endSec, end: fmtTime(next.endSec), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [...(seg.words || []), ...(next.words || [])] };
+    const origin = get()._sourceOrigin || 0;
+    const merged = { ...seg, endSec: next.endSec, end: _displayFmt(next.endSec, origin), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [...(seg.words || []), ...(next.words || [])] };
     const arr = [...editSegments];
     arr.splice(idx, 2, merged);
     set({ editSegments: arr });
@@ -806,6 +836,7 @@ const useSubtitleStore = create((set, get) => ({
     const textWords = seg.text.split(/\s+/).filter(Boolean);
     if (textWords.length <= 1) return;
 
+    const origin = get()._sourceOrigin || 0;
     let wordSegs;
     if (seg.words && seg.words.length > 0) {
       // Use actual word-level timestamps
@@ -814,8 +845,8 @@ const useSubtitleStore = create((set, get) => ({
         id: Date.now() + i,
         startSec: w.start,
         endSec: w.end,
-        start: fmtTime(w.start),
-        end: fmtTime(w.end),
+        start: _displayFmt(w.start, origin),
+        end: _displayFmt(w.end, origin),
         dur: (w.end - w.start).toFixed(1) + "s",
         text: w.word,
         words: [w],
@@ -825,7 +856,7 @@ const useSubtitleStore = create((set, get) => ({
         const gap = wordSegs[j + 1].startSec - wordSegs[j].endSec;
         if (gap > 0 && gap < 1.0) {
           wordSegs[j].endSec = wordSegs[j + 1].startSec;
-          wordSegs[j].end = fmtTime(wordSegs[j].endSec);
+          wordSegs[j].end = _displayFmt(wordSegs[j].endSec, origin);
           wordSegs[j].dur = (wordSegs[j].endSec - wordSegs[j].startSec).toFixed(1) + "s";
         }
       }
@@ -838,8 +869,8 @@ const useSubtitleStore = create((set, get) => ({
         id: Date.now() + i,
         startSec: seg.startSec + i * perWord,
         endSec: seg.startSec + (i + 1) * perWord,
-        start: fmtTime(seg.startSec + i * perWord),
-        end: fmtTime(seg.startSec + (i + 1) * perWord),
+        start: _displayFmt(seg.startSec + i * perWord, origin),
+        end: _displayFmt(seg.startSec + (i + 1) * perWord, origin),
         dur: perWord.toFixed(1) + "s",
         text: w,
         words: [],
@@ -881,11 +912,12 @@ const useSubtitleStore = create((set, get) => ({
     // Ensure minimum duration
     if (endSec - startSec < 0.05) endSec = startSec + 0.1;
 
+    const origin = get()._sourceOrigin || 0;
     const newId = Date.now();
     const newSeg = {
       id: newId,
-      start: fmtTime(startSec),
-      end: fmtTime(endSec),
+      start: _displayFmt(startSec, origin),
+      end: _displayFmt(endSec, origin),
       dur: (endSec - startSec).toFixed(1) + "s",
       text: "",
       track: "s1",
@@ -913,13 +945,14 @@ const useSubtitleStore = create((set, get) => ({
     const seg = editSegments.find(s => s.id === segId);
     if (!seg) return;
     const gap = seg.endSec - seg.startSec;
+    const origin = get()._sourceOrigin || 0;
     const next = editSegments
       .filter(s => s.id !== segId)
       .map(s => {
         if (s.startSec >= seg.endSec) {
           const newStart = s.startSec - gap;
           const newEnd = s.endSec - gap;
-          return { ...s, startSec: newStart, endSec: newEnd, start: fmtTime(newStart), end: fmtTime(newEnd) };
+          return { ...s, startSec: newStart, endSec: newEnd, start: _displayFmt(newStart, origin), end: _displayFmt(newEnd, origin) };
         }
         return s;
       });
@@ -1040,10 +1073,11 @@ const useSubtitleStore = create((set, get) => ({
     const cleanedWords = cleanWordTimestamps(dedupedWords);
 
     // ── Delegate to pure segmentation function (spec v1.1) ──
+    const origin = get()._sourceOrigin || 0;
     const rawSegs = segmentWords(cleanedWords, mode).map((seg, i) => ({
       id: Date.now() + i,
-      start: fmtTime(seg.startSec),
-      end: fmtTime(seg.endSec),
+      start: _displayFmt(seg.startSec, origin),
+      end: _displayFmt(seg.endSec, origin),
       dur: (seg.endSec - seg.startSec).toFixed(1) + "s",
       text: seg.text,
       track: seg.track || "s1",

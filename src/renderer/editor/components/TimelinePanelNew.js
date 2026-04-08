@@ -5,6 +5,7 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
+import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
   PanelBottomClose, Music,
@@ -39,7 +40,8 @@ export default function TimelinePanelNew() {
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const setTlSpeed = usePlaybackStore((s) => s.setTlSpeed);
 
-  const editSegments = useSubtitleStore((s) => s.editSegments);
+  // Subtitle segments — mapped to timeline coordinates for display
+  const rawEditSegments = useSubtitleStore((s) => s.editSegments);
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
@@ -57,16 +59,12 @@ export default function TimelinePanelNew() {
   const setTlZoom = useLayoutStore((s) => s.setTlZoom);
 
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
-  const audioSegments = useEditorStore((s) => s.audioSegments);
-  const initAudioSegments = useEditorStore((s) => s.initAudioSegments);
-  const splitAudioSegment = useEditorStore((s) => s.splitAudioSegment);
-  const deleteAudioSegment = useEditorStore((s) => s.deleteAudioSegment);
-  const rippleDeleteAudioSegment = useEditorStore((s) => s.rippleDeleteAudioSegment);
-  const resizeAudioSegment = useEditorStore((s) => s.resizeAudioSegment);
-  const commitAudioResize = useEditorStore((s) => s.commitAudioResize);
-  const maxExtendSec = useEditorStore((s) => s.maxExtendSec);
-  const maxExtendLeftSec = useEditorStore((s) => s.maxExtendLeftSec);
-  const extending = useEditorStore((s) => s.extending);
+  const nleSegments = useEditorStore((s) => s.nleSegments);
+  const sourceDuration = useEditorStore((s) => s.sourceDuration);
+  const splitAtTimeline = useEditorStore((s) => s.splitAtTimeline);
+  const deleteNleSegment = useEditorStore((s) => s.deleteNleSegment);
+  const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
+  const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -96,10 +94,18 @@ export default function TimelinePanelNew() {
     return arr.length > 0 ? arr[0] : null;
   }, [selectedSegIds]);
 
-  // Initialize audio segment when duration becomes available
-  useEffect(() => {
-    if (duration > 0) initAudioSegments(duration);
-  }, [duration, initAudioSegments]);
+  // Derive timeline-mapped subtitle segments (source-absolute → timeline coordinates)
+  const editSegments = useMemo(
+    () => useSubtitleStore.getState().getTimelineMappedSegments(),
+    [rawEditSegments, nleSegments]
+  );
+
+  // Helper: convert timeline time → source time for subtitle operations
+  const toSource = useCallback((timelineTime) => {
+    if (!nleSegments || nleSegments.length === 0) return timelineTime;
+    const result = timelineToSource(timelineTime, nleSegments);
+    return result.found ? result.sourceTime : timelineTime;
+  }, [nleSegments]);
 
   // ── Smooth 60fps playhead via rAF loop ──
   // Reads video.currentTime directly instead of relying on Zustand store updates.
@@ -138,24 +144,15 @@ export default function TimelinePanelNew() {
     return () => observer.disconnect();
   }, []);
 
-  // Effective duration: max of video duration and furthest audio segment end
-  // This allows the timeline to grow when a clip is being extended
-  const audioMaxEnd = audioSegments.length > 0
-    ? Math.max(...audioSegments.map((s) => s.endSec))
-    : 0;
-  // Left offset: when dragging audio left past 0, the min start goes negative
-  // We add this offset so the timeline grows to the right to accommodate
-  const audioMinStart = audioSegments.length > 0
-    ? Math.min(...audioSegments.map((s) => s.startSec))
-    : 0;
-  const leftOffset = audioMinStart < 0 ? Math.abs(audioMinStart) : 0;
-  const effectiveDuration = Math.max(duration, audioMaxEnd) + leftOffset;
+  // Effective duration: derived from NLE segment list (sum of all segment durations)
+  const nleDuration = nleSegments.length > 0 ? getTimelineDuration(nleSegments) : 0;
+  const effectiveDuration = Math.max(duration, nleDuration);
 
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
   const playheadTime = playing ? smoothTime : currentTime;
-  const playheadPx = effectiveDuration > 0 ? LABEL_W + ((playheadTime + leftOffset) / effectiveDuration) * clipContentWidth : LABEL_W;
+  const playheadPx = effectiveDuration > 0 ? LABEL_W + (playheadTime / effectiveDuration) * clipContentWidth : LABEL_W;
 
   // ── Scrubbing ──
   const handleScrub = useCallback((e) => {
@@ -163,10 +160,10 @@ export default function TimelinePanelNew() {
     const rect = scrollRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
     if (x < 0) return;
-    const rawT = (x / clipContentWidth) * effectiveDuration - leftOffset;
-    const t = Math.max(0, Math.min(effectiveDuration - leftOffset, rawT));
-    seekTo(t); // seekTo already clamps to audio bounds
-  }, [effectiveDuration, clipContentWidth, seekTo, leftOffset]);
+    const rawT = (x / clipContentWidth) * effectiveDuration;
+    const t = Math.max(0, Math.min(effectiveDuration, rawT));
+    seekTo(t);
+  }, [effectiveDuration, clipContentWidth, seekTo]);
 
   const handleScrubStart = useCallback((e) => {
     if (e.button !== 0) return;
@@ -184,8 +181,8 @@ export default function TimelinePanelNew() {
         if (!scrollRef.current || effectiveDuration <= 0) return;
         const rect = scrollRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left + scrollRef.current.scrollLeft - LABEL_W;
-        const rawT = (x / clipContentWidth) * effectiveDuration - leftOffset;
-        const t = Math.max(0, Math.min(effectiveDuration - leftOffset, rawT));
+        const rawT = (x / clipContentWidth) * effectiveDuration;
+        const t = Math.max(0, Math.min(effectiveDuration, rawT));
         seekTo(t);
       });
     };
@@ -199,7 +196,7 @@ export default function TimelinePanelNew() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [scrubbing, effectiveDuration, clipContentWidth, seekTo, leftOffset]);
+  }, [scrubbing, effectiveDuration, clipContentWidth, seekTo]);
 
   // Handle wheel events on timeline — horizontal scroll support
   // MX Master and similar mice send deltaX for horizontal wheel;
@@ -249,9 +246,15 @@ export default function TimelinePanelNew() {
     const points = new Set();
     for (const s of editSegments) { points.add(s.startSec); points.add(s.endSec); }
     for (const s of captionSegs) { points.add(s.startSec); points.add(s.endSec); }
-    for (const s of audioSegments) { points.add(s.startSec); points.add(s.endSec); }
+    // NLE segment edges in timeline coordinates
+    let tlOffset = 0;
+    for (const seg of nleSegments) {
+      points.add(tlOffset);
+      tlOffset += seg.sourceEnd - seg.sourceStart;
+      points.add(tlOffset);
+    }
     return Array.from(points);
-  }, [editSegments, captionSegs, audioSegments]);
+  }, [editSegments, captionSegs, nleSegments]);
 
   // Snap a time value to the nearest snap point (returns snapped time + active guide lines)
   const applySnap = useCallback((time, excludeId, excludeTrack) => {
@@ -269,13 +272,13 @@ export default function TimelinePanelNew() {
     }
     if (closest !== null && closestDist > 0.001) {
       // Show snap guide at this position
-      const guidePx = LABEL_W + ((closest + leftOffset) / effectiveDuration) * clipContentWidth;
+      const guidePx = LABEL_W + (closest / effectiveDuration) * clipContentWidth;
       setSnapGuides([guidePx]);
       return closest;
     }
     setSnapGuides([]);
     return time;
-  }, [snapPoints, effectiveDuration, clipContentWidth, leftOffset]);
+  }, [snapPoints, effectiveDuration, clipContentWidth]);
 
   // Clear snap guides when no drag is happening (called on pointer up via wrapped handlers)
   const clearSnapGuides = useCallback(() => setSnapGuides([]), []);
@@ -353,57 +356,52 @@ export default function TimelinePanelNew() {
     sStart = Math.max(0, sStart);
     let sEnd = Math.min(effectiveDuration, sStart + segDur);
 
-    // Snapshot originals on first drag call + push single pre-drag undo entry
+    // Snapshot originals on first drag call (timeline coordinates for overlap detection)
     if (!dragOriginalsRef.current) {
       store.startDrag();
       dragOriginalsRef.current = {};
-      for (const seg of store.editSegments) {
+      const mapped = store.getTimelineMappedSegments();
+      for (const seg of mapped) {
         dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
       }
     }
 
     const originals = dragOriginalsRef.current;
     const phantoms = [];
-    // Iterate snapshot segments (preserves number IDs — Object.entries coerces to string!)
-    const segsSnapshot = store.editSegments;
+    const mapped = store.getTimelineMappedSegments();
 
-    for (const seg of segsSnapshot) {
+    for (const seg of mapped) {
       if (seg.id === segId) continue;
       const orig = originals[seg.id];
       if (!orig) continue;
 
-      // Check overlap between dragged position and this segment's ORIGINAL position
+      // Overlap detection in timeline coordinates
       const overlapStart = Math.max(sStart, orig.startSec);
       const overlapEnd = Math.min(sEnd, orig.endSec);
 
       if (overlapStart < overlapEnd) {
-        // Dragged segment eats from the LEFT of neighbor
         if (sStart <= orig.startSec && sEnd > orig.startSec && sEnd < orig.endSec) {
-          store.updateSegmentTimes(seg.id, sEnd, orig.endSec);
+          store.updateSegmentTimes(seg.id, toSource(sEnd), toSource(orig.endSec));
         }
-        // Dragged segment eats from the RIGHT of neighbor
         else if (sEnd >= orig.endSec && sStart < orig.endSec && sStart > orig.startSec) {
-          store.updateSegmentTimes(seg.id, orig.startSec, sStart);
+          store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(sStart));
         }
-        // Dragged segment in the MIDDLE — left portion stays real, right becomes phantom
         else if (sStart > orig.startSec && sEnd < orig.endSec) {
-          store.updateSegmentTimes(seg.id, orig.startSec, sStart);
+          store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(sStart));
           phantoms.push({ startSec: sEnd, endSec: orig.endSec, text: seg.text || "", parentId: seg.id });
         }
-        // Dragged segment completely COVERS neighbor — delete it
         else if (sStart <= orig.startSec && sEnd >= orig.endSec) {
           store.deleteSegment(seg.id);
         }
       } else {
-        // No overlap — restore to original
-        store.updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
+        store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(orig.endSec));
       }
     }
 
     dragPhantomsRef.current = phantoms;
     setDragPhantoms(phantoms);
-    store.updateSegmentTimes(segId, sStart, sEnd);
-  }, [effectiveDuration, applySnap]);
+    store.updateSegmentTimes(segId, toSource(sStart), toSource(sEnd));
+  }, [effectiveDuration, applySnap, toSource]);
 
   // On drag end — create real segments from phantoms, clear state
   const handleSubtitleDragEnd = useCallback((segId) => {
@@ -429,15 +427,18 @@ export default function TimelinePanelNew() {
     updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sStart + segDur));
   }, [duration, updateCaptionSegmentTimes, applySnap]);
 
-  const handleAudioResize = useCallback((id, newStart, newEnd) => {
-    // Audio resize has its own extension logic, but still snap edges
-    const sStart = applySnap(newStart, id, "audio");
-    const sEnd = applySnap(newEnd, id, "audio");
-    resizeAudioSegment(id, sStart, sEnd);
-  }, [resizeAudioSegment, applySnap]);
+  // NLE trim handlers — called from WaveformTrack with source-absolute values
+  const handleNleTrimLeft = useCallback((id, newSourceStart) => {
+    trimNleSegmentLeft(id, newSourceStart);
+  }, [trimNleSegmentLeft]);
+
+  const handleNleTrimRight = useCallback((id, newSourceEnd) => {
+    trimNleSegmentRight(id, newSourceEnd);
+  }, [trimNleSegmentRight]);
 
   // Resize subtitle — uses originals snapshot so neighbors restore when dragging back.
-  // Uses getState() to avoid stale closure issues during continuous resize.
+  // Originals are in timeline coordinates (from getTimelineMappedSegments) since
+  // SegmentBlock passes timeline-time values. Convert to source at updateSegmentTimes calls.
   const handleSubtitleResize = useCallback((segId, rawStart, rawEnd) => {
     const store = useSubtitleStore.getState();
 
@@ -445,7 +446,9 @@ export default function TimelinePanelNew() {
     if (!resizeOriginalsRef.current) {
       store.startDrag();
       resizeOriginalsRef.current = {};
-      for (const seg of store.editSegments) {
+      // Use timeline-mapped segments so originals match the coordinate space of rawStart/rawEnd
+      const mapped = store.getTimelineMappedSegments();
+      for (const seg of mapped) {
         resizeOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
       }
     }
@@ -457,47 +460,41 @@ export default function TimelinePanelNew() {
     const resizingLeft = Math.abs(rawStart - origSeg.startSec) > 0.001;
     const resizingRight = Math.abs(rawEnd - origSeg.endSec) > 0.001;
 
-    // Apply snap to the moving edge
+    // Apply snap to the moving edge (all in timeline space)
     let newStart = resizingLeft ? applySnap(rawStart, segId, "sub") : rawStart;
     let newEnd = resizingRight ? applySnap(rawEnd, segId, "sub") : rawEnd;
     newStart = Math.max(0, newStart);
     newEnd = Math.min(effectiveDuration, newEnd);
-    // Near-zero minimum for the resized segment itself
     if (newEnd - newStart < 0.01) {
       if (resizingLeft) newStart = newEnd - 0.01;
       else newEnd = newStart + 0.01;
     }
 
-    // Iterate store segments (preserves number IDs — Object.entries coerces to string!)
-    const segsSnapshot = store.editSegments;
-    for (const seg of segsSnapshot) {
+    // Iterate mapped segments — overlap detection in timeline space
+    const mapped = store.getTimelineMappedSegments();
+    for (const seg of mapped) {
       if (seg.id === segId) continue;
       const orig = originals[seg.id];
       if (!orig) continue;
 
-      // Check overlap between resized position and neighbor's ORIGINAL position
       const overlapStart = Math.max(newStart, orig.startSec);
       const overlapEnd = Math.min(newEnd, orig.endSec);
 
       if (overlapStart < overlapEnd) {
         if (newStart <= orig.startSec && newEnd >= orig.endSec) {
-          // Fully covered — shrink to near-zero (invisible, cleaned up on resize end)
-          store.updateSegmentTimes(seg.id, orig.startSec, orig.startSec + 0.001);
+          store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(orig.startSec) + 0.001);
         } else if (resizingRight && newEnd > orig.startSec) {
-          // Extending right into neighbor — push its start
-          store.updateSegmentTimes(seg.id, newEnd, orig.endSec);
+          store.updateSegmentTimes(seg.id, toSource(newEnd), toSource(orig.endSec));
         } else if (resizingLeft && newStart < orig.endSec) {
-          // Extending left into neighbor — push its end
-          store.updateSegmentTimes(seg.id, orig.startSec, newStart);
+          store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(newStart));
         }
       } else {
-        // No overlap — restore to original
-        store.updateSegmentTimes(seg.id, orig.startSec, orig.endSec);
+        store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(orig.endSec));
       }
     }
 
-    store.updateSegmentTimes(segId, newStart, newEnd);
-  }, [effectiveDuration, applySnap]);
+    store.updateSegmentTimes(segId, toSource(newStart), toSource(newEnd));
+  }, [effectiveDuration, applySnap, toSource]);
 
   // On resize end — delete any segments shrunk to near-zero (including self if shrunk to nothing)
   const handleSubtitleResizeEnd = useCallback((segId) => {
@@ -548,7 +545,8 @@ export default function TimelinePanelNew() {
       });
       const subSegsNow = useSubtitleStore.getState().editSegments;
       const hasSub = subSegsNow.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
-      const hasAudio = audioSegments.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
+      // NLE: check if playhead is within timeline duration
+      const hasAudio = nleSegments.length > 0 && time >= 0.01 && time <= getTimelineDuration(nleSegments) - 0.01;
       if (hasSub) track = "sub";
       else if (hasAudio) track = "audio";
       else if (hasCap) track = "cap";
@@ -558,13 +556,13 @@ export default function TimelinePanelNew() {
       const newId = splitCaptionAtPlayhead(time);
       if (newId) { setSelectedTrack("cap"); setSelectedSegIds(new Set([newId])); }
     } else if (track === "audio") {
-      splitAudioSegment(time);
+      splitAtTimeline(time);
     } else {
       splitSegment(time);
       const newActiveId = useSubtitleStore.getState().activeSegId;
       if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
     }
-  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAudioSegment, audioSegments]);
+  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAtTimeline, nleSegments]);
 
   // ── Delete handler (ripple vs gap) ──
   const handleDelete = useCallback((isRipple, track, segId) => {
@@ -575,16 +573,22 @@ export default function TimelinePanelNew() {
     } else if (track === "sub") {
       isRipple ? rippleDeleteSegment(segId) : deleteSegment(segId);
     } else if (track === "audio") {
-      const deletedSeg = audioSegments.find((s) => s.id === segId);
-      isRipple ? rippleDeleteAudioSegment(segId) : deleteAudioSegment(segId);
-      // Also delete overlapping subtitle segments
+      // NLE: delete the NLE segment; also delete overlapping subtitle segments
+      const deletedSeg = nleSegments.find((s) => s.id === segId);
       if (deletedSeg) {
-        const subStore = useSubtitleStore.getState();
-        const overlapping = subStore.editSegments.filter(
-          (s) => s.startSec >= deletedSeg.startSec && s.endSec <= deletedSeg.endSec
-        );
-        overlapping.forEach((s) => isRipple ? subStore.rippleDeleteSegment(s.id) : subStore.deleteSegment(s.id));
+        // Find the timeline range of this NLE segment
+        const tlRange = getSegmentTimelineRange(segId, nleSegments);
+        if (tlRange) {
+          const subStore = useSubtitleStore.getState();
+          // Get timeline-mapped subtitles to compare in timeline space
+          const mappedSubs = subStore.getTimelineMappedSegments();
+          const overlapping = mappedSubs.filter(
+            (s) => s.startSec >= tlRange.start && s.endSec <= tlRange.end
+          );
+          overlapping.forEach((s) => isRipple ? subStore.rippleDeleteSegment(s.id) : subStore.deleteSegment(s.id));
+        }
       }
+      deleteNleSegment(segId);
     }
 
     if (isRipple) {
@@ -596,7 +600,7 @@ export default function TimelinePanelNew() {
   }, [
     rippleDeleteCaptionSegment, deleteCaptionSegment,
     rippleDeleteSegment, deleteSegment,
-    rippleDeleteAudioSegment, deleteAudioSegment, audioSegments,
+    deleteNleSegment, nleSegments,
   ]);
 
   // ── Batch delete for multi-select ──
@@ -606,14 +610,20 @@ export default function TimelinePanelNew() {
     let segs;
     if (selectedTrack === "sub") segs = editSegments;
     else if (selectedTrack === "cap") segs = captionSegs;
-    else segs = audioSegments;
+    else {
+      // NLE segments: derive timeline positions for sorting
+      segs = nleSegments.map((seg, i) => {
+        const range = getSegmentTimelineRange(seg.id, nleSegments);
+        return { ...seg, startSec: range ? range.start : 0 };
+      });
+    }
 
     const toDelete = segs
       .filter(s => selectedSegIds.has(s.id))
       .sort((a, b) => b.startSec - a.startSec);
 
     toDelete.forEach(s => handleDelete(isRipple, selectedTrack, s.id));
-  }, [selectedSegIds, selectedTrack, editSegments, captionSegs, audioSegments, handleDelete]);
+  }, [selectedSegIds, selectedTrack, editSegments, captionSegs, nleSegments, handleDelete]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
@@ -663,7 +673,7 @@ export default function TimelinePanelNew() {
     const viewWidth = container.clientWidth;
 
     // Playhead position in new content space
-    const playheadFrac = effectiveDuration > 0 ? (currentTime + leftOffset) / effectiveDuration : 0;
+    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
     // Where playhead currently is on screen
@@ -687,7 +697,7 @@ export default function TimelinePanelNew() {
     if (!playing || !scrollRef.current || effectiveDuration <= 0) return;
     const container = scrollRef.current;
     const viewWidth = container.clientWidth;
-    const phX = LABEL_W + ((smoothTime + leftOffset) / effectiveDuration) * clipContentWidth;
+    const phX = LABEL_W + (smoothTime / effectiveDuration) * clipContentWidth;
 
     if (phX > container.scrollLeft + viewWidth * 0.75) {
       const target = phX - viewWidth * 0.3;
@@ -775,10 +785,7 @@ export default function TimelinePanelNew() {
               <TooltipContent className="text-xs">{playing ? "Pause" : "Play"} (Space)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{fmtTime(audioMaxEnd > 0 ? audioMaxEnd : duration)}</span>
-          {extending && (
-            <span className="text-[10px] text-yellow-400 ml-2 animate-pulse">Extending clip...</span>
-          )}
+          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{fmtTime(effectiveDuration)}</span>
         </div>
 
         {/* Right: Split, Speed, Hide */}
@@ -872,7 +879,7 @@ export default function TimelinePanelNew() {
           ))}
 
           {/* ── Ruler ── */}
-          <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} leftOffset={leftOffset} />
+          <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} />
 
           {/* ── Caption track ── */}
           <div
@@ -900,27 +907,18 @@ export default function TimelinePanelNew() {
               <span className="text-[12px] text-muted-foreground font-medium">Caption</span>
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              {captionSegs.map((seg) => {
-                // Visually clamp to audio boundary during drag (non-destructive)
-                const clampedSeg = audioMaxEnd > 0 && seg.endSec > audioMaxEnd
-                  ? { ...seg, endSec: Math.max(seg.startSec + 0.05, audioMaxEnd) }
-                  : seg;
-                // Hide segments fully past audio boundary
-                if (audioMaxEnd > 0 && seg.startSec >= audioMaxEnd) return null;
-                return (
-                  <SegmentBlock
-                    key={seg.id} seg={clampedSeg} trackColor={TRACK_COLORS.cap}
-                    duration={effectiveDuration} timelineWidth={clipContentWidth}
-                    selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
-                    onSelect={(id, e) => handleSegSelect("cap", id, e)}
-                    onResize={handleCaptionResize}
-                    onResizeEnd={handleCaptionResizeEnd}
-                    onDrag={handleCaptionDrag}
-                    rippleAnimating={rippleAnimating}
-                    leftOffset={leftOffset}
-                  />
-                );
-              })}
+              {captionSegs.map((seg) => (
+                <SegmentBlock
+                  key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
+                  duration={effectiveDuration} timelineWidth={clipContentWidth}
+                  selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
+                  onSelect={(id, e) => handleSegSelect("cap", id, e)}
+                  onResize={handleCaptionResize}
+                  onResizeEnd={handleCaptionResizeEnd}
+                  onDrag={handleCaptionDrag}
+                  rippleAnimating={rippleAnimating}
+                />
+              ))}
             </div>
           </div>
 
@@ -951,19 +949,14 @@ export default function TimelinePanelNew() {
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
-                // Visually clamp subtitles to audio boundary
-                const visibleSubs = audioMaxEnd > 0
-                  ? editSegments
-                      .filter((s) => s.startSec < audioMaxEnd)
-                      .map((s) => s.endSec > audioMaxEnd ? { ...s, endSec: Math.max(s.startSec + 0.05, audioMaxEnd) } : s)
-                  : editSegments;
+                const visibleSubs = editSegments;
 
                 if (visibleSubs.length > 1 && effectiveDuration > 0) {
                   const avgWidth = visibleSubs.reduce((sum, s) => sum + ((s.endSec - s.startSec) / effectiveDuration) * clipContentWidth, 0) / visibleSubs.length;
                   if (avgWidth < MERGE_THRESHOLD) {
                     const minStart = Math.min(...visibleSubs.map(s => s.startSec));
-                    const maxEnd = Math.min(Math.max(...visibleSubs.map(s => s.endSec)), audioMaxEnd > 0 ? audioMaxEnd : Infinity);
-                    const leftPx = ((minStart + leftOffset) / effectiveDuration) * clipContentWidth;
+                    const maxEnd = Math.max(...visibleSubs.map(s => s.endSec));
+                    const leftPx = (minStart / effectiveDuration) * clipContentWidth;
                     const widthPx = ((maxEnd - minStart) / effectiveDuration) * clipContentWidth;
                     return (
                       <div
@@ -997,13 +990,17 @@ export default function TimelinePanelNew() {
                       onDrag={handleSubtitleDrag}
                       onDragEnd={handleSubtitleDragEnd}
                       rippleAnimating={rippleAnimating}
-                      leftOffset={leftOffset}
                     />
                   ))}
                   {/* Phantom right portions during middle-case drag */}
                   {dragPhantoms.map((phantom, i) => {
-                    const pLeft = effectiveDuration > 0 ? ((phantom.startSec + leftOffset) / effectiveDuration) * clipContentWidth : 0;
-                    const pWidth = effectiveDuration > 0 ? ((phantom.endSec - phantom.startSec) / effectiveDuration) * clipContentWidth : 0;
+                    // Phantom positions are source-absolute — convert to timeline for rendering
+                    const tlStart = sourceToTimeline(phantom.startSec, nleSegments);
+                    const tlEnd = sourceToTimeline(phantom.endSec, nleSegments);
+                    const pStartSec = tlStart.found ? tlStart.timelineTime : 0;
+                    const pEndSec = tlEnd.found ? tlEnd.timelineTime : pStartSec;
+                    const pLeft = effectiveDuration > 0 ? (pStartSec / effectiveDuration) * clipContentWidth : 0;
+                    const pWidth = effectiveDuration > 0 ? ((pEndSec - pStartSec) / effectiveDuration) * clipContentWidth : 0;
                     return (
                       <div
                         key={`phantom-${i}`}
@@ -1043,23 +1040,26 @@ export default function TimelinePanelNew() {
               <span className="text-[12px] text-muted-foreground font-medium">Audio</span>
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              {audioSegments.map((seg) => {
-                const leftPx = effectiveDuration > 0 ? ((seg.startSec + leftOffset) / effectiveDuration) * clipContentWidth : 0;
-                const widthPx = effectiveDuration > 0 ? ((seg.endSec - seg.startSec) / effectiveDuration) * clipContentWidth : 0;
+              {nleSegments.map((seg) => {
+                const range = getSegmentTimelineRange(seg.id, nleSegments);
+                if (!range) return null;
+                const leftPx = effectiveDuration > 0 ? (range.start / effectiveDuration) * clipContentWidth : 0;
+                const segDur = seg.sourceEnd - seg.sourceStart;
+                const widthPx = effectiveDuration > 0 ? (segDur / effectiveDuration) * clipContentWidth : 0;
                 return (
                   <div key={seg.id} className="absolute top-0 bottom-0" style={{
                     left: leftPx, width: Math.max(widthPx, 4),
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
-                      peaks={waveformPeaks} duration={effectiveDuration}
+                      peaks={waveformPeaks} sourceDuration={sourceDuration}
                       timelineWidth={widthPx} currentTime={currentTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
-                      audioSeg={seg} onResize={handleAudioResize} onResizeEnd={commitAudioResize}
-                      maxExtendSec={maxExtendSec} maxExtendLeftSec={maxExtendLeftSec}
-                      segStartSec={seg.startSec} segEndSec={seg.endSec} sourceOffset={seg.sourceOffset || 0}
+                      nleSegment={seg}
+                      onTrimLeft={handleNleTrimLeft}
+                      onTrimRight={handleNleTrimRight}
                       rippleAnimating={rippleAnimating}
                     />
                   </div>
@@ -1104,17 +1104,17 @@ export default function TimelinePanelNew() {
               const newActiveId = useSubtitleStore.getState().activeSegId;
               if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
             } else if (contextMenu.track === "audio") {
-              splitAudioSegment(time);
+              splitAtTimeline(time);
             }
           }}
           onRippleDelete={() => handleDelete(true, contextMenu.track, contextMenu.segId)}
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
           onDuplicate={() => { /* TODO */ }}
           onDeleteWithAudio={() => {
-            // Delete the subtitle/caption AND the overlapping audio segment
+            // Delete the subtitle/caption AND the overlapping NLE segment
             const track = contextMenu.track;
             const segId = contextMenu.segId;
-            // Find the subtitle/caption segment to get its time range
+            // Find the subtitle/caption segment to get its time range (timeline coords)
             let seg;
             if (track === "sub") {
               seg = editSegments.find(s => s.id === segId);
@@ -1123,10 +1123,11 @@ export default function TimelinePanelNew() {
             }
             if (!seg) return;
 
-            // Find overlapping audio segment(s) that contain this subtitle's time range
-            const overlappingAudio = audioSegments.filter(
-              a => a.startSec < seg.endSec && a.endSec > seg.startSec
-            );
+            // Find overlapping NLE segment(s) in timeline space
+            const overlappingNle = nleSegments.filter(nleSeg => {
+              const range = getSegmentTimelineRange(nleSeg.id, nleSegments);
+              return range && range.start < seg.endSec && range.end > seg.startSec;
+            });
 
             // Delete the subtitle/caption first
             if (track === "sub") {
@@ -1135,16 +1136,18 @@ export default function TimelinePanelNew() {
               rippleDeleteCaptionSegment(segId);
             }
 
-            // Then ripple-delete matching audio segments and their overlapping subtitles
-            overlappingAudio.forEach(a => {
-              // Delete subtitles within this audio segment
-              const subStore = useSubtitleStore.getState();
-              const overlappingSubs = subStore.editSegments.filter(
-                s => s.startSec >= a.startSec && s.endSec <= a.endSec && s.id !== segId
-              );
-              overlappingSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
-              // Delete the audio segment
-              rippleDeleteAudioSegment(a.id);
+            // Then delete matching NLE segments and their overlapping subtitles
+            overlappingNle.forEach(nleSeg => {
+              const range = getSegmentTimelineRange(nleSeg.id, nleSegments);
+              if (range) {
+                const subStore = useSubtitleStore.getState();
+                const mappedSubs = subStore.getTimelineMappedSegments();
+                const overlappingSubs = mappedSubs.filter(
+                  s => s.startSec >= range.start && s.endSec <= range.end && s.id !== segId
+                );
+                overlappingSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
+              }
+              deleteNleSegment(nleSeg.id);
             });
 
             setSelectedTrack(null);
