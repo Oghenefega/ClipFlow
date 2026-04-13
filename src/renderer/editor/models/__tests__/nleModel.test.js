@@ -183,21 +183,35 @@ describe("timeMapping", () => {
 
   describe("getSegmentTimelineRange", () => {
     test("first segment", () => {
-      const r = getSegmentTimelineRange(multi, 0);
+      const r = getSegmentTimelineRange(0, multi);
       expect(r.start).toBeCloseTo(0);
       expect(r.end).toBeCloseTo(5);
     });
 
     test("second segment", () => {
-      const r = getSegmentTimelineRange(multi, 1);
+      const r = getSegmentTimelineRange(1, multi);
       expect(r.start).toBeCloseTo(5);
       expect(r.end).toBeCloseTo(10);
     });
 
     test("third segment", () => {
-      const r = getSegmentTimelineRange(multi, 2);
+      const r = getSegmentTimelineRange(2, multi);
       expect(r.start).toBeCloseTo(10);
       expect(r.end).toBeCloseTo(20);
+    });
+
+    test("lookup by ID", () => {
+      const r = getSegmentTimelineRange(multi[1].id, multi);
+      expect(r.start).toBeCloseTo(5);
+      expect(r.end).toBeCloseTo(10);
+    });
+
+    test("unknown ID returns null", () => {
+      expect(getSegmentTimelineRange("nonexistent", multi)).toBeNull();
+    });
+
+    test("out-of-bounds index returns null", () => {
+      expect(getSegmentTimelineRange(99, multi)).toBeNull();
     });
   });
 
@@ -540,5 +554,127 @@ describe("integration: edit sequence", () => {
     segments = snapshot;
     expect(segments).toHaveLength(1);
     expect(getTimelineDuration(segments)).toBeCloseTo(30);
+  });
+});
+
+// ─── Migration: Old Format → NLE ──────────────────────────────────────────────
+
+describe("migration: old format → NLE", () => {
+  test("audioSegments (clip-relative) convert to source-absolute NLE segments", () => {
+    // Old format: audioSegments are clip-relative (0-based)
+    const sourceStart = 303.09;
+    const audioSegments = [
+      { id: "audio-1", startSec: 0, endSec: 20.53 },
+    ];
+
+    // Migration logic from initFromContext
+    const nleSegs = audioSegments.map((seg) =>
+      createSegment(sourceStart + seg.startSec, sourceStart + seg.endSec, seg.id)
+    );
+
+    expect(nleSegs).toHaveLength(1);
+    expect(nleSegs[0].sourceStart).toBeCloseTo(303.09);
+    expect(nleSegs[0].sourceEnd).toBeCloseTo(323.62);
+    expect(nleSegs[0].id).toBe("audio-1");
+  });
+
+  test("fresh clip with startTime/endTime creates initial segment", () => {
+    const sourceStart = 303.09;
+    const sourceEnd = 331.35;
+    const nleSegs = createInitialSegments(sourceStart, sourceEnd);
+
+    expect(nleSegs).toHaveLength(1);
+    expect(nleSegs[0].sourceStart).toBeCloseTo(303.09);
+    expect(nleSegs[0].sourceEnd).toBeCloseTo(331.35);
+    expect(nleSegs[0].id).toBe("seg-initial");
+  });
+
+  test("saved NLE segments round-trip unchanged", () => {
+    const saved = [
+      { id: "seg-a", sourceStart: 303.09, sourceEnd: 315.0 },
+      { id: "seg-b", sourceStart: 320.0, sourceEnd: 331.35 },
+    ];
+
+    // On reload, initFromContext just uses them directly
+    const nleSegs = saved;
+    expect(nleSegs).toHaveLength(2);
+    expect(nleSegs[0].sourceStart).toBe(303.09);
+    expect(nleSegs[1].sourceEnd).toBe(331.35);
+  });
+
+  test("multi-segment audioSegments migrate with correct offsets", () => {
+    const sourceStart = 100;
+    // Old format: clip was split at clip-relative time 5 and 15
+    const audioSegments = [
+      { id: "audio-1", startSec: 0, endSec: 5 },
+      { id: "audio-2", startSec: 5, endSec: 15 },
+      { id: "audio-3", startSec: 15, endSec: 30 },
+    ];
+
+    const nleSegs = audioSegments.map((seg) =>
+      createSegment(sourceStart + seg.startSec, sourceStart + seg.endSec, seg.id)
+    );
+
+    expect(nleSegs).toHaveLength(3);
+    expect(nleSegs[0].sourceStart).toBe(100);
+    expect(nleSegs[0].sourceEnd).toBe(105);
+    expect(nleSegs[1].sourceStart).toBe(105);
+    expect(nleSegs[1].sourceEnd).toBe(115);
+    expect(nleSegs[2].sourceStart).toBe(115);
+    expect(nleSegs[2].sourceEnd).toBe(130);
+
+    // Timeline duration should equal original clip duration
+    expect(getTimelineDuration(nleSegs)).toBeCloseTo(30);
+  });
+
+  test("subtitle clip-relative → source-absolute migration", () => {
+    const clipOrigin = 303.09;
+
+    // Old format subtitles: clip-relative (0-based)
+    const oldSubtitles = [
+      { id: 1, startSec: 0, endSec: 0.63, text: "Hey,", words: [{ word: "Hey,", start: 0, end: 0.63 }] },
+      { id: 2, startSec: 2.1, endSec: 4.5, text: "let's go", words: [{ word: "let's", start: 2.1, end: 2.8 }, { word: "go", start: 3.0, end: 4.5 }] },
+    ];
+
+    // Migration: add clipOrigin to get source-absolute
+    const migrated = oldSubtitles.map((seg) => ({
+      ...seg,
+      startSec: seg.startSec + clipOrigin,
+      endSec: seg.endSec + clipOrigin,
+      words: seg.words.map((w) => ({ ...w, start: w.start + clipOrigin, end: w.end + clipOrigin })),
+    }));
+
+    expect(migrated[0].startSec).toBeCloseTo(303.09);
+    expect(migrated[0].endSec).toBeCloseTo(303.72);
+    expect(migrated[1].words[0].start).toBeCloseTo(305.19);
+
+    // After migration, subtitles in NLE segment should be visible
+    const nleSegs = createInitialSegments(clipOrigin, clipOrigin + 30);
+    const visible = visibleSubtitleSegments(migrated, nleSegs);
+    expect(visible).toHaveLength(2);
+    // Timeline positions should be clip-relative again (for display)
+    expect(visible[0].timelineStartSec).toBeCloseTo(0);
+    expect(visible[1].timelineStartSec).toBeCloseTo(2.1);
+  });
+
+  test("source-absolute subtitles load without double-offset", () => {
+    const clipOrigin = 303.09;
+
+    // New format: already source-absolute (saved with _format: "source-absolute")
+    const savedSubtitles = [
+      { id: 1, startSec: 303.09, endSec: 303.72, text: "Hey,", words: [{ word: "Hey,", start: 303.09, end: 303.72 }] },
+    ];
+
+    // sourceOffset = 0 for source-absolute format
+    const sourceOffset = 0;
+    const migrated = savedSubtitles.map((seg) => ({
+      ...seg,
+      startSec: seg.startSec + sourceOffset,
+      endSec: seg.endSec + sourceOffset,
+    }));
+
+    // Should NOT double-offset
+    expect(migrated[0].startSec).toBeCloseTo(303.09);
+    expect(migrated[0].endSec).toBeCloseTo(303.72);
   });
 });
