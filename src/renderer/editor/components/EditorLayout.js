@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
+import { visibleSubtitleSegments } from "../models/timeMapping";
 import {
   Tooltip,
   TooltipContent,
@@ -279,9 +280,34 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       const subState = useSubtitleStore.getState();
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
+      const editorState = useEditorStore.getState();
+
+      // Map subtitles from source-absolute to timeline time for the overlay renderer.
+      // The renderer operates in timeline time (0-based), so we convert source coords
+      // to timeline coords and remap field names for findActiveWord compatibility.
+      const nleSegs = editorState.nleSegments || [];
+      const rawEditSegments = subState.editSegments || [];
+      let timelineSubs;
+      if (nleSegs.length > 0) {
+        const mapped = visibleSubtitleSegments(rawEditSegments, nleSegs);
+        timelineSubs = mapped.map((seg) => ({
+          ...seg,
+          startSec: seg.timelineStartSec,
+          endSec: seg.timelineEndSec,
+          words: (seg.words || []).map((w) => ({
+            ...w,
+            start: w.timelineStart !== undefined ? w.timelineStart : w.start,
+            end: w.timelineEnd !== undefined ? w.timelineEnd : w.end,
+          })),
+        }));
+      } else {
+        timelineSubs = rawEditSegments;
+      }
+
       const renderClip = {
         ...clip,
-        subtitles: subState.editSegments || [],
+        subtitles: timelineSubs,
+        nleSegments: nleSegs,
       };
       // Full subtitle style — every property the overlay renderer needs
       // Includes both store names (subFontFamily) and engine names (fontFamily)

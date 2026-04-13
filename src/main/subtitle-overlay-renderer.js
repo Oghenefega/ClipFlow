@@ -92,18 +92,25 @@ async function renderOverlayFrames(params) {
     syncOffset = 0,
     clipStartTime = 0,
     clipEndTime = 0,
+    timelineDuration: explicitDuration, // NLE mode: explicit timeline duration
     tempDir,
     sourceFile,
+    resolutionProbeFile, // separate path for resolution probing (NLE: sourceFile is null but we still need resolution)
     onProgress,
   } = params;
 
   // Create temp directory for PNGs
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-  // Use actual file duration from ffprobe instead of calculated startTime/endTime math,
-  // so overlay frame count always matches the real video length exactly
+  // Duration priority:
+  // 1. Explicit timelineDuration (NLE mode — caller computed from segments)
+  // 2. ffprobe of source file (legacy mode — matches real file length)
+  // 3. clipEndTime - clipStartTime (fallback)
   let clipDuration = clipEndTime - clipStartTime;
-  if (sourceFile) {
+  if (explicitDuration && explicitDuration > 0) {
+    console.log(`[OverlayRenderer] Using explicit timeline duration: ${explicitDuration}s`);
+    clipDuration = explicitDuration;
+  } else if (sourceFile) {
     try {
       const realDuration = await probeDuration(sourceFile);
       if (realDuration > 0) {
@@ -123,9 +130,10 @@ async function renderOverlayFrames(params) {
 
   // Probe source video resolution so overlay matches exactly
   let width = 1080, height = 1920;
-  if (sourceFile) {
+  const probeFile = resolutionProbeFile || sourceFile;
+  if (probeFile) {
     try {
-      const res = await probeResolution(sourceFile);
+      const res = await probeResolution(probeFile);
       width = res.width;
       height = res.height;
       console.log("[OverlayRenderer] Source video resolution:", width, "x", height);

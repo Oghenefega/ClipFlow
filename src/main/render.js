@@ -2,16 +2,92 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { renderOverlayFrames, cleanupOverlayFrames } = require("./subtitle-overlay-renderer");
+const { getTimelineDuration, visibleSubtitleSegments } = require("../renderer/editor/models/timeMapping");
+const { segmentDuration } = require("../renderer/editor/models/segmentModel");
+
+/**
+ * Probe a video file for its FPS using ffprobe.
+ * @param {string} filePath
+ * @returns {Promise<number>} fps (defaults to 30 if probe fails)
+ */
+function probeFps(filePath) {
+  return new Promise((resolve) => {
+    const proc = spawn("ffprobe", [
+      "-v", "error",
+      "-select_streams", "v:0",
+      "-show_entries", "stream=r_frame_rate",
+      "-of", "csv=s=x:p=0",
+      filePath,
+    ]);
+    let stdout = "";
+    proc.stdout.on("data", (d) => (stdout += d.toString()));
+    proc.on("close", (code) => {
+      if (code !== 0) return resolve(30);
+      const parts = stdout.trim().split("/");
+      const fps = parts.length === 2
+        ? parseInt(parts[0]) / parseInt(parts[1])
+        : parseFloat(parts[0]);
+      resolve(isNaN(fps) || fps <= 0 ? 30 : Math.round(fps * 100) / 100);
+    });
+    proc.on("error", () => resolve(30));
+  });
+}
+
+/**
+ * Build FFmpeg filter_complex for NLE segment assembly.
+ *
+ * Trims each NLE segment from the source file and concatenates them.
+ * If overlay frames exist, composites the PNG sequence on top.
+ *
+ * @param {Array} nleSegments - [{id, sourceStart, sourceEnd}, ...]
+ * @param {boolean} hasFrames - Whether overlay PNG frames exist
+ * @returns {{ filterComplex: string, mapArgs: string[] }}
+ */
+function buildNleFilterComplex(nleSegments, hasFrames) {
+  const n = nleSegments.length;
+  const filters = [];
+
+  if (n === 1) {
+    // Single segment: simple trim, no concat needed
+    const seg = nleSegments[0];
+    filters.push(`[0:v]trim=start=${seg.sourceStart}:end=${seg.sourceEnd},setpts=PTS-STARTPTS[base_v]`);
+    filters.push(`[0:a]atrim=start=${seg.sourceStart}:end=${seg.sourceEnd},asetpts=PTS-STARTPTS[base_a]`);
+  } else {
+    // Multi-segment: trim each + concat
+    for (let i = 0; i < n; i++) {
+      const seg = nleSegments[i];
+      filters.push(`[0:v]trim=start=${seg.sourceStart}:end=${seg.sourceEnd},setpts=PTS-STARTPTS[v${i}]`);
+      filters.push(`[0:a]atrim=start=${seg.sourceStart}:end=${seg.sourceEnd},asetpts=PTS-STARTPTS[a${i}]`);
+    }
+    const concatInputs = Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("");
+    filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_v][base_a]`);
+  }
+
+  if (hasFrames) {
+    // Composite overlay PNG sequence on top of assembled video
+    filters.push("[1:v]format=rgba[sub]");
+    filters.push("[base_v][sub]overlay=0:0:eof_action=pass[out]");
+    return {
+      filterComplex: filters.join(";"),
+      mapArgs: ["-map", "[out]", "-map", "[base_a]"],
+    };
+  }
+
+  return {
+    filterComplex: filters.join(";"),
+    mapArgs: ["-map", "[base_v]", "-map", "[base_a]"],
+  };
+}
 
 /**
  * Render a clip with pixel-perfect subtitle/caption burn-in.
  *
- * Uses an offscreen Electron BrowserWindow to render subtitle/caption overlays
- * as PNG frames using the same CSS engine as the editor preview, then composites
- * them onto the source video with FFmpeg using image2 input.
+ * NLE-aware: assembles the final video from source file + NLE segments using
+ * FFmpeg trim/concat, then composites subtitle overlay frames on top.
+ * Falls back to using clipData.filePath directly if no NLE segments exist.
  *
- * @param {object} clipData - Clip object with subtitles, captions, styles, etc.
- * @param {object} projectData - Project with sourceFile, transcription
+ * @param {object} clipData - Clip object with nleSegments, subtitles, captions, styles
+ * @param {object} projectData - Project with sourceFile, sourceDuration
  * @param {string} outputPath - Final output MP4 path
  * @param {object} options - { subtitleStyle, captionStyle, captionSegments, onProgress }
  * @returns {Promise<{success, path, duration}>}
@@ -20,7 +96,13 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
   return new Promise(async (resolve, reject) => {
     try {
       const { onProgress } = options;
-      const srcFile = clipData.filePath || projectData.sourceFile;
+      const nleSegments = clipData.nleSegments || [];
+      const useNle = nleSegments.length > 0 && projectData.sourceFile;
+
+      // Source file: NLE mode uses original recording; fallback uses pre-cut clip
+      const srcFile = useNle
+        ? projectData.sourceFile
+        : (clipData.filePath || projectData.sourceFile);
 
       if (!srcFile || !fs.existsSync(srcFile)) {
         return reject(new Error(`Source file not found: ${srcFile}`));
@@ -29,16 +111,43 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const dir = path.dirname(outputPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-      const clipDuration = (clipData.endTime || 0) - (clipData.startTime || 0);
+      // Timeline duration from NLE segments, or fall back to clip boundary math
+      const timelineDuration = useNle
+        ? getTimelineDuration(nleSegments)
+        : ((clipData.endTime || 0) - (clipData.startTime || 0));
 
-      // Build subtitle segments from clip data
-      // Editor saves as flat array; pipeline saves as { sub1: [], sub2: [] }
+      // Probe source FPS for output — preserves 60fps recordings
+      const sourceFps = await probeFps(srcFile);
+      console.log("[Render] Source FPS:", sourceFps);
+
+      // ── Subtitle segments ──
+      // EditorLayout pre-maps subtitles to timeline time for single-clip render.
+      // For batch render (from disk), subtitles may still be source-absolute —
+      // detect via _format marker and map here as a safety net.
       let subtitleSegments = [];
       if (Array.isArray(clipData.subtitles)) {
         subtitleSegments = clipData.subtitles;
       } else if (clipData.subtitles) {
         if (clipData.subtitles.sub1) subtitleSegments.push(...clipData.subtitles.sub1);
         if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
+      }
+
+      // If subtitles are source-absolute and we have NLE segments, map to timeline time.
+      // EditorLayout already does this for single-clip render, but batch render needs it too.
+      const isSourceAbsolute = clipData.subtitles?._format === "source-absolute";
+      if (useNle && isSourceAbsolute && subtitleSegments.length > 0) {
+        const mapped = visibleSubtitleSegments(subtitleSegments, nleSegments);
+        subtitleSegments = mapped.map((seg) => ({
+          ...seg,
+          startSec: seg.timelineStartSec,
+          endSec: seg.timelineEndSec,
+          words: (seg.words || []).map((w) => ({
+            ...w,
+            start: w.timelineStart !== undefined ? w.timelineStart : w.start,
+            end: w.timelineEnd !== undefined ? w.timelineEnd : w.end,
+          })),
+        }));
+        console.log("[Render] Mapped", mapped.length, "subtitles from source-absolute to timeline time");
       }
 
       // Caption segments
@@ -62,27 +171,30 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           captionSegments,
           captionStyle: options.captionStyle || clipData.captionStyle || {},
           syncOffset: clipData.syncOffset || 0,
-          clipStartTime: clipData.startTime || 0,
-          clipEndTime: clipData.endTime || 0,
+          // NLE mode: subtitles are already in timeline time (0-based),
+          // so clipStartTime=0 and duration drives frame count
+          clipStartTime: useNle ? 0 : (clipData.startTime || 0),
+          clipEndTime: useNle ? timelineDuration : (clipData.endTime || 0),
+          timelineDuration: useNle ? timelineDuration : 0, // explicit duration for NLE (skips file probe)
           tempDir,
-          sourceFile: srcFile,
+          sourceFile: useNle ? null : srcFile, // NLE: skip duration probe (uses timelineDuration)
+          resolutionProbeFile: srcFile, // always pass source for resolution probing
           onProgress: (p) => {
             if (onProgress) {
-              // Subtitle rendering is 0-40% of total progress
               onProgress({ stage: "subtitles", pct: Math.round(p.pct * 0.4), detail: p.detail });
             }
           },
         });
       }
 
-      // Phase 2: FFmpeg render with overlay compositing
+      // Phase 2: FFmpeg render
       if (onProgress) {
         onProgress({ stage: "rendering", pct: 40, detail: "Starting video render..." });
       }
 
       const args = ["-y"];
 
-      // Input 0: source video
+      // Input 0: source file (full recording for NLE, pre-cut clip for fallback)
       args.push("-i", srcFile);
 
       // Input 1: overlay PNG sequence (if we have subtitles/captions)
@@ -95,10 +207,14 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         );
       }
 
-      // Build filter complex
-      if (hasFrames) {
-        // Overlay the PNG sequence on top of the source video
-        // The PNG frames are already rendered at the source video resolution
+      // Build filter_complex
+      if (useNle) {
+        // NLE mode: trim/concat segments from source + overlay
+        const { filterComplex, mapArgs } = buildNleFilterComplex(nleSegments, hasFrames);
+        args.push("-filter_complex", filterComplex);
+        args.push(...mapArgs);
+      } else if (hasFrames) {
+        // Fallback: simple overlay on pre-cut clip (legacy behavior)
         args.push(
           "-filter_complex",
           "[1:v]format=rgba[sub];[0:v][sub]overlay=0:0:eof_action=pass[out]",
@@ -107,8 +223,9 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         );
       }
 
-      // Output encoding
+      // Output encoding — force source FPS to prevent 60fps→25fps drops
       args.push(
+        "-r", String(Math.round(sourceFps)),
         "-c:v", "libx264",
         "-preset", "medium",
         "-crf", "18",
@@ -126,28 +243,27 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
       proc.stderr.on("data", (data) => {
         stderr += data.toString();
-        if (onProgress && clipDuration > 0) {
+        if (onProgress && timelineDuration > 0) {
           const timeMatch = data.toString().match(/time=(\d+):(\d+):(\d+\.?\d*)/);
           if (timeMatch) {
             const h = parseInt(timeMatch[1]);
             const m = parseInt(timeMatch[2]);
             const s = parseFloat(timeMatch[3]);
             const currentSec = h * 3600 + m * 60 + s;
-            const pct = Math.min(99, 40 + Math.round((currentSec / clipDuration) * 59));
-            onProgress({ stage: "rendering", pct, detail: `${Math.round(currentSec)}s / ${Math.round(clipDuration)}s` });
+            const pct = Math.min(99, 40 + Math.round((currentSec / timelineDuration) * 59));
+            onProgress({ stage: "rendering", pct, detail: `${Math.round(currentSec)}s / ${Math.round(timelineDuration)}s` });
           }
         }
       });
 
       proc.on("close", (code) => {
-        // Clean up temp overlay files
         cleanupOverlayFrames(tempDir);
 
         if (code !== 0) {
           console.error("[Render] FFmpeg failed:", stderr.slice(-500));
           return reject(new Error(`ffmpeg render failed (code ${code}): ${stderr.slice(-500)}`));
         }
-        resolve({ success: true, path: outputPath, duration: clipDuration });
+        resolve({ success: true, path: outputPath, duration: timelineDuration });
       });
 
       proc.on("error", (err) => {
