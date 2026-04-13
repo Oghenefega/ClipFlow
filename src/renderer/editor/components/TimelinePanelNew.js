@@ -61,6 +61,7 @@ export default function TimelinePanelNew() {
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
   const nleSegments = useEditorStore((s) => s.nleSegments);
   const sourceDuration = useEditorStore((s) => s.sourceDuration);
+  const sourceStartTime = useEditorStore((s) => s.sourceStartTime);
   const splitAtTimeline = useEditorStore((s) => s.splitAtTimeline);
   const deleteNleSegment = useEditorStore((s) => s.deleteNleSegment);
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
@@ -1052,7 +1053,8 @@ export default function TimelinePanelNew() {
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
-                      peaks={waveformPeaks} sourceDuration={sourceDuration}
+                      peaks={waveformPeaks} clipFileDuration={duration}
+                      clipOrigin={sourceStartTime}
                       timelineWidth={widthPx} currentTime={currentTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}

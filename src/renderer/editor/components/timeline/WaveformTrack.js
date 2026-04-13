@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, sourceDuration, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, rippleAnimating }) {
+function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -71,11 +71,15 @@ function WaveformTrack({ peaks, sourceDuration, timelineWidth, currentTime, sele
       return;
     }
 
-    // NLE model: slice peaks directly using source coordinates
-    const sourceStart = nleSegment?.sourceStart || 0;
-    const sourceEnd = nleSegment?.sourceEnd || sourceDuration;
-    const startFrac = sourceDuration > 0 ? sourceStart / sourceDuration : 0;
-    const endFrac = sourceDuration > 0 ? sourceEnd / sourceDuration : 1;
+    // Peaks come from the clip file (spans 0 → clipFileDuration).
+    // NLE segments use source-absolute coords — offset by clipOrigin to get clip-relative.
+    // clipFileDuration is passed as the actual video file duration (from playback store).
+    const sourceStart = nleSegment?.sourceStart ?? clipOrigin;
+    const sourceEnd = nleSegment?.sourceEnd ?? (clipOrigin + clipFileDuration);
+    const clipRelStart = Math.max(0, sourceStart - clipOrigin);
+    const clipRelEnd = Math.max(clipRelStart + 0.01, sourceEnd - clipOrigin);
+    const startFrac = clipFileDuration > 0 ? clipRelStart / clipFileDuration : 0;
+    const endFrac = clipFileDuration > 0 ? Math.min(1, clipRelEnd / clipFileDuration) : 1;
     const sliceStart = Math.floor(startFrac * peaks.length);
     const sliceEnd = Math.ceil(endFrac * peaks.length);
     const segPeaks = peaks.slice(sliceStart, sliceEnd);
@@ -134,7 +138,7 @@ function WaveformTrack({ peaks, sourceDuration, timelineWidth, currentTime, sele
     ctx.moveTo(0, centerY);
     ctx.lineTo(w, centerY);
     ctx.stroke();
-  }, [peaks, timelineWidth, selected, sourceDuration, nleSegment]);
+  }, [peaks, timelineWidth, selected, clipFileDuration, nleSegment]);
 
   const showHandles = selected || hovered;
 
@@ -213,7 +217,7 @@ function WaveformTrack({ peaks, sourceDuration, timelineWidth, currentTime, sele
 export default React.memo(WaveformTrack, (prev, next) => {
   return (
     prev.peaks === next.peaks &&
-    prev.sourceDuration === next.sourceDuration &&
+    prev.clipFileDuration === next.clipFileDuration &&
     prev.timelineWidth === next.timelineWidth &&
     prev.selected === next.selected &&
     prev.nleSegment === next.nleSegment &&

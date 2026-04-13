@@ -90,9 +90,21 @@ function getTimelineDuration(segments) {
 }
 
 /**
- * Get timeline start/end for a specific segment by index.
+ * Get timeline start/end for a specific segment by ID or index.
+ *
+ * @param {string|number} idOrIndex - segment ID string or numeric index
+ * @param {Array} segments - ordered NLE segment list
+ * @returns {{ start: number, end: number } | null}
  */
-function getSegmentTimelineRange(segments, index) {
+function getSegmentTimelineRange(idOrIndex, segments) {
+  let index;
+  if (typeof idOrIndex === "number") {
+    index = idOrIndex;
+  } else {
+    // Find by ID
+    index = segments.findIndex(s => s.id === idOrIndex);
+    if (index === -1) return null;
+  }
   let start = 0;
   for (let i = 0; i < index && i < segments.length; i++) {
     start += segmentDuration(segments[i]);
@@ -100,7 +112,7 @@ function getSegmentTimelineRange(segments, index) {
   const seg = segments[index];
   return seg
     ? { start, end: start + segmentDuration(seg) }
-    : { start: 0, end: 0 };
+    : null;
 }
 
 /**

@@ -421,9 +421,9 @@ export default function App() {
     return result;
   }, [localProjects]);
 
-  // Queue badge count: approved rendered clips not yet scheduled
+  // Queue badge count: show unscheduled count (needs attention) — Phase 5 badge distinction
   const totalApproved = React.useMemo(() => {
-    return Object.values(allClips).flat().filter((c) => c.status === "approved" || c.status === "ready").length;
+    return Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && !c.scheduledAt).length;
   }, [allClips]);
 
   const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); } catch (_) {} };

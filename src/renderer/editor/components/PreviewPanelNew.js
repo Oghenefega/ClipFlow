@@ -418,6 +418,7 @@ export default function PreviewPanelNew() {
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
   const initVideoRef = usePlaybackStore((s) => s.initVideoRef);
   const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
+  const initNleSegments = useEditorStore((s) => s.initNleSegments);
 
   // Subtitles — raw segments (source-absolute), mapped to timeline below after nleSegments loads
   const rawEditSegments = useSubtitleStore((s) => s.editSegments);
@@ -623,18 +624,14 @@ export default function PreviewPanelNew() {
     };
   }, []);
 
-  // Video source path — use source recording (non-destructive: never modified)
+  // Video source path — use clip's cut file for now.
+  // Phase 4 (segment-aware playback) will switch to project.sourceFile
+  // so the video plays the original recording with NLE segments controlling what's visible.
   const videoSrc = useMemo(() => {
-    // Prefer project source file (NLE model: play from original recording)
-    const sourcePath = project?.sourceFile;
-    if (sourcePath) {
-      return `file://${sourcePath.replace(/\\/g, "/")}`;
-    }
-    // Fallback for legacy clips without source file
     if (!clip?.filePath) return null;
     const cacheBuster = videoVersion > 0 ? `?v=${videoVersion}` : "";
     return `file://${clip.filePath.replace(/\\/g, "/")}${cacheBuster}`;
-  }, [project?.sourceFile, clip?.filePath, videoVersion]);
+  }, [clip?.filePath, videoVersion]);
 
   // Force video reload when videoSrc changes (React setAttribute doesn't auto-load)
   const prevVideoSrcRef = useRef(null);
@@ -815,13 +812,17 @@ export default function PreviewPanelNew() {
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
       // Duration comes from NLE segments (timeline duration), not video.duration (source duration)
       // The editor store sets this when nleSegments change, but set source duration as fallback
+      // Ensure NLE segments exist — creates them from video duration if missing
+      // (handles clips without startTime/endTime or saved nleSegments)
+      initNleSegments(videoRef.current.duration);
+
       const editorNleSegs = useEditorStore.getState().nleSegments;
       if (!editorNleSegs || editorNleSegs.length === 0) {
         setDuration(videoRef.current.duration);
       }
 
-      // Extract waveform peaks from source file (cached — source never changes)
-      const sourcePath = project?.sourceFile || clip?.filePath;
+      // Extract waveform peaks from clip file (Phase 4 will switch to source)
+      const sourcePath = clip?.filePath;
       if (sourcePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
         window.clipflow.ffmpegExtractWaveformPeaks(sourcePath, 800).then((result) => {
           if (result?.peaks?.length > 0) {
@@ -832,7 +833,7 @@ export default function PreviewPanelNew() {
         });
       }
     }
-  }, [setDuration, project?.sourceFile, clip?.filePath, setWaveformPeaks]);
+  }, [setDuration, initNleSegments, clip?.filePath, setWaveformPeaks]);
 
   const onVideoEnd = useCallback(() => {
     setPlaying(false);
