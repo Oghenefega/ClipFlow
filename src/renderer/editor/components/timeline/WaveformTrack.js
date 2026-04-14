@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, rippleAnimating }) {
+function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -14,6 +14,7 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWi
     setResizing(side);
     startRef.current = { x: e.clientX, sourceStart: nleSegment.sourceStart, sourceEnd: nleSegment.sourceEnd };
     document.body.style.cursor = "col-resize";
+    if (onTrimStart) onTrimStart();
 
     const segSourceDur = nleSegment.sourceEnd - nleSegment.sourceStart;
     const onMove = (ev) => {
@@ -43,11 +44,12 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWi
       document.body.style.cursor = "";
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      if (onTrimEnd) onTrimEnd();
       // No onResizeEnd needed — NLE trim is instant (pure state update)
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [nleSegment, onTrimLeft, onTrimRight, timelineWidth]);
+  }, [nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, timelineWidth]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

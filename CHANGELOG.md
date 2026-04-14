@@ -4,6 +4,22 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-14 (session 2)
+
+### Fixed
+- **Bug A — Waveform peak misalignment after trim**: Waveform peaks drifted out of sync with audio after a left-trim because `TimelinePanelNew` was passing the timeline `duration` (which shrinks on trim) to `WaveformTrack` as the clip-file denominator. Introduced separate `clipFileDuration` field in `usePlaybackStore`, set once from `video.duration` on `loadedmetadata`. Waveform peak slicing now uses the unchanging clip-file extent.
+- **Bug C — Segment body "zooms" during active left-trim drag**: While dragging a trim handle, the pixel-per-second scale was recomputing live from the shrinking timeline duration, causing all segments to reflow under the cursor. Fixed by adding a `trimSnapshot` useState in `TimelinePanelNew` that freezes the pixel scale for the duration of the drag. `WaveformTrack` now fires `onTrimStart`/`onTrimEnd` callbacks from pointerdown/pointerup. Trim math still commits live — only the visual scale is frozen.
+- **Bug B — Subtitle track drift**: Resolved as a downstream side effect of A + C — timeline subtitle rendering already used `visibleSubtitleSegments`, so once pixel scales stabilized, words re-aligned with audio.
+- **Subtitle clamp at segment level**: Subtitles whose start OR end fell into a trimmed region were being dropped wholesale, making subs vanish the moment a trim touched them. `visibleSubtitleSegments` in `timeMapping.js` now clamps start/end to the kept overlap — a sub only disappears when NO part of its range overlaps any kept segment.
+- **Subtitle clamp at word level**: Same fix applied to `visibleWords` — individual words now clamp to segment boundaries instead of dropping when only their start is in a deleted region. Subs now vanish when the trim crosses their **end**, not their start (per user requirement).
+- **Floating-point segment boundary tolerance**: Added `BOUNDARY_EPS = 0.001` to `sourceToTimeline` so sub-millisecond FP drift at `sourceStart`/`sourceEnd` no longer reports a time as "outside" the segment. Also applied same tolerance to the "is current position inside any segment?" check in `setNleSegments`.
+
+### Changed
+- **Subtitle clustering removed**: Tried multi-tier and binary clustering approaches — user rejected both in favor of always-individual subtitle rendering. Stripped all clustering logic from `TimelinePanelNew`; subs now map 1:1 from `visibleSubtitleSegments`. Dead constants (`MERGE_THRESHOLD`, `CLUSTER_GAP_PX`, `CLUSTER_MIN_WIDTH_PX`) left in `timelineConstants.js` for next session cleanup.
+
+### Known Issues
+- **Snap-to-0 on ruler click (pre-trim only, UNFIXED)**: On a freshly opened untrimmed clip, clicking the ruler snaps the playhead back to 0 and prevents play. After any trim, the bug disappears for the rest of the session. Logs show an infinite `onTimeUpdate` loop with `needsSeek: true, seekToSource: 0`. FP-epsilon fix did not resolve it; hypothesis now shifted to duplicate `setNleSegments` calls during init re-triggering the `snapToFirst` branch. Investigation plan in HANDOFF.md.
+
 ## [Unreleased] — 2026-04-14
 
 ### Fixed

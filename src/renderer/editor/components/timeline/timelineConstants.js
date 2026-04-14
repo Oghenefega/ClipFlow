@@ -50,7 +50,13 @@ export const TRACK_H = 38;
 export const AUDIO_TRACK_H = 56;
 export const LABEL_W = 80;
 export const END_PADDING = 200;
-export const MERGE_THRESHOLD = 18;
+export const MERGE_THRESHOLD = 18; // legacy — superseded by clustering
+// Subtitle clustering: subs whose visual gap (in px) is below this threshold
+// merge into a single cluster block. Cluster splits as user zooms in.
+export const CLUSTER_GAP_PX = 6;
+// Minimum width for a single sub block before it collapses into a cluster.
+// If a sub is narrower than this, it's eligible for cluster merging.
+export const CLUSTER_MIN_WIDTH_PX = 40;
 
 // ── Interaction ──
 export const TRIM_HANDLE_VISUAL_W = 4;

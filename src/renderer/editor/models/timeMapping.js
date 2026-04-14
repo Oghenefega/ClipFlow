@@ -25,14 +25,20 @@ const { segmentDuration } = require("./segmentModel");
  * @param {Array} segments - ordered NLE segment list
  * @returns {{ timelineTime: number, found: boolean, segmentIndex: number }}
  */
+// Floating-point tolerance (1ms) for segment-boundary comparisons. Without
+// this, a vid.currentTime that is mathematically exactly at sourceStart can
+// read as "outside" the segment due to FP error, producing infinite seek loops.
+const BOUNDARY_EPS = 0.001;
+
 function sourceToTimeline(sourceTime, segments) {
   let timelineOffset = 0;
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    if (sourceTime >= seg.sourceStart && sourceTime <= seg.sourceEnd) {
+    if (sourceTime >= seg.sourceStart - BOUNDARY_EPS && sourceTime <= seg.sourceEnd + BOUNDARY_EPS) {
+      const clamped = Math.max(seg.sourceStart, Math.min(seg.sourceEnd, sourceTime));
       return {
-        timelineTime: timelineOffset + (sourceTime - seg.sourceStart),
+        timelineTime: timelineOffset + (clamped - seg.sourceStart),
         found: true,
         segmentIndex: i,
       };
@@ -155,18 +161,43 @@ function visibleWords(words, segments) {
     const wStart = word.start;
     const wEnd = word.end;
 
-    // Check if this word overlaps any segment
-    const mapped = sourceToTimeline(wStart, segments);
-    if (mapped.found) {
-      const mappedEnd = sourceToTimeline(wEnd, segments);
-      result.push({
-        ...word,
-        timelineStart: mapped.timelineTime,
-        timelineEnd: mappedEnd.found
-          ? mappedEnd.timelineTime
-          : mapped.timelineTime + (wEnd - wStart), // fallback: preserve duration
-      });
+    let startMap = sourceToTimeline(wStart, segments);
+    let endMap = sourceToTimeline(wEnd, segments);
+
+    let effStart = wStart;
+    let effEnd = wEnd;
+
+    // Word should disappear only when trim has passed its END, not its START.
+    // If start is trimmed away but end is still inside a segment, clamp start.
+    if (!startMap.found && endMap.found) {
+      const seg = segments[endMap.segmentIndex];
+      effStart = seg.sourceStart;
+      startMap = sourceToTimeline(effStart, segments);
+    } else if (startMap.found && !endMap.found) {
+      const seg = segments[startMap.segmentIndex];
+      effEnd = seg.sourceEnd;
+      endMap = sourceToTimeline(effEnd, segments);
+    } else if (!startMap.found && !endMap.found) {
+      // Both endpoints in deleted regions — only keep if word fully spans a kept segment
+      const spanned = segments.find(
+        (s) => s.sourceStart >= wStart && s.sourceEnd <= wEnd
+      );
+      if (!spanned) continue;
+      effStart = spanned.sourceStart;
+      effEnd = spanned.sourceEnd;
+      startMap = sourceToTimeline(effStart, segments);
+      endMap = sourceToTimeline(effEnd, segments);
     }
+
+    if (!startMap.found) continue;
+
+    result.push({
+      ...word,
+      timelineStart: startMap.timelineTime,
+      timelineEnd: endMap.found
+        ? endMap.timelineTime
+        : startMap.timelineTime + (effEnd - effStart),
+    });
   }
   return result;
 }
@@ -191,21 +222,50 @@ function visibleSubtitleSegments(subtitleSegs, nleSegments) {
   for (let i = 0; i < subtitleSegs.length; i++) {
     const sub = subtitleSegs[i];
 
-    // Map the segment's start to timeline
-    const startMap = sourceToTimeline(sub.startSec, nleSegments);
-    if (!startMap.found) continue; // entire segment is in a deleted region
+    let startMap = sourceToTimeline(sub.startSec, nleSegments);
+    let endMap = sourceToTimeline(sub.endSec, nleSegments);
 
-    const endMap = sourceToTimeline(sub.endSec, nleSegments);
+    // Subtitle straddles a trim boundary — clamp to the kept overlap instead
+    // of dropping. A subtitle should only disappear when no part of its
+    // [startSec, endSec] overlaps any kept segment.
+    let effStart = sub.startSec;
+    let effEnd = sub.endSec;
+
+    if (!startMap.found && endMap.found) {
+      // Start trimmed away — clamp start to the segment that contains end
+      const seg = nleSegments[endMap.segmentIndex];
+      effStart = seg.sourceStart;
+      startMap = sourceToTimeline(effStart, nleSegments);
+    } else if (startMap.found && !endMap.found) {
+      // End trimmed away — clamp end to the segment that contains start
+      const seg = nleSegments[startMap.segmentIndex];
+      effEnd = seg.sourceEnd;
+      endMap = sourceToTimeline(effEnd, nleSegments);
+    } else if (!startMap.found && !endMap.found) {
+      // Both endpoints in deleted regions — check if subtitle spans across a
+      // kept segment entirely. Find any segment fully inside [startSec, endSec].
+      const spanned = nleSegments.find(
+        (s) => s.sourceStart >= sub.startSec && s.sourceEnd <= sub.endSec
+      );
+      if (!spanned) continue; // no overlap — truly gone
+      effStart = spanned.sourceStart;
+      effEnd = spanned.sourceEnd;
+      startMap = sourceToTimeline(effStart, nleSegments);
+      endMap = sourceToTimeline(effEnd, nleSegments);
+    }
+
+    if (!startMap.found) continue; // safety net
+
     const timelineEnd = endMap.found
       ? endMap.timelineTime
-      : startMap.timelineTime + (sub.endSec - sub.startSec);
+      : startMap.timelineTime + (effEnd - effStart);
 
-    // Map words
+    // Map words (each word filtered individually — partial words drop normally)
     const mappedWords = sub.words
       ? visibleWords(sub.words, nleSegments)
       : [];
 
-    // Only include if at least one word is visible (or no words to check)
+    // Include if any words remain, or if the sub has no word-level data
     if (mappedWords.length > 0 || !sub.words || sub.words.length === 0) {
       result.push({
         ...sub,

@@ -22,6 +22,12 @@ const usePlaybackStore = create((set, get) => ({
   // absolute = vidTime + clipFileOffset;  vidTime = absolute - clipFileOffset
   clipFileOffset: 0,
 
+  // True duration of the clip file on disk (set once from video.duration on
+  // loadedmetadata). Distinct from `duration` above, which is timeline duration
+  // and shrinks on trim. Used by waveform peak slicing, which needs the
+  // unchanging clip-file extent as denominator.
+  clipFileDuration: 0,
+
   // videoRef is stored here as a plain object property (not reactive)
   // Set it once via initVideoRef() from PreviewPanel
   _videoRef: null,
@@ -65,9 +71,16 @@ const usePlaybackStore = create((set, get) => ({
     const vid = ref?.current;
     if (vid && segments.length > 0) {
       const srcAbs = vid.currentTime + clipFileOffset;
-      const inside = segments.some((s) => srcAbs >= s.sourceStart && srcAbs <= s.sourceEnd);
+      // Use epsilon-tolerant check so sub-millisecond FP drift at the segment
+      // start doesn't falsely mark the video as "outside" the segment.
+      const EPS = 0.001;
+      const inside = segments.some((s) => srcAbs >= s.sourceStart - EPS && srcAbs <= s.sourceEnd + EPS);
       if (!inside) {
-        vid.currentTime = Math.max(0, segments[0].sourceStart - clipFileOffset);
+        const targetAbs = segments[0].sourceStart;
+        vid.currentTime = Math.max(0, targetAbs - clipFileOffset);
+        // Snap store currentTime to the timeline position we just seeked to
+        // (start of first segment = timeline 0). Previously we hardcoded 0
+        // which was correct numerically but brittle.
         set({ currentTime: 0 });
       } else {
         const mapped = sourceToTimeline(srcAbs, segments);
@@ -81,6 +94,8 @@ const usePlaybackStore = create((set, get) => ({
    */
   seekTo: (timelineSec) => {
     const { nleSegments, clipFileOffset } = get();
+    console.log("[DBG seekTo] in:", timelineSec, "clipFileOffset:", clipFileOffset,
+      "segs:", JSON.stringify(nleSegments.map(s => [s.sourceStart, s.sourceEnd])));
     let targetSourceAbs = timelineSec;
 
     if (nleSegments.length > 0) {
@@ -98,7 +113,11 @@ const usePlaybackStore = create((set, get) => ({
     }
 
     const ref = get()._videoRef;
-    if (ref?.current) ref.current.currentTime = Math.max(0, targetSourceAbs - clipFileOffset);
+    if (ref?.current) {
+      const writeVal = Math.max(0, targetSourceAbs - clipFileOffset);
+      console.log("[DBG seekTo] writing vid.currentTime:", writeVal, "(targetAbs:", targetSourceAbs, ")");
+      ref.current.currentTime = writeVal;
+    }
   },
 
   /**

@@ -808,6 +808,8 @@ export default function PreviewPanelNew() {
 
     const sourceTime = video.currentTime;
     const result = mapSourceTime(sourceTime);
+    console.log("[DBG onTimeUpdate paused] vidT:", sourceTime, "→ tlT:", result.timelineTime,
+      "needsSeek:", result.needsSeek, "atEnd:", result.atEnd);
 
     if (result.atEnd) {
       setCurrentTime(result.timelineTime);
@@ -825,6 +827,10 @@ export default function PreviewPanelNew() {
       // Ensure NLE segments exist — creates them from video duration if missing
       // (handles clips without startTime/endTime or saved nleSegments)
       initNleSegments(videoRef.current.duration);
+
+      // Record the unchanging clip-file duration for waveform slicing (timeline
+      // `duration` shrinks on trim; this one does not).
+      usePlaybackStore.setState({ clipFileDuration: videoRef.current.duration });
 
       const editorNleSegs = useEditorStore.getState().nleSegments;
       if (!editorNleSegs || editorNleSegs.length === 0) {

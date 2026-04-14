@@ -21,7 +21,7 @@ import {
   TRACK_COLORS, PLAYHEAD_COLOR, SNAP_GUIDE_COLOR,
   TIMELINE_BG, RULER_BG, TRACK_SEPARATOR,
   RULER_H, TRACK_H, AUDIO_TRACK_H, LABEL_W, END_PADDING,
-  MERGE_THRESHOLD, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
+  MERGE_THRESHOLD, CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
 import SpeedDropdown from "./timeline/SpeedDropdown";
 import TrackContextMenu from "./timeline/TrackContextMenu";
@@ -35,6 +35,7 @@ export default function TimelinePanelNew() {
   const playing = usePlaybackStore((s) => s.playing);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const duration = usePlaybackStore((s) => s.duration);
+  const clipFileDuration = usePlaybackStore((s) => s.clipFileDuration);
   const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
   const togglePlay = usePlaybackStore((s) => s.togglePlay);
   const seekTo = usePlaybackStore((s) => s.seekTo);
@@ -150,7 +151,12 @@ export default function TimelinePanelNew() {
 
   // Effective duration: derived from NLE segment list (sum of all segment durations)
   const nleDuration = nleSegments.length > 0 ? getTimelineDuration(nleSegments) : 0;
-  const effectiveDuration = Math.max(duration, nleDuration);
+  const rawEffectiveDuration = Math.max(duration, nleDuration);
+  // During an active trim drag, we freeze the pixel scale to its pre-drag value
+  // so the timeline doesn't "zoom" live as segments shrink. Set via onTrimStart
+  // from WaveformTrack; cleared on pointerup.
+  const [trimSnapshot, setTrimSnapshot] = useState(null);
+  const effectiveDuration = trimSnapshot ?? rawEffectiveDuration;
 
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
@@ -954,34 +960,7 @@ export default function TimelinePanelNew() {
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
                 const visibleSubs = editSegments;
-
-                if (visibleSubs.length > 1 && effectiveDuration > 0) {
-                  const avgWidth = visibleSubs.reduce((sum, s) => sum + ((s.endSec - s.startSec) / effectiveDuration) * clipContentWidth, 0) / visibleSubs.length;
-                  if (avgWidth < MERGE_THRESHOLD) {
-                    const minStart = Math.min(...visibleSubs.map(s => s.startSec));
-                    const maxEnd = Math.max(...visibleSubs.map(s => s.endSec));
-                    const leftPx = (minStart / effectiveDuration) * clipContentWidth;
-                    const widthPx = ((maxEnd - minStart) / effectiveDuration) * clipContentWidth;
-                    return (
-                      <div
-                        className="absolute top-1 bottom-1 cursor-pointer"
-                        style={{
-                          left: leftPx, width: Math.max(widthPx, 4),
-                          background: TRACK_COLORS.sub.bg,
-                          border: `1.5px solid ${TRACK_COLORS.sub.border}`,
-                          borderRadius: SEGMENT_RADIUS,
-                        }}
-                        onClick={(e) => { e.stopPropagation(); setSelectedTrack("sub"); }}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                          <span className="text-[10px] font-medium" style={{ color: TRACK_COLORS.sub.text }}>
-                            Subtitle ({visibleSubs.length})
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                }
+                // No clustering — always render subs individually. Zoom controls density.
                 return (<>
                   {visibleSubs.map((seg) => (
                     <SegmentBlock
@@ -1056,7 +1035,7 @@ export default function TimelinePanelNew() {
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
-                      peaks={waveformPeaks} clipFileDuration={duration}
+                      peaks={waveformPeaks} clipFileDuration={clipFileDuration || duration}
                       clipOrigin={sourceStartTime}
                       timelineWidth={widthPx} currentTime={currentTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
@@ -1065,6 +1044,8 @@ export default function TimelinePanelNew() {
                       nleSegment={seg}
                       onTrimLeft={handleNleTrimLeft}
                       onTrimRight={handleNleTrimRight}
+                      onTrimStart={() => setTrimSnapshot(rawEffectiveDuration)}
+                      onTrimEnd={() => setTrimSnapshot(null)}
                       rippleAnimating={rippleAnimating}
                     />
                   </div>
