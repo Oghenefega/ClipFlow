@@ -546,3 +546,8 @@
 ### Never replace established visual defaults — new visual styles must be opt-in
 - **Observation:** Replaced the user's instant karaoke highlight with a progressive gradient sweep as the default. User hated it — it fundamentally changed how their subtitles look without consent.
 - **Rule:** New visual behaviors must be additive options (template/setting), never replacements for the existing default. The user's current look is their brand. Always preserve it as the default and offer alternatives as opt-in choices.
+
+### Don't keep fallbacks to deprecated systems
+- **Observation:** When moving to NLE architecture, I advised keeping legacy code paths (concatCutClip, audioSegments ops) as "fallbacks in case NLE breaks." User pushed back — this is the anti-pattern of silent degradation.
+- **Why it's wrong:** Fallbacks to abandoned systems rot because nobody maintains them, mask bugs in the new system (so the new system never gets properly fixed), and create "which path am I on?" confusion during debugging. Git history is the backup — deleted code can always be restored.
+- **Rule:** When committing to a new architecture, delete the old code aggressively. If the new system breaks, fix the new system. Never retreat to a degraded path. Only caution to apply is "is this actually dead?" (grep for callers) — not "should we keep it just in case?"

@@ -4,6 +4,26 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-13
+
+### Added
+- **NLE-aware render pipeline (Phase 4)**: `render.js` now assembles the final video from `sourceFile + nleSegments` using FFmpeg `trim`/`atrim`/`concat` filter_complex instead of requiring pre-cut clip files. Single-segment clips use simple trim; multi-segment clips concat. Falls back to legacy `clipData.filePath` behavior only when no NLE segments exist.
+- **Source FPS preservation**: Added `probeFps()` and forced `-r` flag on render output. Fixes the known 60fps→25fps drop bug by matching the source recording's frame rate.
+- **Batch render subtitle auto-mapping**: Batch render detects source-absolute subtitles via `_format` marker and maps to timeline time internally (single-clip render already did this in EditorLayout).
+- **Phase 3D migration tests**: Added 9 tests covering old audioSegments→NLE conversion, subtitle offset migration, round-trip save/load, double-offset prevention, and the new ID/index lookup API for `getSegmentTimelineRange`. Test suite now 74/74 pass.
+- **QueueView redesign**: 716-line rewrite of the Queue tab with expanded layout and improved scheduling UX (uncommitted from previous session, now landed).
+- **Commercial architecture references**: Added `reference/commercial-electron-architecture.md` and `reference/social-media-api-research.md`. Upgraded `TECHNICAL_SUMMARY.md` to v3.
+
+### Changed
+- **Render subtitle flow**: `EditorLayout.doQueueAndRender` now maps subtitles from source-absolute to timeline time via `visibleSubtitleSegments()` before sending to the overlay renderer. Passes `nleSegments` in clip data.
+- **Subtitle overlay renderer**: Accepts explicit `timelineDuration` parameter (NLE mode skips ffprobe duration call) and separate `resolutionProbeFile` path (still probes the source for video dimensions).
+- **getSegmentTimelineRange API**: Swapped parameter order to `(idOrIndex, segments)` and now accepts either a segment ID string or numeric index. Returns `null` for invalid lookups instead of an empty range.
+- **Queue badge count**: Only counts unscheduled approved/ready clips (scheduled ones no longer inflate the count).
+- **Waveform alignment**: Fixed `WaveformTrack` peak slicing to offset by `clipOrigin` when converting source-absolute NLE coords to clip-relative frame positions.
+
+### Fixed
+- **Video source playback**: Reverted `PreviewPanelNew` from `project.sourceFile` back to `clip.filePath` (segment-aware source playback is deferred to a later phase — current NLE model still relies on pre-cut clip files for playback). Added `initNleSegments` call on video load for clips without saved segments.
+
 ## [Unreleased] — 2026-04-07
 
 ### Added
