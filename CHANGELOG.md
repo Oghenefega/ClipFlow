@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-14
+
+### Fixed
+- **Trim-left freeze (root cause)**: Trimming the left edge of a clip caused playback to freeze entirely (spacebar/play unresponsive, video element stalled at `readyState=1`). Root cause was a coordinate-space mismatch: `usePlaybackStore` treated `video.currentTime` as source-absolute when the element actually plays the pre-cut clip file (clip-relative). Fixed by introducing `clipFileOffset` in the playback store and routing every conversion through it: `sourceAbs = vidTime + clipFileOffset`, and writing `vid.currentTime = targetSourceAbs - clipFileOffset`. `setNleSegments`, `seekTo`, and `mapSourceTime` all updated. Editor store now sets `clipFileOffset` from the initial segment's `sourceStart` before calling `setNleSegments`.
+- **Timeline playhead past trimmed end**: The timeline's rAF was feeding clip-relative `video.currentTime` directly into the ruler (timeline coords). On a left-trim, the playhead marched past the new timeline end. Fixed by routing through `usePlaybackStore.mapSourceTime()` so the ruler always renders in timeline coordinates.
+- **rAF seek storm preventing play()**: `PreviewPanelNew`'s rAF loop was writing `video.currentTime = seekToSource` every frame while the element was already seeking, which prevented `play()` from ever resolving. Now guarded by `!video.seeking && Math.abs(delta) > 0.05`.
+
+### Added
+- **Renderer crash + console forwarder (debug, temporary)**: `main.js` now auto-opens detached DevTools and appends every renderer console message to `%APPDATA%/clipflow/trim-debug.log`, plus a `render-process-gone` handler. The logger and forced DevTools will be removed once the remaining three trim rendering bugs (waveform, subtitle track, segment drag visual) are fixed; the crash handler stays.
+
+### Known Issues
+- Left-trim still visually breaks three rendering layers (same coordinate-space root cause, unfixed): waveform peaks desync with audio, timeline subtitle words drift off speech, and segment body "zooms" during active drag instead of shrinking. All have helpers ready in `timeMapping.js` (`getSegmentTimelineRange`, `visibleSubtitleSegments`, `buildTimelineLayout`). See HANDOFF.md for fix plan.
+
 ## [Unreleased] — 2026-04-13
 
 ### Added

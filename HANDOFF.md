@@ -1,77 +1,137 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-13 — "Phase 3D + Phase 4: NLE Render Pipeline + Migration Tests"_
+_Last updated: 2026-04-14 — "Trim Freeze Root Cause + clipFileOffset Coordinate Fix"_
 
-## Current State
+## TL;DR
 
-**Builds successfully. App launches clean. 74/74 tests pass.** NLE migration is now 4/5 phases complete. The render pipeline no longer depends on pre-cut clip files — it assembles the final video from `sourceFile + nleSegments` via FFmpeg filter_complex. Subtitle timing is correct in rendered output for multi-segment edited clips (previous bug where source-absolute subtitles were passed to the overlay renderer with no mapping is fixed).
+User reported: trimming the left edge of a clip made playback freeze (spacebar/play button unresponsive). **Root cause identified and partially fixed.** Playback now works and the timeline playhead/ruler is correct. **Three layers still render incorrectly after trim**: the waveform, the subtitle track, and the segment body's visual position during an active left-trim drag. All three share the same root cause (coordinate-space mismatch) and all three have existing helpers in `timeMapping.js` waiting to be used.
 
-User reported "some things are still broken" but we haven't diagnosed them yet — Phase 5 cleanup was deferred pending that investigation.
+**If you do nothing else: read this whole document before touching code.** Tonight we burned hours chasing symptoms because we didn't have the coordinate-space model loaded. Load it now.
 
-## What Was Built (This Session)
+## The Root Cause (Load This Into Working Memory)
 
-### Committed last session's uncommitted work (8227a3d, b6cd7b8, 4701811)
-- NLE waveform alignment fixes + `initNleSegments` on video load
-- Reverted video source to `clip.filePath` (source-file playback deferred)
-- `getSegmentTimelineRange` API change: accepts ID or index, returns null on invalid
-- Queue badge only counts unscheduled clips
-- QueueView 716-line redesign
-- Reference docs (commercial architecture, social media API research, TECHNICAL_SUMMARY v3)
+There are **three coordinate spaces** in the editor and they are NOT interchangeable:
 
-### Phase 3D: Save/Load Migration Tests (47e3409)
-- Fixed 3 broken tests using old `getSegmentTimelineRange(segments, index)` signature
-- Added 3 new API tests (ID lookup, null returns, out-of-bounds)
-- Added 6 migration tests covering:
-  - `audioSegments`→NLE conversion with `sourceStart` offset
-  - Fresh clip initial segment from `startTime`/`endTime`
-  - Saved NLE segments round-trip unchanged
-  - Multi-segment `audioSegments` migration with correct offsets
-  - Subtitle clip-relative→source-absolute migration
-  - Source-absolute subtitle loading without double-offset
-- Verified migration on real project data (proj_1775500131710_dve3uu, first clip): old format `audioSegments: [{0, 20.53}]` correctly converts to NLE `[303.10, 323.63]`; subtitles get offset by `303.10`.
+| Space | Origin | Used by |
+|-------|--------|---------|
+| **clip-relative** | 0 = start of the pre-cut clip file on disk | `<video>.currentTime`, legacy subtitles, captions |
+| **source-absolute** | 0 = start of the original recording | `nleSegments[i].sourceStart/sourceEnd`, subtitles after Phase 3B |
+| **timeline** | 0 = start of the edited timeline (after trims/deletes) | Ruler, playhead, segment on-screen position, overlay renderer |
 
-### Phase 4: NLE Render Pipeline (14b436b)
-- **`render.js`**: New `buildNleFilterComplex()` generates `trim`/`atrim`/`concat` per NLE segment from source file. Single-segment uses simple trim, multi-segment does concat. Composites overlay PNG sequence on assembled stream.
-- **`probeFps()`**: Added via ffprobe. Output forced to source FPS via `-r` flag (fixes 60fps→25fps bug).
-- **`EditorLayout.doQueueAndRender`**: Maps subtitles from source-absolute to timeline time via `visibleSubtitleSegments()` before sending to overlay. Passes `nleSegments` in clip data.
-- **`subtitle-overlay-renderer.js`**: Accepts explicit `timelineDuration` (NLE skips duration probe), separate `resolutionProbeFile` (always probes source for video dimensions).
-- **Batch render**: Auto-detects source-absolute subtitles via `_format` marker and maps internally.
+The video element plays the pre-cut clip file (clip-relative). Segments are source-absolute. The ruler is in timeline coordinates. The translation:
 
-## Key Decisions
+```
+sourceAbs = vidTime + clipFileOffset      // clipFileOffset = clip.startTime on the source
+timelineT = sourceToTimeline(sourceAbs, nleSegments).timelineTime
+```
 
-1. **No fallbacks to deprecated systems** — User principle, logged to `tasks/lessons.md`. When committing to a new architecture, delete old paths aggressively. Fallbacks rot, mask bugs in the new system, and create "which path am I on?" confusion. Git history is the backup.
-2. **Legacy render fallback kept temporarily** — `render.js` still has a `clipData.filePath` path for clips with no `nleSegments`. This is NOT a degraded fallback — it's the migration bridge for clips created before Phase 4. It should be removed in Phase 5 once all clips have `nleSegments` (or forced migration on load).
-3. **Render-time assembly, not edit-time** — `concatCutClip` (which destroyed undo history by materializing edits) is no longer called during editing. The source recording gets trimmed only at render.
-4. **Subtitle mapping happens twice by design** — EditorLayout does it for single-clip render (fresh from Zustand), render.js does it for batch render (from disk, detected via `_format` marker). Both paths converge on timeline-time subtitles reaching the overlay renderer.
-5. **Captions still clip-relative** — Caption store is NOT migrated to NLE. This is fine for single-segment clips; will need the same treatment if captions need to survive multi-segment edits.
+Before tonight, `usePlaybackStore` was treating `video.currentTime` as if it were source-absolute. For a clip whose `startTime` on the source is 303.10s, a freshly loaded video at `vidTime=0` was being compared against segments starting at `sourceStart=303.10` — always outside, so seek/snap logic flailed and the element stalled at `readyState=1` (HAVE_METADATA).
 
-## Next Steps (Priority Order)
+## What Got Fixed Tonight
 
-1. **Diagnose what's broken** — User mentioned things aren't fully working. Before Phase 5 cleanup, find and document the current bugs. Cleanup without knowing what's broken risks deleting the wrong thing (or worse, deleting code that happens to mask the bug).
-2. **Test the render pipeline on a real clip** — Phase 4 built the NLE render path but we haven't actually rendered a multi-segment edit end-to-end. Need to verify:
-   - Single-segment clip renders identically to before
-   - Multi-segment clip (with deleted sections) renders correctly with subtitle timing intact
-   - Frame rate matches source (60fps input → 60fps output)
-3. **Phase 5: Dead code cleanup** — After bugs are known, grep for callers of each legacy symbol:
-   - Store ops: `splitAudioSegment`, `deleteAudioSegment`, `_trimToAudioBounds`, `_concatRecutAfterDelete`, `_recutAfterDelete`
-   - IPC handlers: `clip:recut`, `clip:concatRecut`, `clip:extend`, `clip:extendLeft`
-   - Preload methods: `concatRecutClip`, `recutClip`, `extendClip`, `extendClipLeft`
-   - `ffmpeg.js`: `concatCutClip` if unreferenced
-   - No callers → delete. Callers exist → investigate before deleting.
+### 1. `usePlaybackStore.js` — added `clipFileOffset` and routed every conversion through it
+- New field `clipFileOffset: 0` (default). Set by editor store to `sourceStart` of the clip's initial NLE segment.
+- `setNleSegments(segments)` now translates `vid.currentTime + clipFileOffset` to source-absolute before the "is current position inside any segment?" check, and translates back via `-clipFileOffset` when writing to `vid.currentTime`.
+- `seekTo(timelineSec)` maps timeline→source-absolute via `timelineToSource`, then writes clip-relative to the video (`targetSourceAbs - clipFileOffset`).
+- `mapSourceTime(vidTime)` now treats its argument as clip-relative: `sourceAbs = vidTime + clipFileOffset`, and returns seek targets via `toVid(abs) = abs - clipFileOffset`.
+- Diagnostic log added in `togglePlay` prefixed `[DBG togglePlay]`.
+
+### 2. `useEditorStore.js` (~line 103)
+- When initializing NLE segments from a clip, `usePlaybackStore.setState({ clipFileOffset: sourceStart })` fires **before** `setNleSegments(nleSegs)`. Order matters: `setNleSegments` reads `clipFileOffset` from the store.
+
+### 3. `PreviewPanelNew.js` — rAF seek guard + play() diagnostics
+- The rAF loop was firing `video.currentTime = seekToSource` on every frame while the element was already seeking, preventing playback from ever starting. Now guarded:
+  ```js
+  if (result.needsSeek) {
+    if (!video.seeking && Math.abs(video.currentTime - result.seekToSource) > 0.05) {
+      video.currentTime = result.seekToSource;
+    }
+  }
+  ```
+- `[DBG playEffect]` logs the `play()` promise resolve/reject for future debugging.
+
+### 4. `TimelinePanelNew.js` (~line 121) — playhead no longer goes past trimmed end
+- The timeline's own rAF was reading `video.currentTime` directly (clip-relative) and feeding it to the ruler (timeline). On a left-trim, ruler end shrinks but the playhead kept marching in the old ghost space. Fixed by routing through `usePlaybackStore.mapSourceTime(video.currentTime)` and rendering `mapped.timelineTime`.
+
+## What's Still Broken (Same Root Cause, Three Surfaces)
+
+All three bugs: the rendering code is still in the old coordinate model. Helpers exist in `src/renderer/editor/models/timeMapping.js` to fix each. **Do not invent new math — use the helpers.**
+
+### Bug A — Waveform peaks mis-aligned after trim
+- File: `src/renderer/editor/components/WaveformTrack.js`
+- Symptom: waveform "zooms" or desyncs with segment body after a left-trim. Visible peaks don't match what you hear.
+- Fix shape: slice peaks from source-absolute `[sourceStart, sourceEnd]`, then render into the segment's **timeline** x-range via `getSegmentTimelineRange(id, nleSegments)`. Do not use `clipOrigin` math; use the helper.
+
+### Bug B — Subtitle track words drift off actual speech
+- File: wherever subtitles are rendered on the timeline track (not overlay renderer — that already maps in EditorLayout).
+- Symptom: after trim, subtitle tokens sit at timeline positions that don't correspond to where the word is actually spoken.
+- Fix shape: use `visibleSubtitleSegments(subtitles, nleSegments)` from `timeMapping.js` (line ~184). It takes source-absolute subtitles and returns only those visible on the current timeline with timeline-coordinate start/end, handling segment boundaries and gaps automatically.
+
+### Bug C — Segment body "zooms" during active left-trim drag
+- User reference: captions already do this correctly — they only resize on mouse-up. The audio/segment body should follow the same pattern, OR update correctly during drag. Currently it does something weird: segment appears to zoom the timeline instead of shrinking the block.
+- Fix shape: while dragging, either (a) apply a CSS-only transform based on the drag delta and commit to store on mouse-up (matches caption behavior), or (b) if committing continuously, always derive the segment's on-screen `left/width` via `buildTimelineLayout(nleSegments)` — never compute positions from `sourceStart/sourceEnd` directly.
+
+## Helpers Available in `timeMapping.js` (Use These)
+
+| Helper | Purpose |
+|--------|---------|
+| `sourceToTimeline(srcAbs, segments)` | Find which segment a source time is in, return timeline time |
+| `timelineToSource(tlT, segments)` | Inverse — convert timeline time to source-absolute |
+| `getTimelineDuration(segments)` | Sum of segment durations (what the ruler shows) |
+| `getSegmentTimelineRange(idOrIndex, segments)` | `{start, end}` in timeline coords for a segment — use for rendering segment blocks & waveform slices |
+| `buildTimelineLayout(segments)` | Precomputed layout for all segments (avoid calling getSegmentTimelineRange in a loop) |
+| `visibleWords(words, segments)` | Filter + remap words to timeline coords |
+| `visibleSubtitleSegments(subs, segments)` | Same for subtitle segments (line ~184) |
+
+## Debug Infrastructure Still in Place
+
+- `src/main/main.js` (~line 316): DevTools auto-opens detached. Every renderer `console-*` is appended to `%APPDATA%/Roaming/clipflow/trim-debug.log`. Session boundary line written on window open. `render-process-gone` handler logs crash reason.
+- Live log file: `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\trim-debug.log` — tail it while user reproduces.
+- `[DBG togglePlay]` and `[DBG playEffect]` log prefixes — grep the file.
+
+**When the three remaining bugs are fixed, REMOVE this debug instrumentation** (the forced DevTools, the file logger, the DBG logs). Keep only the `render-process-gone` handler as a permanent safety net.
+
+## Reproduction Steps
+
+1. `npx react-scripts build && npm start`
+2. Open any project with clips (e.g. `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\.clipflow\projects\proj_1775500131710_dve3uu`).
+3. Double-click a clip → editor opens.
+4. Drag the **left** trim handle of a segment inward.
+5. Observe: playback works now (fix #1). Ruler/playhead are correct (fix #4). **Waveform peaks don't match what plays. Subtitles drift. Segment body "zooms" during drag.**
+
+## Key Decisions Locked In Tonight
+
+1. `clipFileOffset` is the single source of truth for the vid↔source translation. Do not reintroduce ad-hoc `clipOrigin` offsets in individual components.
+2. The video element continues to play the **pre-cut clip file** (not the source recording). The Phase 4 render pipeline assembles from source; playback during editing uses the clip file with a coordinate translation. This is deliberate — changing playback source is a separate project.
+3. All rendering that puts something on the timeline ruler **must go through timeMapping helpers**. No component should do `x = (sourceStart / duration) * width` anymore.
 
 ## Watch Out For
 
-- **Renderer process crashes on `timeout <n> npm start`** — The `timeout` command on Windows git-bash kills Electron ungracefully (exit 143). Use `npm start &; sleep N; kill %1` instead.
-- **`timeMapping.js` uses `module.exports`** — CRA's webpack handles CJS imports from ES import syntax. The main process (`render.js`) uses `require()` directly. Both work, don't "fix" one to the other.
-- **Subtitle coordinate soup** — Three coord spaces in play: **source-absolute** (storage, `editSegments`), **timeline** (derived, passed to overlay renderer), **clip-relative display** (UI only, `_displayFmt`). Always know which one you're in. The overlay renderer's `findActiveWord` expects **timeline time** in `startSec`/`endSec`/`words[].start/end`.
-- **`clipData.subtitles` format** — Can be: `{sub1: [], sub2: [], _format: "source-absolute"}` (editor-saved), `{sub1: [], sub2: []}` (pipeline-generated, clip-relative), or `Array<seg>` (legacy flat). `render.js` handles all three.
-- **`resolutionProbeFile` vs `sourceFile`** — In NLE mode, `sourceFile=null` tells overlay renderer to skip duration probe; `resolutionProbeFile=srcFile` still lets it probe for dimensions. Don't collapse these back to one parameter.
-- **The user is actively using this** — "some things are still broken" means don't push to master casually until diagnosed. Future sessions should verify changes don't regress user workflows.
+- **Do not read `video.currentTime` and feed it to timeline-coord UI without translation.** That was bug #4 tonight. Always route through `mapSourceTime` or via a store selector that has already translated.
+- **`setNleSegments` depends on `clipFileOffset` being set first.** If you add a new code path that loads segments, set `clipFileOffset` in the same `setState` batch or immediately before.
+- **Chromium crashes on unmounted `<video>` without cleanup** (from earlier memory). PreviewPanel's cleanup is intact — don't remove it.
+- **Do not auto-open preview servers** — Electron app, not browser-previewable (per memory).
+- **Sentry CLIPFLOW-9 is stale** (pre-Phase-4 build hash `main.a33118e9.js`). Ignore it. If it reappears from a fresh build hash, re-investigate.
+- **Build hash to verify fixes landed:** after `npx react-scripts build`, check the new `main.*.js` hash is NOT `a33118e9` and NOT whatever ships tonight's commit. Point user to that fresh hash for repro.
+
+## Next Steps (Priority Order)
+
+1. **Fix Bug A (waveform)** — smallest blast radius, read `WaveformTrack.js`, swap peak-slicing math for `getSegmentTimelineRange`-based positioning. Verify visually.
+2. **Fix Bug B (subtitle track)** — find the timeline-level subtitle renderer (NOT the overlay renderer), swap in `visibleSubtitleSegments`. Verify words line up with audio.
+3. **Fix Bug C (segment body drag)** — decide: mirror caption UX (commit on mouse-up) or continuous via `buildTimelineLayout`. Ask user which feels right before coding.
+4. **Remove debug instrumentation** — `main.js` DevTools+logger, DBG prefixes in playback store and preview panel. Keep `render-process-gone`.
+5. **Write a Jest test** — a single `editorStore` test that loads a clip with `startTime=303.10`, calls `initNleSegments`, then asserts `usePlaybackStore.getState().clipFileOffset === 303.10`. Prevents regression.
+6. **Resume Phase 5 cleanup** (from last handoff) — legacy ops unreferenced now that NLE path is solid.
 
 ## Logs/Debugging
 
-- NLE + migration tests: `npx react-scripts test --watchAll=false --testPathPattern="nleModel"` — 74/74 pass
-- Build: `npx react-scripts build` succeeds
-- App launch: clean (no console errors, preview generation works)
-- Render logs prefix `[Render]` (main process stderr) and `[OverlayRenderer]` (overlay frame capture)
-- FFmpeg args logged before each render invocation — grep for `[Render] FFmpeg args:` to see full command
-- Real project data to test migration against: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\.clipflow\projects\proj_1775500131710_dve3uu\project.json`
+- Trim bug log: `%APPDATA%/clipflow/trim-debug.log` (Windows: `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\trim-debug.log`)
+- NLE + migration tests: `npx react-scripts test --watchAll=false --testPathPattern="nleModel"` — 74/74 pass (was passing at last check; re-run after coordinate fixes)
+- Build: `npx react-scripts build` — verify clean build before handing back to user
+- Sentry: flowve/clipflow (token + org info in memory `reference_sentry_api.md`)
+- Render logs: `[Render]` prefix (main stderr), `[OverlayRenderer]` prefix (overlay)
+
+## Context For Next Assistant
+
+The user (Fega) is actively using the app and had a real frustrating session tonight where left-trim broke playback entirely. We fixed that. They explicitly said "the header now follows correctly, which is amazing" — celebrate small wins but don't stop. Three rendering layers are still wrong. The fix pattern is identical for all three (use the helpers). Do not re-derive coordinate math from scratch — it was all written and unit-tested in Phase 3.
+
+Research before editing. Read `WaveformTrack.js` end-to-end before changing a single line. Same for the subtitle timeline renderer. The user will correct you hard if you guess-patch.

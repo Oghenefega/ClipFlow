@@ -101,6 +101,10 @@ const useEditorStore = create((set, get) => ({
       extending: false,
     });
 
+    // Video element plays the pre-cut clip file; its currentTime is clip-relative.
+    // Segments use source-absolute times. Tell playback store the offset so it can translate.
+    usePlaybackStore.setState({ clipFileOffset: sourceStart });
+
     // Sync NLE segments to playback store for duration and segment-aware playback
     usePlaybackStore.getState().setNleSegments(nleSegs);
 

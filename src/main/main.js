@@ -320,6 +320,22 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "../../build/index.html"));
   }
 
+  // [DEBUG TRIM FREEZE] Force DevTools + forward renderer console to debug log
+  mainWindow.webContents.openDevTools({ mode: "detach" });
+  const debugLogPath = path.join(app.getPath("userData"), "trim-debug.log");
+  try { fs.writeFileSync(debugLogPath, `=== Session ${new Date().toISOString()} ===\n`); } catch (e) {}
+  mainWindow.webContents.on("console-message", (_e, level, message, line, sourceId) => {
+    const levels = ["LOG", "WARN", "ERROR", "INFO"];
+    const tag = levels[level] || `L${level}`;
+    try {
+      fs.appendFileSync(debugLogPath, `[${tag}] ${message}  (${sourceId}:${line})\n`);
+    } catch (e) {}
+  });
+  mainWindow.webContents.on("render-process-gone", (_e, details) => {
+    try { fs.appendFileSync(debugLogPath, `[RENDER-GONE] ${JSON.stringify(details)}\n`); } catch (e) {}
+  });
+  console.log("[DEBUG] trim-debug.log →", debugLogPath);
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

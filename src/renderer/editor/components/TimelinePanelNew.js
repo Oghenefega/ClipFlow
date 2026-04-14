@@ -121,7 +121,10 @@ export default function TimelinePanelNew() {
     const tick = () => {
       const videoRef = usePlaybackStore.getState().getVideoRef();
       if (videoRef?.current && !videoRef.current.paused) {
-        setSmoothTime(videoRef.current.currentTime);
+        // video.currentTime is CLIP-RELATIVE; ruler is in TIMELINE coordinates.
+        // Translate via the playback store's mapSourceTime (handles clipFileOffset + segments).
+        const mapped = usePlaybackStore.getState().mapSourceTime(videoRef.current.currentTime);
+        setSmoothTime(mapped.timelineTime);
       }
       playheadRafRef.current = requestAnimationFrame(tick);
     };
