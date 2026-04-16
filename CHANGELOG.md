@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-16 (session 4) — Phase 4 post-test triage
+
+### Notes (no code changes in this slice — planning + diagnostics only)
+- **Renderer crash is NOT fixed.** Mitigations A/B shipped earlier in the session; crash recurred at 14:51:56 on the new build (~2 min into editor work, same exit code `-1073741819` / `0xC0000005`). Root cause still unknown. Documented in HANDOFF as task B2 (needs `crashReporter` minidumps + renderer error instrumentation before further investigation).
+- **New bug B1 identified (root cause found, fix deferred to next session):** `useSubtitleStore.initSegments` filters source-wide transcription down to the original `[clip.startTime, clip.endTime]` range at editor-open time. When the user extends the clip afterwards, the subtitles that would populate the new range were already discarded — Phase 4's "extends reveal already-transcribed audio" promise is only half-kept. Specific lines in HANDOFF.
+- **New bug B2a identified:** no editor autosave. Every renderer crash = full loss of unsaved editor state, because `App.js` defaults `useState("rename")` on remount.
+- **Subtitle mismatch regression (B3):** reported by user, no specifics yet — parked pending repro.
+- **Full prioritized 10-item bug/cleanup board** written to HANDOFF and TodoWrite.
+
 ## [Unreleased] — 2026-04-16 (session 4) — Phase 4 hardening: renderer-crash mitigations
 
 ### Fixed
