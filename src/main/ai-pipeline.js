@@ -587,12 +587,18 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       // Offset all timestamps to be clip-local (0-based)
       const clipSubs = sliceSubtitlesFromSource(transcription, startSec, endSec);
 
+      const clipId = projects.generateClipId();
       project.clips.push({
-        id: projects.generateClipId(),
+        id: clipId,
         title: clip.title || "",
         caption: clip.title || "",
         startTime: startSec,
         endTime: endSec,
+        // Phase 4: NLE segments defined at import so render always uses source+segments
+        // (no dependence on a pre-cut clip file). Single segment = [startSec, endSec].
+        nleSegments: [
+          { id: `seg-${clipId}-0`, sourceStart: startSec, sourceEnd: endSec },
+        ],
         highlightScore: Math.round((clip.confidence || 0) * 100),
         highlightReason: clip.why || "",
         peakQuote: clip.peak_quote || "",

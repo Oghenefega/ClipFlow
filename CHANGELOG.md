@@ -4,6 +4,31 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-16 (session 3) — Phase 4: Source-file preview
+
+### Changed
+- **Editor preview switched to source-file playback (Phase 4)**: The `<video>` element now plays the full source recording (`project.sourceFile`) instead of a pre-cut clip file. NLE segments (source-absolute coords) are the sole definition of what's visible on the timeline. Trims and extends are now **instant** — no FFmpeg recut, no video reload, no "extending" loading state. This matches the standard DaVinci Resolve / Premiere NLE architecture (media pool + timeline clips as pointers into source). `clipFileOffset` is now permanently `0` since `video.currentTime` IS source-absolute time.
+- **Waveform peaks now extracted from source recording with disk cache**: New IPC `waveform:extractCached` extracts peaks from the full source file once per `{sourceFile, mtime, size, peakCount}` tuple and caches to `{projectDir}/.waveforms/*.json`. Subsequent opens read the JSON instantly (no FFmpeg). Peak count scales with duration (~4 peaks/sec, capped at 8000) so a 30-min source gets ~7200 peaks in ~40KB. Waveform never stretches during trim/extend because peaks cover the full source, not the trimmed clip.
+- **Render pipeline is now the only consumer of clip files**: Existing NLE-aware render path (from 2026-04-13) handles everything. To ensure render always has segments, every clip created by the AI pipeline now gets an initial `nleSegments: [{ sourceStart, sourceEnd }]` at import time — no more fallback to clip-file-only rendering.
+
+### Added
+- **Media Offline state**: When `project.sourceFile` is missing from disk (user moved/renamed/deleted the OBS recording), the editor displays a red "Media Offline" banner in the preview area with the missing path and a **Locate file…** button. Clicking opens a file picker; selecting the moved recording updates `project.sourceFile` and restores preview. Matches DaVinci's offline-media UX. No silent fallback to clip files.
+- **`project:locateSource` IPC** + `projectLocateSource` preload bridge to drive the Locate-file flow.
+
+### Fixed
+- **Waveform stretches during extend (previously visible as stretched audio peaks while dragging a trim handle past the original clip bounds)**: Root cause was peaks being sliced from a small clip-file range that didn't cover the extended area. Now resolved because peaks span the full source.
+- **"Clip has to load after every extend" loading delay**: Eliminated entirely. Extends/trims apply instantly via segment-bound updates; no video reload, no FFmpeg.
+- **Playhead snap-back when extending past original clip boundaries**: Eliminated as a class. `video.currentTime` can now reach any point in the source recording that a segment references.
+
+### Removed
+- `commitNleExtendCheck` action in `useEditorStore.js` (~150 lines) — the FFmpeg-recut-on-extend pathway is no longer needed.
+- `onExtendCommit` prop and callback wiring from `WaveformTrack.js` + `TimelinePanelNew.js` — pointerup no longer triggers a recut.
+
+### Technical notes
+- `clip.filePath` (pre-cut clip file) is retained in project JSON for now. The editor no longer reads from it. Per-clip retranscription (Stage 7b in `ai-pipeline.js`) still consumes it; a follow-up can replace that with direct audio extraction from source + in/out.
+- Legacy IPC handlers `clip:extend` and `clip:extendLeft` remain in `main.js` as dead code. Not called from the editor anymore. Can be deleted in a cleanup pass.
+- `project.transcription` is generated from the full source at project creation and is source-absolute, so extends reveal already-transcribed audio with no Whisper re-run needed.
+
 ## [Unreleased] — 2026-04-14 (session 2)
 
 ### Fixed

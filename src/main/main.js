@@ -632,6 +632,82 @@ ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => 
   catch (err) { return { error: err.message, peaks: [] }; }
 });
 
+// ============ WAVEFORM CACHE (source-file preview) ============
+// Phase 4: the editor reads waveform peaks from the full source recording.
+// Extraction over a 30-min file is 1.5–6s the first time, so cache to disk keyed
+// by {sourceFile path, mtime, size}. Subsequent opens read JSON instantly.
+ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, durationSec) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    if (!watchFolder) return { error: "Watch folder not set", peaks: [] };
+    if (!sourceFilePath || !fs.existsSync(sourceFilePath)) {
+      return { error: "Source file not found", peaks: [] };
+    }
+
+    const stat = fs.statSync(sourceFilePath);
+    const mtimeMs = Math.floor(stat.mtimeMs);
+    const sizeBytes = stat.size;
+
+    // Scale peak count to duration — ~4 peaks/sec, capped at 8000.
+    // A 30-min source = ~7200 peaks ≈ 40KB JSON.
+    const dur = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 60;
+    const peakCount = Math.min(8000, Math.max(400, Math.ceil(dur * 4)));
+
+    const cacheDir = path.join(projects.getProjectsRoot(watchFolder), projectId, ".waveforms");
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    const baseName = path.basename(sourceFilePath).replace(/[^\w.-]/g, "_");
+    const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.json`;
+    const cachePath = path.join(cacheDir, cacheKey);
+
+    if (fs.existsSync(cachePath)) {
+      try {
+        const cached = JSON.parse(fs.readFileSync(cachePath, "utf-8"));
+        if (Array.isArray(cached.peaks) && cached.peaks.length > 0) {
+          return { peaks: cached.peaks, cached: true };
+        }
+      } catch (_) { /* fall through — re-extract on parse failure */ }
+    }
+
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
+    const result = await ffmpeg.extractWaveformPeaks(sourceFilePath, peakCount, audioTrack);
+    if (result?.peaks?.length > 0) {
+      try {
+        fs.writeFileSync(cachePath, JSON.stringify({ peaks: result.peaks, peakCount, mtimeMs, sizeBytes }), "utf-8");
+      } catch (_) { /* cache write failure is non-fatal */ }
+    }
+    return { peaks: result.peaks || [], cached: false };
+  } catch (err) {
+    return { error: err.message, peaks: [] };
+  }
+});
+
+// ============ LOCATE SOURCE FILE (Media Offline recovery) ============
+// Phase 4: when the OBS recording is moved/renamed after project creation,
+// editor shows "Media Offline" and this IPC lets the user point to the new path.
+ipcMain.handle("project:locateSource", async (_, projectId) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    if (!watchFolder) return { error: "Watch folder not set" };
+
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+
+    const result = await dialog.showOpenDialog({
+      title: "Locate source recording",
+      properties: ["openFile"],
+      filters: [{ name: "Video files", extensions: ["mp4", "mkv", "mov", "webm", "avi"] }],
+    });
+    if (result.canceled || !result.filePaths[0]) return { canceled: true };
+
+    const newPath = result.filePaths[0];
+    project.sourceFile = newPath;
+    projects.saveProject(watchFolder, project);
+    return { success: true, sourceFile: newPath };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // ============ VIDEO SPLITTING ============
 ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
   try {

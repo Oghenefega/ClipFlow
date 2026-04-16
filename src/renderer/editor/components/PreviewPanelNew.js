@@ -409,6 +409,8 @@ export default function PreviewPanelNew() {
   const clip = useEditorStore((s) => s.clip);
   const project = useEditorStore((s) => s.project);
   const videoVersion = useEditorStore((s) => s.videoVersion);
+  const sourceOffline = useEditorStore((s) => s.sourceOffline);
+  const locateSource = useEditorStore((s) => s.locateSource);
 
   // Playback
   const playing = usePlaybackStore((s) => s.playing);
@@ -624,14 +626,17 @@ export default function PreviewPanelNew() {
     };
   }, []);
 
-  // Video source path — use clip's cut file for now.
-  // Phase 4 (segment-aware playback) will switch to project.sourceFile
-  // so the video plays the original recording with NLE segments controlling what's visible.
+  // Phase 4: video element plays the full source recording. NLE segments
+  // (source-absolute coords) define what's visible on the timeline. Extends/trims
+  // are instant — just update segment bounds, no FFmpeg, no reload.
+  // Falls back to clip.filePath for legacy projects without project.sourceFile.
   const videoSrc = useMemo(() => {
-    if (!clip?.filePath) return null;
+    if (sourceOffline) return null;
+    const src = project?.sourceFile || clip?.filePath;
+    if (!src) return null;
     const cacheBuster = videoVersion > 0 ? `?v=${videoVersion}` : "";
-    return `file://${clip.filePath.replace(/\\/g, "/")}${cacheBuster}`;
-  }, [clip?.filePath, videoVersion]);
+    return `file://${src.replace(/\\/g, "/")}${cacheBuster}`;
+  }, [project?.sourceFile, clip?.filePath, videoVersion, sourceOffline]);
 
   // Force video reload when videoSrc changes (React setAttribute doesn't auto-load)
   const prevVideoSrcRef = useRef(null);
@@ -822,31 +827,46 @@ export default function PreviewPanelNew() {
 
   const onLoadedMetadata = useCallback(() => {
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
-      // Duration comes from NLE segments (timeline duration), not video.duration (source duration)
-      // The editor store sets this when nleSegments change, but set source duration as fallback
-      // Ensure NLE segments exist — creates them from video duration if missing
-      // (handles clips without startTime/endTime or saved nleSegments)
-      initNleSegments(videoRef.current.duration);
+      const videoDur = videoRef.current.duration;
 
-      // Record the unchanging clip-file duration for waveform slicing (timeline
-      // `duration` shrinks on trim; this one does not).
-      usePlaybackStore.setState({ clipFileDuration: videoRef.current.duration });
+      // clipFileDuration now represents the video element's total extent. With
+      // Phase 4 source-file preview, this equals the source recording duration.
+      usePlaybackStore.setState({ clipFileDuration: videoDur });
+
+      // Seed NLE segments if they don't exist yet (safety for legacy data).
+      initNleSegments(videoDur);
 
       const editorNleSegs = useEditorStore.getState().nleSegments;
       if (!editorNleSegs || editorNleSegs.length === 0) {
-        setDuration(videoRef.current.duration);
+        setDuration(videoDur);
+      } else {
+        // Phase 4: seek video to first segment's source-absolute start so the
+        // playhead lands at the clip's beginning instead of frame 0 of the
+        // full source recording.
+        const firstSeg = editorNleSegs[0];
+        if (firstSeg && Number.isFinite(firstSeg.sourceStart)) {
+          videoRef.current.currentTime = Math.max(0, firstSeg.sourceStart);
+        }
       }
 
-      // Extract waveform peaks from clip file (Phase 4 will switch to source)
-      const sourcePath = clip?.filePath;
-      if (sourcePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
-        window.clipflow.ffmpegExtractWaveformPeaks(sourcePath, 800).then((result) => {
+      // Extract waveform from the full source recording with disk cache.
+      // First extraction over a 30-min source is ~1.5–6s; subsequent opens read
+      // the cached JSON instantly (keyed by sourceFile mtime + size).
+      const editorProject = useEditorStore.getState().project;
+      const sourcePath = editorProject?.sourceFile || clip?.filePath;
+      if (sourcePath && editorProject?.id && window.clipflow?.waveformExtractCached) {
+        window.clipflow.waveformExtractCached(editorProject.id, sourcePath, videoDur).then((result) => {
           if (result?.peaks?.length > 0) {
             setWaveformPeaks(result.peaks);
           }
         }).catch((err) => {
           console.warn("Waveform extraction failed:", err);
         });
+      } else if (sourcePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
+        // Legacy fallback (no project id or cached IPC unavailable)
+        window.clipflow.ffmpegExtractWaveformPeaks(sourcePath, 800).then((result) => {
+          if (result?.peaks?.length > 0) setWaveformPeaks(result.peaks);
+        }).catch(() => {});
       }
     }
   }, [setDuration, initNleSegments, clip?.filePath, setWaveformPeaks]);
@@ -1003,7 +1023,26 @@ export default function PreviewPanelNew() {
         >
           {/* Video element (overflow-hidden here for rounded corners) */}
           <div className="absolute inset-0 overflow-hidden rounded-lg" />
-          {videoSrc ? (
+          {sourceOffline ? (
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6"
+              style={{ background: "hsl(0 70% 10% / 0.35)" }}
+              data-canvas-bg="true"
+            >
+              <div className="text-destructive text-sm font-semibold uppercase tracking-wider">Media Offline</div>
+              <div className="text-xs text-muted-foreground max-w-[22ch]">
+                The source recording couldn't be found at its saved location.
+              </div>
+              {project?.sourceFile && (
+                <div className="text-[10px] text-muted-foreground/60 font-mono max-w-[32ch] truncate">
+                  {project.sourceFile}
+                </div>
+              )}
+              <Button variant="outline" size="sm" className="mt-1" onClick={locateSource}>
+                Locate file…
+              </Button>
+            </div>
+          ) : videoSrc ? (
             <video
               ref={videoRef}
               src={videoSrc}

@@ -1035,8 +1035,10 @@ export default function TimelinePanelNew() {
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
-                      peaks={waveformPeaks} clipFileDuration={clipFileDuration || duration}
-                      clipOrigin={sourceStartTime}
+                      peaks={waveformPeaks}
+                      clipFileDuration={sourceDuration || clipFileDuration || duration}
+                      clipOrigin={0}
+                      sourceDuration={sourceDuration}
                       timelineWidth={widthPx} currentTime={currentTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}

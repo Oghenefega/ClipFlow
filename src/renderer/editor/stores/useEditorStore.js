@@ -32,6 +32,10 @@ const useEditorStore = create((set, get) => ({
   extending: false,
   videoVersion: 0,
 
+  // Phase 4: Media Offline state. Set when project.sourceFile is missing on disk.
+  // Editor shows a "Locate file…" banner and disables preview until user resolves.
+  sourceOffline: false,
+
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
@@ -86,6 +90,16 @@ const useEditorStore = create((set, get) => ({
       nleSegs = [];
     }
 
+    // Phase 4: Media Offline check — project.sourceFile must exist on disk for
+    // the editor to preview. If moved/deleted, show the Media Offline banner.
+    let sourceOffline = false;
+    try {
+      if (project?.sourceFile && window.clipflow?.fileExists) {
+        const exists = await window.clipflow.fileExists(project.sourceFile);
+        sourceOffline = !exists;
+      }
+    } catch (_) { sourceOffline = false; }
+
     set({
       project,
       clip,
@@ -99,11 +113,21 @@ const useEditorStore = create((set, get) => ({
       maxExtendSec: maxExtend > 0 ? maxExtend : clipDuration,
       maxExtendLeftSec: sourceStart,
       extending: false,
+      sourceOffline,
     });
 
-    // Video element plays the pre-cut clip file; its currentTime is clip-relative.
-    // Segments use source-absolute times. Tell playback store the offset so it can translate.
-    usePlaybackStore.setState({ clipFileOffset: sourceStart });
+    // Clear any stale playback state from the previous clip BEFORE we populate
+    // nleSegments. reset() wipes nleSegments: [] and currentTime: 0 — running it
+    // after setNleSegments(nleSegs) silently clobbers the segments.
+    usePlaybackStore.getState().reset();
+
+    // Phase 4: <video>.src is the full source recording, so video.currentTime
+    // IS source-absolute time. clipFileOffset = 0 means no translation needed.
+    // clipFileDuration = sourceDuration (the unchanging extent of the video).
+    usePlaybackStore.setState({
+      clipFileOffset: 0,
+      clipFileDuration: sourceDur,
+    });
 
     // Sync NLE segments to playback store for duration and segment-aware playback
     usePlaybackStore.getState().setNleSegments(nleSegs);
@@ -111,7 +135,6 @@ const useEditorStore = create((set, get) => ({
     // Initialize other stores from clip data
     useCaptionStore.getState().initFromClip(clip);
     useSubtitleStore.getState().initSegments(project, clip);
-    usePlaybackStore.getState().reset();
 
     // Auto-apply default template on editor open, then restore any saved styling
     // Template provides defaults; saved clip styling (from handleSave) wins.
@@ -250,6 +273,25 @@ const useEditorStore = create((set, get) => ({
     set({ nleSegments: newSegs });
     usePlaybackStore.getState().setNleSegments(newSegs);
     get().markDirty();
+  },
+
+  /**
+   * Phase 4: Media Offline recovery. Opens a file dialog to let the user point
+   * to the moved/renamed source recording. On success, updates project.sourceFile
+   * and clears sourceOffline state so preview resumes.
+   */
+  locateSource: async () => {
+    const { project } = get();
+    if (!project?.id || !window.clipflow?.projectLocateSource) return;
+    const result = await window.clipflow.projectLocateSource(project.id);
+    if (result?.canceled || result?.error) return;
+    if (result?.success && result.sourceFile) {
+      set({
+        project: { ...project, sourceFile: result.sourceFile },
+        sourceOffline: false,
+        videoVersion: get().videoVersion + 1,
+      });
+    }
   },
 
   // ── Legacy Audio segment actions (kept for gradual migration) ──

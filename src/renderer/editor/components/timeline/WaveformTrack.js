@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
+function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -24,15 +24,19 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWi
         // Convert pixel delta to source-time delta using the segment's own duration
         const dtSec = segSourceDur > 0 ? (dx / timelineWidth) * segSourceDur : 0;
         if (side === "left") {
+          // Lower bound: source-time 0 (start of source recording).
+          // Upper bound: our own end minus minimum duration.
           const newSourceStart = Math.max(0, Math.min(
             startRef.current.sourceStart + dtSec,
             startRef.current.sourceEnd - 0.1
           ));
           if (onTrimLeft) onTrimLeft(nleSegment.id, newSourceStart);
         } else {
+          // Upper bound: source recording end (can't extend past actual audio).
+          // Lower bound: our own start plus minimum duration.
           const newSourceEnd = Math.max(
             startRef.current.sourceStart + 0.1,
-            startRef.current.sourceEnd + dtSec
+            Math.min(sourceDuration, startRef.current.sourceEnd + dtSec)
           );
           if (onTrimRight) onTrimRight(nleSegment.id, newSourceEnd);
         }
@@ -45,11 +49,12 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, timelineWi
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       if (onTrimEnd) onTrimEnd();
-      // No onResizeEnd needed — NLE trim is instant (pure state update)
+      // Phase 4: no post-drag recut needed. The <video> element plays the full
+      // source, so updated segment bounds take effect immediately — no FFmpeg.
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, timelineWidth]);
+  }, [nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, timelineWidth, sourceDuration]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -220,6 +225,7 @@ export default React.memo(WaveformTrack, (prev, next) => {
   return (
     prev.peaks === next.peaks &&
     prev.clipFileDuration === next.clipFileDuration &&
+    prev.sourceDuration === next.sourceDuration &&
     prev.timelineWidth === next.timelineWidth &&
     prev.selected === next.selected &&
     prev.nleSegment === next.nleSegment &&
