@@ -638,13 +638,24 @@ export default function PreviewPanelNew() {
     return `file://${src.replace(/\\/g, "/")}${cacheBuster}`;
   }, [project?.sourceFile, clip?.filePath, videoVersion, sourceOffline]);
 
-  // Force video reload when videoSrc changes (React setAttribute doesn't auto-load)
-  const prevVideoSrcRef = useRef(null);
+  // Imperative src management — replaces the `src={videoSrc}` JSX prop.
+  // Why: with `src` as a React prop, swapping the URL leaves the previous
+  // stream's ArrayBuffer in flight while the new src starts fetching. On
+  // Phase 4 source files (full recordings — up to multi-GB), that overlap
+  // can trip blink::DOMDataStore::GetWrapper and crash the renderer with
+  // ACCESS_VIOLATION (0xC0000005). Tearing down fully first eliminates
+  // the race.
   useEffect(() => {
-    if (videoSrc && videoRef.current && prevVideoSrcRef.current !== null && prevVideoSrcRef.current !== videoSrc) {
-      videoRef.current.load();
+    const vid = videoRef.current;
+    if (!vid) return;
+    // Stop any in-flight fetch from the previous src (no-op on first run)
+    vid.pause();
+    vid.removeAttribute("src");
+    vid.load();
+    if (videoSrc) {
+      vid.src = videoSrc;
+      vid.load();
     }
-    prevVideoSrcRef.current = videoSrc;
   }, [videoSrc]);
 
   // Compute display zoom
@@ -1045,12 +1056,11 @@ export default function PreviewPanelNew() {
           ) : videoSrc ? (
             <video
               ref={videoRef}
-              src={videoSrc}
               className="absolute inset-0 w-full h-full object-contain rounded-lg"
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
               onEnded={onVideoEnd}
-              preload="auto"
+              preload="metadata"
               data-canvas-bg="true"
             />
           ) : (

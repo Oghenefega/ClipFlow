@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-16 (session 4) — Phase 4 hardening: renderer-crash mitigations
+
+### Fixed
+- **Renderer crash (ACCESS_VIOLATION 0xC0000005) in `blink::DOMDataStore`**: Observed once during Phase 4 testing, ~6 min into a session before any trim operations. Root cause was the combination of (a) `<video>` now streaming full source recordings (hundreds of MB to GB, vs tens of MB for old pre-cut clips) and (b) React swapping the `src` prop in place, leaving the previous stream's ArrayBuffer in flight while the new fetch started. On large files that overlap window is big enough for Chromium to tear down a detached ArrayBuffer and null-deref.
+- **Mitigation A — `preload="auto"` → `preload="metadata"`** on the editor `<video>`. Still fires `onLoadedMetadata` (all Phase 4 needs for duration, seek-to-segment-start, and waveform kickoff). Actual media bytes stream on `play()` — dramatically smaller in-flight buffer during mount/unmount cycles.
+- **Mitigation B — Imperative `src` management** replaces `<video src={videoSrc}>` JSX prop. New effect pauses + removes the old src + calls `load()` BEFORE assigning the new src, eliminating the overlapping-ArrayBuffer race. The prior `useRef`-tracked `load()`-after-swap shim is gone.
+
 ## [Unreleased] — 2026-04-16 (session 3) — Phase 4: Source-file preview
 
 ### Changed
