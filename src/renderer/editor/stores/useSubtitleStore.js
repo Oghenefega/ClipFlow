@@ -516,6 +516,52 @@ const useSubtitleStore = create((set, get) => ({
       .filter((s) => s.words.length > 0 || s.text.trim().length > 0); // Drop empty segments from boundary trim
     // Re-number IDs after filtering
     segs.forEach((s, i) => { s.id = i + 1; });
+
+    // Phase 4 merge: when primary source was clip-bounded (clip.transcription,
+    // clip.subtitles.sub1, or legacy array), pull source-wide project.transcription
+    // segments that don't overlap any primary segment. Ensures extends past the
+    // original clip bounds reveal subtitles for the newly-visible audio.
+    const primaryIsProjectTranscription =
+      !hasClipTranscription && !hasClipSubtitles && !(Array.isArray(clip?.subtitles) && clip.subtitles.length > 0);
+    if (hasProjectTranscription && !primaryIsProjectTranscription) {
+      const primaryRanges = segs.map((s) => [s.startSec, s.endSec]);
+      const overlapsPrimary = (start, end) =>
+        primaryRanges.some(([pStart, pEnd]) => start < pEnd && end > pStart);
+
+      const extraSegs = project.transcription.segments
+        .filter((s) => !overlapsPrimary(s.start, s.end))
+        .map((s) => {
+          const segStartSec = s.start;
+          const segEndSec = s.end;
+          const words = (s.words || []).map((w) => ({
+            word: w.word,
+            start: w.start ?? s.start,
+            end: w.end ?? s.end,
+            probability: w.probability ?? 1,
+          }));
+          return {
+            id: 0, // renumbered below
+            start: _displayFmt(segStartSec, clipOrigin),
+            end: _displayFmt(segEndSec, clipOrigin),
+            dur: ((segEndSec - segStartSec).toFixed(1)) + "s",
+            text: s.text || words.map((w) => w.word).join("").trim(),
+            track: "s1",
+            conf: "high",
+            startSec: segStartSec,
+            endSec: segEndSec,
+            warning: (segEndSec - segStartSec) > 10 ? "Long segment — consider splitting" : null,
+            words,
+          };
+        });
+
+      if (extraSegs.length > 0) {
+        segs.push(...extraSegs);
+        segs.sort((a, b) => a.startSec - b.startSec);
+        segs.forEach((s, i) => { s.id = i + 1; });
+        console.log(`[initSegments] Merged ${extraSegs.length} source-wide segments from project.transcription for extends coverage`);
+      }
+    }
+
     // Store original sentence-level segments for transcript tab and mode switching
     set({
       _sourceOrigin: clipOrigin,
