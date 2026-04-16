@@ -408,11 +408,6 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Filter bounds in the raw data's coordinate space
-    const clipDuration = clip.duration || (clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0);
-    const rawFilterStart = rawIsSourceAbsolute ? clipOrigin : 0;
-    const rawFilterEnd = rawIsSourceAbsolute ? (clip.endTime || Infinity) : (clipDuration > 0 ? clipDuration : Infinity);
-
     console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
 
     // Filter out "mega-segments" — transcription artifacts where stable-ts/Whisper
@@ -468,33 +463,22 @@ const useSubtitleStore = create((set, get) => ({
       }
     }
 
+    // Source-wide: no clip-bound filter here. Downstream visibleSubtitleSegments
+    // + nleSegments handle timeline clipping, so extends reveal already-loaded
+    // segments instead of finding them discarded at init time.
     const segs = deduped
-      .filter((s) => {
-        if (rawFilterEnd === Infinity) return true;
-        return s.start < rawFilterEnd && s.end > rawFilterStart;
-      })
       .map((s, i) => {
         // Convert to source-absolute timestamps
         const segStartSec = s.start + sourceOffset;
         const segEndSec = s.end + sourceOffset;
 
         // Build words in source-absolute time
-        const allWords = (s.words || []).map(w => ({
+        const cleanWords = (s.words || []).map(w => ({
           word: w.word,
           start: (w.start ?? s.start) + sourceOffset,
           end: (w.end ?? s.end) + sourceOffset,
           probability: w.probability ?? 1,
-          _rawStart: w.start ?? s.start, // keep raw for boundary filtering
         }));
-
-        // Drop words outside clip boundaries (needed for project transcription
-        // where data spans the full source but we only want the clip's range)
-        const clippedWords = rawIsSourceAbsolute
-          ? allWords.filter(w => w._rawStart >= rawFilterStart - 0.05)
-          : allWords;
-
-        // Clean up internal field
-        const cleanWords = clippedWords.map(({ _rawStart, ...w }) => w);
 
         const rawWords = mergeWordTokens(cleanWords, s.text);
         const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
