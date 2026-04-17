@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 9) — #35 minimal repro established, C1 Electron upgrade arc unblocked
+
+### Added
+- **#35 crash — reliable minimal repro.** Mined Sentry breadcrumbs across 12 events spanning ~2 weeks (out of 60 total events on issue `7381799876`), identified three distinct crash shapes all sharing the same Chromium 120 fetch-stream UAF stack (`blink::DOMDataStore::GetWrapper` → `DOMArrayBuffer::IsDetached` → `ReadableStreamBytesConsumer::BeginRead` → `FetchDataLoaderAsDataPipe::OnStateChange`). Pattern A = timeline interaction crash (Radix Slider thumbs, trim handles, waveform track; preceded by rapid `seekTo` calls). Pattern B = idle projects-tab crash (minutes after preview frame extraction on 30min+ source files). Pattern C = clip-open crash (within 1-3s of `<video>` load after navigating projects → clip). All three confirmed as `<video src="file://...">` lifecycle events. Fega confirmed the recipe live: open a clip with a 30min+ source, drag the timeline zoom slider rapidly left-right for ~5-10 seconds → crash fires with `0xC0000005 ACCESS_VIOLATION_READ`. Two fresh Sentry events captured this session: `b0e03249`, `004c5c7a`.
+- **Diagnostic writeup posted to [#35](https://github.com/Oghenefega/ClipFlow/issues/35#issuecomment-4266632249)** covering method, the three crash patterns, corrected interpretation of session 5's Slider hypothesis (not wrong, just narrow — Slider is one trigger in Pattern A, not the universal cause), the repro recipe, and the go/no-go test framing for each Electron upgrade hop (drag zoom slider 10× pre-hop and post-hop; if it doesn't crash post-hop, that hop is a candidate fix).
+
+### Notes (no code changes this session — diagnostic + planning only)
+- **Step 0 of C1 Phase 1 complete.** The Modernization Audit's gating requirement (reproducible crash recipe on stock Electron 28) is satisfied. [#45](https://github.com/Oghenefega/ClipFlow/issues/45) Electron upgrade arc is now unblocked and ready to begin in the next session.
+- **[#51](https://github.com/Oghenefega/ClipFlow/issues/51) (code-signing cert procurement) deferred indefinitely** — Fega confirmed no funds, no beta cohort, no launch timeline. Comment posted. Issue remains open but flagged as "not blocking any current work." Revisit when funds + beta exist.
+- **Pre-beta priority framing clarified by Fega** — substrate upgrades (Electron, Vite, React, dep majors) take priority over launch-hardening work (API abuse prevention, rate limiting, code-signing, CF gateway abuse prevention). H9, H4, and #51-style items remain tracked but should not be pushed as "critical path" while pre-beta. Saved as a feedback memory for future sessions.
+- **Sentry's default `ui.click` breadcrumb instrumentation does NOT capture pointer drag sequences**, only synthetic click events. This is why past breadcrumb analysis on drag-triggered crashes looked benign — the actual trigger (drag) wasn't logged. Good to know for future diagnostic work: if a crash is drag-triggered, the breadcrumb trail before the crash will show stale clicks, not the actual action.
+
 ## [Unreleased] — 2026-04-17 (session 8) — Infrastructure dashboard bootstrap + 11-decision walkthrough
 
 ### Added
