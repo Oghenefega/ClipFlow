@@ -11,6 +11,16 @@ ClipFlow is a **commercial software product** being built for public release wit
 - Platform publishing: built for "publish on behalf of users" — each user connects their own social accounts via OAuth
 - Platform scope: YouTube, TikTok, Instagram, Facebook, X (Twitter), Kick, and others added over time
 
+## Infrastructure Dashboard (External, Filtered)
+
+An external infrastructure dashboard lives at `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\infrastructure\ClipFlow Infrastructure.md`. **Most sessions will never need to load it.**
+
+**Consult it only when the session's work directly touches infrastructure** — defined narrowly as: Electron/Chromium/Node version changes, build tool (CRA/Vite) changes, dependency version bumps, module system (CJS/ESM) changes, security posture (CSP, `contextIsolation`, `sandbox`, preload scripts), code signing, auto-updater, installer config, or external infrastructure (Cloudflare, Supabase, Railway, LemonSqueezy, Sentry, PostHog).
+
+**Do NOT consult it for:** product features, new tabs, UI redesigns, platform integrations, pipeline changes, bug fixes, AI prompt changes, editor behavior changes, or anything that belongs on GitHub as a feature/bug issue. That's the vast majority of sessions.
+
+When the dashboard IS relevant: read Section 9 ("Current decisions in flight") before proposing anything. Decisions recorded there are committed — follow them, don't re-litigate. If the work you're about to do invalidates a recorded decision (e.g., you discover a prior decision's assumption was wrong, or the fix needs to diverge), flag it explicitly in chat so the dashboard can be updated. Do not silently deviate.
+
 ## Interaction Shortcuts
 
 When the user responds with "yes", "do it", "go", "proceed", or similar single-word confirmations — execute the last proposed plan immediately. No restatement, no recap, no asking for clarification. They've already approved it.

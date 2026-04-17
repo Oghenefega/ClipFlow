@@ -1,25 +1,63 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-16 (session 7) — "Modernization plan + LLM Council review (planning only, no code changes)"_
+_Last updated: 2026-04-17 (session 8) — "Infrastructure dashboard bootstrap + 11-decision walkthrough (no code changes)"_
 
 ---
 
 ## TL;DR
 
-Planning session — no code changes. Three outcomes:
+Planning + documentation session — no ClipFlow code changes. One repo file edited (`CLAUDE.md`); rest of the output lives in Obsidian vault + GitHub issues.
 
-1. **Modernization plan filed as [#46](https://github.com/Oghenefega/ClipFlow/issues/46)** — epic-style chore covering CRA → Vite, React 18 → 19, selective dep audit. Explicit rejections in the issue body (Next.js, pnpm, blanket dep bumps).
+1. **Bootstrapped an evergreen infrastructure dashboard** at `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\infrastructure\ClipFlow Infrastructure.md`. Full stack inventory (Electron, React, deps, security posture, external infra), severity-tagged findings (2 Critical, 9 High, 9 Medium, 10 Low, 2 Unknown remaining), current-decisions-in-flight log, and a self-contained drift-catching refresh prompt. Subfolders created: `Reviews/`, `Prompts/`, `Decisions/`.
+2. **Walked 11 decisions item-by-item with Fega** — all Criticals (C1 Electron upgrade cadence, C2 CRA→Vite migration) and all Highs (H1–H9). Each committed decision is logged in Section 9 of the dashboard, each with a GitHub tracking issue.
+3. **10 new GitHub issues filed** — [#47](https://github.com/Oghenefega/ClipFlow/issues/47) through [#56](https://github.com/Oghenefega/ClipFlow/issues/56) covering subtitle renderer hardening, CSP, sandbox, auto-updater research, code-signing cert procurement, electron-store upgrade, chokidar upgrade, electron-builder upgrade, @types/node pin, and Cloudflare AI Gateway hardening (spend caps, rate limiting, abuse detection runbook). All labelled `milestone: commercial-launch`.
+4. **CLAUDE.md pointers added** in two places — the ClipFlow repo's [CLAUDE.md](CLAUDE.md) (filtered, default-off: most sessions ignore it; infra-touching sessions consult it) and the Obsidian vault's ClipFlow business CLAUDE.md (source-of-truth pointer for Nero).
+5. **Mediums (9), Lows (10), and Unknowns U1 + U2 are NOT yet walked** — remaining work for a future dedicated session.
+
+## 🎯 Where infrastructure work goes from here
+
+The dashboard's Section 9 is the authoritative pre-launch infrastructure plan. Every item below maps to a tracked GitHub issue:
+
+- **#35** (renderer crash diagnostic) — **Step 0, blocks C1.** Still the Electron upgrade arc's gating item.
+- **C1 — Electron 28 → current stable** — [#45](https://github.com/Oghenefega/ClipFlow/issues/45). Phase 1 stepwise 28→32; Phase 2 minimum +2 hops with breaking-changes review each hop. Smoke tests MUST include subtitle renderer and `<video>` lifecycle.
+- **C1's bundled companions:** [#47](https://github.com/Oghenefega/ClipFlow/issues/47) subtitle overlay hardening + [#49](https://github.com/Oghenefega/ClipFlow/issues/49) sandbox flip. One preload audit, one smoke-test pass covers all three.
+- **C2 — CRA → Vite + ESM deps** — [#46](https://github.com/Oghenefega/ClipFlow/issues/46) (Vite) + [#52](https://github.com/Oghenefega/ClipFlow/issues/52) (electron-store 8→11) + [#53](https://github.com/Oghenefega/ClipFlow/issues/53) (chokidar 3→4). Structural deps arc.
+- **H2 CSP** — [#48](https://github.com/Oghenefega/ClipFlow/issues/48). Bundled with Vite to get nonce-based CSP for free (avoids `'unsafe-inline'`).
+- **H4 Auto-updater** — [#50](https://github.com/Oghenefega/ClipFlow/issues/50) (research deferred until #35, #45, #46 resolve) + [#51](https://github.com/Oghenefega/ClipFlow/issues/51) (code-signing cert procurement — **start vendor research NOW regardless of updater timing**, KYC lead time 2-6 weeks) + [#54](https://github.com/Oghenefega/ClipFlow/issues/54) (electron-builder 24→26, bundled with updater wiring).
+- **H8 @types/node pin** — [#55](https://github.com/Oghenefega/ClipFlow/issues/55). Immediate standalone 5-minute fix. Pin `@types/node` to `^18` to match Electron 28 runtime; re-bump to `^20` inside C1 Phase 1.
+- **H9 Cloudflare Gateway hardening** — [#56](https://github.com/Oghenefega/ClipFlow/issues/56). Four of five concerns (spend cap, abuse detection, API key isolation, billing alerts) doable in one focused session today. Per-user rate limiting blocked on Supabase auth.
+
+## 🚫 What NOT to start yet
+
+- Do NOT begin any Electron upgrade step (#45 Phase 1) until #35 crash diagnostic runs — carried forward from session 7, still true.
+- Do NOT start Vite migration (#46) yet — gate is the crash diagnostic running first, then the Electron Phase 1 landing.
+- Do NOT write any code against the infrastructure decisions yet — this session was planning only; implementation sessions start later with fresh context and the dashboard as input.
+
+## Watch Out For
+
+- **CF Gateway spend cap is not yet configured.** This is the single most urgent item in the post-session todo — a scripted attack on the unconfigured gateway could rack up thousands in Anthropic charges over a weekend. Detailed runbook in [#56](https://github.com/Oghenefega/ClipFlow/issues/56).
+- **Code-signing cert procurement has 2-6 week lead time.** If you wait until pre-launch to order it, you'll be blocked. Start vendor research now via [#51](https://github.com/Oghenefega/ClipFlow/issues/51). Business-entity formation (sole prop vs LLC) may block OV/EV cert types — resolve that question early.
+- **Infrastructure decisions are now canonical in the dashboard, not in this HANDOFF.** Future sessions should read the dashboard's Section 9 (or the CLAUDE.md pointer in the repo) rather than re-litigating from HANDOFF or scratch. Decisions in flight are committed — follow them, don't re-debate them.
+
+## Logs / Debugging
+
+- **Dashboard:** `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\infrastructure\ClipFlow Infrastructure.md`
+- **Bootstrap prompt archive:** `...\context\infrastructure\Prompts\Infrastructure Dashboard Bootstrap - 2026-04-17 - Fri.md`
+- **Refresh prompt:** lives inside Section 13 of the dashboard. Paste into a fresh Claude Code session in the ClipFlow repo when drift is suspected.
+- **All 10 new issues:** `gh issue list --repo Oghenefega/ClipFlow --state open --search "milestone:commercial-launch" --limit 50`
+
+---
+
+## Session 7 handoff (preserved)
+
+_Modernization plan + LLM Council review (planning only, no code changes)._
+
+1. **Modernization plan filed as [#46](https://github.com/Oghenefega/ClipFlow/issues/46)** — epic-style chore covering CRA → Vite, React 18 → 19, selective dep audit. Explicit rejections in the issue body (Next.js, pnpm, blanket dep bumps). **Session 8 update:** C2 decision in dashboard further bundled #46 with #52 (electron-store) and #53 (chokidar) as the "structural deps arc."
 2. **LLM Council reviewed the plan** (5 advisors + 5 peer reviewers + chairman synthesis). Unanimous blind spot caught in peer review: **nobody proposed reproducing the #35 crash before making any Electron decision** — the entire #45 Electron track rests on an unverified premise. Reports saved to `council-reports/`.
-3. **Modernization work is PAUSED** pending a full architecture audit Fega is running in a separate Claude Chat session. **Do NOT begin the Electron 28 → 29 upgrade** (which was session 6's recommended next step) until the audit is back and the crash diagnostic runs.
+3. **Modernization work is PAUSED** pending a full architecture audit. **Session 8 update:** that audit is effectively this session's output — the infrastructure dashboard. Modernization remains paused on the original premise (crash diagnostic first).
 
-## 🚫 This session supersedes session 6's "Next Steps #1"
+## 🚫 Session 6's "start Electron upgrade next" is STILL on hold
 
-Session 6 recommended starting the Electron 28 → 29 upgrade. **Don't.** Revised order:
-
-0. **Reproduce the crash first (2 hours).** Pull Sentry breadcrumbs for `blink::DOMDataStore` ACCESS_VIOLATION. Attempt minimal repro in stock Electron 28 + React 18 sandbox. If it reproduces upstream → Electron 32 is justified. If it doesn't → it's ClipFlow's own video/Zustand/subtitle lifecycle code and no Electron version fixes it.
-1. **Wait for Fega's Claude Chat architecture audit.** Don't touch #45 or #46 until the audit returns with a version inventory.
-2. Then revisit [`Obsidian vault → The Lab/Businesses/ClipFlow/Product/Modernization Audit - 2026-04-16.md`](.) for the refined plan (Vite + ESM deps pre-launch, React 19 / Tailwind 4 / pnpm post-launch, per Fega's pushback on the council's "defer everything" stance).
-
-Everything below this line is the session-6 handoff content — still accurate for technical state and #35/#38/#39, but the "begin Electron upgrade" next step is on hold.
+Carried forward: don't start #45 until the #35 crash diagnostic runs. See C1 in the infrastructure dashboard for the full committed plan.
 
 ---
 
