@@ -1,38 +1,34 @@
 /**
  * Subtitle Overlay Renderer — DOM-based frame renderer
  *
- * Runs inside an offscreen BrowserWindow with nodeIntegration: true.
- * The main process injects window.__STYLE_ENGINE_PATH__ before loading,
- * which points to the shared subtitleStyleEngine.js — same code the editor
- * preview uses. This guarantees pixel-identical rendering.
+ * Runs inside an offscreen BrowserWindow with nodeIntegration: false and
+ * contextIsolation: true. The attached preload (src/main/subtitle-overlay-preload.js)
+ * exposes the shared subtitleStyleEngine.js + findActiveWord.js via
+ * window.overlayAPI — same code the editor preview uses, which guarantees
+ * pixel-identical rendering.
  *
- * Uses the shared findActiveWord.js — same algorithm as the editor preview.
- * This ensures burn-in output matches what the user sees in the editor exactly.
- *
- * The main process calls window.__seekTo__(timestamp) to update the display,
- * then captures the page as a transparent PNG.
+ * The main process calls window.__seekTo__(timestamp) via executeJavaScript to
+ * update the display, then captures the page as a transparent PNG.
  */
 
-// ── Load shared modules from paths injected by main process ──
+// ── Load shared modules from the preload-exposed bridge ──
 let styleEngine = null;
 let wordFinder = null;
 
 function loadStyleEngine() {
-  const enginePath = window.__STYLE_ENGINE_PATH__;
-  if (!enginePath) {
-    console.error("[OverlayRenderer] No style engine path provided");
+  if (!window.overlayAPI || !window.overlayAPI.styleEngine) {
+    console.error("[OverlayRenderer] window.overlayAPI.styleEngine not available");
     return;
   }
-  styleEngine = require(enginePath);
+  styleEngine = window.overlayAPI.styleEngine;
 }
 
 function loadWordFinder() {
-  const finderPath = window.__FIND_ACTIVE_WORD_PATH__;
-  if (!finderPath) {
-    console.error("[OverlayRenderer] No findActiveWord path provided");
+  if (!window.overlayAPI || !window.overlayAPI.wordFinder) {
+    console.error("[OverlayRenderer] window.overlayAPI.wordFinder not available");
     return;
   }
-  wordFinder = require(finderPath);
+  wordFinder = window.overlayAPI.wordFinder;
 }
 
 // ── State ──
@@ -60,7 +56,6 @@ let capOverlay = null;
 
 // ── Font loading ──
 function loadFonts() {
-  const path = require("path");
   const fontWeights = [
     { weight: 300, file: "LatinaEssential-Light.otf" },
     { weight: 300, file: "LatinaEssential-LightIt.otf", style: "italic" },
@@ -72,13 +67,15 @@ function loadFonts() {
     { weight: 900, file: "LatinaEssential-HeavyIt.otf", style: "italic" },
   ];
 
-  // Font files are in src/fonts/ during dev, build/fonts/ after build
-  // The main process injects __FONTS_PATH__ to resolve this
-  const fontsDir = window.__FONTS_PATH__ || path.join(__dirname, "../../src/fonts");
+  // Main process injects __FONTS_PATH__ as an absolute path (Windows backslashes).
+  // Normalize to forward slashes for file:// URL composition.
+  const fontsDir = (window.__FONTS_PATH__ || "").replace(/\\/g, "/");
+  if (!fontsDir) {
+    console.warn("[OverlayRenderer] __FONTS_PATH__ not set — font load will fail");
+  }
 
   const promises = fontWeights.map(({ weight, file, style: fontStyle }) => {
-    const fontPath = path.join(fontsDir, file);
-    const url = `url('file:///${fontPath.replace(/\\/g, "/")}')`;
+    const url = `url('file:///${fontsDir}/${file}')`;
     const font = new FontFace("Latina Essential", url, {
       weight: String(weight),
       style: fontStyle || "normal",
@@ -314,9 +311,13 @@ window.__seekTo__ = function (timestamp) {
 };
 
 window.__initOverlay__ = function () {
-  // Load shared modules now that paths have been injected
+  // Load shared modules now that preload bridge + injected paths are available.
+  // Fonts must be loaded here (not at module-top) because __FONTS_PATH__ is
+  // injected by the main process via executeJavaScript, which runs AFTER the
+  // overlay page script's module-top code but BEFORE __initOverlay__ is called.
   if (!styleEngine) loadStyleEngine();
   if (!wordFinder) loadWordFinder();
+  loadFonts(); // fire-and-forget — main process awaits document.fonts.ready
 
   config = window.__OVERLAY_CONFIG__;
   if (!config) return;
@@ -355,9 +356,10 @@ window.__initOverlay__ = function () {
   }
 };
 
-// Load fonts on startup
-loadFonts().then(() => {
-  if (window.__OVERLAY_CONFIG__ && !config) {
-    window.__initOverlay__();
-  }
-});
+// If the main process already injected config before this script ran
+// (shouldn't happen with current ordering, but defensive), fire init now.
+// Normal path: main calls window.__initOverlay__() via executeJavaScript,
+// which loads fonts + modules + builds overlays.
+if (window.__OVERLAY_CONFIG__ && !config) {
+  window.__initOverlay__();
+}

@@ -145,25 +145,28 @@ async function renderOverlayFrames(params) {
   // Scale factor: style engine is authored for 1080px width
   const scaleFactor = width / 1080;
 
-  // Determine overlay page path — CRA copies public/ to build/
+  // Determine overlay page path — Vite publicDir copies public/subtitle-overlay → build/subtitle-overlay
   const overlayHtmlPath = path.join(__dirname, "../../build/subtitle-overlay/index.html");
-  const styleEnginePath = path.join(__dirname, "../../src/renderer/editor/utils/subtitleStyleEngine.js");
-  const findActiveWordPath = path.join(__dirname, "../../src/renderer/editor/utils/findActiveWord.js");
+  const overlayPreloadPath = path.join(__dirname, "subtitle-overlay-preload.js");
   const fontsPath = path.join(__dirname, "../../src/fonts");
 
   // Verify paths exist
   if (!fs.existsSync(overlayHtmlPath)) {
     throw new Error(`Overlay HTML not found: ${overlayHtmlPath}`);
   }
-  if (!fs.existsSync(styleEnginePath)) {
-    throw new Error(`Style engine not found: ${styleEnginePath}`);
+  if (!fs.existsSync(overlayPreloadPath)) {
+    throw new Error(`Overlay preload not found: ${overlayPreloadPath}`);
   }
 
   console.log("[OverlayRenderer] Resolution:", width, "x", height, "Scale:", scaleFactor.toFixed(2));
   console.log("[OverlayRenderer] Duration:", clipDuration.toFixed(1), "s, Frames:", totalFrames, "@ FPS:", OVERLAY_FPS);
   console.log("[OverlayRenderer] Subtitles:", subtitleSegments.length, "Captions:", captionSegments.length);
 
-  // Create offscreen BrowserWindow matching source video resolution
+  // Create offscreen BrowserWindow matching source video resolution.
+  // Hardened per H1 (#47): contextIsolation on, nodeIntegration off, narrow
+  // preload bridge exposing only the deterministic render helpers. Sandbox is
+  // intentionally left off — enabling it would require bundling the CJS utils
+  // into the overlay build output; tracked as a follow-up issue.
   const win = new BrowserWindow({
     width,
     height,
@@ -174,8 +177,14 @@ async function renderOverlayFrames(params) {
     enableLargerThanScreen: true,
     webPreferences: {
       offscreen: true,
-      contextIsolation: false,
-      nodeIntegration: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      // Explicit sandbox: false — required so the preload can require() the
+      // pure-CJS style engine + word finder from the renderer utils folder.
+      // Sandboxing the overlay window would require bundling those modules
+      // into the overlay build output; tracked as a follow-up.
+      sandbox: false,
+      preload: overlayPreloadPath,
     },
   });
 
@@ -205,8 +214,6 @@ async function renderOverlayFrames(params) {
         document.getElementById('canvas').style.height = '${height}px';
 
         window.__SCALE_FACTOR__ = ${scaleFactor};
-        window.__STYLE_ENGINE_PATH__ = ${JSON.stringify(styleEnginePath)};
-        window.__FIND_ACTIVE_WORD_PATH__ = ${JSON.stringify(findActiveWordPath)};
         window.__FONTS_PATH__ = ${JSON.stringify(fontsPath)};
         window.__OVERLAY_CONFIG__ = ${JSON.stringify({
           subtitleSegments,

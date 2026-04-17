@@ -4,7 +4,118 @@
 
 ---
 
-## 🔲 PROPOSED — H5 electron-store v8 → v11 (#52), second half of Split-A
+## 🔲 PROPOSED — H1 + H3 pre-launch hardening (#47 + #49)
+
+**Plain-language goal.** Close two of the three remaining pre-launch hardening items (H1, H3) in one session. H2 (CSP, #48) stays separate because its failure mode is different.
+
+- **H1 #47** — the hidden BrowserWindow that rasterizes subtitle frames currently runs with `nodeIntegration: true` + `contextIsolation: false`. Any dynamic content that ever gets into that page could `require("fs")` or `require("child_process")`. Fix: flip both flags, add a preload that exposes only what the overlay needs.
+- **H3 #49** — the main `BrowserWindow` has no `sandbox: true`, so the renderer runs with the user's full OS permissions. Fix: enable sandbox on the main window.
+
+Bundled because both the issue bodies and the infra dashboard say to — same preload audit, overlapping smoke-test surface, single verification pass.
+
+### Why these two, why together
+
+- **H3 needs H1 done first if we ever want to sandbox the overlay window.** We are NOT sandboxing the overlay this session (see scoping below), but ordering H1 first keeps the option open without a revert.
+- Same fragility shape: both touch `BrowserWindow` config. Doing them in one session means one set of smoke tests covers both.
+- Both rated "contained today, catastrophic if broken" — low urgency, high insurance value.
+
+### Facts confirmed by reading code
+
+- **Main preload is already sandbox-clean** ([src/main/preload.js](src/main/preload.js:1-284)): one `require("@sentry/electron/preload")`, one `require("electron")` for `contextBridge` + `ipcRenderer` + `webUtils`. Everything else is `ipcRenderer.invoke(...)` wrappers. Zero `require("fs")`, `require("path")`, `require("child_process")`, `require("os")`, `require("child_process")`. **No preload rewrite needed for H3.** Flipping `sandbox: true` should "just work" on the main window.
+- **Overlay page uses `require()` in 3 places** ([public/subtitle-overlay/overlay-renderer.js:26](public/subtitle-overlay/overlay-renderer.js:26), [:35](public/subtitle-overlay/overlay-renderer.js:35), [:63](public/subtitle-overlay/overlay-renderer.js:63)): dynamic `require(__STYLE_ENGINE_PATH__)`, dynamic `require(__FIND_ACTIVE_WORD_PATH__)`, and `require("path")` inside `loadFonts()`. All three must go when `nodeIntegration` flips off.
+- **Both utility modules are pure CJS with zero deps** ([src/renderer/editor/utils/subtitleStyleEngine.js](src/renderer/editor/utils/subtitleStyleEngine.js) and [src/renderer/editor/utils/findActiveWord.js](src/renderer/editor/utils/findActiveWord.js)): pure functions, `module.exports = {...}`. Safely `require()`-able from a (non-sandboxed) preload with static paths.
+- **Overlay BrowserWindow construction** ([src/main/subtitle-overlay-renderer.js:167-180](src/main/subtitle-overlay-renderer.js:167-180)): `webPreferences: { offscreen: true, contextIsolation: false, nodeIntegration: true }`. No existing preload.
+- **Main BrowserWindow construction** ([src/main/main.js:296-315](src/main/main.js:296-315)): `webPreferences: { preload, contextIsolation: true, nodeIntegration: false }`. Just needs `sandbox: true` added.
+- **`webUtils.getPathForFile`** (preload.js:9) is a renderer-facing Electron API. It IS available in sandboxed preloads (it's on `require("electron")`, not Node). Will verify with the File.path smoke test.
+
+### Scoping decision — overlay window stays NON-sandboxed
+
+Sandboxing the overlay window would require bundling `subtitleStyleEngine.js` + `findActiveWord.js` into the overlay's build output (sandboxed preloads can only `require("electron")`, not arbitrary modules). That's a separate build-step workstream. The H3 issue body flags this explicitly: "add `sandbox: true` **if compatible** — test rasterization output." We take the "not sandbox the overlay" fork and document it.
+
+**Threat model remaining on the overlay after H1:**
+- Page loads one local file. No network, no user-authored HTML.
+- `contextIsolation: true` isolates page JS from preload.
+- `nodeIntegration: false` removes `require` from the page.
+- Preload only exposes `styleEngine` + `wordFinder` function objects + fonts dir string. No `fs`, no `child_process`, no IPC beyond that.
+- Attack path would require: compromising a local file that already ships in the install → not a remote-exploit surface.
+
+If a future change introduces dynamic content into the overlay (remote font, user-authored template, webview), we'd revisit sandboxing then. Filed as a follow-up issue at end of session.
+
+### What this session does (and doesn't)
+
+**Does:**
+1. Create `src/main/subtitle-overlay-preload.js` — new preload for the offscreen window. `require()`s the two CJS utility modules at preload-time, exposes them plus the fonts dir via `contextBridge.exposeInMainWorld("overlayAPI", {...})`.
+2. Rewrite [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js): add `preload`, flip `contextIsolation: true` + `nodeIntegration: false`, stop injecting `__STYLE_ENGINE_PATH__` / `__FIND_ACTIVE_WORD_PATH__` (no longer needed). Keep `__OVERLAY_CONFIG__` + `__SCALE_FACTOR__` + `__FONTS_PATH__` injection — those are data, not module paths. Actually: drop `__FONTS_PATH__` too since preload can expose it.
+3. Rewrite [public/subtitle-overlay/overlay-renderer.js](public/subtitle-overlay/overlay-renderer.js): replace `require(enginePath)` with `window.overlayAPI.styleEngine`, replace `require(finderPath)` with `window.overlayAPI.wordFinder`, replace `require("path")` in `loadFonts()` with manual `${fontsDir}/${file}` string composition (path.join is just separator insertion — we control the input).
+4. Add `sandbox: true` to [src/main/main.js:296-315](src/main/main.js:296-315) main window config.
+5. Copy `overlay-renderer.js` change to `build/subtitle-overlay/overlay-renderer.js` too, OR confirm Vite's `publicDir: "public"` copies it (it should — that's why `build/subtitle-overlay/` exists today).
+
+**Doesn't:**
+- Sandbox the overlay window (scoping decision above — file as follow-up).
+- Touch H2 (#48) CSP — separate session.
+- Add any new IPC channels.
+- Change the rasterization pixel output. Frame comparison is pass/fail criterion.
+- Modify `build/`-checked-in files by hand if Vite regenerates them — run `npm run build:renderer` and let Vite do it.
+
+### Files touched
+
+**New:**
+- `src/main/subtitle-overlay-preload.js` — new file, ~25 lines.
+
+**Modified:**
+- `src/main/subtitle-overlay-renderer.js` — webPreferences flip, drop two injected paths.
+- `src/main/main.js` — one-line `sandbox: true` addition.
+- `public/subtitle-overlay/overlay-renderer.js` — three `require()` sites replaced with `window.overlayAPI.*`.
+
+### Implementation order (one commit OK, two commits cleaner)
+
+Prefer **two commits** so that if the drop-to-Recordings canary or the subtitle burn-in fails, `git bisect` takes one step to localize:
+
+1. **Commit A — H1 overlay hardening.** New preload + flip flags on overlay + overlay page rewrite. Verify subtitle burn-in still produces bit-identical frames via the render-a-clip smoke.
+2. **Commit B — H3 main window sandbox.** One-line `sandbox: true` on main. Verify every `window.clipflow.*` path still works via the IPC smoke matrix.
+
+If Commit A's verification passes cleanly, Commit B is tiny and fast.
+
+### Verification matrix (mandatory before claiming done)
+
+From standing smoke set + H1/H3-specific checks:
+
+1. **Build clean.** `npm run build:renderer` exits 0, no CSP/CSP-prelude warnings in Vite output.
+2. **App launches.** `npm start` shows the main window, no crash, no renderer console errors on first paint.
+3. **Zoom-slider drag × 10 on a 30-min source.** Standing kept-forever canary (per HANDOFF DO NOT). No renderer crash.
+4. **OBS real-record 30s → Stop.** Card appears on Rename tab ~1-2s later. Tests watcher + IPC roundtrip.
+5. **Drop-to-Rename.** Drag an `.mp4` from Downloads onto Rename tab. File appears in Pending. Tests `File.path` → `webUtils.getPathForFile` which is the one sandbox-adjacent API we're using.
+6. **Drop-to-Recordings with Test toggle both states.** Tests `importExternalFile` IPC round-trip with sandbox on. File lands in correct root per session 16b verification.
+7. **Subtitle burn-in pixel check.** Render a clip that has subtitles + captions. Compare first frame, middle frame, last frame of the rasterized overlay against a pre-H1 baseline (capture one now before starting). Must be bit-identical or explain every pixel difference.
+8. **Render pipeline end-to-end.** One full render with subtitles ON. Final MP4 plays, subtitles are burned in, timing matches editor preview. Tests the entire overlay pipeline post-H1.
+9. **Every IPC feature smoke-tested once.** File pickers, save dialogs, project CRUD, rename, preview frames, thumbnails, publish-log fetch. 2 minutes of clicking.
+10. **DevTools console clean.** `CLIPFLOW_DEVTOOLS=1 npm start`, open each major tab, no red errors. Particular watch: any CSP warnings (foreshadowing H2), any "require is not defined" errors (means overlay rewrite missed a call site).
+
+### Risk + rollback
+
+- **Highest risk:** step 7 (subtitle burn-in pixel check). If the overlay rewrite subtly changes scaling, font loading, or word timing, the burn-in is visibly wrong and users notice. Baseline frames captured before the change make regression obvious. Rollback = `git revert` of Commit A, H3 Commit B keeps working independently.
+- **Medium risk:** `webUtils.getPathForFile` under sandbox. If it throws, drop-to-Rename breaks. Low probability — this API was designed for sandboxed renderers in Electron 32+.
+- **Low risk:** Vite config doesn't need touching. `publicDir: "public"` already copies `subtitle-overlay/` unchanged.
+
+### Open questions (none blocking — answering as I go)
+
+- Whether Vite is in fact copying `public/subtitle-overlay/overlay-renderer.js` to `build/subtitle-overlay/overlay-renderer.js` on every build. If not, we need to edit both locations or add a Vite copy step. Check with `npm run build:renderer` + `diff public/subtitle-overlay/overlay-renderer.js build/subtitle-overlay/overlay-renderer.js`.
+
+### Done means
+
+- [ ] Overlay window: `contextIsolation: true`, `nodeIntegration: false`, preload attached.
+- [ ] Zero `require()` in `public/subtitle-overlay/overlay-renderer.js`.
+- [ ] Main window: `sandbox: true`.
+- [ ] Subtitle burn-in pixel-identical to baseline.
+- [ ] Every item in the verification matrix passes.
+- [ ] CHANGELOG updated (Changed section: H1 overlay hardening, H3 main sandbox).
+- [ ] HANDOFF updated.
+- [ ] Follow-up issue filed: "Sandbox the offscreen subtitle BrowserWindow (requires bundling CJS utils into overlay build)."
+- [ ] Commits pushed; issues #47 and #49 closed.
+
+---
+
+## ✅ DONE — H5 electron-store v8 → v11 (#52), second half of Split-A
 
 **Plain-language goal.** Bump the library that owns every persistent setting (watch folder, creator profile, naming presets, OAuth tokens, publish log) from v8 to v11. Three majors behind today. The gap matters because v9 tightened atomic write behavior on Windows (the same OS we target), and v11 is the current stable. Paired with H6 (chokidar, closed session 15) as Split-A — both were gated on the Vite migration (closed session 13).
 
