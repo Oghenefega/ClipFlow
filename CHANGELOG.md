@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 14b) — #60 follow-up: physical move + Recordings filter
+
+### Added
+- **`file:moveToTestMode` IPC** in [src/main/main.js](src/main/main.js). Post-hoc TEST toggle on a recording card now physically moves the file between `<watchFolder>` and `<testWatchFolder>` (with `<YYYY-MM>/` monthly subfolder) so disk layout always matches the flag — no more test-flagged files scattered in the main folder. Uses `fs.renameSync` for same-volume moves and falls back to `copyFile + unlink` for cross-volume (`EXDEV`) moves, which matters because Fega's test folder lives on `W:\` while the main library can be on a different drive. Returns `{ error, locked: true }` on `EBUSY` / `EPERM` / `EACCES` so the renderer can revert the optimistic toggle and show a "file in use" toast without corrupting disk state. Also cascades the rename to the associated project's `sourceFile` + `testMode` so the editor resolves the right path on next open.
+- **Recordings-tab filter: All / Main / Test** in [src/renderer/views/UploadView.js](src/renderer/views/UploadView.js). Only surfaces when at least one test file exists or a `testWatchFolder` is configured, so the single-folder user doesn't see a three-button control for no reason. Active "Test" state uses the yellow-glow treatment from `ui-standards.md` so it matches the TestChip. Shows a `(N of M)` count so it's obvious the filter is filtering.
+- **Move-failure toast** on the Recordings tab. If the move IPC returns `locked: true`, the chip reverts and a red banner surfaces the error for 5 seconds ("File is in use (editor or render open?) — close it and try again.").
+
+### Changed
+- **`handleToggleRecordingTest` now calls `fileMoveToTestMode` instead of `fileMetadataUpdate`.** The physical move IPC already updates `current_path` + `is_test` + cascades to the project in one atomic pass, so the previous two-step (flag-then-cascade) flow is replaced by one IPC call. Optimistic UI update is preserved; the new path is synced into local `files` state on success so the card's displayed path stays accurate.
+
+### Notes
+- **Why physical move instead of flag-only** (reverses the Option A decision from session 14). Fega's mental model is folder-based — `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\<month>\` is the test root and he expects toggling TEST on the card to actually put the file there. Flag-only would let disk reality diverge from UI reality and defeat the whole "test-pipeline isolation" point of [#60](https://github.com/Oghenefega/ClipFlow/issues/60). The tradeoff — move can fail on locked files — is handled by revert-and-toast rather than silent corruption.
+- **Not yet done in this pass:** legacy files already sitting in Test Footage that predate the is_test column aren't auto-flagged. If they were renamed through ClipFlow they're in `file_metadata` with `is_test = 0` and will show up under their month group, not the Test group — user can toggle them manually. A one-time backfill migration (mark all rows whose `current_path` is under `testWatchFolder` as `is_test = 1`) was considered and skipped for this session to keep scope tight; can be filed as a follow-up if the manual-toggle ergonomics aren't acceptable.
+
 ## [Unreleased] — 2026-04-17 (session 14) — #60 unified per-clip test-mode
 
 ### Added

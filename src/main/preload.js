@@ -82,6 +82,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectList: () => ipcRenderer.invoke("project:list"),
   projectDelete: (projectId) => ipcRenderer.invoke("project:delete", projectId),
   projectUpdateTestMode: (projectId, testMode) => ipcRenderer.invoke("project:updateTestMode", projectId, testMode),
+  fileMoveToTestMode: (fileId, nextIsTest) => ipcRenderer.invoke("file:moveToTestMode", fileId, nextIsTest),
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   projectAddClip: (projectId, clipData) => ipcRenderer.invoke("project:addClip", projectId, clipData),
   projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),

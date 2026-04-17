@@ -79,6 +79,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
 
+  // #60: transient error surface for failed test-mode moves (locked file, etc.)
+  const [moveError, setMoveError] = useState(null);
+  // #60: Recordings filter — "all" | "main" | "test"
+  const [testFilter, setTestFilter] = useState("all");
+
   // Drag-and-drop + quick-import state
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(null); // { filename, pct }
@@ -124,28 +129,31 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
   }, []);
 
-  // Toggle per-recording test mode on a file_metadata row. Optimistic update
-  // on the local list so the chip flips instantly; revert on IPC failure so
-  // we don't mislead the user about where downstream outputs will route.
+  // Toggle per-recording test mode — physically moves the file between the
+  // main watch folder and test watch folder so disk layout always matches the
+  // TEST flag. Optimistic UI update, but revert + toast on lock / failure.
   const handleToggleRecordingTest = useCallback(async (fileId, next) => {
     setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, is_test: next ? 1 : 0 } : f));
     try {
-      const result = await window.clipflow?.fileMetadataUpdate?.(fileId, { isTest: next ? 1 : 0 });
-      if (result?.error) throw new Error(result.error);
-      // If the recording already has a project, flip the project too so renders
-      // and publishes route consistently.
+      const moveResult = await window.clipflow?.fileMoveToTestMode?.(fileId, next);
+      if (!moveResult || moveResult.error) {
+        throw new Error(moveResult?.error || "Move failed");
+      }
+      // file:moveToTestMode already updated current_path + is_test in SQLite
+      // and cascaded to the project's sourceFile + testMode. Sync the row in
+      // local state so the card reflects the new disk path.
+      setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, current_path: moveResult.newPath, is_test: next ? 1 : 0 } : f));
       const file = files.find((f) => f.id === fileId);
       if (file) {
         const baseName = (file.current_filename || "").replace(/\.(mp4|mkv)$/i, "");
         const project = localProjects.find((p) => p.name === baseName);
-        if (project) {
-          await window.clipflow?.projectUpdateTestMode?.(project.id, next);
-          onProjectCreated?.(project.id); // reuses existing projectList refresh
-        }
+        if (project) onProjectCreated?.(project.id); // refresh project list
       }
     } catch (e) {
       console.error("[RecordingsView] testMode toggle failed:", e.message);
       setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, is_test: next ? 0 : 1 } : f));
+      setMoveError(e.message || "Could not move file");
+      setTimeout(() => setMoveError(null), 5000);
     }
   }, [files, localProjects, onProjectCreated]);
 
@@ -294,8 +302,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   };
 
   // --- Group files by month (from date column), test files get their own group ---
+  // #60: filter by main-vs-test before grouping
+  const visibleFiles = files.filter((f) => {
+    if (testFilter === "test") return f.is_test === 1;
+    if (testFilter === "main") return f.is_test !== 1;
+    return true;
+  });
   const grouped = {};
-  files.forEach((f) => {
+  visibleFiles.forEach((f) => {
     const monthKey = f.is_test === 1 ? "test" : (f.date ? f.date.slice(0, 7) : "unknown");
     if (!grouped[monthKey]) grouped[monthKey] = [];
     grouped[monthKey].push(f);
@@ -836,6 +850,41 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       )}
 
       <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
+
+      {/* #60: move-failure toast */}
+      {moveError && (
+        <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", marginBottom: 12, color: T.red, fontSize: 12, fontWeight: 600 }}>
+          {moveError}
+        </div>
+      )}
+
+      {/* #60: Main vs Test filter — only surfaces when test files exist or a test folder is configured */}
+      {(files.some((f) => f.is_test === 1) || !!testWatchFolder) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.06em" }}>Show:</span>
+          {[
+            { key: "all", label: "All" },
+            { key: "main", label: "Main" },
+            { key: "test", label: "Test" },
+          ].map((opt) => {
+            const active = testFilter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setTestFilter(opt.key)}
+                style={{
+                  padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                  border: `1px solid ${active ? (opt.key === "test" ? "rgba(250,204,21,0.45)" : T.accentBorder) : T.border}`,
+                  background: active ? (opt.key === "test" ? "rgba(250,204,21,0.16)" : "rgba(139,92,246,0.14)") : "transparent",
+                  color: active ? (opt.key === "test" ? "#facc15" : T.accentLight) : T.textTertiary,
+                  boxShadow: active && opt.key === "test" ? "0 0 6px rgba(250,204,21,0.35)" : "none",
+                }}
+              >{opt.label}</button>
+            );
+          })}
+          <span style={{ fontSize: 10, color: T.textMuted, marginLeft: 6 }}>({visibleFiles.length} of {files.length})</span>
+        </div>
+      )}
 
       {/* Pipeline progress panel — multi-step status */}
       {generating && progress && (

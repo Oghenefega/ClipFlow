@@ -1365,6 +1365,98 @@ ipcMain.handle("project:updateTestMode", async (_, projectId, testMode) => {
   } catch (err) { return { error: err.message }; }
 });
 
+// #60: Move a recording's physical file between the main watch folder and the
+// test watch folder, then update file_metadata.current_path + is_test in one
+// pass. On lock/permission errors, return { error, locked: true } so the
+// renderer can revert its optimistic toggle.
+ipcMain.handle("file:moveToTestMode", async (_, fileId, nextIsTest) => {
+  try {
+    const db = database.getDb();
+    if (!db) return { error: "Database not initialized" };
+
+    const rows = database.toRows(db.exec("SELECT * FROM file_metadata WHERE id = ?", [fileId]));
+    if (rows.length === 0) return { error: "File not found" };
+    const row = rows[0];
+
+    const oldPath = row.current_path;
+    if (!oldPath || !fs.existsSync(oldPath)) {
+      return { error: "Source file missing on disk — cannot move" };
+    }
+
+    const watchFolder = store.get("watchFolder") || "";
+    const testWatchFolder = store.get("testWatchFolder") || (watchFolder ? path.join(watchFolder, "Test") : "");
+    if (nextIsTest && !testWatchFolder) {
+      return { error: "Test watch folder not configured. Set it in Settings first." };
+    }
+    if (!nextIsTest && !watchFolder) {
+      return { error: "Main watch folder not configured. Set it in Settings first." };
+    }
+
+    // Target monthly subfolder uses row.date (YYYY-MM-DD) or falls back to
+    // parsing the filename. This matches the existing monthly-folder layout.
+    const dateStr = row.date || (row.current_filename || "").match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || "";
+    const monthFolder = dateStr ? dateStr.slice(0, 7) : "";
+    const rootDir = nextIsTest ? testWatchFolder : watchFolder;
+    const targetDir = monthFolder ? path.join(rootDir, monthFolder) : rootDir;
+    const newPath = path.join(targetDir, row.current_filename);
+
+    if (newPath === oldPath) {
+      // Already where it needs to be — just reconcile the flag.
+      db.run("UPDATE file_metadata SET is_test = ?, updated_at = datetime('now') WHERE id = ?", [nextIsTest ? 1 : 0, fileId]);
+      database.save();
+      return { success: true, newPath, moved: false };
+    }
+
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+    // Try rename first (fast, atomic on same volume). Fall back to copy+unlink
+    // for cross-volume moves (testWatchFolder often lives on a different drive).
+    try {
+      fs.renameSync(oldPath, newPath);
+    } catch (err) {
+      if (err.code === "EXDEV") {
+        fs.copyFileSync(oldPath, newPath);
+        try { fs.unlinkSync(oldPath); }
+        catch (unlinkErr) {
+          // Copy succeeded but source couldn't be removed — clean up the
+          // duplicate so we don't leave the file in two places.
+          try { fs.unlinkSync(newPath); } catch (_) {}
+          return { error: `File is in use and cannot be moved: ${unlinkErr.message}`, locked: true };
+        }
+      } else if (err.code === "EBUSY" || err.code === "EPERM" || err.code === "EACCES") {
+        return { error: "File is in use (editor or render open?) — close it and try again.", locked: true };
+      } else {
+        return { error: err.message };
+      }
+    }
+
+    // Update file_metadata row with the new path + flag.
+    db.run(
+      "UPDATE file_metadata SET current_path = ?, is_test = ?, updated_at = datetime('now') WHERE id = ?",
+      [newPath, nextIsTest ? 1 : 0, fileId]
+    );
+
+    // If a project points at this source file, update its sourceFile too so
+    // the editor / render pipeline resolves the right path next open.
+    try {
+      const baseName = (row.current_filename || "").replace(/\.(mp4|mkv)$/i, "");
+      const projList = projects.listProjects(watchFolder);
+      const matching = (projList.projects || []).find((p) => p.name === baseName || p.sourceFile === oldPath);
+      if (matching) {
+        projects.updateProjectField(watchFolder, matching.id, {
+          sourceFile: newPath,
+          testMode: !!nextIsTest,
+        });
+      }
+    } catch (e) { /* non-critical — project reference will be repaired on next open */ }
+
+    database.save();
+    return { success: true, newPath, moved: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle("project:list", async () => {
   try {
     const watchFolder = store.get("watchFolder");
