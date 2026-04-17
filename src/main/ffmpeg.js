@@ -106,12 +106,27 @@ function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
  * @param {number} endTime - End time in seconds
  * @returns {Promise<{success: true, path: string, duration: number}>}
  */
-function cutClip(srcPath, outPath, startTime, endTime) {
-  return new Promise((resolve, reject) => {
-    const dir = path.dirname(outPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+async function cutClip(srcPath, outPath, startTime, endTime) {
+  const dir = path.dirname(outPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    const duration = endTime - startTime;
+  const duration = endTime - startTime;
+
+  // Probe source fps so the output preserves it. OBS captures are often VFR;
+  // re-encoding without an explicit -r can collapse the output to ffmpeg's
+  // default 25fps, which silently halves gameplay smoothness (#38).
+  let fpsArg = [];
+  try {
+    const meta = await probe(srcPath);
+    if (Number.isFinite(meta.fps) && meta.fps > 0 && meta.fps <= 240) {
+      fpsArg = ["-r", String(meta.fps)];
+    }
+  } catch (_) {
+    // Probe failure: fall back to ffmpeg default (no -r). Better to cut
+    // at wrong fps than to fail the cut.
+  }
+
+  return new Promise((resolve, reject) => {
     // Re-encode for frame-accurate cuts. Stream copy (-c copy) seeks to
     // the nearest keyframe which can be 2-10s before startTime, causing
     // subtitle timestamps to be ahead of the actual audio.
@@ -120,6 +135,7 @@ function cutClip(srcPath, outPath, startTime, endTime) {
       "-i", srcPath,
       "-t", String(duration),
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+      ...fpsArg,
       "-c:a", "aac", "-b:a", "192k",
       "-avoid_negative_ts", "make_zero",
       "-y",

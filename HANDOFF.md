@@ -1,128 +1,155 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-17 (session 5) — "B1 refactor + editor autosave"_
+_Last updated: 2026-04-17 (session 6) — "#35 root-cause + #38 60fps fix + Electron upgrade backlog"_
 
 ---
 
 ## TL;DR
 
-Session 5 tied off two pieces of outstanding work from the session-4 board:
+Short session — three outcomes:
 
-1. **B1 (#34) — Subtitle extends now populate from source-wide transcription.** Take-1 + take-2 fixes worked; refactored to unify primary + source-wide extras through a single cleanup pipeline so the extras don't bypass dedup/validation/timestamp-cleanup. Closed #34.
-2. **B2a (#36) — Editor autosave shipped.** Debounced 800ms saves on every edit, plus window-blur + editor-unmount flushes. Verified by force-killing the renderer via Task Manager — edits survived. Closed #36.
-
-**#35 renderer crash is still unresolved.** Autosave mitigates it (crashes are no longer destructive), but the `blink::DOMDataStore` 0xC0000005 fault itself is unchanged. Sentry now shows 57 events and the crash fires in the projects tab too, not just editor.
+1. **#35 root cause narrowed, fix deferred to Electron upgrade.** Session-5's theory (shadcn Slider is the trigger) was tested and disproven. The real crash stack (pulled from Sentry) is a **Chromium 120 fetch-stream UAF** in `ReadableStreamBytesConsumer::BeginRead` → `DOMArrayBuffer::IsDetached` → `DOMDataStore::GetWrapper`. Electron 28's Chromium is out of support and has known fixes in 121-128.
+2. **#38 closed.** `cutClip` now probes source fps and passes `-r <fps>` so OBS VFR captures stay at 60fps instead of collapsing to FFmpeg's default 25fps. One-file change.
+3. **#45 filed** — Electron 28 → 32 upgrade, stepwise one-major-at-a-time, as the proper fix for #35 and the security-support baseline for the commercial launch.
 
 ---
 
 ## 🚨 Start Here — Read First
 
-### 1. #35 is still the most important bug.
+### 1. #35 is a Chromium 120 bug, not a ClipFlow bug.
 
-The renderer keeps crashing natively in Chromium's `blink::DOMDataStore::GetWrapper` with exit code `-1073741819` (ACCESS_VIOLATION). Sentry breadcrumb pattern from the latest event (CLIPFLOW-4, issue id `7381799876`):
+The real stack (Sentry event `94c92a6e8ee84761aa2caa483a8a8051`, 2026-04-17T02:22:16Z):
 
-- Rapid seek + play/pause
-- Shadcn Slider thumb dragged during scrubbing
-- Timeline track clicks
-- Crash ~80s into editor use
+```
+blink::DOMDataStore::GetWrapper          ← crash (dom_data_store.h:88)
+blink::AccumulateArrayBuffersForAllWorlds
+blink::DOMArrayBuffer::IsDetached        (dom_array_buffer.cc:283)
+blink::ReadableStreamBytesConsumer::BeginRead
+blink::FetchDataLoaderAsDataPipe::OnStateChange
+mojo::SimpleWatcher::OnHandleReady
+```
 
-Happens in both the editor AND the projects tab. Both mount `<video>` elements. Both have unmount cleanup. Phase 4 hardening (preload=metadata, imperative src teardown) did not prevent it. Autosave now makes this non-destructive, buying time to investigate properly.
+A mojo IPC pipe message arrived with fetch-stream bytes to deliver, but the receiving ArrayBuffer was already detached/GC'd. This is Chromium's internal file-loader path used by `<video src="file://...">`. Phase 4's teardown (`pause → removeAttribute src → load()`) does NOT synchronously drain pending mojo pipe messages. Any stale pipe message from a prior seek/src-change can fire seconds later and UAF.
 
-**Next session B3 — get real data:** install Electron `crashReporter` to capture minidumps, try disabling the thumb-drag on Slider to see if it's the trigger, or fall back to a native HTML5 range input for the timeline slider.
+**Do not attempt more in-app mitigations.** The session-5 hypothesis (Slider) has been eliminated. Further Phase-4-level hardening (preload=none, custom protocol, etc.) may help marginally but won't eliminate the class of bug. The proper fix is Electron upgrade (#45) → Chromium 128+ where multiple fetch-stream UAF fixes have landed.
 
-### 2. Autosave is live — don't accidentally break it.
+Autosave (shipped session 5) keeps this non-destructive for now.
 
-Contract:
-- **Persistence path** is the existing `project:updateClip` IPC (`main.js:1463`) — no new IPCs, no schema changes.
-- **Shared save logic** lives in `useEditorStore._doSilentSave` (extracted from old `handleSave` body). `handleSave` is now a thin wrapper. Autosave timer + flush both call `_doSilentSave`. All three paths MUST stay in sync.
-- **Concurrency**: `_savesInFlight` is a COUNTER, not a boolean. Explicit Save during autosave IPC: both run, main process serializes via electron-store, last write wins with freshest data.
-- **Loop prevention**: `_doSilentSave` calls `set({ dirty: false })`, which fires useEditorStore subscribe, which calls `scheduleAutosave`. The `_savesInFlight > 0` guard stops this from looping. If you refactor, keep the guard.
-- **State storage**: `_autosaveTimer` and `_savesInFlight` live in module-closure vars, NOT in Zustand state. Putting them in state would re-trigger subscribe listeners on timer set and infinite-loop.
-- **Subscriptions**: set up in `EditorLayout.js` at editor mount (second useEffect after the undo/redo one). 4 `store.subscribe(listener)` calls, all calling `scheduleAutosave`. `window.blur` listener calls `flushAutosave`. Cleanup unsubs + flushes.
+### 2. Electron 28 is out of security support.
+
+Electron supports only the latest 3 majors. Electron 38 is current (Apr 2026). ClipFlow is on 28. Any Chromium CVE patched in 121+ is live in shipped builds. For a commercial product this is a launch blocker, not just a quality-of-life issue.
+
+Upgrade path: stepwise 28 → 29 → 30 → 31 → 32. Each hop: bump version, `electron-rebuild` native deps (`better-sqlite3`), smoke-test the full pipeline, read that version's breaking-changes doc, fix deprecations before next hop. Target Electron 32 (Chromium 128, Node 20). Full plan in #45.
+
+Also worth bumping in the same arc: `@sentry/electron` 7.10 → 8.x (better minidump integration).
+
+### 3. #38 fix changes cutClip to async+probe.
+
+`src/main/ffmpeg.js` `cutClip` now calls `probe(srcPath)` before encoding and passes `-r <sourceFps>` to libx264. External contract unchanged (still returns a Promise). Fallback on probe failure: omit `-r` (ffmpeg default). Sanity-clamped at `0 < fps <= 240`.
 
 ---
 
-## 📋 Remaining Board (from session 4 + new)
-
-From the original 10-item bug/cleanup list in session-4 HANDOFF:
+## 📋 Remaining Board
 
 | Tag | Issue | Status |
 |-----|-------|--------|
-| B1 | #34 subtitle extends | ✅ fixed + refactored, closed |
-| B2 | #35 renderer crash | ⚠️ mitigated by autosave, root cause unresolved |
-| B2a | #36 autosave | ✅ shipped, closed |
+| B1 | #34 subtitle extends | ✅ closed session 5 |
+| B2 | #35 renderer crash | ⚠️ root-caused to Chromium 120, fix deferred to Electron upgrade (#45) |
+| B2a | #36 autosave | ✅ closed session 5 |
 | B3 | #37 subtitle mismatch regression | 🔲 blocked on repro |
-| B4 | #38 60fps → 25fps drop in cutClip | 🔲 deferred (FFmpeg missing `-r 60`) |
-| V1 | #39 Phase 4 13-step verification walk | 🔲 pending |
+| B4 | #38 60fps → 25fps in cutClip | ✅ **closed this session** |
+| V1 | #39 Phase 4 verification walk | 🟡 code-side audit done for steps 1, 4, 5; steps 6-13 need manual test |
 | C1-C3 | #40-42 hygiene cleanups | 🔲 low priority |
 | P1 | #43 Sentry launch backlog | 🔲 pre-launch |
-| — | #44 double setSegmentMode on init | 🔲 new, chore |
+| — | #44 double setSegmentMode on init | 🔲 chore |
+| **NEW** | **#45 Electron 28 → 32 upgrade** | 🔲 **milestone: commercial-launch** |
 
 ---
 
 ## What Was Built This Session
 
-### B1 refactor (commit `ace4a76`)
-`useSubtitleStore.initSegments` now builds a union of primary + source-wide extras (sorted by start time) and runs the entire cleanup pipeline once over the union — mega-segment filter, duplicate-segment dedup, consecutive-word dedup, `mergeWordTokens`, `validateWords`, `cleanWordTimestamps`. Previously the take-2 fix had extras bypassing those steps.
+### #38 60fps fix (`src/main/ffmpeg.js`)
+`cutClip` converted from a bare Promise to an `async` function. Before the encode:
+- Runs `probe(srcPath)` to read `fps`
+- If `fps` is finite, `> 0`, and `<= 240`, builds `fpsArg = ["-r", String(fps)]`
+- Otherwise, empty array (ffmpeg default)
 
-Also tightened the `source=` log line to report `effectiveSource` (accounts for `transcriptionIsStale` and legacy-flat-array case).
+Passes `fpsArg` to libx264 args between `-crf 18` and `-c:a aac`. No other changes — output path, codec, CRF, audio bitrate, and timeout are identical.
 
-### Autosave (this commit)
-**`src/renderer/editor/stores/useEditorStore.js`:**
-- Module-closure: `_autosaveTimer`, `_savesInFlight`, `AUTOSAVE_DEBOUNCE_MS = 800`
-- New action `_doSilentSave` — extracted body of old `handleSave`, no UI side effects
-- `handleSave` now wraps `_doSilentSave` with counter guard + timer cancel
-- New action `scheduleAutosave` — 800ms debounce, guards on `_savesInFlight > 0`, clip/project presence, `extending` flag
-- New action `flushAutosave` — cancels timer, runs immediate save unless already in flight
+Callers of `cutClip`: all already `await` or `.then()` the returned Promise, so the async signature is backwards-compatible.
 
-**`src/renderer/editor/components/EditorLayout.js`:**
-- Added second top-level `useEffect`: subscribes to 4 stores (subtitle, caption, layout, editor) — any state change calls `scheduleAutosave`. Also wires `window.addEventListener('blur', flushAutosave)`. Cleanup unsubs + flushes.
+### #45 Electron upgrade issue
+Full body captures: three concrete risks (out of security support, missed Chromium bug fixes including #35, missed V8 perf + new web APIs), target version (Electron 32 / Chromium 128 / Node 20), stepwise approach (one hop per session), hot spots at each hop (native deps rebuild, preload.js, protocol handling, Sentry compat), acceptance criteria (including re-running #39 checklist on new Electron), and why not to skip-ahead (removed APIs compound between majors). Also notes that switching `file://` to `protocol.handle()` while on 32 might be the second line of defense on #35 if Chromium upgrade alone doesn't resolve it.
+
+### Session-5 diagnostic revert (Slider swap)
+Session 5's HANDOFF proposed swapping shadcn `<Slider>` → native `<input type="range">` on the scrub bar + zoom to isolate Radix pointer capture as the crash trigger. Test ran this session:
+- Slider swap built clean (+169 B)
+- Fega reproduced the crash anyway → Slider was NOT the cause
+- Swap reverted; both files are now byte-identical to session-5 master
+
+Net result: zero code change in `EditorLayout.js` / `TimelinePanelNew.js`. Diagnostic confirmed, visual consistency preserved.
+
+### #39 Phase 4 verification — code-side pass
+Audited code for the 13-step checklist, confirmed correctness of:
+- Step 1 (playhead at clip start): `useEditorStore.initFromContext` sets `clipFileOffset: 0`; breadcrumb at crash time shows `vidT: 106 → tlT: 0` confirming source→timeline mapping is correct.
+- Step 4 (waveform no-stretch during trim): `trimSnapshot` mechanism at `TimelinePanelNew.js:158-159` freezes `effectiveDuration` during drag (`rawEffectiveDuration` → `trimSnapshot` on trimStart, back to null on trimEnd).
+- Step 5 (trim-inward still works): `WaveformTrack.js:29-40` bounds `newSourceStart/End` with min-duration clamp (`sourceEnd - 0.1` / `sourceStart + 0.1`), handling shrink correctly.
+
+Steps 2 + 3 already log-confirmed in session 4. Steps 6-13 require manual eyes-on in the running app.
 
 ---
 
 ## Key Decisions
 
-1. **No `dirty` gate on autosave.** Verified that style setters in `RightPanelNew.js:1229` pass raw setters (`setFontFamily={setSubFontFamily}`) without `markDirty` wraps, and `LeftPanelNew.js:343` `setSegmentMode` doesn't either. Gating on dirty would miss font/segment-mode changes. 800ms debounce absorbs the noise from saving on non-persistable state changes (e.g., `activeSegId`, playback position is in a different store so doesn't trigger).
+1. **Deferred #35 to Electron upgrade.** The tempting next mitigation was adding `preload="none"` or switching to `protocol.handle()`, but we'd be patching symptoms of a known Chromium bug class. Upgrading to Electron 32 is higher leverage AND necessary anyway for commercial launch (security support baseline).
 
-2. **No `beforeunload` flush.** Electron can't synchronously IPC from beforeunload, and renderer crashes bypass it anyway. The 800ms debounce + blur flush are the real protection.
+2. **Slider swap reverted cleanly.** Kept visual consistency. Only functional change this session is `ffmpeg.js`. The slightly-reordered import blocks in `EditorLayout.js` and `TimelinePanelNew.js` were restored to session-5's exact import ordering.
 
-3. **Counter, not boolean, for `_savesInFlight`.** Concurrent explicit Save + autosave can BOTH run; main process serializes. Boolean would have bailed the second save and lost edits made during the first IPC.
+3. **`#45` one-major-at-a-time, not a big-bang upgrade.** Electron removes deprecated APIs gradually (deprecate in N, remove in N+2). Skipping 4 majors at once compounds breakage. Per-hop testing keeps the app bootable between attempts — important since Fega is the sole tester.
 
-4. **No restore UI.** `initFromContext` at `useEditorStore.js:145-162` already reads `clip.subtitles.sub1`, `clip.subtitleStyle`, `clip.captionStyle` on every open. Autosave writes exactly those fields. Transparent round-trip.
+4. **#38 probe-based, not hard-coded `-r 60`.** OBS captures are usually 60fps but not always (some clips are 30fps; future content may be 120fps). Probing honors the source truth; clamp rejects corrupt probe output.
 
 ---
 
 ## Next Steps (recommended next-session focus, ranked)
 
-1. **#35 renderer crash** — real investigation now that autosave makes failures non-destructive. Options: Electron `crashReporter.start()` for proper minidumps, swap shadcn Slider thumb for native input, or audit every remaining `<video>` element for cleanup gaps. Breadcrumb pattern in Sentry issue `7381799876` is the starting point.
-2. **B4 #38 60fps drop** — quick win. `cutClip` in `src/main/ffmpeg.js:109-134` is missing `-r 60` (or `-r` matching probed source fps). Fix is one line; verify with `ffprobe` on output.
-3. **V1 #39 Phase 4 verification** — walk the 13-step checklist to confirm no regressions from the session-3 Phase 4 ship.
-4. **C1-C3 hygiene** — delete dead DBG logs and removed IPCs once the board is quieter.
+1. **Begin #45 Electron upgrade — 28 → 29.** First hop is usually the cheapest diagnostic. `npm i electron@29`, `npx electron-rebuild`, launch, smoke-test, read Electron 29 breaking changes. If it boots, proceed same session or stop + commit. If it breaks, fix and commit the fixes separately before attempting 29→30.
+
+2. **#39 manual verification walk.** Ten remaining steps (6, 7, 8, 9, 10, 11, 12, 13 — and re-confirm 1, 4, 5 visually). Fega needs to actually do the clicks. Plan: open editor on a clip with a known 30-min source, trim in/out, save, reopen, confirm bounds. Then rename source on disk, confirm Media Offline banner. Then use "Locate file..." and confirm recovery. Then delete the waveform cache JSON and reopen to confirm regen. ~20 minutes of manual test.
+
+3. **#38 verification.** Render a 60fps clip end-to-end and `ffprobe` the output: `ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate <output>`. Expect `60/1` (not `25/1`). Should also visually spot-check — 60fps gameplay looks noticeably smoother than 25.
+
+4. **#44 double setSegmentMode chore.** Small refactor — `initFromContext` calls `setSegmentMode` twice; dedup both the call and the log.
 
 ---
 
 ## Watch Out For
 
-- **Don't move `_autosaveTimer` or `_savesInFlight` into Zustand state** — infinite subscribe loop guaranteed.
-- **Don't convert `_savesInFlight` back to a boolean** — lost-edit race on clip-switch.
-- **Don't remove the `_savesInFlight > 0` guard in `scheduleAutosave`** — the `dirty: false` echo from `_doSilentSave` will loop forever.
-- **Don't autosave during `extending: true`** — FFmpeg extend/revert handlers are actively writing `{sourceStartTime, duration, ...}` via the same `project:updateClip` IPC. Racing could clobber. Current guard handles this.
-- **The 800ms autosave runs during clip open too** — initFromContext does many store writes during template application + initSegments. This triggers one (harmless, idempotent) autosave right after load. If it becomes noisy in logs, add a `_suppressAutosaveUntil = Date.now() + 2000` on initFromContext entry.
+- **Don't attempt more in-process Phase 4 hardening for #35.** We've ruled out the Slider; previous Phase 4 teardown was correct as far as it could go. Any additional mitigation risks adding complexity for marginal gain and will be obviated by the Electron upgrade anyway.
+- **`cutClip` is now `async` + does an ffprobe before encoding.** A probe adds ~50-200ms to every cut. Real cost is negligible next to the re-encode (seconds to minutes) but be aware when profiling.
+- **Electron 29 `contextIsolation` default changed long ago, but some APIs started requiring `session` scoping in later versions.** Start the upgrade by reading the Electron 29 breaking-changes doc — don't just bump and hope.
+- **`@sentry/electron` 7.10 may have issues on Electron 32.** Check Sentry's compat matrix before each Electron hop. If crash reports stop arriving in Sentry mid-upgrade, this is where to look first.
+- **The Slider import reordering in session 5's diagnostic was reverted to exact prior order.** Lint/format passes that reorder imports could diff these files again — confirm your lint setup matches the existing ordering before blaming drift.
 
 ---
 
 ## Logs / Debugging
 
-- **Autosave success**: grep `[autosave] saved clipId=` in `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\trim-debug.log`
-- **Renderer crash**: grep `RENDER-GONE` in `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log`. Exit code `-1073741819` = `0xC0000005` = ACCESS_VIOLATION, confirms native crash (not JS).
-- **Sentry**: `https://sentry.io/api/0/projects/flowve/clipflow/issues/?query=is:unresolved&sort=date&limit=15`. Token in `C:\Users\IAmAbsolute\.claude\sentry_token.txt`. Main active issue is CLIPFLOW-4 (`7381799876`).
-- **Clip data on disk**: `{watchFolder}/{projectId}/project.json` → `clips[].subtitles`, `clips[].subtitleStyle`, etc. Direct inspection confirms autosave writes landed.
+- **60fps verification (post-#38):** `ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate,avg_frame_rate -of default=nw=1 <rendered_clip.mp4>` — expect r_frame_rate = source fps (60/1 for OBS captures), not 25/1.
+- **Renderer crash signature (for next occurrence):** Sentry issue `7381799876` (CLIPFLOW-4). Stack should begin with `blink::DOMDataStore::GetWrapper` and climb through `ReadableStreamBytesConsumer::BeginRead` + `FetchDataLoaderAsDataPipe::OnStateChange`. If the stack changes shape (e.g., no longer fetch-related), re-investigate — a different bug may have surfaced behind this one.
+- **Sentry API:** `https://sentry.io/api/0/issues/7381799876/events/latest/` with token from `C:\Users\IAmAbsolute\.claude\sentry_token.txt`. Breadcrumbs + exception stack in `entries[].data.values[]`.
+- **Ffmpeg fps probe sanity check:** `node -e "require('./src/main/ffmpeg').probe('<path>').then(m => console.log(m.fps))"` from repo root.
+- **Clip data on disk:** `{watchFolder}/{projectId}/project.json` → `clips[]`.
 
 ---
 
 ## Verification Completed This Session
 
-- [x] `npx react-scripts build` clean, +400 bytes gzipped, no warnings
-- [x] App launched, editor opened clip, edits made
-- [x] Force-killed renderer via Task Manager mid-edit
-- [x] Reopened clip → edits survived (user-confirmed)
-- [x] Build SHA: `main.7e7ed0a0.js`
+- [x] `npx react-scripts build` clean, no warnings, bundle back to session-5 hash `main.7e7ed0a0.js`
+- [x] Slider swap reverted — `EditorLayout.js` + `TimelinePanelNew.js` byte-identical to session-5 master
+- [x] `#38` fix patched in `ffmpeg.js` — syntax valid, async signature backwards-compatible with existing awaiters
+- [x] `#45` filed with full context (three concrete risks, stepwise plan, acceptance criteria)
+- [x] Sentry event pulled + full stack trace captured → root cause confirmed as Chromium 120 fetch-stream UAF
+- [x] `#39` code-side audit for steps 1, 4, 5 passed
+
+- [ ] `#38` 60fps output needs manual `ffprobe` verification on a newly rendered clip (can't test without running render)
+- [ ] `#39` steps 6-13 need manual eyes-on in running app (Fega task)

@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 6) — #35 diagnostic + #38 60fps fix + Electron upgrade backlog
+
+### Fixed
+- **60fps → 25fps drop on render (closes #38)**: `cutClip` in `src/main/ffmpeg.js` now probes the source with `ffprobe` and passes `-r <fps>` to libx264 so output preserves the source frame rate. Previously, re-encoding without `-r` was collapsing VFR OBS recordings to FFmpeg's default 25fps, silently halving gameplay smoothness. Probe failures fall back to FFmpeg default (better to cut at wrong fps than fail the cut entirely). Clamped to `fps > 0 && fps <= 240` to reject corrupt probe values.
+
+### Notes (no code changes beyond the #38 fix)
+- **#35 (renderer crash) root-cause narrowed.** Session breadcrumbs + full Sentry stack trace proved the crash is NOT the shadcn Slider (which was the working hypothesis from session 5). Real stack: `blink::DOMDataStore::GetWrapper` ← `AccumulateArrayBuffersForAllWorlds` ← `DOMArrayBuffer::IsDetached` ← `ReadableStreamBytesConsumer::BeginRead` ← `FetchDataLoaderAsDataPipe::OnStateChange` ← `mojo::SimpleWatcher::OnHandleReady`. This is Chromium's internal fetch-stream receiving a mojo-pipe message against an already-detached `ArrayBuffer`. The `<video>` element's `file://` loader uses this pipeline internally; when the src/seek invalidates the stream, a pending mojo message can still arrive and UAF. Phase 4's `pause → removeAttribute src → load()` teardown does not synchronously drain mojo pipes, which is why hardening didn't fix it.
+- **Diagnostic swap reverted.** The session-6 test swapped shadcn `<Slider>` → native `<input type="range">` in the scrub bar (`EditorLayout.js`) and the timeline zoom (`TimelinePanelNew.js`). Fega reproduced the crash on the native inputs → Slider was exonerated. Swap reverted to restore visual consistency. Net code change on those two files: zero.
+- **Electron upgrade filed as #45** (`type: improvement, area: backend, area: security, milestone: commercial-launch`). ClipFlow is on Electron 28 / Chromium 120 / Node 18 — ~18 months old and out of Electron's 3-version security support window. Multiple Chromium fetch-stream UAF fixes have landed in 121-128; upgrading to Electron 32 (Chromium 128) is the highest-leverage move to fix #35 and pull in ~15 months of security patches. Planned as a stepwise upgrade (28→29→30→31→32), one major per session, with `electron-rebuild` and smoke tests between hops.
+- **#39 (Phase 4 13-step verification) status.** Code-side audit confirmed the logic for steps 1 (playhead at clip start, via `initFromContext` + `clipFileOffset: 0`), 4 (waveform no-stretch during trim, via `trimSnapshot` freeze in `TimelinePanelNew.js:158-159`), and 5 (trim-inward bounds clamped in `WaveformTrack.js:29-40`). Steps 2+3 already log-confirmed in session 4. Remaining steps (6, 7, 8, 9, 10, 11, 12, 13) require manual eyes-on testing in the running app — checklist re-issued in HANDOFF for Fega's next run-through.
+
 ## [Unreleased] — 2026-04-16 (session 5) — B1 refactor + editor autosave
 
 ### Added
