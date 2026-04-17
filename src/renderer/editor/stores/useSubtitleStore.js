@@ -408,15 +408,72 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    console.log(`[initSegments] source=${hasClipTranscription ? 'clip-transcription' : hasClipSubtitles ? 'clip-subtitles' : 'project-transcription'}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
+    const effectiveSource = hasClipTranscription && !transcriptionIsStale
+      ? "clip-transcription"
+      : hasClipSubtitles
+        ? "clip-subtitles"
+        : Array.isArray(clip?.subtitles) && clip.subtitles.length > 0
+          ? "clip-subtitles-legacy"
+          : "project-transcription";
+    console.log(`[initSegments] source=${effectiveSource}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
+
+    // ─── Normalize primary segments to source-absolute time ───────────────
+    // After this step everything downstream works in source-absolute, so the
+    // primary-vs-extras distinction disappears before the cleanup pipeline runs.
+    const primaryRaw = segments.map((s) => ({
+      start: s.start + sourceOffset,
+      end: s.end + sourceOffset,
+      text: s.text,
+      words: (s.words || []).map((w) => ({
+        word: w.word,
+        start: (w.start ?? s.start) + sourceOffset,
+        end: (w.end ?? s.end) + sourceOffset,
+        probability: w.probability ?? 1,
+      })),
+    }));
+
+    // ─── Pull source-wide extras when primary is clip-bounded ─────────────
+    // Primary clip.transcription / clip.subtitles covers only [clip.startTime,
+    // clip.endTime]. If the user extends the clip past those bounds we need
+    // project.transcription (source-wide) to populate the newly-visible audio.
+    // Union happens BEFORE the cleanup pipeline so extras get the SAME
+    // mega-segment filter / dedup / word-repair the primary data gets —
+    // otherwise whisperx artifacts in project.transcription leak only into
+    // extended regions, creating inconsistent subtitle quality within a clip.
+    const primaryIsProjectTranscription = effectiveSource === "project-transcription";
+    let extrasRaw = [];
+    if (hasProjectTranscription && !primaryIsProjectTranscription) {
+      const overlapsPrimary = (start, end) =>
+        primaryRaw.some((p) => start < p.end && end > p.start);
+      extrasRaw = project.transcription.segments
+        .filter((s) => !overlapsPrimary(s.start, s.end))
+        .map((s) => ({
+          start: s.start, // project.transcription is already source-absolute
+          end: s.end,
+          text: s.text,
+          words: (s.words || []).map((w) => ({
+            word: w.word,
+            start: w.start ?? s.start,
+            end: w.end ?? s.end,
+            probability: w.probability ?? 1,
+          })),
+        }));
+      if (extrasRaw.length > 0) {
+        console.log(`[initSegments] Merged ${extrasRaw.length} source-wide segments from project.transcription for extends coverage`);
+      }
+    }
+
+    const unionRaw = [...primaryRaw, ...extrasRaw].sort((a, b) => a.start - b.start);
+
+    // ─── Cleanup pipeline (runs once over the unioned raw segments) ───────
 
     // Filter out "mega-segments" — transcription artifacts where stable-ts/Whisper
     // outputs a single segment spanning the entire audio with all words crammed in,
     // alongside proper sentence-level segments. The mega-segment has compressed
     // word timestamps that cause ghost subtitles racing ahead during pauses.
     const clipDur = clip.endTime && clip.startTime ? (clip.endTime - clip.startTime) : (clip.duration || 0);
-    const filteredSegments = segments.length > 1
-      ? segments.filter((s) => {
+    const filteredSegments = unionRaw.length > 1
+      ? unionRaw.filter((s) => {
           const segDur = (s.end || 0) - (s.start || 0);
           const wordCount = s.words?.length || 0;
           const isMega = segDur > 0 && clipDur > 0 && segDur > clipDur * 0.85 && wordCount > 20;
@@ -425,7 +482,7 @@ const useSubtitleStore = create((set, get) => ({
           }
           return !isMega;
         })
-      : segments;
+      : unionRaw;
 
     // Remove overlapping duplicate segments — whisperx sometimes emits two segments
     // covering the same time range with the same words
@@ -457,30 +514,22 @@ const useSubtitleStore = create((set, get) => ({
         }
       }
       if (cleaned.length < s.words.length) {
-        console.log(`[initSegments] Deduped ${s.words.length - cleaned.length} consecutive duplicate words in segment "${s.text?.slice(0, 30)}"`);
+        console.log(`[initSegments] Deduped ${s.words.length - cleaned.length} consecutive duplicate words in segment "${(s.text || "").slice(0, 30)}"`);
         s.words = cleaned;
-        s.text = cleaned.map(w => w.word).join(" ");
+        s.text = cleaned.map((w) => w.word).join(" ");
       }
     }
 
-    // Source-wide: no clip-bound filter here. Downstream visibleSubtitleSegments
+    // ─── Build final editSegments shape ───────────────────────────────────
+    // Timestamps are already source-absolute. Downstream visibleSubtitleSegments
     // + nleSegments handle timeline clipping, so extends reveal already-loaded
     // segments instead of finding them discarded at init time.
     const segs = deduped
       .map((s, i) => {
-        // Convert to source-absolute timestamps
-        const segStartSec = s.start + sourceOffset;
-        const segEndSec = s.end + sourceOffset;
+        const segStartSec = s.start;
+        const segEndSec = s.end;
 
-        // Build words in source-absolute time
-        const cleanWords = (s.words || []).map(w => ({
-          word: w.word,
-          start: (w.start ?? s.start) + sourceOffset,
-          end: (w.end ?? s.end) + sourceOffset,
-          probability: w.probability ?? 1,
-        }));
-
-        const rawWords = mergeWordTokens(cleanWords, s.text);
+        const rawWords = mergeWordTokens(s.words, s.text);
         const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
         const repairedWords = cleanWordTimestamps(validatedWords, {
           segStart: segStartSec,
@@ -488,7 +537,7 @@ const useSubtitleStore = create((set, get) => ({
         });
 
         if (i === 0) {
-          console.log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${s.text.slice(0, 40)}"`);
+          console.log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${(s.text || "").slice(0, 40)}"`);
           if (repairedWords.length > 0) {
             console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
           }
@@ -496,7 +545,7 @@ const useSubtitleStore = create((set, get) => ({
 
         // Rebuild segment text from surviving words (boundary trim may have removed some)
         const segText = repairedWords.length > 0
-          ? repairedWords.map(w => w.word).join("").trim()
+          ? repairedWords.map((w) => w.word).join("").trim()
           : s.text;
 
         return {
@@ -513,54 +562,9 @@ const useSubtitleStore = create((set, get) => ({
           words: repairedWords,    // word.start/end are SOURCE-ABSOLUTE
         };
       })
-      .filter((s) => s.words.length > 0 || s.text.trim().length > 0); // Drop empty segments from boundary trim
+      .filter((s) => s.words.length > 0 || (s.text || "").trim().length > 0); // Drop empty segments from boundary trim
     // Re-number IDs after filtering
     segs.forEach((s, i) => { s.id = i + 1; });
-
-    // Phase 4 merge: when primary source was clip-bounded (clip.transcription,
-    // clip.subtitles.sub1, or legacy array), pull source-wide project.transcription
-    // segments that don't overlap any primary segment. Ensures extends past the
-    // original clip bounds reveal subtitles for the newly-visible audio.
-    const primaryIsProjectTranscription =
-      !hasClipTranscription && !hasClipSubtitles && !(Array.isArray(clip?.subtitles) && clip.subtitles.length > 0);
-    if (hasProjectTranscription && !primaryIsProjectTranscription) {
-      const primaryRanges = segs.map((s) => [s.startSec, s.endSec]);
-      const overlapsPrimary = (start, end) =>
-        primaryRanges.some(([pStart, pEnd]) => start < pEnd && end > pStart);
-
-      const extraSegs = project.transcription.segments
-        .filter((s) => !overlapsPrimary(s.start, s.end))
-        .map((s) => {
-          const segStartSec = s.start;
-          const segEndSec = s.end;
-          const words = (s.words || []).map((w) => ({
-            word: w.word,
-            start: w.start ?? s.start,
-            end: w.end ?? s.end,
-            probability: w.probability ?? 1,
-          }));
-          return {
-            id: 0, // renumbered below
-            start: _displayFmt(segStartSec, clipOrigin),
-            end: _displayFmt(segEndSec, clipOrigin),
-            dur: ((segEndSec - segStartSec).toFixed(1)) + "s",
-            text: s.text || words.map((w) => w.word).join("").trim(),
-            track: "s1",
-            conf: "high",
-            startSec: segStartSec,
-            endSec: segEndSec,
-            warning: (segEndSec - segStartSec) > 10 ? "Long segment — consider splitting" : null,
-            words,
-          };
-        });
-
-      if (extraSegs.length > 0) {
-        segs.push(...extraSegs);
-        segs.sort((a, b) => a.startSec - b.startSec);
-        segs.forEach((s, i) => { s.id = i + 1; });
-        console.log(`[initSegments] Merged ${extraSegs.length} source-wide segments from project.transcription for extends coverage`);
-      }
-    }
 
     // Store original sentence-level segments for transcript tab and mode switching
     set({

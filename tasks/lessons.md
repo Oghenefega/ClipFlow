@@ -3,6 +3,24 @@
 > After ANY correction from the user, add the pattern here.
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## "It works" ≠ "ship it and move on" — audit every fix before pivoting (2026-04-16)
+**Mistake:** User confirmed B1 worked ("It freaking works!") and I immediately pivoted to B4 with a fresh plan. Did not re-read the code I just shipped, did not review logs from the successful run, did not look for dead code left behind by earlier attempts, did not check whether the fix path covered all quality paths or just the happy case the user happened to test. User called it out as sloppy — "are you sure you're working like the most intelligent coder that ever existed."
+**What I missed by skipping the audit:** The take-2 merge in `useSubtitleStore.initSegments` bypassed the entire cleanup pipeline (mega-segment filter, duplicate-segment dedup, consecutive-word dedup, mergeWordTokens, validateWords, cleanWordTimestamps) for the source-wide extras. The test clip happened not to trigger whisperx artifacts in its extended range, so the bug was latent — the user would have seen inconsistent quality between clip-range and extend-range subs on a different file and filed it as a "new" bug, forcing another round of debugging with no memory of the original fix.
+**Also missed:** `[setSegmentMode] Deduped 3 overlapping words` was firing twice per init in the logs. Not B1-related, but a clear smell (`initSegments` calls `setSegmentMode("3word")` → template replay calls it again). Would have been invisible without reading logs of the successful run.
+
+**Rule — "Done means audited":** When the user confirms a fix works, BEFORE proposing the next task, always run this checklist:
+
+1. **Re-read the diff of what shipped.** Not a summary — the actual code. What did I add? What did I leave stale?
+2. **Re-read logs from the successful run.** Look for: unexpected double-fires, new warnings, things that worked but shouldn't have, things that should have logged but didn't.
+3. **Trace edge cases the test didn't hit.** What quality paths did the primary test bypass? What inputs could produce the same symptom via a different code path?
+4. **Grep for scaffolding left behind** from earlier attempts (variables, flags, temp fields, unused imports introduced mid-debug).
+5. **Name the actual root cause in plain English.** If I can't explain in one sentence why the fix worked, I don't understand it yet.
+6. **Flag separate issues found during audit.** File as GitHub issues (per autonomous-filing rule) — don't fix inline unless trivial, don't silently carry them.
+
+Produce the audit as a visible report to the user BEFORE proposing the next task. The report proves I understand what shipped, what's still dirty, and why things now work — not just that the symptom cleared.
+
+**Why this matters:** Symptom-clearing without understanding creates three compounding failures: (a) latent bugs ship as "fixed," (b) the next regression has no paper trail, (c) accumulated unknown cleanup debt makes future edits increasingly risky. A fix that "works" on one test case but is sloppy internally is worse than a broken fix — it hides.
+
 ## Fix-then-break chain: Understand the full pipeline BEFORE patching (2026-04-07)
 **Mistake:** Attempted to fix subtitle misalignment after trim by patching individual symptoms (save format, stale detection, dedup, waveform audio track) without understanding the full architecture. Each fix revealed a deeper issue, leading to a chain of 8+ patches that left things "severely broken." The root cause (video file not matching editor timeline after mid-section deletes) wasn't identified until late in the session.
 **Rule:** When a bug involves data flowing through multiple layers (FFmpeg → file → IPC → store → renderer), trace the ENTIRE pipeline end-to-end BEFORE writing any fix. Draw the data flow on paper: what does the file contain? What does the store expect? What does the renderer display? Identify ALL mismatches first, then fix from the foundation up — not symptom by symptom.
