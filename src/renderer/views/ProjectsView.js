@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
+import TestChip from "../components/TestChip";
 import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
 
@@ -722,9 +723,23 @@ function sortFolders(folders, mode) {
 }
 
 export function ProjectsListView({
-  localProjects = [], projectFolders = [], activeFolder, onSelectFolder,
+  localProjects = [], setLocalProjects, projectFolders = [], activeFolder, onSelectFolder,
   onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [],
 }) {
+  // Toggle per-project test mode. Optimistic update on the local state, then
+  // persist to disk via IPC. On failure, revert so the chip doesn't lie about
+  // where outputs will actually route.
+  const handleToggleTestMode = async (projectId, next) => {
+    if (!setLocalProjects) return;
+    setLocalProjects((prev) => prev.map((p) => p.id === projectId ? { ...p, testMode: next } : p));
+    try {
+      const result = await window.clipflow?.projectUpdateTestMode?.(projectId, next);
+      if (result?.error) throw new Error(result.error);
+    } catch (e) {
+      console.error("[ProjectsView] testMode toggle failed:", e.message);
+      setLocalProjects((prev) => prev.map((p) => p.id === projectId ? { ...p, testMode: !next } : p));
+    }
+  };
   const [selected, setSelected] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [folderSortMode, setFolderSortMode] = useState("created");
@@ -1181,14 +1196,12 @@ export function ProjectsListView({
                                 fontFamily: T.mono,
                               }}>{p.gameTag}</span>
                             )}
-                            {(p.tags || []).includes("test") && (
-                              <span style={{
-                                display: "inline-flex", padding: "1px 5px",
-                                background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.25)",
-                                borderRadius: 4, fontSize: 9, fontWeight: 700, color: "#facc15",
-                                fontFamily: T.mono, letterSpacing: "0.5px",
-                              }}>TEST</span>
-                            )}
+                            <span onClick={(e) => e.stopPropagation()}>
+                              <TestChip
+                                isTest={p.testMode === true || (p.tags || []).includes("test")}
+                                onToggle={(next) => handleToggleTestMode(p.id, next)}
+                              />
+                            </span>
                             <span style={{ color: T.textTertiary, fontSize: 12 }}>
                               {st === "processing" ? (
                                 <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>

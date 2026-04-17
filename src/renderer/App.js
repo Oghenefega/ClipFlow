@@ -460,6 +460,7 @@ export default function App() {
         <RecordingsView
           gamesDb={gamesDb}
           localProjects={localProjects}
+          testWatchFolder={testWatchFolder}
           onProjectCreated={(projectId) => {
             // Refresh local projects list from disk
             window.clipflow?.projectList().then((result) => {
@@ -595,6 +596,7 @@ export default function App() {
         return (
           <ProjectsListView
             localProjects={localProjects}
+            setLocalProjects={setLocalProjects}
             projectFolders={projectFolders}
             activeFolder={activeFolder}
             onSelectFolder={setActiveFolder}
@@ -628,6 +630,7 @@ export default function App() {
     return (
       <ProjectsListView
         localProjects={localProjects}
+        setLocalProjects={setLocalProjects}
         projectFolders={projectFolders}
         activeFolder={activeFolder}
         onSelectFolder={setActiveFolder}

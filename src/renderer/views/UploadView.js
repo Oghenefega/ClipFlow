@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
+import TestChip from "../components/TestChip";
 
 function formatSize(bytes) {
   if (!bytes || bytes === 0) return "0 B";
@@ -68,7 +69,7 @@ const STAGE_LABELS = {
 
 const PILL_MIN = 200;
 
-export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated }) {
+export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, testWatchFolder = "" }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
@@ -122,6 +123,31 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       await window.clipflow.storeSet("doneRecordings", next);
     }
   }, []);
+
+  // Toggle per-recording test mode on a file_metadata row. Optimistic update
+  // on the local list so the chip flips instantly; revert on IPC failure so
+  // we don't mislead the user about where downstream outputs will route.
+  const handleToggleRecordingTest = useCallback(async (fileId, next) => {
+    setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, is_test: next ? 1 : 0 } : f));
+    try {
+      const result = await window.clipflow?.fileMetadataUpdate?.(fileId, { isTest: next ? 1 : 0 });
+      if (result?.error) throw new Error(result.error);
+      // If the recording already has a project, flip the project too so renders
+      // and publishes route consistently.
+      const file = files.find((f) => f.id === fileId);
+      if (file) {
+        const baseName = (file.current_filename || "").replace(/\.(mp4|mkv)$/i, "");
+        const project = localProjects.find((p) => p.name === baseName);
+        if (project) {
+          await window.clipflow?.projectUpdateTestMode?.(project.id, next);
+          onProjectCreated?.(project.id); // reuses existing projectList refresh
+        }
+      }
+    } catch (e) {
+      console.error("[RecordingsView] testMode toggle failed:", e.message);
+      setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, is_test: next ? 0 : 1 } : f));
+    }
+  }, [files, localProjects, onProjectCreated]);
 
   // Load files from SQLite file_metadata table
   useEffect(() => {
@@ -323,6 +349,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       await window.clipflow.storeSet("watchFolder", watchFolder);
     }
 
+    // Path-based test default: if the source sits inside the configured test
+    // watch folder, the copy and downstream routing default to test. The user
+    // can still override in the quick-import modal.
+    const isUnderTestFolder = testWatchFolder && filePath.toLowerCase().startsWith(testWatchFolder.toLowerCase());
+    const defaultTestMode = !!isUnderTestFolder;
+
     setImporting({ filename: file.name, pct: 0 });
 
     const progressHandler = (data) => {
@@ -330,7 +362,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     };
     window.clipflow.onImportProgress(progressHandler);
 
-    const result = await window.clipflow.importExternalFile(filePath, watchFolder);
+    const result = await window.clipflow.importExternalFile(filePath, watchFolder, defaultTestMode);
 
     window.clipflow.removeImportProgressListener();
     setImporting(null);
@@ -356,6 +388,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       importEntry: result.importEntry,
       durationSeconds,
       splitCount,
+      isTest: defaultTestMode,
     });
     setQuickImportGame("");
     setQuickImportStep(1);
@@ -415,6 +448,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         durationSeconds: quickImport.durationSeconds,
         fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
         status: "pending",
+        isTest: !!quickImport.isTest,
       });
 
       if (!parentResult?.id) { setQuickImport(null); return; }
@@ -455,6 +489,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           gameTag: game.tag,
           gameColor: game.color,
           fileMetadataId: child.childId,
+          isTest: !!quickImport.isTest,
           keywords: [],
         });
       }
@@ -481,10 +516,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         durationSeconds: quickImport.durationSeconds,
         fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
         status: "processing",
+        isTest: !!quickImport.isTest,
       });
 
-      // Start pipeline
-      handleGenerate({ current_path: newPath, current_filename: newName, tag: game.tag, id: metaResult?.id });
+      // Start pipeline. Pass is_test so the pipeline creates a test project.
+      handleGenerate({ current_path: newPath, current_filename: newName, tag: game.tag, id: metaResult?.id, is_test: quickImport.isTest ? 1 : 0 });
     }
 
     // Clear suppression and close modal
@@ -609,7 +645,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>Quick Import</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>Quick Import</div>
+            <TestChip
+              size="md"
+              isTest={!!quickImport.isTest}
+              onToggle={(next) => setQuickImport((prev) => (prev ? { ...prev, isTest: next } : prev))}
+            />
+          </div>
           <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, fontFamily: T.mono }}>{quickImport.filename}</div>
 
           {/* Step 1: Pick Game */}
@@ -976,6 +1019,13 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1,
                         }}>
                           {shortName(f)}
+                        </span>
+
+                        <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                          <TestChip
+                            isTest={f.is_test === 1}
+                            onToggle={(next) => handleToggleRecordingTest(f.id, next)}
+                          />
                         </span>
 
                         <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono, flexShrink: 0 }}>

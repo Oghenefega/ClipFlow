@@ -163,6 +163,15 @@ export default function QueueView({
     for (const p of (localProjects || [])) map[p.id] = p.name || p.sourceName || p.id;
     return map;
   }, [localProjects]);
+  // #60: projectId → testMode lookup. Treat legacy tags:["test"] as on too.
+  const projectTestMap = React.useMemo(() => {
+    const map = {};
+    for (const p of (localProjects || [])) {
+      map[p.id] = p.testMode === true || (Array.isArray(p.tags) && p.tags.includes("test"));
+    }
+    return map;
+  }, [localProjects]);
+  const isClipTest = (clip) => !!(clip && clip._projectId && projectTestMap[clip._projectId]);
   const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
@@ -342,6 +351,11 @@ export default function QueueView({
     const clip = approved.find((c) => c.id === clipId);
     const ps = publishStatus[clipId];
     if (!clip || !ps?.platforms) return;
+    // #60: Hard-block publish for test clips.
+    if (isClipTest(clip)) {
+      setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first." } }));
+      return;
+    }
     publishingRef.current = true;
     const failedKeys = Object.entries(ps.platforms).filter(([, st]) => st !== "done" && st !== "pending" && st !== "publishing").map(([k]) => k);
     if (failedKeys.length === 0) { publishingRef.current = false; return; }
@@ -356,13 +370,13 @@ export default function QueueView({
       try {
         let result;
         if (plat.platform === "TikTok" && window.clipflow?.tiktokPublish) {
-          result = await window.clipflow.tiktokPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, postMode: platformOptions?.tiktokPostMode || "direct_post" });
+          result = await window.clipflow.tiktokPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, postMode: platformOptions?.tiktokPostMode || "direct_post", isTest: isClipTest(clip) });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
-          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id });
+          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
-          result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id });
+          result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
-          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, tags: [], youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public" });
+          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, tags: [], youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
@@ -460,6 +474,11 @@ export default function QueueView({
       setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Clip not rendered — render it first from the Editor", platforms: {} } }));
       return;
     }
+    // #60: Hard-block publish for test clips.
+    if (isClipTest(clip)) {
+      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first.", platforms: {} } }));
+      return;
+    }
 
     // Phase 2: Filter platforms by per-clip toggles
     const toggles = clip.platformToggles || {};
@@ -503,16 +522,17 @@ export default function QueueView({
           result = await window.clipflow.tiktokPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
             caption, clipId: clip.id, postMode: platformOptions?.tiktokPostMode || "direct_post",
+            isTest: isClipTest(clip),
           });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
           result = await window.clipflow.instagramPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
-            caption, clipId: clip.id,
+            caption, clipId: clip.id, isTest: isClipTest(clip),
           });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
-            caption, clipId: clip.id,
+            caption, clipId: clip.id, isTest: isClipTest(clip),
           });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
           result = await window.clipflow.youtubePublish({
@@ -520,6 +540,7 @@ export default function QueueView({
             title: clip.title, caption, clipId: clip.id, tags: [],
             youtubeTitle: clip.youtubeTitle || clip.title,
             privacyStatus: clip.youtubePrivacy || "public",
+            isTest: isClipTest(clip),
           });
         } else {
           console.log("Publishing not yet wired for", plat.platform);
@@ -714,10 +735,21 @@ export default function QueueView({
                   );
                 })}
               </div>
+              {/* #60: Test-mode banner */}
+              {isClipTest(clip) && (
+                <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 7, border: `1px dashed rgba(250,204,21,0.45)`, background: "rgba(250,204,21,0.08)", color: "#facc15", fontSize: 11, fontWeight: 600 }}>
+                  This clip belongs to a TEST project — publishing is blocked. Untoggle TEST on the project in the Projects tab to go live.
+                </div>
+              )}
               {/* Actions */}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button onClick={cancelConfirm} style={{ padding: "8px 18px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                <button onClick={confirmPublish} style={{ padding: "8px 22px", borderRadius: 7, border: "none", background: T.green, color: "#0a0b10", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
+                <button
+                  onClick={confirmPublish}
+                  disabled={isClipTest(clip)}
+                  title={isClipTest(clip) ? "Test clip — publishing blocked." : undefined}
+                  style={{ padding: "8px 22px", borderRadius: 7, border: "none", background: isClipTest(clip) ? "rgba(255,255,255,0.04)" : T.green, color: isClipTest(clip) ? T.textMuted : "#0a0b10", fontSize: 12, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : "pointer", fontFamily: T.font }}
+                >{isClipTest(clip) ? "Blocked (Test)" : "Publish"}</button>
               </div>
             </div>
           </div>
@@ -808,7 +840,11 @@ export default function QueueView({
                     {/* Action button */}
                     <div style={{ textAlign: "right" }}>
                       {!isPub && !isPublishing && hasVideoId && (
-                        <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
+                        isClipTest(clip) ? (
+                          <button disabled title="Test clip — publishing blocked. Untoggle TEST on the project to go live." style={{ padding: "5px 12px", borderRadius: 6, border: `1px dashed ${T.borderHover}`, background: "transparent", color: T.textMuted, fontSize: 10, fontWeight: 700, cursor: "not-allowed", fontFamily: T.font }}>Test</button>
+                        ) : (
+                          <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
+                        )
                       )}
                     </div>
                   </div>
@@ -1044,7 +1080,12 @@ export default function QueueView({
                               <button onClick={() => { setSchedAction("schedule"); const sug = autoSuggestSlot(); if (sug) { setSchedDate(sug.date); setSchedHour(sug.hour); setSchedMin(sug.min); } }} disabled={!hasVideoId} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
                             )}
                             {!isPub && !isPublishing && (
-                              <button onClick={() => pubNow(clip.id)} disabled={!hasVideoId || publishingRef.current} style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Publish Now</button>
+                              <button
+                                onClick={() => pubNow(clip.id)}
+                                disabled={!hasVideoId || publishingRef.current || isClipTest(clip)}
+                                title={isClipTest(clip) ? "Test clip — publishing blocked. Untoggle TEST on the project to go live." : undefined}
+                                style={{ padding: "7px 14px", borderRadius: 7, border: isClipTest(clip) ? `1px dashed ${T.borderHover}` : "none", background: isClipTest(clip) ? "transparent" : (hasVideoId ? T.green : "rgba(255,255,255,0.04)"), color: isClipTest(clip) ? T.textMuted : (hasVideoId ? "#0a0b10" : T.textMuted), fontSize: 11, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : (hasVideoId ? "pointer" : "default"), fontFamily: T.font }}
+                              >{isClipTest(clip) ? "Test — cannot publish" : "Publish Now"}</button>
                             )}
                           </div>
                           {/* Phase 3: Schedule picker with auto-suggest */}

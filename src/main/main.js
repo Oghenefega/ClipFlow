@@ -911,7 +911,7 @@ ipcMain.handle("thumbs:preview", async (_, filePath) => {
 });
 
 // ============ IMPORT EXTERNAL FILE (Drag-and-Drop) ============
-ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder) => {
+ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, testMode = false) => {
   try {
     if (!sourcePath || !watchFolder) return { error: "Missing sourcePath or watchFolder" };
 
@@ -919,10 +919,15 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder) => 
     const ext = path.extname(filename).toLowerCase();
     if (ext !== ".mp4") return { error: "Only .mp4 files are supported" };
 
-    // Build target path in monthly subfolder
+    // Build target path in monthly subfolder. Test imports land under the
+    // testWatchFolder (or a "Test" sibling of the main folder if none is set)
+    // so they don't pollute the real recording archive.
+    const importRoot = testMode
+      ? (store.get("testWatchFolder") || path.join(watchFolder, "Test"))
+      : watchFolder;
     const now = new Date();
     const monthFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const targetDir = path.join(watchFolder, monthFolder);
+    const targetDir = path.join(importRoot, monthFolder);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const targetPath = path.join(targetDir, filename);
 
@@ -963,7 +968,7 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder) => 
       readStream.pipe(writeStream);
     });
 
-    return { success: true, targetPath, filename, importEntry: { filename, sizeBytes: srcStat.size } };
+    return { success: true, targetPath, filename, testMode: !!testMode, importEntry: { filename, sizeBytes: srcStat.size } };
   } catch (err) {
     return { error: err.message };
   }
@@ -1350,6 +1355,13 @@ ipcMain.handle("project:save", async (_, project) => {
   try {
     const watchFolder = store.get("watchFolder");
     return projects.saveProject(watchFolder, project);
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("project:updateTestMode", async (_, projectId, testMode) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.updateProjectField(watchFolder, projectId, { testMode: testMode === true });
   } catch (err) { return { error: err.message }; }
 });
 
@@ -2204,18 +2216,41 @@ ipcMain.handle("debug:clearSubtitleLog", async () => {
 // ============ RENDER PIPELINE ============
 let activeRenderProc = null;
 
+/**
+ * Resolve the correct output folder for a render, honoring per-project test
+ * mode. Re-reads the project from disk when projectData is missing the flag
+ * (e.g. editor-originated render whose store never loaded it) so a stale
+ * in-memory record can't leak test output into real folders.
+ */
+function resolveTestAwareOutputFolder(projectData) {
+  const watchFolder = store.get("watchFolder");
+  let testMode = projectData?.testMode === true;
+  // Legacy fallback: older projects may still carry tags:["test"] if an upgrade
+  // path hasn't been hit yet. Treat that as authoritative too.
+  if (!testMode && Array.isArray(projectData?.tags) && projectData.tags.includes("test")) {
+    testMode = true;
+  }
+  // Defense in depth: if projectData didn't include testMode at all, re-load
+  // from disk so the render can't be tricked by a stale renderer-side object.
+  if (!testMode && projectData?.id && typeof projectData.testMode === "undefined") {
+    try {
+      const fresh = projects.loadProject(watchFolder, projectData.id);
+      if (fresh?.testMode === true) testMode = true;
+    } catch (_) { /* non-critical */ }
+  }
+
+  if (testMode) {
+    const testRoot = store.get("testWatchFolder") || path.join(watchFolder || "", "Test");
+    return path.join(testRoot, "ClipFlow Renders");
+  }
+  return store.get("outputFolder");
+}
+
 ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
   try {
     // Determine output path if not provided
     if (!outputPath) {
-      let outputFolder;
-      // Test projects render to a folder inside the test watch folder
-      const testWatchFolder = store.get("testWatchFolder");
-      if (testWatchFolder && (projectData?.tags || []).includes("test")) {
-        outputFolder = path.join(testWatchFolder, "ClipFlow Renders");
-      } else {
-        outputFolder = store.get("outputFolder");
-      }
+      const outputFolder = resolveTestAwareOutputFolder(projectData);
       if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
       const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
       outputPath = path.join(outputFolder, fileName);
@@ -2263,12 +2298,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, options) => {
   try {
     if (!outputDir) {
-      const testWatchFolder = store.get("testWatchFolder");
-      if (testWatchFolder && (projectData?.tags || []).includes("test")) {
-        outputDir = path.join(testWatchFolder, "ClipFlow Renders");
-      } else {
-        outputDir = store.get("outputFolder");
-      }
+      outputDir = resolveTestAwareOutputFolder(projectData);
       if (!outputDir) return { error: "Output folder not configured. Go to Settings." };
     }
 
@@ -2365,9 +2395,14 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
 
 // ── TikTok Content Posting ──
 
-ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode }) => {
+ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "TikTok", accountId, accountName: "", videoPath };
   try {
+    if (isTest) {
+      const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
+      publishLog.logPublish({ ...logBase, status: "skipped", error: err });
+      return { error: err, testBlocked: true };
+    }
     // Get the stored account tokens
     const account = tokenStore.getAccount(accountId);
     if (!account) {
@@ -2526,9 +2561,14 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 
 // ── Instagram Content Publishing ──
 
-ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Instagram", accountId, accountName: "", videoPath };
   try {
+    if (isTest) {
+      const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
+      publishLog.logPublish({ ...logBase, status: "skipped", error: err });
+      return { error: err, testBlocked: true };
+    }
     const account = tokenStore.getAccount(accountId);
     if (!account) {
       const err = "Instagram account not found. Please reconnect in Settings.";
@@ -2609,9 +2649,14 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
 
 // ── Facebook Page Publishing ──
 
-ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId }) => {
+ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Facebook", accountId, accountName: "", videoPath };
   try {
+    if (isTest) {
+      const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
+      publishLog.logPublish({ ...logBase, status: "skipped", error: err });
+      return { error: err, testBlocked: true };
+    }
     const account = tokenStore.getAccount(accountId);
     if (!account) {
       const err = "Facebook account not found. Please reconnect in Settings.";
@@ -2693,9 +2738,14 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 
 // ── YouTube Publishing ──
 
-ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus }) => {
+ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "YouTube", accountId, accountName: "", videoPath };
   try {
+    if (isTest) {
+      const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
+      publishLog.logPublish({ ...logBase, status: "skipped", error: err });
+      return { error: err, testBlocked: true };
+    }
     const account = tokenStore.getAccount(accountId);
     if (!account) {
       const err = "YouTube account not found. Please reconnect in Settings.";

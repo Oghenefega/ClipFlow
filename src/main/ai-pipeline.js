@@ -429,7 +429,6 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     // ============ Stage 1: Create project ============
     sendProgress("creating", 3, "Creating project...");
     logger.startStep("Create Project");
-    const projectTags = gameData.isTest ? ["test"] : [];
     const projResult = projects.createProject(watchFolder, {
       sourceFile,
       name: gameData.name || videoName,
@@ -438,7 +437,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       gameColor: gameData.gameColor || "#888",
       fileMetadataId: fileMetadataId,
       sourceDuration: probeResult.duration,
-      tags: projectTags,
+      tags: [],
+      testMode: !!gameData.isTest,
     });
     if (projResult.error) throw new Error(projResult.error);
     const project = projResult.project;

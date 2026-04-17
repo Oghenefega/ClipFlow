@@ -24,6 +24,24 @@ function generateClipId() {
 }
 
 /**
+ * Normalize a project record loaded from disk. Handles the legacy
+ * tags-contains-"test" convention by migrating it to a dedicated testMode
+ * boolean on read. Callers can then trust project.testMode as the routing flag.
+ */
+function normalizeProject(proj) {
+  if (!proj || typeof proj !== "object") return proj;
+  const tags = Array.isArray(proj.tags) ? proj.tags : [];
+  const legacyTest = tags.includes("test");
+  if (typeof proj.testMode !== "boolean") {
+    proj.testMode = legacyTest;
+  }
+  if (legacyTest) {
+    proj.tags = tags.filter((t) => t !== "test");
+  }
+  return proj;
+}
+
+/**
  * Create a new project.
  * @param {string} watchFolder - Base watch folder path
  * @param {object} data - Project data (sourceFile, name, game, etc.)
@@ -38,6 +56,9 @@ function createProject(watchFolder, data) {
   const clipsDir = path.join(projectDir, "clips");
   fs.mkdirSync(clipsDir, { recursive: true });
 
+  const rawTags = Array.isArray(data.tags) ? data.tags.filter((t) => t !== "test") : [];
+  const testMode = data.testMode === true || (Array.isArray(data.tags) && data.tags.includes("test"));
+
   const project = {
     id,
     name: data.name || path.basename(data.sourceFile, path.extname(data.sourceFile)),
@@ -50,7 +71,8 @@ function createProject(watchFolder, data) {
     status: "created", // created → transcribing → analyzing → clipping → ready
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    tags: Array.isArray(data.tags) ? data.tags : [],
+    tags: rawTags,
+    testMode,
     transcription: null,
     clips: [],
   };
@@ -72,7 +94,7 @@ function loadProject(watchFolder, projectId) {
   if (!fs.existsSync(projectPath)) return null;
 
   try {
-    return JSON.parse(fs.readFileSync(projectPath, "utf-8"));
+    return normalizeProject(JSON.parse(fs.readFileSync(projectPath, "utf-8")));
   } catch (e) {
     return null;
   }
@@ -113,7 +135,7 @@ function listProjects(watchFolder) {
     if (!fs.existsSync(projectPath)) continue;
 
     try {
-      const proj = JSON.parse(fs.readFileSync(projectPath, "utf-8"));
+      const proj = normalizeProject(JSON.parse(fs.readFileSync(projectPath, "utf-8")));
       // Return summary (without full transcription to keep it lightweight)
       projects.push({
         id: proj.id,
@@ -130,6 +152,7 @@ function listProjects(watchFolder) {
         approvedCount: (proj.clips || []).filter((c) => c.status === "approved").length,
         renderedCount: (proj.clips || []).filter((c) => c.renderStatus === "rendered").length,
         tags: proj.tags || [],
+        testMode: proj.testMode === true,
       });
     } catch (e) {
       // Skip corrupted project files
@@ -256,6 +279,19 @@ function deleteClip(watchFolder, projectId, clipId, deleteFile = false) {
 }
 
 /**
+ * Shallow-merge a patch into a project's top-level fields. Useful for toggles
+ * like testMode without round-tripping the whole project object through the
+ * renderer. Returns the normalized, merged project.
+ */
+function updateProjectField(watchFolder, projectId, patch) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+  const merged = normalizeProject({ ...project, ...patch });
+  saveProject(watchFolder, merged);
+  return { success: true, project: merged };
+}
+
+/**
  * Get the clips directory for a project.
  */
 function getClipsDir(watchFolder, projectId) {
@@ -271,6 +307,7 @@ module.exports = {
   updateClip,
   addClip,
   deleteClip,
+  updateProjectField,
   getClipsDir,
   getProjectsRoot,
   generateClipId,

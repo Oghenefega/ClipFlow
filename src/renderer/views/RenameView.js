@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, PillSpinbox, Checkbox } from "../components/shared";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
+import TestChip from "../components/TestChip";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
 const PRESET_LIST = [
@@ -608,7 +609,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     if (isElectron && r.filePath) {
       const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
       const monthFolder = r.fileName.slice(0, 7);
-      const targetDir = `${dir}\\${monthFolder}`;
+      const testRoot = r.isTest ? (testWatchFolder || `${watchFolder}\\Test`) : null;
+      const targetDir = testRoot ? `${testRoot}\\${monthFolder}` : `${dir}\\${monthFolder}`;
       const newPath = `${targetDir}\\${newName}`;
       const result = await window.clipflow.renameFile(r.filePath, newPath);
       if (result.error) { console.error("Rename failed:", result.error); return null; }
@@ -649,7 +651,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     // First, create a parent file_metadata record so split:execute can find it
     const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
     const monthFolder = r.fileName.slice(0, 7);
-    const targetDir = `${dir}\\${monthFolder}`;
+    const testRoot = r.isTest ? (testWatchFolder || `${watchFolder}\\Test`) : null;
+    const targetDir = testRoot ? `${testRoot}\\${monthFolder}` : `${dir}\\${monthFolder}`;
 
     // Rename source to monthly subfolder first
     const tempName = r.fileName; // keep original name for now
@@ -1414,7 +1417,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                       {/* Original filename → live rename preview (single line) */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: hasSplit ? 8 : 10, flexWrap: "wrap" }}>
                         <span style={{ color: T.textSecondary, fontSize: 13, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "40%" }}>{r.fileName}</span>
-                        {r.isTest && <span style={{ fontSize: 9, fontWeight: 700, color: "#facc15", background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 4, padding: "1px 5px", fontFamily: T.mono, letterSpacing: "0.5px", flexShrink: 0 }}>TEST</span>}
+                        <TestChip
+                          isTest={!!r.isTest}
+                          onToggle={(next) => updatePending(r.id, "isTest", next)}
+                        />
                         <span style={{ color: T.textMuted, fontSize: 12 }}>→</span>
                         <PresetNamePicker
                           rename={r}

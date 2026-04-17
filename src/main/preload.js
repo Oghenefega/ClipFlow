@@ -81,6 +81,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectSave: (project) => ipcRenderer.invoke("project:save", project),
   projectList: () => ipcRenderer.invoke("project:list"),
   projectDelete: (projectId) => ipcRenderer.invoke("project:delete", projectId),
+  projectUpdateTestMode: (projectId, testMode) => ipcRenderer.invoke("project:updateTestMode", projectId, testMode),
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   projectAddClip: (projectId, clipData) => ipcRenderer.invoke("project:addClip", projectId, clipData),
   projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
@@ -127,7 +128,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   generatePreviewFrames: (filePath) => ipcRenderer.invoke("thumbs:preview", filePath),
 
   // Import external file (drag-and-drop)
-  importExternalFile: (sourcePath, watchFolder) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder),
+  importExternalFile: (sourcePath, watchFolder, testMode = false) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder, testMode),
   importClearSuppression: (filename, sizeBytes) => ipcRenderer.invoke("import:clearSuppression", filename, sizeBytes),
   importCancel: (targetPath, filename, sizeBytes) => ipcRenderer.invoke("import:cancel", targetPath, filename, sizeBytes),
   onImportProgress: (callback) => {
