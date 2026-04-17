@@ -310,6 +310,13 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // H3 (#49): sandbox: true is the OS-level defense-in-depth wall.
+      // contextIsolation stops the page reaching preload globals; CSP (H2, #48)
+      // stops attacker code loading in the first place; sandbox is what prevents
+      // exfiltration of user files if both above ever fail. The preload uses
+      // only electron APIs (contextBridge, ipcRenderer, webUtils) and Sentry's
+      // sandbox-aware preload entry — no raw Node modules.
+      sandbox: true,
     },
     icon: path.join(__dirname, "../../public/icon.png"),
   });
