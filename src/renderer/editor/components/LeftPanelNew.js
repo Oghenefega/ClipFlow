@@ -599,13 +599,12 @@ function EditSubtitlesTab() {
   const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
   const createSegmentAtTime = useSubtitleStore((s) => s.createSegmentAtTime);
   const deleteSegment = useSubtitleStore((s) => s.deleteSegment);
-  // #57 Phase C: drop the 60Hz currentTime/syncOffset subs. The per-word
-  // highlight is driven by store-derived activeSubtitleWordIdx (word index
-  // within the active seg, computed in setCurrentTime via forward-scan).
-  // The whole tab now re-renders only on seg or word transitions — not every frame.
+  const syncOffset = useSubtitleStore((s) => s.syncOffset);
+  const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
+  const adjustedTime = currentTime - syncOffset;
+
   const playing = usePlaybackStore((s) => s.playing);
-  const activeSubtitleWordIdx = usePlaybackStore((s) => s.activeSubtitleWordIdx);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
@@ -697,14 +696,31 @@ function EditSubtitlesTab() {
     setEditingWord(null);
   };
 
-  // #57 Phase C: active-word-in-seg is now derived inside the store
-  // (see usePlaybackStore._findActiveWordInSeg). Only the active segment has
-  // a live word index — all others get -1, so their rendered output is stable
-  // and React skips reconciling them on playback ticks.
+  // Find active word index within a segment based on playback time
+  // Uses "most recent word" approach to bridge gaps between words
+  // Respects segment timeline boundaries — no highlighting outside startSec/endSec
+  const getActiveWordInSeg = useCallback((seg) => {
+    if (!seg.words || seg.words.length === 0) return -1;
+    // Must be within segment's timeline boundaries
+    if (adjustedTime < seg.startSec || adjustedTime > seg.endSec) return -1;
+    // Exact match first
+    for (let i = seg.words.length - 1; i >= 0; i--) {
+      if (adjustedTime >= seg.words[i].start && adjustedTime <= seg.words[i].end) return i;
+    }
+    // Fallback: most recent word that started (bridges inter-word gaps)
+    let best = -1;
+    for (let i = 0; i < seg.words.length; i++) {
+      if (adjustedTime >= seg.words[i].start) best = i;
+      else break;
+    }
+    if (best >= 0 && adjustedTime <= seg.words[best].end + 0.5) return best;
+    return -1;
+  }, [adjustedTime]);
+
   const renderWords = (seg) => {
     const textWords = seg.text.split(/(\s+)/);
     let wordIdx = 0;
-    const activeWordInSeg = seg.id === activeSubtitleSegId ? activeSubtitleWordIdx : -1;
+    const activeWordInSeg = getActiveWordInSeg(seg);
 
     return textWords.map((token, i) => {
       if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;

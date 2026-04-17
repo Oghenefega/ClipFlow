@@ -54,61 +54,31 @@ function _findActiveWordIdx(origSegs, adjustedTime, lastIdx) {
   return starts.length - 1;
 }
 
-// Find active subtitle segment — returns { id, idx } so the caller can also
-// prime the per-seg word-scan cache with the new index on segment transitions.
-// Segments are ordered by startSec. In-gap returns { id: null, idx: -1 }.
-function _findActiveSubSeg(editSegs, adjustedTime, lastIdx) {
-  if (!editSegs || editSegs.length === 0) return { id: null, idx: -1 };
+// Find active subtitle segment id (seg whose [startSec, endSec] contains adjustedTime).
+// Segments are ordered by startSec. In-gap returns null.
+function _findActiveSubSegId(editSegs, adjustedTime, lastIdx) {
+  if (!editSegs || editSegs.length === 0) return null;
 
   let i = Math.max(0, Math.min(lastIdx >= 0 ? lastIdx : 0, editSegs.length - 1));
 
+  // Forward-scan from lastIdx
   if (adjustedTime >= editSegs[i].startSec) {
     while (i + 1 < editSegs.length && adjustedTime >= editSegs[i + 1].startSec) i++;
-    if (adjustedTime <= editSegs[i].endSec) return { id: editSegs[i].id, idx: i };
-    return { id: null, idx: i };
+    if (adjustedTime <= editSegs[i].endSec) return editSegs[i].id;
+    return null; // past this seg, before next (gap)
   }
+  // Backward / big-jump: linear scan
   for (let j = 0; j < editSegs.length; j++) {
-    if (adjustedTime < editSegs[j].startSec) return { id: null, idx: j };
-    if (adjustedTime <= editSegs[j].endSec) return { id: editSegs[j].id, idx: j };
+    if (adjustedTime < editSegs[j].startSec) return null;
+    if (adjustedTime <= editSegs[j].endSec) return editSegs[j].id;
   }
-  return { id: null, idx: -1 };
-}
-
-// Find active word index WITHIN a single edit segment. Mirrors the old
-// getActiveWordInSeg semantics: exact-match first, else most-recent-started-
-// within-0.5s fallback, and respects seg.startSec/endSec bounds.
-// Forward-scans from lastIdx. Returns -1 when no word is active.
-function _findActiveWordInSeg(seg, adjustedTime, lastIdx) {
-  if (!seg || !seg.words || seg.words.length === 0) return -1;
-  if (adjustedTime < seg.startSec || adjustedTime > seg.endSec) return -1;
-
-  const words = seg.words;
-  let i = Math.max(0, Math.min(lastIdx >= 0 ? lastIdx : 0, words.length - 1));
-
-  // Exact match via forward-scan
-  if (adjustedTime >= words[i].start) {
-    while (i + 1 < words.length && adjustedTime >= words[i + 1].start) i++;
-    if (adjustedTime <= words[i].end) return i;
-    // In the gap after words[i].end — "most recent word" fallback (≤0.5s)
-    if (adjustedTime <= words[i].end + 0.5) return i;
-    return -1;
-  }
-  // Backward / big-jump: scan from start
-  let best = -1;
-  for (let j = 0; j < words.length; j++) {
-    if (adjustedTime >= words[j].start && adjustedTime <= words[j].end) return j;
-    if (adjustedTime >= words[j].start) best = j;
-    else break;
-  }
-  if (best >= 0 && adjustedTime <= words[best].end + 0.5) return best;
-  return -1;
+  return null;
 }
 
 // Scan-index caches (non-reactive, module-level — forward-scan correctness
 // doesn't require them to be in store state).
 let _lastWordIdx = -1;
 let _lastSubSegIdx = -1;
-let _lastWordInSegIdx = -1;
 
 const usePlaybackStore = create((set, get) => ({
   playing: false,
@@ -121,9 +91,8 @@ const usePlaybackStore = create((set, get) => ({
 
   // ── Derived from currentTime inside setCurrentTime. Subscribers to these
   // re-render only when the discrete value changes (word-rate / seg-rate /
-  // 10Hz) instead of every 60fps tick. See #57 Phase B / C.
+  // 10Hz) instead of every 60fps tick. See #57 Phase B.
   activeSubtitleSegId: null,
-  activeSubtitleWordIdx: -1, // word index WITHIN the active edit segment
   activeTranscriptWordIdx: -1,
   displayTime: 0, // 100ms-quantized currentTime for low-frequency UI
 
@@ -178,24 +147,17 @@ const usePlaybackStore = create((set, get) => ({
 
     const adjusted = t - syncOffset;
 
-    let activeSegIdx = _lastSubSegIdx;
     if (subSegs) {
-      const { id: newSegId, idx } = _findActiveSubSeg(subSegs, adjusted, _lastSubSegIdx);
-      activeSegIdx = idx;
+      const newSegId = _findActiveSubSegId(subSegs, adjusted, _lastSubSegIdx);
+      // Update cache index by scanning once more to capture the index position
+      // (cheap since forward-scan already advanced). We keep the module-level
+      // cache simple: just update when the id changes.
       if (newSegId !== state.activeSubtitleSegId) {
         patch.activeSubtitleSegId = newSegId;
-        _lastSubSegIdx = idx;
-        _lastWordInSegIdx = -1; // reset per-seg word cache on seg change
-      }
-
-      // Word-within-active-seg (only meaningful when a seg is active)
-      const activeSeg = newSegId != null ? subSegs[idx] : null;
-      const newWordInSeg = activeSeg
-        ? _findActiveWordInSeg(activeSeg, adjusted, _lastWordInSegIdx)
-        : -1;
-      if (newWordInSeg !== state.activeSubtitleWordIdx) {
-        patch.activeSubtitleWordIdx = newWordInSeg;
-        _lastWordInSegIdx = newWordInSeg;
+        // Re-locate the index for future forward-scan
+        if (newSegId) {
+          _lastSubSegIdx = subSegs.findIndex(s => s.id === newSegId);
+        }
       }
     }
 
@@ -348,7 +310,6 @@ const usePlaybackStore = create((set, get) => ({
   reset: () => {
     _lastWordIdx = -1;
     _lastSubSegIdx = -1;
-    _lastWordInSegIdx = -1;
     _wordCache = { segsRef: null, words: [] };
     set({
       playing: false,
@@ -359,7 +320,6 @@ const usePlaybackStore = create((set, get) => ({
       trimOut: null,
       nleSegments: [],
       activeSubtitleSegId: null,
-      activeSubtitleWordIdx: -1,
       activeTranscriptWordIdx: -1,
       displayTime: 0,
     });
