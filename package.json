@@ -46,7 +46,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@sentry/electron": "^7.10.0",
     "autoprefixer": "^10.4.27",
-    "chokidar": "^3.6.0",
+    "chokidar": "^4.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "csv-parse": "^5.5.0",
