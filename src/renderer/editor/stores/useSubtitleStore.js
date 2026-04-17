@@ -3,6 +3,13 @@ import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
 import { visibleSubtitleSegments } from "../models/timeMapping";
+// Cross-store imports — accessed only inside function bodies (after init),
+// so ESM live bindings resolve the cycle correctly. Do NOT destructure or
+// call .getState() at module top-level here.
+import useCaptionStore from "./useCaptionStore";
+import useLayoutStore from "./useLayoutStore";
+import useEditorStore from "./useEditorStore";
+import usePlaybackStore from "./usePlaybackStore";
 
 // Format a source-absolute timestamp for display (relative to clip origin)
 function _displayFmt(sourceTimeSec, origin) {
@@ -31,11 +38,10 @@ function _snapshotStyling(subState) {
   if (sub.punctuationRemove) sub.punctuationRemove = { ...sub.punctuationRemove };
   if (sub.effectOrder) sub.effectOrder = [...sub.effectOrder];
 
-  // Capture caption store state (lazy import to avoid circular deps)
+  // Capture caption store state
   let cap = null;
   try {
-    const capStore = require("./useCaptionStore").default;
-    const cs = capStore.getState();
+    const cs = useCaptionStore.getState();
     const CAP_KEYS = [
       "captionText", "captionSegments",
       "captionFontFamily", "captionFontWeight", "captionFontSize",
@@ -65,8 +71,7 @@ function _snapshotStyling(subState) {
   // Capture layout positions
   let layout = null;
   try {
-    const layoutStore = require("./useLayoutStore").default;
-    const ls = layoutStore.getState();
+    const ls = useLayoutStore.getState();
     layout = {
       subYPercent: ls.subYPercent, capYPercent: ls.capYPercent, capWidthPercent: ls.capWidthPercent,
     };
@@ -75,8 +80,7 @@ function _snapshotStyling(subState) {
   // Capture NLE segments for undo (replaces old audioSegments + clipMeta)
   let nleSegments = null;
   try {
-    const editorStore = require("./useEditorStore").default;
-    const es = editorStore.getState();
+    const es = useEditorStore.getState();
     if (es.nleSegments) {
       nleSegments = es.nleSegments.map((s) => ({ ...s }));
     }
@@ -92,25 +96,21 @@ function _restoreStyling(snapshot, subSet) {
   // Restore caption store
   if (snapshot.cap) {
     try {
-      const capStore = require("./useCaptionStore").default;
-      capStore.setState(snapshot.cap);
+      useCaptionStore.setState(snapshot.cap);
     } catch (_) {}
   }
   // Restore layout positions
   if (snapshot.layout) {
     try {
-      const layoutStore = require("./useLayoutStore").default;
-      layoutStore.setState(snapshot.layout);
+      useLayoutStore.setState(snapshot.layout);
     } catch (_) {}
   }
   // Restore NLE segments (instant — no FFmpeg, no clip re-cutting)
   if (snapshot.nleSegments) {
     try {
-      const editorStore = require("./useEditorStore").default;
-      editorStore.setState({ nleSegments: snapshot.nleSegments });
+      useEditorStore.setState({ nleSegments: snapshot.nleSegments });
       // Sync playback store with restored segments
-      const playbackStore = require("./usePlaybackStore").default;
-      playbackStore.setState({ nleSegments: snapshot.nleSegments });
+      usePlaybackStore.setState({ nleSegments: snapshot.nleSegments });
     } catch (_) {}
   }
 }
@@ -322,8 +322,7 @@ const useSubtitleStore = create((set, get) => ({
 
     let nleSegments;
     try {
-      const editorStore = require("./useEditorStore").default;
-      nleSegments = editorStore.getState().nleSegments;
+      nleSegments = useEditorStore.getState().nleSegments;
     } catch (_) { return editSegments; }
 
     if (!nleSegments || nleSegments.length === 0) return editSegments;

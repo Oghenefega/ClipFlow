@@ -3,6 +3,9 @@ import useSubtitleStore from "./useSubtitleStore";
 import useCaptionStore from "./useCaptionStore";
 import usePlaybackStore from "./usePlaybackStore";
 import useLayoutStore from "./useLayoutStore";
+// Cross-store import — accessed only inside function bodies, ESM live
+// bindings resolve the cycle. Do NOT call .getState() at module top-level.
+import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration } from "../models/timeMapping";
@@ -62,7 +65,7 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().clearAll();
     useCaptionStore.getState().initFromClip(null);
     usePlaybackStore.getState().reset();
-    try { require("./useAIStore").default.getState().reset(); } catch (e) { /* lazy import — avoid cycle */ }
+    try { useAIStore.getState().reset(); } catch (e) {}
     set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [], nleSegments: [] });
 
     // Load full project via IPC — localProjects are summaries without clips
@@ -198,12 +201,10 @@ const useEditorStore = create((set, get) => ({
 
     // Set AI game from project data
     if (project?.game) {
-      // Defer to avoid import cycle — useAIStore imported lazily
       setTimeout(() => {
         try {
-          const useAIStore = require("./useAIStore").default;
           useAIStore.getState().setAiGame(project.game);
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
       }, 0);
     }
   },
@@ -225,8 +226,7 @@ const useEditorStore = create((set, get) => ({
 
   _pushNleUndo: () => {
     try {
-      const subStore = require("./useSubtitleStore").default;
-      subStore.getState()._pushUndo();
+      useSubtitleStore.getState()._pushUndo();
     } catch (_) {}
   },
 
@@ -322,8 +322,7 @@ const useEditorStore = create((set, get) => ({
 
   _pushAudioUndo: () => {
     try {
-      const subStore = require("./useSubtitleStore").default;
-      subStore.getState()._pushUndo();
+      useSubtitleStore.getState()._pushUndo();
     } catch (_) {}
   },
 

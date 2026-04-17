@@ -4,6 +4,24 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 13) — CRA → Vite (C2 closed)
+
+### Changed
+- **Create React App → Vite 6.4.2** ([#46](https://github.com/Oghenefega/ClipFlow/issues/46)). Replaced deprecated `react-scripts` 5.0.1 with `vite` ^6.4.2 + `@vitejs/plugin-react` ^4.7.0. Scripts updated: `dev:renderer` → `vite`, `build:renderer` → `vite build`. `homepage: "./"` field removed from `package.json` — replaced by Vite's `base: "./"`. Output dir kept at `build/` so [src/main/main.js:320](src/main/main.js:320) and [src/main/subtitle-overlay-renderer.js:149](src/main/subtitle-overlay-renderer.js:149) `loadFile` paths need no changes. 1111 transitive packages removed, bundle now 1.85 MB minified / 540 KB gzip (2727 modules). This closes C2 — see dashboard Section 9.
+- **Renderer entry moved from `public/index.html` to root `index.html`** (Vite convention). Previous CRA entry file deleted. The new root entry loads `/src/index.js` as an ES module.
+- **New [vite.config.js](vite.config.js)** handles two CRA-era quirks: (1) a custom esbuild transform treats `.js` files in `src/` as JSX (ClipFlow stored JSX in `.js` per CRA legacy); (2) `build.commonjsOptions.include` extends Rollup's CommonJS plugin to source files so the 5 CJS utilities in `src/renderer/editor/` (shared with the CJS main process via `require()` in [src/main/render.js](src/main/render.js)) convert cleanly when consumed by the renderer ESM bundle.
+- **Tailwind config** — content glob updated to `["./index.html", "./src/**/*.{js,jsx,ts,tsx}"]` (was `["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"]`); new `postcss.config.js` at repo root (CRA had this baked in).
+- **`tsconfig.json`** — `moduleResolution: "node"` → `"bundler"` so TS plays nicely with Vite's module graph.
+
+### Fixed
+- **TDZ crash from circular `require()` in 4 Zustand stores.** Build succeeded but renderer rendered blank on first launch. DevTools showed `Uncaught ReferenceError: Cannot access 'useSubtitleStore' before initialization` (symbol name surfaced by temporarily setting `build.minify: false`). Root cause: [useSubtitleStore](src/renderer/editor/stores/useSubtitleStore.js), [useEditorStore](src/renderer/editor/stores/useEditorStore.js), [useLayoutStore](src/renderer/editor/stores/useLayoutStore.js), [useCaptionStore](src/renderer/editor/stores/useCaptionStore.js) used lazy `require("./useXStore").default` inside function bodies to break cycles. Webpack tolerated this as runtime CJS lookups; Rollup's `@rollup/plugin-commonjs` (invoked under `transformMixedEsModules: true` so source CJS works) hoists those `require` calls into eager top-level imports → cycle evaluates eagerly → TDZ. Fix: converted all **12 `require()` sites** to top-level ESM imports. Cycle still exists topologically; ESM live bindings resolve it correctly because access is inside function bodies that run after both modules finish initializing.
+
+### Notes
+- **Smoke tests passed on the three user-critical paths:** #35 zoom-slider x10 on a 30min+ source (no crash, minor perceptible delay on very fast repeated drags — same as pre-Vite, not a regression), drop-to-Rename (drag-drop + rename end-to-end), render a clip (FFmpeg job completes, output file valid). Drop-to-Upload and HMR tests intentionally skipped (upload gated on [#60](https://github.com/Oghenefega/ClipFlow/issues/60) test-mode toggle Fega wants before exercising real upload pipeline; HMR is a dev-only ergonomic not needed for release).
+- **[#60](https://github.com/Oghenefega/ClipFlow/issues/60) filed:** per-clip test-mode toggle on Rename/Upload/Projects to route dogfood renames/renders/uploads to a separate Test area so pre-launch testing doesn't pollute the real content pipeline.
+- **C2 closed — unblocks H5, H6, H2 next.** Vite is now the build tool, so [#52](https://github.com/Oghenefega/ClipFlow/issues/52) `electron-store` 8→11 (ESM-only) and [#53](https://github.com/Oghenefega/ClipFlow/issues/53) `chokidar` 3→4 (ESM-only) are unblocked. [#48](https://github.com/Oghenefega/ClipFlow/issues/48) CSP was planned as a nonce-based policy bundled with Vite — that still needs its own pass but is no longer gated.
+- **`--legacy-peer-deps` uninstall pattern.** Used `npm uninstall react-scripts --legacy-peer-deps` to cleanly remove the old CRA peer-dep web. Going forward, `--legacy-peer-deps` can be dropped from the standing install flags once all Vite-native deps are installed — reassess after H5/H6 land.
+
 ## [Unreleased] — 2026-04-17 (session 12) — Electron 29 → 40 (single-shot, C1 closed)
 
 ### Changed

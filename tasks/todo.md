@@ -4,7 +4,90 @@
 
 ---
 
-## 🔲 PROPOSED — Editor perf on 30-min sources (#57) — unblocks Electron hop cadence
+## 🔲 PROPOSED — C2 Vite migration (#46), step 1 of the structural-deps arc
+
+**Plain-language goal.** Swap the build tool. Today the React app is built by Create React App (`react-scripts`) — a tool the React team stopped recommending in 2023 and that hasn't shipped meaningful updates since. Vite is the agreed-upon replacement. Same React 18, same Tailwind 3, same source files, same `build/` output directory — just a different thing turning the source into the bundle Electron loads. Nothing the user sees changes. What unlocks: React 19 later (M1), `electron-store` 8 → 11 (H5), `chokidar` 3 → 5 (H6), nonce-based CSP (H2). Per the dashboard, those are bundled into this arc but **this proposal is just the Vite swap** — the dep bumps are separate commits in follow-up sessions, so a regression is attributable.
+
+**Why now.** C1 is closed; the gating dependency Section 9 of the dashboard called out is gone. Pre-launch is the right window — installer paths and build-artifact layout lock in at v1.0 and migrating off CRA post-launch is strictly harder.
+
+### What this session does (and doesn't)
+
+**Does:** swap `react-scripts` for Vite. Keep React 18, Tailwind 3, and `build/` as the output directory so neither `src/main/main.js:320` nor `src/main/subtitle-overlay-renderer.js:149` need their paths touched. Single commit. Single risk surface.
+
+**Doesn't:** bump React to 19 (deferred — its own commit). Bump `electron-store` (H5 — separate commit, gated on this landing). Bump `chokidar` (H6 — separate commit). Add CSP (H2 — separate session). Bump Tailwind to 4 (M2 — deferred). These all depend on Vite being in, but bundling them now multiplies the regression surface.
+
+### Facts confirmed by reading code
+
+- Entry point is `src/index.js` (standard CRA layout).
+- `tsconfig.json` declares an `@/*` → `./src/*` alias but **zero source files use it** (`grep "@/"` in `src/` returns nothing). Vite needs the alias defined to keep tsconfig honest, but it's not load-bearing.
+- **Zero `process.env.REACT_APP_*` references** in `src/`. No env-var rename work.
+- `public/` contains: `index.html`, `icon.png`, `icon.svg`, `subtitle-overlay/index.html`, `subtitle-overlay/overlay-renderer.js`. Vite's default `publicDir: "public"` copies all of this verbatim into the output root, so the offscreen subtitle bundle keeps working without touching `subtitle-overlay-renderer.js`.
+- `tailwind.config.js` exists at root; **no `postcss.config.js`** (CRA bakes PostCSS into webpack). Vite needs an explicit `postcss.config.js` for Tailwind to run.
+- `package.json` has `homepage: "./"` — CRA's relative-URL setting. Vite equivalent is `base: "./"` in `vite.config.js`. Critical: without it, `loadFile` in Electron breaks because the bundle uses absolute `/assets/...` URLs.
+- `electron-builder.files` includes `"build/**/*"` — keeping Vite's output as `build/` means electron-builder config doesn't change either.
+- `src/main/main.js:293` has `isDev = false` hardcoded. Dev port today is `3000`; Vite default is `5173`. Either change Vite to use 3000, or update the hardcoded port comment. **Pick: Vite on 3000 to keep `npm run dev` mental model identical.**
+
+### File impact
+
+| File | Action | Why |
+|---|---|---|
+| `package.json` | Modify | Replace `react-scripts` (dev dep) with `vite` + `@vitejs/plugin-react`. Drop `homepage` field (replaced by Vite's `base`). Rewrite `dev:renderer` and `build:renderer` scripts. Keep `dev`, `start`, `build`, `pack`, electron-builder block untouched. |
+| `vite.config.js` | **Create** | `root: "."`, `base: "./"`, `publicDir: "public"`, `build.outDir: "build"`, `build.emptyOutDir: true`, `server.port: 3000`, plugins: `@vitejs/plugin-react`, `resolve.alias`: `@` → `./src`. |
+| `postcss.config.js` | **Create** | Standard `{ plugins: { tailwindcss: {}, autoprefixer: {} } }`. Required for Tailwind in Vite (CRA had this baked in). |
+| `index.html` | **Create at root** (move from `public/`) | Vite convention: HTML at root, references `<script type="module" src="/src/index.js">`. Copy the existing `<head>`/`<style>`/`<body>` from `public/index.html` verbatim, add the script tag at the bottom of `<body>`. |
+| `public/index.html` | **Delete** | Replaced by root `index.html`. The other `public/` files (icons, `subtitle-overlay/`) stay — Vite copies them as static assets. |
+| `tsconfig.json` | Touch | Update `moduleResolution` from `"node"` to `"bundler"` (Vite's recommended value for TS 5+). Keep the `@/*` alias. |
+| `tailwind.config.js` | Touch | Update `content` glob to include the new root `index.html` (drop `./public/index.html`). |
+| `src/main/main.js` | **No change** | `build/index.html` path stays valid because Vite outputs to `build/`. |
+| `src/main/subtitle-overlay-renderer.js` | **No change** | `build/subtitle-overlay/index.html` stays valid (Vite copies `public/subtitle-overlay/` verbatim). |
+| Removed deps | Effect | `react-scripts`, plus its transitive cruft (`webpack-dev-server` ancestry, `nth-check` chain, the audit warnings noted in HANDOFF Watch Out For). `--legacy-peer-deps` should no longer be needed after this. |
+
+### Steps (in execution order)
+
+1. Install: `npm i -D vite @vitejs/plugin-react autoprefixer` (autoprefixer was a runtime dep under CRA but is build-only — moving it to dev). Drop `react-scripts`. **Use `--legacy-peer-deps` one last time** because `react-scripts` is still in tree until the same install removes it; expected.
+2. Create `vite.config.js` with the config table above.
+3. Create `postcss.config.js`.
+4. Move `public/index.html` to root `index.html`. Add `<script type="module" src="/src/index.js"></script>` before `</body>`. Delete `public/index.html`.
+5. Update `tailwind.config.js` content glob (`./public/index.html` → `./index.html`).
+6. Update `tsconfig.json` (`moduleResolution: "bundler"`).
+7. Update `package.json` scripts: `dev:renderer` → `vite`, `build:renderer` → `vite build`. Drop `homepage`. Drop `react-scripts` from devDeps.
+8. Run `npx vite build` — confirm `build/index.html` + `build/assets/*.js` + `build/subtitle-overlay/index.html` all exist with sane sizes.
+9. Run `npm start` (electron, no dev server) — confirm app loads from `build/`, no console errors, no CSP warnings, no missing assets.
+10. Smoke-test matrix below.
+11. Commit. Update CHANGELOG, HANDOFF, dashboard Section 9 C2.
+
+### Verification (the standing matrix + Vite-specific items)
+
+**Standing matrix (every infra hop):**
+1. **#35 zoom-slider drag repro × 10** on a 30-min source — no crash. Non-negotiable.
+2. **Drop-to-Rename** — drag an `.mp4` from Downloads onto Rename tab → file appears in Pending list.
+3. **Drop-to-Upload** — drag onto Recordings tab → import-progress + game-name modal both fire.
+
+**Vite-specific:**
+4. App startup logs show no missing-asset 404s in the renderer (open DevTools temporarily — or check Sentry).
+5. Tailwind utilities render correctly in the Editor tab (open the editor, the styling is heavily Tailwind-dependent — visual diff against current).
+6. **Render a clip end-to-end** to exercise the offscreen subtitle renderer (`subtitle-overlay-renderer.js`) — this is the path that depends on `build/subtitle-overlay/index.html` still existing in the right spot. Burn-in must work.
+7. PostHog + Sentry init logs appear (`src/index.js` runs — it's our entry).
+8. `npm run dev` (Vite HMR through Electron) — verify HMR works at least once for sanity.
+
+### Risks & mitigations
+
+- **CSS load order differs slightly between webpack and Vite.** If a Tailwind utility starts losing to a `globals.css` rule it didn't previously lose to, fix in `globals.css` (specificity), not by reordering imports. Mitigation: visual smoke of editor + Rename + Recordings before declaring done.
+- **The Google Fonts CDN import in the inline `<style>` of `index.html` keeps working** in Vite (Vite doesn't process `<style>` blocks for `@import`). Confirmed by Vite docs. Not a CSP problem this commit (H2 is later).
+- **`autoprefixer` was a runtime dep in `package.json`** which is wrong (build-time only). Moving to devDeps is the correct shape and matches everywhere else.
+- **`--legacy-peer-deps` should no longer be needed** post-this-commit (it was only there for `react-scripts` pinning TS 3||4 peers). Verify `npm install` works without the flag after the swap.
+- **Bundle size may increase or decrease** — not a regression in either direction by itself. Note before/after sizes in HANDOFF.
+- **Rollback plan:** single commit; `git revert` if anything in the smoke matrix fails. Two-attempt rule applies — if the second fix-and-rebuild attempt fails, stop and re-read everything from scratch instead of guess-patching.
+
+### Plan decision points (need Fega's call before I start)
+
+1. **Go or hold?** Go = execute the steps above. Hold = pick #57 (editor perf, the highest-friction-on-Fega item from HANDOFF) instead.
+2. **`@/*` alias — keep or drop?** It's defined in `tsconfig.json` but unused in `src/`. Recommendation: **keep** in `vite.config.js` so future shadcn additions Just Work, but no source changes this commit.
+3. **`npm run dev` HMR test — required for done, or nice-to-have?** Recommendation: required. Vite's main appeal is fast HMR; if it doesn't work in Electron we want to know before committing, not three sessions from now.
+
+---
+
+## 🔲 DEFERRED — Editor perf on 30-min sources (#57) — fix direction at #57 comment 4267674430
 
 **Context:** Electron 29 landed cleanly (hop 1, commit `46546de`). During testing, 30-min source playback in the editor showed severe lag: ~2fps feel, stuck waveform, subtitle highlight drift, left-panel auto-scroll broken during playback. Fega's call: fix this before hop 2, because hop 2→4 verification depends on being able to actually test the editor on long sources.
 

@@ -1,10 +1,12 @@
 import { create } from "zustand";
+// Cross-store import — accessed only inside _pushCrossUndo (after init),
+// ESM live bindings resolve the cycle.
+import useSubtitleStore from "./useSubtitleStore";
 
 // Push to the cross-store undo stack (lives in subtitle store)
 function _pushCrossUndo() {
   try {
-    const subStore = require("./useSubtitleStore").default;
-    subStore.getState()._pushUndo();
+    useSubtitleStore.getState()._pushUndo();
   } catch (_) {}
 }
 

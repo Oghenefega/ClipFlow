@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import { LP_DEFAULT, DRAWER_DEFAULT, TL_DEFAULT } from "../utils/constants";
+// Cross-store import — accessed only inside _pushCrossUndo (after init),
+// ESM live bindings resolve the cycle.
+import useSubtitleStore from "./useSubtitleStore";
 
 // Push to cross-store undo stack for position changes
 function _pushCrossUndo() {
   try {
-    const subStore = require("./useSubtitleStore").default;
-    subStore.getState()._pushUndo();
+    useSubtitleStore.getState()._pushUndo();
   } catch (_) {}
 }
 
