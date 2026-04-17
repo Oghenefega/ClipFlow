@@ -32,8 +32,13 @@ import Ruler from "./timeline/Ruler";
 // ── Main Timeline Panel ──
 export default function TimelinePanelNew() {
   // ── Store subscriptions ──
+  // #57 Phase B: we intentionally do NOT subscribe to `currentTime` at 60Hz.
+  // The local rAF loop (below) maintains `smoothTime`; a non-reactive subscribe
+  // handles paused-time sync. Time-display uses `displayTime` (10Hz).
   const playing = usePlaybackStore((s) => s.playing);
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  // #57 Phase B: displayTime is quantized to ~10Hz in the store, so this
+  // only re-renders TimelinePanel when the displayed seconds actually change.
+  const displayTime = usePlaybackStore((s) => s.displayTime);
   const duration = usePlaybackStore((s) => s.duration);
   const clipFileDuration = usePlaybackStore((s) => s.clipFileDuration);
   const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
@@ -133,10 +138,21 @@ export default function TimelinePanelNew() {
     return () => { if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current); };
   }, [playing]);
 
-  // When paused, sync smoothTime to store's currentTime (for seeking, scrubbing)
+  // When paused, sync smoothTime to store's currentTime (for seeking, scrubbing).
+  // Non-reactive subscribe: we don't want TimelinePanel to re-render on every
+  // 60fps currentTime tick — only propagate the change into local smoothTime state
+  // when the store value actually differs and we're paused.
   useEffect(() => {
-    if (!playing) setSmoothTime(currentTime);
-  }, [playing, currentTime]);
+    const unsub = usePlaybackStore.subscribe((state, prev) => {
+      if (!state.playing && state.currentTime !== prev.currentTime) {
+        setSmoothTime(state.currentTime);
+      }
+    });
+    // Prime on mount with the current value
+    const s = usePlaybackStore.getState();
+    if (!s.playing) setSmoothTime(s.currentTime);
+    return unsub;
+  }, []);
 
   // ── Layout measurements ──
   const [trackAreaWidth, setTrackAreaWidth] = useState(600);
@@ -161,7 +177,9 @@ export default function TimelinePanelNew() {
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
-  const playheadTime = playing ? smoothTime : currentTime;
+  // smoothTime mirrors store currentTime when paused (via subscribe above)
+  // and gets 60fps rAF updates when playing — single source of truth either way.
+  const playheadTime = smoothTime;
   const playheadPx = effectiveDuration > 0 ? LABEL_W + (playheadTime / effectiveDuration) * clipContentWidth : LABEL_W;
 
   // ── Scrubbing ──
@@ -683,7 +701,9 @@ export default function TimelinePanelNew() {
     const viewWidth = container.clientWidth;
 
     // Playhead position in new content space
-    const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
+    // Read currentTime non-reactively so this effect doesn't refire at 60Hz.
+    const ctNow = usePlaybackStore.getState().currentTime;
+    const playheadFrac = effectiveDuration > 0 ? ctNow / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
     // Where playhead currently is on screen
@@ -700,7 +720,7 @@ export default function TimelinePanelNew() {
 
     container.scrollLeft = Math.max(0, blendedScroll);
     prevZoomRef.current = tlZoom;
-  }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth, currentTime]);
+  }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth]);
 
   // ── Smooth auto-scroll during playback ──
   useEffect(() => {
@@ -784,7 +804,7 @@ export default function TimelinePanelNew() {
 
         {/* Center: Play + timecodes */}
         <div className="flex-1 flex items-center justify-center gap-2">
-          <span className="text-[11px] font-mono text-foreground tabular-nums">{fmtTime(currentTime)}</span>
+          <span className="text-[11px] font-mono text-foreground tabular-nums">{fmtTime(displayTime)}</span>
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1039,7 +1059,7 @@ export default function TimelinePanelNew() {
                       clipFileDuration={sourceDuration || clipFileDuration || duration}
                       clipOrigin={0}
                       sourceDuration={sourceDuration}
-                      timelineWidth={widthPx} currentTime={currentTime}
+                      timelineWidth={widthPx} currentTime={smoothTime}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}

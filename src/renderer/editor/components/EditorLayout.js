@@ -895,7 +895,9 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
 
 // ── Mini Player Bar (shown when timeline is collapsed) ──
 function MiniPlayerBar({ onShowTimeline }) {
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  // #57 Phase B: use 10Hz displayTime — the progress bar and time display don't
+  // need 60fps precision, and this removes one of six 60Hz subscribers.
+  const currentTime = usePlaybackStore((s) => s.displayTime);
   const duration = usePlaybackStore((s) => s.duration);
   const playing = usePlaybackStore((s) => s.playing);
   const togglePlay = usePlaybackStore((s) => s.togglePlay);

@@ -404,6 +404,24 @@ function DraggableOverlay({
   );
 }
 
+// ── Live Subtitle Overlay ──
+// Thin wrapper that subscribes to `currentTime` internally so the parent
+// PreviewPanel doesn't have to. Parent re-renders at panel-state rate; only
+// this subtree re-renders at 60Hz, containing just the karaoke overlay.
+function LiveSubtitleOverlay({ segments, syncOffset, subtitleStyle, scaleFactor, karaokeActive }) {
+  const currentTime = usePlaybackStore((s) => s.currentTime);
+  return (
+    <SubtitleOverlay
+      segments={segments}
+      currentTime={currentTime}
+      syncOffset={syncOffset}
+      subtitleStyle={subtitleStyle}
+      scaleFactor={scaleFactor}
+      karaokeActive={karaokeActive}
+    />
+  );
+}
+
 // ── Main Preview Panel ──
 export default function PreviewPanelNew() {
   const clip = useEditorStore((s) => s.clip);
@@ -413,8 +431,14 @@ export default function PreviewPanelNew() {
   const locateSource = useEditorStore((s) => s.locateSource);
 
   // Playback
+  // NOTE: we intentionally do NOT subscribe to `currentTime` here — doing so
+  // would re-render this whole panel 60×/sec during playback on long sources.
+  // Time-dependent children subscribe themselves:
+  //   - caption filter uses `displayTime` (10Hz) below
+  //   - <LiveSubtitleOverlay /> subscribes to full 60Hz currentTime for karaoke
+  // See #57.
   const playing = usePlaybackStore((s) => s.playing);
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  const displayTime = usePlaybackStore((s) => s.displayTime);
   const setCurrentTime = usePlaybackStore((s) => s.setCurrentTime);
   const setDuration = usePlaybackStore((s) => s.setDuration);
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
@@ -757,8 +781,6 @@ export default function PreviewPanelNew() {
     if (e.button === 1) e.preventDefault();
   }, []);
 
-  // Adjusted time for subtitle sync
-  const adjustedTime = currentTime - syncOffset;
   const karaokeActive = subMode === "karaoke" && segmentMode !== "1word";
 
   // NLE segments from editor store — used for gap-crossing during playback
@@ -1059,9 +1081,11 @@ export default function PreviewPanelNew() {
             </div>
           )}
 
-          {/* Caption overlay(s) — render all active caption segments at current time */}
+          {/* Caption overlay(s) — render all active caption segments at current time.
+              Uses 10Hz displayTime instead of 60Hz currentTime; caption visibility
+              transitions can be up to 100ms late, imperceptible for seconds-long captions. */}
           {captionSegments
-            .filter((seg) => seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity))
+            .filter((seg) => seg.text && displayTime >= seg.startSec && displayTime <= (seg.endSec ?? Infinity))
             .map((seg, idx) => (
             <DraggableOverlay
               key={seg.id}
@@ -1142,9 +1166,8 @@ export default function PreviewPanelNew() {
               overlayRef={subOverlayRef}
             >
               <div onDoubleClick={onSubtitleDoubleClick}>
-                <SubtitleOverlay
+                <LiveSubtitleOverlay
                   segments={editSegments}
-                  currentTime={currentTime}
                   syncOffset={syncOffset}
                   subtitleStyle={subtitleStyleConfig}
                   scaleFactor={scaleFactor}

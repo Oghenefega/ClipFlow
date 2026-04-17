@@ -360,13 +360,15 @@ function SegmentModeDropdown() {
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
   const originalSegments = useSubtitleStore((s) => s.originalSegments);
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  // #57 Phase B: subscribe to the store-derived active word index instead of
+  // re-scanning 5000+ words at 60Hz. Store computes it inside setCurrentTime
+  // via forward-scan (O(1) amortized) and only notifies this subscriber when
+  // the index actually changes (word-rate, 1-3Hz).
+  const activeWordIdx = usePlaybackStore((s) => s.activeTranscriptWordIdx);
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
   const setTranscriptSearch = useSubtitleStore((s) => s.setTranscriptSearch);
   const updateWordInSegment = useSubtitleStore((s) => s.updateWordInSegment);
-  const syncOffset = useSubtitleStore((s) => s.syncOffset);
-  const adjustedTime = currentTime - syncOffset;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchIdx, setMatchIdx] = useState(0);
@@ -433,13 +435,6 @@ function TranscriptTab() {
       return next;
     });
   }, [matches, allWords, seekTo]);
-
-  const activeWordIdx = useMemo(() => {
-    for (let i = allWords.length - 1; i >= 0; i--) {
-      if (adjustedTime >= allWords[i].start) return i;
-    }
-    return -1;
-  }, [allWords, adjustedTime]);
 
   // Auto-scroll active word into view
   const activeWordRef = useRef(null);
@@ -646,20 +641,20 @@ function EditSubtitlesTab() {
     });
   }, [matches, editSegments, setActiveSegId, seekTo]);
 
-  // Auto-track active segment from playhead position
+  // Auto-track active segment from playhead position.
+  // #57 Phase B: read store-derived `activeSubtitleSegId` (computed inside
+  // setCurrentTime via forward-scan) instead of re-scanning editSegments every
+  // 60fps frame. This effect now fires only on segment-boundary crossings.
   // Only auto-track during playback — when user explicitly selects a segment
-  // (selectedWordInfo is set), let their selection take precedence until playback resumes
+  // (selectedWordInfo is set), let their selection take precedence until playback resumes.
+  const activeSubtitleSegId = usePlaybackStore((s) => s.activeSubtitleSegId);
   const activeSegRef = useRef(null);
   useEffect(() => {
-    // Don't override explicit user selection — only auto-track during playback
     if (selectedWordInfo && !playing) return;
-    const currentSeg = editSegments.find(
-      (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
-    );
-    if (currentSeg && currentSeg.id !== activeSegId) {
-      setActiveSegId(currentSeg.id);
+    if (activeSubtitleSegId && activeSubtitleSegId !== activeSegId) {
+      setActiveSegId(activeSubtitleSegId);
     }
-  }, [adjustedTime, editSegments, activeSegId, setActiveSegId, selectedWordInfo, playing]);
+  }, [activeSubtitleSegId, activeSegId, setActiveSegId, selectedWordInfo, playing]);
 
   // Auto-scroll active segment into view
   useEffect(() => {
