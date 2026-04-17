@@ -1,93 +1,95 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-17 (session 16b) — "drop-to-Recordings test routing"_
+_Last updated: 2026-04-17 (session 17) — "H1 overlay hardening + H3 main-window sandbox"_
 
 ---
 
 ## TL;DR
 
-Session 16 closed [#52](https://github.com/Oghenefega/ClipFlow/issues/52) (H5 electron-store v8→v11, commit **181b822**). Session 16b fixed a test-mode routing bug in drop-to-Recordings and filed two issues that surfaced during verification.
+Two of the three remaining pre-launch hardening items shipped. H1 ([#47](https://github.com/Oghenefega/ClipFlow/issues/47), commit **9b3a911**) locks down the offscreen subtitle BrowserWindow — `contextIsolation: true`, `nodeIntegration: false`, dedicated preload exposing only the two deterministic render helpers. H3 ([#49](https://github.com/Oghenefega/ClipFlow/issues/49), commit **d2e24c7**) adds `sandbox: true` to the main BrowserWindow. Only H2 ([#48](https://github.com/Oghenefega/ClipFlow/issues/48), renderer CSP) remains in the hardening arc.
 
-**H5 (#52) is closed.** electron-store is on v11 via a small async-factory pattern. Three consumer modules (`main.js`, `publish-log.js`, `token-store.js`) moved their store construction into awaited `init()` calls inside `app.whenReady()`. Fega's real 3.7MB settings file loaded clean on first boot under v11 — no migration issues.
+One regression was caught and fixed during the session before commit: the first H1 build didn't explicitly set `sandbox: false` on the overlay window, and Electron ≥20's default of `sandbox: true` stripped `require("path")` from the preload, which crashed silently and made `window.overlayAPI` unavailable — subtitle burn-in produced an all-transparent overlay. Root cause found in the first render test's main-process stdout (`Unable to load preload script: ... Error: module not found: path`). Fix: explicit `sandbox: false` on the overlay window + move `loadFonts()` from module-top into `__initOverlay__` so it runs after the main process injects `__FONTS_PATH__`. Saved as memory `feedback_electron_sandbox_default.md`.
 
-**Drop-to-Recordings test-mode routing was broken:** dragging a file in, toggling Test on in the modal, then confirming left the copy under the main archive root (e.g. `Vertical Recordings Onwards/2026-04/`) instead of moving to Test Footage. Root cause: the physical copy happened *before* the modal opened, based on a source-path heuristic, and toggling Test only updated the DB row — nothing moved the file. Fix (Option A): defer the copy until modal confirm, then route based on the user's final Test choice. Verified end-to-end by Fega.
+**H1 is closed.** Overlay window has `nodeIntegration: false`, `contextIsolation: true`, `sandbox: false`, and a dedicated preload ([src/main/subtitle-overlay-preload.js](src/main/subtitle-overlay-preload.js)) bridging the two shared CJS utilities via `contextBridge`. Overlay page ([public/subtitle-overlay/overlay-renderer.js](public/subtitle-overlay/overlay-renderer.js)) has zero `require()` calls. Fega verified burn-in on a real clip with 55 subtitle segments — output matches editor preview.
 
-Also filed during this session:
-- [#61](https://github.com/Oghenefega/ClipFlow/issues/61) — Monthly folder should follow recording date, not import date. Surfaced when `PoP 2026-03-23.mp4` imported in April landed in `2026-04/`.
-- [#62](https://github.com/Oghenefega/ClipFlow/issues/62) — Pipeline fails on silent/near-silent audio. `energy_scorer.py` exits code 1 when both ebur128 and astats can't extract energy. Pre-existing bug, unrelated to today's work — pipeline would fail identically from Rename tab.
+**H3 is closed.** Main window has `sandbox: true`. Main preload was already sandbox-clean — `webUtils.getPathForFile` and `@sentry/electron/preload` are the only non-`ipcRenderer.invoke` APIs, both sandbox-compatible. Fega verified via drop-to-Rename (exercises `webUtils.getPathForFile`) + full main-tab click-through.
 
-Current HEAD: **(session 16b commit — see `git log`)**. Split-A dependency pair is done (H5 #52 + H6 #53 both closed). No substrate work remains in the Split-A arc.
+**[#63](https://github.com/Oghenefega/ClipFlow/issues/63) filed this session** — tracks flipping the overlay window to `sandbox: true` (requires bundling the shared CJS utils into the overlay build output). Not blocking anything; defense-in-depth parity item.
+
+Current HEAD: **d2e24c7**. Hardening arc is now H2-only.
 
 ## 🎯 Next session — pick one (no blocker forces it)
 
-1. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Directly blocks any future end-to-end drop-test on a short silent clip. Two-part fix: (a) edit `D:\whisper\energy_scorer.py` to emit empty-energy JSON + exit 0 when ebur128/astats both fail; (b) edit [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer` so empty energy falls back to keyword-only highlight scoring instead of throwing. Quick win for testability.
-2. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + house-cleaning migration.** Two-phase: (a) change [src/main/main.js:1036-1038](src/main/main.js#L1036-L1038) to parse `YYYY-MM-DD` from the OBS-format filename prefix, fall back to `fs.statSync().birthtime`, then `new Date()`; (b) one-shot migration that walks both `watchFolder` and `testWatchFolder`, moves misfiled `<YYYY-MM>/*.mp4` to correct bucket, updates `file_metadata.current_path` in DB. The migration is the bigger piece — don't under-scope.
-3. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf — proper fix direction.** Component extraction per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430): extract `<TimelinePlayhead />` + `<SegmentRow />` memo'd child. Fega's actual friction on long sources. Do **NOT** retry the store-derivation approach (session 11 broke it twice).
-4. **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) editor render without queuing.** Dedicated session, smaller scope.
-5. **Pre-launch hardening punch list:** H1 [#47](https://github.com/Oghenefega/ClipFlow/issues/47) subtitle overlay, H2 [#48](https://github.com/Oghenefega/ClipFlow/issues/48) CSP, H3 [#49](https://github.com/Oghenefega/ClipFlow/issues/49) sandbox flip. All ready. Not urgent pre-beta per standing priority.
+1. **[#48](https://github.com/Oghenefega/ClipFlow/issues/48) H2 — renderer CSP.** Last item in the pre-launch hardening punch list. Nonce-based policy now that Vite has shipped. Needs full enumeration of every `connect-src` endpoint (Anthropic, CF AI Gateway, Sentry, any others) and a walk-every-view verification pass with DevTools open watching for CSP violations. Good standalone session.
+2. **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) editor render button without queuing.** Fega surfaced this mid-session 17 — wants a Render button on the editor page that bypasses the queue pipeline. Dedicated small session.
+3. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Two-part fix spanning [D:\whisper\energy_scorer.py](D:\whisper\energy_scorer.py) and [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer`. Required to make the drop-test path usable on silent screen-only recordings. Quick win for testability.
+4. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + house-cleaning migration.** Parse `YYYY-MM-DD` from OBS filename prefix, plus one-shot migration walking both watch folders to re-bucket misfiled months. The migration is the bigger piece.
+5. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf on long source.** Proper fix direction is component extraction (`<TimelinePlayhead />` + `<SegmentRow />` memo'd child) per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430). Do **NOT** retry the store-derivation approach.
+6. **[#63](https://github.com/Oghenefega/ClipFlow/issues/63) sandbox the overlay window.** Follow-up to H1. Not urgent — overlay is already two-of-three hardened.
 
-If unsure: **#62** is the right next move because the drop-test path is now the only way to exercise the pipeline end-to-end from a clean source, and it's blocked on silent-clip handling.
+If unsure: **#59** is the clean one. Fega asked for it in this session and it's a small self-contained UI change. **#48** is the last hardening domino but needs a committed session window for the verification pass.
 
 ## 🚫 DO NOT touch next session (preserved)
 
 - **Do NOT retry the [#57](https://github.com/Oghenefega/ClipFlow/issues/57) store-derivation approach** in any form. Rejected — session 11 broke it twice.
-- **Do NOT skip the zoom-slider drag × 10 on a 30-minute source.** Standing go/no-go for any Electron / build-tool / dependency infrastructure change. (The underlying issue is closed; this is a kept-forever smoke test.)
-- Do NOT touch H4 ([#50](https://github.com/Oghenefega/ClipFlow/issues/50)), H9 ([#56](https://github.com/Oghenefega/ClipFlow/issues/56)), or [#51](https://github.com/Oghenefega/ClipFlow/issues/51). All deferred per pre-beta priority framing.
-- **chokidar 5.x is off-limits** until Electron bumps its bundled Node to ≥ 20.19. v5 requires Node 20.19+ and Electron 40 ships with Node 20.18.
-- **Do NOT re-introduce top-level `new Store(...)` calls.** electron-store is ESM-only now. Use `require("./store-factory").createStore(options)` inside an async `init()` function that runs inside `app.whenReady()`. Violating this breaks the app at require time with `ERR_REQUIRE_ESM`.
+- **Do NOT skip the zoom-slider drag × 10 on a 30-minute source.** Standing go/no-go for any Electron / build-tool / dependency infrastructure change.
+- Do NOT touch [#50](https://github.com/Oghenefega/ClipFlow/issues/50), [#56](https://github.com/Oghenefega/ClipFlow/issues/56), or [#51](https://github.com/Oghenefega/ClipFlow/issues/51). All deferred per pre-beta priority framing.
+- **chokidar 5.x is off-limits** until Electron bumps its bundled Node to ≥ 20.19.
+- **Do NOT re-introduce top-level `new Store(...)` calls.** electron-store is ESM-only now.
+- **Do NOT flip `nodeIntegration: true → false` on any BrowserWindow without explicitly deciding `sandbox: true` vs `sandbox: false`.** Electron ≥20 defaults unset sandbox to `true` when `nodeIntegration` is off, which strips `require("path")` and most Node built-ins from the preload. If the preload needs Node APIs beyond `require("electron")`, set `sandbox: false` explicitly. New memory: [feedback_electron_sandbox_default.md](~/.claude/projects/C--Users-IAmAbsolute-Desktop-ClipFlow/memory/feedback_electron_sandbox_default.md).
 
-## 📋 Infrastructure board state after this session
+## 📋 Infrastructure / hardening board state after this session
 
 | Item | Issue | Status |
 |---|---|---|
 | **C1 Electron upgrade arc** | [#45](https://github.com/Oghenefega/ClipFlow/issues/45) | ✅ closed session 12 |
 | **C2 Vite migration** | [#46](https://github.com/Oghenefega/ClipFlow/issues/46) | ✅ closed session 13 |
-| **#58 File.path migration** | [#58](https://github.com/Oghenefega/ClipFlow/issues/58) | ✅ closed session 12 |
-| **H8 @types/node pin** | [#55](https://github.com/Oghenefega/ClipFlow/issues/55) | ✅ closed session 12 |
-| **closed renderer crash** | [#35](https://github.com/Oghenefega/ClipFlow/issues/35) | ✅ closed session 10 |
-| **#60 test-mode toggle** | [#60](https://github.com/Oghenefega/ClipFlow/issues/60) | ✅ closed session 14 |
+| **H5 electron-store 8→11** | [#52](https://github.com/Oghenefega/ClipFlow/issues/52) | ✅ closed session 16 |
 | **H6 chokidar 3→4** | [#53](https://github.com/Oghenefega/ClipFlow/issues/53) | ✅ closed session 15 |
-| **H5 electron-store 8→11** | [#52](https://github.com/Oghenefega/ClipFlow/issues/52) | ✅ **closed session 16** |
-| **Drop-to-Recordings test routing** | (no issue — fixed inline) | ✅ **fixed this session** |
-| **#61 monthly folder = recording date** | [#61](https://github.com/Oghenefega/ClipFlow/issues/61) | 🔲 **filed this session** |
-| **#62 pipeline silent-audio tolerance** | [#62](https://github.com/Oghenefega/ClipFlow/issues/62) | 🔲 **filed this session** |
+| **H1 offscreen subtitle harden** | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | ✅ **closed session 17** |
+| **H3 main-window sandbox** | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | ✅ **closed session 17** |
+| **H2 renderer CSP** | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | 🔲 ready — last hardening item |
+| **#63 overlay-window sandbox** | [#63](https://github.com/Oghenefega/ClipFlow/issues/63) | 🔲 **filed this session** (defense-in-depth follow-up) |
 | **#57 editor perf on long source** | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 UNRESOLVED — proper fix direction documented, deferred |
-| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | 🔲 dedicated session |
-| H1 subtitle overlay hardening | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | 🔲 ready |
-| H3 sandbox flip | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | 🔲 ready |
-| H2 CSP | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | 🔲 unblocked — nonce-based policy still needed |
+| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | 🔲 Fega asked mid-session; dedicated session |
+| **#61 monthly folder = recording date** | [#61](https://github.com/Oghenefega/ClipFlow/issues/61) | 🔲 ready |
+| **#62 pipeline silent-audio tolerance** | [#62](https://github.com/Oghenefega/ClipFlow/issues/62) | 🔲 ready |
 
-## ✅ What was built this session (16 + 16b combined)
+## ✅ What was built this session
 
 ### Commits
 
-- **181b822** — Session 16: electron-store v8 → v11 (H5, #52). Async factory (`src/main/store-factory.js`), bootstrap rewiring in `main.js` inside `app.whenReady()`, `publish-log.js` and `token-store.js` now expose `async init()`, `runStoreMigrations(store)` extracted to module-top helper. Closes [#52](https://github.com/Oghenefega/ClipFlow/issues/52).
-- **(session 16b commit)** — Drop-to-Recordings test routing fix + DevTools env hook + CHANGELOG + HANDOFF.
+- **9b3a911** — H1 overlay hardening (#47). New `src/main/subtitle-overlay-preload.js` exposing `styleEngine` + `wordFinder` via `contextBridge`. Overlay page drops all three `require()` calls (dynamic module loading + `require("path")` in fonts). Overlay window flipped to `contextIsolation: true` + `nodeIntegration: false` + explicit `sandbox: false`. `__STYLE_ENGINE_PATH__` / `__FIND_ACTIVE_WORD_PATH__` window injections removed. `loadFonts()` deferred into `__initOverlay__`.
+- **d2e24c7** — H3 main-window sandbox (#49). One-line `sandbox: true` addition on [src/main/main.js:309-320](src/main/main.js#L309-L320).
 
-### Files touched (session 16b)
+### Files touched
 
-- [src/renderer/views/UploadView.js](src/renderer/views/UploadView.js) — `handleFileDrop`, `cancelQuickImport`, `confirmQuickImport`, `quickImport` state shape. Copy deferred until modal confirm.
-- [src/main/main.js:317-325](src/main/main.js#L317-L325) — `CLIPFLOW_DEVTOOLS=1` env-gated DevTools open in production builds.
+- [src/main/subtitle-overlay-preload.js](src/main/subtitle-overlay-preload.js) — **NEW**. 51 lines.
+- [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js) — webPreferences flipped, path injections removed, preload wired.
+- [public/subtitle-overlay/overlay-renderer.js](public/subtitle-overlay/overlay-renderer.js) — three `require()` calls removed; `loadFonts()` deferred into `__initOverlay__`.
+- [src/main/main.js](src/main/main.js) — `sandbox: true` on main window.
+- [tasks/todo.md](tasks/todo.md) — H1+H3 plan added, H5 plan marked done.
 - [CHANGELOG.md](CHANGELOG.md), [HANDOFF.md](HANDOFF.md).
 
 ## 🔑 Key decisions this session
 
-1. **Option A (defer copy) over Option B (post-confirm move).** Option A enforces the invariant "file lives where `isTest` says" at a single point — the copy — with no cleanup logic. Option B would have left orphan `<YYYY-MM>/` folders in the wrong root whenever the last file in a month gets moved out. Option A also eliminates the wasted-copy-on-cancel case.
-2. **`CLIPFLOW_DEVTOOLS=1` instead of temporarily flipping `isDev`.** Flipping `isDev` would have also redirected to `localhost:3000` which isn't running in prod. The env-gated branch in [src/main/main.js:321-325](src/main/main.js#L321-L325) opens DevTools on the production-built renderer with one keystroke and zero impact when the env var is unset. Kept in tree as a standing debug hook.
-3. **Pipeline failure (#62) deliberately NOT scoped into this session.** Two distinct bugs surfaced: the drop-routing bug (today's fix) and the silent-audio pipeline failure. Conflating them would have made the verification matrix ambiguous — we wouldn't know if the pipeline was failing because of today's change or a pre-existing issue. Separating them kept each fix auditable.
+1. **Explicit `sandbox: false` on the overlay window.** First H1 build didn't set this and Electron's implicit default broke the preload. The explicit flag makes intent visible and documents that the overlay is *intentionally* one layer behind the main window.
+2. **Overlay window stays non-sandboxed this session.** Making it compatible requires bundling the two shared CJS utils into the overlay build output — a Vite-adjacent build-step change, different workstream. Filed as [#63](https://github.com/Oghenefega/ClipFlow/issues/63) to keep the main H1 commit focused.
+3. **Two commits instead of one.** H1 and H3 are independent enough that a future `git bisect` benefits from splitting them. If H1's subtitle regression had been caught post-commit instead of pre-commit, bisecting between a combined commit and the prior HEAD would have been more painful.
+4. **Did NOT handle [#59](https://github.com/Oghenefega/ClipFlow/issues/59) mid-session.** Fega raised it during verification; kept it out of scope to avoid scope creep. Acknowledged in the changelog notes, listed as a next-session pick.
 
 ## ⚠️ Watch out for
 
-- **`confirmQuickImport` now does copy → rename → pipeline as three sequential IPC calls inside the renderer.** If any one of them fails, the modal closes and no cleanup happens for the earlier ones. For the copy step, `importExternalFile` error is caught and the modal closes cleanly. For the rename step, a failure leaves the file at `targetPath` (pre-rename) with a `file_metadata` row pointing at an imaginary `newPath`. Unlikely to trip in practice (rename within the same folder rarely fails) but if it does, the file sits at `Test Footage/<YYYY-MM>/<original-filename>.mp4` with no DB row referring to it. Could be hardened later with a rollback.
-- **The drop handler still uses source-path heuristic for the *initial* Test toggle state** (`defaultTestMode = filePath.startsWith(testWatchFolder)`). This is correct and desirable — if the user drags from inside Test Footage, Test is pre-selected — but it means a file dragged from a test folder with Test *off* will correctly land in the main root, which is the opposite of what the path suggests. That's by design: UI always wins over heuristic.
-- **`quickImport` state shape changed.** Any future code that reads `quickImport.targetPath` or `quickImport.importEntry` is stale — those only exist as locals inside `confirmQuickImport` now. Grep: `quickImport\.(targetPath|importEntry)` should return zero matches.
-- **Fega's initial drop test showed that DevTools doesn't attach early enough to catch pipeline-start errors in the renderer.** DevTools attaches on window load; the pipeline IPC roundtrip error is logged to `processing/logs/<videoName>_<timestamp>.log` (per-video log, not app.log). Next time a pipeline "Failed" card appears, read the per-video log first — it has step-by-step timing and the actual error string. See "Logs / Debugging" below.
+- **Electron security warnings in the overlay window's console are expected noise** until H2 (#48) ships a CSP. They're dev-mode-only (won't appear in packaged builds) and have no runtime effect. First seen in session 17 overlay captures; ignore unless they change form after H2.
+- **`loadFonts()` is now fire-and-forget inside `__initOverlay__`.** The main process still awaits `document.fonts.ready` via `executeJavaScript` before capturing frames, so the async handoff is intact. If anyone ever removes the `document.fonts.ready` await from [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js), font loading will race with frame capture and the first ~1 second of frames will render in the browser fallback font. Keep the await.
+- **`window.overlayAPI` is plain `contextBridge` output — DOM objects can't pass through it.** The current surface (inputs: JSON-serializable segments + styles + timestamps; outputs: CSS objects + shadow strings + punctuation-stripped strings) is all plain data. Future additions that return DOM nodes, event emitters, or non-cloneable values will fail silently at the bridge boundary — test any new function with actual overlay render, not just unit tests.
+- **Overlay window cannot be sandboxed with the current preload design.** `sandbox: true` on [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js) will crash the preload. Flip only after [#63](https://github.com/Oghenefega/ClipFlow/issues/63) lands.
 
 ## 🪵 Logs / Debugging
 
-- **Per-video pipeline logs:** `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\logs\<VideoName>_<timestamp>.log`. One file per pipeline run, with `[START]`, `[DONE]`, `[FAIL]` markers on each step (Probe, Create Project, Extract Audio, Transcription, Energy Analysis, Frame Extraction, Claude Analysis, Cutting Clips). This is where the #62 silent-audio failure was diagnosed. Pattern for any "Failed" card: `tail -20` of the most recent file in that dir gives the failing step + error.
-- **Electron main logs:** `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log` — shows app startup, database init, preview frame generation, watcher events, is_test reconciliation. Pipeline steps are NOT logged here (they go to the per-video log above).
-- **Renderer DevTools in production builds:** `CLIPFLOW_DEVTOOLS=1 npm start`. Useful for renderer errors, React warnings, IPC-reply inspection, Network tab. Does NOT catch main-process errors — those are in app.log or the per-video log.
-- **Drop-to-Recordings physical destination check:** `ls -l "W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\2026-04\"` after a Test-mode drop → file should be present. `ls -l "W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\2026-04\"` → file should NOT be present. Flip roots for a non-Test drop.
+- **Main-process stdout is the best place to catch overlay preload failures.** The subtitle-overlay-renderer pipes `console-message` events from the offscreen window back to the main process stdout with the `[OverlayRenderer:*]` prefix. Electron itself prints preload load failures (`Unable to load preload script: ... Error: <reason>`) to the same stream. **The silent failure mode is: preload crashes → `contextBridge.exposeInMainWorld` never runs → page scripts see `undefined` for `window.overlayAPI`.** Grep the main-process stdout for `"Unable to load preload"` after any overlay-side change.
+- **Per-video pipeline logs:** `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\logs\<VideoName>_<timestamp>.log`. One file per pipeline run; `[START]`, `[DONE]`, `[FAIL]` on each step. Overlay rasterization isn't itself a step here — it runs inside the render:clip IPC handler, not the AI pipeline. Overlay failures appear in the renderer's Render Progress IPC, not these logs.
+- **Electron main logs:** `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log` — startup, database init, watcher events, is_test reconciliation. Does NOT contain overlay rasterization output (that goes to main-process stdout, which in turn only appears when you run `npm start` from a terminal).
+- **Renderer DevTools in production builds:** `CLIPFLOW_DEVTOOLS=1 npm start`. With H3 in place, the sandbox does NOT affect DevTools — attach works identically.
 
 ## 🔄 Build & verify
 
@@ -98,13 +100,13 @@ npm start                            # Launch Electron (prod mode)
 CLIPFLOW_DEVTOOLS=1 npm start        # Launch with DevTools attached
 ```
 
-Main-process changes (`main.js`, `store-factory.js`, `publish-log.js`, `token-store.js`, `ai-pipeline.js`) require a full Electron quit + relaunch. Vite HMR doesn't touch main.
+Main-process changes (anything under `src/main/`) require a full Electron quit + relaunch. Overlay preload changes also require a full relaunch — Vite HMR doesn't reach the offscreen window.
 
-**Standing verification matrix for any future drop-to-Recordings / rename / watcher work:**
-1. OBS real-record for 30s, Stop — card appears on Rename tab ~1-2s later, not during recording.
-2. Zoom-slider drag × 10 on a 30-min source — no renderer crash (kept-forever canary for any infra hop).
-3. **Drop-to-Rename:** drag `.mp4` from Downloads onto Rename tab → file appears in Pending, renames to correct root based on Test toggle.
-4. **Drop-to-Recordings (main):** drag from outside the test folder with Test OFF in modal → file lands in `watchFolder/<YYYY-MM>/`.
-5. **Drop-to-Recordings (test):** drag from outside the test folder with Test ON in modal → file lands in `testWatchFolder/<YYYY-MM>/`. **This is the case #60 fixed and session 16b hardened.**
-6. **Drop-to-Recordings from inside test folder:** default toggle should already be ON; confirming without change should land in test root.
-7. Test watcher: with a `testWatchFolder` configured, OBS record into it → card appears with the test badge.
+**Standing verification matrix — extended with H1/H3-specific checks:**
+1. OBS real-record for 30s → Stop → card appears on Rename tab ~1-2s later.
+2. Zoom-slider drag × 10 on a 30-min source — no renderer crash (kept-forever canary).
+3. Drop-to-Rename (drag `.mp4` from outside the archive) → file appears in Pending → renames correctly. **Now also validates `webUtils.getPathForFile` under sandbox.**
+4. Drop-to-Recordings (main + test) — file lands in correct root per session 16b.
+5. **Render a clip with subtitles ON** → play output MP4 → subtitles burn in, correct font (Latina Essential), correct timing, word-by-word highlight matches editor preview. **H1 regression canary — don't skip this after any change to the overlay code path.**
+6. Click every main tab — no "Something went wrong" screens.
+7. DevTools console clean (`CLIPFLOW_DEVTOOLS=1 npm start`) — no red errors. Known noise: Electron's own CSP dev warning until H2 ships.
