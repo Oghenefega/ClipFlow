@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 15) — watcher ownership + chokidar v4 (H6)
+
+### Changed
+- **Write-stability detection is now owned by ClipFlow, not chokidar.** [src/main/main.js](src/main/main.js) replaces chokidar's `awaitWriteFinish` option with an in-house `waitForStable(filePath, opts)` helper that polls `fs.statSync` on a 1s cadence and resolves once two consecutive reads return the same non-zero byte size (30-minute ceiling). `handleWatcherFileAdded` now awaits this before sending the IPC that surfaces a card on the Rename tab. An in-flight `Set` dedupes repeat `add` events for the same path, and `unlink` cancels any pending stability check. Verified against a synthetic 1MB/300ms growing-file run: resolved ~1s after writes stopped, never fired during active writes.
+- **`createOBSWatcher` → `createRecordingFolderWatcher`** and `RAW_OBS_PATTERN` → `RAW_RECORDING_PATTERN`. The watcher watches the folder OBS writes into; it does not talk to OBS. The old name caused confusion with the (dead) OBS log parser and implied a coupling that never existed.
+- **chokidar v3.6.0 → v4.0.3** ([#53](https://github.com/Oghenefega/ClipFlow/issues/53), H6). Dual-package ESM+CJS so the existing `require("chokidar")` in main.js keeps working. Drops 29 transitive deps (glob-parent, anymatch, readdirp v3, binary-extensions, normalize-path chain) — smaller install, fewer audit warnings. Watcher config (`ignored` regex, `depth: 0`, `ignoreInitial: false`) carries over with no changes needed. Verified standalone: chokidar 4 add/unlink events fire, regex `ignored` still accepted. OBS real-record smoke test passed end-to-end.
+
+### Notes
+- **Why own the stability check.** Previously the top of the pipeline (OBS writes .mp4 → card appears on Rename tab) depended on chokidar's `awaitWriteFinish` internal polling. A silent regression in that subsystem on any future chokidar upgrade would fire `add` mid-write, ffprobe would run on a partial file, auto-split detection would report wrong duration, and the failure mode would show up several pipeline stages downstream. Moving stability detection to our own `waitForStable` means future chokidar upgrades can't regress this — we don't care what chokidar does internally, we gate on our own `fs.stat` loop.
+- **Why chokidar 4, not 5.** chokidar 5.0.0 requires Node ≥ 20.19 which is above both our dev environment (Node 20.17) and Electron 40's bundled Node (20.18). v4.0.3 is the latest that works under Electron 40. When Electron bumps its Node further we can revisit.
+
 ## [Unreleased] — 2026-04-17 (session 14c) — #60 follow-up: is_test backfill on startup
 
 ### Added
