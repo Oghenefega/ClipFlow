@@ -379,32 +379,36 @@ app.whenReady().then(async () => {
 
   // #60: reconcile is_test flag against physical location on every startup.
   // Invariant: a file inside testWatchFolder has is_test=1; a file outside
-  // has is_test=0. This catches (a) legacy files renamed before the is_test
-  // column existed, and (b) user-made moves in Explorer outside the app.
-  // Idempotent — safe to run every launch.
+  // has is_test=0. Idempotent — safe to run every launch; catches legacy rows
+  // from before the is_test column and Explorer-made moves outside the app.
+  //
+  // We filter in JS instead of SQL LIKE because Windows paths contain
+  // backslashes which conflict with SQL LIKE's ESCAPE semantics and make
+  // pattern matching a pain to get right. File_metadata stays small (hundreds
+  // of rows), so an in-memory scan is fine.
   try {
     const testRoot = store.get("testWatchFolder");
     const db = database.getDb();
     if (testRoot && db) {
-      // SQLite LIKE is case-insensitive for ASCII by default; Windows paths
-      // are case-insensitive in practice, so this matches correctly for
-      // typical drive letters. Append a path separator guard so a folder
-      // called "Test Footage X" doesn't get matched by "Test Footage".
-      const prefix = testRoot.endsWith("\\") || testRoot.endsWith("/") ? testRoot : testRoot + "\\";
-      const likePattern = prefix.replace(/([%_])/g, "\\$1") + "%";
-      db.run(
-        "UPDATE file_metadata SET is_test = 1, updated_at = datetime('now') WHERE current_path LIKE ? ESCAPE '\\' AND is_test != 1",
-        [likePattern]
-      );
-      const upCount = db.getRowsModified();
-      db.run(
-        "UPDATE file_metadata SET is_test = 0, updated_at = datetime('now') WHERE is_test = 1 AND (current_path NOT LIKE ? ESCAPE '\\' OR current_path IS NULL)",
-        [likePattern]
-      );
-      const downCount = db.getRowsModified();
-      if (upCount > 0 || downCount > 0) {
+      const prefix = (testRoot.endsWith("\\") || testRoot.endsWith("/") ? testRoot : testRoot + "\\").toLowerCase();
+      const allRows = database.toRows(db.exec("SELECT id, current_path, is_test FROM file_metadata"));
+      const toFlag = [];   // rows whose path is under testRoot but is_test != 1
+      const toUnflag = []; // rows with is_test = 1 but path is outside testRoot (or missing)
+      for (const row of allRows) {
+        const p = (row.current_path || "").toLowerCase();
+        const underTest = p && p.startsWith(prefix);
+        if (underTest && row.is_test !== 1) toFlag.push(row.id);
+        else if (!underTest && row.is_test === 1) toUnflag.push(row.id);
+      }
+      for (const id of toFlag) {
+        db.run("UPDATE file_metadata SET is_test = 1, updated_at = datetime('now') WHERE id = ?", [id]);
+      }
+      for (const id of toUnflag) {
+        db.run("UPDATE file_metadata SET is_test = 0, updated_at = datetime('now') WHERE id = ?", [id]);
+      }
+      if (toFlag.length > 0 || toUnflag.length > 0) {
         database.save();
-        logger.info(logger.MODULES.system, `is_test reconciliation: +${upCount} flagged, -${downCount} unflagged (testRoot=${testRoot})`);
+        logger.info(logger.MODULES.system, `is_test reconciliation: +${toFlag.length} flagged, -${toUnflag.length} unflagged (testRoot=${testRoot})`);
       }
     }
   } catch (err) {
