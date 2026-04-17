@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 14c) — #60 follow-up: is_test backfill on startup
+
+### Added
+- **Startup reconciliation of `file_metadata.is_test` against physical location.** New block in [src/main/main.js](src/main/main.js) inside `app.whenReady`. If `testWatchFolder` is configured, the app runs two idempotent UPDATEs on launch: (1) flag every row whose `current_path` lives under the test folder as `is_test = 1`, (2) unflag every row with `is_test = 1` whose `current_path` is outside the test folder (or null). The SQL uses `LIKE ? ESCAPE '\\'` with the test-folder prefix guarded by a trailing separator so a folder named `Test Footage X` can't be matched by the `Test Footage` prefix. Row counts come from `db.getRowsModified()` (sql.js's counter, since `db.run()` returns the DB object, not a changes summary) and get logged when either number is nonzero. No store flag / one-shot guard — running every launch means moves Fega makes in Explorer outside the app get reconciled next time he opens ClipFlow.
+
+### Notes
+- **Why bidirectional.** The invariant we want is "physical location determines test flag." Flagging only (one-directional) would leave stale `is_test = 1` rows pointing at files that were manually dragged out of Test Footage, which would then be hard-blocked from publishing even though disk reality said they were real. Reconciling both ways keeps UI state and disk state in sync regardless of how the file got moved.
+- **Catches Fega's legacy test content.** The pre-existing months of renamed files already sitting in `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\<month>\` — which predate the `is_test` column — are now automatically grouped under "Test" in the Recordings tab from the first launch after this commit.
+
 ## [Unreleased] — 2026-04-17 (session 14b) — #60 follow-up: physical move + Recordings filter
 
 ### Added

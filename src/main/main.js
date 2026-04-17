@@ -376,6 +376,41 @@ app.whenReady().then(async () => {
 
   // Run one-time migrations for rename redesign
   fileMigration.migrateStoreData(store);
+
+  // #60: reconcile is_test flag against physical location on every startup.
+  // Invariant: a file inside testWatchFolder has is_test=1; a file outside
+  // has is_test=0. This catches (a) legacy files renamed before the is_test
+  // column existed, and (b) user-made moves in Explorer outside the app.
+  // Idempotent — safe to run every launch.
+  try {
+    const testRoot = store.get("testWatchFolder");
+    const db = database.getDb();
+    if (testRoot && db) {
+      // SQLite LIKE is case-insensitive for ASCII by default; Windows paths
+      // are case-insensitive in practice, so this matches correctly for
+      // typical drive letters. Append a path separator guard so a folder
+      // called "Test Footage X" doesn't get matched by "Test Footage".
+      const prefix = testRoot.endsWith("\\") || testRoot.endsWith("/") ? testRoot : testRoot + "\\";
+      const likePattern = prefix.replace(/([%_])/g, "\\$1") + "%";
+      db.run(
+        "UPDATE file_metadata SET is_test = 1, updated_at = datetime('now') WHERE current_path LIKE ? ESCAPE '\\' AND is_test != 1",
+        [likePattern]
+      );
+      const upCount = db.getRowsModified();
+      db.run(
+        "UPDATE file_metadata SET is_test = 0, updated_at = datetime('now') WHERE is_test = 1 AND (current_path NOT LIKE ? ESCAPE '\\' OR current_path IS NULL)",
+        [likePattern]
+      );
+      const downCount = db.getRowsModified();
+      if (upCount > 0 || downCount > 0) {
+        database.save();
+        logger.info(logger.MODULES.system, `is_test reconciliation: +${upCount} flagged, -${downCount} unflagged (testRoot=${testRoot})`);
+      }
+    }
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `is_test reconciliation failed: ${err.message}`);
+  }
+
   const watchFolder = store.get("watchFolder");
   if (watchFolder) {
     // Run file migration in background (non-blocking) — probes can be slow
