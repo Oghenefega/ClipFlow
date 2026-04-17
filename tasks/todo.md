@@ -265,5 +265,69 @@ Remove two legacy features that are no longer useful for a commercial product: t
 
 ---
 
+## 🔲 Planned — Editor Autosave (Option A — renderer-crash resilience)
+
+> Context: #35 renderer crashes (`blink::DOMDataStore` 0xC0000005) are pre-existing, 57 Sentry events total, happen in editor AND projects tab, wipe all unsaved edits. Explicit Save button is the only current persistence path. Autosave turns every crash into at most ~500ms of lost work.
+>
+> **Why this first, before fixing the crash itself:** the crash is a native Chromium bug — repro is racy, fix is uncertain. Autosave is a known-good solution that makes the crash non-destructive, buying time to investigate #35 properly.
+
+### Scope
+Silently persist editor state to disk during editing. No UI change (no "Saving…" spinner, no flash — the existing Save button stays exactly as-is for explicit user confirmation). On reopen, `loadClip` already restores everything — zero restore-path changes needed.
+
+### What gets saved (reuses existing `handleSave` payload)
+Everything `useEditorStore.handleSave` at `useEditorStore.js:1079` already writes via `window.clipflow.projectUpdateClip`:
+- `subtitles.sub1` (source-absolute edit segments) — from `useSubtitleStore.editSegments`
+- `captionSegments` + `caption` text — from `useCaptionStore`
+- `nleSegments` + `audioSegments` — from `useEditorStore`
+- `subtitleStyle` (full per-clip snapshot — 30+ style keys) — from `useSubtitleStore` + `useLayoutStore.subYPercent`
+- `captionStyle` (full per-clip snapshot) — from `useCaptionStore` + `useLayoutStore.capYPercent`
+- `title` — from `useEditorStore.clipTitle`
+
+Restore is already wired: `useEditorStore.js:137-153` calls `initSegments` + `restoreSavedStyle(clip.subtitleStyle)` + `restoreSavedStyle(clip.captionStyle)` + `setSubYPercent/setCapYPercent` on every `loadClip`.
+
+### Triggers
+1. **Debounced state change** — any write to `editSegments`, caption state, layout, style, title, or `nleSegments` → schedule save in 800ms. Coalesces rapid edits (typing, dragging sliders) into one IPC.
+2. **Window blur** — flush immediately when focus leaves the window.
+3. **`beforeunload`** — flush synchronously on reload/close (best-effort; renderer crashes bypass this, which is exactly why we need #1).
+4. **Clip switch** — flush the outgoing clip before `loadClip` swaps to the new one.
+
+### File impact
+- `src/renderer/editor/stores/useEditorStore.js`
+  - Add module-closure vars `_autosaveTimer`, `_autosaveInFlight` OUTSIDE the store (not in state — avoids infinite subscribe loop when timer is (re)set).
+  - Add actions `scheduleAutosave()`, `flushAutosave()`, `_doSilentSave()`.
+  - Extract the body of current `handleSave` (lines 1079-1141) into `_doSilentSave()` — pure persistence, no UI side effects. `handleSave` becomes a thin wrapper that calls `_doSilentSave()` — no behavior change for the Save button.
+  - Guard in `scheduleAutosave`: `!clip || !project` → bail; `extending` → bail (FFmpeg extend/revert actively rewrites the source file + clip metadata). No `dirty` gate — style setters in RightPanelNew don't reliably call `markDirty`, and 800ms debounce absorbs the noise of saving on non-persistable state changes.
+- `src/renderer/editor/components/EditorLayout.js`
+  - In the existing `loadClip` effect (around line 536), subscribe to `useSubtitleStore`, `useCaptionStore`, `useLayoutStore`, `useEditorStore` — each listener calls `useEditorStore.getState().scheduleAutosave()`.
+  - Return cleanup that unsubscribes + calls `flushAutosave()` before the next clip loads.
+  - Top-level effect (once per editor mount): `window.addEventListener('blur', flushAutosave)`. Skip `beforeunload` — it can't synchronously IPC in Electron and renderer crashes bypass it anyway; the 800ms debounce + blur flush are what actually protect us.
+- **No main-process changes.** `project:updateClip` IPC at `main.js:1463` is a partial merge (`{...old, ...updates}` in `projects.js:187`) — autosave won't clobber render-status writes.
+- **No schema migration.** All fields written are already part of the clip shape.
+
+### Steps
+1. Extract `_doSilentSave` from `handleSave` body in `useEditorStore.js` — pure persistence, no UI side effects. Verify `handleSave` still flashes "Saved" exactly as before.
+2. Add `scheduleAutosave` (800ms debounce) and `flushAutosave` (cancel timer + await `_doSilentSave` if pending) to `useEditorStore`.
+3. Wire `window.blur` + `beforeunload` in `EditorLayout.js` (top-level effect, once per editor mount).
+4. Wire per-store subscriptions in the `loadClip` effect. Track only the state keys that affect persistence — skip undo stacks, timer refs, transient UI flags. Unsubscribe + flush on effect cleanup (handles clip switch and editor unmount).
+5. Add console log `[autosave] saved clipId=… in XXXms` at debug level so we can confirm in `trim-debug.log` after crashes.
+6. Build + `npm start` + manually edit subtitles for 60s without clicking Save → force-kill the renderer via Task Manager → reopen clip → verify edits survived.
+
+### Verification
+- [ ] `npx react-scripts build` clean, no console warnings
+- [ ] App launches, editor opens a clip
+- [ ] Edit a subtitle word → wait 1s → check `trim-debug.log` for `[autosave] saved` line
+- [ ] Rapid-fire 10 edits in 2s → see only 1–2 save calls (debounce works)
+- [ ] Click away to another window → see immediate `[autosave] saved` (blur flush)
+- [ ] Explicit Save button still shows "Saved" flash (regression check)
+- [ ] Kill renderer via Task Manager mid-edit → reopen clip → all edits + styling + NLE segments + title restored
+- [ ] Switch to another clip → outgoing clip's edits flushed before new clip's `loadClip` runs
+- [ ] Sentry: no new error volume from autosave itself (watch for 24h)
+
+### Follow-up (separate issues, not this task)
+- Update #35 with fresh breadcrumb pattern + broader scope (projects tab crashes too, not just editor)
+- #35 fix is still its own work — autosave mitigates, doesn't resolve
+
+---
+
 ## ✅ Completed — Previous Tasks
 (See git history for details)

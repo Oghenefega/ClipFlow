@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-16 (session 5) — B1 refactor + editor autosave
+
+### Added
+- **Editor autosave (resolves #36)**: Debounced (800ms) silent save of editor state — subtitles, caption text/segments, NLE segments, title, and full per-clip subtitle+caption style snapshots — triggered on any edit across `useSubtitleStore` / `useCaptionStore` / `useLayoutStore` / `useEditorStore`. Additional flushes fire on `window.blur` and editor unmount. Renderer crashes (#35 `blink::DOMDataStore` 0xC0000005) no longer wipe unsaved work — at most ~800ms of edits are lost. Verified with force-kill renderer via Task Manager: edits survived reopen. Implementation notes: timer + in-flight counter live in module closure (not Zustand state) to prevent infinite subscribe loops when `set({ dirty: false })` fires during a save. Counter (not boolean) so concurrent explicit-Save + autosave both run when user edits during an in-flight IPC. Existing Save button UI, clip-switch save, back-button save, and queue-and-render flows are unchanged — all route through the refactored shared `_doSilentSave` helper.
+
+### Changed
+- **B1 subtitle-extends refactor (cleanup of earlier take-2 fix)**: Primary subtitle source (clip.transcription / clip.subtitles.sub1) and the source-wide extras merged from project.transcription for extends-coverage now run through the same cleanup pipeline (mega-segment filter, duplicate-segment dedup, consecutive-word dedup, word-token merge, validation, timestamp cleanup). Previously extras bypassed those steps. No user-visible regression — pipeline output for the primary-only case is identical to before.
+
+### Notes
+- **#36 (editor autosave)** — closed. Autosave is live and verified.
+- **#35 (renderer crash)** — still unresolved. Autosave makes crashes non-destructive, which is a major UX win, but does not address the underlying `blink::DOMDataStore` fault. Sentry data from this session (57 events) shows crash also fires in the projects tab, not just editor — #35 scope updated accordingly.
+- **New chore filed (#44)**: `setSegmentMode` is called twice on init path, triggering double-dedup log. Harmless but wasteful.
+
 ## [Unreleased] — 2026-04-16 (session 4) — Phase 4 post-test triage
 
 ### Notes (no code changes in this slice — planning + diagnostics only)

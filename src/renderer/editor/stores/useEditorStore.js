@@ -8,6 +8,20 @@ import { createSegment, createInitialSegments, cloneSegments } from "../models/s
 import { getTimelineDuration } from "../models/timeMapping";
 import { splitAtTimeline, deleteSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 
+// ── Autosave internals (module-closure, NOT in state) ──
+// Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
+// Any state write triggers subscribe listeners, which fire scheduleAutosave, which must not
+// itself mutate state or it would re-trigger the listener and loop forever.
+//
+// _savesInFlight is a COUNTER (not boolean). Reasoning: if autosave is mid-IPC and user
+// clicks Save, we want BOTH saves to run (the autosave captured state at t=0, but the
+// user may have edited during the IPC — the explicit save captures the latest). Main
+// process serializes updateClip calls via electron-store. Last write wins with latest data.
+// A boolean would have blocked the second save and lost those edits.
+let _autosaveTimer = null;
+let _savesInFlight = 0;
+const AUTOSAVE_DEBOUNCE_MS = 800;
+
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
   project: null,
@@ -1076,9 +1090,10 @@ const useEditorStore = create((set, get) => ({
     }
   },
 
-  handleSave: async () => {
+  // ── Silent save: persistence only, no UI side effects. Shared by handleSave + autosave. ──
+  _doSilentSave: async () => {
     const { clip, project, clipTitle } = get();
-    if (!clip || !project) return;
+    if (!clip || !project) return false;
     try {
       const subState = useSubtitleStore.getState();
       const editSegments = subState.editSegments;
@@ -1139,8 +1154,75 @@ const useEditorStore = create((set, get) => ({
         captionStyle,
       });
       set({ dirty: false });
+      return true;
     } catch (e) {
       console.error("Save failed:", e);
+      return false;
+    }
+  },
+
+  // ── Explicit save (Save button). Persists + sets dirty=false. UI flash handled by caller. ──
+  // Increments _savesInFlight so the dirty=false echo from _doSilentSave can't schedule
+  // a redundant autosave 800ms later.
+  handleSave: async () => {
+    if (_autosaveTimer) { clearTimeout(_autosaveTimer); _autosaveTimer = null; }
+    _savesInFlight++;
+    try {
+      await get()._doSilentSave();
+    } finally {
+      _savesInFlight--;
+    }
+  },
+
+  // ── Autosave: debounced persistence, survives renderer crashes. ──
+  // Bail conditions: no clip/project (nothing to save), or `extending` (FFmpeg actively
+  // rewriting the source file + clip metadata — autosaving mid-extend would race with the
+  // extend handler's own updateClip call and could overwrite {sourceStartTime, duration}).
+  scheduleAutosave: () => {
+    // Suppress during any in-flight save: _doSilentSave calls set({ dirty: false }), which
+    // fires the useEditorStore subscribe listener, which calls scheduleAutosave. Without
+    // this guard that would loop: save → dirty=false echo → schedule → save → ...
+    if (_savesInFlight > 0) return;
+    const { clip, project, extending } = get();
+    if (!clip || !project) return;
+    if (extending) return;
+    if (_autosaveTimer) clearTimeout(_autosaveTimer);
+    _autosaveTimer = setTimeout(() => {
+      _autosaveTimer = null;
+      // Re-check guards at fire time — state may have changed during the 800ms window.
+      const { clip: c, project: p, extending: ex } = get();
+      if (!c || !p || ex) return;
+      // If a save started during the debounce (e.g., explicit Save button), skip this
+      // autosave — the explicit save already captured newer state.
+      if (_savesInFlight > 0) return;
+      _savesInFlight++;
+      const t0 = performance.now();
+      const clipId = c.id;
+      get()._doSilentSave().finally(() => {
+        _savesInFlight--;
+        const ms = Math.round(performance.now() - t0);
+        console.log(`[autosave] saved clipId=${clipId} in ${ms}ms`);
+      });
+    }, AUTOSAVE_DEBOUNCE_MS);
+  },
+
+  // ── Flush: cancel pending timer + fire save immediately (awaitable). ──
+  // Used on window blur + editor unmount.
+  flushAutosave: async () => {
+    if (_autosaveTimer) {
+      clearTimeout(_autosaveTimer);
+      _autosaveTimer = null;
+    }
+    // If a save is already running (explicit or autosave), skip — it'll land with current
+    // state. Double-flushing (e.g., blur during handleSave) just returns.
+    if (_savesInFlight > 0) return;
+    const { clip, project, extending } = get();
+    if (!clip || !project || extending) return;
+    _savesInFlight++;
+    try {
+      await get()._doSilentSave();
+    } finally {
+      _savesInFlight--;
     }
   },
 }));

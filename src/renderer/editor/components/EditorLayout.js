@@ -981,6 +981,39 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
+  // ── Autosave: subscribe to all persistable editor stores, debounced save on changes. ──
+  // Goal: renderer crashes (see #35) no longer wipe unsaved edits. Every store mutation
+  // schedules a save 800ms out; rapid edits coalesce into one IPC. Window blur flushes
+  // immediately. Cleanup on unmount also flushes.
+  //
+  // Subscriptions fire on EVERY state change — including transient UI state like
+  // activeSegId, _undoStack, etc. That's wasteful but harmless: scheduleAutosave
+  // only schedules (cheap), and _doSilentSave reads the same data regardless of trigger.
+  // Filtering would require per-key selectors which add complexity for marginal gain.
+  useEffect(() => {
+    const schedule = () => useEditorStore.getState().scheduleAutosave();
+    const unsubSub = useSubtitleStore.subscribe(schedule);
+    const unsubCap = useCaptionStore.subscribe(schedule);
+    const unsubLayout = useLayoutStore.subscribe(schedule);
+    // Editor store: skip if the only change was autosave internals (no internals in state
+    // anymore — timer lives in module closure — but keep for belt-and-braces future-proofing).
+    const unsubEditor = useEditorStore.subscribe(schedule);
+
+    // Window blur: user alt-tabbed away or clicked another app. Flush any pending save.
+    const onBlur = () => useEditorStore.getState().flushAutosave();
+    window.addEventListener("blur", onBlur);
+
+    return () => {
+      unsubSub();
+      unsubCap();
+      unsubLayout();
+      unsubEditor();
+      window.removeEventListener("blur", onBlur);
+      // Final flush on editor unmount (e.g., navigating away from editor view).
+      useEditorStore.getState().flushAutosave();
+    };
+  }, []);
+
   return (
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
