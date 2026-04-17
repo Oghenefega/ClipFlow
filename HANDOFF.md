@@ -1,11 +1,29 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-17 (session 6) — "#35 root-cause + #38 60fps fix + Electron upgrade backlog"_
+_Last updated: 2026-04-16 (session 7) — "Modernization plan + LLM Council review (planning only, no code changes)"_
 
 ---
 
 ## TL;DR
 
-Short session — three outcomes:
+Planning session — no code changes. Three outcomes:
+
+1. **Modernization plan filed as [#46](https://github.com/Oghenefega/ClipFlow/issues/46)** — epic-style chore covering CRA → Vite, React 18 → 19, selective dep audit. Explicit rejections in the issue body (Next.js, pnpm, blanket dep bumps).
+2. **LLM Council reviewed the plan** (5 advisors + 5 peer reviewers + chairman synthesis). Unanimous blind spot caught in peer review: **nobody proposed reproducing the #35 crash before making any Electron decision** — the entire #45 Electron track rests on an unverified premise. Reports saved to `council-reports/`.
+3. **Modernization work is PAUSED** pending a full architecture audit Fega is running in a separate Claude Chat session. **Do NOT begin the Electron 28 → 29 upgrade** (which was session 6's recommended next step) until the audit is back and the crash diagnostic runs.
+
+## 🚫 This session supersedes session 6's "Next Steps #1"
+
+Session 6 recommended starting the Electron 28 → 29 upgrade. **Don't.** Revised order:
+
+0. **Reproduce the crash first (2 hours).** Pull Sentry breadcrumbs for `blink::DOMDataStore` ACCESS_VIOLATION. Attempt minimal repro in stock Electron 28 + React 18 sandbox. If it reproduces upstream → Electron 32 is justified. If it doesn't → it's ClipFlow's own video/Zustand/subtitle lifecycle code and no Electron version fixes it.
+1. **Wait for Fega's Claude Chat architecture audit.** Don't touch #45 or #46 until the audit returns with a version inventory.
+2. Then revisit [`Obsidian vault → The Lab/Businesses/ClipFlow/Product/Modernization Audit - 2026-04-16.md`](.) for the refined plan (Vite + ESM deps pre-launch, React 19 / Tailwind 4 / pnpm post-launch, per Fega's pushback on the council's "defer everything" stance).
+
+Everything below this line is the session-6 handoff content — still accurate for technical state and #35/#38/#39, but the "begin Electron upgrade" next step is on hold.
+
+---
+
+## Session 6 handoff (preserved)
 
 1. **#35 root cause narrowed, fix deferred to Electron upgrade.** Session-5's theory (shadcn Slider is the trigger) was tested and disproven. The real crash stack (pulled from Sentry) is a **Chromium 120 fetch-stream UAF** in `ReadableStreamBytesConsumer::BeginRead` → `DOMArrayBuffer::IsDetached` → `DOMDataStore::GetWrapper`. Electron 28's Chromium is out of support and has known fixes in 121-128.
 2. **#38 closed.** `cutClip` now probes source fps and passes `-r <fps>` so OBS VFR captures stay at 60fps instead of collapsing to FFmpeg's default 25fps. One-file change.

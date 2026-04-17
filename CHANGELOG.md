@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-16 (session 7) — Modernization plan + LLM Council review
+
+### Added
+- **GitHub issue [#46](https://github.com/Oghenefega/ClipFlow/issues/46) — "Modernize frontend toolchain: CRA → Vite, React 19, dep audit."** Filed as an epic-style chore scoping three phases: (1) CRA → Vite migration (CRA effectively abandoned since 2023, no React 19 support path), (2) React 18 → 19 upgrade, (3) selective dep audit (electron-store 8→10 ESM-only, chokidar 3→4 ESM-only, Zustand already modern, Tailwind 3→4 deferred). Explicit rejections documented in the issue body: Next.js migration (wrong shape for Electron renderer), pnpm (marginal for single-dev Electron), blanket "bump everything" (too risky). File-impact sketch included (vite.config.js new, `process.env.REACT_APP_*` → `import.meta.env.VITE_*`, `src/main/main.js` loadFile path `build/` → `dist/`, etc.).
+- **LLM Council review of the modernization plan.** Five advisors (Contrarian, First Principles, Expansionist, Outsider, Executor) weighed in independently; five anonymized peer reviewers then assessed each other. Chairman synthesis + HTML visual report + full markdown transcript generated and saved to `council-reports/council-report-2026-04-16-modernization.html` and `council-reports/council-transcript-2026-04-16-modernization.md`. Unanimous finding from peer review: nobody proposed reproducing the `blink::DOMDataStore` crash (#35) before making any Electron decision — that 2-hour diagnostic (Sentry frames + minimal repro in stock Electron 28) is now established as Step 0 for the entire Electron track.
+- **Obsidian vault note** at `The Lab/Businesses/ClipFlow/Product/Modernization Audit - 2026-04-16.md` capturing the modernization plan, council verdict, Fega's pushback on "defer everything," and the split-work framework (Vite + ESM deps pre-launch because cost curve flips; React 19 / Tailwind 4 / pnpm post-launch because they don't).
+
+### Notes (no code changes this session — planning only)
+- **Modernization work is PAUSED pending a full architecture audit** being run in a separate Claude Chat session. Scope of that audit: inventory actual installed versions of every major dep, confirm which architecture patterns are actually in use, identify what's deprecated / on notice / load-bearing. No migration work should start until the audit is back.
+- **Fega's pushback on the council** refined the verdict meaningfully. Three of five advisors argued for deferring everything post-launch; Fega correctly pointed out that migration costs go UP post-launch, not down (installer layout, auto-updater paths, and user data schemas all lock in at v1.0). Revised split now in the Obsidian note: structural work (Vite, electron-store 8→10, chokidar 3→4) genuinely easier pre-launch; framework/polish work (React 19, Tailwind 4, pnpm) unchanged cost either way.
+- **#45 (Electron upgrade) and #46 (toolchain modernization) remain OPEN.** Both conditional on audit outcome. Neither should be worked on until the architecture audit completes and the crash diagnostic runs.
+
 ## [Unreleased] — 2026-04-17 (session 6) — #35 diagnostic + #38 60fps fix + Electron upgrade backlog
 
 ### Fixed
