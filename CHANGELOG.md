@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 10) — Electron 28 → 29 (C1 Phase 1, hop 1 of 4)
+
+### Changed
+- **Electron 28.3.3 → 29.4.6** (Chromium 120 → 122, Node 18 → 20, V8 12.2). First of four stepwise hops in C1 Phase 1 (28→32). `@types/node` bumped to `^20` to match Node 20 runtime. `@electron/rebuild` (modern scoped name, replaces deprecated `electron-rebuild`) added as a dev dep at `^3.7.2` for future native-module rebuilds. No native deps currently in use (`sql.js` is WASM), so rebuild is a no-op this hop.
+- **Electron 29 breaking-change review, no code changes required:** (1) contextBridge bulk-exposure change doesn't affect us — `preload.js` already uses the safe wrapper-per-method pattern. (2) Removed `will-navigate` legacy event — we don't listen for it. (3) `File.path` deprecated in v29 (removal expected v30/v31); still functional, two callsites tracked at `src/renderer/views/RenameView.js:1222` and `src/renderer/views/UploadView.js:313`, migration to `webUtils.getPathForFile()` filed as a follow-up issue for Hop 2/3.
+
+### Fixed
+- **#35 renderer crash (blink::DOMDataStore UAF on timeline drag) — resolved in Hop 1.** Go/no-go test: opened a clip with a 30min+ source, dragged the timeline zoom slider rapidly left-right × 10 on both short and long sources. Zero crashes. Chromium 122's fetch-stream lifecycle fixes (121-122 landed multiple `ReadableStreamBytesConsumer` / `DOMArrayBuffer::IsDetached` UAF patches) appear to resolve the Pattern A repro established in session 9. Pattern B (idle projects-tab crash) and Pattern C (clip-open crash) not explicitly re-tested this hop but share the same Chromium stack, so expected to be resolved as well. Will monitor Sentry across the remaining C1 Phase 1 hops for regressions.
+
+### Notes
+- **Editor lag on 30-minute sources surfaced during Hop 1 testing — NOT a hop regression.** Filed as [#57](https://github.com/Oghenefega/ClipFlow/issues/57). Phase 4 (editor plays full source recording via `file://` URL instead of the individual clip render) was landed recently; this is the first time a 30min+ source has been exercised end-to-end in the editor. Root cause: five top-level components subscribe to `currentTime` from `usePlaybackStore` (`EditorLayout.js:898`, `LeftPanelNew.js:363` and `:608`, `PreviewPanelNew.js:417`, `TimelinePanelNew.js:36`) and the 60fps rAF loop at `PreviewPanelNew.js:774-818` calls `setCurrentTime` every frame — on a 30min source, `TimelinePanelNew` + `LeftPanelNew` rebuild trees containing thousands of words/segments per frame, which is the perf cliff. Contributing factors: DevTools force-opened at `src/main/main.js:324`, `[DBG ...]` console.log spam in playback hot paths, waveform IPC possibly stuck on long sources. Fix approach is to narrow the 60fps subscription so only the playhead cursor re-renders per frame; other panels subscribe to discrete state (active-segment-id, visible-range) that changes infrequently. Does not block Hop 2.
+- **[#58](https://github.com/Oghenefega/ClipFlow/issues/58) filed for File.path → webUtils.getPathForFile() migration.** Still functional in Electron 29; must be migrated before the hop that removes it (v30 or v31).
+- **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) filed for "editor can't render clip without queuing for upload".** Surfaced by Fega during testing. Core editor UX gap: render and queue are conflated into a single button. Not a Hop 1 regression — pre-existing, tracked for a dedicated session.
+
 ## [Unreleased] — 2026-04-17 (session 9) — #35 minimal repro established, C1 Electron upgrade arc unblocked
 
 ### Added
