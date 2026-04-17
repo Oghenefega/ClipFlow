@@ -391,7 +391,7 @@ Remove two legacy features that are no longer useful for a commercial product: t
 - [ ] `.claude/rules/pipeline.md` — OBS log parsing rules (if present)
 
 **What to KEEP:**
-- `RAW_OBS_PATTERN` regex and chokidar file watcher — this is active file detection, not log parsing
+- `RAW_RECORDING_PATTERN` regex and chokidar file watcher — this is active file detection, not log parsing
 - Manual game dropdown selector — this is the real game assignment UI
 - All game detection logic in RenameView (filename-based, not OBS-dependent)
 

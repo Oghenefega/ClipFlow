@@ -522,52 +522,107 @@ ipcMain.handle("fs:writeFile", async (_, filePath, content) => {
   }
 });
 
-// File watcher: shared OBS filename detection
-// Raw OBS files: YYYY-MM-DD HH-MM-SS[optional -vertical].(mp4|mkv)
+// File watcher: recording folder detection (watches the folder OBS writes .mp4/.mkv into)
+// Raw recording filenames: YYYY-MM-DD HH-MM-SS[optional -vertical].(mp4|mkv)
 // Already-renamed files like "2026-02-06 AR Day25 Pt18.mp4" do NOT match
-const RAW_OBS_PATTERN = /^\d{4}-\d{2}-\d{2}[ _]\d{2}-\d{2}-\d{2}(-vertical)?\.(mp4|mkv)$/i;
+const RAW_RECORDING_PATTERN = /^\d{4}-\d{2}-\d{2}[ _]\d{2}-\d{2}-\d{2}(-vertical)?\.(mp4|mkv)$/i;
+
+// Prevents starting a second stability check while the first is still running for the same file.
+const stabilityChecksInFlight = new Set();
+
+/**
+ * Poll a file's size until it stops changing (or we time out / it disappears).
+ * Equivalent in spirit to chokidar's awaitWriteFinish, but owned by us — so
+ * upgrading chokidar can never silently regress write-stability detection.
+ *
+ * @param {string} filePath
+ * @param {object} [opts]
+ * @param {number} [opts.intervalMs=1000]          Poll period
+ * @param {number} [opts.requiredStableChecks=2]   Consecutive equal reads before "stable"
+ * @param {number} [opts.maxWaitMs=1800000]        30-min ceiling; raw recordings can be very large
+ * @returns {Promise<number|null>} stable size in bytes, or null if file vanished / never stabilized
+ */
+async function waitForStable(filePath, opts = {}) {
+  const intervalMs = opts.intervalMs ?? 1000;
+  const requiredStableChecks = opts.requiredStableChecks ?? 2;
+  const maxWaitMs = opts.maxWaitMs ?? 30 * 60 * 1000;
+  const started = Date.now();
+  let lastSize = -1;
+  let stableCount = 0;
+  while (Date.now() - started < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    let size;
+    try {
+      size = fs.statSync(filePath).size;
+    } catch {
+      return null; // deleted or inaccessible mid-check
+    }
+    if (size > 0 && size === lastSize) {
+      stableCount += 1;
+      if (stableCount >= requiredStableChecks) return size;
+    } else {
+      stableCount = 0;
+      lastSize = size;
+    }
+  }
+  return null; // never stabilized within maxWaitMs
+}
 
 /**
  * Shared file detection handler for both main and test watchers.
+ * Waits for the file to finish writing before notifying the renderer.
  * @param {string} filePath - Full path to the detected file
  * @param {string} addEvent - IPC event name to send on file add
- * @param {string} removeEvent - IPC event name to send on file remove (unused here, but kept for symmetry)
  */
-function handleWatcherFileAdded(filePath, addEvent) {
+async function handleWatcherFileAdded(filePath, addEvent) {
   const name = path.basename(filePath);
-  // Only pick up raw OBS recordings; skip already-renamed files and non-video files
-  if (!RAW_OBS_PATTERN.test(name)) return;
-  const stat = fs.statSync(filePath);
+  // Only pick up raw recordings; skip already-renamed files and non-video files
+  if (!RAW_RECORDING_PATTERN.test(name)) return;
 
-  // Check pendingImports — skip files being imported via drag-and-drop
-  for (const entry of pendingImports) {
-    if (entry.filename === name && entry.sizeBytes === stat.size) return;
+  // Dedup: chokidar can fire `add` more than once for the same path in edge cases
+  if (stabilityChecksInFlight.has(filePath)) return;
+  stabilityChecksInFlight.add(filePath);
+  try {
+    const stableSize = await waitForStable(filePath);
+    if (stableSize === null) return; // file gone or never stabilized
+
+    // pendingImports dedupe (drag-and-drop path owns this filename+size)
+    for (const entry of pendingImports) {
+      if (entry.filename === name && entry.sizeBytes === stableSize) return;
+    }
+
+    let stat;
+    try {
+      stat = fs.statSync(filePath);
+    } catch {
+      return; // vanished between stabilize and stat
+    }
+    mainWindow?.webContents.send(addEvent, {
+      name,
+      path: filePath,
+      size: stat.size,
+      createdAt: stat.birthtime.toISOString(),
+    });
+  } finally {
+    stabilityChecksInFlight.delete(filePath);
   }
-
-  mainWindow?.webContents.send(addEvent, {
-    name,
-    path: filePath,
-    size: stat.size,
-    createdAt: stat.birthtime.toISOString(),
-  });
 }
 
-/** Create a chokidar watcher with standard OBS detection config */
-function createOBSWatcher(folderPath, addEvent, removeEvent) {
+/** Create a chokidar watcher on the given folder that emits on raw-recording file add/remove */
+function createRecordingFolderWatcher(folderPath, addEvent, removeEvent) {
   const w = chokidar.watch(folderPath, {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: false,
     depth: 0, // root folder only — do not recurse into monthly subfolders
-    awaitWriteFinish: {
-      stabilityThreshold: 2000,
-      pollInterval: 100,
-    },
+    // NOTE: no awaitWriteFinish — we run our own stability check in handleWatcherFileAdded
+    // so chokidar-version bumps cannot silently regress this behavior.
   });
 
-  w.on("add", (fp) => handleWatcherFileAdded(fp, addEvent));
+  w.on("add", (fp) => { handleWatcherFileAdded(fp, addEvent); });
 
   w.on("unlink", (fp) => {
+    stabilityChecksInFlight.delete(fp); // cancel any in-flight check for a deleted file
     mainWindow?.webContents.send(removeEvent, {
       name: path.basename(fp),
       path: fp,
@@ -580,7 +635,7 @@ function createOBSWatcher(folderPath, addEvent, removeEvent) {
 // Main watcher: start
 ipcMain.handle("watcher:start", async (_, folderPath) => {
   if (watcher) watcher.close();
-  watcher = createOBSWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved");
+  watcher = createRecordingFolderWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved");
   return { success: true };
 });
 
@@ -597,7 +652,7 @@ ipcMain.handle("watcher:startTest", async (_, folderPath) => {
   const mainFolder = store.get("watchFolder");
   if (folderPath === mainFolder) return { error: "Test folder cannot be the same as the main watch folder" };
   if (testWatcher) testWatcher.close();
-  testWatcher = createOBSWatcher(folderPath, "watcher:testFileAdded", "watcher:testFileRemoved");
+  testWatcher = createRecordingFolderWatcher(folderPath, "watcher:testFileAdded", "watcher:testFileRemoved");
   return { success: true };
 });
 
