@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 12) — Electron 29 → 40 (single-shot, C1 closed)
+
+### Changed
+- **Electron 29.4.6 → 40.9.1** (Chromium 122 → 136, Node 20 → 22). Single-shot upgrade — eleven major versions in one commit. Replaces the original stepwise 28→32 cadence ([dashboard Section 9 C1](https://github.com/Oghenefega/ClipFlow/issues/45)) which Fega revised mid-arc to "40 is a good enough place." `@types/node` bumped to `^22.0.0` to match Node 22 runtime per H8 pattern. `electron-builder` left at `^24.13.3` — packaging path (`npm run build`) not exercised this session; H7 bump still bundled with H4 auto-updater work.
+- **`File.path` → `webUtils.getPathForFile()`** ([#58](https://github.com/Oghenefega/ClipFlow/issues/58)) bundled into the same commit because Electron 30+ removed the `File.path` property. Added `getPathForFile` to the `window.clipflow` preload bridge at [src/main/preload.js:9](src/main/preload.js:9) (uses `webUtils` from electron, sync, no IPC). Migrated both renderer callsites: [src/renderer/views/RenameView.js:1222](src/renderer/views/RenameView.js:1222) (drag-drop import) and [src/renderer/views/UploadView.js:313](src/renderer/views/UploadView.js:313) (drag-drop upload).
+
+### Notes
+- **Native deps audit clean.** Zero `binding.gyp`, zero `.node` binaries in the entire dependency tree — `sql.js` is WASM, everything else is pure JS. Node 20 → 22 transition required no `electron-rebuild` step.
+- **Smoke test passed all three.** (1) #35 zoom-slider crash repro on a 30min+ source — no crash. (2) Drop-to-Rename — file appeared in pending list (Fega didn't click rename, but the `getPathForFile` bridge fired and produced a valid path). (3) Drop-to-Upload — import progress shown, game-name prompt fired. App startup logs `electron: "40.9.1"`, schema v4 loaded.
+- **C1 (Electron EOL) resolved.** Dashboard now shows ClipFlow on Electron 40 with current stable at 41 — well within Electron's "latest 3 majors" support window. Future cadence (40 → 41 and beyond) becomes a Medium maintenance item, not Critical.
+- **H8 (`@types/node` pin to runtime) closed.** Bumped to ^22 alongside the runtime hop. No further pin work needed until the next Electron major changes Node version.
+
 ## [Unreleased] — 2026-04-17 (session 11) — #57 Phase A landed, Phase B + C hotfix reverted
 
 ### Changed

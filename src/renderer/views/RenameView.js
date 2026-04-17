@@ -1218,8 +1218,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       return;
     }
 
-    // Get the file path (Electron gives us the path property)
-    const filePath = file.path;
+    // Resolve the dropped File's native path via webUtils (Electron 30+ removed File.path)
+    const filePath = window.clipflow.getPathForFile(file);
     if (!filePath) return;
 
     setImporting({ filename: file.name, pct: 0 });

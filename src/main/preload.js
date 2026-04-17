@@ -2,10 +2,11 @@
 // Wrapped in try/catch so a Sentry failure never kills the entire preload bridge
 try { require("@sentry/electron/preload"); } catch (_) {}
 
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("clipflow", {
   // File system
+  getPathForFile: (file) => webUtils.getPathForFile(file),
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
   readDir: (dir) => ipcRenderer.invoke("fs:readDir", dir),
   renameFile: (oldPath, newPath) => ipcRenderer.invoke("fs:renameFile", oldPath, newPath),

@@ -310,7 +310,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
     const file = droppedFiles[0];
     if (!file.name.toLowerCase().endsWith(".mp4")) return;
-    const filePath = file.path;
+    const filePath = window.clipflow.getPathForFile(file);
     if (!filePath) return;
 
     // Check if watch folder is configured
