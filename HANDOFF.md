@@ -1,69 +1,40 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-17 (session 10) — "Electron 28 → 29 landed, #35 resolved, next = editor perf fix before hop 2"_
+_Last updated: 2026-04-17 (session 11) — "Phase A kept, B + C reverted, next = Electron 38 upgrade"_
 
 ---
 
 ## TL;DR
 
-Two things happened this session:
+Session tried to ship #57 editor-perf fix as Phase A + Phase B + a hotfix. Only **Phase A** survived. The Phase B store-derivation refactor broke word highlighting in both Transcript and Edit-subtitles tabs and regressed the Transcript tab to laggy — reverted at Fega's request. Root cause re-diagnosed mid-session: not the subscription storm assumed in `tasks/todo.md`, but **component-size at re-render time** (TimelinePanelNew at 1500 lines re-rendering 60Hz, EditSubtitlesTab reconciling 100+ segment rows on every word tick). Proper fix direction (component extractions) written to [#57](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430), deferred.
 
-1. **Electron 28.3.3 → 29.4.6 landed cleanly** (hop 1 of 4, C1 Phase 1). Chromium 120 → 122, Node 18 → 20. Commit [`46546de`](https://github.com/Oghenefega/ClipFlow/commit/46546de). Zero code changes required — all Electron 29 breaking changes were non-applicable or deprecations only. **#35 `blink::DOMDataStore` renderer crash RESOLVED** — zoom-slider-drag × 10 on 30min+ source no longer crashes. Issue closed.
+Fega's call end of session: **Electron 38 upgrade takes priority next session.** #57 stays open / unresolved.
 
-2. **A severe editor-lag cliff on 30min+ sources was uncovered** (Pre-existing, NOT a hop regression). Full root-cause analysis done and filed as [#57](https://github.com/Oghenefega/ClipFlow/issues/57). Fega's call: **fix #57 before hop 2**, because hops 2-4 verification depends on being able to actually test the editor smoothly on long sources. Fix plan written to [tasks/todo.md](tasks/todo.md) top-of-file (Phase A + Phase B, ~2-3 hours total).
+Current HEAD: [c95f63f](https://github.com/Oghenefega/ClipFlow/commit/c95f63f) — Phase A on top of session 10's hop 1.
 
-Also filed this session: [#58](https://github.com/Oghenefega/ClipFlow/issues/58) (File.path → webUtils.getPathForFile migration) and [#59](https://github.com/Oghenefega/ClipFlow/issues/59) (editor can't render without queuing for upload).
+## 🎯 Next session: Electron 29 → 38+ upgrade
 
-## 🎯 Next session: #57 editor perf fix — Phase A + Phase B
+**Fega's call:** "I need to update the electron version to 38 at least." Single-hop target is Electron 38 (Chromium 132, Node 22). That's 9 major versions from current (29).
 
-**Approved by Fega end of session 10.** Hop 2 (Electron 29 → 30) is parked until #57 ships.
+Tracked on [#45](https://github.com/Oghenefega/ClipFlow/issues/45) (title updated this session). **Open questions to resolve FIRST, before any `npm install`:**
 
-Full plan with file paths, root causes, and verification criteria is in [tasks/todo.md](tasks/todo.md) top-of-file. Read it first thing next session — do not re-derive.
+1. **Hop granularity.** Single shot 29 → 38, or intermediate stops? Single shot = one clean commit, hardest to bisect regressions. Staged = 29→32→35→38 or similar = cleaner bisect but 4 sessions of work. Fega to decide start-of-session.
+2. **Vite migration ordering vs Electron.** [#46](https://github.com/Oghenefega/ClipFlow/issues/46) (CRA → Vite) is on the same critical path. Electron-first keeps the surface smaller per hop; Vite-first unblocks chokidar/electron-store ESM upgrades ([#52](https://github.com/Oghenefega/ClipFlow/issues/52), [#53](https://github.com/Oghenefega/ClipFlow/issues/53)). Originally gated behind "Phase 1 landing" (Electron 32) — now that target shifted to 38, revisit.
+3. **Native module compat.** Electron 38 ships Node 22. Currently on Node 20. Need to verify any native modules rebuild cleanly. `sql.js` is WASM (safe); check if any other native deps were added since session 10.
+4. **File.path removal.** Electron 29 deprecated it but kept it functional. **Electron 30+ removes it entirely.** [#58](https://github.com/Oghenefega/ClipFlow/issues/58) migration (both callsites → `webUtils.getPathForFile()` via preload) is now **blocking** for any hop past 29. Either do it before the upgrade install or bundle it with the first hop that breaks it.
+5. **react-scripts peer dep.** `--legacy-peer-deps` has been the standing install flag for Electron hops. Confirm it still works through to Electron 38, or budget for a pre-Vite patch if npm refuses to resolve.
 
-**High-level sequence:**
+**Session-start ritual:**
+1. Read the Infrastructure Dashboard Section 9 (C1 entry) at `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\infrastructure\ClipFlow Infrastructure.md` — the cadence decision from session 8 assumed stepwise through 32. The new 38+ target may warrant a dashboard update; flag it explicitly if so.
+2. Read [#45](https://github.com/Oghenefega/ClipFlow/issues/45) comment thread (most recent comment has the new target rationale).
+3. Read Electron breaking changes for every major from 30 through 38: [electronjs.org/docs/latest/breaking-changes](https://www.electronjs.org/docs/latest/breaking-changes). Focus on `protocol.registerFileProtocol` changes (we use `file://` URLs for editor source-file preview), `contextBridge` changes (safe via wrapper pattern but recheck), and any Node 20→22 breaking changes.
+4. Go/no-go test for every hop: on a 30min+ source, drag the timeline zoom slider thumb rapidly left-right × 10. Zero crashes = hop clears. (Same repro that was #35 — confirmed fixed in hop 1, re-run as regression check every hop.)
 
-**Phase A — free wins (~15-20 min, commit separately):**
-- Gate DevTools force-open behind `isDev` at `src/main/main.js:324`
-- Strip all `[DBG ...]` `console.log` calls from playback hot paths in `src/renderer/editor/stores/usePlaybackStore.js` and `src/renderer/editor/components/PreviewPanelNew.js`
-- Build + smoke test, measure if 30-min source playback feels better
-- Commit: `#57 Phase A — gate DevTools, strip playback debug logs`
+## 🚫 DO NOT touch next session (again)
 
-**Phase B — core fix (~1.5-2 hours, commit separately):**
-- Extend `src/renderer/editor/stores/usePlaybackStore.js` to compute derived discrete-state in `setCurrentTime`: `activeSubtitleSegId`, `activeTranscriptWordIdx`, and a 100ms-quantized `displayTime`. Use forward-scan-from-last-index for O(1) amortized lookup during playback.
-- Refactor 4 components to subscribe to those discrete values instead of raw 60Hz `currentTime`:
-  - `PreviewPanelNew.js` — subtitle overlay at line 1080
-  - `TimelinePanelNew.js` — drop top-level `currentTime` sub at line 36, route remaining uses through `smoothTime` / `getState()` / `displayTime`
-  - `LeftPanelNew.js` — TranscriptTab at line 363 (activeWordIdx), SubtitlesTab at line 608 (active seg useEffect)
-- Commit: `#57 Phase B — derived discrete-state selectors in playback store`
-- Close #57
-
-**Phase C — only if A+B insufficient (skip by default, judgment call after B):**
-- Extract `<TimelinePlayhead />` and `<SubtitleOverlay />` to child components that own their own rAF loops.
-
-**Verification (all on a 30min+ source recording):**
-1. Clip opens in < 3s
-2. Smooth 60fps preview playback, playhead glides
-3. Subtitle highlight tracks audio < 100ms perceived lag
-4. Left-panel auto-scroll works DURING playback (not only on pause)
-5. Short-source (< 2 min) playback no regression
-6. **#35 zoom-slider-drag × 10 on 30min source — still no crash** (hop-1 regression check)
-7. `npx react-scripts build` clean, no new console warnings
-
-## 🎯 Session 12+: resume C1 Phase 1 hop cadence
-
-**Hop 2 (Electron 29 → 30)** queued for after #57 closes. Full recipe preserved below.
-
-Per the committed cadence in Section 9 of the infrastructure dashboard ([C1 decision, 2026-04-17](https://github.com/Oghenefega/ClipFlow/issues/45)), Phase 1 continues stepwise: **29 ✅ → 30 → 31 → 32**. One major per session.
-
-**Hop 2 work (60-90 min estimate):**
-
-1. `npm install electron@30 --legacy-peer-deps`. The `--legacy-peer-deps` flag is required because react-scripts's TS 3||4 peer constraint is incompatible with TS 5+ hoisted by modern deps.
-2. `npx @electron/rebuild` — still a no-op until we add native deps, keep the habit.
-3. **Read Electron 30 breaking changes** — [electronjs.org/docs/latest/breaking-changes](https://www.electronjs.org/docs/latest/breaking-changes). Focus on: Chromium 124 changes, Node 20.x deprecations, any `protocol.registerFileProtocol` / `session.protocol` changes (we use `file://` URLs for the editor's source-file preview), `contextBridge` changes (we're safe via wrapper pattern but recheck).
-4. **Check File.path status.** If v30 removes it (likely), [#58](https://github.com/Oghenefega/ClipFlow/issues/58) becomes blocking for the hop. Migrate both callsites (`RenameView.js:1222`, `UploadView.js:313`) to `webUtils.getPathForFile()` via a new preload bridge method. If v30 still only deprecates, defer to hop 3.
-5. `npx react-scripts build && npm start` — smoke tests (editor opens + plays, timeline scrubs, clip render, OAuth listener).
-6. **Re-run the #35 go/no-go test.** Zoom slider drag × 10 on 30min+ source. Reopen #35 with subscript if any pattern recurs.
-7. **Commit separately:** `Upgrade Electron 29 → 30 (hop 2 of 4, C1 Phase 1)`.
-8. **Update CHANGELOG + HANDOFF** at hop-end.
+- **Do NOT retry the #57 store-derivation approach** in any form. That layer is rejected — the session's attempt broke it twice. If editor perf comes up incidentally during the Electron hop, note it but don't fix. Proper fix direction is component extraction, written to #57, deferred.
+- Do NOT start [#46](https://github.com/Oghenefega/ClipFlow/issues/46) (Vite) mid-Electron-hop — see ordering question above, decide once up-front.
+- Do NOT start H1 ([#47](https://github.com/Oghenefega/ClipFlow/issues/47)) or H3 ([#49](https://github.com/Oghenefega/ClipFlow/issues/49)) yet. Bundled for AFTER hops land.
+- Do NOT touch H4 ([#50](https://github.com/Oghenefega/ClipFlow/issues/50)), H9 ([#56](https://github.com/Oghenefega/ClipFlow/issues/56)), or [#51](https://github.com/Oghenefega/ClipFlow/issues/51). All deferred per pre-beta priority framing.
 
 ## 🚫 What NOT to start in the next session
 
@@ -77,40 +48,47 @@ Per the committed cadence in Section 9 of the infrastructure dashboard ([C1 deci
 
 | Item | Issue | Status |
 |---|---|---|
-| **#35 renderer crash** | [#35](https://github.com/Oghenefega/ClipFlow/issues/35) | ✅ **resolved this session** — closed |
-| **C1 Phase 1 Hop 1: Electron 28 → 29** | [#45](https://github.com/Oghenefega/ClipFlow/issues/45) | ✅ **landed this session** |
-| **[#57] editor perf on long source** | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 **next session — Phase A+B** (Fega call: fix before hop 2) |
-| **C1 Phase 1 Hop 2: Electron 29 → 30** | [#45](https://github.com/Oghenefega/ClipFlow/issues/45) | 🔲 session 12+ (parked until #57 closes) |
-| H8 @types/node pin | [#55](https://github.com/Oghenefega/ClipFlow/issues/55) | ✅ done (now at ^20 to match Node 20) |
-| **[#58] File.path deprecation migration** | [#58](https://github.com/Oghenefega/ClipFlow/issues/58) | 🔲 blocking hop 2 or hop 3 (whichever removes it) |
+| **#57 editor perf on long source** | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 **UNRESOLVED** — Phase A kept, B + C reverted. Edit-subtitles still laggy. Deferred. |
+| **#57 Phase A (DevTools + DBG strip)** | — | ✅ **landed this session** ([dbf6feb](https://github.com/Oghenefega/ClipFlow/commit/dbf6feb)) |
+| **C1: Electron 29 → 38+ (revised target)** | [#45](https://github.com/Oghenefega/ClipFlow/issues/45) | 🔲 **next session** (Fega call this session: jump to 38 min) |
+| **[#58] File.path → webUtils.getPathForFile** | [#58](https://github.com/Oghenefega/ClipFlow/issues/58) | 🔲 **BLOCKING next session** — Electron 30+ removes File.path |
+| C1 Phase 1 Hop 1: Electron 28 → 29 | [#45](https://github.com/Oghenefega/ClipFlow/issues/45) | ✅ landed session 10 |
+| #35 renderer crash | [#35](https://github.com/Oghenefega/ClipFlow/issues/35) | ✅ resolved session 10 — closed |
+| H8 @types/node pin | [#55](https://github.com/Oghenefega/ClipFlow/issues/55) | ✅ done session 10 (^20 to match Node 20) |
 | **[#59] editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | 🔲 dedicated session |
-| H1 subtitle overlay hardening | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | 🔲 bundled with C1 Phase 1 smoke-test arc |
-| H3 sandbox flip | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | 🔲 bundled with C1 Phase 1 smoke-test arc |
-| C2 Vite migration | [#46](https://github.com/Oghenefega/ClipFlow/issues/46) | ⏸️ gated on C1 Phase 1 landing (Electron 32) |
+| H1 subtitle overlay hardening | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | 🔲 bundled with C1 smoke-test arc |
+| H3 sandbox flip | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | 🔲 bundled with C1 smoke-test arc |
+| C2 Vite migration | [#46](https://github.com/Oghenefega/ClipFlow/issues/46) | ⏸️ ordering-vs-Electron decision open; gate on C1 landing |
 | H5 electron-store 8→11 | [#52](https://github.com/Oghenefega/ClipFlow/issues/52) | ⏸️ gated on Vite |
 | H6 chokidar 3→4 | [#53](https://github.com/Oghenefega/ClipFlow/issues/53) | ⏸️ gated on Vite |
 | H2 CSP | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | ⏸️ bundled with Vite (nonce-based) |
 | H4 auto-updater research | [#50](https://github.com/Oghenefega/ClipFlow/issues/50) | ⏸️ deferred (post-beta) |
 | H7 electron-builder 24→26 | [#54](https://github.com/Oghenefega/ClipFlow/issues/54) | ⏸️ bundled with H4 |
 | H9 CF Gateway hardening | [#56](https://github.com/Oghenefega/ClipFlow/issues/56) | ⏸️ deferred (post-beta) |
-| #51 code-signing cert | [#51](https://github.com/Oghenefega/ClipFlow/issues/51) | ⏸️ deferred indefinitely (no funds, no beta) |
+| #51 code-signing cert | [#51](https://github.com/Oghenefega/ClipFlow/issues/51) | ⏸️ deferred indefinitely |
 
-## Key Decisions
+## Key Decisions (session 11)
 
-1. **`@electron/rebuild` (not `electron-rebuild`) is the standing scoped-package name** for all future hops. Committed to dev deps this session.
-2. **`--legacy-peer-deps` is the standing install flag for electron hops** while react-scripts still pins to TS 3||4 peer deps. Reassess once Vite migration ([#46](https://github.com/Oghenefega/ClipFlow/issues/46)) drops react-scripts.
-3. **[#57] editor perf fix lands BEFORE hop 2 (reversal from initial plan).** Fega's call end of session 10: hops 2-4 verification depends on being able to smoothly exercise the editor on 30min+ sources. Phase A+B of [#57](https://github.com/Oghenefega/ClipFlow/issues/57) is the next session's scope; hop 2 is parked. Initial HANDOFF said the opposite — that call was reversed when Fega made clear the perf cliff had to be fixed to keep the upgrade cadence moving.
-4. **#35 closed proactively on Pattern A success.** Pattern B (idle projects-tab) and Pattern C (clip-open) share the same Chromium stack, so expected to be fixed too, but weren't explicitly re-tested. Monitoring Sentry across remaining C1 hops; will reopen with a subscript if any pattern recurs.
+1. **Electron upgrade target revised 32 → 38+.** Fega's call this session. Original C1 Phase 1 cadence was 28→29→30→31→32 stepwise. New target is Electron 38+ (latest / near-latest), but granularity (single-shot vs staged) left open for next session start.
+2. **#57 fix approach rejected — both Phase B layers.** The store-derived-discrete-state approach (forward-scan helpers computing active seg/word inside `setCurrentTime`) does NOT work: it broke word highlighting in both tabs and regressed Transcript tab to laggy. Rolled back twice. Do not retry in any form. Proper fix is **component-size reduction** (extract TimelinePlayhead + SegmentRow as memoized children) — written up on #57, deferred.
+3. **#57 stays OPEN.** Edit-subtitles tab remains laggy on 30min+ sources. Phase A (DevTools + DBG strip) provided some relief but did not resolve. Explicitly acknowledged unresolved by Fega; not a blocker for Electron 38 work.
+4. **Two-attempt rule triggered mid-session.** Phase B landed → user reported issues → Phase C hotfix attempted → still broken → revert. Per user global rule: do not guess-patch a third time. Escalated to full re-diagnosis, which found the real root cause (component size, not subscription count).
+
+## Key Decisions (preserved from prior sessions)
+
+- **`@electron/rebuild` (not `electron-rebuild`) is the standing scoped-package name** for all future hops. Committed session 10.
+- **`--legacy-peer-deps` is the standing install flag for electron hops** while react-scripts still pins TS 3||4 peer deps. Reassess post-Vite.
+- **#35 closed proactively on Pattern A success** (session 10). Pattern B/C share the Chromium stack so expected fixed; monitor Sentry.
 
 ## Watch Out For
 
-- **Editor lag on 30min+ sources is real and diagnosed, but do not fix it during hop 2.** The fix is a multi-file refactor (narrow 60fps subscription to playhead cursor only; move other panels to discrete-state subscriptions). If inlined with the upgrade, you can't attribute any regression to either change. Keep them separate.
-- **DevTools is still unconditionally force-opened at [src/main/main.js:324](src/main/main.js:324).** This is a known contributor to the lag — first thing to gate behind `isDev` when [#57](https://github.com/Oghenefega/ClipFlow/issues/57) is worked. For hop 2, leave as-is (debugging aid).
-- **`[DBG ...]` console.log spam is still in `usePlaybackStore.js` and `PreviewPanelNew.js` (tick at :789-793, onTimeUpdate at :827, playEffect at :892 and :899).** Leave as-is for hop 2 — remove when [#57](https://github.com/Oghenefega/ClipFlow/issues/57) is worked. Pre-existing, not a hop regression.
-- **Electron 30 may remove `File.path` entirely.** Check [#58](https://github.com/Oghenefega/ClipFlow/issues/58) and the Electron 30 breaking-changes doc as step 0 of hop 2. If removed, migrate before running smoke tests.
+- **Edit-subtitles tab is still laggy on 30min+ sources.** This is known and documented on [#57](https://github.com/Oghenefega/ClipFlow/issues/57). Do not try to fix incidentally during the Electron hop — perf and upgrade regressions become impossible to attribute.
+- **Do NOT re-attempt the store-derivation fix direction for #57.** The component-extraction approach is the correct layer. Full write-up on [#57 comment](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430).
+- **Electron 30+ removes `File.path`.** [#58](https://github.com/Oghenefega/ClipFlow/issues/58) is now blocking the next Electron hop (any hop past 29). Two callsites: `src/renderer/views/RenameView.js:1222` and `src/renderer/views/UploadView.js:313`. Migrate to `webUtils.getPathForFile()` via a new preload bridge method before or during the first hop that breaks it.
+- **Phase A DID help perceived smoothness.** DevTools force-opened + debug-log spam in playback hot paths was real overhead. Do NOT re-introduce in dev work.
 - **The zoom-slider drag repro is the standing go/no-go for every Electron hop.** Don't skip. Fast and reliable on 30min+ sources.
-- **`--legacy-peer-deps` produces a ton of moderate/high npm audit warnings** — these are transitive vulns in dev-only build tooling (webpack-dev-server ancestry, nth-check, etc.), present before the hop and not introduced by it. Don't chase them during hops — they'll naturally resolve when Vite migration lands.
-- **Don't re-litigate committed infrastructure decisions.** Section 9 of the dashboard is canonical. If hop 2 surfaces something that invalidates a committed decision, flag it explicitly so the dashboard can update — don't silently deviate.
+- **`--legacy-peer-deps` audit warnings are expected noise** — transitive vulns in dev-only build tooling (webpack-dev-server ancestry, nth-check). Don't chase them during hops; resolve naturally with Vite migration.
+- **Don't re-litigate committed infrastructure decisions.** Section 9 of the dashboard is canonical. If the new Electron 38 target invalidates the stepwise-to-32 cadence decision, flag it explicitly so the dashboard can update — don't silently deviate.
 
 ## Logs / Debugging
 

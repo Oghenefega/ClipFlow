@@ -4,6 +4,22 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 11) — #57 Phase A landed, Phase B + C hotfix reverted
+
+### Changed
+- **Gated DevTools force-open behind `isDev`** at [src/main/main.js:324](src/main/main.js:324). Production renderer no longer takes the DevTools performance penalty on every clip open — renderer crashes now flow through Sentry instead of opening DevTools as a debug aid. Dev mode behavior unchanged.
+- **Stripped 13 `[DBG ...]` `console.log` calls from playback hot paths** in [usePlaybackStore.js](src/renderer/editor/stores/usePlaybackStore.js) (`togglePlay` + `seekTo`) and [PreviewPanelNew.js](src/renderer/editor/components/PreviewPanelNew.js) (rAF tick + `onTimeUpdate` + `playEffect`). These were serialising `JSON.stringify` of the NLE segment list on every 60fps frame — measurable CPU cost on a 30min source.
+
+### Reverted
+- **#57 Phase B reverted** ([5f65d1d](https://github.com/Oghenefega/ClipFlow/commit/5f65d1d) → [c95f63f](https://github.com/Oghenefega/ClipFlow/commit/c95f63f)). The store-derived-discrete-state refactor (forward-scan helpers in `usePlaybackStore` computing `activeSubtitleSegId` / `activeTranscriptWordIdx` / `displayTime` inside `setCurrentTime`; subscribers swapped in `PreviewPanelNew` / `LeftPanelNew` / `TimelinePanelNew` / `EditorLayout`) broke word highlighting in **both** Transcript and Edit-subtitles tabs AND regressed the Transcript tab to laggy. Two-attempt rule triggered (Phase B landed, Phase C hotfix attempted, still broken) — Fega asked for revert rather than a third guess-patch.
+- **#57 Phase C hotfix reverted** ([daa9c68](https://github.com/Oghenefega/ClipFlow/commit/daa9c68) → [63b778b](https://github.com/Oghenefega/ClipFlow/commit/63b778b)). Added `activeSubtitleWordIdx` (word-within-active-seg) to the store; rolled back as part of the Phase B bundle.
+
+### Notes
+- **Root cause of the remaining editor lag re-diagnosed during session** — and it's **not** what `tasks/todo.md` assumed. The subscription-count-based diagnosis ("5 top-level subscribers re-rendering at 60Hz") was correct but incomplete. The real pain is *component size at re-render time*: `TimelinePanelNew` (1500 lines) re-renders at 60Hz because `smoothTime` is local state on the whole component, and `EditSubtitlesTab` re-renders on every `currentTime` tick because per-word highlight inside each row needs fine-grained time — each re-render reconciles 100+ segment rows (TimecodePopover + ALL CAPS button + delete popover + TooltipProvider + word spans per row). Both run on the same React commit queue → CPU contention is what Fega perceives as lag. Full re-diagnosis in the updated [#57 comment](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430).
+- **Proper fix direction now written to #57**: extract `<TimelinePlayhead />` from TimelinePanelNew + extract `<SegmentRow />` as `React.memo`'d child from LeftPanelNew. No store-derivation. Defer per Fega's request — Electron 38 upgrade takes priority next session.
+- **Edit-subtitles tab remains laggy on 30min+ sources** — explicitly acknowledged and parked. #57 stays open. Phase A provided some perceived relief but subtitle sync + highlighting cliff is still present.
+- **[#45](https://github.com/Oghenefega/ClipFlow/issues/45) target revised: 29 → 38+ (not 32).** Fega's call this session. Title updated. Hop granularity (single-shot 29→38 vs 29→32→35→38), Vite-vs-Electron ordering, Node 20→22 native-module compat, and File.path migration bundling left as open questions to resolve at the start of next session.
+
 ## [Unreleased] — 2026-04-17 (session 10) — Electron 28 → 29 (C1 Phase 1, hop 1 of 4)
 
 ### Changed
