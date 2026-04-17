@@ -4,6 +4,113 @@
 
 ---
 
+## 🔲 PROPOSED — Editor perf on 30-min sources (#57) — unblocks Electron hop cadence
+
+**Context:** Electron 29 landed cleanly (hop 1, commit `46546de`). During testing, 30-min source playback in the editor showed severe lag: ~2fps feel, stuck waveform, subtitle highlight drift, left-panel auto-scroll broken during playback. Fega's call: fix this before hop 2, because hop 2→4 verification depends on being able to actually test the editor on long sources.
+
+### Root causes (confirmed by reading code)
+
+**RC-1: Subtitle overlay does O(N) filter on every 60fps frame.**
+`PreviewPanelNew.js:1080` filters ALL subtitle segments (`currentTime >= startSec && currentTime <= endSec`) every render. PreviewPanelNew re-renders 60 times/sec (from `currentTime` sub at :417). On a 30-min source with 500+ segments → ~30,000 comparisons/second just to find 1-2 active segments.
+
+**RC-2: Active-segment derivation scans all segments per frame in two places.**
+- `LeftPanelNew.js:437-442` (TranscriptTab) — `activeWordIdx` scans from end of `allWords` on every render. With 5000+ words, that's 5000 comparisons × 60fps = 300,000 ops/sec.
+- `LeftPanelNew.js:653-662` (SubtitlesTab) — `editSegments.find(...)` in an effect that runs every `adjustedTime` change (i.e., every currentTime update = 60fps).
+
+**RC-3: TimelinePanelNew re-renders its entire tree 60×/sec.**
+It subscribes to `currentTime` at line 36 AND runs its own rAF setSmoothTime at 60fps (line 112-134). Either one alone causes 60Hz re-renders of the whole panel, including waveform canvas, NLE segment rects, subtitle blocks spanning the full 30min. The "smooth playhead via rAF + local state" pattern was an attempt at decoupling but smoothTime is held in the parent component's state, so every frame still rebuilds the parent tree.
+
+**RC-4: `[DBG ...]` console.log spam in playback hot paths.**
+- `PreviewPanelNew.js:789-793` — logs first 10 tick frames per play
+- `PreviewPanelNew.js:807, 827, 892, 894, 896, 899` — tick seek, onTimeUpdate, play effect
+- `usePlaybackStore.js` — togglePlay, seekTo, mapSourceTime (per earlier read)
+
+Each console.log with DevTools open is ~0.5-1ms in renderer. Thousands of these per play session. Main impact only when DevTools is actually open — but we currently force-open it.
+
+**RC-5: DevTools unconditionally force-opened at `src/main/main.js:324`.**
+Known 10-30% renderer perf penalty on heavy pages. Currently opens in production builds too.
+
+**RC-6: Left-panel auto-scroll only fires on pause.**
+`LeftPanelNew.js:665-669` — `activeSegRef.current.scrollIntoView({behavior: "smooth"})` fires on `activeSegId` change. Under 60fps re-render pressure, React never commits long enough for smooth-scroll animation to start; pausing releases the pressure and the queued scroll commits. Consequence of RC-2, not an independent bug.
+
+### Fix strategy (phased by risk & impact)
+
+**Phase A — Free wins (zero refactor, minutes):**
+- A1. Gate DevTools force-open behind `isDev` at `src/main/main.js:324`.
+- A2. Strip all `[DBG ...]` `console.log` calls from playback hot paths: `src/renderer/editor/stores/usePlaybackStore.js` (togglePlay, seekTo, mapSourceTime) and `src/renderer/editor/components/PreviewPanelNew.js` (tick :789-793, :807, onTimeUpdate :827, playEffect :892-899).
+
+**Phase B — Derived discrete-state selectors (core fix, 1-2 hours):**
+- B1. In `usePlaybackStore.js`, extend the store with three derived indices that update inside `setCurrentTime`:
+  - `activeSubtitleSegId` — id of the edit segment whose `[startSec, endSec]` contains current time, or `null`.
+  - `activeTranscriptWordIdx` — index into the flat word list whose `start ≤ currentTime`, or `-1`.
+  - (Skip `activeNleSegId` for now — nleSegments are few and not in a 60fps render path.)
+  
+  Use forward-scan-from-last-index in `setCurrentTime` (O(1) amortized during playback, O(N) on seek — fine). The derived values use Zustand's default `===` equality, so subscribers re-render only when the index changes (5-10×/sec, not 60×/sec). Needs the subtitle word list accessible to the playback store — either pass it via a dependency injection hook or make the playback store read `useSubtitleStore.getState().originalSegments` directly when computing.
+
+- B2. In `PreviewPanelNew.js`, change line 1080's `.filter((seg) => seg.text && currentTime >= seg.startSec && currentTime <= seg.endSec)` to look up by `activeSubtitleSegId` and scope to just that seg's words. Subscribe to `activeSubtitleSegId` instead of (or in addition to) `currentTime` at the top level.
+
+- B3. In `LeftPanelNew.js` TranscriptTab (line 363+), replace the `useMemo(() => {...scan allWords...}, [allWords, adjustedTime])` for `activeWordIdx` with a subscription to `activeTranscriptWordIdx` from the store. Component stops re-rendering at 60fps.
+
+- B4. In `LeftPanelNew.js` SubtitlesTab (line 608+), replace the `editSegments.find(...)` inside the useEffect with a subscription to `activeSubtitleSegId` and drive the `setActiveSegId` call from that.
+
+- B5. In `TimelinePanelNew.js`, remove the top-level `currentTime` subscription at line 36. It's used at:
+  - Line 686 (center-on-playhead effect) — only needed when paused or on seek; can read via `getState()` inside the effect or depend on a `seekCounter` that increments per seek.
+  - Line 787 (current-time display text) — move to a small child component that subscribes to a 10fps-quantized `displayTime` selector (add `displayTime` to store, update in setCurrentTime every 100ms).
+  - Line 547, 1086 — called from event handlers via `getState()` already, so line 36 subscription isn't needed for those.
+  - Line 1042 (WaveformTrack `currentTime` prop) — change prop to `smoothTime` or have WaveformTrack subscribe to its own thing.
+  - Line 164 `playheadTime = playing ? smoothTime : currentTime` — when paused, can read via `getState()` once on effect.
+
+**Phase C — Extract hot nodes to children (only if A+B insufficient, 1-2 hours):**
+- C1. Extract the Playhead DOM node in `TimelinePanelNew` to a dedicated `<TimelinePlayhead />` child that owns its own rAF loop + smoothTime state. Parent TimelinePanelNew drops from 60Hz to segment-change-rate re-renders.
+- C2. Extract the SubtitleOverlay in `PreviewPanelNew` to a `<SubtitleOverlay />` child that subscribes to its own `activeSubtitleSegId` + mapped-segment lookup. Parent PreviewPanel drops to change-rate.
+
+Only pursue Phase C if Phase B measurements show parent re-renders still costing >3ms/frame on 30-min sources.
+
+### Files to modify
+
+| File | Phase | Change |
+|---|---|---|
+| `src/main/main.js` | A1 | Gate `webContents.openDevTools()` at line 324 behind `isDev` |
+| `src/renderer/editor/stores/usePlaybackStore.js` | A2, B1 | Strip DBG logs; extend `setCurrentTime` to compute `activeSubtitleSegId`, `activeTranscriptWordIdx`, and `displayTime` (100ms-quantized) |
+| `src/renderer/editor/components/PreviewPanelNew.js` | A2, B2, (C2) | Strip DBG logs; replace segs filter with `activeSubtitleSegId` lookup; optionally extract SubtitleOverlay child |
+| `src/renderer/editor/components/TimelinePanelNew.js` | B5, (C1) | Drop top-level `currentTime` sub; route remaining uses through `smoothTime` / `getState()` / `displayTime`; optionally extract Playhead child |
+| `src/renderer/editor/components/LeftPanelNew.js` | B3, B4 | TranscriptTab: sub to `activeTranscriptWordIdx`. SubtitlesTab: sub to `activeSubtitleSegId` |
+
+No editor store schema changes. No IPC changes. No main-process logic changes beyond A1.
+
+### Verification criteria ("done means...")
+
+All on a 30min+ source recording in the editor:
+1. Clip opens in < 3s (currently: slow, multiple seconds).
+2. Video plays back smoothly — no visible judder in preview, playhead glides along timeline at 60fps perceived.
+3. Subtitle highlight in LeftPanel tracks audio with < 100ms perceived lag.
+4. Left-panel auto-scroll fires during playback, not only on pause.
+5. Subtitle overlay on preview switches between segments at the exact word boundary (behavior parity with short-source case).
+6. Waveform renders within 10s of clip open. If still broken, file sub-issue — separate concern.
+7. Short-source (< 2 min) playback has no regression: all existing editor behaviors preserved.
+8. #35 zoom-slider-drag repro × 10 on 30-min source — still no crash (hop 1 regression check).
+9. `npx react-scripts build && npm start` — no console errors/warnings in production build.
+
+### Risks & rollback
+
+- **Risk:** derived state in setCurrentTime runs on every seek; if the subtitle word list is huge (10,000+ words), even the forward-scan could cost on a long seek. Mitigation: bisect-search on big jumps, forward-scan on forward deltas ≤ 1s.
+- **Risk:** `activeSubtitleSegId` in playback store creates a cross-store dependency (playback reads subtitle list). Keep it as a lazy read from `getState()`, not a subscription.
+- **Risk:** Phase B changes subscription patterns across 5 files — regression surface is wide. Mitigation: tight verification matrix, commit Phase A and Phase B as separate commits so bisect works.
+- **Rollback:** each phase is its own commit; revert in reverse order.
+
+### Estimated time
+- Phase A: 15-20 min (trivial edits + build/smoke)
+- Phase B: 90-120 min (store extension + 4 component changes + verification pass)
+- Phase C: 60-90 min IF needed (judgment call after Phase B)
+
+### Plan decision points (need Fega's call before I start)
+
+1. **Go or wait?** Go = implement Phase A+B now. Wait = stay in Hop 1 wrap mode and do this in a future session.
+2. **Commit strategy?** Two commits (A, B) or one? I recommend two — cleaner bisect if B regresses something.
+3. **Phase C gate?** Implement only if B measurements show parent re-renders >3ms/frame, or pre-approve to just do it?
+
+---
+
 ## ✅ Complete — Video Splitting & Drag-and-Drop (Phase 1)
 
 **Spec:** `video-splitting-spec-v3.md` (Section 13, Phase 1)
