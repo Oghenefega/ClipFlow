@@ -786,15 +786,8 @@ export default function PreviewPanelNew() {
       const sourceTime = video.currentTime;
       const result = mapSourceTime(sourceTime);
 
-      if (!window.__dbgTickCount) window.__dbgTickCount = 0;
-      if (window.__dbgTickCount < 10) {
-        console.log("[DBG tick]", window.__dbgTickCount, "srcT:", sourceTime.toFixed(3), "result:", JSON.stringify(result), "paused:", video.paused);
-        window.__dbgTickCount++;
-      }
-
       if (result.atEnd) {
         // Past last segment — stop playback
-        console.log("[DBG tick] atEnd → pause + setPlaying(false)");
         video.pause();
         setCurrentTime(result.timelineTime);
         setPlaying(false);
@@ -804,7 +797,6 @@ export default function PreviewPanelNew() {
       if (result.needsSeek) {
         // Don't spam the seek: skip if video is still seeking, or if already at target.
         if (!video.seeking && Math.abs(video.currentTime - result.seekToSource) > 0.05) {
-          console.log("[DBG tick] needsSeek → video.currentTime =", result.seekToSource);
           video.currentTime = result.seekToSource;
         }
       }
@@ -824,8 +816,6 @@ export default function PreviewPanelNew() {
 
     const sourceTime = video.currentTime;
     const result = mapSourceTime(sourceTime);
-    console.log("[DBG onTimeUpdate paused] vidT:", sourceTime, "→ tlT:", result.timelineTime,
-      "needsSeek:", result.needsSeek, "atEnd:", result.atEnd);
 
     if (result.atEnd) {
       setCurrentTime(result.timelineTime);
@@ -889,14 +879,8 @@ export default function PreviewPanelNew() {
   useEffect(() => {
     if (!videoRef.current) return;
     if (playing) {
-      console.log("[DBG playEffect] calling play() — vidT:", videoRef.current.currentTime, "readyState:", videoRef.current.readyState, "paused:", videoRef.current.paused, "src:", !!videoRef.current.src);
-      videoRef.current.play().then(() => {
-        console.log("[DBG playEffect] play() RESOLVED — vidT:", videoRef.current?.currentTime, "paused:", videoRef.current?.paused);
-      }).catch((err) => {
-        console.error("[DBG playEffect] play() REJECTED:", err?.name, err?.message);
-      });
+      videoRef.current.play().catch(() => {});
     } else {
-      console.log("[DBG playEffect] pausing");
       videoRef.current.pause();
     }
   }, [playing]);

@@ -38,15 +38,8 @@ const usePlaybackStore = create((set, get) => ({
 
   setPlaying: (v) => set({ playing: v }),
   togglePlay: () => {
-    const { playing, currentTime, duration, seekTo, nleSegments, _videoRef } = get();
-    const vidT = _videoRef?.current?.currentTime;
-    const vidPaused = _videoRef?.current?.paused;
-    const vidReady = _videoRef?.current?.readyState;
-    console.log("[DBG togglePlay] playing:", playing, "ct:", currentTime, "dur:", duration,
-      "vidT:", vidT, "vidPaused:", vidPaused, "vidReady:", vidReady,
-      "segs:", JSON.stringify(nleSegments.map(s => [s.sourceStart, s.sourceEnd])));
+    const { playing, currentTime, duration, seekTo } = get();
     if (!playing && duration > 0 && currentTime >= duration - 0.1) {
-      console.log("[DBG togglePlay] at-end → seekTo(0)");
       seekTo(0);
     }
     set({ playing: !playing });
@@ -94,8 +87,6 @@ const usePlaybackStore = create((set, get) => ({
    */
   seekTo: (timelineSec) => {
     const { nleSegments, clipFileOffset } = get();
-    console.log("[DBG seekTo] in:", timelineSec, "clipFileOffset:", clipFileOffset,
-      "segs:", JSON.stringify(nleSegments.map(s => [s.sourceStart, s.sourceEnd])));
     let targetSourceAbs = timelineSec;
 
     if (nleSegments.length > 0) {
@@ -115,7 +106,6 @@ const usePlaybackStore = create((set, get) => ({
     const ref = get()._videoRef;
     if (ref?.current) {
       const writeVal = Math.max(0, targetSourceAbs - clipFileOffset);
-      console.log("[DBG seekTo] writing vid.currentTime:", writeVal, "(targetAbs:", targetSourceAbs, ")");
       ref.current.currentTime = writeVal;
     }
   },
