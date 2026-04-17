@@ -13,8 +13,6 @@
  *   name → string (for logging)
  */
 
-const Store = require("electron-store");
-
 let _store = null;
 const _providers = {};
 

@@ -1,13 +1,21 @@
 /**
  * Persistent publish log — records every publish attempt with full details.
  * Stored in electron-store so the user can review what happened.
+ *
+ * init() must be awaited during main-process bootstrap before any exported
+ * function is called. Callers today are all IPC handler bodies that fire
+ * after the renderer is loaded, which is after bootstrap finishes.
  */
-const Store = require("electron-store");
+const { createStore } = require("./store-factory");
 
-const logStore = new Store({
-  name: "clipflow-publish-log",
-  defaults: { entries: [] },
-});
+let logStore = null;
+
+async function init() {
+  logStore = await createStore({
+    name: "clipflow-publish-log",
+    defaults: { entries: [] },
+  });
+}
 
 const MAX_ENTRIES = 500; // Keep last 500 entries
 
@@ -63,4 +71,4 @@ function clearLogs() {
   logStore.set("entries", []);
 }
 
-module.exports = { logPublish, getRecentLogs, getLogsForClip, clearLogs };
+module.exports = { init, logPublish, getRecentLogs, getLogsForClip, clearLogs };

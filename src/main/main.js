@@ -16,7 +16,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const chokidar = require("chokidar");
-const Store = require("electron-store");
+const { createStore } = require("./store-factory");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
@@ -134,149 +134,150 @@ function generateClipTitle(clipSubtitles, highlight) {
   return title;
 }
 
-const store = new Store({
-  name: "clipflow-settings",
-  defaults: {
-    watchFolder: "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards",
-    testWatchFolder: "",
-    mainGame: "Arc Raiders",
-    mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
-    gamesDb: [
-      { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
-      { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
-      { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
-      { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
-      { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
-      { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
-      { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
-    ],
-    ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
-    platforms: [],
-    weeklyTemplate: {
-      Monday: ["main","main","main","main","main","main","main","main"],
-      Tuesday: ["main","other","main","other","main","other","main","main"],
-      Wednesday: ["main","other","other","main","other","other","other","main"],
-      Thursday: ["main","other","other","main","other","other","main","main"],
-      Friday: ["main","other","other","main","other","other","other","main"],
-      Saturday: ["main","other","main","other","main","other","main","main"],
-    },
-    trackerData: [],
-    captionTemplates: {
-      tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
-      instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",
-      facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
-    },
-    ytDescriptions: {},
-    outputFolder: "",
-    sfxFolder: "",
-    whisperModel: "large-v3-turbo",
-    whisperPythonPath: "",
-    localProjects: [],
-    renameHistory: [],
-    anthropicApiKey: "",
-    gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
-    gatewayAuthToken: "",
-    youtubeClientId: "",
-    youtubeClientSecret: "",
-    metaAppId: "",
-    metaAppSecret: "",
-    tiktokClientKey: "",
-    tiktokClientSecret: "",
-    styleGuide: "",
-    titleCaptionHistory: [],
-    creatorProfile: {
-      archetype: "variety",
-      description: "",
-      signaturePhrases: [],
-      momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
-    },
-    onboardingComplete: false,
-    // Video splitting
-    splitThresholdMinutes: 30,
-    autoSplitEnabled: true,
-    splitSourceRetention: "keep",
-    // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
-    transcriptionAudioTrack: 0,
-    // Project folders
-    projectFolders: [],
-    folderSortMode: "created",
-    // Analytics
-    deviceId: "",
-    analyticsEnabled: true,
+// electron-store v11 is ESM-only. `store` is constructed asynchronously inside
+// the app.whenReady() bootstrap below. IPC handler registrations at module-top
+// close over this binding; their bodies only fire after the renderer loads,
+// which is after whenReady completes and `store` is assigned.
+let store;
+
+const STORE_DEFAULTS = {
+  watchFolder: "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards",
+  testWatchFolder: "",
+  mainGame: "Arc Raiders",
+  mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
+  gamesDb: [
+    { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
+    { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
+    { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
+    { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
+    { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
+    { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
+    { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
+  ],
+  ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
+  platforms: [],
+  weeklyTemplate: {
+    Monday: ["main","main","main","main","main","main","main","main"],
+    Tuesday: ["main","other","main","other","main","other","main","main"],
+    Wednesday: ["main","other","other","main","other","other","other","main"],
+    Thursday: ["main","other","other","main","other","other","main","main"],
+    Friday: ["main","other","other","main","other","other","other","main"],
+    Saturday: ["main","other","main","other","main","other","main","main"],
   },
-});
+  trackerData: [],
+  captionTemplates: {
+    tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
+    instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",
+    facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
+  },
+  ytDescriptions: {},
+  outputFolder: "",
+  sfxFolder: "",
+  whisperModel: "large-v3-turbo",
+  whisperPythonPath: "",
+  localProjects: [],
+  renameHistory: [],
+  anthropicApiKey: "",
+  gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
+  gatewayAuthToken: "",
+  youtubeClientId: "",
+  youtubeClientSecret: "",
+  metaAppId: "",
+  metaAppSecret: "",
+  tiktokClientKey: "",
+  tiktokClientSecret: "",
+  styleGuide: "",
+  titleCaptionHistory: [],
+  creatorProfile: {
+    archetype: "variety",
+    description: "",
+    signaturePhrases: [],
+    momentPriorities: ["funny", "clutch", "emotional", "fails", "skillful", "educational"],
+  },
+  onboardingComplete: false,
+  // Video splitting
+  splitThresholdMinutes: 30,
+  autoSplitEnabled: true,
+  splitSourceRetention: "keep",
+  // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
+  transcriptionAudioTrack: 0,
+  // Project folders
+  projectFolders: [],
+  folderSortMode: "created",
+  // Analytics
+  deviceId: "",
+  analyticsEnabled: true,
+};
 
-// ── Migration: analytics deviceId (generate once, persist forever) ──
-if (!store.get("deviceId")) {
-  store.set("deviceId", _uuid());
-}
-if (store.get("analyticsEnabled") === undefined) {
-  store.set("analyticsEnabled", true);
-}
-
-// ── Initialize provider registries with store ──
-llmProvider.init(store);
-transcriptionProvider.init(store);
-
-// ── Migration: add provider config defaults ──
-if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
-if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
-if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
-if (!store.has("devMode")) store.set("devMode", false);
-
-// ── Migration: add video splitting settings ──
-if (!store.has("splitThresholdMinutes")) store.set("splitThresholdMinutes", 30);
-if (!store.has("autoSplitEnabled")) store.set("autoSplitEnabled", true);
-if (!store.has("splitSourceRetention")) store.set("splitSourceRetention", "keep");
-
-// ── Migration: add transcription audio track setting ──
-if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 0);
-// ── Migration: fix default audio track from game (1) to mic (0) — one-time ──
-if (!store.has("_migrated_audioTrack_v2") && store.get("transcriptionAudioTrack") === 1) {
-  store.set("transcriptionAudioTrack", 0);
-  store.set("_migrated_audioTrack_v2", true);
-}
-
-// ── Migration: expand momentPriorities from 4 to 6 items ──
-// Adds "skillful" and "educational" for users who set up before this update.
-const existingProfile = store.get("creatorProfile");
-if (existingProfile && existingProfile.momentPriorities) {
-  const mp = existingProfile.momentPriorities;
-  let changed = false;
-  if (!mp.includes("skillful")) { mp.push("skillful"); changed = true; }
-  if (!mp.includes("educational")) { mp.push("educational"); changed = true; }
-  if (changed) {
-    store.set("creatorProfile.momentPriorities", mp);
-    logger.info(logger.MODULES.system, "Migrated momentPriorities: added skillful + educational");
+function runStoreMigrations(store) {
+  // ── Migration: analytics deviceId (generate once, persist forever) ──
+  if (!store.get("deviceId")) {
+    store.set("deviceId", _uuid());
   }
-}
-
-// ── Migration: auto-complete onboarding for existing users with configured profiles ──
-// If the user already has a non-empty description (e.g. Fega's migrated profile),
-// they've effectively already configured their profile — skip onboarding.
-if (!store.get("onboardingComplete") && existingProfile && existingProfile.description) {
-  store.set("onboardingComplete", true);
-  logger.info(logger.MODULES.system, "Auto-completed onboarding for existing configured profile");
-}
-
-// ── Migration: remove stale whisper.cpp store keys ──
-if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
-if (store.has("whisperModelPath")) store.delete("whisperModelPath");
-
-// ── Migration: clear hardcoded placeholder platforms ──
-// Old defaults had Fega's personal account names. New system uses OAuth-connected accounts.
-const currentPlatforms = store.get("platforms");
-if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
-  const isPlaceholder = currentPlatforms.some((p) => p.name === "Fega" || p.name === "fega" || p.name === "thatguyfega" || p.name === "fegagaming" || p.name === "ThatGuy" || p.name === "Fega Gaming");
-  if (isPlaceholder) {
-    store.set("platforms", []);
-    logger.info(logger.MODULES.system, "Cleared hardcoded placeholder platforms (migration)");
+  if (store.get("analyticsEnabled") === undefined) {
+    store.set("analyticsEnabled", true);
   }
-}
 
-// ── Migration: add project folders ──
-if (!store.has("projectFolders")) store.set("projectFolders", []);
-if (!store.has("folderSortMode")) store.set("folderSortMode", "created");
+  // ── Migration: add provider config defaults ──
+  if (!store.has("llmProvider")) store.set("llmProvider", "anthropic");
+  if (!store.has("llmProviderConfig")) store.set("llmProviderConfig", {});
+  if (!store.has("transcriptionProvider")) store.set("transcriptionProvider", "stable-ts");
+  if (!store.has("devMode")) store.set("devMode", false);
+
+  // ── Migration: add video splitting settings ──
+  if (!store.has("splitThresholdMinutes")) store.set("splitThresholdMinutes", 30);
+  if (!store.has("autoSplitEnabled")) store.set("autoSplitEnabled", true);
+  if (!store.has("splitSourceRetention")) store.set("splitSourceRetention", "keep");
+
+  // ── Migration: add transcription audio track setting ──
+  if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 0);
+  // ── Migration: fix default audio track from game (1) to mic (0) — one-time ──
+  if (!store.has("_migrated_audioTrack_v2") && store.get("transcriptionAudioTrack") === 1) {
+    store.set("transcriptionAudioTrack", 0);
+    store.set("_migrated_audioTrack_v2", true);
+  }
+
+  // ── Migration: expand momentPriorities from 4 to 6 items ──
+  // Adds "skillful" and "educational" for users who set up before this update.
+  const existingProfile = store.get("creatorProfile");
+  if (existingProfile && existingProfile.momentPriorities) {
+    const mp = existingProfile.momentPriorities;
+    let changed = false;
+    if (!mp.includes("skillful")) { mp.push("skillful"); changed = true; }
+    if (!mp.includes("educational")) { mp.push("educational"); changed = true; }
+    if (changed) {
+      store.set("creatorProfile.momentPriorities", mp);
+      logger.info(logger.MODULES.system, "Migrated momentPriorities: added skillful + educational");
+    }
+  }
+
+  // ── Migration: auto-complete onboarding for existing users with configured profiles ──
+  // If the user already has a non-empty description (e.g. Fega's migrated profile),
+  // they've effectively already configured their profile — skip onboarding.
+  if (!store.get("onboardingComplete") && existingProfile && existingProfile.description) {
+    store.set("onboardingComplete", true);
+    logger.info(logger.MODULES.system, "Auto-completed onboarding for existing configured profile");
+  }
+
+  // ── Migration: remove stale whisper.cpp store keys ──
+  if (store.has("whisperBinaryPath")) store.delete("whisperBinaryPath");
+  if (store.has("whisperModelPath")) store.delete("whisperModelPath");
+
+  // ── Migration: clear hardcoded placeholder platforms ──
+  // Old defaults had Fega's personal account names. New system uses OAuth-connected accounts.
+  const currentPlatforms = store.get("platforms");
+  if (Array.isArray(currentPlatforms) && currentPlatforms.length > 0) {
+    const isPlaceholder = currentPlatforms.some((p) => p.name === "Fega" || p.name === "fega" || p.name === "thatguyfega" || p.name === "fegagaming" || p.name === "ThatGuy" || p.name === "Fega Gaming");
+    if (isPlaceholder) {
+      store.set("platforms", []);
+      logger.info(logger.MODULES.system, "Cleared hardcoded placeholder platforms (migration)");
+    }
+  }
+
+  // ── Migration: add project folders ──
+  if (!store.has("projectFolders")) store.set("projectFolders", []);
+  if (!store.has("folderSortMode")) store.set("folderSortMode", "created");
+}
 
 let mainWindow;
 let watcher = null;
@@ -371,6 +372,19 @@ app.whenReady().then(async () => {
     platform: process.platform,
     logsDir: logger.getLogsDirPath(),
   });
+
+  // ── Bootstrap electron-store (v11 is ESM-only, requires async import) ──
+  // Order: settings store → migrations → provider registries → sub-stores.
+  // All IPC handlers registered at module-top close over these bindings;
+  // handler bodies only fire after createWindow() renders the UI, which
+  // happens below after this block completes.
+  store = await createStore({ name: "clipflow-settings", defaults: STORE_DEFAULTS });
+  runStoreMigrations(store);
+  llmProvider.init(store);
+  transcriptionProvider.init(store);
+  await publishLog.init();
+  await tokenStore.init();
+
   // Initialize shared SQLite database (feedback + file metadata)
   await database.init();
 

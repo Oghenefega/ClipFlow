@@ -2,8 +2,12 @@
  * Encrypted token storage for OAuth credentials.
  * Uses Electron's safeStorage (DPAPI on Windows) to encrypt tokens at rest.
  * Stored in a separate electron-store file from general app settings.
+ *
+ * init() must be awaited during main-process bootstrap before any exported
+ * function is called. All exported functions close over `tokenStore` and
+ * are only invoked from IPC handlers that fire after bootstrap finishes.
  */
-const Store = require("electron-store");
+const { createStore } = require("./store-factory");
 const { safeStorage } = require("electron");
 
 const PLATFORM_ABBR = {
@@ -15,12 +19,16 @@ const PLATFORM_ABBR = {
   Kick: "KK",
 };
 
-const tokenStore = new Store({
-  name: "clipflow-tokens",
-  defaults: {
-    accounts: {},
-  },
-});
+let tokenStore = null;
+
+async function init() {
+  tokenStore = await createStore({
+    name: "clipflow-tokens",
+    defaults: {
+      accounts: {},
+    },
+  });
+}
 
 /**
  * Encrypt a string using safeStorage (OS-level encryption).
@@ -162,6 +170,7 @@ function updateTokens(id, accessToken, refreshToken, expiresAt) {
 }
 
 module.exports = {
+  init,
   saveAccount,
   getAccount,
   getAllAccounts,

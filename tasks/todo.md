@@ -4,86 +4,113 @@
 
 ---
 
-## 🔲 PROPOSED — C2 Vite migration (#46), step 1 of the structural-deps arc
+## 🔲 PROPOSED — H5 electron-store v8 → v11 (#52), second half of Split-A
 
-**Plain-language goal.** Swap the build tool. Today the React app is built by Create React App (`react-scripts`) — a tool the React team stopped recommending in 2023 and that hasn't shipped meaningful updates since. Vite is the agreed-upon replacement. Same React 18, same Tailwind 3, same source files, same `build/` output directory — just a different thing turning the source into the bundle Electron loads. Nothing the user sees changes. What unlocks: React 19 later (M1), `electron-store` 8 → 11 (H5), `chokidar` 3 → 5 (H6), nonce-based CSP (H2). Per the dashboard, those are bundled into this arc but **this proposal is just the Vite swap** — the dep bumps are separate commits in follow-up sessions, so a regression is attributable.
+**Plain-language goal.** Bump the library that owns every persistent setting (watch folder, creator profile, naming presets, OAuth tokens, publish log) from v8 to v11. Three majors behind today. The gap matters because v9 tightened atomic write behavior on Windows (the same OS we target), and v11 is the current stable. Paired with H6 (chokidar, closed session 15) as Split-A — both were gated on the Vite migration (closed session 13).
 
-**Why now.** C1 is closed; the gating dependency Section 9 of the dashboard called out is gone. Pre-launch is the right window — installer paths and build-artifact layout lock in at v1.0 and migrating off CRA post-launch is strictly harder.
+**The structural reason this isn't a one-line bump.** v9 made `electron-store` **ESM-only** (`"type": "module"`). Electron 40's main process is plain CJS. `require("electron-store")` stops working on v9+ and throws `ERR_REQUIRE_ESM`. The fix is `await import("electron-store")` — which means **store construction becomes async**, which in turn means every module that does `new Store({...})` at module-top must defer that to a runtime bootstrap. Four files do this today.
+
+**Why now.** C2 (Vite) shipped session 13. Chokidar (H6) shipped session 15. Split-A is 1-of-2 done; this finishes the pair. Watcher/dep-upgrade muscle memory from session 15 is fresh.
 
 ### What this session does (and doesn't)
 
-**Does:** swap `react-scripts` for Vite. Keep React 18, Tailwind 3, and `build/` as the output directory so neither `src/main/main.js:320` nor `src/main/subtitle-overlay-renderer.js:149` need their paths touched. Single commit. Single risk surface.
+**Does:** swap `electron-store ^8` for `^11`. Introduce an async store factory. Move the `clipflow-settings` construction + its ~10 inline migrations into the existing `app.whenReady()` bootstrap (ordering: store → migrations → provider init → createWindow). Convert `publish-log.js` and `token-store.js` to lazy-init pattern (each exports an `init()` awaited from main.js's bootstrap). Drop the vestigial `require("electron-store")` in `ai/transcription-provider.js` (JSDoc-only). Single commit.
 
-**Doesn't:** bump React to 19 (deferred — its own commit). Bump `electron-store` (H5 — separate commit, gated on this landing). Bump `chokidar` (H6 — separate commit). Add CSP (H2 — separate session). Bump Tailwind to 4 (M2 — deferred). These all depend on Vite being in, but bundling them now multiplies the regression surface.
+**Doesn't:** change any stored key name, default value, or migration behavior — file names (`clipflow-settings.json`, `clipflow-tokens.json`, `clipflow-publish-log.json`) and schemas are preserved. No `schema:` validation added. No `migrations:` config adopted. No new stores. No touches to the ~50 `store.get/set` call sites inside IPC handlers — they close over the module-scope binding and work unchanged once the binding is assigned.
 
 ### Facts confirmed by reading code
 
-- Entry point is `src/index.js` (standard CRA layout).
-- `tsconfig.json` declares an `@/*` → `./src/*` alias but **zero source files use it** (`grep "@/"` in `src/` returns nothing). Vite needs the alias defined to keep tsconfig honest, but it's not load-bearing.
-- **Zero `process.env.REACT_APP_*` references** in `src/`. No env-var rename work.
-- `public/` contains: `index.html`, `icon.png`, `icon.svg`, `subtitle-overlay/index.html`, `subtitle-overlay/overlay-renderer.js`. Vite's default `publicDir: "public"` copies all of this verbatim into the output root, so the offscreen subtitle bundle keeps working without touching `subtitle-overlay-renderer.js`.
-- `tailwind.config.js` exists at root; **no `postcss.config.js`** (CRA bakes PostCSS into webpack). Vite needs an explicit `postcss.config.js` for Tailwind to run.
-- `package.json` has `homepage: "./"` — CRA's relative-URL setting. Vite equivalent is `base: "./"` in `vite.config.js`. Critical: without it, `loadFile` in Electron breaks because the bundle uses absolute `/assets/...` URLs.
-- `electron-builder.files` includes `"build/**/*"` — keeping Vite's output as `build/` means electron-builder config doesn't change either.
-- `src/main/main.js:293` has `isDev = false` hardcoded. Dev port today is `3000`; Vite default is `5173`. Either change Vite to use 3000, or update the hardcoded port comment. **Pick: Vite on 3000 to keep `npm run dev` mental model identical.**
+- Four `require("electron-store")` sites: [src/main/main.js:19](src/main/main.js:19), [src/main/publish-log.js:5](src/main/publish-log.js:5), [src/main/token-store.js:6](src/main/token-store.js:6), [src/main/ai/transcription-provider.js:16](src/main/ai/transcription-provider.js:16). The transcription-provider one is **unused as a constructor** — only referenced in a JSDoc type annotation. Safe to delete the require outright.
+- `main.js` has **118 `ipcMain.handle(...)` registrations** at module top. All close over the `store` binding defined at line 137. If we switch to `let store` (assigned inside `whenReady`), the closures capture the outer binding. IPC handler BODIES run after the renderer sends a call — the renderer doesn't start before `createWindow()` runs inside `whenReady`, which runs after the store is assigned. Ordering holds; no handler-registration rewrite needed.
+- **~10 inline migrations** at [src/main/main.js:209-279](src/main/main.js:209): `deviceId`, `analyticsEnabled`, `llmProvider`, `llmProviderConfig`, `transcriptionProvider`, `devMode`, `splitThresholdMinutes`, `autoSplitEnabled`, `splitSourceRetention`, `transcriptionAudioTrack` (twice), `creatorProfile.momentPriorities`, `onboardingComplete` (auto-complete for existing), whisper path cleanup, placeholder-platform clear, `projectFolders`, `folderSortMode`. Plus `fileMigration.migrateStoreData(store)` at [main.js:378](src/main/main.js:378) (currently inside `whenReady`). None of these change shape — all are additive conditionals. All still work verbatim when moved into the async bootstrap.
+- `llmProvider.init(store)` [main.js:218](src/main/main.js:218) and `transcriptionProvider.init(store)` [main.js:219](src/main/main.js:219) run at module-top today. They must move into the async bootstrap after store is assigned.
+- Currently `node -v` reports 20.17 on the dev machine, but **Electron 40 bundles Node 20.18** internally. `electron-store@11` requires `node>=20` — satisfied at runtime.
+- No use of `store.store` (the mutable-object accessor v11 freezes). No use of `options.schema` or `options.migrations`. No `store.onDidChange` subscriptions that would care about v11's tightened emission semantics.
+- Existing stored JSON files in `%APPDATA%\clipflow\` (Fega's real data: `clipflow-settings.json`, `clipflow-tokens.json`, `clipflow-publish-log.json`) have plain string keys matching our defaults. v11's reader loads them unchanged.
 
 ### File impact
 
 | File | Action | Why |
 |---|---|---|
-| `package.json` | Modify | Replace `react-scripts` (dev dep) with `vite` + `@vitejs/plugin-react`. Drop `homepage` field (replaced by Vite's `base`). Rewrite `dev:renderer` and `build:renderer` scripts. Keep `dev`, `start`, `build`, `pack`, electron-builder block untouched. |
-| `vite.config.js` | **Create** | `root: "."`, `base: "./"`, `publicDir: "public"`, `build.outDir: "build"`, `build.emptyOutDir: true`, `server.port: 3000`, plugins: `@vitejs/plugin-react`, `resolve.alias`: `@` → `./src`. |
-| `postcss.config.js` | **Create** | Standard `{ plugins: { tailwindcss: {}, autoprefixer: {} } }`. Required for Tailwind in Vite (CRA had this baked in). |
-| `index.html` | **Create at root** (move from `public/`) | Vite convention: HTML at root, references `<script type="module" src="/src/index.js">`. Copy the existing `<head>`/`<style>`/`<body>` from `public/index.html` verbatim, add the script tag at the bottom of `<body>`. |
-| `public/index.html` | **Delete** | Replaced by root `index.html`. The other `public/` files (icons, `subtitle-overlay/`) stay — Vite copies them as static assets. |
-| `tsconfig.json` | Touch | Update `moduleResolution` from `"node"` to `"bundler"` (Vite's recommended value for TS 5+). Keep the `@/*` alias. |
-| `tailwind.config.js` | Touch | Update `content` glob to include the new root `index.html` (drop `./public/index.html`). |
-| `src/main/main.js` | **No change** | `build/index.html` path stays valid because Vite outputs to `build/`. |
-| `src/main/subtitle-overlay-renderer.js` | **No change** | `build/subtitle-overlay/index.html` stays valid (Vite copies `public/subtitle-overlay/` verbatim). |
-| Removed deps | Effect | `react-scripts`, plus its transitive cruft (`webpack-dev-server` ancestry, `nth-check` chain, the audit warnings noted in HANDOFF Watch Out For). `--legacy-peer-deps` should no longer be needed after this. |
+| `package.json` | Modify | Bump `electron-store: ^8.0.0` → `^11.0.2`. |
+| `src/main/store-factory.js` | **Create** | Tiny helper: caches `import("electron-store")` result and exposes `createStore(options)`. Keeps the dynamic-import boilerplate out of every consumer. |
+| `src/main/main.js` | Modify | Remove the top-level `const Store = require(...)` and `const store = new Store({...})` (lines 19, 137-207). Remove the top-level migration code (lines 209-279). Declare `let store;` at module scope above handler registrations. Inside `app.whenReady().then(async () => ...)` at line 362, BEFORE existing body: `store = await createStore({ name: "clipflow-settings", defaults: {...} })`, then run migrations, then `llmProvider.init(store)` + `transcriptionProvider.init(store)`, then the existing `fileMigration.migrateStoreData(store)` call, then `await publishLog.init()` and `await tokenStore.init()`, then the existing body continues (createWindow, etc.). No changes to the 118 handler registrations or their bodies. |
+| `src/main/publish-log.js` | Modify | Remove `const Store = require(...)` and the top-level `new Store({...})`. Add `let logStore = null` at module scope. Add `async function init() { logStore = await createStore({ name: "clipflow-publish-log", defaults: { entries: [] } }); }`. Export `init` alongside existing exports. Internal functions (`logPublish`, `getRecentLogs`, `getLogsForClip`, `clearLogs`) stay synchronous — they read the resolved `logStore` binding. |
+| `src/main/token-store.js` | Modify | Same pattern: remove top-level Store/new, add `let tokenStore = null`, add async `init()`, export it. All exported functions (`saveAccount`, `getAccount`, `getAllAccounts`, `getAccountsForUI`, `removeAccount`, `updateTokens`) stay synchronous — the binding is assigned before they're called. |
+| `src/main/ai/transcription-provider.js` | Modify | Delete `const Store = require("electron-store");` at line 16. Unused at runtime (JSDoc-only). No behavioral change. |
+| `package-lock.json` | Auto | Updated by `npm install`. Expect transitive dep changes (v11 uses `conf@13` which has its own tree). |
 
 ### Steps (in execution order)
 
-1. Install: `npm i -D vite @vitejs/plugin-react autoprefixer` (autoprefixer was a runtime dep under CRA but is build-only — moving it to dev). Drop `react-scripts`. **Use `--legacy-peer-deps` one last time** because `react-scripts` is still in tree until the same install removes it; expected.
-2. Create `vite.config.js` with the config table above.
-3. Create `postcss.config.js`.
-4. Move `public/index.html` to root `index.html`. Add `<script type="module" src="/src/index.js"></script>` before `</body>`. Delete `public/index.html`.
-5. Update `tailwind.config.js` content glob (`./public/index.html` → `./index.html`).
-6. Update `tsconfig.json` (`moduleResolution: "bundler"`).
-7. Update `package.json` scripts: `dev:renderer` → `vite`, `build:renderer` → `vite build`. Drop `homepage`. Drop `react-scripts` from devDeps.
-8. Run `npx vite build` — confirm `build/index.html` + `build/assets/*.js` + `build/subtitle-overlay/index.html` all exist with sane sizes.
-9. Run `npm start` (electron, no dev server) — confirm app loads from `build/`, no console errors, no CSP warnings, no missing assets.
-10. Smoke-test matrix below.
-11. Commit. Update CHANGELOG, HANDOFF, dashboard Section 9 C2.
+1. `npm i electron-store@^11.0.2`. Expect transitive changes; no other bumps in this commit.
+2. Create `src/main/store-factory.js`:
+   ```js
+   let _StoreClass = null;
+   async function loadStoreClass() {
+     if (!_StoreClass) {
+       const m = await import("electron-store");
+       _StoreClass = m.default;
+     }
+     return _StoreClass;
+   }
+   async function createStore(options) {
+     const Store = await loadStoreClass();
+     return new Store(options);
+   }
+   module.exports = { createStore };
+   ```
+3. Edit `src/main/publish-log.js`: swap `require + new Store` for `let logStore = null` + async `init()`. Export `init`.
+4. Edit `src/main/token-store.js`: same pattern.
+5. Edit `src/main/ai/transcription-provider.js`: delete line 16.
+6. Edit `src/main/main.js`:
+   - Remove `const Store = require("electron-store")` (line 19).
+   - Replace the top-level `const store = new Store({...})` (137-207) + all migrations (209-279) + `llmProvider.init(store)` (218) + `transcriptionProvider.init(store)` (219) with a single `let store;` declaration. Keep the defaults object captured as a module-scope `const STORE_DEFAULTS = {...}` so the big object literal doesn't clutter the whenReady handler.
+   - Extract the migration block into `function runStoreMigrations(store) { ... }` at module top. Pure function; no behavior change.
+   - In the existing `app.whenReady().then(async () => {...})` body at line 362, insert BEFORE `logger.initialize()`:
+     ```js
+     store = await createStore({ name: "clipflow-settings", defaults: STORE_DEFAULTS });
+     runStoreMigrations(store);
+     llmProvider.init(store);
+     transcriptionProvider.init(store);
+     await publishLog.init();
+     await tokenStore.init();
+     ```
+     Keep the existing `fileMigration.migrateStoreData(store)` call at its current position (after `database.init()`).
+7. `node --check src/main/main.js && node --check src/main/publish-log.js && node --check src/main/token-store.js && node --check src/main/store-factory.js && node --check src/main/ai/transcription-provider.js`. All must pass.
+8. **Back up Fega's real data before launching.** Copy `%APPDATA%\clipflow\clipflow-settings.json`, `clipflow-tokens.json`, `clipflow-publish-log.json` to a timestamped backup folder. If anything goes wrong in the launch, restore and revert.
+9. `npm run build:renderer && npm start`. Launch should succeed with no `ERR_REQUIRE_ESM` or module-load errors in `%APPDATA%\clipflow\logs\main.log`.
+10. Smoke-test matrix (below).
+11. Update `CHANGELOG.md` + `HANDOFF.md`. Single commit. Close #52 with the commit SHA.
 
-### Verification (the standing matrix + Vite-specific items)
+### Verification (standing matrix + upgrade-specific items)
 
-**Standing matrix (every infra hop):**
-1. **#35 zoom-slider drag repro × 10** on a 30-min source — no crash. Non-negotiable.
+**Standing matrix (every infra hop — non-negotiable):**
+1. **#35 zoom-slider drag repro × 10** on a 30-min source — no crash.
 2. **Drop-to-Rename** — drag an `.mp4` from Downloads onto Rename tab → file appears in Pending list.
 3. **Drop-to-Upload** — drag onto Recordings tab → import-progress + game-name modal both fire.
 
-**Vite-specific:**
-4. App startup logs show no missing-asset 404s in the renderer (open DevTools temporarily — or check Sentry).
-5. Tailwind utilities render correctly in the Editor tab (open the editor, the styling is heavily Tailwind-dependent — visual diff against current).
-6. **Render a clip end-to-end** to exercise the offscreen subtitle renderer (`subtitle-overlay-renderer.js`) — this is the path that depends on `build/subtitle-overlay/index.html` still existing in the right spot. Burn-in must work.
-7. PostHog + Sentry init logs appear (`src/index.js` runs — it's our entry).
-8. `npm run dev` (Vite HMR through Electron) — verify HMR works at least once for sanity.
+**H5-specific:**
+4. App launches on Fega's existing store data — no settings loss. Spot-check: Settings tab shows the correct watch folder, games DB is populated, `creatorProfile` has the archetype + description, OAuth-connected platforms still appear connected in the Queue tab, Publish Log still shows historical entries.
+5. Fresh-install path still runs all migrations. Test by temporarily renaming `%APPDATA%\clipflow\clipflow-settings.json` → launch → verify defaults populate + `deviceId` is generated + `onboardingComplete` is `false` → quit → restore original file.
+6. Write persistence: change the `mainGame` dropdown in Settings → quit app → relaunch → confirm persisted.
+7. Token store: a connected platform still publishes successfully (optional — dry-run a publish if Fega has bandwidth).
+8. Publish log: after one publish, `publishLog:getRecent` returns the new entry (verifiable via the Queue tab's publish-log UI).
+9. Watcher still works post-upgrade (guards against ordering bug in bootstrap): OBS real-record 30s → Stop → Rename card appears ~2s later.
 
 ### Risks & mitigations
 
-- **CSS load order differs slightly between webpack and Vite.** If a Tailwind utility starts losing to a `globals.css` rule it didn't previously lose to, fix in `globals.css` (specificity), not by reordering imports. Mitigation: visual smoke of editor + Rename + Recordings before declaring done.
-- **The Google Fonts CDN import in the inline `<style>` of `index.html` keeps working** in Vite (Vite doesn't process `<style>` blocks for `@import`). Confirmed by Vite docs. Not a CSP problem this commit (H2 is later).
-- **`autoprefixer` was a runtime dep in `package.json`** which is wrong (build-time only). Moving to devDeps is the correct shape and matches everywhere else.
-- **`--legacy-peer-deps` should no longer be needed** post-this-commit (it was only there for `react-scripts` pinning TS 3||4 peers). Verify `npm install` works without the flag after the swap.
-- **Bundle size may increase or decrease** — not a regression in either direction by itself. Note before/after sizes in HANDOFF.
-- **Rollback plan:** single commit; `git revert` if anything in the smoke matrix fails. Two-attempt rule applies — if the second fix-and-rebuild attempt fails, stop and re-read everything from scratch instead of guess-patching.
+- **Ordering bug in bootstrap.** If an IPC handler fires before `store` is assigned, it throws on `store.get(...)`. Mitigation: handlers register at module top but are only invoked by the renderer, which doesn't load until `createWindow()` runs inside `whenReady` — after the store is assigned. The async assignment is awaited before `createWindow()` is called. Sanity check in step 10 smoke matrix.
+- **A module imports `publishLog` or `tokenStore` and calls an exported function at module-top.** Grep confirms no current caller does this (all uses are inside handler bodies), but this would break if anyone adds such a call in the future. Mitigation: document the `init()` contract in a comment at the top of each module.
+- **v11 changed on-disk JSON shape.** Not per the release notes — it's still plain JSON at the same path. Mitigation: the backup in step 8 is the safety net. If v11 refuses to read an existing file, revert the commit, restore the backup, and file a follow-up.
+- **Atomic-write semantics differ under a crash mid-write.** The issue body flags this explicitly. Mitigation: can't realistically repro a mid-write crash in a manual session. If Fega sees corruption in the future, that'd be its own investigation.
+- **`--legacy-peer-deps` may flare up during install.** v11's peer deps don't clash with ours, but `npm install` may still surface the `react-scripts`-era `--legacy-peer-deps` flag (session 13 removed the need, but it's still a habitual workaround). If install fails cleanly, drop the flag; if it complains, run without and check the actual peer conflict.
+- **Rollback.** Single commit. `git revert` + restore backup from step 8. Two-attempt rule applies — if the second fix-and-relaunch attempt fails, stop and re-read everything from scratch instead of guess-patching.
 
 ### Plan decision points (need Fega's call before I start)
 
-1. **Go or hold?** Go = execute the steps above. Hold = pick #57 (editor perf, the highest-friction-on-Fega item from HANDOFF) instead.
-2. **`@/*` alias — keep or drop?** It's defined in `tsconfig.json` but unused in `src/`. Recommendation: **keep** in `vite.config.js` so future shadcn additions Just Work, but no source changes this commit.
-3. **`npm run dev` HMR test — required for done, or nice-to-have?** Recommendation: required. Vite's main appeal is fast HMR; if it doesn't work in Electron we want to know before committing, not three sessions from now.
+1. **Go or hold?** Go = execute. Hold = pick #57 (editor perf) or #59 (editor render without queuing) instead.
+2. **Extract the store init into its own `src/main/app-store.js` module, or keep it inline in `main.js`?** Recommendation: **keep inline** — migrations reference `logger`, ordering matters with `fileMigration`/`llmProvider`/`transcriptionProvider`/`publishLog`/`tokenStore`, and splitting creates a larger diff with no behavior gain this session. Future session can extract if main.js bloat becomes the target.
+3. **Commit strategy.** Single commit, per the pattern used for H6 + H8 + chokidar. No two-commit split — the swap is atomic (can't land the dep bump without the async plumbing).
 
 ---
 
