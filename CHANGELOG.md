@@ -4,6 +4,24 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 16b) — Drop-to-Recordings test-routing + DevTools env hook
+
+### Fixed
+- **Drop-to-Recordings now routes by the user's final Test toggle choice, not a path-based guess made before the modal opens.** [src/renderer/views/UploadView.js](src/renderer/views/UploadView.js). Previous flow: drop → copy into `<watchFolder>/<YYYY-MM>/` (or `<testWatchFolder>/<YYYY-MM>/` if source path happened to start with the test folder) → modal opens → user picks game and toggles Test → confirm. The physical copy had already landed based on a source-path heuristic, and flipping Test in the modal only updated `file_metadata.is_test` in the DB — the file stayed in whichever root the heuristic picked. So dragging a file in from Downloads and toggling Test *on* left the copy under the main archive, polluting `Vertical Recordings Onwards/<YYYY-MM>/` with test clips. New flow (Option A): drop → probe duration on the source → modal opens with `isTest: defaultTestMode` as the initial toggle state → user chooses game and final Test value → confirm → *then* `importExternalFile(sourcePath, watchFolder, finalIsTest)` copies into the correct root → rename → pipeline. One physical copy per drop, zero orphan files if the user cancels (modal now just closes, no `importCancel` needed because nothing has been copied yet). Confirmed by Fega in two end-to-end tests: `DD 2026-03-23.mp4` and `PoP 2026-03-23.mp4` both landed in `Test Footage/2026-04/` as expected after toggling Test on in the modal.
+- **`quickImport` state shape changed** from `{ filename, targetPath, importEntry, ... }` to `{ filename, sourcePath, sizeBytes, watchFolder, durationSeconds, splitCount, isTest }`. The post-copy fields (`targetPath`, `importEntry`) are now locals inside `confirmQuickImport` because they don't exist until the user confirms.
+- **`cancelQuickImport` no longer calls `importCancel`.** Nothing is copied before confirm, so there's no file to delete. Modal just closes.
+
+### Added
+- **`CLIPFLOW_DEVTOOLS=1` env var opens DevTools on the main window in production builds.** [src/main/main.js:317-325](src/main/main.js#L317-L325). Useful escape hatch for debugging renderer errors without flipping `isDev` (which would also redirect to `localhost:3000`). No impact when the env var is unset — default behavior unchanged.
+
+### Filed for later (not fixed this session)
+- [#61](https://github.com/Oghenefega/ClipFlow/issues/61) — Monthly folder should track recording date, not import date. Current behavior files a March recording imported in April into `2026-04/`. Fix is to parse `YYYY-MM-DD` from the OBS-style filename prefix and bucket by that instead of `new Date()`. Plus a one-shot house-cleaning migration to re-bucket the existing archive.
+- [#62](https://github.com/Oghenefega/ClipFlow/issues/62) — Pipeline fails on clips with silent/near-silent audio. `energy_scorer.py` exits code 1 when both ebur128 and astats can't extract audio energy from a silent screen recording; `ai-pipeline.js` propagates the error as `Pipeline failed`. Fix needs both a change in the external Python script (return empty-energy JSON, exit 0) and a change in `ai-pipeline.js` to tolerate empty energy and fall back to keyword-only highlight scoring. Pre-existing bug — would fail the same way from Rename tab.
+
+### Notes
+- **Option A vs Option B.** Option B would have kept copy-before-modal and added a post-confirm physical move if the toggle changed between default and final. Rejected because it leaves orphan `<YYYY-MM>/` folders in the wrong root when the last file in that month gets moved out, and the invariant "file lives where isTest says" becomes harder to reason about across the move-and-cleanup path. Option A enforces the invariant at a single point (the copy) with no cleanup logic.
+- **Pipeline failure is unrelated to today's change.** Both drop-to-Recordings test runs failed at Energy Analysis, which runs *after* rename and is indifferent to how the file got to the test folder. Drop path itself is clean.
+
 ## [Unreleased] — 2026-04-17 (session 16) — electron-store v8 → v11 (H5)
 
 ### Changed

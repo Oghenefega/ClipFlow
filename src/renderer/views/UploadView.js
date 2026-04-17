@@ -87,7 +87,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   // Drag-and-drop + quick-import state
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(null); // { filename, pct }
-  const [quickImport, setQuickImport] = useState(null); // { filename, targetPath, importEntry, durationSeconds, splitCount }
+  const [quickImport, setQuickImport] = useState(null); // { filename, sourcePath, sizeBytes, watchFolder, durationSeconds, splitCount, isTest }
   const [quickImportGame, setQuickImportGame] = useState("");
   const [quickImportStep, setQuickImportStep] = useState(1); // 1=pick game, 2=split proposal, 3=confirm
   const [quickImportSplitSkip, setQuickImportSplitSkip] = useState(false);
@@ -364,29 +364,16 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
 
     // Path-based test default: if the source sits inside the configured test
-    // watch folder, the copy and downstream routing default to test. The user
-    // can still override in the quick-import modal.
+    // watch folder, the routing defaults to test. The user can still override
+    // in the quick-import modal — the physical copy is deferred until confirm
+    // so the final isTest choice determines the destination root.
     const isUnderTestFolder = testWatchFolder && filePath.toLowerCase().startsWith(testWatchFolder.toLowerCase());
     const defaultTestMode = !!isUnderTestFolder;
 
-    setImporting({ filename: file.name, pct: 0 });
-
-    const progressHandler = (data) => {
-      setImporting({ filename: data.filename, pct: data.pct });
-    };
-    window.clipflow.onImportProgress(progressHandler);
-
-    const result = await window.clipflow.importExternalFile(filePath, watchFolder, defaultTestMode);
-
-    window.clipflow.removeImportProgressListener();
-    setImporting(null);
-
-    if (result.error) return;
-
-    // Probe duration
+    // Probe duration on the source file (no copy yet)
     let durationSeconds = 0;
     try {
-      const probe = await window.clipflow.ffmpegProbe(result.targetPath);
+      const probe = await window.clipflow.ffmpegProbe(filePath);
       durationSeconds = probe?.duration || probe?.format?.duration || 0;
     } catch (_) {}
 
@@ -395,11 +382,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const tailLength = durationSeconds % thresholdSec;
     const splitCount = autoSplitEnabled && durationSeconds > thresholdSec && (tailLength === 0 || tailLength >= MIN_TAIL) ? Math.ceil(durationSeconds / thresholdSec) : 0;
 
-    // Open quick-import modal
+    // Open quick-import modal — copy happens on confirm using final isTest
     setQuickImport({
-      filename: result.filename,
-      targetPath: result.targetPath,
-      importEntry: result.importEntry,
+      filename: file.name,
+      sourcePath: filePath,
+      sizeBytes: file.size,
+      watchFolder,
       durationSeconds,
       splitCount,
       isTest: defaultTestMode,
@@ -413,9 +401,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); };
 
   const cancelQuickImport = async () => {
-    if (quickImport) {
-      await window.clipflow?.importCancel(quickImport.targetPath, quickImport.importEntry?.filename, quickImport.importEntry?.sizeBytes);
-    }
+    // No copy has happened yet — modal opens before import. Just close.
     setQuickImport(null);
   };
 
@@ -425,7 +411,33 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const game = gamesDb.find((g) => g.name === quickImportGame);
     if (!game) return;
 
-    const fileDate = quickImport.filename.slice(0, 10) || new Date().toISOString().slice(0, 10);
+    // Physical copy happens now, using the user's final isTest choice so the
+    // file lands in the correct root (watchFolder vs testWatchFolder).
+    setImporting({ filename: quickImport.filename, pct: 0 });
+    const progressHandler = (data) => {
+      setImporting({ filename: data.filename, pct: data.pct });
+    };
+    window.clipflow.onImportProgress(progressHandler);
+
+    const importResult = await window.clipflow.importExternalFile(
+      quickImport.sourcePath,
+      quickImport.watchFolder,
+      !!quickImport.isTest
+    );
+
+    window.clipflow.removeImportProgressListener();
+    setImporting(null);
+
+    if (!importResult || importResult.error) {
+      setQuickImport(null);
+      return;
+    }
+
+    const targetPath = importResult.targetPath;
+    const importEntry = importResult.importEntry;
+    const copiedFilename = importResult.filename;
+
+    const fileDate = copiedFilename.slice(0, 10) || new Date().toISOString().slice(0, 10);
     const needsSplit = quickImport.splitCount > 0 && !quickImportSplitSkip;
 
     // Create parent file_metadata using preset 3 (Tag + Date)
@@ -435,7 +447,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       dayNumber: null,
       partNumber: needsSplit ? null : null,
       customLabel: null,
-      originalFilename: quickImport.filename,
+      originalFilename: copiedFilename,
     };
 
     // Check collisions
@@ -451,16 +463,16 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     if (needsSplit) {
       // Create parent record, split, rename children, then start pipeline for each
       const parentResult = await window.clipflow.fileMetadataCreate({
-        originalFilename: quickImport.filename,
-        currentFilename: quickImport.filename,
-        originalPath: quickImport.targetPath,
-        currentPath: quickImport.targetPath,
+        originalFilename: copiedFilename,
+        currentFilename: copiedFilename,
+        originalPath: targetPath,
+        currentPath: targetPath,
         tag: game.tag,
         entryType: game.entryType || "game",
         date: fileDate,
         namingPreset: "tag-date",
         durationSeconds: quickImport.durationSeconds,
-        fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
+        fileSizeBytes: importEntry?.sizeBytes || null,
         status: "pending",
         isTest: !!quickImport.isTest,
       });
@@ -479,10 +491,10 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       if (splitResult.error) { setQuickImport(null); return; }
 
       // Rename each child and start pipeline
-      const dir = quickImport.targetPath.substring(0, quickImport.targetPath.lastIndexOf("\\"));
+      const dir = targetPath.substring(0, targetPath.lastIndexOf("\\"));
       for (let i = 0; i < splitResult.results.length; i++) {
         const child = splitResult.results[i];
-        const childMeta = { tag: game.tag, date: fileDate, dayNumber: null, partNumber: i + 1, customLabel: null, originalFilename: quickImport.filename };
+        const childMeta = { tag: game.tag, date: fileDate, dayNumber: null, partNumber: i + 1, customLabel: null, originalFilename: copiedFilename };
         const fmtResult = await window.clipflow.presetFormatFilename(childMeta, "tag-date");
         if (fmtResult.error) continue;
 
@@ -513,14 +525,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       if (fmtResult.error) { setQuickImport(null); return; }
 
       const newName = fmtResult.filename;
-      const dir = quickImport.targetPath.substring(0, quickImport.targetPath.lastIndexOf("\\"));
+      const dir = targetPath.substring(0, targetPath.lastIndexOf("\\"));
       const newPath = `${dir}\\${newName}`;
-      await window.clipflow.renameFile(quickImport.targetPath, newPath);
+      await window.clipflow.renameFile(targetPath, newPath);
 
       const metaResult = await window.clipflow.fileMetadataCreate({
-        originalFilename: quickImport.filename,
+        originalFilename: copiedFilename,
         currentFilename: newName,
-        originalPath: quickImport.targetPath,
+        originalPath: targetPath,
         currentPath: newPath,
         tag: game.tag,
         entryType: game.entryType || "game",
@@ -528,7 +540,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         partNumber: parentMeta.partNumber,
         namingPreset: "tag-date",
         durationSeconds: quickImport.durationSeconds,
-        fileSizeBytes: quickImport.importEntry?.sizeBytes || null,
+        fileSizeBytes: importEntry?.sizeBytes || null,
         status: "processing",
         isTest: !!quickImport.isTest,
       });
@@ -538,8 +550,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
 
     // Clear suppression and close modal
-    if (quickImport.importEntry) {
-      await window.clipflow.importClearSuppression(quickImport.importEntry.filename, quickImport.importEntry.sizeBytes);
+    if (importEntry) {
+      await window.clipflow.importClearSuppression(importEntry.filename, importEntry.sizeBytes);
     }
     setQuickImport(null);
 

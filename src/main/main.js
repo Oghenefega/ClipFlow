@@ -319,6 +319,9 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     mainWindow.loadFile(path.join(__dirname, "../../build/index.html"));
+    if (process.env.CLIPFLOW_DEVTOOLS === "1") {
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+    }
   }
 
   // Dev-only: force DevTools + forward renderer console to disk log for debugging.
