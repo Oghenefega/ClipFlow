@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-18 (session 20) — Lever 1 multi-signal pipeline spec
+
+### Added
+- **Lever 1 signal extraction spec** ([specs/lever-1-signal-extraction-v1.md](specs/lever-1-signal-extraction-v1.md)). Full architecture spec for a new `extract_signals` stage (Stage 4.5) that runs after energy analysis and before frame extraction. Adds 6 new signals beyond the existing RMS energy baseline: YAMNet audio event detection (17 gaming-relevant classes via TFLite, ~10s per hour of recording), voice pitch spike detection via `librosa.pyin` (~30s), FFmpeg scene change detection (zero new deps, ~30s), transcript density (JS, in-process), reaction word detection (JS regex over existing transcript), and silence-then-spike (JS, in-process). All signals feed a composite score that replaces the energy-only frame sampling sort and adds a structured event timeline to the Claude prompt. Total new installer footprint: ~42 MB. Archetype-aware composite weights baked in from day one. Graceful degradation: any signal failure falls back to energy-only with no pipeline disruption.
+- **Spec also covers:** unified event-timeline JSON schema, per-signal fallback behavior, runtime budget analysis (< 15% overhead on a 1hr recording), bundling implications for pre-launch blocker #3, explicit launch vs. defer recommendation for the 1.2 GB audeering emotion model (defer to v2), and rationale for excluding chat log spike (requires non-default user setup; doesn't serve small creators).
+- **Spec filed in Obsidian vault** at `The Lab/Businesses/ClipFlow/specs/lever-1-signal-extraction-v1.md` — canonical location for all ClipFlow specs.
+
+### Decisions
+- **jrgillick/laughter-detection dropped** — unmaintained since ~2021, known install failures with modern PyTorch, redundant since YAMNet covers Laughter/Giggle/Chuckle natively. Net saving: ~50 MB off the installer.
+- **Voice pitch (F0) spike added** — replaces jrgillick, zero additional dependencies (librosa already required), directly addresses chill/competitive/just-chatting archetype gaps.
+- **Chat log signal explicitly deferred** — requires non-default OBS/platform setup; meaningless for small creators (<50 concurrent viewers). Revisit if ClipFlow ships a live recording companion.
+
+### Chores
+- **#68 filed** — `energy_scorer.py` hardcoded to `D:\whisper\energy_scorer.py` in ai-pipeline.js:161. Must be moved to `tools/energy_scorer.py` with `__dirname`-relative path before bundling work (pre-launch blocker #3).
+
 ## [Unreleased] — 2026-04-18 (session 19) — Editor UX: overlay drift fix, Render-only button, waveform error surfacing
 
 ### Fixed

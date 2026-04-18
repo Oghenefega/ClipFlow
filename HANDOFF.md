@@ -1,100 +1,72 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-18 (session 20) — "Technical summary v4 + clip detection architecture review"_
+_Last updated: 2026-04-18 (session 20) — "Lever 1 multi-signal pipeline spec"_
 
 ---
 
-## TL;DR
+## Current State
 
-**Documentation-only session.** No code was changed. The session produced `reference/TECHNICAL_SUMMARY v4.md` — a full architectural audit of the clip detection pipeline, written as the foundation for the upcoming multi-signal improvement work.
+Spec-only session. No code was changed. The codebase is in the same state as the end of Session 19.
 
----
-
-## 🎯 Next session — clip detection signal expansion
-
-The planned change: add 4–5 new local signals to the AI pipeline so Claude reasons over richer evidence than just audio loudness + transcript. The "loud = important" heuristic underperforms for Chill / Competitive / Variety archetypes.
-
-**Two bias contact points to fix (documented in v4 §3.4):**
-1. **Frame selection (Stage 5):** Only peak-energy frames get visual representation. Quiet clutch plays, deadpan comedy, slow tactical moments never get a frame.
-2. **Transcript labeling (Stage 4):** Energy labels in `claude_ready.txt` are purely RMS-derived. A whispered clutch moment gets 🔇 LOW regardless of content.
-
-**Candidate new signals to discuss/plan:**
-- Scene change detection (via FFmpeg `select=gt(scene,0.4)`)
-- Silence gaps / speech onset events
-- Speech rate / word density per segment
-- Face or body motion detection
-- Sentiment / keyword spike detection (from transcript text itself)
-
-**Files that will change:**
-- `D:\whisper\energy_scorer.py` — will need extension or replacement; consider moving into `tools/`
-- `src/main/ai-pipeline.js` — Stage 5 frame selection logic
-- `src/main/ai-prompt.js` — system prompt needs to explain new signal labels to Claude
+One GitHub issue filed: **[#68](https://github.com/Oghenefega/ClipFlow/issues/68)** — `energy_scorer.py` hardcoded to `D:\whisper\energy_scorer.py` in `ai-pipeline.js:161`, must be moved to `tools/` before bundling.
 
 ---
 
-## ✅ What was built this session
+## What Was Built
 
-- **`reference/TECHNICAL_SUMMARY v4.md`** — Updated technical summary replacing v3:
-  - Fixed Stage 7 cutting description (re-encode, not stream copy)
-  - Expanded §3.4 into a full 8-stage pipeline walkthrough with data flows per stage
-  - Added signal table showing exactly what Claude receives
-  - Explicitly documented the two "loud = important" bias contact points
-  - Added `claude_ready.txt` format example
-  - Noted `energy_scorer.py` is not in the repo (lives at `D:\whisper\`)
-  - Added "Richer clip detection signals" to Planned / Not Yet Built
-  - Corrected file structure to reflect `tools/transcribe.py` explicitly
+A full architecture spec for **Lever 1 — Multi-Signal Pipeline Upgrade**:
+
+- **Canonical location:** `The Lab/Businesses/ClipFlow/specs/lever-1-signal-extraction-v1.md` (Obsidian vault)
+- **Repo copy:** `specs/lever-1-signal-extraction-v1.md`
+
+The spec defines a new `extract_signals` stage (Stage 4.5 in `ai-pipeline.js`) that runs after energy analysis and before frame extraction. It adds 6 new signals to replace the current energy-only heuristic.
 
 ---
 
-## 🔑 Key decisions this session
+## Key Decisions
 
-- **Produce v4 before implementing** — User wants to understand the full pipeline before planning the multi-signal change. v4 is the source document for next session's planning.
-- **Architecture vs. infrastructure clarified** — Architecture = how code is structured internally (pipeline, components, data flows). Infrastructure = external services and runtime (Supabase, Electron, Cloudflare). The clip pipeline flowchart the user wants is architecture.
+**Signals approved for launch:**
 
----
+| Signal | Type | Runtime | New deps |
+|--------|------|---------|----------|
+| YAMNet audio events (17 classes) | Python subprocess | ~10s | `tflite-runtime` (~8 MB) |
+| Voice pitch spike (librosa.pyin) | Python subprocess | ~30s | `librosa` (~25 MB) |
+| FFmpeg scene change | Python subprocess | ~30s | none |
+| Transcript density | JS in-process | <10ms | none |
+| Reaction word detection | JS in-process | <5ms | none |
+| Silence-then-spike | JS in-process | <50ms | none |
 
-## ⚠️ Watch out for
+**Total new footprint: ~42 MB. Pipeline overhead: < 15% on a 1-hour recording.**
 
-- `energy_scorer.py` **is not in the repo** — lives at `D:\whisper\energy_scorer.py`. Any signal pipeline changes must account for this. Consider bringing it into `tools/` as part of the improvement work.
-- Frame extraction is 100% driven by `peak_energy` sort — changing scoring logic changes what visual moments Claude sees. High-leverage, high-risk change point.
-- `claude_ready.txt` is Claude's primary evidence document. New signals must be legible in that format without bloating token count significantly.
-- The feedback loop (few-shot examples from approved clips) is calibrated to the current 2-signal world. Post-change, the first batch of approved clips will represent a different signal space — blending still works but examples may feel slightly mismatched until enough new clips accumulate.
-- **All session 19 "DO NOT touch" rules still apply** — see previous HANDOFF for the full list (CSP, sandbox, waveform IPC contract, zoom slider, etc.)
+**Deferred / dropped:**
+- jrgillick/laughter-detection — dropped (unmaintained since ~2021, install-fragile, YAMNet covers laughter natively)
+- audeering wav2vec2 emotion model — deferred to v2 (1.2 GB, ~29× the rest of the stack, no usage data, auto-updater not shipped)
+- Chat log spike — deferred until live recording companion exists (non-default user setup, meaningless for small creators)
 
----
-
-## 🪵 Logs / Debugging
-
-*(No code changes this session — all logging notes from session 19 still apply.)*
-
-- **Waveform flow:** grep main-process stdout for `[waveform]`. Success: `start` → `cache hit` or `extracting` → `extracted`. Failure: `ffmpeg exit` + `stderr tail` + `failed`. Renderer shows "Waveform unavailable" in red on failure.
-- **Per-video pipeline logs:** `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\logs\<VideoName>_<timestamp>.log`
-- **Electron main logs:** `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log`
-- **Renderer DevTools:** `CLIPFLOW_DEVTOOLS=1 npm start`
+**Archetype-aware composite weights** baked in from day one — values are estimates, calibrate after 10+ sessions of feedback data per archetype.
 
 ---
 
-## 🔄 Build & verify
+## Next Steps
 
-```bash
-npm run build:renderer               # Vite build (~10s)
-npm start                            # Launch Electron (prod mode)
-CLIPFLOW_DEVTOOLS=1 npm start        # Launch with DevTools attached
-```
+**Immediate:** Open a new session with **Opus 4.7** to review the spec end-to-end. If everything checks out, approve for implementation.
+
+**Implementation sequence (from spec):**
+1. Create `src/main/signals.js` — JS signal functions + `runSignalExtraction()` shell
+2. Wire Stage 4.5 into `ai-pipeline.js` — thread `eventTimeline` into Stage 5 (frame sort) and Stage 6 (prompt)
+3. Prompt changes in `ai-prompt.js` — event timeline block in `buildUserContent()` + task section in `buildSystemPrompt()`
+4. `tools/signals/yamnet_events.py`
+5. `tools/signals/pitch_spike.py`
+6. `tools/signals/scene_change.py`
+7. is_test validation pass + fallback verification
+
+**Fix #68 first** — move `energy_scorer.py` to `tools/energy_scorer.py` before bundling any new signals. That's the first commit of the implementation session.
 
 ---
 
-## 📋 Issue board state (unchanged from session 19)
+## Watch Out For
 
-| Item | Issue | Status |
-|---|---|---|
-| H2 renderer CSP | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | ✅ closed session 18 |
-| #65 overlay drift | [#65](https://github.com/Oghenefega/ClipFlow/issues/65) | ✅ closed session 19 |
-| #59 Render button | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | ✅ closed session 19 |
-| #64 waveform extraction | [#64](https://github.com/Oghenefega/ClipFlow/issues/64) | 🟡 instrumented; root cause pending |
-| #66 transcript shows full source | [#66](https://github.com/Oghenefega/ClipFlow/issues/66) | 🔲 filed; ready |
-| #67 zoom slider caps at ~23% | [#67](https://github.com/Oghenefega/ClipFlow/issues/67) | 🔲 filed; ready |
-| #63 overlay-window sandbox | [#63](https://github.com/Oghenefega/ClipFlow/issues/63) | 🔲 deferred |
-| #57 editor perf on long source | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 deferred |
-| #61 monthly folder = recording date | [#61](https://github.com/Oghenefega/ClipFlow/issues/61) | 🔲 ready |
-| #62 pipeline silent-audio tolerance | [#62](https://github.com/Oghenefega/ClipFlow/issues/62) | 🔲 ready |
-| **Multi-signal clip detection** | TBD | 🔲 next session |
+- **YAMNet class names** — validate exact label strings against `yamnet_class_map.csv` from TFHub; some differ from AudioSet docs
+- **Scene change threshold** — OBS fade transitions may trigger false positives at 0.4; may need to filter first/last 30s or raise to 0.5
+- **Composite weights are untuned** — `ARCHETYPE_WEIGHTS` in the spec are educated guesses, not validated values
+- **#68 blocks bundling** — fix hardcoded `D:\whisper\` path before any tools bundling work
+- **Opus 4.7 review session** — spec was written on Sonnet 4.6; use Opus for the review pass to catch anything missed
