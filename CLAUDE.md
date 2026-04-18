@@ -11,6 +11,15 @@ ClipFlow is a **commercial software product** being built for public release wit
 - Platform publishing: built for "publish on behalf of users" — each user connects their own social accounts via OAuth
 - Platform scope: YouTube, TikTok, Instagram, Facebook, X (Twitter), Kick, and others added over time
 
+## Technical Summary (External — Source of Truth)
+
+The canonical technical summary lives at:
+`C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\technical-summary.md`
+
+**When generating or updating the technical summary, always write to that path. Single file, no version number. Overwrite it — git tracks history. Do not create versioned copies (v2, v3, etc.) in the local reference/ folder.**
+
+Read it when you need full product context: stack, architecture, feature status, known issues.
+
 ## Infrastructure Dashboard (External, Filtered)
 
 An external infrastructure dashboard lives at `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\infrastructure\ClipFlow Infrastructure.md`. **Most sessions will never need to load it.**
@@ -35,7 +44,10 @@ Update `CHANGELOG.md` at the end of **every session** before the final commit. C
 
 ## Tech Stack
 
-Electron 28, React 18 (CRA), Tailwind CSS 3 + shadcn/ui, Zustand 5 (editor state), electron-store 8, chokidar 3, FFmpeg (local), whisper.cpp (local), Anthropic API (Claude Sonnet 4 / Opus 4), lucide-react, DM Sans + JetBrains Mono fonts.
+See the technical summary for current stack, versions, and dependencies:
+`C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\technical-summary.md`
+
+That file is the source of truth. Never hardcode versions here.
 
 ## Build & Run
 
