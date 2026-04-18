@@ -4,7 +4,137 @@
 
 ---
 
-## 🔲 PROPOSED — H1 + H3 pre-launch hardening (#47 + #49)
+## ✅ DONE (session 18) — H2 renderer CSP (#48) — last hardening item
+
+**Shipped.** CSP meta tag enforcing on [index.html](../index.html). Crash-screen inline `onclick` refactored to `addEventListener` in [src/index.js](../src/index.js). All three pre-launch hardening items (H1/H2/H3) now complete. See CHANGELOG session 18 entry for final directives and verification notes.
+
+---
+
+## (historical plan below — preserved for reference)
+
+## 🔲 PROPOSED — H2 renderer CSP (#48) — last hardening item
+
+**Plain-language goal.** Close the last pre-launch hardening item. Add a Content Security Policy to the renderer so that even if a supply-chain attack ever injects a `<script>` into our bundle, the browser refuses to execute anything beyond the whitelisted origins. H1 + H3 shipped last session — this is the third wall.
+
+**Why now.** H1 (overlay hardening) and H3 (main-window sandbox) are done. H2 is the last defense-in-depth domino. Vite has shipped (C2, session 13), so the bundler environment we're writing the policy against is stable.
+
+**Why not nonce-based.** The issue body floated nonce-based CSP "now that Vite has shipped." Reality check: nonces only buy strictness over inline `<script>` — and we have zero inline scripts. For inline styles (which we DO have, pervasively via the `T` theme object + the `<style>` block in `index.html`), nonce doesn't help because individual `style=` attributes aren't nonced. We'd still need `'unsafe-inline'` for style-src. Skip nonces this session; revisit post-launch if a full theme.js → CSS extraction happens.
+
+### Facts confirmed by reading code
+
+- **Renderer endpoints** (the ONLY ones that need `connect-src`):
+  - Sentry ingest — `https://*.ingest.us.sentry.io` (DSN at [src/index.js:10](src/index.js#L10))
+  - PostHog analytics — `https://us.i.posthog.com` ([src/index.js:46](src/index.js#L46))
+- **NOT renderer endpoints** (main-process Node HTTP, CSP doesn't cover them):
+  - Anthropic API (`api.anthropic.com`) — called from [src/main/ai/providers/anthropic.js:23](src/main/ai/providers/anthropic.js#L23) via Node `https`
+  - Cloudflare AI Gateway (`gateway.ai.cloudflare.com`) — same provider, same path
+  - → **Dropping these from the connect-src** vs. the issue's starter policy. They do nothing there.
+- **Fonts:** [index.html:11](index.html#L11) does `@import url('https://fonts.googleapis.com/css2?...')` inside an inline `<style>`. `fonts.googleapis.com` serves CSS → `style-src`. `fonts.gstatic.com` serves `.woff2` → `font-src`.
+- **Local media:** [waveformUtils.js:14-18](src/renderer/editor/utils/waveformUtils.js#L14-L18) does `fetch("file://...")` to read the source video for waveform extraction. Video playback uses `file://` URLs on `<video src>`. Thumbnails + waveform canvases generate `blob:` URLs.
+- **No `eval` / `new Function` in our source.** `posthog-js` and `@sentry/electron/renderer` both have `eval`/`new Function` code paths in worst-case branches, BUT we've run this in production for 2+ weeks with no reports of either failing silently. If CSP blocks one during verification, we'd fix it — current guess is it won't bite.
+- **No `<script>` tags besides the Vite-emitted bundle reference.** [build/index.html:64](build/index.html#L64) has exactly one `<script type="module" crossorigin src="./assets/index-XXX.js">`. `script-src 'self'` covers it.
+- **Tailwind utility classes** compile to CSS classes in the bundled stylesheet — not inline styles. So `style-src 'self'` covers the stylesheet. The pervasive inline `style={...}` in legacy views IS inline style attributes → needs `'unsafe-inline'`. The inline `<style>` block in `index.html` also needs `'unsafe-inline'` (until extracted).
+
+### The policy
+
+```
+default-src 'self';
+script-src 'self';
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+font-src 'self' https://fonts.gstatic.com;
+img-src 'self' data: blob: file:;
+media-src 'self' blob: file:;
+connect-src 'self' https://us.i.posthog.com https://*.ingest.us.sentry.io;
+object-src 'none';
+base-uri 'self';
+frame-ancestors 'none';
+form-action 'none';
+```
+
+Deltas from the issue's starter:
+- `connect-src` drops `api.anthropic.com` and `gateway.ai.cloudflare.com` (main-process calls, not renderer).
+- `connect-src` adds `us.i.posthog.com` (issue body missed PostHog).
+- `connect-src` narrows `*.sentry.io` to `*.ingest.us.sentry.io` (tighter; only ingestion subdomains).
+- Adds `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'none'` — standard hardening with no functional impact.
+
+### Where to set it
+
+`<meta http-equiv="Content-Security-Policy" content="...">` in [index.html](index.html) (the Vite source at repo root). Vite preserves unknown `<meta>` tags in the built `build/index.html` unchanged.
+
+**NOT via `session.defaultSession.webRequest.onHeadersReceived` in main.js.** That approach is right when loading over HTTP(S), but we load via `file://` and Electron's `loadFile()` — headers don't apply to `file://` responses. The meta tag is the correct vector here.
+
+### What this session does (and doesn't)
+
+**Does:**
+1. Add the CSP meta tag to [index.html](index.html) head, above the inline `<style>`.
+2. Build with Vite, confirm `build/index.html` picks up the meta tag (expect verbatim).
+3. Walk every main tab + the editor with DevTools open, watching for CSP violation errors.
+4. Capture and document any violations that surface.
+5. Update CHANGELOG + HANDOFF + close #48.
+
+**Doesn't:**
+- Self-host Google Fonts. The CDN is whitelisted; self-hosting is its own workstream (eliminates a third-party network dep but needs the font files bundled into `public/fonts/`). Will file follow-up if we want to pursue.
+- Extract the inline `<style>` block from `index.html` to a separate CSS file. Not needed when `'unsafe-inline'` is allowed; re-visit when we tighten further.
+- Tighten style-src away from `'unsafe-inline'`. Requires refactoring the entire `T` theme object inline-style pattern → CSS — multi-session workstream, not pre-launch.
+- Add a CSP to the offscreen subtitle overlay window. Overlay has no network access at all; CSP there would be purely theater. Separate issue if we ever care.
+
+### File impact
+
+**Modified:**
+- [index.html](index.html) — add one `<meta http-equiv="Content-Security-Policy" content="...">` tag (6 lines with formatting).
+
+**Auto-regenerated:**
+- [build/index.html](build/index.html) — Vite rewrites on build, meta tag preserved.
+
+No changes to `src/main/*`, no changes to any `src/renderer/*`, no deps, no config.
+
+### Verification matrix
+
+1. **Build clean.** `npm run build:renderer` exits 0. No Vite warnings about the meta tag.
+2. **App launches.** `CLIPFLOW_DEVTOOLS=1 npm start`. Main window renders. DevTools console opens cleanly.
+3. **Zero CSP violations on first paint.** Filter DevTools console to "Refused to" / "violates the following Content Security Policy" — expect none. If any appear, triage and fix before continuing.
+4. **Every main tab.** Click each in order: Rename, Recordings, Projects, Editor (open any clip), Queue, Tracker, Settings. DevTools console clean after each. Standing test — no regressions.
+5. **PostHog fires.** Switch tabs a few times → DevTools Network tab shows POST to `us.i.posthog.com/e/` with status 200. No CSP block. Switch Analytics toggle in Settings → event still fires (or opt-out respected, whichever state).
+6. **Sentry fires.** Open DevTools console, run `throw new Error("H2 CSP smoke test")` inside an event handler (e.g., tab click) → Network tab shows POST to `*.ingest.us.sentry.io` with status 200, and the event appears in Sentry within ~30s.
+7. **Fonts render.** Any view should show DM Sans. If CSP blocked fonts, you'd see system-ui fallback (visibly different kerning). Check the sidebar labels + buttons.
+8. **Waveform loads.** Open a clip in the editor → timeline shows waveform within ~10s. This exercises `fetch("file://...")` against `connect-src` AND the `media-src file:` rule. If blocked, waveform track stays empty.
+9. **Video preview plays.** Click Play in the editor → video plays. Exercises `media-src file:` + `img-src file:` (first-frame poster).
+10. **Thumbnail scrubber works.** Multi-game split on a long file → thumbnail strip renders. Exercises `img-src blob:`.
+11. **Drop-to-Rename + Drop-to-Recordings.** Standing canaries from H1/H3. Still work.
+12. **Zoom-slider drag × 10 on a 30-min source.** Standing canary. Still no crash.
+13. **Render a clip with subtitles ON.** The big end-to-end test. Output MP4 plays, subtitles burned in. This exercises main-process Anthropic calls (still outside CSP scope, confirming I'm right about that).
+14. **AI title/description generation.** In editor, trigger AI title generation. Still works. Confirms main-process Anthropic path survives — should be untouched.
+15. **CSP violation sweep via report-only (optional).** Not doing this session unless step 3 produces ambiguity. `Content-Security-Policy-Report-Only` mode would log all violations without blocking; good for audit but we don't have a reporter endpoint set up.
+
+### Risks + rollback
+
+- **Risk: posthog-js or @sentry/electron/renderer uses `eval` internally on a code path we don't hit in our standing tests.** Mitigation: step 3 catches the obvious case. Residual risk: a code path triggered by a rare user interaction (e.g., session replay, error sourcemap fetch). If that surfaces post-commit, we either add `'unsafe-eval'` to `script-src` (minor weakening) or pin the library version and open an issue.
+- **Risk: a third-party dep we don't know about makes a network request to an un-whitelisted origin.** Mitigation: step 3 + the 15-minute tab walk catches this. Residual risk: a dep that only talks home on specific events. If it surfaces, we add the origin or remove the dep.
+- **Risk: Electron's own dev-mode CSP warning gets louder** (it fired in session 17 on the overlay window). Mitigation: add the CSP explicitly satisfies the warning. Expect the warning to go away after this lands.
+- **Rollback: single commit, trivial revert.** `git revert` of one file → back to no CSP.
+
+### Commit strategy
+
+Single commit. The meta tag is one atomic change. No split between "add tag" and "tighten policy" because the tag ships with the final policy.
+
+### Plan decision points (need Fega's call before I start)
+
+1. **Go or hold?** Go = execute. Hold = pick a different next-session item.
+2. **Drop PostHog from connect-src?** If you're planning to remove PostHog before launch anyway (or move it server-side), I'd skip whitelisting it and let CSP pressure the removal. Otherwise keep it.
+3. **Report-only first?** Ship in enforcing mode immediately (my recommendation — we've read the code thoroughly) vs. ship `Content-Security-Policy-Report-Only` for a session to collect violations. Report-only is safer but needs a reporter endpoint; without one, we just tail the DevTools console, which we're doing in step 3 anyway. Recommend: enforcing mode.
+
+### Done means
+
+- [ ] `<meta http-equiv="Content-Security-Policy">` present in [index.html](index.html) with the refined policy above.
+- [ ] `npm run build:renderer` clean; `build/index.html` contains the meta tag.
+- [ ] Every verification matrix item passes.
+- [ ] No CSP violations in DevTools console across the tab walk.
+- [ ] CHANGELOG + HANDOFF updated.
+- [ ] #48 closed with commit SHA.
+
+---
+
+## ✅ DONE — H1 + H3 pre-launch hardening (#47 + #49)
 
 **Plain-language goal.** Close two of the three remaining pre-launch hardening items (H1, H3) in one session. H2 (CSP, #48) stays separate because its failure mode is different.
 

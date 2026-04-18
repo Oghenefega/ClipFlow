@@ -4,6 +4,36 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-17 (session 18) — Pre-launch hardening: H2 renderer CSP
+
+### Added
+- **H2 — Content Security Policy enforced on the renderer** ([#48](https://github.com/Oghenefega/ClipFlow/issues/48)). CSP meta tag added to [index.html](index.html) in the Vite source (propagates to `build/index.html` on build). Closes the final item in the pre-launch hardening arc — H1 (#47), H3 (#49), H5 (#52), H6 (#53) already shipped. Policy is **enforcing**, not Report-Only. Final directives:
+  - `default-src 'self'` — deny-by-default baseline.
+  - `script-src 'self' https://us-assets.i.posthog.com` — allows Vite-bundled scripts and PostHog's dynamically-loaded config/surveys bundle. **No `'unsafe-inline'` and no `'unsafe-eval'`.**
+  - `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com` — `'unsafe-inline'` is unavoidable because the existing views use the `T` theme object with inline `style={...}` attributes pervasively; a nonce-per-render refactor is a separate workstream. Google Fonts CSS allowed for the `@import` fallback in the dev build (packaged app uses local fonts but the `@import` is present in source).
+  - `font-src 'self' https://fonts.gstatic.com` — Google Fonts `woff2` origins for the same fallback.
+  - `img-src 'self' data: blob: file:` — `data:` for React-Icons, `blob:` for generated thumbnails, `file:` for thumbnails served from the user's filesystem.
+  - `media-src 'self' blob: file:` — `<video>` elements load local MP4s via `file://` (Electron preview pipeline).
+  - `connect-src 'self' file: https://us.i.posthog.com https://us-assets.i.posthog.com https://*.ingest.us.sentry.io` — Sentry ingest, PostHog events + assets CDN, and `file:` for the waveform/media fetches that use `fetch("file:///...")` against the local archive. Anthropic and any AI Gateway endpoints go through the **main process** (Node HTTP, outside renderer scope), so they are intentionally not whitelisted in renderer CSP.
+  - `object-src 'none'; base-uri 'self'; form-action 'none';` — locks out `<object>`/`<embed>`, rebases, and form submission.
+  - `frame-ancestors` **omitted** — ignored when delivered via `<meta>` per CSP spec, and the Electron file:// renderer cannot be iframed regardless. If we ever serve the renderer from an HTTP origin, add it via response header, not meta.
+- **`us-assets.i.posthog.com` whitelisted on BOTH `script-src` and `connect-src`.** PostHog loads its feature-flag / surveys bundle from the assets CDN after the initial `posthog.init()`; without the script-src entry the bundle 404s silently and flags break. Verified empirically during the first CSP iteration.
+- **`https://*.ingest.us.sentry.io` wildcard on `connect-src`** — Sentry's ingest endpoints are project-scoped subdomains (`o4511147466752000.ingest.us.sentry.io` for this project). Wildcard keeps the policy working if the DSN ever rotates.
+
+### Changed
+- **Crash-screen reload button switched from inline `onclick` to `addEventListener`** ([src/index.js:23-27](src/index.js#L23-L27)). The DOM-level crash screen built by `showCrashScreen()` previously used `<button onclick="window.location.reload()">`, which worked fine pre-H2 but would be blocked by `script-src 'self'` (no `'unsafe-inline'`). H2 caught this on first verification — user clicked "Reload App" on a test crash screen and nothing happened; console showed a CSP inline-script violation. Fix: give the button an ID, attach the listener in the parent scope. Net-zero behavior change outside CSP, but now resilient if the page ever crashes before React mounts.
+
+### Notes
+- **Why `'unsafe-inline'` on style-src stays for now.** The existing editor and main-tab views rely on React inline `style={{...}}` attributes driven by the `T` theme object in [src/renderer/styles/theme.js](src/renderer/styles/theme.js). Every such attribute compiles to an inline `style="..."` in the rendered DOM, which a strict style-src would block. Migrating to a nonce-per-render or CSS-in-JS-with-extraction pipeline is a multi-session refactor, not a hardening blocker. Tailwind classes in the editor (shadcn/ui) are unaffected — those compile to a stylesheet.
+- **What CSP does and does not cover.** CSP governs the **renderer's network surface** only. The main process (Node.js `http.request`, `fetch`, `execFile` to FFmpeg/Whisper, `ipcMain.handle` traffic) is completely outside CSP. IPC calls from renderer → main are not network requests and don't hit the policy. This means platform publishing APIs (YouTube/TikTok/etc. OAuth + upload) continue to work because they run in main; the renderer only invokes IPC channels, which CSP doesn't touch.
+- **PostHog server-side migration logged against [#22](https://github.com/Oghenefega/ClipFlow/issues/22) and [#25](https://github.com/Oghenefega/ClipFlow/issues/25).** User asked about the industry-standard path for PostHog (client-side SDK → server-side proxy via Supabase). Current H2 policy whitelists PostHog's public origins; the eventual move is to proxy events through our backend so the CSP can drop both `us.i.posthog.com` and `us-assets.i.posthog.com` entirely. Scoped into the analytics-rebuild and Anthropic-server-side workstreams rather than launched as its own issue.
+- **Three separate observations filed during verification, deliberately kept out of H2 scope:**
+  - [#64](https://github.com/Oghenefega/ClipFlow/issues/64) — Waveform extraction stuck on "Extracting waveform…" for >10s on fresh clip opens. Not a CSP issue (verified via `fetch("file://…")` smoke test returning `OK 2707 chars`). Real path is IPC → FFmpeg subprocess in [src/main/ffmpeg.js:240](src/main/ffmpeg.js#L240), outside renderer network scope. [src/renderer/editor/utils/waveformUtils.js](src/renderer/editor/utils/waveformUtils.js) appears to be dead code — needs separate investigation.
+  - [#65](https://github.com/Oghenefega/ClipFlow/issues/65) — Subtitles + captions anchor to the wrong vertical position when the preview panel shrinks. Layout bug, unrelated to H2.
+  - [#57 comment 4273583749](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4273583749) — Zoom-slider drag on long sources still lags. Logged as an observation under the existing editor-perf issue.
+- **CSP iterated three times during the session** before landing: (1) initial draft included `frame-ancestors 'none'` (removed — meta-tag limitation), (2) PostHog blocked on first boot (added `us-assets.i.posthog.com` to both script-src and connect-src), (3) waveform flow needed `file:` on connect-src (added, though the root cause turned out to be unrelated dead-code). Each iteration was a build + launch + DevTools-console check, not speculative.
+- **Verification matrix passed:** subtitle burn-in on a real render, drop-to-Rename, drop-to-Recordings. DevTools "No Issues" badge on the Issues tab confirmed zero CSP violations after the final policy landed.
+
 ## [Unreleased] — 2026-04-17 (session 17) — Pre-launch hardening: H1 overlay + H3 main window sandbox
 
 ### Changed

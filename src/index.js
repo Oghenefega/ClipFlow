@@ -21,8 +21,10 @@ function showCrashScreen(label, error) {
       <h1 style="font-size:20px;margin-bottom:12px;font-weight:700">ClipFlow crashed</h1>
       <p style="font-size:13px;color:#888;margin-bottom:16px">${label}</p>
       <pre style="font-size:11px;color:#ff9999;white-space:pre-wrap;max-width:700px;margin-bottom:24px;text-align:left;max-height:300px;overflow:auto">${msg.replace(/</g, "&lt;")}</pre>
-      <button onclick="window.location.reload()" style="padding:10px 24px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Reload App</button>
+      <button id="clipflow-crash-reload" style="padding:10px 24px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Reload App</button>
     </div>`;
+    const reloadBtn = document.getElementById("clipflow-crash-reload");
+    if (reloadBtn) reloadBtn.addEventListener("click", () => window.location.reload());
   }
 }
 
