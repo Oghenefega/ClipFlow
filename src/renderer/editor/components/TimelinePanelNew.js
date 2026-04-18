@@ -60,6 +60,7 @@ export default function TimelinePanelNew() {
   const setTlZoom = useLayoutStore((s) => s.setTlZoom);
 
   const waveformPeaks = useEditorStore((s) => s.waveformPeaks);
+  const waveformError = useEditorStore((s) => s.waveformError);
   const nleSegments = useEditorStore((s) => s.nleSegments);
   const sourceDuration = useEditorStore((s) => s.sourceDuration);
   const sourceStartTime = useEditorStore((s) => s.sourceStartTime);
@@ -1036,6 +1037,7 @@ export default function TimelinePanelNew() {
                   }}>
                     <WaveformTrack
                       peaks={waveformPeaks}
+                      error={waveformError}
                       clipFileDuration={sourceDuration || clipFileDuration || duration}
                       clipOrigin={0}
                       sourceDuration={sourceDuration}

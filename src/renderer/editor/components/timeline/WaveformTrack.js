@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
+function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -71,10 +71,10 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, sourceDura
     ctx.clearRect(0, 0, w, h);
 
     if (!peaks || peaks.length === 0) {
-      ctx.fillStyle = "hsl(25 90% 55% / 0.4)";
+      ctx.fillStyle = error ? "hsl(0 70% 60% / 0.55)" : "hsl(25 90% 55% / 0.4)";
       ctx.font = "10px 'DM Sans', sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Extracting waveform...", w / 2, h / 2 + 3);
+      ctx.fillText(error ? "Waveform unavailable" : "Extracting waveform...", w / 2, h / 2 + 3);
       return;
     }
 
@@ -145,7 +145,7 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, sourceDura
     ctx.moveTo(0, centerY);
     ctx.lineTo(w, centerY);
     ctx.stroke();
-  }, [peaks, timelineWidth, selected, clipFileDuration, nleSegment]);
+  }, [peaks, error, timelineWidth, selected, clipFileDuration, nleSegment]);
 
   const showHandles = selected || hovered;
 
@@ -224,6 +224,7 @@ function WaveformTrack({ peaks, clipFileDuration = 0, clipOrigin = 0, sourceDura
 export default React.memo(WaveformTrack, (prev, next) => {
   return (
     prev.peaks === next.peaks &&
+    prev.error === next.error &&
     prev.clipFileDuration === next.clipFileDuration &&
     prev.sourceDuration === next.sourceDuration &&
     prev.timelineWidth === next.timelineWidth &&

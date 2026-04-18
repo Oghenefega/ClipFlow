@@ -99,7 +99,11 @@ function buildAllShadows(opts) {
 
 function buildSubtitleStyle(config, scaleFactor) {
   const s = config || {};
-  const fontSize = Math.max(7, (s.fontSize || 52) * scaleFactor);
+  // No floor on fontSize — must scale purely proportionally to scaleFactor so the
+  // subtitle wraps identically at every preview size. A fixed floor (e.g. 7px) breaks
+  // the width/font-size ratio when the preview shrinks, causing lines that fit on one
+  // row at full size to wrap to two rows when narrowed.
+  const fontSize = (s.fontSize || 52) * scaleFactor;
   const style = {
     fontFamily: `'${s.fontFamily || "Latina Essential"}', sans-serif`,
     fontSize: `${fontSize}px`,
@@ -115,8 +119,10 @@ function buildSubtitleStyle(config, scaleFactor) {
   };
   if (s.bgOn) {
     style.background = hexToRgba(s.bgColor || "#000", s.bgOpacity ?? 80);
-    style.padding = `${Math.max(1, (s.bgPaddingY || 8) * scaleFactor * 0.5)}px ${Math.max(2, (s.bgPaddingX || 12) * scaleFactor * 0.5)}px`;
-    style.borderRadius = `${Math.max(1, (s.bgRadius || 6) * scaleFactor * 0.5)}px`;
+    // No floors — padding and radius must scale purely with scaleFactor to keep the
+    // subtitle box geometry proportional at every preview size.
+    style.padding = `${(s.bgPaddingY || 8) * scaleFactor * 0.5}px ${(s.bgPaddingX || 12) * scaleFactor * 0.5}px`;
+    style.borderRadius = `${(s.bgRadius || 6) * scaleFactor * 0.5}px`;
   } else {
     style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
     style.borderRadius = `${4 * scaleFactor}px`;
@@ -149,7 +155,9 @@ function buildSubtitleShadows(config, scaleFactor) {
 
 function buildCaptionStyle(config, scaleFactor) {
   const c = config || {};
-  const fontSize = Math.max(6, (c.fontSize || 30) * 2.4 * scaleFactor);
+  // No floor on fontSize — must scale purely proportionally so the caption wraps
+  // identically at every preview size. See buildSubtitleStyle for context.
+  const fontSize = (c.fontSize || 30) * 2.4 * scaleFactor;
   const style = {
     fontFamily: `'${c.fontFamily || "Latina Essential"}', sans-serif`,
     fontSize: `${fontSize}px`,
@@ -165,8 +173,9 @@ function buildCaptionStyle(config, scaleFactor) {
   };
   if (c.bgOn) {
     style.background = hexToRgba(c.bgColor || "#000", c.bgOpacity ?? 70);
-    style.padding = `${Math.max(1, (c.bgPaddingY || 8) * scaleFactor * 0.5)}px ${Math.max(2, (c.bgPaddingX || 12) * scaleFactor * 0.5)}px`;
-    style.borderRadius = `${Math.max(1, (c.bgRadius || 6) * scaleFactor * 0.5)}px`;
+    // No floors — padding and radius must scale purely with scaleFactor.
+    style.padding = `${(c.bgPaddingY || 8) * scaleFactor * 0.5}px ${(c.bgPaddingX || 12) * scaleFactor * 0.5}px`;
+    style.borderRadius = `${(c.bgRadius || 6) * scaleFactor * 0.5}px`;
   } else {
     style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
   }

@@ -420,6 +420,7 @@ export default function PreviewPanelNew() {
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
   const initVideoRef = usePlaybackStore((s) => s.initVideoRef);
   const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
+  const setWaveformError = useEditorStore((s) => s.setWaveformError);
   const initNleSegments = useEditorStore((s) => s.initNleSegments);
 
   // Subtitles — raw segments (source-absolute), mapped to timeline below after nleSegments loads
@@ -607,6 +608,31 @@ export default function PreviewPanelNew() {
     observer.observe(canvasRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Fit-mode canvas dimensions — JS-driven so the canvas always maintains an exact
+  // 9:16 aspect. Previously `aspectRatio: 9/16` + `height: 100%` + `maxWidth/Height: 100%`
+  // let the browser stretch the canvas box in narrow containers, which made overlays
+  // anchored at `top: ${yPercent}%` of canvas drift off the visible video rect (#65).
+  // Measuring the scroll container's content box and computing min(byHeight, byWidth)
+  // guarantees the canvas exactly fills available space at the right aspect.
+  const [scrollSize, setScrollSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setScrollSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(scrollContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+  const fitSize = useMemo(() => {
+    if (scrollSize.w <= 0 || scrollSize.h <= 0) return null;
+    const ratio = 9 / 16;
+    const byHeight = { w: scrollSize.h * ratio, h: scrollSize.h };
+    const byWidth = { w: scrollSize.w, h: scrollSize.w / ratio };
+    return byHeight.w <= scrollSize.w ? byHeight : byWidth;
+  }, [scrollSize.w, scrollSize.h]);
 
   // Register video ref with playback store
   useEffect(() => {
@@ -856,21 +882,37 @@ export default function PreviewPanelNew() {
       const editorProject = useEditorStore.getState().project;
       const sourcePath = editorProject?.sourceFile || clip?.filePath;
       if (sourcePath && editorProject?.id && window.clipflow?.waveformExtractCached) {
+        setWaveformError(null);
         window.clipflow.waveformExtractCached(editorProject.id, sourcePath, videoDur).then((result) => {
           if (result?.peaks?.length > 0) {
             setWaveformPeaks(result.peaks);
+            setWaveformError(null);
+          } else if (result?.error) {
+            console.warn("[waveform] extraction returned error:", result.error);
+            setWaveformError(result.error);
+          } else {
+            setWaveformError("Waveform unavailable");
           }
         }).catch((err) => {
-          console.warn("Waveform extraction failed:", err);
+          console.warn("[waveform] extraction failed:", err);
+          setWaveformError(err?.message || "Waveform unavailable");
         });
       } else if (sourcePath && window.clipflow?.ffmpegExtractWaveformPeaks) {
         // Legacy fallback (no project id or cached IPC unavailable)
+        setWaveformError(null);
         window.clipflow.ffmpegExtractWaveformPeaks(sourcePath, 800).then((result) => {
-          if (result?.peaks?.length > 0) setWaveformPeaks(result.peaks);
-        }).catch(() => {});
+          if (result?.peaks?.length > 0) {
+            setWaveformPeaks(result.peaks);
+            setWaveformError(null);
+          } else {
+            setWaveformError(result?.error || "Waveform unavailable");
+          }
+        }).catch((err) => {
+          setWaveformError(err?.message || "Waveform unavailable");
+        });
       }
     }
-  }, [setDuration, initNleSegments, clip?.filePath, setWaveformPeaks]);
+  }, [setDuration, initNleSegments, clip?.filePath, setWaveformPeaks, setWaveformError]);
 
   const onVideoEnd = useCallback(() => {
     setPlaying(false);
@@ -998,17 +1040,20 @@ export default function PreviewPanelNew() {
           ref={canvasRef}
           className="relative rounded-lg shrink-0"
           style={{
-            aspectRatio: "9 / 16",
-            ...(zoom === -1
+            ...(zoom === -1 && fitSize
               ? {
-                  // Fit mode: fill available height, auto width from aspect ratio
-                  height: "100%",
-                  maxHeight: "100%",
-                  maxWidth: "100%",
+                  // Fit mode: JS-computed exact 9:16 fit within scroll container.
+                  // No aspectRatio CSS — both dims are explicit, so the box can't
+                  // be reconciled to a non-9:16 size by the browser.
+                  width: `${fitSize.w}px`,
+                  height: `${fitSize.h}px`,
                 }
               : {
-                  // Zoom mode: fixed height based on percentage of container
-                  height: `${zoom}%`,
+                  // Zoom mode: fixed height based on percentage of container,
+                  // width derived from aspectRatio so the canvas can overflow
+                  // the scroll container and be pannable.
+                  aspectRatio: "9 / 16",
+                  height: zoom === -1 ? "100%" : `${zoom}%`,
                 }),
             background: "hsl(240 6% 6%)",
             border: "1px solid hsl(240 4% 14% / 0.4)",

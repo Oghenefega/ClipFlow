@@ -10,6 +10,121 @@
 
 ---
 
+## 🔲 PROPOSED — Session 19: three editor bugs / feature (#65, #59, #64)
+
+**Plain-language goal.** Close three items in one session: (1) fix subtitle/caption overlays drifting off the video when the preview panel resizes, (2) add a "Render" button so the editor can export an MP4 without adding it to the upload queue, (3) figure out why waveform extraction sometimes spins forever and surface a visible error when it fails.
+
+**Why this batch.** All three live in the editor surface (PreviewPanel / Topbar / waveform handler). Touching the preview panel once for #65 + #64 amortises the re-verify cost. #59 is a self-contained Topbar change with its own verification loop. Hardening arc closed last session — the whole session can be product-side.
+
+**Order of attack.** #65 first (quickest, contained), then #59 (self-contained feature), then #64 (investigation-heavy, punt if the root cause turns out larger than a log+handle pass).
+
+---
+
+### 🔲 Task A — #65 subtitle/caption anchor drift on panel resize
+
+**Root-cause hypothesis.** The 9:16 canvas at [src/renderer/editor/components/PreviewPanelNew.js:997-1015](../src/renderer/editor/components/PreviewPanelNew.js#L997-L1015) combines `aspectRatio: "9 / 16"` + `height: "100%"` + `maxWidth: "100%"` + `maxHeight: "100%"` in fit mode. When the preview column narrows, `maxWidth: 100%` caps width but the browser's aspect-ratio reconciliation against `height: 100%` can produce a canvas whose measured `getBoundingClientRect()` height exceeds the visible bounds — the overlays anchor at `top: ${yPercent}%` of that inflated height and end up below the rendered video. `scaleFactor = canvasWidth / 1080` from the ResizeObserver stays correct, so text scales but positioning drifts.
+
+Corroboration from code:
+- DraggableOverlay at [PreviewPanelNew.js:359-368](../src/renderer/editor/components/PreviewPanelNew.js#L359-L368) anchors children at `top: ${yPercent}%` of the absolute-positioned parent — that parent is the 9:16 canvas. If the canvas's rendered height ≠ its layout box height, anchoring is wrong.
+- Video uses `object-contain` inside the canvas, so the video's visible rect is always ≤ the canvas rect. Overlays tracking canvas rect (not video rect) is the structural issue.
+
+**Fix direction.** Switch fit-mode canvas sizing to a form that guarantees the canvas box exactly matches the visible video box. Two options:
+
+1. **Cheap:** Change fit-mode from `{ height: 100%, maxWidth: 100%, maxHeight: 100% }` to a JS-driven `fitSize = min(containerH, containerW * 16/9)` computed from the scroll container's `getBoundingClientRect()` via ResizeObserver. Canvas gets explicit `width` + `height` in px. Aspect-ratio CSS prop removed in fit mode (only used in zoom mode).
+2. **Structural (preferred):** Wrap the canvas in a flex parent that enforces fit via `min(100cqh, 100cqw * 16/9)` container queries, OR keep aspect-ratio but drop `height: 100%` in favour of `width: min(100%, calc(100% * 9/16))` so width is the primary constraint when the panel narrows.
+
+Pick after a 5-minute devtools check — measure canvas `getBoundingClientRect()` at narrow vs wide panel widths and confirm which number is lying.
+
+**Files to touch.**
+- [src/renderer/editor/components/PreviewPanelNew.js](../src/renderer/editor/components/PreviewPanelNew.js) — canvas sizing (~line 1000-1015), possibly the ResizeObserver at 600-609 if we switch to JS-driven sizing.
+
+**Verification.**
+- Drag the Transcript panel's right edge across its full range (narrow → wide) in fit mode — subtitle + caption stay glued to the video frame at every width.
+- Switch to manual zoom 25% / 100% / 200% — overlays stay anchored.
+- Switch between a 16:9 source and a 9:16 source (if available) — no regression.
+- Zoom-slider drag × 10 on 30-min source — standing infrastructure canary (no renderer crash).
+
+**Done means.** #65 acceptance criteria met; can close the issue.
+
+---
+
+### 🔲 Task B — #59 editor Render-without-queue button
+
+**Where it lives.** Topbar at [PreviewPanelNew.js:203-405](../src/renderer/editor/components/PreviewPanelNew.js#L203-L405). The current Queue button triggers `onSendToQueue` → `doQueueAndRender` → `window.clipflow.renderClip(...)`. The rendered file is already written to disk — the "queued" state is renderer-side state attached to the clip by `onClipRendered` refreshing App.js project state.
+
+**The actual coupling.** Need to read `renderClip` IPC + the `onClipRendered` callback to confirm exactly where the "add to queue" side effect fires. Two possibilities:
+1. Main process marks the clip `status: "queued"` as part of `renderClip`. → We need a new IPC param `{ addToQueue: boolean }` and a branch in the main handler.
+2. Main process just renders; renderer-side `onClipRendered` handler is what flips the clip to queued. → We can pass `addToQueue: false` through the existing callback chain and branch in App.js.
+
+Read [src/main/main.js renderClip handler] and the `onClipRendered` definition in `App.js` (or wherever `Topbar` receives it) before deciding.
+
+**Fix direction.** Split `doQueueAndRender` into a shared `doRender({ addToQueue })` and two call sites:
+- Existing "Queue" button: `doRender({ addToQueue: true })` + existing confirmation toast.
+- New "Render" button placed immediately left of Queue: `doRender({ addToQueue: false })` + toast "Rendered to [path]" with an "Open folder" action (`window.clipflow.openPath?.(folder)` or equivalent — verify the IPC exists; if not, add it).
+
+Visual: follow [ui-standards.md](../.claude/rules/ui-standards.md) — shadcn Button with secondary/outline variant (Queue is the primary). Icons from lucide-react (`Download` for Render, existing icon for Queue). Green toggle state pattern doesn't apply here — these are actions, not toggles.
+
+**Files to touch.**
+- [src/renderer/editor/components/PreviewPanelNew.js](../src/renderer/editor/components/PreviewPanelNew.js) — Topbar: extract `doRender`, add button.
+- Possibly [src/main/main.js](../src/main/main.js) — if `renderClip` needs an `addToQueue` param (TBD after reading).
+- Possibly [src/main/preload.js](../src/main/preload.js) — if we need `openPath` bridge for the "Open folder" action.
+- Possibly a toast utility — check if one already exists; if so, reuse.
+
+**Verification.**
+- Open a clip → press new Render button → MP4 written to configured output location; clip does NOT show Queued badge in Projects view.
+- Same clip → press Queue button → MP4 written AND clip shows Queued badge in Projects view; Queue tab picks it up.
+- Rendering progress UX (existing render progress overlay) fires for both actions identically.
+- Toasts read correctly: "Rendered to [path]" vs "Added to queue".
+- Regression: zoom-slider drag × 10 on 30-min source — no renderer crash.
+
+**Done means.** #59 acceptance criteria met; can close the issue.
+
+---
+
+### 🔲 Task C — #64 waveform extraction silently empty
+
+**What the issue already lays out.** Diagnostic logging at [src/main/main.js:760](../src/main/main.js#L760) (`waveform:extractCached`) + [src/main/ffmpeg.js:240](../src/main/ffmpeg.js#L240) (`extractWaveformPeaks`), reproduce, read log, fix the surfaced cause.
+
+**Concrete plan.**
+1. Add `console.log` entries at the `waveform:extractCached` handler for: input `sourceFilePath`, `fs.existsSync` result, cache hit vs. miss, cache path, and at the extract call — args and result (`peaks.length`, `error`).
+2. Add `console.log` at `extractWaveformPeaks` entry + a `stderr` capture on the `execFile` spawn so FFmpeg's own error output appears in main stdout. Currently only `err.message` is caught, which for `execFile` usually omits stderr.
+3. Run `npm start` from a terminal so main stdout is visible, open a fresh clip, read the log, identify which branch is hitting. Likely candidates per issue body: ffmpeg binary not on PATH, `-map 0:a:${idx}` selects a non-existent track, cache dir write failure.
+4. Fix whatever shows up. If it's the PATH issue, ship an ffmpeg binary-path resolver that falls back to a bundled path. If it's the audio-track selector, fix the fallback logic. If it's cache dir, handle the write error visibly.
+5. Surface `{ error, peaks: [] }` responses in the renderer — [PreviewPanelNew.js:858-868](../src/renderer/editor/components/PreviewPanelNew.js#L858-L868) currently only acts on `peaks.length > 0`. Add an error state (visible "Waveform unavailable" or similar) instead of the infinite "Extracting waveform…" spinner.
+
+**Files to touch.**
+- [src/main/main.js](../src/main/main.js) — logging in `waveform:extractCached` handler.
+- [src/main/ffmpeg.js](../src/main/ffmpeg.js) — logging + stderr capture in `extractWaveformPeaks`.
+- [src/renderer/editor/components/PreviewPanelNew.js](../src/renderer/editor/components/PreviewPanelNew.js) — error UI at the waveform call site.
+- Possibly a bundled ffmpeg path / electron-builder config if the root cause is missing binary.
+
+**Verification.**
+- Open a fresh (not previously cached) clip on a 30-min source → waveform appears within 10s.
+- Open a fresh clip on a 3-min source → waveform appears within 5s.
+- Main log shows `[waveform]` start / cache hit|extracted / failed lines on every call.
+- When extraction fails (simulate by pointing at a file with no audio track), renderer shows a visible error state instead of spinning forever.
+
+**Done means.** #64 acceptance criteria met; can close the issue. If the root cause turns out to be substantially larger than a log+handle pass (e.g. we need to ship a bundled ffmpeg binary), stop after the logging instrumentation + renderer error UI, file a follow-up issue with the full reproduction log, and close this one with a pointer. Do not rabbit-hole into distribution work mid-session.
+
+---
+
+### Shared verification matrix (once, at end of session)
+
+1. Build + launch: `npm run build:renderer && npm start`.
+2. Zoom-slider drag × 10 on a 30-min source — no renderer crash (standing infrastructure canary).
+3. DevTools console clean under `CLIPFLOW_DEVTOOLS=1 npm start` — zero CSP violations (H2 regression canary).
+4. Render a clip with subtitles ON → play output MP4 → subtitles burn in with correct timing and font (H1 regression canary).
+5. Click every main tab — no "Something went wrong" screens.
+
+### Out of scope
+
+- [#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf / component extraction — separate session.
+- [#63](https://github.com/Oghenefega/ClipFlow/issues/63) overlay sandbox — defense-in-depth, not urgent.
+- [#61](https://github.com/Oghenefega/ClipFlow/issues/61) / [#62](https://github.com/Oghenefega/ClipFlow/issues/62) — separate session.
+- Distribution/code-signing/auto-updater work — pre-beta priority is substrate + product, not launch hardening.
+
+---
+
 ## (historical plan below — preserved for reference)
 
 ## 🔲 PROPOSED — H2 renderer CSP (#48) — last hardening item

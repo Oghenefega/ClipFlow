@@ -258,8 +258,18 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
       timeout: 60000,
       maxBuffer: 50 * 1024 * 1024,
       encoding: "buffer",
-    }, (err, stdout) => {
-      if (err) return reject(new Error(`Waveform extraction failed (track ${idx}): ${err.message}`));
+    }, (err, stdout, stderr) => {
+      if (err) {
+        // Capture ffmpeg's own stderr — execFile's default err.message only carries
+        // exit code. ffmpeg prints the real reason (no such track, bad codec, file
+        // unreadable) to stderr. Log the tail so #64-style silent failures surface.
+        const stderrTail = stderr
+          ? Buffer.isBuffer(stderr) ? stderr.toString("utf-8").slice(-800) : String(stderr).slice(-800)
+          : "";
+        console.error(`[waveform] ffmpeg exit (track ${idx}): code=${err.code ?? "?"} msg=${err.message}`);
+        if (stderrTail) console.error(`[waveform] ffmpeg stderr tail:\n${stderrTail}`);
+        return reject(new Error(`Waveform extraction failed (track ${idx}): ${err.code ?? err.message}`));
+      }
       if (!stdout || stdout.length < 2) return resolve({ peaks: [] });
 
       // Parse 16-bit samples
@@ -282,11 +292,15 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
     });
   });
 
-  // Try configured track first; fall back to track 0 if it fails
+  // Try configured track first; fall back to track 0 if it fails. If both fail,
+  // surface the error to the caller instead of swallowing it — the renderer needs
+  // a visible error state rather than an infinite spinner (#64).
   if (trackIdx > 0) {
-    return runExtract(trackIdx).catch(() => runExtract(0));
+    return runExtract(trackIdx).catch((firstErr) =>
+      runExtract(0).catch(() => ({ peaks: [], error: firstErr.message }))
+    );
   }
-  return runExtract(0);
+  return runExtract(0).catch((err) => ({ peaks: [], error: err.message }));
 }
 
 /**

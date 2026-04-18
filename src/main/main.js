@@ -691,6 +691,11 @@ ipcMain.handle("shell:openFolder", async (_, folderPath) => {
   shell.openPath(folderPath);
 });
 
+// Shell: open the containing folder in Explorer and select the file
+ipcMain.handle("shell:revealInFolder", async (_, filePath) => {
+  shell.showItemInFolder(filePath);
+});
+
 // Dialog: save file (for CSV export)
 ipcMain.handle("dialog:saveFile", async (_, options) => {
   const result = await dialog.showSaveDialog(mainWindow, {
@@ -758,10 +763,16 @@ ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => 
 // Extraction over a 30-min file is 1.5–6s the first time, so cache to disk keyed
 // by {sourceFile path, mtime, size}. Subsequent opens read JSON instantly.
 ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, durationSec) => {
+  const t0 = Date.now();
+  console.log(`[waveform] start projectId=${projectId} file=${sourceFilePath} dur=${durationSec}`);
   try {
     const watchFolder = store.get("watchFolder");
-    if (!watchFolder) return { error: "Watch folder not set", peaks: [] };
+    if (!watchFolder) {
+      console.warn(`[waveform] failed: watch folder not set`);
+      return { error: "Watch folder not set", peaks: [] };
+    }
     if (!sourceFilePath || !fs.existsSync(sourceFilePath)) {
+      console.warn(`[waveform] failed: source file not found path=${sourceFilePath}`);
       return { error: "Source file not found", peaks: [] };
     }
 
@@ -775,7 +786,12 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
     const peakCount = Math.min(8000, Math.max(400, Math.ceil(dur * 4)));
 
     const cacheDir = path.join(projects.getProjectsRoot(watchFolder), projectId, ".waveforms");
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    try {
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    } catch (mkErr) {
+      console.warn(`[waveform] failed: cache dir mkdir error dir=${cacheDir} err=${mkErr.message}`);
+      // Fall through — we can still extract, just skip caching.
+    }
     const baseName = path.basename(sourceFilePath).replace(/[^\w.-]/g, "_");
     const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.json`;
     const cachePath = path.join(cacheDir, cacheKey);
@@ -784,20 +800,28 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
       try {
         const cached = JSON.parse(fs.readFileSync(cachePath, "utf-8"));
         if (Array.isArray(cached.peaks) && cached.peaks.length > 0) {
+          console.log(`[waveform] cache hit peaks=${cached.peaks.length} ms=${Date.now() - t0}`);
           return { peaks: cached.peaks, cached: true };
         }
       } catch (_) { /* fall through — re-extract on parse failure */ }
     }
 
     const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
+    console.log(`[waveform] extracting peakCount=${peakCount} track=${audioTrack}`);
     const result = await ffmpeg.extractWaveformPeaks(sourceFilePath, peakCount, audioTrack);
     if (result?.peaks?.length > 0) {
+      console.log(`[waveform] extracted peaks=${result.peaks.length} ms=${Date.now() - t0}`);
       try {
         fs.writeFileSync(cachePath, JSON.stringify({ peaks: result.peaks, peakCount, mtimeMs, sizeBytes }), "utf-8");
-      } catch (_) { /* cache write failure is non-fatal */ }
+      } catch (wErr) {
+        console.warn(`[waveform] cache write failed (non-fatal): ${wErr.message}`);
+      }
+    } else {
+      console.warn(`[waveform] extraction returned empty peaks ms=${Date.now() - t0}${result?.error ? ` err=${result.error}` : ""}`);
     }
-    return { peaks: result.peaks || [], cached: false };
+    return { peaks: result.peaks || [], cached: false, error: result?.error };
   } catch (err) {
+    console.error(`[waveform] failed: ${err.message} ms=${Date.now() - t0}`);
     return { error: err.message, peaks: [] };
   }
 });

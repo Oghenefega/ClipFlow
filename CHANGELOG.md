@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-18 (session 19) — Editor UX: overlay drift fix, Render-only button, waveform error surfacing
+
+### Fixed
+- **#65 — Subtitle & caption overlays drift off the video when the preview panel is narrowed.** Root cause: the canvas used `aspectRatio: "9 / 16"` combined with `height: 100%` and `maxWidth/maxHeight: 100%`. Chromium's flexbox aspect-ratio reconciliation produced a canvas element whose measured rect did not match the visible 9:16 rendered area in narrow containers. Overlays positioned via `top: ${yPercent}%` of the canvas therefore drifted out of the visible video frame. Fix ([src/renderer/editor/components/PreviewPanelNew.js](src/renderer/editor/components/PreviewPanelNew.js)): added a `ResizeObserver` on the scroll container, compute the largest 9:16 box that fits within the container via JS, and apply both width and height as explicit pixel values in fit mode. Zoom mode (percent values) keeps the original `aspectRatio + height: ${zoom}%` path. Overlays now stay pinned to the video as the ResizablePanelGroup handle moves.
+
+### Added
+- **#59 — "Render" button in the editor topbar.** Exports the current clip to MP4 without flipping `status` to `approved` or pushing it into the upload-queue flow. Sits next to the existing "Queue" button ([src/renderer/editor/components/EditorLayout.js](src/renderer/editor/components/EditorLayout.js)). After a successful render a small toast appears with the file path and a "Show in folder" button that reveals the file in Explorer via the new `shell:revealInFolder` IPC handler ([src/main/main.js](src/main/main.js)) exposed as `window.clipflow.revealInFolder` ([src/main/preload.js](src/main/preload.js)). Auto-dismisses after 6 s. Use case: quick local exports when the creator wants the MP4 without committing it to the publishing queue yet.
+- **#64 — Waveform extraction instrumentation + visible error state.** Previous behavior: on extraction failure the timeline showed "Extracting waveform…" forever because errors were swallowed by a fire-and-forget `.catch()` in the renderer and a silent fallback in [src/main/ffmpeg.js](src/main/ffmpeg.js). Now:
+  - `[src/main/main.js]` `waveform:extractCached` handler logs `[waveform] start`, cache hit/miss, `extracting`, `extracted` (with peak count + elapsed ms), and `failed` (with the original error + elapsed ms). Returns `{ peaks, cached, error }` so the renderer can distinguish "still working" from "gave up".
+  - `[src/main/ffmpeg.js]` `extractWaveformPeaks` captures FFmpeg's `stderr` via the third `execFile` callback argument and logs the last 800 bytes on failure (previously `stderr` was thrown away). The track-1 → track-0 fallback no longer swallows the final error; it returns `{ peaks: [], error }` with the first failure's message.
+  - `[src/renderer/editor/stores/useEditorStore.js]` added `waveformError` state + `setWaveformError` action, reset on clip open.
+  - `[src/renderer/editor/components/PreviewPanelNew.js]` call site sets `waveformError` when the IPC returns `{ error }` or rejects; clears it on success.
+  - `[src/renderer/editor/components/timeline/WaveformTrack.js]` now accepts an `error` prop. When `peaks` is empty and `error` is set, renders "Waveform unavailable" in red instead of the infinite "Extracting waveform…" message, and the useEffect + `React.memo` comparator include `error` so the canvas repaints on state change.
+
 ## [Unreleased] — 2026-04-17 (session 18) — Pre-launch hardening: H2 renderer CSP
 
 ### Added

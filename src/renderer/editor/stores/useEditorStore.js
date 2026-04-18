@@ -33,6 +33,7 @@ const useEditorStore = create((set, get) => ({
   editingTitle: false,
   dirty: false,
   waveformPeaks: null,
+  waveformError: null,
 
   // ── NLE Segment Model (non-destructive editing) ──
   // Each segment is { id, sourceStart, sourceEnd } — a window into the source file.
@@ -66,7 +67,7 @@ const useEditorStore = create((set, get) => ({
     useCaptionStore.getState().initFromClip(null);
     usePlaybackStore.getState().reset();
     try { useAIStore.getState().reset(); } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, audioSegments: [], nleSegments: [] });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [] });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -197,7 +198,7 @@ const useEditorStore = create((set, get) => ({
     }
 
     // Reset waveform (real extraction via FFmpeg in main process — TODO)
-    set({ waveformPeaks: null });
+    set({ waveformPeaks: null, waveformError: null });
 
     // Set AI game from project data
     if (project?.game) {
@@ -214,6 +215,7 @@ const useEditorStore = create((set, get) => ({
   setDirty: (v) => set({ dirty: v }),
   markDirty: () => set({ dirty: true }),
   setWaveformPeaks: (peaks) => set({ waveformPeaks: peaks }),
+  setWaveformError: (error) => set({ waveformError: error }),
 
   // ── NLE Segment Actions (non-destructive editing) ──
   // All operations are instant — no FFmpeg, no async, no file modification.

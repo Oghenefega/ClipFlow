@@ -30,6 +30,9 @@ import {
   Bug,
   ThumbsUp,
   ThumbsDown,
+  Download,
+  FolderOpen,
+  X,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -223,6 +226,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const [rendering, setRendering] = useState(false);
   const [renderPct, setRenderPct] = useState(0);
   const [renderDetail, setRenderDetail] = useState("");
+  const [lastRender, setLastRender] = useState(null); // { path, addedToQueue } — success notification
   const [retranscribing, setRetranscribing] = useState(false);
   const [retranscribeStage, setRetranscribeStage] = useState("");
   const [, forceUpdate] = useState(0);
@@ -251,15 +255,20 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
     setTimeout(() => setSaveFlash(false), 1200);
   }, [handleSave]);
 
-  // Core queue logic: save → approve → render → done
-  const doQueueAndRender = useCallback(async () => {
+  // Core render logic: save → (optionally approve) → render → done.
+  // When `addToQueue` is true (Queue button), the clip is marked `status: "approved"`
+  // so it surfaces in the Queue tab for scheduling. When false (Render button), the
+  // clip's status is left alone — the user just wants an exported MP4 without
+  // committing to the publish flow.
+  const doRender = useCallback(async (addToQueue) => {
     if (!clip || !project || rendering) return;
     await handleSave();
     setLastSaved(Date.now());
 
-    // Mark as approved + rendering
+    // Pre-render project update. Only flip status when adding to queue; otherwise
+    // just track rendering state so the UI shows the right indicator.
     await window.clipflow?.projectUpdateClip(project.id, clip.id, {
-      status: "approved",
+      ...(addToQueue ? { status: "approved" } : {}),
       renderStatus: "rendering",
     });
 
@@ -372,16 +381,18 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       }));
       const result = await window.clipflow.renderClip(safeClip, safeProject, null, safeOptions);
       if (result?.error) {
-        console.error("[Queue] Render failed:", result.error);
+        console.error("[Render] Failed:", result.error);
         await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
       } else {
         setRenderPct(100);
         setRenderDetail("Done!");
+        // Surface success notification with path + open-folder action
+        setLastRender({ path: result.path || null, addedToQueue: !!addToQueue });
         // Refresh project in App.js state so Queue tab picks up the rendered clip
         if (onClipRendered) onClipRendered(project.id);
       }
     } catch (err) {
-      console.error("[Queue] Render error:", err);
+      console.error("[Render] Error:", err);
       await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
     } finally {
       window.clipflow?.removeRenderProgressListener?.();
@@ -393,18 +404,31 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
     }
   }, [handleSave, clip, project, rendering, onClipRendered]);
 
+  // Auto-dismiss the render success notification after 6s
+  useEffect(() => {
+    if (!lastRender) return;
+    const t = setTimeout(() => setLastRender(null), 6000);
+    return () => clearTimeout(t);
+  }, [lastRender]);
+
   const onSendToQueue = useCallback(async () => {
     if (requireHashtagInTitle && (!clipTitle || !clipTitle.includes("#"))) {
       setHashtagWarning(true);
       return;
     }
-    doQueueAndRender();
-  }, [requireHashtagInTitle, clipTitle, doQueueAndRender]);
+    doRender(true);
+  }, [requireHashtagInTitle, clipTitle, doRender]);
 
   const onConfirmQueue = useCallback(async () => {
     setHashtagWarning(false);
-    doQueueAndRender();
-  }, [doQueueAndRender]);
+    doRender(true);
+  }, [doRender]);
+
+  // Render-only — export MP4 without marking the clip approved or adding to queue.
+  // No hashtag check: hashtags are only relevant when publishing, not when stashing.
+  const onRenderOnly = useCallback(() => {
+    doRender(false);
+  }, [doRender]);
 
   // Subtitle debug report — logs clip subtitle data for diagnosis
   // Initialize debugStatus from clip's persisted subtitleRating
@@ -846,15 +870,73 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
             </div>
           </div>
         ) : (
-          <Button
-            size="sm"
-            className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
-            style={{ background: "linear-gradient(135deg, #15803d, #22c55e, #4ade80)" }}
-            onClick={onSendToQueue}
-          >
-            <Send className="h-3.5 w-3.5 mr-1.5" />
-            Queue
-          </Button>
+          <>
+            {/* Render — export MP4 without adding to upload queue */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-3 text-xs font-semibold border-border/60 hover:bg-secondary/60"
+              onClick={onRenderOnly}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Render
+            </Button>
+
+            {/* Queue — render AND mark the clip approved so it surfaces in the Queue tab */}
+            <Button
+              size="sm"
+              className="h-8 px-4 text-white hover:opacity-90 text-xs font-semibold shadow-md border-0"
+              style={{ background: "linear-gradient(135deg, #15803d, #22c55e, #4ade80)" }}
+              onClick={onSendToQueue}
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Queue
+            </Button>
+          </>
+        )}
+
+        {/* Render-success notification — auto-dismisses after 6s */}
+        {lastRender && (
+          <div className="absolute top-full right-0 mt-2 w-[340px] rounded-lg border border-emerald-500/40 bg-popover shadow-xl z-50 p-3">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <Check className="h-2.5 w-2.5 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground">
+                  {lastRender.addedToQueue ? "Rendered & queued" : "Rendered"}
+                </p>
+                {lastRender.path && (
+                  <p
+                    className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate"
+                    title={lastRender.path}
+                  >
+                    {lastRender.path}
+                  </p>
+                )}
+              </div>
+              <button
+                className="shrink-0 text-muted-foreground hover:text-foreground p-0.5"
+                onClick={() => setLastRender(null)}
+                aria-label="Dismiss"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            {lastRender.path && (
+              <div className="flex items-center justify-end mt-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={() => window.clipflow?.revealInFolder?.(lastRender.path)}
+                >
+                  <FolderOpen className="h-3 w-3 mr-1.5" />
+                  Show in folder
+                </Button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Hashtag warning popup */}

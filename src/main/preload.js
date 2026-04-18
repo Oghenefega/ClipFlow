@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Shell
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
+  revealInFolder: (filePath) => ipcRenderer.invoke("shell:revealInFolder", filePath),
 
   // Dialogs
   saveFileDialog: (options) => ipcRenderer.invoke("dialog:saveFile", options),

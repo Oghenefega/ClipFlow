@@ -1,47 +1,27 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-17 (session 18) — "H2 renderer CSP — pre-launch hardening arc closed"_
+_Last updated: 2026-04-18 (session 19) — "Editor UX: overlay drift + Render button + waveform error surfacing"_
 
 ---
 
 ## TL;DR
 
-**H2 shipped.** Renderer Content-Security-Policy enforcing on [index.html](index.html). Last item in the pre-launch hardening arc — **H1 (#47), H2 (#48), H3 (#49), H5 (#52), H6 (#53) are all closed.** The `C1`/`C2` substrate upgrades (Electron, Vite) shipped earlier. Security posture baseline: main window sandboxed + contextIsolated, overlay window contextIsolated with a narrow preload bridge, renderer locked to a deny-by-default CSP that only whitelists PostHog, Sentry, Google Fonts, and local `file:` media.
+**Three editor issues fixed in one session.** None were hardening work — the pre-launch hardening arc closed in session 18. Session 19 is the first product-side session after the substrate / security baseline landed.
 
-Final CSP directives (meta tag, enforcing):
+1. **[#65](https://github.com/Oghenefega/ClipFlow/issues/65) overlay drift on preview-panel resize — FIXED.** Canvas was using `aspectRatio: "9/16"` + `height: 100%` + `maxWidth/maxHeight: 100%`, which in a narrow flex container produced a canvas whose measured rect did not match the visible 9:16 render area. Overlays anchored at `top: ${yPercent}%` of the canvas therefore drifted off the video. Fix in [src/renderer/editor/components/PreviewPanelNew.js](src/renderer/editor/components/PreviewPanelNew.js): `ResizeObserver` on the scroll container + JS-computed largest-9:16-that-fits + apply as explicit pixel width/height in fit mode. Zoom mode (`zoom ≠ -1`) keeps the original percent-height path.
+2. **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) "Render" button — SHIPPED.** New button in editor topbar alongside "Queue". Exports MP4 without flipping `status: "approved"` and without enqueuing. Success toast shows the output path + "Show in folder" (reveals file in Explorer via new `shell:revealInFolder` IPC handler → `shell.showItemInFolder`). 6-second auto-dismiss.
+3. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform stuck on "Extracting waveform…" — INSTRUMENTED + error state surfaced.** Previously errors were silently swallowed at two layers: the `execFile` callback in [src/main/ffmpeg.js](src/main/ffmpeg.js) threw away `stderr`, and the track-1 → track-0 fallback ate the final error. Renderer's `.catch()` logged to console but never set UI state, so the timeline just kept showing "Extracting waveform…" forever. Now: main-side logs `[waveform] start/cache-hit/extracting/extracted/failed` with timings; FFmpeg stderr tail is logged on failure; IPC returns `{ peaks, cached, error }`; renderer sets `waveformError` in the editor store; `WaveformTrack` shows "Waveform unavailable" in red when `error` is set and `peaks` is empty. **Does not "fix" the extraction bug itself — it makes the bug diagnosable and keeps the UI honest.** Next time it spins, we'll see the actual FFmpeg stderr instead of guessing.
 
-```
-default-src 'self';
-script-src 'self' https://us-assets.i.posthog.com;
-style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-font-src 'self' https://fonts.gstatic.com;
-img-src 'self' data: blob: file:;
-media-src 'self' blob: file:;
-connect-src 'self' file: https://us.i.posthog.com https://us-assets.i.posthog.com https://*.ingest.us.sentry.io;
-object-src 'none'; base-uri 'self'; form-action 'none';
-```
+Build passed (`npm run build:renderer` → 10.04s, 2728 modules, 1.86 MB). Awaiting user verification on a real clip open.
 
-**One CSP violation was caught during verification and fixed in the same commit arc** — the DOM-level crash screen at [src/index.js:23-27](src/index.js#L23-L27) used inline `onclick="window.location.reload()"`, which `script-src 'self'` blocks (no `'unsafe-inline'`). Refactored to `addEventListener` with an `id`. That's the kind of genuine fix CSP is supposed to catch — a latent inline-script vector gone.
+## 🎯 Next session — pick one
 
-**`'unsafe-inline'` on style-src stays** because the existing views render the `T` theme object via React inline `style={{...}}` attributes pervasively. Migrating to a nonce-per-render or CSS-in-JS-with-extraction pipeline is a multi-session refactor, not a hardening blocker. Tailwind in the editor is unaffected.
+Priority shuffled — #63 (overlay sandbox follow-up), #57 (editor perf), #61, #62 are all ready; #64 now has observability so if the real extraction bug shows up in user logs it becomes actionable.
 
-**Three observations filed during H2 verification (deliberately out of scope):**
-- [#64](https://github.com/Oghenefega/ClipFlow/issues/64) — Waveform extraction stuck on "Extracting waveform…" for >10s. **Not CSP.** Proven via `fetch("file://…")` returning OK 2707 chars. Real flow is IPC → FFmpeg subprocess ([src/main/ffmpeg.js:240](src/main/ffmpeg.js#L240)); `waveformUtils.js` in renderer is dead code.
-- [#65](https://github.com/Oghenefega/ClipFlow/issues/65) — Subtitles + captions anchor to wrong vertical position when the preview panel shrinks.
-- [#57 comment 4273583749](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4273583749) — zoom-slider drag still lags on long sources (observation added under existing editor-perf issue).
-
-Current HEAD will be session 18's wrap commit after this file is written. Pre-launch hardening arc is **closed**; next session can move to product work.
-
-## 🎯 Next session — pick one (no blocker forces it)
-
-1. **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) editor render button without queuing.** Fega surfaced this in session 17 and mentioned again. Small self-contained UI change; good single-session task.
-2. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform extraction stuck.** Filed this session. Dead-code investigation + IPC-path debug. Blocks clean editor UX on fresh clip opens. Medium difficulty.
-3. **[#65](https://github.com/Oghenefega/ClipFlow/issues/65) subtitle/caption anchor drift on panel resize.** Filed this session. Layout bug, probably a single-file fix in the editor preview panel. Quick win.
-4. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Two-part fix spanning [D:\whisper\energy_scorer.py](D:\whisper\energy_scorer.py) and [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer`. Required to make the drop-test path usable on silent screen-only recordings.
-5. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + house-cleaning migration.** Parse `YYYY-MM-DD` from OBS filename prefix, plus one-shot migration walking both watch folders to re-bucket misfiled months. The migration is the bigger piece.
-6. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf on long source.** Proper fix direction is component extraction (`<TimelinePlayhead />` + `<SegmentRow />` memo'd child) per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430). Do **NOT** retry the store-derivation approach.
-7. **[#63](https://github.com/Oghenefega/ClipFlow/issues/63) sandbox the overlay window.** Follow-up to H1. Not urgent — defense-in-depth parity only.
-
-If unsure: **#65** is the quickest, **#59** is the cleanest feature, **#64** is the highest-value bug.
+1. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform root-cause.** With logging in place, reproduce, read the main-process stdout, fix the actual FFmpeg failure mode (wrong track index? silent source? missing audio stream?). Should now be a single-session task because the error is no longer hidden.
+2. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Two-part fix spanning [D:\whisper\energy_scorer.py](D:\whisper\energy_scorer.py) and [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer`. Required to make the drop-test path usable on silent screen-only recordings.
+3. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + one-shot migration** to re-bucket misfiled months.
+4. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf on long source.** Component extraction per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430). Do **NOT** retry the store-derivation approach.
+5. **[#63](https://github.com/Oghenefega/ClipFlow/issues/63) sandbox the overlay window.** Defense-in-depth follow-up to H1.
 
 ## 🚫 DO NOT touch next session (preserved)
 
@@ -50,12 +30,14 @@ If unsure: **#65** is the quickest, **#59** is the cleanest feature, **#64** is 
 - Do NOT touch [#50](https://github.com/Oghenefega/ClipFlow/issues/50), [#56](https://github.com/Oghenefega/ClipFlow/issues/56), or [#51](https://github.com/Oghenefega/ClipFlow/issues/51). All deferred per pre-beta priority framing.
 - **chokidar 5.x is off-limits** until Electron bumps its bundled Node to ≥ 20.19.
 - **Do NOT re-introduce top-level `new Store(...)` calls.** electron-store is ESM-only now.
-- **Do NOT flip `nodeIntegration: true → false` on any BrowserWindow without explicitly deciding `sandbox: true` vs `sandbox: false`.** Electron ≥20 defaults unset sandbox to `true` when `nodeIntegration` is off, which strips `require("path")` and most Node built-ins from the preload. If the preload needs Node APIs beyond `require("electron")`, set `sandbox: false` explicitly. Memory: [feedback_electron_sandbox_default.md](~/.claude/projects/C--Users-IAmAbsolute-Desktop-ClipFlow/memory/feedback_electron_sandbox_default.md).
-- **Do NOT add inline `onclick=`, `onerror=`, or `<script>` blocks to any renderer HTML.** `script-src 'self'` blocks them. Use `addEventListener` with an `id`. Same goes for any `new Function(...)` / `eval(...)` — `'unsafe-eval'` is not on the policy.
-- **Do NOT loosen CSP without auditing the full payload chain.** If a new third-party SDK (analytics, support chat, feature flag) needs a domain, whitelist it narrowly (exact subdomain, not `*`) and only on the directives it actually needs. The PostHog assets CDN took both `script-src` and `connect-src` — verify empirically, don't assume.
-- **Do NOT rely on `frame-ancestors` in the meta-tag CSP.** Meta-delivered CSP cannot carry `frame-ancestors` per spec. If we ever need to restrict embedding, move the whole policy to an HTTP response header (would require serving the renderer from an HTTP origin instead of `file:`, which is its own migration).
+- **Do NOT flip `nodeIntegration: true → false` on any BrowserWindow without explicitly deciding `sandbox: true` vs `sandbox: false`.** Electron ≥20 defaults unset sandbox to `true` when `nodeIntegration` is off, which strips `require("path")` and most Node built-ins from the preload.
+- **Do NOT add inline `onclick=`, `onerror=`, or `<script>` blocks to any renderer HTML.** H2 CSP (`script-src 'self'`) blocks them. Use `addEventListener` with an `id`.
+- **Do NOT loosen CSP without auditing the full payload chain.** Whitelist narrowly (exact subdomain, not `*`) and only on the directives the SDK actually needs.
+- **Do NOT rely on `frame-ancestors` in the meta-tag CSP.** Meta-delivered CSP cannot carry `frame-ancestors` per spec.
+- **Do NOT restore the old canvas styling in PreviewPanelNew.js** (single `aspectRatio` + `height: 100%`). That's the regression path for #65. The `ResizeObserver` + JS-computed pixel dims in fit mode is load-bearing.
+- **Do NOT silently `.catch(() => {})` on `waveform:extractCached`, `ffmpegExtractWaveformPeaks`, or any long-running IPC that drives a visible "loading" UI.** If an error is dropped, the UI stays in the loading state forever. Always either surface to state or log with enough context to diagnose.
 
-## 📋 Infrastructure / hardening board state after this session
+## 📋 Issue board state after this session
 
 | Item | Issue | Status |
 |---|---|---|
@@ -65,68 +47,70 @@ If unsure: **#65** is the quickest, **#59** is the cleanest feature, **#64** is 
 | **H6 chokidar 3→4** | [#53](https://github.com/Oghenefega/ClipFlow/issues/53) | ✅ closed session 15 |
 | **H1 offscreen subtitle harden** | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | ✅ closed session 17 |
 | **H3 main-window sandbox** | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | ✅ closed session 17 |
-| **H2 renderer CSP** | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | ✅ **closed session 18 — hardening arc complete** |
+| **H2 renderer CSP** | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | ✅ closed session 18 — hardening arc complete |
+| **#65 subtitle/caption anchor drift on panel resize** | [#65](https://github.com/Oghenefega/ClipFlow/issues/65) | ✅ **closed session 19** |
+| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | ✅ **closed session 19** |
+| **#64 waveform extraction stuck** | [#64](https://github.com/Oghenefega/ClipFlow/issues/64) | 🟡 **instrumented + error-surfaced session 19; root cause pending** |
 | **#63 overlay-window sandbox** | [#63](https://github.com/Oghenefega/ClipFlow/issues/63) | 🔲 defense-in-depth follow-up; not blocking |
-| **#64 waveform extraction stuck** | [#64](https://github.com/Oghenefega/ClipFlow/issues/64) | 🔲 **filed this session** |
-| **#65 subtitle/caption anchor drift** | [#65](https://github.com/Oghenefega/ClipFlow/issues/65) | 🔲 **filed this session** |
 | **#57 editor perf on long source** | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 UNRESOLVED — proper fix direction documented, deferred |
-| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | 🔲 Fega asked mid-session 17; dedicated session |
 | **#61 monthly folder = recording date** | [#61](https://github.com/Oghenefega/ClipFlow/issues/61) | 🔲 ready |
 | **#62 pipeline silent-audio tolerance** | [#62](https://github.com/Oghenefega/ClipFlow/issues/62) | 🔲 ready |
 
 ## ✅ What was built this session
 
-### Commits
-
-- **[to be recorded below]** — H2 renderer CSP (#48). CSP meta tag added to [index.html](index.html). Crash-screen inline `onclick` refactored to `addEventListener` in [src/index.js](src/index.js) to comply with `script-src 'self'`.
-
 ### Files touched
 
-- [index.html](index.html) — CSP meta tag added in `<head>`. Nine directives, deny-by-default baseline with narrow whitelists.
-- [src/index.js](src/index.js) — crash-screen reload button switched from inline `onclick` to `addEventListener`; added `id="clipflow-crash-reload"` to locate the button after `innerHTML` assignment.
-- [tasks/todo.md](tasks/todo.md) — H2 plan marked DONE; hardening arc checklist updated.
-- [CHANGELOG.md](CHANGELOG.md), [HANDOFF.md](HANDOFF.md).
+- [src/renderer/editor/components/PreviewPanelNew.js](src/renderer/editor/components/PreviewPanelNew.js) — `ResizeObserver` + `fitSize` useMemo; canvas inline styles now use explicit pixel width/height in fit mode. Also wired `setWaveformError` into the extraction call site (success clears, failure sets).
+- [src/renderer/editor/components/EditorLayout.js](src/renderer/editor/components/EditorLayout.js) — new Render button beside Queue; `doRender(addToQueue)` helper (was `doQueueAndRender`); `lastRender` state + 6s auto-dismiss; render-success toast with "Show in folder".
+- [src/main/preload.js](src/main/preload.js) — added `revealInFolder` bridge.
+- [src/main/main.js](src/main/main.js) — added `shell:revealInFolder` IPC handler; rewrote `waveform:extractCached` with `[waveform]` log prefix at start / cache / extracting / extracted / failed with timings.
+- [src/main/ffmpeg.js](src/main/ffmpeg.js) — `extractWaveformPeaks` captures `stderr` via the 3rd `execFile` callback arg; logs last 800 bytes on failure; track-1 → track-0 fallback now returns `{ peaks: [], error }` instead of swallowing.
+- [src/renderer/editor/stores/useEditorStore.js](src/renderer/editor/stores/useEditorStore.js) — added `waveformError` state + `setWaveformError` action; reset on clip open.
+- [src/renderer/editor/components/TimelinePanelNew.js](src/renderer/editor/components/TimelinePanelNew.js) — subscribes to `waveformError`, passes as prop to `<WaveformTrack>`.
+- [src/renderer/editor/components/timeline/WaveformTrack.js](src/renderer/editor/components/timeline/WaveformTrack.js) — accepts `error` prop; renders "Waveform unavailable" in red when `peaks` is empty AND `error` is set; `useEffect` deps + `React.memo` comparator include `error`.
+- [CHANGELOG.md](CHANGELOG.md), [HANDOFF.md](HANDOFF.md), [tasks/todo.md](tasks/todo.md).
 
 ## 🔑 Key decisions this session
 
-1. **Enforcing mode, not Report-Only.** User explicitly chose enforcing. Report-Only would have shipped logs-without-teeth; we have no Sentry-side CSP-report ingestion wired up anyway.
-2. **PostHog whitelisted now, moved server-side later.** Industry-standard path is client-SDK first, proxy later. Adding the whitelist unblocks H2 today; the proxy migration is scoped into [#22](https://github.com/Oghenefega/ClipFlow/issues/22) and [#25](https://github.com/Oghenefega/ClipFlow/issues/25) rather than its own issue so the decision travels with the server-side rebuild.
-3. **`'unsafe-inline'` on `style-src` accepted.** Migrating the `T` theme object's inline `style={...}` attributes to a nonce-per-render pipeline is a multi-session refactor. The residual XSS surface is the same as any React app using inline styles — low and well-understood. Flagged as future work but not blocked on it.
-4. **CSP iterated live, not speculatively.** Three policy revisions during verification (drop `frame-ancestors`, add PostHog assets CDN to both script-src and connect-src, add `file:` to connect-src). Each revision was driven by an observed DevTools CSP violation, not a guess. This is the correct way to write CSP — deny-by-default, then open exactly what the app actually does.
-5. **Three observation issues filed instead of in-session fixes.** When waveform/caption/zoom issues surfaced during verification, filed them as separate issues (#64, #65, #57 comment) rather than rabbit-holing. User explicitly said "let's stay focused" — kept H2 verification moving, filed everything for the next session.
+1. **#65 fix uses explicit pixel dims, not `aspectRatio`.** The Chromium aspect-ratio reconciliation inside a narrow flex container with `maxWidth/maxHeight: 100%` is the root cause. JS-computed pixel values remove the ambiguity — same result, deterministic.
+2. **#59 "Render" does NOT flip `status: "approved"`.** Only the Queue path does. Render is a pure export. This keeps the clip status model clean: Approved means "committed to queue flow"; a Render-only export doesn't imply that intent.
+3. **#59 success toast uses `shell.showItemInFolder`, not `shell.openPath`.** The user wanted to see the file in Explorer (highlighted), not open the folder silently. `showItemInFolder` matches the Windows "Show in folder" UX everywhere else.
+4. **#64 instrumented instead of patched.** The extraction sometimes succeeds; when it fails, the failure is silent. Adding error surfacing + stderr capture is the right first move — fixing an unknown failure mode is guesswork. Next session can diagnose from real logs.
+5. **Waveform error state is global (Zustand store), not local to PreviewPanelNew.** Because `WaveformTrack` lives under `TimelinePanelNew`, and both are deep children of the editor. Passing through props would cross three component boundaries. Store fits the existing pattern (`waveformPeaks` is already in the store).
 
 ## ⚠️ Watch out for
 
-- **CSP violations are now the canary for latent XSS vectors.** If DevTools starts logging CSP violations after a renderer change, don't just append to the policy — read the source first. The crash-screen inline `onclick` caught in H2 verification is exactly the kind of thing CSP is meant to block; refactoring was the right move. Whitelist only for legitimate third-party origins that the app genuinely depends on.
-- **The `'unsafe-inline'` carve-out on `style-src` is the last soft spot in the renderer policy.** If a new view is added, prefer Tailwind classes over inline `style={...}` where practical. This doesn't fix the existing gap but prevents widening it.
-- **Electron security warnings in the overlay window's console may still appear** because the overlay page itself has no CSP (only [index.html](index.html) does). This is fine — the overlay's attack surface is the preload bridge, already locked down in H1. Don't "fix" this by adding a CSP to the overlay without reading H1's watch-outs first.
-- **`loadFonts()` is now fire-and-forget inside `__initOverlay__`.** The main process still awaits `document.fonts.ready` via `executeJavaScript` before capturing frames, so the async handoff is intact. If anyone ever removes the `document.fonts.ready` await from [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js), font loading will race with frame capture and the first ~1 second of frames will render in the browser fallback font. Keep the await.
-- **`window.overlayAPI` is plain `contextBridge` output — DOM objects can't pass through it.** The current surface (inputs: JSON-serializable segments + styles + timestamps; outputs: CSS objects + shadow strings + punctuation-stripped strings) is all plain data. Future additions that return DOM nodes, event emitters, or non-cloneable values will fail silently at the bridge boundary — test any new function with actual overlay render, not just unit tests.
-- **Overlay window cannot be sandboxed with the current preload design.** `sandbox: true` on [src/main/subtitle-overlay-renderer.js](src/main/subtitle-overlay-renderer.js) will crash the preload. Flip only after [#63](https://github.com/Oghenefega/ClipFlow/issues/63) lands.
+- **#65 fix is fit-mode only.** The JS-computed pixel path runs when `zoom === -1`. In zoom mode, the code still uses `aspectRatio` + `height: ${zoom}%`. That path is untouched and appears to work correctly because the zoom modes set a fixed height percentage, which Chromium resolves unambiguously. If zoom mode ever starts drifting, revisit — same fix shape applies.
+- **Waveform extraction still fails on some opens.** Only the UX is improved. When the red "Waveform unavailable" text appears, check main-process stdout for `[waveform] failed:` + the stderr tail. Likely causes: source has no audio track, audio track index assumption is wrong, or ffprobe-less path mismatch. See `ffmpeg.js` `extractWaveformPeaks` and its caller in `main.js`.
+- **Do not assume the IPC contract on `waveformExtractCached`.** It now returns `{ peaks, cached, error }`. Older callers that only read `result.peaks` still work (they fall through to the error branch when `peaks` is empty). Any new caller should handle `error`.
+- **Render button fragment in EditorLayout assumes `onRenderOnly` and `onSendToQueue` are wired.** If a future refactor collapses the fragment into a single button, make sure both handlers still exist — `doRender(true)` and `doRender(false)` are not interchangeable (they differ on the clip-status flip).
 
 ## 🪵 Logs / Debugging
 
-- **Main-process stdout is the best place to catch overlay preload failures.** The subtitle-overlay-renderer pipes `console-message` events from the offscreen window back to the main process stdout with the `[OverlayRenderer:*]` prefix. Electron itself prints preload load failures (`Unable to load preload script: ... Error: <reason>`) to the same stream. **The silent failure mode is: preload crashes → `contextBridge.exposeInMainWorld` never runs → page scripts see `undefined` for `window.overlayAPI`.** Grep the main-process stdout for `"Unable to load preload"` after any overlay-side change.
-- **Per-video pipeline logs:** `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\logs\<VideoName>_<timestamp>.log`. One file per pipeline run; `[START]`, `[DONE]`, `[FAIL]` on each step. Overlay rasterization isn't itself a step here — it runs inside the render:clip IPC handler, not the AI pipeline. Overlay failures appear in the renderer's Render Progress IPC, not these logs.
-- **Electron main logs:** `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log` — startup, database init, watcher events, is_test reconciliation. Does NOT contain overlay rasterization output (that goes to main-process stdout, which in turn only appears when you run `npm start` from a terminal).
-- **Renderer DevTools in production builds:** `CLIPFLOW_DEVTOOLS=1 npm start`. With H3 in place, the sandbox does NOT affect DevTools — attach works identically.
+- **Waveform flow (new this session):** grep main-process stdout for `[waveform]`. Sequence on success: `[waveform] start projectId=… file=… dur=…` → `[waveform] cache hit peaks=… cached=true` **or** `[waveform] extracting peakCount=… track=…` + `[waveform] extracted peaks=… ms=…`. Sequence on failure: `[waveform] start …` → `[waveform] ffmpeg exit (track N): code=… msg=…` + `[waveform] ffmpeg stderr tail:\n…` + `[waveform] failed: … ms=…`. The renderer shows "Waveform unavailable" in red on the timeline waveform row.
+- **Main-process stdout** also catches overlay preload failures (`[OverlayRenderer:*]`) and Electron's own `Unable to load preload script:` errors.
+- **Per-video pipeline logs:** `C:\Users\IAmAbsolute\Desktop\ClipFlow\processing\logs\<VideoName>_<timestamp>.log`. One file per pipeline run.
+- **Electron main logs:** `C:\Users\IAmAbsolute\AppData\Roaming\clipflow\logs\app.log` — startup, database init, watcher events. Does NOT contain subprocess stderr.
+- **Renderer DevTools in production builds:** `CLIPFLOW_DEVTOOLS=1 npm start`. Waveform console.warn from the renderer side will appear here with prefix `[waveform]`.
 
 ## 🔄 Build & verify
 
 ```bash
 npm install                          # only if dep versions changed
-npm run build:renderer               # Vite build (~11s, 2728 modules, 1.85MB minified)
+npm run build:renderer               # Vite build (~10s, 2728 modules, 1.86MB minified)
 npm start                            # Launch Electron (prod mode)
 CLIPFLOW_DEVTOOLS=1 npm start        # Launch with DevTools attached
 ```
 
 Main-process changes (anything under `src/main/`) require a full Electron quit + relaunch. Overlay preload changes also require a full relaunch — Vite HMR doesn't reach the offscreen window.
 
-**Standing verification matrix — extended with H1/H3-specific checks:**
+**Standing verification matrix — session 19 adds three items:**
 1. OBS real-record for 30s → Stop → card appears on Rename tab ~1-2s later.
-2. Zoom-slider drag × 10 on a 30-min source — no renderer crash (kept-forever canary).
-3. Drop-to-Rename (drag `.mp4` from outside the archive) → file appears in Pending → renames correctly. **Now also validates `webUtils.getPathForFile` under sandbox.**
-4. Drop-to-Recordings (main + test) — file lands in correct root per session 16b.
-5. **Render a clip with subtitles ON** → play output MP4 → subtitles burn in, correct font (Latina Essential), correct timing, word-by-word highlight matches editor preview. **H1 regression canary — don't skip this after any change to the overlay code path.**
-6. Click every main tab — no "Something went wrong" screens.
-7. DevTools console clean (`CLIPFLOW_DEVTOOLS=1 npm start`) — no red errors. **After H2: zero CSP violations. DevTools Issues tab should show "No Issues" (0 badge).** If a violation appears, it's a real signal — investigate the source before patching the policy.
+2. Zoom-slider drag × 10 on a 30-min source — no renderer crash.
+3. Drop-to-Rename and drop-to-Recordings land correctly under sandbox.
+4. Render a clip with subtitles ON — burn-in matches preview (H1 regression canary).
+5. Click every main tab — no "Something went wrong" screens.
+6. DevTools Issues tab shows "No Issues" (H2 CSP canary).
+7. **NEW (#65): open editor on a clip → drag the preview-panel resizer both directions → subtitle + caption overlays stay pinned to the 9:16 video rect, never drift off.**
+8. **NEW (#59): click Render (not Queue) → confirm export completes → toast appears with path + "Show in folder" button → button opens Explorer with file highlighted → clip status in Queue view did NOT flip to Approved.**
+9. **NEW (#64): open a fresh clip → watch main-process stdout for `[waveform]` sequence; if extraction fails, timeline shows "Waveform unavailable" in red, NOT the infinite spinner.**
