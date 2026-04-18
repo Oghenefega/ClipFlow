@@ -11,17 +11,31 @@ _Last updated: 2026-04-18 (session 19) — "Editor UX: overlay drift + Render bu
 2. **[#59](https://github.com/Oghenefega/ClipFlow/issues/59) "Render" button — SHIPPED.** New button in editor topbar alongside "Queue". Exports MP4 without flipping `status: "approved"` and without enqueuing. Success toast shows the output path + "Show in folder" (reveals file in Explorer via new `shell:revealInFolder` IPC handler → `shell.showItemInFolder`). 6-second auto-dismiss.
 3. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform stuck on "Extracting waveform…" — INSTRUMENTED + error state surfaced.** Previously errors were silently swallowed at two layers: the `execFile` callback in [src/main/ffmpeg.js](src/main/ffmpeg.js) threw away `stderr`, and the track-1 → track-0 fallback ate the final error. Renderer's `.catch()` logged to console but never set UI state, so the timeline just kept showing "Extracting waveform…" forever. Now: main-side logs `[waveform] start/cache-hit/extracting/extracted/failed` with timings; FFmpeg stderr tail is logged on failure; IPC returns `{ peaks, cached, error }`; renderer sets `waveformError` in the editor store; `WaveformTrack` shows "Waveform unavailable" in red when `error` is set and `peaks` is empty. **Does not "fix" the extraction bug itself — it makes the bug diagnosable and keeps the UI honest.** Next time it spins, we'll see the actual FFmpeg stderr instead of guessing.
 
-Build passed (`npm run build:renderer` → 10.04s, 2728 modules, 1.86 MB). Awaiting user verification on a real clip open.
+Build passed (`npm run build:renderer` → 10.04s, 2728 modules, 1.86 MB). **User verified all three**: overlays pin correctly at every preview size, Render button works (confirmed after tooltip removal — see below), waveform shows "Waveform unavailable" on the test clip instead of the infinite spinner.
+
+### Two follow-up fixes during verification
+
+1. **Render button tooltip removed.** The `TooltipProvider` wrapper was rendering the "Export MP4 without queuing for upload" tooltip in an awkward spot near the window chrome. The Queue button has no tooltip; parity + the "Render" label is self-explanatory. Removed just the Render tooltip, other editor tooltips untouched. [src/renderer/editor/components/EditorLayout.js:874-888](src/renderer/editor/components/EditorLayout.js).
+2. **Subtitle + caption line-wrap mismatch at small preview sizes.** Root cause: `buildSubtitleStyle` had `Math.max(7, (fontSize) * scaleFactor)` and `buildCaptionStyle` had `Math.max(6, ...)`. Below certain preview widths, fontSize hit the floor while the container (`maxWidth: 90%` of canvas) continued to shrink → ratio broke → text wrapped to a second line. Removed the floors (plus the `Math.max(1, ...)` / `Math.max(2, ...)` floors on padding + borderRadius) in [src/renderer/editor/utils/subtitleStyleEngine.js](src/renderer/editor/utils/subtitleStyleEngine.js). Offscreen subtitle renderer is unaffected — it runs at 1080px canvas width where floors never triggered anyway.
+
+### Two new bugs filed during verification (out of scope for session 19)
+
+- [#66](https://github.com/Oghenefega/ClipFlow/issues/66) — **Transcript panel shows full source audio, not just the clip range.** User noticed the transcript tab (editor left panel) renders the entire 30-minute recording's transcription, not the portion inside the current clip. Root cause: `useSubtitleStore.initSegments` unions `project.transcription` extras into `originalSegments` intentionally (to support clip extension), and `TranscriptTab` renders all of them as if they're in-scope. Fix: filter `originalSegments` in `TranscriptTab` to segments whose `[startSec, endSec]` falls inside the union of current `nleSegments` source ranges.
+- [#67](https://github.com/Oghenefega/ClipFlow/issues/67) — **Timeline zoom slider can't reach the left end, caps at ~23%.** Root cause: slider maps 0-100 to zoom 0.05x-20x (log), but `setTlZoom` floors at 0.2 — values below slider position 35 all collapse to 0.2. Fix: re-map the slider to span [0.2, 20] exactly via `zoom = 0.2 * Math.pow(100, v/100)`, inverse `value = log(zoom/0.2)/log(100) * 100`. Full slider range usable, 0.2 floor preserved.
+
+Both are strong candidates for session 20.
 
 ## 🎯 Next session — pick one
 
-Priority shuffled — #63 (overlay sandbox follow-up), #57 (editor perf), #61, #62 are all ready; #64 now has observability so if the real extraction bug shows up in user logs it becomes actionable.
+1. **[#66](https://github.com/Oghenefega/ClipFlow/issues/66) transcript shows full source, not clip range.** Small, isolated fix — filter `originalSegments` in `TranscriptTab` by the current `nleSegments` source union. Research + plan documented in the issue body.
+2. **[#67](https://github.com/Oghenefega/ClipFlow/issues/67) zoom slider caps at ~23%.** One-file change: re-map the slider 0-100 range to `[0.2, 20]` via `zoom = 0.2 * Math.pow(100, v/100)`. Quick win.
+3. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform root-cause.** With logging in place, reproduce, read `[waveform]` lines on main-process stdout, fix the actual FFmpeg failure mode. Should now be single-session because the error is no longer hidden.
+4. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Two-part fix across [D:\whisper\energy_scorer.py](D:\whisper\energy_scorer.py) and [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer`.
+5. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + one-shot migration** to re-bucket misfiled months.
+6. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf on long source.** Component extraction per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430). Do **NOT** retry the store-derivation approach.
+7. **[#63](https://github.com/Oghenefega/ClipFlow/issues/63) sandbox the overlay window.** Defense-in-depth follow-up to H1.
 
-1. **[#64](https://github.com/Oghenefega/ClipFlow/issues/64) waveform root-cause.** With logging in place, reproduce, read the main-process stdout, fix the actual FFmpeg failure mode (wrong track index? silent source? missing audio stream?). Should now be a single-session task because the error is no longer hidden.
-2. **[#62](https://github.com/Oghenefega/ClipFlow/issues/62) pipeline tolerance for silent audio.** Two-part fix spanning [D:\whisper\energy_scorer.py](D:\whisper\energy_scorer.py) and [src/main/ai-pipeline.js](src/main/ai-pipeline.js) `runEnergyScorer`. Required to make the drop-test path usable on silent screen-only recordings.
-3. **[#61](https://github.com/Oghenefega/ClipFlow/issues/61) recording-date folder bucket + one-shot migration** to re-bucket misfiled months.
-4. **[#57](https://github.com/Oghenefega/ClipFlow/issues/57) editor perf on long source.** Component extraction per [#57 comment 4267674430](https://github.com/Oghenefega/ClipFlow/issues/57#issuecomment-4267674430). Do **NOT** retry the store-derivation approach.
-5. **[#63](https://github.com/Oghenefega/ClipFlow/issues/63) sandbox the overlay window.** Defense-in-depth follow-up to H1.
+**Suggested combo:** #66 + #67 in one session. Both small, both editor UX papercuts the user just hit, independent files. #64 root-cause is also a strong candidate if the user wants the waveform fully working end-to-end.
 
 ## 🚫 DO NOT touch next session (preserved)
 
@@ -48,9 +62,11 @@ Priority shuffled — #63 (overlay sandbox follow-up), #57 (editor perf), #61, #
 | **H1 offscreen subtitle harden** | [#47](https://github.com/Oghenefega/ClipFlow/issues/47) | ✅ closed session 17 |
 | **H3 main-window sandbox** | [#49](https://github.com/Oghenefega/ClipFlow/issues/49) | ✅ closed session 17 |
 | **H2 renderer CSP** | [#48](https://github.com/Oghenefega/ClipFlow/issues/48) | ✅ closed session 18 — hardening arc complete |
-| **#65 subtitle/caption anchor drift on panel resize** | [#65](https://github.com/Oghenefega/ClipFlow/issues/65) | ✅ **closed session 19** |
-| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | ✅ **closed session 19** |
-| **#64 waveform extraction stuck** | [#64](https://github.com/Oghenefega/ClipFlow/issues/64) | 🟡 **instrumented + error-surfaced session 19; root cause pending** |
+| **#65 subtitle/caption anchor drift + scale floor** | [#65](https://github.com/Oghenefega/ClipFlow/issues/65) | ✅ closed session 19 |
+| **#59 editor render without queuing** | [#59](https://github.com/Oghenefega/ClipFlow/issues/59) | ✅ closed session 19 |
+| **#64 waveform extraction stuck** | [#64](https://github.com/Oghenefega/ClipFlow/issues/64) | 🟡 instrumented + error-surfaced session 19; root cause pending |
+| **#66 transcript shows full source not clip range** | [#66](https://github.com/Oghenefega/ClipFlow/issues/66) | 🔲 **filed this session; plan in issue body** |
+| **#67 zoom slider caps at ~23%** | [#67](https://github.com/Oghenefega/ClipFlow/issues/67) | 🔲 **filed this session; plan in issue body** |
 | **#63 overlay-window sandbox** | [#63](https://github.com/Oghenefega/ClipFlow/issues/63) | 🔲 defense-in-depth follow-up; not blocking |
 | **#57 editor perf on long source** | [#57](https://github.com/Oghenefega/ClipFlow/issues/57) | 🔲 UNRESOLVED — proper fix direction documented, deferred |
 | **#61 monthly folder = recording date** | [#61](https://github.com/Oghenefega/ClipFlow/issues/61) | 🔲 ready |
