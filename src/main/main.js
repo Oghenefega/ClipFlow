@@ -47,15 +47,7 @@ const transcriptionProvider = require("./ai/transcription-provider");
 require("./ai/providers/anthropic");
 require("./ai/providers/openai-compat");
 require("./ai/transcription/stable-ts");
-
-/** Generate a UUID v4 */
-function _uuid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+const { uuid } = require("./uuid");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -212,7 +204,7 @@ const STORE_DEFAULTS = {
 function runStoreMigrations(store) {
   // ── Migration: analytics deviceId (generate once, persist forever) ──
   if (!store.get("deviceId")) {
-    store.set("deviceId", _uuid());
+    store.set("deviceId", uuid());
   }
   if (store.get("analyticsEnabled") === undefined) {
     store.set("analyticsEnabled", true);
@@ -1764,7 +1756,7 @@ ipcMain.handle("metadata:create", async (_, data) => {
     const db = database.getDb();
     if (!db) return { error: "Database not initialized" };
 
-    const id = _uuid();
+    const id = uuid();
     db.run(
       `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, is_test)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1910,7 +1902,7 @@ ipcMain.handle("labels:record", async (_, tag, label) => {
     } else {
       db.run(
         "INSERT INTO custom_labels (id, tag, label) VALUES (?, ?, ?)",
-        [_uuid(), tag, label]
+        [uuid(), tag, label]
       );
     }
 

@@ -5,6 +5,14 @@ import T from "../styles/theme";
 export const extractGameTag = (t) => { const m = t.match(/#(\w+)/); return m ? m[1].toLowerCase() : null; };
 export const hasHashtag = (t) => /#\w+/.test(t);
 
+// Seconds → "Xh Ym" / "Ym" (human-readable duration)
+export const formatDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return "0m";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
 // ============ COMPONENTS ============
 export const PulseDot = ({ color = T.green, size = 8 }) => (
   <span style={{ position: "relative", display: "inline-block", width: size, height: size }}>
