@@ -4,22 +4,6 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-04-20 — Tier 1 complexity cleanup
-
-### Removed
-- **8 unused shadcn/ui components** (~855 LOC): `context-menu.tsx`, `dialog.tsx`, `dropdown-menu.tsx`, `select.tsx`, `tabs.tsx`, `toggle.tsx`, `toggle-group.tsx`, `input.tsx` from [src/components/ui/](src/components/ui/). Verified zero imports across renderer and editor before deletion. Corresponding Radix primitives remain in `package.json` (checked post-delete: they're still listed as deps and could be pruned later, but the shadcn wrappers were the only thing consuming them).
-- **No-op `rotateLogs()` function** in [src/main/logger.js](src/main/logger.js) and its single call site in [src/main/main.js](src/main/main.js). electron-log manages rotation natively (5 MB max, 5 archives); the kept-for-compat stub was pure dead weight.
-- **Redundant `getLogsDirPath()` wrapper** in [src/main/logger.js](src/main/logger.js) that only delegated to `getLogsDir()`. Callers in main.js now call `getLogsDir()` directly.
-
-### Changed
-- **Dropped `async` from three synchronous IPC handlers** in [src/main/main.js](src/main/main.js) (`store:get`, `store:set`, `store:getAll`). They never awaited anything — the renderer still sees Promises via Electron's IPC marshalling, so no behavior change.
-
-### Fixed
-- **Dead ternary in [OnboardingView.js:172](src/renderer/views/OnboardingView.js:172)** — `step === 0 && !archetype ? "Next" : "Next"` collapsed to plain `"Next"`. Both branches were identical.
-
-### Notes
-- Review-only audit identified Tier 2 (duplicated utilities — UUID generator across 3 files, time formatters across 3 views, unused `findActiveWord`/`gatherWords` helpers) and Tier 3 (structural extractions — subtitle/caption style builders, `ClipNavigator`, `XxxPanelNew.js` renames, FFmpeg IPC wrap helper) as follow-up passes, not yet actioned.
-
 ## [Unreleased] — 2026-04-18 (session 20) — Lever 1 multi-signal pipeline spec
 
 ### Added
