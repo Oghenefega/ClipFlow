@@ -4,18 +4,6 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-04-20 — Tier 2 complexity cleanup
-
-### Added
-- **[src/main/uuid.js](src/main/uuid.js)** — single-source UUID v4 helper replacing three identical `_uuid()` copies previously defined inline in main.js, file-migration.js, and naming-presets.js.
-- **`formatDuration` helper exported from [shared.js](src/renderer/components/shared.js)** — replaces two identical local copies in UploadView and RenameView. Outputs `"Xh Ym"` or `"Ym"` from seconds.
-
-### Removed
-- **Dead `findActiveWord` implementation** in [buildPreviewSubtitles.js](src/renderer/editor/utils/buildPreviewSubtitles.js) (33 LOC). All external callers (PreviewOverlays, subtitle-overlay-preload) already import from the canonical [utils/findActiveWord.js](src/renderer/editor/utils/findActiveWord.js). The buildPreviewSubtitles variant was never imported anywhere.
-
-### Notes
-- **Skipped as not duplicated:** ProjectsView's local `fmtTime` / `fmtHMS` — single-file use only. Also deliberately NOT merged with editor's [timeUtils.js](src/renderer/editor/utils/timeUtils.js) `fmtTime` — the editor variant outputs `"MM:SS.d"` (e.g., `"01:23.4"`) while ProjectsView's outputs `"m:ss"`. Different formats, different contracts — intentional.
-
 ## [Unreleased] — 2026-04-20 — Tier 1 complexity cleanup
 
 ### Removed

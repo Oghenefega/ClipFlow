@@ -113,3 +113,36 @@ export function buildPreviewSegments(clipSubtitles, template) {
   });
 }
 
+// ── Find active word at a given time ──
+
+/**
+ * @param {Array} segments - from buildPreviewSegments
+ * @param {number} currentTime - playback time in seconds
+ * @returns {{ seg: Object|null, wordIdx: number }}
+ */
+export function findActiveWord(segments, currentTime) {
+  if (!segments || segments.length === 0) return { seg: null, wordIdx: -1 };
+
+  for (const seg of segments) {
+    if (currentTime >= seg.startSec && currentTime < seg.endSec) {
+      // Found active segment — now find active word
+      const words = seg.words || [];
+      if (words.length === 0) return { seg, wordIdx: -1 };
+
+      let bestIdx = -1;
+      for (let i = 0; i < words.length; i++) {
+        if (currentTime >= words[i].start) bestIdx = i;
+        else break;
+      }
+
+      // Pre-word lookahead: if before first word but close, highlight first
+      if (bestIdx < 0 && words.length > 0 && currentTime >= words[0].start - 0.15) {
+        bestIdx = 0;
+      }
+
+      return { seg, wordIdx: bestIdx >= 0 ? bestIdx : 0 };
+    }
+  }
+
+  return { seg: null, wordIdx: -1 };
+}

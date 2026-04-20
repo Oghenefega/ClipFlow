@@ -2,7 +2,6 @@ const path = require("path");
 const fs = require("fs");
 const log = require("electron-log/main").scope("naming");
 const database = require("./database");
-const { uuid } = require("./uuid");
 
 // ── Preset Definitions ──
 
@@ -411,7 +410,7 @@ function _executeRetroactiveRename(file, partNumber, triggeringHistoryId) {
   );
 
   // Log to rename_history
-  const historyId = uuid();
+  const historyId = _uuid();
   db.run(
     `INSERT INTO rename_history (id, file_metadata_id, action, triggered_by, previous_filename, previous_path, new_filename, new_path, metadata_snapshot)
      VALUES (?, ?, 'retroactive_part', ?, ?, ?, ?, ?, ?)`,
@@ -449,6 +448,16 @@ function extractDateFromFilename(filename, filePath) {
   }
 
   return new Date().toISOString().slice(0, 10);
+}
+
+// ── Utility ──
+
+function _uuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 // ── Exports ──
