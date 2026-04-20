@@ -1,72 +1,81 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-18 (session 20) — "Lever 1 multi-signal pipeline spec"_
+_Last updated: 2026-04-20 — "Tier 1+2 complexity cleanup"_
 
 ---
 
 ## Current State
 
-Spec-only session. No code was changed. The codebase is in the same state as the end of Session 19.
+Two code-cleanup commits landed on master, build clean, Electron boot smoke-tested twice. A **stable baseline tag** was created pointing at the last pre-cleanup commit so there's a known-good fallback if anything surfaces later.
 
-One GitHub issue filed: **[#68](https://github.com/Oghenefega/ClipFlow/issues/68)** — `energy_scorer.py` hardcoded to `D:\whisper\energy_scorer.py` in `ai-pipeline.js:161`, must be moved to `tools/` before bundling.
+**Tag:** `stable-2026-04-20-pre-cleanup` → [c7c2d60](https://github.com/Oghenefega/ClipFlow/commit/c7c2d60)
+**Head:** [3248ae8](https://github.com/Oghenefega/ClipFlow/commit/3248ae8) (Tier 2 on top of Tier 1)
+
+Mid-session the user reverted both cleanups out of caution ("app is beginning to run a bit slow"), then re-applied them after confirming the changes were deletions/moves only — nothing that could affect runtime. The revert+re-apply round-trip lives in git history; `b53e63b` / `3248ae8` are the final live commits.
+
+Net LOC removed across the two commits: **–901** (dead code + duplicated helpers).
 
 ---
 
 ## What Was Built
 
-A full architecture spec for **Lever 1 — Multi-Signal Pipeline Upgrade**:
+### Tier 1 — [b53e63b](https://github.com/Oghenefega/ClipFlow/commit/b53e63b) (~–860 LOC)
 
-- **Canonical location:** `The Lab/Businesses/ClipFlow/specs/lever-1-signal-extraction-v1.md` (Obsidian vault)
-- **Repo copy:** `specs/lever-1-signal-extraction-v1.md`
+- **Deleted 8 unused shadcn/ui components** from [src/components/ui/](src/components/ui/): `context-menu.tsx`, `dialog.tsx`, `dropdown-menu.tsx`, `select.tsx`, `tabs.tsx`, `toggle.tsx`, `toggle-group.tsx`, `input.tsx`. Zero imports verified via grep across renderer + editor before deletion.
+- **Deleted no-op `rotateLogs()`** in [src/main/logger.js](src/main/logger.js) and its single call site in [src/main/main.js](src/main/main.js). electron-log manages rotation natively (5 MB max, 5 archives); the stub was kept-for-compat dead weight.
+- **Inlined `getLogsDirPath()` wrapper** into `getLogsDir()` at both call sites in main.js.
+- **Dropped `async` keyword** from three synchronous IPC handlers (`store:get`, `store:set`, `store:getAll`). They never awaited anything — renderer still sees Promises via Electron's IPC marshalling, no behavior change.
+- **Collapsed dead ternary** `"Next" : "Next"` in [OnboardingView.js:172](src/renderer/views/OnboardingView.js:172).
 
-The spec defines a new `extract_signals` stage (Stage 4.5 in `ai-pipeline.js`) that runs after energy analysis and before frame extraction. It adds 6 new signals to replace the current energy-only heuristic.
+### Tier 2 — [3248ae8](https://github.com/Oghenefega/ClipFlow/commit/3248ae8) (~–41 LOC)
+
+- **Created [src/main/uuid.js](src/main/uuid.js)** as the single-source UUID v4 helper. Removed three identical `_uuid()` copies previously defined inline in `main.js`, `file-migration.js`, `naming-presets.js`.
+- **Added `formatDuration` to [shared.js](src/renderer/components/shared.js)** (seconds → `"Xh Ym"` / `"Ym"`). Removed two identical local copies in `UploadView.js` and `RenameView.js`.
+- **Deleted dead `findActiveWord`** (33 LOC) from [buildPreviewSubtitles.js](src/renderer/editor/utils/buildPreviewSubtitles.js). All external callers (PreviewOverlays, subtitle-overlay-preload) import from the canonical [utils/findActiveWord.js](src/renderer/editor/utils/findActiveWord.js) — the buildPreviewSubtitles variant was never imported anywhere.
 
 ---
 
 ## Key Decisions
 
-**Signals approved for launch:**
-
-| Signal | Type | Runtime | New deps |
-|--------|------|---------|----------|
-| YAMNet audio events (17 classes) | Python subprocess | ~10s | `tflite-runtime` (~8 MB) |
-| Voice pitch spike (librosa.pyin) | Python subprocess | ~30s | `librosa` (~25 MB) |
-| FFmpeg scene change | Python subprocess | ~30s | none |
-| Transcript density | JS in-process | <10ms | none |
-| Reaction word detection | JS in-process | <5ms | none |
-| Silence-then-spike | JS in-process | <50ms | none |
-
-**Total new footprint: ~42 MB. Pipeline overhead: < 15% on a 1-hour recording.**
-
-**Deferred / dropped:**
-- jrgillick/laughter-detection — dropped (unmaintained since ~2021, install-fragile, YAMNet covers laughter natively)
-- audeering wav2vec2 emotion model — deferred to v2 (1.2 GB, ~29× the rest of the stack, no usage data, auto-updater not shipped)
-- Chat log spike — deferred until live recording companion exists (non-default user setup, meaningless for small creators)
-
-**Archetype-aware composite weights** baked in from day one — values are estimates, calibrate after 10+ sessions of feedback data per archetype.
+- **Tiered cleanup approach:** scoped the review into three tiers by regression risk. Tier 1 = pure deletes (very low risk). Tier 2 = extract duplicates (low risk). Tier 3 = structural extractions (deferred, higher risk). Only Tier 1+2 landed; Tier 3 intentionally not done this session.
+- **Skipped deliberately despite showing up in the audit:**
+  - Merging `llm-provider` / `transcription-provider` registries — duplication real but each module is already tight; churn > payoff.
+  - ProjectsView's local `fmtTime` / `fmtHMS` — single-file use, not duplicated.
+  - Merging ProjectsView's `fmtTime` with editor's `timeUtils.fmtTime` — **different format contracts** (`"MM:SS.d"` vs `"m:ss"`). Intentional divergence.
+  - `gatherWords` / `stripPunct` in buildPreviewSubtitles — still internally used by `buildPreviewSegments`. Not dead.
+- **Tag naming convention:** annotated tag with absolute date + intent suffix (`stable-2026-04-20-pre-cleanup`). Pushed to GitHub so it's visible in Releases.
+- **Cherry-pick over revert-of-revert** when re-applying: cleaner history, 2 new commits instead of 4. Cherry-picks of `f48c58a` + `c98063c` applied without conflict.
 
 ---
 
 ## Next Steps
 
-**Immediate:** Open a new session with **Opus 4.7** to review the spec end-to-end. If everything checks out, approve for implementation.
+**Tier 3 cleanup is available when ready** — more invasive, worth doing one item at a time with verification between each:
 
-**Implementation sequence (from spec):**
-1. Create `src/main/signals.js` — JS signal functions + `runSignalExtraction()` shell
-2. Wire Stage 4.5 into `ai-pipeline.js` — thread `eventTimeline` into Stage 5 (frame sort) and Stage 6 (prompt)
-3. Prompt changes in `ai-prompt.js` — event timeline block in `buildUserContent()` + task section in `buildSystemPrompt()`
-4. `tools/signals/yamnet_events.py`
-5. `tools/signals/pitch_spike.py`
-6. `tools/signals/scene_change.py`
-7. is_test validation pass + fallback verification
+1. **Extract subtitle/caption style builder** — identical 25-field style object constructed in both [EditorLayout.js:323](src/renderer/editor/components/EditorLayout.js:323) (doRender) and [useEditorStore.js:1105](src/renderer/editor/stores/useEditorStore.js:1105) (\_doSilentSave). Touches save + render paths — verify carefully.
+2. **Extract `ClipNavigator`** (130 LOC) out of [EditorLayout.js:73-203](src/renderer/editor/components/EditorLayout.js:73) into its own file. Self-contained, safe.
+3. **Collapse FFmpeg IPC try/catch boilerplate** — 9 handlers in main.js share identical `try { ... } catch { return { error } }` pattern. ~18 LOC saved via one `wrapFfmpeg` helper.
+4. **Rename `XxxPanelNew.js` → `XxxPanel.js`** — four files. Signals a finished migration; no old versions remain.
 
-**Fix #68 first** — move `energy_scorer.py` to `tools/energy_scorer.py` before bundling any new signals. That's the first commit of the implementation session.
+**Unrelated to cleanup:** the Lever 1 multi-signal pipeline spec from session 20 is still queued for Opus 4.7 review + implementation. That was parked, not abandoned. See the previous HANDOFF entries in git history for the full context, or read [specs/lever-1-signal-extraction-v1.md](specs/lever-1-signal-extraction-v1.md).
 
 ---
 
 ## Watch Out For
 
-- **YAMNet class names** — validate exact label strings against `yamnet_class_map.csv` from TFHub; some differ from AudioSet docs
-- **Scene change threshold** — OBS fade transitions may trigger false positives at 0.4; may need to filter first/last 30s or raise to 0.5
-- **Composite weights are untuned** — `ARCHETYPE_WEIGHTS` in the spec are educated guesses, not validated values
-- **#68 blocks bundling** — fix hardcoded `D:\whisper\` path before any tools bundling work
-- **Opus 4.7 review session** — spec was written on Sonnet 4.6; use Opus for the review pass to catch anything missed
+- **User reported "app beginning to run a bit slow"** mid-session. Likely unrelated to this cleanup (pure deletions + moves can't affect runtime), but flagging it here — if performance feels off in the next session, worth a proper profile pass. Possible culprits to check first: dev/build running in background, Sentry session replay overhead, preview-frame generation at startup (seen in logs), DB size at `data/clipflow.db`.
+- **Stable fallback exists** — if any regression surfaces that the smoke tests missed, `git checkout stable-2026-04-20-pre-cleanup` returns to the exact pre-cleanup state. Prefer this over manually hunting through the cleanup commits.
+- **Tier 3 has higher risk than 1+2** — especially the subtitle/caption style builder extraction. Those paths drive both live rendering AND saved-clip persistence; a subtle field mismatch would desync the two. Not a blocker, but don't batch it with other work.
+
+---
+
+## Logs / Debugging
+
+- **Electron log file:** `%APPDATA%\clipflow\logs\app.log` (resolved via `getLogsDir()` in [src/main/logger.js:44](src/main/logger.js:44))
+- **Session smoke tests** in this session confirmed:
+  - `App started` logged cleanly (version, electron version, platform, logsDir)
+  - `(database)` initialized at `data/clipflow.db` (schema v4)
+  - `(migration)` file migration already complete — skipping
+  - `(preview)` generating preview frames for existing recordings at boot — normal background work
+  - Zero errors, zero stack traces on either Tier 1 or Tier 2 boot
+- **Vite build** — 2728 modules transformed, bundle size unchanged between Tier 1 and Tier 2 (~1858 kB before gzip, ~543 kB gzipped). Pre-existing 500 kB chunk warning is unrelated to this session.
+- **Background process cleanup** — if Electron smoke tests leave stale processes, `taskkill //IM electron.exe //F` from git-bash kills them all.
