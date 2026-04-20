@@ -243,23 +243,6 @@ function buildReport(description, modules, severity) {
   };
 }
 
-/**
- * No-op — electron-log handles its own rotation (5MB max, 5 archives).
- * Old clipflow-YYYY-MM-DD.log files are left in place (they contain real data).
- * Kept for API compatibility with main.js call site.
- * @param {number} [maxDays=7] - ignored
- */
-function rotateLogs(maxDays = 7) {
-  // No-op — electron-log manages rotation automatically
-}
-
-/**
- * Get the logs directory path.
- */
-function getLogsDirPath() {
-  return getLogsDir();
-}
-
 module.exports = {
   MODULES,
   sessionId,
@@ -267,7 +250,5 @@ module.exports = {
   ...logger,
   getSessionLogs,
   buildReport,
-  rotateLogs,
-  getLogsDirPath,
   getLogsDir,
 };

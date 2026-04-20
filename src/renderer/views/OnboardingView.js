@@ -169,7 +169,7 @@ export default function OnboardingView({ onComplete }) {
             )}
             {step < 2 ? (
               <button style={navBtn("primary")} onClick={handleNext}>
-                {step === 0 && !archetype ? "Next" : "Next"}
+                Next
               </button>
             ) : (
               <button style={navBtn("primary")} onClick={handleFinish}>Finish</button>

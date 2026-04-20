@@ -373,14 +373,12 @@ function createWindow() {
 app.whenReady().then(async () => {
   // Initialize electron-log (must happen before BrowserWindow creation)
   logger.initialize();
-  // Clean up old-format log files
-  logger.rotateLogs(7);
   // Log app startup
   logger.info(logger.MODULES.system, "App started", {
     version: app.getVersion(),
     electron: process.versions.electron,
     platform: process.platform,
-    logsDir: logger.getLogsDirPath(),
+    logsDir: logger.getLogsDir(),
   });
 
   // ── Bootstrap electron-store (v11 is ESM-only, requires async import) ──
@@ -2136,16 +2134,16 @@ ipcMain.handle("pipelineLogs:monthlyCost", async () => {
 });
 
 // ============ ELECTRON-STORE: persistent settings ============
-ipcMain.handle("store:get", async (_, key) => {
+ipcMain.handle("store:get", (_, key) => {
   return store.get(key);
 });
 
-ipcMain.handle("store:set", async (_, key, value) => {
+ipcMain.handle("store:set", (_, key, value) => {
   store.set(key, value);
   return { success: true };
 });
 
-ipcMain.handle("store:getAll", async () => {
+ipcMain.handle("store:getAll", () => {
   return store.store;
 });
 
@@ -3093,7 +3091,7 @@ ipcMain.handle("app:getVersion", async () => {
 
 // Get logs directory path (for dev / Claude Code access)
 ipcMain.handle("logs:getDir", async () => {
-  return logger.getLogsDirPath();
+  return logger.getLogsDir();
 });
 
 // ── Project Folders ──
