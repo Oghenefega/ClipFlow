@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select } from "../components/shared";
+import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select, formatDuration } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
 import TestChip from "../components/TestChip";
 
@@ -586,13 +586,6 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       gamesDb.forEach((g) => options.push({ value: g.name, label: g.name, tag: g.tag, color: g.color }));
     }
     return options;
-  };
-
-  const formatDuration = (seconds) => {
-    if (!seconds || seconds <= 0) return "0m";
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
   if (loading) {

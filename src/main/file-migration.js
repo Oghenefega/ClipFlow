@@ -13,20 +13,13 @@ const path = require("path");
 const fs = require("fs");
 const log = require("electron-log/main").scope("migration");
 const database = require("./database");
+const { uuid } = require("./uuid");
 
 // Pattern: "2026-03-03 AR Day25 Pt1.mp4" or "2026-03-03 AR Day25 Pt1.mkv"
 const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)\.(mp4|mkv)$/i;
 
 // Month folder pattern: "2026-03"
 const MONTH_FOLDER_PATTERN = /^\d{4}-\d{2}$/;
-
-function _uuid() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 /**
  * Run the full file metadata migration.
@@ -148,7 +141,7 @@ async function runFileMigration(watchFolder, store, ffmpegProbe) {
       const status = projectSourceFiles.has(filePath.toLowerCase()) ? "done" : "renamed";
 
       // Insert into file_metadata
-      const id = _uuid();
+      const id = uuid();
       try {
         db.run(
           `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status)

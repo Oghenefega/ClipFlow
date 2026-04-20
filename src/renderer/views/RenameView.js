@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import T from "../styles/theme";
-import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, PillSpinbox, Checkbox } from "../components/shared";
+import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, PillSpinbox, Checkbox, formatDuration } from "../components/shared";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
 import TestChip from "../components/TestChip";
 
@@ -463,13 +463,6 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   };
 
   // ============ SPLIT HELPERS ============
-  const formatDuration = (seconds) => {
-    if (!seconds || seconds <= 0) return "0m";
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-  };
-
   const getSplitPreview = (r) => {
     const info = splitInfo[r.id];
     if (!info || !info.splitCount || info.skipSplit) return null;
