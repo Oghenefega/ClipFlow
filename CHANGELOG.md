@@ -4,6 +4,29 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-24 (session 22) — Lever 1 implementation: multi-signal pipeline online
+
+### Added
+- **[src/main/signals.js](src/main/signals.js)** — new 300+ LOC module implementing Stage 4.5 of the AI pipeline. Exports `ARCHETYPE_WEIGHTS`, `resolveArchetypeWeights`, three JS signals (`computeTranscriptDensity`, `computeReactionWords`, `detectSilenceSpike`), `buildEventTimeline` (composite scoring with archetype-aware weights + fallback redistribution), and `runSignalExtraction` (the top-level orchestrator). Never throws — returns `null` on total failure so the outer pipeline falls back to pre-Lever-1 behavior (peak-energy frame sort, no event-timeline prompt block).
+- **[tools/signals/yamnet_events.py](tools/signals/yamnet_events.py)** — YAMNet audio event classifier over 0.975 s non-overlapping frames. Emits scores for the locked 17-class reaction subset. Uses `ai-edge-litert` (Google's official successor to `tflite-runtime`).
+- **[tools/signals/pitch_spike.py](tools/signals/pitch_spike.py)** — pYIN fundamental-frequency baseline + elevated-window detection. Loads at native 16 kHz per locked decision, uses the locked score formula `min(1.0, mean_f0/baseline - 1.0)`.
+- **[tools/signals/scene_change.py](tools/signals/scene_change.py)** — FFmpeg scene detection via `select='gt(scene,0.4)',showinfo` with `pts_time` parsing. Binary `score: 1.0` per spec — `scdet` filter deferred to v2.
+- **[tools/signals/yamnet.tflite](tools/signals/yamnet.tflite)** — 4.1 MB MediaPipe YAMNet classifier bundled with the repo. No on-demand download; ships with installer.
+- **[tools/signals/yamnet_class_map.csv](tools/signals/yamnet_class_map.csv)** — 521-class AudioSet display-name → index map from the TensorFlow research repo. Used to resolve the 17 kept-class indices at runtime. All 17 spec class names verified present.
+- **Stage 4.5 wiring in [ai-pipeline.js](src/main/ai-pipeline.js)** — `signals` subdir added to `ensureProcessingDirs`; Stage 4.5 call inserted between Energy Analysis and Frame Extraction; `extractTopFrames` signature extended with optional `eventTimeline` — sorts segments by `composite_score` when present, falls back to `peak_energy` otherwise.
+- **Event-timeline block in the LLM prompt ([ai-prompt.js](src/main/ai-prompt.js))** — `buildUserContent` accepts a new `eventTimeline` param and inserts a top-50-events text block between the transcript and the frame images. `buildSystemPrompt` TASK section gained a third bullet explaining the multi-signal evidence and how to use it as corroboration.
+
+### Changed
+- **Build & Run section of [CLAUDE.md](CLAUDE.md)** — corrected to reflect the Vite migration. `npx react-scripts build` replaced with `npm run build:renderer`; dev-server note no longer references CRA.
+- **Python deps in `D:\whisper\betterwhisperx-venv`** — installed `ai-edge-litert==2.1.4`, `librosa==0.11.0`, `soundfile==0.13.1`. Total added footprint: ~30 MB. No TensorFlow anywhere.
+
+### Notes
+- **Deviation from spec: `tflite-runtime` → `ai-edge-litert`.** The spec called for `tflite-runtime==2.14.0`, but that package has no Windows / Python 3.12 wheel as of 2026. `ai-edge-litert` is Google's official successor — same `Interpreter` API, 12.8 MB wheel, no TensorFlow dependency. Per founder direction ("no fallbacks to 500mb bloat"), the Python scripts fail loud if `ai-edge-litert` is not installed; they do NOT fall back to full `tensorflow`.
+- **Smoke test (synthetic 30 s WAV + 10 s MP4 with color change):** all 7 signals computed, 0 failed, weights sum to 1.0 exactly, composite math arithmetically verified (0.725 for a hype segment matching energy 0.95 + pitch 1.0 + reaction_words 1.0 + silence_spike 1.0 at archetype weights). Pitch-spike baseline detected 121 Hz from a 120 Hz source tone. Scene change correctly detected the red→blue transition at t=5.0 s. YAMNet correctly labeled sine-wave segments as Music and silence as Silence. 11 s wall-clock total, Promise.all-parallelized.
+- **HANDOFF steps 1–7 complete.** Steps 8 (is_test validation on a real recording) and 9 (manual fallback verification) remain for next session — both require running the pipeline on a real test recording.
+
+---
+
 ## [Unreleased] — 2026-04-23 (session 21) — Lever 1 spec review + lock (Opus 4.7)
 
 ### Changed

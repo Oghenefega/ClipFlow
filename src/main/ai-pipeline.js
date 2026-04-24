@@ -8,6 +8,7 @@ const aiPrompt = require("./ai-prompt");
 const gameProfiles = require("./game-profiles");
 const feedback = require("./feedback");
 const database = require("./database");
+const signals = require("./signals");
 const { PipelineLogger } = require("./pipeline-logger");
 const { getProvider } = require("./ai/llm-provider");
 
@@ -73,7 +74,7 @@ const DEFAULT_PROCESSING_DIR = path.join(__dirname, "..", "..", "processing");
  * Ensure all processing subdirectories exist.
  */
 function ensureProcessingDirs(processingDir) {
-  const subdirs = ["transcripts", "energy", "frames", "claude", "clips", "logs"];
+  const subdirs = ["transcripts", "energy", "frames", "claude", "clips", "logs", "signals"];
   for (const sub of subdirs) {
     const dir = path.join(processingDir, sub);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -255,20 +256,31 @@ function formatSrtTime(seconds) {
 
 /**
  * Extract top N frames from peak energy segments.
+ * When eventTimeline is provided, sorts segments by composite_score (Lever 1
+ * multi-signal scoring). Falls back to peak_energy sort when eventTimeline is
+ * null — identical to pre-Lever-1 behavior.
  * @param {string} videoPath
  * @param {Array} energyJson - Parsed energy.json (merged with transcript)
  * @param {string} framesDir - Output directory
  * @param {string} videoName - Base video name (for filenames)
  * @param {number} topN - Max frames to extract (default 20)
  * @param {PipelineLogger} logger
+ * @param {object|null} [eventTimeline] - Signal extraction output (optional)
  * @returns {Promise<Array<{path: string, timestamp: string, peakEnergy: number}>>}
  */
-async function extractTopFrames(videoPath, energyJson, framesDir, videoName, topN, logger) {
-  // Sort by peak_energy descending, take top N
-  const sorted = [...energyJson]
-    .filter((seg) => seg.peak_energy != null)
-    .sort((a, b) => b.peak_energy - a.peak_energy)
-    .slice(0, topN);
+async function extractTopFrames(videoPath, energyJson, framesDir, videoName, topN, logger, eventTimeline = null) {
+  let sorted;
+  if (eventTimeline && Array.isArray(eventTimeline.segments) && eventTimeline.segments.length > 0) {
+    sorted = [...eventTimeline.segments]
+      .filter((seg) => typeof seg.composite_score === "number")
+      .sort((a, b) => b.composite_score - a.composite_score)
+      .slice(0, topN);
+  } else {
+    sorted = [...energyJson]
+      .filter((seg) => seg.peak_energy != null)
+      .sort((a, b) => b.peak_energy - a.peak_energy)
+      .slice(0, topN);
+  }
 
   const frames = [];
   for (let i = 0; i < sorted.length; i++) {
@@ -506,11 +518,26 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     );
     logger.endStep("Energy Analysis", `${energyJson.length} segments analyzed`);
 
-    // ============ Stage 5: Frame Extraction (top 20 peaks) ============
+    // ============ Stage 4.5: Signal Extraction (Lever 1) ============
+    sendProgress("signals", 50, "Extracting audio signals...");
+    logger.startStep("Signal Extraction");
+    const creatorProfile = store.get("creatorProfile") || undefined;
+    const archetype = creatorProfile?.archetype || "variety";
+    const eventTimeline = await signals.runSignalExtraction({
+      wavPath, sourceFile, energyJson, transcription,
+      processingDir, videoName, pythonPath, archetype,
+      logger, isTest: !!gameData.isTest,
+    });
+    logger.endStep(
+      "Signal Extraction",
+      eventTimeline ? `${eventTimeline.events.length} events, ${eventTimeline.signals_computed.length} signals` : "fallback (energy only)"
+    );
+
+    // ============ Stage 5: Frame Extraction (top 20 composite-score peaks) ============
     sendProgress("frames", 55, "Extracting peak energy frames...");
     logger.startStep("Frame Extraction");
     const framesDir = path.join(processingDir, "frames");
-    const frames = await extractTopFrames(sourceFile, energyJson, framesDir, videoName, 20, logger);
+    const frames = await extractTopFrames(sourceFile, energyJson, framesDir, videoName, 20, logger, eventTimeline);
     logger.endStep("Frame Extraction", `${frames.length} frames extracted`);
 
     // ============ Stage 6: Claude API Call ============
@@ -528,8 +555,6 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     // Get few-shot examples from feedback DB
     const approvedClips = feedback.getApprovedClips(gameData.gameTag, 20);
 
-    const creatorProfile = store.get("creatorProfile") || undefined;
-
     const systemPrompt = aiPrompt.buildSystemPrompt({
       gameTag: gameData.gameTag,
       gameName: gameData.game,
@@ -542,6 +567,7 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     const userContent = aiPrompt.buildUserContent({
       claudeReadyText,
       frames,
+      eventTimeline,
     });
 
     const claudeResult = await callLLMForHighlights(systemPrompt, userContent, logger);

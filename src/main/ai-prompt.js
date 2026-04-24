@@ -37,6 +37,9 @@ You are a clip detection AI. You analyze gaming video transcripts and energy dat
 You will receive:
 1. A full transcript with per-line energy labels (low / medium / high / explosive)
 2. Screenshot frames from peak-energy moments
+3. A multi-signal event timeline showing: audio reaction events (cheering, shouting, laughter, gasping via YAMNet), voice pitch spikes above the speaker's baseline, elevated speech rate windows, reaction language clusters, visual scene changes, and silence-then-spike patterns.
+
+Use the event timeline as corroborating evidence. Moments where multiple signals converge are almost always stronger clip candidates than energy alone. Moments with no corroborating signals may still be good clips if the transcript supports it — use your judgment.
 
 You must return: a JSON array of 10-25 clip recommendations, ordered by confidence (highest first).`);
 
@@ -331,14 +334,15 @@ function buildPickCriteria(priorities) {
 
 /**
  * Build the user message content array for the API call.
- * Includes the full transcript text and frame images.
+ * Includes the full transcript text, multi-signal event timeline, and frame images.
  *
  * @param {object} opts
  * @param {string} opts.claudeReadyText - Full transcript with energy labels
  * @param {Array<{path: string, timestamp: string}>} opts.frames - Frame image paths + timestamps
+ * @param {object|null} [opts.eventTimeline] - Lever 1 signal extraction output (optional)
  * @returns {Array} Content array for API message
  */
-function buildUserContent({ claudeReadyText, frames }) {
+function buildUserContent({ claudeReadyText, frames, eventTimeline }) {
   const content = [];
 
   // Add transcript text
@@ -346,6 +350,25 @@ function buildUserContent({ claudeReadyText, frames }) {
     type: "text",
     text: `## Full Transcript with Energy Labels:\n\n${claudeReadyText}`,
   });
+
+  // Add multi-signal event timeline (top 50 events by score)
+  if (eventTimeline && Array.isArray(eventTimeline.events) && eventTimeline.events.length > 0) {
+    const top = [...eventTimeline.events]
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 50)
+      .map((e) => `${formatTimestamp(e.t_start)} [${e.signal}] ${e.label} (${(e.score ?? 0).toFixed(2)})`)
+      .join("\n");
+
+    const used = (eventTimeline.signals_computed || []).join(", ");
+    const failed = (eventTimeline.signals_failed || []).length
+      ? ` | failed: ${eventTimeline.signals_failed.join(", ")}`
+      : "";
+
+    content.push({
+      type: "text",
+      text: `\n## Multi-Signal Event Timeline (${used}${failed}):\n\nTop events by confidence:\n${top}`,
+    });
+  }
 
   // Add frame images (base64 encoded)
   if (frames && frames.length > 0) {

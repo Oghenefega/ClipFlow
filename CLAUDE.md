@@ -51,14 +51,16 @@ That file is the source of truth. Never hardcode versions here.
 
 ## Build & Run
 
+Renderer is Vite (migrated from CRA). Commands:
+
 ```bash
 npm install                  # Install deps
-npx react-scripts build      # Build React → build/
+npm run build:renderer       # Build renderer → build/ (vite build)
 npm start                    # Launch Electron (loads from build/)
-npm run dev                  # Dev mode with hot reload
+npm run dev                  # Vite dev server + Electron with hot reload
 ```
 
-`isDev` in `src/main/main.js` is `false` — Electron loads from `build/`. Set `true` + run React dev server on port 3000 for hot reload.
+`isDev` in `src/main/main.js` is `false` — Electron loads from `build/`. `npm run dev` starts Vite on http://localhost:3000 and flips the renderer to dev-server mode.
 
 **After ANY code change:** build + `npm start` to visually verify. Non-negotiable.
 
