@@ -4,6 +4,27 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-23 (session 21) — Lever 1 spec review + lock (Opus 4.7)
+
+### Changed
+- **Lever 1 spec status: Proposed → Approved (locked for implementation)** in `specs/lever-1-signal-extraction-v1.md` (Obsidian vault). Added a "Locked Decisions (2026-04-23 Review)" block at the top of the spec summarizing every decision made in this session. Inline edits applied throughout the spec to match.
+- **Archetype weights narrowed.** Hype `energy` weight dropped from 0.55 → 0.50; chill raised from 0.25 → 0.30. 20-point spread instead of 30. Rationale: reduce the risk that off-archetype moments (quiet-but-funny on a hype creator, loud spike on a chill creator) get structurally excluded from clip selection. Every row of `ARCHETYPE_WEIGHTS` still sums to 1.0; `competitive` and `variety` unchanged in principle but `variety` aligned to `competitive` for cleanness.
+- **Pitch spike algorithm: load at native 16 kHz, not 22050.** `audio.wav` (Stage 2 output) is already 16 kHz mono per the technical summary; pYIN works fine at 16 kHz with the same `frame_length=2048, hop_length=512`. Dropped the unnecessary resample.
+- **Pitch spike score formula made explicit:** `score = min(1.0, mean_f0 / baseline - 1.0)`. Maps 1.4× baseline → 0.4; 2.0× baseline → 1.0. Example scores in the output schema updated to match.
+- **Scene change detection locked to Option A** — use `ffmpeg … select='gt(scene,0.4)',showinfo` and emit `score: 1.0` for every detected event. `showinfo` doesn't expose scene scores, but the composite formula uses `scene_change_boost` as binary 0/1 anyway, so the score field is vestigial. Comment documents this. If real scores are ever needed, swap to the `scdet` filter in v2.
+- **Fallback weight redistribution formula made explicit:** `new_weight[i] = old_weight[i] / (1 - sum_of_failed_weights)`. Example calculation included in spec.
+- **Open question #3 (auto-trimming first/last 30s to avoid OBS stream fades) retired.** No silent trimming in the pipeline. User-controlled trim tracked in a new GitHub issue instead (see Chores below).
+
+### Added
+- **`HANDOFF.md` rewritten from scratch** for session 21. Self-contained: next session can walk in cold, read HANDOFF, and start writing `src/main/signals.js` without reading any prior transcripts. Includes the exact implementation sequence, file-by-file insertion points for `ai-pipeline.js` and `ai-prompt.js`, watch-outs, and every locked decision with rationale.
+
+### Chores
+- **#69 filed** — user-facing trim toggle. When importing a video, user should be able to set start/end points within the source; the AI pipeline only looks for clips between those bounds. Replaces any idea of the pipeline auto-trimming on its own. Not a Lever 1 blocker; tracked separately.
+
+### Notes
+- **No source code changed this session.** This was a review-and-decide pass. The session ran out of context budget (~57%) before implementation could begin, so coding was deliberately deferred to session 22. Model used was Opus 4.7 throughout the review; next session should start on Sonnet since architecture is now fully decided.
+- **Technical summary read + cross-referenced** — `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\technical-summary.md`. No conflicts with the spec. Confirmed Stage 2 extracts audio at 16 kHz mono, which validated the pitch spike sample-rate change.
+
 ## [Unreleased] — 2026-04-20 — Tier 2 complexity cleanup
 
 ### Added
