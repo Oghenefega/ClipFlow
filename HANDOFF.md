@@ -1,142 +1,104 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-24 — Session 22: Lever 1 implementation (Opus 4.7). All 7 signals live; Steps 8–9 (validation) remain._
+_Last updated: 2026-04-24 — Session 23: Lever 1 Step 8 validation + pipeline architecture decisions. Full engineering plans live in GitHub issues, not here._
 
 ---
 
 ## One-line TL;DR
 
-Stage 4.5 (multi-signal pipeline) is fully implemented end-to-end. All 7 signals fire on synthetic data, composite scoring is math-correct, graceful degradation works, build is clean. What's left is real-recording validation (is_test log review + manually breaking each signal).
+Step 8 real-recording validation ran — Lever 1 failed on a real 30-min recording (3 of 5 Python signals timed out, one crash from LLM output overflow, one ignored naming-watcher limitation surfaced). Three issues filed with full engineering detail. **The issues are the source of truth; this HANDOFF is just a pointer.**
 
 ---
 
-## Current State
+## What actually happened this session
 
-- **Branch:** `master`. HEAD is the session-22 commit containing all Lever 1 implementation + CHANGELOG + HANDOFF updates.
-- **7 new/modified files.** All JS builds clean with Vite. All 3 Python scripts smoke-tested standalone + through the JS spawn chain.
-- **Python venv updated.** `D:\whisper\betterwhisperx-venv` now has `ai-edge-litert==2.1.4`, `librosa==0.11.0`, `soundfile==0.13.1`.
-- **No real-recording test yet.** Synthetic smoke tests all passed. Next session needs a short real recording run through the pipeline with `isTest: true`.
+1. Ran `npm start`, dropped a real RL recording through the pipeline. First attempt crashed at Stage 6 (LLM returned invalid JSON — 4096 output-token ceiling hit). Second attempt succeeded but took 18 minutes and silently failed 3 of 5 signals.
+2. Diagnosed both failures from the pipeline logs in `processing/logs/`.
+3. Filed three GitHub issues as carriers of full engineering context:
+   - **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher only detects rigid OBS filename pattern. Non-Fega creators can't use ClipFlow today.
+   - **[#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — LLM pipeline crashes + Claude hallucinates narration. **Direction 1 locked** (stop asking Claude to narrate). Full schema rewrite and downstream impact captured.
+   - **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — Lever 1 signals timeout on real recordings. **Path A locked** (no retreat, pioneer if needed). 4-phase plan with per-signal optimization options, heartbeat protocol spec, and pioneer gates.
 
----
-
-## What Shipped This Session
-
-| File | Status | Purpose |
-|------|--------|---------|
-| `src/main/signals.js` | **new** | Stage 4.5 orchestrator + JS signals + composite scoring |
-| `src/main/ai-pipeline.js` | modified | Stage 4.5 call, `extractTopFrames` sort change, `signals/` subdir |
-| `src/main/ai-prompt.js` | modified | `eventTimeline` param in `buildUserContent`, TASK bullet 3 |
-| `tools/signals/yamnet_events.py` | **new** | YAMNet classifier (17-class subset) |
-| `tools/signals/pitch_spike.py` | **new** | pYIN F0 baseline + elevated-window detection |
-| `tools/signals/scene_change.py` | **new** | ffmpeg `showinfo` scene-cut detector |
-| `tools/signals/yamnet.tflite` | **new** | 4.1 MB MediaPipe YAMNet model (bundled) |
-| `tools/signals/yamnet_class_map.csv` | **new** | 521-class name→index map |
-| `CLAUDE.md` | modified | Build & Run section updated for Vite |
-| `CHANGELOG.md` | modified | Session 22 entry |
+All three issues are **commercial-launch blockers**.
 
 ---
 
-## Key Deviation From Spec
+## Where to start next session
 
-**`tflite-runtime` → `ai-edge-litert`.** The spec called for `tflite-runtime==2.14.0`. That package has no Windows / Python 3.12 wheel as of 2026 — pip literally says "Could not find a version that satisfies the requirement". `ai-edge-litert` is Google's official successor: same `Interpreter` API, 12.8 MB wheel, no TensorFlow dependency. Python scripts fail loud if it's not installed — they do NOT fall back to full `tensorflow` (would be 500+ MB of bloat, explicitly rejected by founder).
+**Read the three issues first. Do not skim.** They carry the full engineering detail — schemas, file paths, acceptance criteria, phased plans, pioneer gates, heartbeat protocol. HANDOFF is intentionally thin because the depth belongs in issues, not here.
 
----
+1. **Read [#72](https://github.com/Oghenefega/ClipFlow/issues/72) end to end** — it has a "Next-session kickoff checklist" section at the bottom. Follow it.
+2. **Read [#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — Direction 1 is locked (stop asking Claude to narrate). Schema rewrite + "Clip N" placeholder title + publish guardrail. Ready to implement.
+3. **Read [#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — adjacent blocker, not the focus of last session but still commercial-launch.
 
-## Runtime Behavior Verified
+### Recommended order
 
-On a synthetic 30 s WAV + 10 s MP4:
-- **7/7 signals fired** — energy, transcript_density, reaction_words, silence_spike, yamnet, pitch_spike, scene_change
-- **Weights sum to 1.0 exactly** (hype archetype, no failures → base weights intact)
-- **Composite math correct** — 0.725 top-segment score matches `0.5×0.95 + 0.1×1 + 0.1×1 + 0.05×1` by hand
-- **Pitch-spike baseline** — detected 121 Hz on a 120 Hz source tone
-- **YAMNet** — labeled sine-wave segments as "Music", silence as "Silence"
-- **Scene-change** — caught red→blue ffmpeg-concat boundary at exactly t=5.0 s
-- **11 s wall-clock total.** Promise.all parallelizes the 3 Python subprocesses.
+**#71 first** — it's smaller, self-contained, and the fixes (8192 bump + 20-cap + schema rewrite + guardrail) are mostly surgical. Good warmup that also stops the bleeding on Stage 6 crashes.
 
-Fallback path also tested: with all 3 Python stubs returning null, weights redistribute correctly (energy 0.5 → 0.714, reaction_words 0.1 → 0.143, etc.) and sum stays at exactly 1.0.
+**#72 Phase 1 second** — UX + heartbeat infrastructure. Must land before Phases 2-4 because the optimization work uses the heartbeat/progress UI to validate itself. See issue body for file list and acceptance.
 
----
+**#72 Phases 2-4 after that** — scene_change → yamnet → pitch_spike, cheapest-first per founder direction.
 
-## Next Session — Exactly What To Do
-
-### Step 8 — is_test validation (needs a real recording)
-
-Pick a short gaming recording (~5–10 min). Run it through the pipeline with `isTest: true` (typically via the Test flag in the AI pipeline UI, or however Fega's test flow works). Then:
-
-1. **Read `processing/logs/<videoName>.log`.** Look for the "Signal extraction (is_test)" block — shows wall-clock times, signals_computed, signals_failed, top-5 composite segments.
-2. **Open `processing/signals/<videoName>.event_timeline.json`.** Sanity-check it:
-   - All 7 signals listed in `signals_computed`, nothing in `signals_failed`
-   - `weights_applied` matches the base archetype weights (no redistribution kicked in)
-   - `events` array is populated across all 6 per-signal labels (yamnet reaction classes, pitch_spike, scene_cut, transcript_density, reaction_words, silence_spike)
-   - Top-5 segments by `composite_score` look intuitively like real moments (hype/reaction peaks)
-3. **Compare top-20 composite segments vs. top-20 peak_energy segments.** Are they different? If they're nearly identical, the multi-signal machinery isn't actually changing frame selection — worth investigating why (weights too energy-dominant? signals producing too few events? overlap window too narrow?).
-4. **Runtime sanity** — extraction_ms for yamnet / pitch_spike / scene_change should match the spec's budget (~10 s / ~20–40 s / ~20–40 s for a 1-hour recording; proportionally less for shorter).
-
-### Step 9 — fallback verification
-
-Manually break each signal and confirm the pipeline still completes cleanly:
-
-1. **Break YAMNet** — temporarily rename `tools/signals/yamnet.tflite` → `yamnet.tflite.bak`. Rerun pipeline. Expected: `signals_failed` contains `yamnet`, weights redistributed to survivors, pipeline still produces clips.
-2. **Break pitch_spike** — temporarily rename `tools/signals/pitch_spike.py`. Expected: same graceful degradation.
-3. **Break scene_change** — rename `tools/signals/scene_change.py`. Expected: same.
-4. **Break all three at once** — pipeline should still run identical to pre-Lever-1 behavior (peak_energy-sorted frames, no event-timeline prompt block, Claude Analysis unchanged).
-
-After each break, restore and move on.
+**#70 is orthogonal** — can be picked up anytime a fresh session wants a smaller-scoped piece of work.
 
 ---
 
-## Files to Read First Next Session
+## Locked decisions (issue bodies are source of truth)
 
-1. **This HANDOFF.md** — current state + the Step 8 / 9 checklist above.
-2. **`src/main/signals.js`** — the core of Lever 1. Understand `buildEventTimeline` before reviewing event_timeline.json output.
-3. **`C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\specs\lever-1-signal-extraction-v1.md`** — the locked spec. Reference for expected behavior during validation.
+### From #71
+- Direction 1: Stop asking Claude to narrate. New Stage 6 schema = timestamps + confidence + energy_level + has_frame + clip_number. No title, why, or peak_quote.
+- Default title = `"Clip N"`. Pure number, no timestamp, no game tag in the stored string.
+- Game tag becomes a first-class field (`clip.gameTag`) and renders as a separate UI chip.
+- Publish guardrail: warn via toast only when `clip.title` matches `/^Clip \d+$/`. Any manual rename bypasses silently.
+- Bump `max_tokens` 4096 → 8192. Cap clips 10–20 during alpha.
+- Soft DB migration — old fields readable, new clips don't populate them.
 
-No need to re-read `ai-pipeline.js` / `ai-prompt.js` unless validation surfaces a behavior question — the wiring is thin.
+### From #72
+- Path A: no retreat. Pioneer if off-the-shelf tools can't hit budget.
+- Strict mode toggle in Settings. **On by default.** Off enables best-effort mode with non-strict modal.
+- Optimization order: scene_change (cheapest) → yamnet → pitch_spike (biggest rewrite).
+- Pioneer gate per signal: if stacked library-level optimizations don't hit target after one focused session, we go custom.
+- Heartbeat protocol v1: Python emits `PROGRESS <float>` to stderr every ~5s. Node parses line-by-line, stall-timer kills at 30s silence post-grace. See issue body for full spec.
+
+---
+
+## Open questions for next session
+
+None blocking. All decisions made. Implementation-ready.
+
+---
+
+## Files to read first next session
+
+1. **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — full plan, ALL detail preserved.
+2. **[#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — narration fix + downstream impact.
+3. **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — watcher rigidity.
+4. **`src/main/signals.js`** — the file being rewritten in #72 Phase 1.
+5. **`src/main/ai-pipeline.js`** — Stage 6 call site for #71.
+6. **`processing/logs/RL_2026-10-15_Day9_Pt1_1777047494519.log`** — reference failure log.
 
 ---
 
 ## Watch Out For
 
-- **`ai-edge-litert` on a fresh install.** If the installer ships without the venv, Fega (or future me) needs to `pip install ai-edge-litert librosa>=0.11 soundfile>=0.12` into whatever Python the app uses. Bundling implications tracked in spec section "Bundling Implications".
-- **YAMNet model at `tools/signals/yamnet.tflite`** must ship with the installer (it's 4.1 MB, git-committed). If `yamnet_events.py` can't find it, it exits 2 and the signal is logged as failed — not a crash, but you won't get yamnet_boost.
-- **Numpy 2.x compatibility.** Venv has numpy 2.4.3, which is fine with librosa 0.11 and ai-edge-litert 2.1.4. Do not downgrade numpy.
-- **Electron bundling.** `tools/signals/` must be added to `electron-builder`'s `files` array when bundling (same pattern as `tools/transcribe.py`). Verify this when auto-updater work happens (#50).
-- **Spec compliance gaps to watch during validation.** A few places where my implementation made a judgment call the spec didn't specify:
-  - YAMNet `MIN_SCORE = 0.05` filter on emitted frames — keeps the JSON small. Spec didn't specify; if validation shows too many or too few events, adjust.
-  - Reaction-word score normalization `hits/wordCount * 10` capped at 1.0. Spec said "tuned empirically" — this is my best guess for v1.
-  - Pitch spike `voiced_sec >= 0.5` gate uses hop-based counting (voiced_count × hop_sec). Good enough; worth eyeballing on real voice.
-
----
-
-## Runtime Budget — Actuals vs. Spec
-
-Spec targets for a 1-hour recording:
-- YAMNet: ~10–15 s → we saw ~1 s for 30 s audio → scales to ~60 s for 1hr (still well under budget but bigger than spec suggested)
-- Pitch spike: ~20–40 s → we saw ~9 s for 30 s audio → ~18 min for 1hr if linear — **this is a red flag**, worth measuring on real data
-- Scene change: ~20–40 s → ffmpeg is proportional to video length
-
-If pitch_spike scales linearly on real data it'll blow the budget. Two likely causes: (1) pYIN is O(n) but has real constants, and synthetic sine wave may be pathological; (2) real voice with gaps processes faster than continuous tones because of voicing_flag filtering. Measure on Step 8 — if it's truly too slow, switch to `pyin` with a larger hop or switch to a cheaper F0 estimator (crepe-lite, yin).
+- **Do not start #72 Phase 2-4 before Phase 1.** The heartbeat/progress infrastructure is what validates each optimization's impact.
+- **Electron-store schema migration is a HARD RULE.** `.claude/rules/pipeline.md`. The `strictMode: true` key in #72 Phase 1 needs a migration in `src/main/main.js` written BEFORE the data-shape change.
+- **Reference recording** for regression testing: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\2026-10\RL 2026-10-15 Day9 Pt1.mp4`. Every phase's acceptance is measured against this file.
+- **`extractGameTag(clip.title)`** is a hidden coupling — 4 call sites in QueueView parse the game tag out of the title string. #71 kills this. Search for `extractGameTag` before touching anything that writes titles.
+- **Publish flows use `clip.title` as default post title.** #71 adds a guardrail but verify it fires on all four platforms (TikTok, Instagram, Facebook, YouTube) before shipping.
 
 ---
 
 ## Logs / Debugging
 
 - **Electron log file:** `%APPDATA%\clipflow\logs\app.log`
-- **Pipeline logs:** `processing/logs/<videoName>.log` (PipelineLogger). Signal extraction writes a "Signal Extraction" step block here.
-- **Signal JSONs:** `processing/signals/<videoName>.{yamnet,pitch_spike,scene_change,event_timeline}.json` — all human-readable.
-- **is_test mode** — enable via `gameData.isTest = true`. Emits the per-signal wall-clock table + top-5 composite segments to the pipeline log.
-
----
-
-## Open GitHub Issues Relevant to Lever 1
-
-- **[#68](https://github.com/Oghenefega/ClipFlow/issues/68)** — `energy_scorer.py` still hardcoded to `D:\whisper\`. Lever 1 scripts did NOT repeat this mistake (they live in `tools/signals/` with `__dirname`-relative resolution). Fixing #68 is still required before shipping.
-- **[#69](https://github.com/Oghenefega/ClipFlow/issues/69)** — User-facing trim toggle. Not blocking Lever 1.
-- **[#62](https://github.com/Oghenefega/ClipFlow/issues/62)** — Pipeline fails on silent clips (energy_scorer.py exit 1). Lever 1 doesn't fix this, but graceful degradation means a future session adding retry here won't conflict.
+- **Pipeline logs:** `processing/logs/<videoName>.log` (PipelineLogger)
+- **Signal JSONs:** `processing/signals/<videoName>.{yamnet,pitch_spike,scene_change,event_timeline}.json`
+- **is_test mode** — enable via `gameData.isTest = true`. Writes the per-signal wall-clock table to the pipeline log.
 
 ---
 
 ## Session Model + Cost
 
-- **Model used:** Opus 4.7 throughout. Founder explicitly authorized Opus for the session ("as long as it's better").
-- **No context problems** — implementation finished well inside budget.
-- **Next session is simpler than this one** — just validation + fallback breakage. Sonnet is plenty for that work.
+- **Model used:** Opus 4.7. Founder wanted depth, Opus delivered it.
+- **Context discipline:** this session went DEEP on architecture, not code. No source files were modified. Implementation is next session.
+- **Next session can be Sonnet** for #71 (surgical). Should probably be Opus for #72 Phase 1 (infrastructure rewrite is not trivial).

@@ -4,6 +4,24 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-24 (session 23) — Lever 1 Step 8 real-recording validation + architecture decisions
+
+### Changed
+- **[HANDOFF.md](HANDOFF.md)** — rewritten as a pointer to the three issues filed this session. Full engineering depth lives in issue bodies, not in HANDOFF. Next-session kickoff instructions and locked decisions summarized.
+
+### Notes
+- **Step 8 validation ran on a real 30-min Rocket League recording.** Two distinct failures surfaced, neither of which had shown up in synthetic smoke tests:
+  - **Stage 6 crash:** Claude's response hit the hardcoded 4096 output-token ceiling and returned truncated JSON. First run aborted at Stage 6 with \`LLM returned invalid JSON\`; retry happened to fit under the ceiling and succeeded. Pure dice roll between crash and success on the same prompt/recording.
+  - **Lever 1 signals timed out.** All three Python signals (yamnet 120s, scene_change 120s, pitch_spike 300s) hit their timeout walls on the real recording. Graceful degradation silently swallowed the failure and told the user "22 clips generated" as if Lever 1 had fired. HANDOFF from session 22 had predicted pitch_spike as the red flag — confirmed.
+- **Three GitHub issues filed as carriers of full engineering context:**
+  - **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — rename watcher's single rigid regex locks out any creator not using Fega's exact OBS filename format. Commercial-launch blocker for non-Fega users.
+  - **[#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — LLM pipeline ceiling crash + root cause: Claude is hallucinating narration (\`title\`, \`why\`, \`peak_quote\`) because it doesn't have visual context. **Direction 1 locked:** stop asking Claude to narrate. New minimal Stage 6 schema (timestamps + confidence + energy_level + has_frame + clip_number). \`"Clip N"\` default title with game-tag UI chip. Publish guardrail on placeholder titles. Full downstream impact on ProjectsView / QueueView / EditorLayout / publish flows captured in issue body.
+  - **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — Lever 1 signals timeout on real recordings, pipeline silently degrades, user has no way to know. **Path A locked:** no retreat, pioneer if needed. **Strict mode toggle** (on by default) for abort-on-failure vs. best-effort. Optimization order: scene_change (cheapest) → yamnet → pitch_spike. Per-signal pioneer gate: "if stacked library-level optimizations don't hit target after one focused session, we go custom." Full heartbeat protocol specification (\`PROGRESS <float>\` over stderr, stall-timer kill, startup grace, scaled backstop). 4-phase implementation plan with per-phase acceptance criteria. Issue body is ~350 lines by design — it's the carrier, not a sketch.
+- **No source files modified this session.** Entire session was architecture, validation, and preservation of engineering detail into authoritative issue bodies so the next session starts oriented.
+- **Session 22's Step 8/9 work is superseded by #72.** The Step 9 fallback verification no longer matters in the proposed design — strict mode (default on) means there's no silent fallback to verify.
+
+---
+
 ## [Unreleased] — 2026-04-24 (session 22) — Lever 1 implementation: multi-signal pipeline online
 
 ### Added
