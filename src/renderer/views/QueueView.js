@@ -100,9 +100,16 @@ const PLATFORM_META = {
   youtube:   { label: "YouTube",   abbr: "YT", bg: "#c4302b",  border: "none" },
 };
 
+// #71: A clip is "placeholder-named" if its title is the unedited "Clip N" default
+// the pipeline assigned. Manual rename or AI Titles overwrite the title to something
+// else and silence the warning. Strict pattern — anything past the number opts out.
+const PLACEHOLDER_TITLE_RE = /^Clip \d+$/;
+const isPlaceholderTitle = (title) => PLACEHOLDER_TITLE_RE.test((title || "").trim());
+
 // Resolve caption for a platform using template + clip data, respecting overrides
 function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions) {
-  const gameTag = extractGameTag(clip.title) || "";
+  // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
+  const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
   // YouTube description comes from ytDescriptions per-game system
   if (platformKey === "youtube") {
     const gameKey = Object.keys(ytDescriptions || {}).find((k) => {
@@ -152,27 +159,38 @@ export default function QueueView({
 }) {
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
   const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
-  // Preserve projectId on each clip for IPC calls (dequeue, title edit)
-  const approved = Object.entries(allClips).flatMap(([projectId, clips]) =>
-    clips.filter((c) => (c.status === "approved" || c.status === "ready") && (!requireHashtagInTitle || hasHashtag(c.title)) && !scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title))
-      .map((c) => ({ ...c, _projectId: projectId }))
-  ).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
-  // Build projectId→name lookup
-  const projectNames = React.useMemo(() => {
-    const map = {};
-    for (const p of (localProjects || [])) map[p.id] = p.name || p.sourceName || p.id;
-    return map;
-  }, [localProjects]);
-  // #60: projectId → testMode lookup. Treat legacy tags:["test"] as on too.
-  const projectTestMap = React.useMemo(() => {
+  // projectId → metadata (gameTag, gameColor, name, testMode). gameTag is lowercased
+  // once here so all downstream comparisons can use === without case juggling.
+  const projectInfo = React.useMemo(() => {
     const map = {};
     for (const p of (localProjects || [])) {
-      map[p.id] = p.testMode === true || (Array.isArray(p.tags) && p.tags.includes("test"));
+      map[p.id] = {
+        name: p.name || p.sourceName || p.id,
+        gameTag: (p.gameTag || "").toLowerCase(),
+        gameColor: p.gameColor || "",
+        testMode: p.testMode === true || (Array.isArray(p.tags) && p.tags.includes("test")),
+      };
     }
     return map;
   }, [localProjects]);
-  const isClipTest = (clip) => !!(clip && clip._projectId && projectTestMap[clip._projectId]);
-  const mainCount = approved.filter((c) => extractGameTag(c.title) === mainGameTag).length;
+  // Preserve projectId on each clip for IPC calls. Promote gameTag to a first-class
+  // field on the clip (lowercased) — derived from clip.gameTag if present, else from
+  // the parent project, else legacy fallback by parsing the title hashtag.
+  const mainGameTagLc = (mainGameTag || "").toLowerCase();
+  const approved = Object.entries(allClips).flatMap(([projectId, clips]) => {
+    const projGameTag = projectInfo[projectId]?.gameTag || "";
+    return clips
+      .map((c) => {
+        const clipTag = (c.gameTag || "").toLowerCase() || projGameTag || extractGameTag(c.title) || "";
+        return { ...c, _projectId: projectId, gameTag: clipTag };
+      })
+      .filter((c) => (c.status === "approved" || c.status === "ready")
+        && (!requireHashtagInTitle || hasHashtag(c.title) || !!c.gameTag)
+        && !scheduledClipIds.has(c.id)
+        && !scheduledTitles.has(c.title));
+  }).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
+  const isClipTest = (clip) => !!(clip && clip._projectId && projectInfo[clip._projectId]?.testMode);
+  const mainCount = approved.filter((c) => c.gameTag === mainGameTagLc).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
   const [schedDate, setSchedDate] = useState("");
@@ -290,6 +308,12 @@ export default function QueueView({
   // Phase 3: Schedule a clip (persist scheduledAt on clip object, don't publish yet)
   const scheduleClipOnly = async (clip, date, time) => {
     if (!clip._projectId) return;
+    // #71: Scheduling a placeholder-named clip means it'll auto-publish later as
+    // "Clip 3" unless the user renames it first. Warn explicitly.
+    if (isPlaceholderTitle(clip.title)) {
+      const ok = window.confirm(`This clip still has a placeholder name (${clip.title}). It will publish to social platforms with this title at the scheduled time.\n\nSchedule anyway?`);
+      if (!ok) return;
+    }
     const scheduledAt = `${date}T${time}:00`;
     try {
       await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt });
@@ -460,9 +484,9 @@ export default function QueueView({
   const effectiveTemplate = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
 
   const logPost = (clip, date, day, time, isScheduled) => {
-    const gt = extractGameTag(clip.title) || "unknown";
+    const gt = (clip.gameTag || extractGameTag(clip.title) || "unknown").toLowerCase();
     const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
-    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTag ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
   };
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
@@ -604,17 +628,17 @@ export default function QueueView({
   const publishedToday = publishLogs.filter((l) => l.status === "success" && new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
   const failedCount = approved.filter((c) => publishStatus[c.id]?.state === "failed").length;
 
-  // Phase 5: Collect unique game tags for filter
+  // Phase 5: Collect unique game tags for filter (lowercased — clip.gameTag is canonical)
   const gameTagSet = useMemo(() => {
     const s = new Set();
-    approved.forEach((c) => { const g = extractGameTag(c.title); if (g) s.add(g); });
+    approved.forEach((c) => { if (c.gameTag) s.add(c.gameTag); });
     return Array.from(s).sort();
   }, [approved]);
 
   // Phase 5: Apply filters
   const filterClips = (clips) => {
     let result = clips;
-    if (filterGame !== "all") result = result.filter((c) => extractGameTag(c.title) === filterGame);
+    if (filterGame !== "all") result = result.filter((c) => c.gameTag === filterGame);
     if (filterStatus === "published") result = result.filter((c) => publishStatus[c.id]?.state === "done");
     else if (filterStatus === "failed") result = result.filter((c) => publishStatus[c.id]?.state === "failed");
     else if (filterStatus === "unrendered") result = result.filter((c) => !c.renderPath);
@@ -735,6 +759,12 @@ export default function QueueView({
                   );
                 })}
               </div>
+              {/* #71: Placeholder-title warning */}
+              {isPlaceholderTitle(clip.title) && (
+                <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 7, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 600 }}>
+                  This clip still has a placeholder name (<span style={{ fontFamily: T.mono }}>{clip.title}</span>). Run AI Titles and Captions first, or rename it manually before publishing.
+                </div>
+              )}
               {/* #60: Test-mode banner */}
               {isClipTest(clip) && (
                 <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 7, border: `1px dashed rgba(250,204,21,0.45)`, background: "rgba(250,204,21,0.08)", color: "#facc15", fontSize: 11, fontWeight: 600 }}>
@@ -784,8 +814,8 @@ export default function QueueView({
         )}
 
         {filteredUnscheduled.map((clip) => {
-          const isM = extractGameTag(clip.title) === mainGameTag;
-          const gameTag = extractGameTag(clip.title);
+          const isM = clip.gameTag === mainGameTagLc;
+          const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
           const isPublishing = ps?.state === "publishing";
@@ -794,7 +824,7 @@ export default function QueueView({
           const hasVideoId = !!clip.renderPath;
           const duration = clip.endTime && clip.startTime ? clip.endTime - clip.startTime : 0;
           const durationStr = duration > 0 ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}` : "";
-          const projName = projectNames[clip._projectId] || "";
+          const projName = projectInfo[clip._projectId]?.name || "";
           const badge = statusBadge(clip);
 
           return (
@@ -1132,8 +1162,8 @@ export default function QueueView({
         </div>
 
         {filteredScheduled.map((clip) => {
-          const isM = extractGameTag(clip.title) === mainGameTag;
-          const gameTag = extractGameTag(clip.title);
+          const isM = clip.gameTag === mainGameTagLc;
+          const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
           const isPublishing = ps?.state === "publishing";

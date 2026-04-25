@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox } from "../components/shared";
+import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill } from "../components/shared";
 import TestChip from "../components/TestChip";
 import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
@@ -427,8 +427,7 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
           transcriptSegment: (clip.subtitles?.sub1 || []).map((s) => s.text).join(" ").substring(0, 500),
           peakEnergy: (clip.confidence || clip.highlightScore / 100 || 0),
           hasFrame: !!clip.hasFrame,
-          claudeReason: clip.highlightReason || "",
-          peakQuote: clip.peakQuote || "",
+          // claudeReason / peakQuote dropped (#71) — Claude no longer narrates clips.
           energyLevel: clip.energyLevel || "",
           confidence: clip.confidence || 0,
           decision: newStatus,
@@ -490,6 +489,10 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
   const transcriptSegs = getClipTranscriptSegments(clip, project);
+  // Game tag for the badge: prefer clip's first-class field, fall back to the parent
+  // project, then to legacy title-hashtag parsing for pre-#71 clips.
+  const clipGameTag = (clip.gameTag || project.gameTag || (typeof clip.title === "string" ? (clip.title.match(/#(\w+)/)?.[1] || "") : "") || "").toUpperCase();
+  const clipGameColor = project.gameColor || T.accent;
 
   return (
     <div
@@ -566,6 +569,8 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
 
         {/* AI metadata + status badges row */}
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Game tag */}
+          {clipGameTag && <GamePill tag={clipGameTag} color={clipGameColor} size="sm" />}
           {/* Energy level badge */}
           {clip.energyLevel && ENERGY_COLORS[clip.energyLevel] && (
             <span
@@ -620,29 +625,6 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
           {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
         </div>
-
-        {/* Claude's reason for picking this clip */}
-        {clip.highlightReason && (
-          <div style={{
-            padding: "6px 10px", borderRadius: T.radius.sm,
-            background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`,
-            fontSize: 12, color: T.textSecondary, lineHeight: 1.5,
-            fontStyle: "italic",
-          }}>
-            {clip.highlightReason}
-          </div>
-        )}
-
-        {/* Peak quote */}
-        {clip.peakQuote && (
-          <div style={{
-            padding: "6px 10px", borderRadius: T.radius.sm,
-            background: "rgba(251,191,36,0.04)", border: `1px solid rgba(251,191,36,0.15)`,
-            fontSize: 12, color: T.yellow, fontWeight: 600,
-          }}>
-            "{clip.peakQuote}"
-          </div>
-        )}
 
         {/* Transcript inline */}
         {transcriptSegs.length > 0 && (

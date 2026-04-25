@@ -348,7 +348,7 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
     model,
     system: systemPrompt,
     messages: [{ role: "user", content: userContent }],
-    maxTokens: 4096,
+    maxTokens: 8192,
     timeout: 120000,
   });
 
@@ -614,10 +614,15 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       const clipSubs = sliceSubtitlesFromSource(transcription, startSec, endSec);
 
       const clipId = projects.generateClipId();
+      // Default title is "Clip N" placeholder. Game tag is a first-class field.
+      // The downstream "AI Titles and Captions" stage overwrites the title later;
+      // a publish guardrail warns if the user tries to post with the placeholder.
+      const clipNumber = clip.clip_number || (i + 1);
       project.clips.push({
         id: clipId,
-        title: clip.title || "",
-        caption: clip.title || "",
+        title: `Clip ${clipNumber}`,
+        caption: "",
+        gameTag: gameData.gameTag || "",
         startTime: startSec,
         endTime: endSec,
         // Phase 4: NLE segments defined at import so render always uses source+segments
@@ -626,8 +631,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
           { id: `seg-${clipId}-0`, sourceStart: startSec, sourceEnd: endSec },
         ],
         highlightScore: Math.round((clip.confidence || 0) * 100),
-        highlightReason: clip.why || "",
-        peakQuote: clip.peak_quote || "",
+        highlightReason: "",
+        peakQuote: "",
         energyLevel: clip.energy_level || "",
         confidence: clip.confidence || 0,
         hasFrame: clip.has_frame || false,

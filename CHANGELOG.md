@@ -4,6 +4,38 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-25 (session 25) — Issue #71 Direction 1: stop AI narration, "Clip N" + game-tag badge
+
+### Changed
+- **Stage 6 prompt schema rewritten** ([src/main/ai-prompt.js](src/main/ai-prompt.js)). Claude no longer narrates clips — output is now `{clip_number, start, end, energy_level, has_frame, confidence}` only. The `title`, `why`, and `peak_quote` fields are dropped. Per-clip output drops from ~150 to ~40 tokens; a 25-clip response goes from ~3,750 to ~1,000 tokens, eliminating the 4096-ceiling crash that aborted the 30-min Rocket League recording in session 23. Few-shot rendering also dropped the `Why it worked` and `Peak quote` lines for both real-clip (feedback DB) and static archetype examples — the model is no longer shown narration as calibration.
+- **Default clip title is now "Clip N"** ([src/main/ai-pipeline.js](src/main/ai-pipeline.js)). The pipeline assigns `Clip 1`, `Clip 2`, etc. as placeholder titles using `clip.clip_number` from Claude's pick. The downstream "AI Titles and Captions" stage overwrites the placeholder later — keeping AI Titles cost low because it only runs on clips the user kept. `caption` defaults to empty string instead of mirroring the title.
+- **`clip.gameTag` is now a first-class field on every new clip** ([src/main/ai-pipeline.js](src/main/ai-pipeline.js)). Eliminates the hidden `extractGameTag(clip.title)` coupling that would silently break once titles became `Clip N` (no `#` to parse).
+- **`max_tokens` bumped 4096 → 8192** at the Claude call site. Belt-and-suspenders: with the new minimal schema this ceiling is unreachable, but the headroom costs nothing.
+- **Clip count tightened to 10–20** during alpha (was 10–25). Reduces the chance of the response packing logic ever flirting with the token ceiling.
+- **`QueueView` clip merge now promotes `gameTag` onto every approved clip** ([src/renderer/views/QueueView.js](src/renderer/views/QueueView.js)). Tag is lowercased once at the merge step (Option B from planning) so all downstream comparisons (`mainGameTagLc === clip.gameTag`, filter, sort, group-by-game) avoid case juggling. Old clips with no `clip.gameTag` field fall back to the parent project's `gameTag`, then to legacy title-hashtag parsing — pre-fix projects keep working.
+- **All `extractGameTag(clip.title)` callers in QueueView switched to `clip.gameTag`** with the same fallback pattern. Six call sites updated: `resolveCaption`, `logPost`, `gameTagSet` filter source, `filterClips`, the unscheduled-list main-vs-other styling, the scheduled-list main-vs-other styling.
+- **`projectInfo` consolidates `projectNames` and `projectTestMap`** in QueueView. Single memoized lookup keyed by projectId, returning `{name, gameTag, gameColor, testMode}`. Replaces two separate `useMemo` blocks; one inline reader (`projName`) updated.
+- **Hashtag gate relaxed** in QueueView and EditorLayout. Both filters now accept either a hashtag in the title OR a populated `clip.gameTag` (or `project.gameTag`). Without this, default `Clip N` titles would have silently emptied the queue and blocked editor render — every project would have looked broken until the user manually typed a `#tag`.
+
+### Added
+- **Game-tag badge in ProjectsView's clip list** ([src/renderer/views/ProjectsView.js](src/renderer/views/ProjectsView.js)). Reuses the existing `GamePill` component from `shared.js`. Renders next to the energy/confidence/timestamp badge row using the parent project's `gameColor` for theming. Resolves the visual gap that opens up once titles become `Clip N` and the user can no longer eyeball "what game is this?" from the title text alone. QueueView already had a game-tag chip in its own grid column — that chip is now powered by `clip.gameTag` directly.
+- **Publish/schedule placeholder-title guardrail** ([src/renderer/views/QueueView.js](src/renderer/views/QueueView.js)). Two-tier:
+  - **Confirmation modal banner** — when a clip with a title matching `/^Clip \d+$/` reaches the publish-confirm modal, a yellow warning banner appears above the test-mode banner: *"This clip still has a placeholder name (Clip 3). Run AI Titles and Captions first, or rename it manually before publishing."* The modal's existing Publish button doubles as the "publish anyway" escape hatch.
+  - **Schedule-only `window.confirm` gate** — `scheduleClipOnly` warns explicitly that the placeholder title will go live at the scheduled time. Cancellation aborts the schedule. Manual renames bypass both checks silently — anyone who has typed any title that isn't `Clip <number>` has opted out of the warning.
+
+### Removed
+- **`clip.highlightReason` display block** in ProjectsView's clip card (was rendering Claude's hallucinated "why this clip works" prose). Pipeline no longer writes it; existing pre-#71 clips keep the field on disk but it's no longer surfaced.
+- **`clip.peakQuote` display block** in ProjectsView's clip card (was rendering Claude's hallucinated "peak quote"). Same disposition as above.
+- **`claudeReason` and `peakQuote` writes to the feedback DB** in ProjectsView's approve/reject handler. The fields default to `""` in `feedback.js`, so old approved clips already in the DB still read fine — we just stop accreting empty rows of dead data going forward.
+
+### Notes
+- **Issue [#71](https://github.com/Oghenefega/ClipFlow/issues/71) closed.** Founder smoke-tested with the reference Rocket League recording: pipeline ran clean, project loaded with 18 clips titled `Clip 1` through `Clip 18`, each rendered with an `[RL]` `GamePill` badge in the project view. AI metadata row shows badge + energy + confidence + timestamp range as expected. No more `highlightReason` italic-prose box, no more peak-quote yellow-background quote line. Build clean, no regressions on existing pre-fix project loads.
+- **Plan diverged from issue body in two places, intentionally:** (1) Issue claimed `RightPanelNew.js:688/715` rendered `clip.why` blocks — wrong, those render `t.why`/`c.why` from the AI Titles & Captions feature output (different schema entirely). Left untouched. (2) Issue listed `clip.why` consumers but missed the actual ones in ProjectsView; those were the real removal targets. Both corrections captured in `tasks/todo.md` planning section before any code changes shipped.
+- **Fallback pattern for old clips:** `clip.gameTag || project.gameTag || extractGameTag(clip.title)`. `extractGameTag` is intentionally kept exported in `shared.js` — once we're confident no legacy clips remain in the wild we can drop it, but soft migration is preferred over forcing a project rewrite.
+- **Pipeline rule [.claude/rules/pipeline.md](.claude/rules/pipeline.md) does not apply to #71.** No electron-store schema change in this issue (`requireHashtagInTitle` already existed). The migration rule is reserved for #72 Phase 1's `strictMode: true` key.
+
+---
+
 ## [Unreleased] — 2026-04-24 (session 24) — Recordings "0 B" bugfix + cold-start issue triage
 
 ### Fixed

@@ -412,12 +412,15 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   }, [lastRender]);
 
   const onSendToQueue = useCallback(async () => {
-    if (requireHashtagInTitle && (!clipTitle || !clipTitle.includes("#"))) {
+    // Hashtag gate is bypassed when the clip already has a first-class gameTag
+    // (#71 — default titles are now "Clip N" with no hashtag).
+    const hasGameTag = !!(clip?.gameTag || project?.gameTag);
+    if (requireHashtagInTitle && !hasGameTag && (!clipTitle || !clipTitle.includes("#"))) {
       setHashtagWarning(true);
       return;
     }
     doRender(true);
-  }, [requireHashtagInTitle, clipTitle, doRender]);
+  }, [requireHashtagInTitle, clipTitle, doRender, clip, project]);
 
   const onConfirmQueue = useCallback(async () => {
     setHashtagWarning(false);

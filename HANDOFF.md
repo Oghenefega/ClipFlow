@@ -1,104 +1,81 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-24 — Session 23: Lever 1 Step 8 validation + pipeline architecture decisions. Full engineering plans live in GitHub issues, not here._
+_Last updated: 2026-04-25 — Session 25: Issue #71 Direction 1 shipped end-to-end. Pipeline no longer asks Claude to narrate; clips ship with "Clip N" placeholder titles + first-class `gameTag` field + game-tag badges + publish guardrail._
 
 ---
 
 ## One-line TL;DR
 
-Step 8 real-recording validation ran — Lever 1 failed on a real 30-min recording (3 of 5 Python signals timed out, one crash from LLM output overflow, one ignored naming-watcher limitation surfaced). Three issues filed with full engineering detail. **The issues are the source of truth; this HANDOFF is just a pointer.**
+#71 closed. Real RL recording produced 18 clips titled `Clip 1`..`Clip 18`, each rendered with an `[RL]` `GamePill` badge, no hallucinated `highlightReason`/`peakQuote` blocks. Founder visually confirmed in the running app. Two more commercial-launch issues remain: **#72** (Lever 1 signal timeouts — next, big) and **#70** (rename watcher rigidity — orthogonal).
 
 ---
 
-## What actually happened this session
+## What this session shipped
 
-1. Ran `npm start`, dropped a real RL recording through the pipeline. First attempt crashed at Stage 6 (LLM returned invalid JSON — 4096 output-token ceiling hit). Second attempt succeeded but took 18 minutes and silently failed 3 of 5 signals.
-2. Diagnosed both failures from the pipeline logs in `processing/logs/`.
-3. Filed three GitHub issues as carriers of full engineering context:
-   - **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher only detects rigid OBS filename pattern. Non-Fega creators can't use ClipFlow today.
-   - **[#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — LLM pipeline crashes + Claude hallucinates narration. **Direction 1 locked** (stop asking Claude to narrate). Full schema rewrite and downstream impact captured.
-   - **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — Lever 1 signals timeout on real recordings. **Path A locked** (no retreat, pioneer if needed). 4-phase plan with per-signal optimization options, heartbeat protocol spec, and pioneer gates.
+11 steps across 6 files, all committed in one logical change:
 
-All three issues are **commercial-launch blockers**.
+1. **Stage 6 prompt rewrite** ([src/main/ai-prompt.js](src/main/ai-prompt.js)) — minimal output schema, dropped `title`/`why`/`peak_quote` from both schema definition and few-shot rendering.
+2. **`max_tokens` 4096 → 8192** at the Claude call ([src/main/ai-pipeline.js:351](src/main/ai-pipeline.js#L351)).
+3. **`Clip N` default title** + first-class `clip.gameTag` field at the pipeline write ([src/main/ai-pipeline.js:617-643](src/main/ai-pipeline.js#L617)).
+4. **`gameTag` plumbed through QueueView merge** with the lowercased-once-at-source pattern (Option B from planning).
+5. **All `extractGameTag(clip.title)` callers** in QueueView switched to `clip.gameTag` with legacy fallback. Six call sites.
+6. **`projectInfo` lookup consolidates `projectNames` + `projectTestMap`** (single memoized map, single inline reader updated).
+7. **Hashtag gate relaxed** in QueueView's queue filter and EditorLayout's render gate. Without this, every default-titled clip would silently fail to reach the queue / render.
+8. **`GamePill` badge added to ProjectsView clip card** AI metadata row. QueueView already had a chip — that chip just runs on `clip.gameTag` now.
+9. **Removed `highlightReason` and `peakQuote` display blocks** from ProjectsView. Removed dead-field writes to feedback DB.
+10. **Publish guardrail** in QueueView confirmation modal (banner) + `scheduleClipOnly` (`window.confirm`). Title-regex `/^Clip \d+$/` only — manual renames bypass silently.
+11. Build clean, smoke test on real RL recording — passed.
+
+---
+
+## Plan vs issue body — two intentional divergences
+
+Both captured in `tasks/todo.md` before any code shipped:
+
+1. **Issue claimed `RightPanelNew.js:688/715` rendered `clip.why` blocks** — wrong. Those render `t.why`/`c.why` from the AI Titles & Captions feature output (different schema entirely, downstream feature). **Did NOT touch them.**
+2. **Issue missed the real `clip.why` consumer** — `ProjectsView.js:625-643` rendered `clip.highlightReason` (mapped from `clip.why`) and `clip.peakQuote`. **Those were the real removal targets.**
+
+Plus one bonus fix the issue didn't surface: hashtag gate in QueueView and EditorLayout would have silently emptied the queue + blocked render once titles became `Clip N`.
 
 ---
 
 ## Where to start next session
 
-**Read the three issues first. Do not skim.** They carry the full engineering detail — schemas, file paths, acceptance criteria, phased plans, pioneer gates, heartbeat protocol. HANDOFF is intentionally thin because the depth belongs in issues, not here.
+**Read [#72](https://github.com/Oghenefega/ClipFlow/issues/72) end-to-end.** Path A is locked, 4-phase plan with pioneer gates. Phase 1 is the long pole and ships UX + heartbeat infrastructure that Phases 2–4 use to validate themselves. Don't skip Phase 1.
 
-1. **Read [#72](https://github.com/Oghenefega/ClipFlow/issues/72) end to end** — it has a "Next-session kickoff checklist" section at the bottom. Follow it.
-2. **Read [#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — Direction 1 is locked (stop asking Claude to narrate). Schema rewrite + "Clip N" placeholder title + publish guardrail. Ready to implement.
-3. **Read [#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — adjacent blocker, not the focus of last session but still commercial-launch.
+**Reference recording** for both #72 acceptance and any signals work: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\2026-10\RL 2026-10-15 Day9 Pt1.mp4`
 
-### Recommended order
-
-**#71 first** — it's smaller, self-contained, and the fixes (8192 bump + 20-cap + schema rewrite + guardrail) are mostly surgical. Good warmup that also stops the bleeding on Stage 6 crashes.
-
-**#72 Phase 1 second** — UX + heartbeat infrastructure. Must land before Phases 2-4 because the optimization work uses the heartbeat/progress UI to validate itself. See issue body for file list and acceptance.
-
-**#72 Phases 2-4 after that** — scene_change → yamnet → pitch_spike, cheapest-first per founder direction.
-
-**#70 is orthogonal** — can be picked up anytime a fresh session wants a smaller-scoped piece of work.
+**The same recording was used to validate #71 today.** It produced valid JSON every run — the Stage 6 crash is fixed. Lever 1 signals still time out (3 of 5) but the new Stage 6 schema means even partial-signal runs no longer trip the token ceiling. So the run completed cleanly today; the silent-degradation issue from session 23 is still there waiting for #72.
 
 ---
 
-## Locked decisions (issue bodies are source of truth)
+## Logs / debugging
 
-### From #71
-- Direction 1: Stop asking Claude to narrate. New Stage 6 schema = timestamps + confidence + energy_level + has_frame + clip_number. No title, why, or peak_quote.
-- Default title = `"Clip N"`. Pure number, no timestamp, no game tag in the stored string.
-- Game tag becomes a first-class field (`clip.gameTag`) and renders as a separate UI chip.
-- Publish guardrail: warn via toast only when `clip.title` matches `/^Clip \d+$/`. Any manual rename bypasses silently.
-- Bump `max_tokens` 4096 → 8192. Cap clips 10–20 during alpha.
-- Soft DB migration — old fields readable, new clips don't populate them.
-
-### From #72
-- Path A: no retreat. Pioneer if off-the-shelf tools can't hit budget.
-- Strict mode toggle in Settings. **On by default.** Off enables best-effort mode with non-strict modal.
-- Optimization order: scene_change (cheapest) → yamnet → pitch_spike (biggest rewrite).
-- Pioneer gate per signal: if stacked library-level optimizations don't hit target after one focused session, we go custom.
-- Heartbeat protocol v1: Python emits `PROGRESS <float>` to stderr every ~5s. Node parses line-by-line, stall-timer kills at 30s silence post-grace. See issue body for full spec.
+- **App log:** `%APPDATA%\clipflow\logs\app.log`
+- **Pipeline logs:** `processing/logs/<videoName>.log`
+- **Today's run log to read in next session if helpful:** the latest `processing/logs/RL_2026-10-15_Day9_Pt1_<timestamp>.log` should show: max_tokens 8192 took effect, Claude returned the new minimal schema, 18 clips written with `gameTag: "RL"`. Three Lever 1 signals still timed out — same as session 23 — that's #72's domain, not #71's.
 
 ---
 
-## Open questions for next session
+## Watch out for
 
-None blocking. All decisions made. Implementation-ready.
-
----
-
-## Files to read first next session
-
-1. **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — full plan, ALL detail preserved.
-2. **[#71](https://github.com/Oghenefega/ClipFlow/issues/71)** — narration fix + downstream impact.
-3. **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — watcher rigidity.
-4. **`src/main/signals.js`** — the file being rewritten in #72 Phase 1.
-5. **`src/main/ai-pipeline.js`** — Stage 6 call site for #71.
-6. **`processing/logs/RL_2026-10-15_Day9_Pt1_1777047494519.log`** — reference failure log.
+- **#72 Phase 1 is non-trivial.** Heartbeat protocol + IPC events + new UI + `runPythonSignal` rewrite + electron-store migration for `strictMode: true`. The migration is a HARD RULE per [.claude/rules/pipeline.md](.claude/rules/pipeline.md) — write it before any data-shape change.
+- **`extractGameTag` helper is still exported** from `src/renderer/components/shared.js`. Used as a legacy fallback for pre-#71 clips. Don't delete until we're confident no in-the-wild projects rely on it.
+- **`clip.gameTag` is lowercased everywhere it's compared** but the visual badge uppercases on render (`<GamePill tag={clipGameTag.toUpperCase()}>`). If you add new comparison sites, lowercase both sides; if you add display sites, uppercase or pass through as-is.
+- **Pipeline soft-migration:** old projects keep their Claude-written titles, populated `highlightReason`, populated `peakQuote`. Display sites for those fields are gone. Old fields remain on disk — readable, just not surfaced. No migration scripts needed.
+- **Caption template `{title}` substitution still uses `clip.title`.** That means the placeholder `Clip 3` would land in the post body if the user publishes past the guardrail. The guardrail warns; the substitution is unchanged.
 
 ---
 
-## Watch Out For
+## Open issues (commercial-launch blockers)
 
-- **Do not start #72 Phase 2-4 before Phase 1.** The heartbeat/progress infrastructure is what validates each optimization's impact.
-- **Electron-store schema migration is a HARD RULE.** `.claude/rules/pipeline.md`. The `strictMode: true` key in #72 Phase 1 needs a migration in `src/main/main.js` written BEFORE the data-shape change.
-- **Reference recording** for regression testing: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\2026-10\RL 2026-10-15 Day9 Pt1.mp4`. Every phase's acceptance is measured against this file.
-- **`extractGameTag(clip.title)`** is a hidden coupling — 4 call sites in QueueView parse the game tag out of the title string. #71 kills this. Search for `extractGameTag` before touching anything that writes titles.
-- **Publish flows use `clip.title` as default post title.** #71 adds a guardrail but verify it fires on all four platforms (TikTok, Instagram, Facebook, YouTube) before shipping.
+- **[#72](https://github.com/Oghenefega/ClipFlow/issues/72)** — Lever 1 signal timeouts. Next session. Big — Phase 1 alone is a full session.
+- **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher rigidity. Orthogonal, smaller scope, can be slotted between #72 phases.
+- **[#73](https://github.com/Oghenefega/ClipFlow/issues/73)** — Cold-start UX (3-5s blank screen). Two-phase: branded splash window, then bundle code-splitting. Ship-first because perceived-speed > real-speed for the splash.
 
 ---
 
-## Logs / Debugging
+## Session model + cost
 
-- **Electron log file:** `%APPDATA%\clipflow\logs\app.log`
-- **Pipeline logs:** `processing/logs/<videoName>.log` (PipelineLogger)
-- **Signal JSONs:** `processing/signals/<videoName>.{yamnet,pitch_spike,scene_change,event_timeline}.json`
-- **is_test mode** — enable via `gameData.isTest = true`. Writes the per-signal wall-clock table to the pipeline log.
-
----
-
-## Session Model + Cost
-
-- **Model used:** Opus 4.7. Founder wanted depth, Opus delivered it.
-- **Context discipline:** this session went DEEP on architecture, not code. No source files were modified. Implementation is next session.
-- **Next session can be Sonnet** for #71 (surgical). Should probably be Opus for #72 Phase 1 (infrastructure rewrite is not trivial).
+- **Model used:** Opus 4.7 throughout. Founder asked for the plan and a clean execution; Opus did both.
+- **Files touched (final list):** `src/main/ai-prompt.js`, `src/main/ai-pipeline.js`, `src/renderer/views/QueueView.js`, `src/renderer/views/ProjectsView.js`, `src/renderer/editor/components/EditorLayout.js`. Five files. (Modal at `src/renderer/components/modals.js` and helper at `src/renderer/components/shared.js` left untouched per plan.)
+- **No source files were deleted, no electron-store schema changes, no IPC additions.** Surgical change as planned.

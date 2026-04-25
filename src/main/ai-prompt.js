@@ -41,7 +41,9 @@ You will receive:
 
 Use the event timeline as corroborating evidence. Moments where multiple signals converge are almost always stronger clip candidates than energy alone. Moments with no corroborating signals may still be good clips if the transcript supports it — use your judgment.
 
-You must return: a JSON array of 10-25 clip recommendations, ordered by confidence (highest first).`);
+You must return: a JSON array of 10-20 clip recommendations, ordered by confidence (highest first).
+
+Your job is to PICK the moments — the start and end timestamps for each clip, your confidence in each pick, and basic metadata. You are NOT writing titles, descriptions, or narration. A separate downstream stage handles that. Stay disciplined: pick the moments, no prose.`);
 
   // ── Section 2: Creator Profile ──
   const archetype = creator.archetype || "variety";
@@ -124,16 +126,13 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
   "clip_number": <integer, sequential starting at 1>,
   "start": <string, format "HH:MM:SS", must exist in transcript>,
   "end": <string, format "HH:MM:SS", must be after start, clip duration 30-90 seconds>,
-  "title": <string, 3-8 words, punchy short-form style, capitalize first letter of each major word>,
-  "why": <string, 1-2 sentences explaining why this moment works as a clip>,
-  "peak_quote": <string, the exact funniest or most hype line from the transcript within this clip's time range>,
   "energy_level": <string, one of: "LOW", "MED", "HIGH", "EXPLOSIVE">,
   "has_frame": <boolean, true if a provided screenshot falls within this clip's time range>,
   "confidence": <number, 0.50 to 1.00, how confident you are this is a great clip>
 }
 
 ## Constraints:
-- Return 10 to 25 clips total
+- Return 10 to 20 clips total
 - Order by confidence descending (best clips first)
 - clip_number must be sequential: 1, 2, 3, ...
 - start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")
@@ -142,7 +141,6 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - energy_level must be exactly one of: "LOW", "MED", "HIGH", "EXPLOSIVE"
 - confidence must be a decimal number between 0.50 and 1.00
 - has_frame must be a boolean (true or false), not a string
-- peak_quote must be a direct quote from the transcript, not paraphrased
 - No two clips should overlap by more than 50% of their duration
 
 ## DO NOT:
@@ -151,8 +149,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - Do not use placeholder values like "..." or "etc"
 - Do not return confidence as a string (use 0.85 not "0.85" or "high")
 - Do not return fewer than 10 clips unless the video genuinely has fewer than 10 interesting moments
-- Do not repeat the same title pattern across multiple clips
-- Do not use emojis in titles or any text fields — plain text only`);
+- Do not include any extra fields like "title", "why", "description", or "peak_quote" — those are written by a separate downstream stage`);
 
   // ── Section 7: Few-Shot Examples (Three-Tier Blending) ──
   const fewShotSection = buildFewShotSection(approvedClips, archetype);
@@ -225,8 +222,6 @@ Use these as calibration for this creator's taste. Prioritize similar moments.\n
   for (const clip of realClips.slice(0, 20)) {
     section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
     section += `\n  Title: ${clip.title || "(untitled)"}`;
-    section += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
-    section += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
     section += `\n  Energy: ${clip.energy_level || "unknown"}`;
   }
 
@@ -251,8 +246,6 @@ Use these as calibration for this creator's taste. Prioritize similar moments.\n
   for (const clip of clips) {
     section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
     section += `\n  Title: ${clip.title || "(untitled)"}`;
-    section += `\n  Why it worked: ${clip.claude_reason || "(no reason logged)"}`;
-    section += `\n  Peak quote: ${clip.peak_quote || "(none)"}`;
     section += `\n  Energy: ${clip.energy_level || "unknown"}`;
   }
   return section;
@@ -264,8 +257,6 @@ Use these as calibration for this creator's taste. Prioritize similar moments.\n
 function formatStaticExample(ex) {
   let s = `\n- Timestamp: ${ex.start} > ${ex.end}`;
   s += `\n  Title: ${ex.title}`;
-  s += `\n  Why it worked: ${ex.why}`;
-  s += `\n  Peak quote: ${ex.peak_quote}`;
   s += `\n  Energy: ${ex.energy_level}`;
   s += `\n  Confidence: ${ex.confidence}`;
   return s;
