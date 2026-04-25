@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-24 (session 24) — Recordings "0 B" bugfix + cold-start issue triage
+
+### Fixed
+- **Recordings tab no longer shows "0 B" for renamed clips.** Root cause: the rename flow (`renameSingleFile` and `splitAndRename` in [RenameView.js](src/renderer/views/RenameView.js)) called `fileMetadataCreate` without passing `fileSizeBytes` because the watcher's emitted `file` payload didn't carry size. SQLite rows ended up with `file_size_bytes = NULL` and the Recordings tab rendered them as "0 B" via `formatSize`. Quick-imported files via the drop zone were unaffected because they pass `sizeBytes` from `File.size`.
+
+### Added
+- **Stat fallback in [`metadata:create`](src/main/main.js) IPC handler** — when caller doesn't supply `fileSizeBytes` and a `currentPath` is provided, `fs.statSync(currentPath).size` is used. Catches the rename + split-parent paths in one place; safe for any future caller. Wrapped in try/catch so missing files don't crash inserts.
+- **One-time startup backfill for `file_size_bytes`** — runs after the existing `is_test` reconciliation in [main.js](src/main/main.js). Selects rows with NULL/0 size and an existing `current_path`, stats each file, updates with the real size, logs the count. Idempotent — safe to re-run on every launch. First run on Fega's DB backfilled 4 rows.
+
+### Notes
+- **Issue [#73](https://github.com/Oghenefega/ClipFlow/issues/73) filed** — cold-start UX. Bundle is 1.86 MB / 542 kB gzipped in a single chunk, manifesting as a 3-5 second blank blue screen on launch (Fega-confirmed in real use). Two-phase fix planned: (1) **branded splash window** shown immediately at app start to mask boot — separate `BrowserWindow` loading a tiny standalone HTML, transitions to main window via `app:ready` IPC. Ship-first because perceived-speed wins more than real-speed and is ~1 day's work. (2) **Bundle code-splitting** via `React.lazy()` on Editor / AI pipeline / Render / Settings — target initial bundle <800 kB. Risks regressions, ship later. Phase 3 optional: lazy-load Latina font subsets not used on landing tabs.
+- **Vite CJS deprecation warning is benign.** Surfaced in build output: `The CJS build of Vite's Node API is deprecated`. Fix when Vite drops CJS for real (likely v7+) — rename `vite.config.js` → `vite.config.mjs` or set `"type": "module"`. Not worth touching now.
+
+---
+
 ## [Unreleased] — 2026-04-24 (session 23) — Lever 1 Step 8 real-recording validation + architecture decisions
 
 ### Changed

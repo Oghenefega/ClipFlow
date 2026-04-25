@@ -429,6 +429,35 @@ app.whenReady().then(async () => {
     logger.warn(logger.MODULES.system, `is_test reconciliation failed: ${err.message}`);
   }
 
+  // Backfill missing file_size_bytes on existing rows. Older rename code paths
+  // didn't record size, so the Recordings tab showed "0 B" for those clips.
+  // Idempotent — only touches rows where size is NULL/0 and the file still
+  // exists on disk.
+  try {
+    const db = database.getDb();
+    if (db) {
+      const rows = database.toRows(db.exec(
+        "SELECT id, current_path FROM file_metadata WHERE (file_size_bytes IS NULL OR file_size_bytes = 0) AND current_path IS NOT NULL"
+      ));
+      let backfilled = 0;
+      for (const row of rows) {
+        try {
+          const size = fs.statSync(row.current_path).size;
+          if (size > 0) {
+            db.run("UPDATE file_metadata SET file_size_bytes = ?, updated_at = datetime('now') WHERE id = ?", [size, row.id]);
+            backfilled++;
+          }
+        } catch (_) { /* file missing on disk — skip */ }
+      }
+      if (backfilled > 0) {
+        database.save();
+        logger.info(logger.MODULES.system, `file_size_bytes backfill: ${backfilled} row(s) updated`);
+      }
+    }
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `file_size_bytes backfill failed: ${err.message}`);
+  }
+
   const watchFolder = store.get("watchFolder");
   if (watchFolder) {
     // Run file migration in background (non-blocking) — probes can be slow
@@ -1756,6 +1785,13 @@ ipcMain.handle("metadata:create", async (_, data) => {
     const db = database.getDb();
     if (!db) return { error: "Database not initialized" };
 
+    // Stat the file on disk if caller didn't supply size — covers the rename
+    // path which doesn't thread size through the renderer.
+    let fileSizeBytes = data.fileSizeBytes || null;
+    if (!fileSizeBytes && data.currentPath) {
+      try { fileSizeBytes = fs.statSync(data.currentPath).size; } catch (_) { /* file missing — leave null */ }
+    }
+
     const id = uuid();
     db.run(
       `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, is_test)
@@ -1774,7 +1810,7 @@ ipcMain.handle("metadata:create", async (_, data) => {
         data.customLabel || null,
         data.namingPreset,
         data.durationSeconds || null,
-        data.fileSizeBytes || null,
+        fileSizeBytes,
         data.status || "renamed",
         data.isTest ? 1 : 0,
       ]
