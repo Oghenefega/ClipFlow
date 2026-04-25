@@ -18,6 +18,7 @@ import csv
 import json
 import os
 import sys
+import time
 
 import numpy as np
 import soundfile as sf
@@ -44,6 +45,21 @@ MIN_SCORE = 0.05    # omit frames where no kept class crosses this
 
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
+
+
+# Heartbeat protocol v1 (Issue #72 Phase 1).
+# Node parses lines matching /^PROGRESS\s+([0-9.]+)\s*$/ on stderr to (a) reset
+# the stall-timer and (b) feed per-signal progress to the renderer. Always emit
+# 0.0 and 1.0; rate-limit interim updates to ~5s so we don't flood stderr.
+_last_progress_t = 0.0
+
+
+def progress(p):
+    global _last_progress_t
+    now = time.time()
+    if p in (0.0, 1.0) or now - _last_progress_t > 5.0:
+        print(f"PROGRESS {p:.3f}", file=sys.stderr, flush=True)
+        _last_progress_t = now
 
 
 def load_class_map(path):
@@ -93,6 +109,7 @@ def main():
     interp.allocate_tensors()
     inp_idx = interp.get_input_details()[0]["index"]
     out_idx = interp.get_output_details()[0]["index"]
+    progress(0.0)
 
     frames = []
     if len(audio) < FRAME_LEN:
@@ -114,6 +131,7 @@ def main():
                     "t_end": round((start + FRAME_LEN) / SAMPLE_RATE, 3),
                     "scores": kept,
                 })
+            progress(i / n_frames)
 
     out = {
         "signal": "yamnet",
@@ -124,6 +142,7 @@ def main():
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
+    progress(1.0)
     log(f"Wrote {len(frames)} non-silent frames -> {args.output}")
 
 

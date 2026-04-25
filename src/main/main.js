@@ -199,6 +199,9 @@ const STORE_DEFAULTS = {
   // Analytics
   deviceId: "",
   analyticsEnabled: true,
+  // Pipeline quality — strict mode aborts the pipeline if any Lever 1 signal fails.
+  // Default ON: no silent degradation. User can turn off in Settings.
+  strictMode: true,
 };
 
 function runStoreMigrations(store) {
@@ -269,6 +272,12 @@ function runStoreMigrations(store) {
   // ── Migration: add project folders ──
   if (!store.has("projectFolders")) store.set("projectFolders", []);
   if (!store.has("folderSortMode")) store.set("folderSortMode", "created");
+
+  // ── Migration: strict mode default ON (Issue #72 Phase 1) ──
+  // Existing installs that never had this key get the safe default. If the user
+  // has explicitly toggled it (true or false), `store.has` is true so we leave
+  // their choice alone.
+  if (!store.has("strictMode")) store.set("strictMode", true);
 }
 
 let mainWindow;
@@ -1751,13 +1760,38 @@ ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) =>
 
 // ============ PIPELINE: Generate Clips (AI Pipeline) ============
 // Orchestrates: transcribe → energy analysis → frame extraction → Claude API → cut clips → project
+// Pending ask-degrade requests — keyed by requestId, value = the resolver of
+// the promise that ai-pipeline.js is awaiting at the Stage 4.5 gate.
+const pendingDegradeAsks = new Map();
+
+ipcMain.handle("pipeline:degradeAnswer", async (_, requestId, answer) => {
+  const resolver = pendingDegradeAsks.get(requestId);
+  if (resolver) {
+    pendingDegradeAsks.delete(requestId);
+    resolver(answer === "yes" || answer === true);
+  }
+  return { ok: true };
+});
+
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
   const watchFolder = store.get("watchFolder");
-  const sendProgress = (stage, pct, detail) => {
-    mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail });
+  const sendProgress = (stage, pct, detail, extra) => {
+    mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail, ...(extra || {}) });
   };
+  const sendSignalProgress = (signal, payload) => {
+    mainWindow?.webContents.send("pipeline:signalProgress", { signal, ...payload });
+  };
+  const askDegrade = ({ failed }) => new Promise((resolve) => {
+    const requestId = `degrade-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    pendingDegradeAsks.set(requestId, resolve);
+    mainWindow?.webContents.send("pipeline:askDegrade", { requestId, failed });
+  });
 
-  return aiPipeline.runAIPipeline({ sourceFile, gameData, watchFolder, store, sendProgress });
+  return aiPipeline.runAIPipeline({
+    sourceFile, gameData, watchFolder, store,
+    sendProgress, sendSignalProgress, askDegrade,
+    strictMode: store.get("strictMode") !== false,
+  });
 });
 
 // ============ FEEDBACK DATABASE ============

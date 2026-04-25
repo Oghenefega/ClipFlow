@@ -47,6 +47,7 @@ const PIPELINE_STEPS = [
   { key: "extracting", label: "Extracting Audio", icon: "\uD83C\uDFA7" },
   { key: "transcribing", label: "Transcription (stable-ts)", icon: "\uD83D\uDCDD" },
   { key: "energy", label: "Audio Energy Analysis", icon: "\u26A1" },
+  { key: "signals", label: "Signal Extraction", icon: "\uD83C\uDFAF" },
   { key: "frames", label: "Frame Extraction", icon: "\uD83D\uDDBC\uFE0F" },
   { key: "claude", label: "Claude Analysis", icon: "\uD83E\uDDE0" },
   { key: "cutting", label: "Cutting Clips", icon: "\u2702\uFE0F" },
@@ -59,6 +60,7 @@ const STAGE_LABELS = {
   extracting: "Extracting audio",
   transcribing: "Transcribing",
   energy: "Analyzing energy",
+  signals: "Extracting signals",
   frames: "Extracting frames",
   claude: "Claude analyzing",
   cutting: "Cutting clips",
@@ -66,6 +68,22 @@ const STAGE_LABELS = {
   complete: "Complete",
   failed: "Failed",
 };
+
+const SIGNAL_ROWS = [
+  { key: "transcript_density", label: "Transcript density" },
+  { key: "reaction_words", label: "Reaction words" },
+  { key: "silence_spike", label: "Silence-then-spike" },
+  { key: "yamnet", label: "YAMNet (audio events)" },
+  { key: "pitch_spike", label: "Pitch spike" },
+  { key: "scene_change", label: "Scene change" },
+];
+
+function signalStatusVisuals(status) {
+  if (status === "done") return { icon: "✅", color: T.green };
+  if (status === "running") return { icon: "⚡", color: T.yellow };
+  if (status === "failed") return { icon: "❌", color: T.red };
+  return { icon: "⬜", color: T.textTertiary };
+}
 
 const PILL_MIN = 200;
 
@@ -75,6 +93,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [collapsed, setCollapsed] = useState({});
   const [generating, setGenerating] = useState(null);
   const [progress, setProgress] = useState(null);
+  // Per-signal health for the signal-health table during the "signals" stage.
+  // Map of signalKey → { status, progress, elapsed_ms, failureReason? }.
+  const [signalHealth, setSignalHealth] = useState({});
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
@@ -188,11 +209,30 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     return () => { window.clipflow?.removePipelineProgressListener?.(); };
   }, []);
 
+  // Per-signal progress events (Issue #72 Phase 1)
+  useEffect(() => {
+    if (!window.clipflow?.onSignalProgress) return;
+    window.clipflow.onSignalProgress((data) => {
+      if (!data || !data.signal) return;
+      setSignalHealth((prev) => ({
+        ...prev,
+        [data.signal]: {
+          status: data.status,
+          progress: data.progress,
+          elapsed_ms: data.elapsed_ms,
+          failureReason: data.failureReason,
+        },
+      }));
+    });
+    return () => { window.clipflow?.removeSignalProgressListener?.(); };
+  }, []);
+
   const handleGenerate = useCallback(async (file) => {
     if (generating) return;
     const game = findGameByTag(file.tag, gamesDb);
     setGenerating(file.current_path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
+    setSignalHealth({});
     posthog.capture("clipflow_pipeline_started");
     try {
       const result = await window.clipflow.generateClips(file.current_path, {
@@ -207,7 +247,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       if (result.error) {
         setProgress({ stage: "failed", pct: 0, detail: result.error });
         posthog.capture("clipflow_pipeline_failed");
-        setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
+        setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
       } else {
         setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
         posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
@@ -224,7 +264,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             setFiles(rows);
           }
         } catch (_) {}
-        setTimeout(() => { setGenerating(null); setProgress(null); }, 3000);
+        setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 3000);
 
         // Check if play style profile update is needed
         if (result.profileUpdateNeeded && result.gameTag) {
@@ -245,7 +285,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       }
     } catch (e) {
       setProgress({ stage: "failed", pct: 0, detail: e.message });
-      setTimeout(() => { setGenerating(null); setProgress(null); }, 5000);
+      setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
     }
   }, [generating, gamesDb, onProjectCreated]);
 
@@ -900,8 +940,25 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             <span style={{ color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {generating ? generating.split(/[/\\]/).pop() : ""}
             </span>
-            {progress.stage === "complete" && <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} Done</span>}
-            {progress.stage === "failed" && <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>{"\u274C"} Failed</span>}
+            {progress.stage === "complete" && progress.signalSummary === "all" && (
+              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} 5/5 signals contributed</span>
+            )}
+            {progress.stage === "complete" && progress.signalSummary === "degraded" && (
+              <span style={{ color: T.yellow, fontSize: 13, fontWeight: 700 }} title={(progress.failedSignals || []).map((f) => `${f.signal}: ${f.failureReason}`).join("; ")}>
+                {"\u26A0\uFE0F"} {progress.clipCount || 0} clips — {(progress.failedSignals || []).length} of {SIGNAL_ROWS.length} signals failed
+              </span>
+            )}
+            {progress.stage === "complete" && !progress.signalSummary && (
+              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} Done</span>
+            )}
+            {progress.stage === "failed" && progress.signalSummary === "strict-fail" && (
+              <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }} title={progress.detail}>
+                {"\u274C"} Pipeline halted — {progress.failedSignal} failed after {Math.round((progress.failedAfterMs || 0) / 1000)}s
+              </span>
+            )}
+            {progress.stage === "failed" && !progress.signalSummary && (
+              <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>{"\u274C"} Failed</span>
+            )}
           </div>
 
           {/* Step-by-step status */}
@@ -920,27 +977,66 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
               else if (isFailed) { statusIcon = "\u274C"; statusColor = T.red; }
               else { statusIcon = "\u2B1C"; statusColor = T.textTertiary; }
 
+              const showSignalTable = step.key === "signals" && Object.keys(signalHealth).length > 0;
+
               return (
-                <div key={step.key} style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "5px 8px", borderRadius: 6,
-                  background: isRunning ? "rgba(251,191,36,0.06)" : "transparent",
-                  opacity: isWaiting ? 0.4 : 1,
-                }}>
-                  <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>{statusIcon}</span>
-                  <span style={{ fontSize: 14 }}>{step.icon}</span>
-                  <span style={{ color: statusColor, fontSize: 12, fontWeight: isRunning ? 700 : 500, flex: 1 }}>
-                    {step.label}
-                  </span>
-                  {isRunning && progress.detail && (
-                    <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono }}>
-                      {progress.detail}
+                <React.Fragment key={step.key}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "5px 8px", borderRadius: 6,
+                    background: isRunning ? "rgba(251,191,36,0.06)" : "transparent",
+                    opacity: isWaiting ? 0.4 : 1,
+                  }}>
+                    <span style={{ fontSize: 13, width: 22, textAlign: "center" }}>{statusIcon}</span>
+                    <span style={{ fontSize: 14 }}>{step.icon}</span>
+                    <span style={{ color: statusColor, fontSize: 12, fontWeight: isRunning ? 700 : 500, flex: 1 }}>
+                      {step.label}
                     </span>
+                    {isRunning && progress.detail && (
+                      <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono }}>
+                        {progress.detail}
+                      </span>
+                    )}
+                    {isFailed && (
+                      <span style={{ color: T.red, fontSize: 10 }}>{progress.detail}</span>
+                    )}
+                  </div>
+                  {showSignalTable && (
+                    <div style={{
+                      marginLeft: 32, marginRight: 8, marginBottom: 4,
+                      padding: "6px 10px", borderRadius: 6,
+                      background: "rgba(255,255,255,0.02)",
+                      border: `1px solid ${T.border}`,
+                      display: "flex", flexDirection: "column", gap: 4,
+                    }}>
+                      {SIGNAL_ROWS.map((row) => {
+                        const sh = signalHealth[row.key] || { status: "pending", progress: 0, elapsed_ms: 0 };
+                        const v = signalStatusVisuals(sh.status);
+                        const pct = Math.round((sh.progress || 0) * 100);
+                        const elapsedSec = sh.elapsed_ms ? (sh.elapsed_ms / 1000).toFixed(1) + "s" : "";
+                        return (
+                          <div key={row.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+                            <span style={{ width: 16, textAlign: "center" }}>{v.icon}</span>
+                            <span style={{ color: v.color, flex: "0 0 150px", fontWeight: sh.status === "running" ? 700 : 500 }}>
+                              {row.label}
+                            </span>
+                            <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                              <div style={{
+                                height: "100%", borderRadius: 2,
+                                background: sh.status === "failed" ? T.red : sh.status === "done" ? T.green : T.accent,
+                                width: `${sh.status === "failed" ? 100 : pct}%`,
+                                transition: "width 0.2s ease",
+                              }} />
+                            </div>
+                            <span style={{ color: T.textTertiary, fontFamily: T.mono, fontSize: 10, minWidth: 60, textAlign: "right" }}>
+                              {sh.status === "failed" ? sh.failureReason || "failed" : sh.status === "done" ? `done ${elapsedSec}` : elapsedSec}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                  {isFailed && (
-                    <span style={{ color: T.red, fontSize: 10 }}>{progress.detail}</span>
-                  )}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>

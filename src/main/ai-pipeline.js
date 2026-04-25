@@ -412,10 +412,17 @@ function cutClipFast(srcPath, outPath, startTime, endTime) {
  * @param {object} opts.gameData - { game, gameTag, gameColor, name }
  * @param {string} opts.watchFolder - Watch folder path
  * @param {object} opts.store - electron-store instance
- * @param {function} opts.sendProgress - Progress callback (stage, pct, detail)
+ * @param {function} opts.sendProgress - Progress callback (stage, pct, detail, extra?)
+ * @param {function} [opts.sendSignalProgress] - Per-signal progress (Issue #72)
+ * @param {function} [opts.askDegrade] - Async ({ failed }) => boolean for non-strict modal
+ * @param {boolean}  [opts.strictMode=true] - Abort on signal failure if true
  * @returns {Promise<{ success: boolean, projectId: string, clipCount: number }>}
  */
-async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendProgress }) {
+async function runAIPipeline({
+  sourceFile, gameData, watchFolder, store,
+  sendProgress, sendSignalProgress, askDegrade,
+  strictMode = true,
+}) {
   const processingDir = store.get("processingDir") || DEFAULT_PROCESSING_DIR;
   ensureProcessingDirs(processingDir);
 
@@ -527,11 +534,66 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       wavPath, sourceFile, energyJson, transcription,
       processingDir, videoName, pythonPath, archetype,
       logger, isTest: !!gameData.isTest,
+      sendSignalProgress,
     });
     logger.endStep(
       "Signal Extraction",
       eventTimeline ? `${eventTimeline.events.length} events, ${eventTimeline.signals_computed.length} signals` : "fallback (energy only)"
     );
+
+    // ──────────────── Strict / Degrade Gate (Issue #72 Phase 1) ────────────────
+    // Treat any failed signal as a failure. Per resolved-decision #4, an
+    // orchestrator-level crash also lands here as ["extractor"]. The user's
+    // strictMode toggle decides between hard-abort and explicit modal.
+    const failedSignals = (eventTimeline?.signals_failed) || [];
+    const failureDetails = (eventTimeline?.failure_details) || {};
+    const failedList = failedSignals.map((s) => ({
+      signal: s,
+      failureReason: failureDetails[s] || "unknown",
+    }));
+
+    if (failedList.length > 0) {
+      if (strictMode) {
+        // Loud abort — user sees the failed signal + elapsed time in the toast.
+        const primary = failedList[0];
+        const elapsed_ms = eventTimeline?.extraction_ms?.[primary.signal] || 0;
+        logger.info(`STRICT ABORT: ${primary.signal} (${primary.failureReason}) after ${elapsed_ms}ms — pipeline halted`);
+        sendProgress("failed", 0, `${primary.signal} failed (${primary.failureReason}) after ${Math.round(elapsed_ms / 1000)}s`, {
+          signalSummary: "strict-fail",
+          failedSignal: primary.signal,
+          failedAfterMs: elapsed_ms,
+          failedReason: primary.failureReason,
+        });
+        updateFileStatus(fileMetadataId, "failed");
+        try { project.status = "failed"; projects.saveProject(watchFolder, project); } catch (_) {}
+        return {
+          error: `Strict mode: ${primary.signal} failed (${primary.failureReason})`,
+          signalsFailed: failedList,
+        };
+      }
+
+      // Non-strict: ask the user. If askDegrade isn't wired (e.g. test harness),
+      // default to halt — never silently degrade.
+      const degradeApproved = askDegrade
+        ? await askDegrade({ failed: failedList })
+        : false;
+
+      if (!degradeApproved) {
+        logger.info(`User declined degrade — pipeline halted. Failed: ${failedSignals.join(", ")}`);
+        sendProgress("failed", 0, `Pipeline canceled — ${failedList.length} signal${failedList.length === 1 ? "" : "s"} failed`, {
+          signalSummary: "user-canceled",
+          failedSignals: failedList,
+        });
+        updateFileStatus(fileMetadataId, "failed");
+        try { project.status = "failed"; projects.saveProject(watchFolder, project); } catch (_) {}
+        return {
+          error: "User declined to continue with degraded signal extraction",
+          signalsFailed: failedList,
+        };
+      }
+
+      logger.info(`User approved degraded run despite failed signals: ${failedSignals.join(", ")}`);
+    }
 
     // ============ Stage 5: Frame Extraction (top 20 composite-score peaks) ============
     sendProgress("frames", 55, "Extracting peak energy frames...");
@@ -695,8 +757,21 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
     updateFileStatus(fileMetadataId, "done");
     applyPendingRenames(fileMetadataId);
 
-    sendProgress("complete", 100, `Generated ${project.clips.length} clips`);
-    logger.info(`Pipeline complete: ${project.clips.length} clips generated`);
+    // Completion summary — three variants per Issue #72 Phase 1:
+    //   "all"      → all 5 signals contributed
+    //   "degraded" → some signals failed but user approved continuing
+    const failedAtComplete = (eventTimeline?.signals_failed) || [];
+    const signalSummary = failedAtComplete.length === 0 ? "all" : "degraded";
+    sendProgress("complete", 100, `Generated ${project.clips.length} clips`, {
+      signalSummary,
+      clipCount: project.clips.length,
+      failedSignals: failedAtComplete.map((s) => ({
+        signal: s,
+        failureReason: (eventTimeline?.failure_details?.[s]) || "unknown",
+      })),
+      computedSignals: eventTimeline?.signals_computed || [],
+    });
+    logger.info(`Pipeline complete: ${project.clips.length} clips generated (signalSummary=${signalSummary})`);
     const logPath = logger.finalize();
 
     return {
@@ -707,6 +782,8 @@ async function runAIPipeline({ sourceFile, gameData, watchFolder, store, sendPro
       profileUpdateNeeded: thresholdReached,
       gameTag: gameData.gameTag,
       apiCost: logger.apiCost,
+      signalSummary,
+      failedSignals: failedAtComplete,
     };
   } catch (err) {
     // Revert status back to renamed on failure

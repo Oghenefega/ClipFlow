@@ -98,6 +98,25 @@ export default function App() {
   const [showAddGame, setShowAddGame] = useState(null);
   const [newGameExe, setNewGameExe] = useState(null);
 
+  // Pipeline ask-degrade modal (Issue #72 Phase 1).
+  // Mounted at App level so the user can switch tabs while waiting to decide.
+  // Shape: { requestId, failed: [{ signal, failureReason }, ...] } or null.
+  const [degradeAsk, setDegradeAsk] = useState(null);
+
+  useEffect(() => {
+    if (!window.clipflow?.onPipelineAskDegrade) return;
+    window.clipflow.onPipelineAskDegrade((data) => setDegradeAsk(data));
+    return () => { window.clipflow?.removePipelineAskDegradeListener?.(); };
+  }, []);
+
+  const respondDegrade = useCallback(async (answer) => {
+    const id = degradeAsk?.requestId;
+    setDegradeAsk(null);
+    if (id && window.clipflow?.pipelineDegradeAnswer) {
+      try { await window.clipflow.pipelineDegradeAnswer(id, answer ? "yes" : "no"); } catch (_) {}
+    }
+  }, [degradeAsk]);
+
   // Settings
   const [ignoredProcesses, setIgnoredProcesses] = useState(INITIAL_IGNORED);
   const [watchFolder, setWatchFolder] = useState("W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards");
@@ -678,6 +697,41 @@ export default function App() {
           onDismiss={() => { setNewGameExe(null); setShowAddGame(null); }}
           onIgnore={newGameExe ? (exe) => { setIgnoredProcesses((p) => [...p, exe]); setNewGameExe(null); } : null}
         />
+      )}
+      {degradeAsk && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 520, width: "90%", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+            <div style={{ color: T.text, fontSize: 16, fontWeight: 700, marginBottom: 10 }}>
+              ⚠️ Signal extraction failed
+            </div>
+            <div style={{ color: T.textSecondary, fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+              {degradeAsk.failed.length} of 5 signal{degradeAsk.failed.length === 1 ? "" : "s"} failed during extraction. Generating clips now will rely on the surviving signals only — quality may degrade.
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, fontFamily: T.mono, color: T.textTertiary, maxHeight: 140, overflowY: "auto" }}>
+              {degradeAsk.failed.map((f, i) => (
+                <div key={i} style={{ padding: "2px 0" }}>
+                  <span style={{ color: T.red }}>❌</span>{" "}
+                  <span style={{ color: T.text }}>{f.signal}</span>
+                  <span style={{ color: T.textTertiary }}> &mdash; {f.failureReason}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => respondDegrade(false)}
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+              >
+                Cancel pipeline
+              </button>
+              <button
+                onClick={() => respondDegrade(true)}
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid rgba(250,204,21,0.4)`, background: "rgba(250,204,21,0.16)", color: "#facc15", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}
+              >
+                Generate clips anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,17 @@
 const path = require("path");
 const fs = require("fs");
+const readline = require("readline");
 const { spawn } = require("child_process");
+
+// Heartbeat protocol v1 (Issue #72 Phase 1). Python signal scripts emit lines
+// matching /^PROGRESS\s+([0-9.]+)\s*$/ on stderr. Each line resets the stall
+// timer and feeds per-signal progress to the renderer.
+const PROGRESS_RE = /^PROGRESS\s+([0-9]*\.?[0-9]+)\s*$/;
+
+// Per-signal stall timer fires this long after the last PROGRESS line (post
+// startup grace). Founder-locked at 30s — if any signal goes silent that long,
+// the user gets a clear failure instead of a 5-min silent wait.
+const STALL_TIMEOUT_MS = 30000;
 
 // ─── Archetype-aware composite weights (locked 2026-04-23 — see spec) ───
 const ARCHETYPE_WEIGHTS = {
@@ -165,18 +176,35 @@ function detectSilenceSpike(energyJson, silenceThresholdSec = 1.0, spikeMultipli
 }
 
 // ─── Python subprocess runners ───
-// Each returns parsed JSON on success or null on any failure (missing script,
-// non-zero exit, bad JSON, timeout). Null is the graceful-degradation path —
-// composite scoring redistributes weight to surviving signals.
+// Each returns { result, failureReason, elapsed_ms }. `result` is the parsed
+// JSON output on success or null on failure. `failureReason` is one of:
+//   "stall"        — no PROGRESS line for STALL_TIMEOUT_MS post startup grace
+//   "backstop"     — overall backstop fired (last-resort cap)
+//   "exit-code"    — process exited non-zero
+//   "missing-output" — process exited 0 but didn't write output file
+//   "parse-error"  — output file present but JSON parse failed
+//   "missing-script" — script file not found on disk
+//   "spawn-error"  — child_process.spawn threw or emitted "error"
+// On success, failureReason is null.
 
 const SIGNALS_SCRIPT_DIR = path.join(__dirname, "..", "..", "tools", "signals");
 
-function runPythonSignal({ scriptName, cliArgs, pythonPath, outPath, timeout, signalName, logger }) {
+function runPythonSignal({
+  scriptName, cliArgs, pythonPath, outPath,
+  startupGraceMs, sourceDuration,
+  signalName, logger, onProgress,
+}) {
   return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const finish = (result, failureReason) => {
+      const elapsed_ms = Date.now() - startedAt;
+      resolve({ result, failureReason, elapsed_ms });
+    };
+
     const scriptPath = path.join(SIGNALS_SCRIPT_DIR, scriptName);
     if (!fs.existsSync(scriptPath)) {
       logger?.info?.(`${signalName} script missing at ${scriptPath}`);
-      return resolve(null);
+      return finish(null, "missing-script");
     }
     // -X utf8 forces Python UTF-8 mode (matches energy_scorer spawn pattern).
     const spawnArgs = ["-X", "utf8", scriptPath, ...cliArgs];
@@ -185,73 +213,144 @@ function runPythonSignal({ scriptName, cliArgs, pythonPath, outPath, timeout, si
     let child;
     try {
       child = spawn(pythonPath, spawnArgs, {
-        timeout,
         stdio: ["ignore", "pipe", "pipe"],
         env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
       });
     } catch (e) {
       logger?.info?.(`${signalName} spawn threw: ${e.message}`);
-      return resolve(null);
+      return finish(null, "spawn-error");
     }
 
+    // Backstop cap — scales with source duration. Phase 1 last-resort only;
+    // stall detection is the primary failure mechanism.
+    const backstopMs = Math.max(60000, (sourceDuration || 0) * 200);
+
     let stdout = "";
-    let stderr = "";
+    const stderrLines = [];           // accumulated for end-of-run log dump
+    let resolved = false;
+    let stallTimer = null;
+    let backstopTimer = null;
+    let graceTimer = null;
+    let graceElapsed = false;
+
+    const cleanup = () => {
+      if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+      if (backstopTimer) { clearTimeout(backstopTimer); backstopTimer = null; }
+      if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
+    };
+
+    const armStallTimer = () => {
+      if (stallTimer) clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        if (resolved) return;
+        const stalledFor = Math.round((Date.now() - startedAt) / 1000);
+        logger?.info?.(`${signalName} stalled — no PROGRESS for ${STALL_TIMEOUT_MS / 1000}s (total elapsed ${stalledFor}s); killing`);
+        resolved = true;
+        try { child.kill("SIGKILL"); } catch (_) { /* already dead */ }
+        cleanup();
+        if (stderrLines.length) logger?.logOutput?.(`${signalName} STDERR`, stderrLines.join("\n"));
+        finish(null, "stall");
+      }, STALL_TIMEOUT_MS);
+    };
+
+    // Stall timer doesn't arm until startup grace expires — yamnet's 15s model
+    // load would false-fire a 30s timer otherwise.
+    graceTimer = setTimeout(() => {
+      graceElapsed = true;
+      if (!resolved) armStallTimer();
+    }, startupGraceMs);
+
+    backstopTimer = setTimeout(() => {
+      if (resolved) return;
+      const totalSec = Math.round((Date.now() - startedAt) / 1000);
+      logger?.info?.(`${signalName} backstop fired at ${totalSec}s (cap ${Math.round(backstopMs / 1000)}s); killing`);
+      resolved = true;
+      try { child.kill("SIGKILL"); } catch (_) { /* already dead */ }
+      cleanup();
+      if (stderrLines.length) logger?.logOutput?.(`${signalName} STDERR`, stderrLines.join("\n"));
+      finish(null, "backstop");
+    }, backstopMs);
+
     child.stdout.on("data", (d) => (stdout += d.toString()));
-    child.stderr.on("data", (d) => (stderr += d.toString()));
+
+    // Stream stderr line-by-line. Each line: (1) buffered for end-of-run log,
+    // (2) regex-tested for PROGRESS heartbeat which resets the stall timer and
+    // feeds the renderer's signal-health UI via onProgress.
+    const rl = readline.createInterface({ input: child.stderr, crlfDelay: Infinity });
+    rl.on("line", (line) => {
+      stderrLines.push(line);
+      const m = PROGRESS_RE.exec(line);
+      if (m) {
+        const p = parseFloat(m[1]);
+        if (Number.isFinite(p)) {
+          if (graceElapsed) armStallTimer();
+          try { onProgress?.(p); } catch (_) { /* never let UI callbacks crash signals */ }
+        }
+      }
+    });
 
     child.on("close", (code) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+
       if (stdout) logger?.logOutput?.(`${signalName} STDOUT`, stdout);
-      if (stderr) logger?.logOutput?.(`${signalName} STDERR`, stderr);
+      if (stderrLines.length) logger?.logOutput?.(`${signalName} STDERR`, stderrLines.join("\n"));
+
       if (code !== 0) {
         logger?.info?.(`${signalName} exited with code ${code}`);
-        return resolve(null);
+        return finish(null, "exit-code");
       }
       if (!fs.existsSync(outPath)) {
         logger?.info?.(`${signalName} produced no output file: ${outPath}`);
-        return resolve(null);
+        return finish(null, "missing-output");
       }
       try {
         const parsed = JSON.parse(fs.readFileSync(outPath, "utf-8"));
-        resolve(parsed);
+        finish(parsed, null);
       } catch (e) {
         logger?.info?.(`${signalName} output parse failed: ${e.message}`);
-        resolve(null);
+        finish(null, "parse-error");
       }
     });
 
     child.on("error", (err) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
       logger?.info?.(`${signalName} spawn error: ${err.message}`);
-      resolve(null);
+      if (stderrLines.length) logger?.logOutput?.(`${signalName} STDERR`, stderrLines.join("\n"));
+      finish(null, "spawn-error");
     });
   });
 }
 
-async function spawnYamnet({ wavPath, outPath, pythonPath, logger }) {
+async function spawnYamnet({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress }) {
   return runPythonSignal({
     scriptName: "yamnet_events.py",
     cliArgs: ["--audio", wavPath, "--output", outPath],
-    pythonPath, outPath, logger,
-    timeout: 120000,
+    pythonPath, outPath, logger, onProgress, sourceDuration,
+    startupGraceMs: 15000,   // model load + class-map load
     signalName: "yamnet",
   });
 }
 
-async function spawnPitchSpike({ wavPath, outPath, pythonPath, logger }) {
+async function spawnPitchSpike({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress }) {
   return runPythonSignal({
     scriptName: "pitch_spike.py",
     cliArgs: ["--audio", wavPath, "--output", outPath],
-    pythonPath, outPath, logger,
-    timeout: 300000,
+    pythonPath, outPath, logger, onProgress, sourceDuration,
+    startupGraceMs: 5000,    // audio load
     signalName: "pitch_spike",
   });
 }
 
-async function spawnSceneChange({ videoPath, outPath, pythonPath, logger }) {
+async function spawnSceneChange({ videoPath, outPath, pythonPath, sourceDuration, logger, onProgress }) {
   return runPythonSignal({
     scriptName: "scene_change.py",
     cliArgs: ["--video", videoPath, "--output", outPath],
-    pythonPath, outPath, logger,
-    timeout: 120000,
+    pythonPath, outPath, logger, onProgress, sourceDuration,
+    startupGraceMs: 5000,    // ffmpeg startup + ffprobe
     signalName: "scene_change",
   });
 }
@@ -447,81 +546,140 @@ function buildEventTimeline({
 /**
  * Top-level Stage 4.5 orchestrator. Runs JS signals synchronously, dispatches
  * Python signals concurrently via Promise.all, writes event_timeline.json, and
- * returns the merged timeline. Never throws — returns null on total failure so
- * the outer pipeline can fall back to peak_energy-based frame selection.
+ * returns the merged timeline.
+ *
+ * Phase 1 (Issue #72): never throws into the caller, but the returned shape
+ * gained a `failure_details` map so the caller can decide how to react. The
+ * caller (ai-pipeline.js) reads `eventTimeline.signals_failed` to gate strict
+ * mode vs the non-strict ask-degrade modal.
+ *
+ * If the orchestrator itself crashes (not a per-signal failure), we still
+ * return a timeline-shaped object with `signals_failed: ["extractor"]` so the
+ * caller's strict-mode gate fires — no silent degradation at the wrapper level.
  */
 async function runSignalExtraction({
   wavPath, sourceFile, energyJson, transcription,
   processingDir, videoName, pythonPath, archetype,
-  logger, isTest = false,
+  logger, isTest = false, sendSignalProgress,
 }) {
+  // Compute source duration once — used for backstop scaling per-signal.
+  let sourceDuration = 0;
+  if (Array.isArray(energyJson) && energyJson.length > 0) {
+    const last = energyJson[energyJson.length - 1];
+    sourceDuration = last.end || last.start || 0;
+  }
+
+  // Shape the renderer subscribes to. status: pending|running|done|failed.
+  const emit = (signal, payload) => {
+    try { sendSignalProgress?.(signal, payload); } catch (_) { /* never propagate UI errors */ }
+  };
+
   try {
     const signalsDir = path.join(processingDir, "signals");
     if (!fs.existsSync(signalsDir)) fs.mkdirSync(signalsDir, { recursive: true });
 
     const extraction_ms = {};
+    const failure_details = {}; // { signalKey: failureReason }
 
+    // ── JS signals (synchronous, fast) ──
+    // Emit a single done event apiece — the renderer doesn't need progress for
+    // these but should still see them as accounted-for in the 5-row table.
+    emit("transcript_density", { status: "running", progress: 0, elapsed_ms: 0 });
     let density = null;
     try {
       const t0 = Date.now();
       density = computeTranscriptDensity(transcription);
       extraction_ms.transcript_density = Date.now() - t0;
+      emit("transcript_density", { status: "done", progress: 1, elapsed_ms: extraction_ms.transcript_density });
     } catch (e) {
       logger?.info?.(`transcript_density failed: ${e.message}`);
+      failure_details.transcript_density = "exception";
+      emit("transcript_density", { status: "failed", progress: 0, elapsed_ms: 0, failureReason: "exception" });
     }
 
+    emit("reaction_words", { status: "running", progress: 0, elapsed_ms: 0 });
     let reactionWords = null;
     try {
       const t0 = Date.now();
       reactionWords = computeReactionWords(transcription);
       extraction_ms.reaction_words = Date.now() - t0;
+      emit("reaction_words", { status: "done", progress: 1, elapsed_ms: extraction_ms.reaction_words });
     } catch (e) {
       logger?.info?.(`reaction_words failed: ${e.message}`);
+      failure_details.reaction_words = "exception";
+      emit("reaction_words", { status: "failed", progress: 0, elapsed_ms: 0, failureReason: "exception" });
     }
 
+    emit("silence_spike", { status: "running", progress: 0, elapsed_ms: 0 });
     let silenceSpike = null;
     try {
       const t0 = Date.now();
       silenceSpike = detectSilenceSpike(energyJson);
       extraction_ms.silence_spike = Date.now() - t0;
+      emit("silence_spike", { status: "done", progress: 1, elapsed_ms: extraction_ms.silence_spike });
     } catch (e) {
       logger?.info?.(`silence_spike failed: ${e.message}`);
+      failure_details.silence_spike = "exception";
+      emit("silence_spike", { status: "failed", progress: 0, elapsed_ms: 0, failureReason: "exception" });
     }
 
+    // ── Python signals (concurrent via Promise.all) ──
     const yamnetOut = path.join(signalsDir, `${videoName}.yamnet.json`);
     const pitchOut = path.join(signalsDir, `${videoName}.pitch_spike.json`);
     const sceneOut = path.join(signalsDir, `${videoName}.scene_change.json`);
 
-    const runWithTiming = async (key, fn) => {
-      const t0 = Date.now();
+    const runPy = async (key, spawnFn) => {
+      const startAt = Date.now();
+      emit(key, { status: "running", progress: 0, elapsed_ms: 0 });
+      const onProgress = (p) => {
+        emit(key, {
+          status: "running",
+          progress: Math.max(0, Math.min(1, p)),
+          elapsed_ms: Date.now() - startAt,
+        });
+      };
       try {
-        const result = await fn();
-        extraction_ms[key] = Date.now() - t0;
+        const { result, failureReason, elapsed_ms } = await spawnFn(onProgress);
+        extraction_ms[key] = elapsed_ms;
+        if (failureReason) {
+          failure_details[key] = failureReason;
+          emit(key, { status: "failed", progress: 0, elapsed_ms, failureReason });
+          logger?.info?.(`${key} failed (${failureReason}) after ${elapsed_ms}ms`);
+        } else {
+          emit(key, { status: "done", progress: 1, elapsed_ms });
+        }
         return result;
       } catch (e) {
-        extraction_ms[key] = Date.now() - t0;
-        logger?.info?.(`${key} failed: ${e.message}`);
+        const elapsed_ms = Date.now() - startAt;
+        extraction_ms[key] = elapsed_ms;
+        failure_details[key] = "exception";
+        emit(key, { status: "failed", progress: 0, elapsed_ms, failureReason: "exception" });
+        logger?.info?.(`${key} threw: ${e.message}`);
         return null;
       }
     };
 
     const [yamnet, pitch, sceneChange] = await Promise.all([
-      runWithTiming("yamnet", () => spawnYamnet({ wavPath, outPath: yamnetOut, pythonPath, logger })),
-      runWithTiming("pitch_spike", () => spawnPitchSpike({ wavPath, outPath: pitchOut, pythonPath, logger })),
-      runWithTiming("scene_change", () => spawnSceneChange({ videoPath: sourceFile, outPath: sceneOut, pythonPath, logger })),
+      runPy("yamnet", (onProgress) => spawnYamnet({ wavPath, outPath: yamnetOut, pythonPath, sourceDuration, logger, onProgress })),
+      runPy("pitch_spike", (onProgress) => spawnPitchSpike({ wavPath, outPath: pitchOut, pythonPath, sourceDuration, logger, onProgress })),
+      runPy("scene_change", (onProgress) => spawnSceneChange({ videoPath: sourceFile, outPath: sceneOut, pythonPath, sourceDuration, logger, onProgress })),
     ]);
-
-    let sourceDuration = 0;
-    if (Array.isArray(energyJson) && energyJson.length > 0) {
-      const last = energyJson[energyJson.length - 1];
-      sourceDuration = last.end || last.start || 0;
-    }
 
     const eventTimeline = buildEventTimeline({
       energyJson, yamnet, pitch, sceneChange,
       density, reactionWords, silenceSpike,
       archetype, videoName, sourceDuration, extraction_ms,
     });
+
+    // Attach Phase 1 failure details for the strict/degrade gate downstream.
+    eventTimeline.failure_details = failure_details;
+
+    // Single-line completion summary in the per-pipeline log so failures and
+    // their reasons are always greppable in processing/logs/<videoName>.log.
+    const failedSummary = Object.entries(failure_details)
+      .map(([k, reason]) => `${k} (${reason}, ${extraction_ms[k] ?? 0}ms)`)
+      .join("; ") || "(none)";
+    logger?.info?.(`signals_complete: computed=${eventTimeline.signals_computed.join(",")} failed=${failedSummary}`);
 
     const timelinePath = path.join(signalsDir, `${videoName}.event_timeline.json`);
     try {
@@ -550,8 +708,24 @@ async function runSignalExtraction({
 
     return eventTimeline;
   } catch (e) {
+    // Orchestrator-level crash (NOT a per-signal failure). Per Phase 1 plan
+    // resolved-decision #4, treat as if the whole signal layer failed so the
+    // strict-mode gate fires — no silent fallback.
     logger?.info?.(`runSignalExtraction crashed: ${e.message}`);
-    return null;
+    emit("extractor", { status: "failed", progress: 0, elapsed_ms: 0, failureReason: "exception" });
+    return {
+      version: 1,
+      video_name: videoName,
+      source_duration_seconds: sourceDuration,
+      archetype,
+      signals_computed: [],
+      signals_failed: ["extractor"],
+      failure_details: { extractor: `exception: ${e.message}` },
+      weights_applied: {},
+      extraction_ms: {},
+      events: [],
+      segments: [],
+    };
   }
 }
 

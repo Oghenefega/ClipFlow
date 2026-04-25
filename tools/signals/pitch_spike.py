@@ -15,6 +15,7 @@ Score formula (locked 2026-04-23):
 import argparse
 import json
 import sys
+import time
 
 import numpy as np
 import librosa
@@ -22,6 +23,23 @@ import librosa
 
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
+
+
+# Heartbeat protocol v1 (Issue #72 Phase 1).
+# pYIN itself is a single atomic call with no callbacks, so Phase 1 is COARSE
+# only: 0.0 after audio load, 0.5 after pYIN returns, 0.5..1.0 across the
+# windowing loop. The 30s stall-timer in Node WILL kill this signal on long
+# recordings — that's intended for Phase 1; Phase 4 introduces chunking that
+# unlocks fine-grained progress emission.
+_last_progress_t = 0.0
+
+
+def progress(p):
+    global _last_progress_t
+    now = time.time()
+    if p in (0.0, 1.0) or now - _last_progress_t > 5.0:
+        print(f"PROGRESS {p:.3f}", file=sys.stderr, flush=True)
+        _last_progress_t = now
 
 
 def main():
@@ -37,6 +55,7 @@ def main():
     log(f"Loading audio: {args.audio}")
     y, sr = librosa.load(args.audio, sr=None, mono=True)
     log(f"Audio: {len(y) / sr:.1f} s @ {sr} Hz")
+    progress(0.0)
 
     fmin = librosa.note_to_hz("C2")   # ~65 Hz
     fmax = librosa.note_to_hz("C6")   # ~1047 Hz
@@ -48,6 +67,7 @@ def main():
         y, sr=sr, fmin=fmin, fmax=fmax,
         frame_length=frame_length, hop_length=hop_length,
     )
+    progress(0.5)
     times = librosa.times_like(f0, sr=sr, hop_length=hop_length)
 
     valid = voiced_flag & ~np.isnan(f0)
@@ -57,6 +77,7 @@ def main():
         out = {"signal": "pitch_spike", "baseline_f0_hz": 0, "windows": []}
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2)
+        progress(1.0)
         return
 
     baseline = float(np.median(voiced_f0))
@@ -83,6 +104,8 @@ def main():
                     "is_elevated": True,
                 })
         t += args.step_sec
+        if max_t > 0:
+            progress(0.5 + 0.5 * min(1.0, t / max_t))
 
     out = {
         "signal": "pitch_spike",
@@ -91,6 +114,7 @@ def main():
     }
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
+    progress(1.0)
     log(f"Wrote {len(windows)} elevated windows -> {args.output}")
 
 

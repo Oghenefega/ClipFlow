@@ -77,6 +77,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitThreshold, setSplitThreshold] = useState(30);
   const [splitSourceRetention, setSplitSourceRetention] = useState("keep");
+  // Pipeline quality (Issue #72 Phase 1)
+  const [strictMode, setStrictMode] = useState(true);
 
   // Check ffmpeg + whisper on mount
   useEffect(() => {
@@ -103,6 +105,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (stm !== undefined && stm !== null) setSplitThreshold(stm);
         const ssr = await window.clipflow.storeGet("splitSourceRetention");
         if (ssr) setSplitSourceRetention(ssr);
+        const sm = await window.clipflow.storeGet("strictMode");
+        if (sm !== undefined && sm !== null) setStrictMode(!!sm);
         // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
           const r = await window.clipflow.whisperCheck(pp || undefined);
@@ -462,6 +466,32 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             {splitSourceRetention === "keep" ? "Keep" : "Delete"}
           </button>
         </div>
+      </Card>
+
+      {/* Pipeline Quality — strict mode toggle (Issue #72 Phase 1) */}
+      <Card style={{ padding: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Pipeline Quality</div>
+          <button
+            onClick={() => {
+              const next = !strictMode;
+              setStrictMode(next);
+              window.clipflow?.storeSet("strictMode", next);
+            }}
+            style={{
+              ...BTN,
+              background: strictMode ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${strictMode ? "rgba(34,197,94,0.4)" : T.border}`,
+              color: strictMode ? T.green : T.textTertiary,
+              fontWeight: 700,
+            }}
+          >
+            {strictMode ? "Strict mode ON" : "Strict mode OFF"}
+          </button>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 8px 0", lineHeight: 1.5 }}>
+          Abort the pipeline if any audio signal fails. Recommended &mdash; your clips reflect every signal we promised. Turn off only if you want to ship clips even when signal extraction degrades.
+        </p>
       </Card>
 
       </>}
