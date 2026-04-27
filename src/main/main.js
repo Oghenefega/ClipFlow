@@ -202,6 +202,10 @@ const STORE_DEFAULTS = {
   // Pipeline quality — strict mode aborts the pipeline if any Lever 1 signal fails.
   // Default ON: no silent degradation. User can turn off in Settings.
   strictMode: true,
+  // YAMNet silence skip — pre-filter frames below 0.002 RMS (true silence /
+  // below room tone) to skip wasted inference. Default ON. User can turn off
+  // in Settings to force YAMNet to run on every frame regardless of volume.
+  yamnetSilenceSkip: true,
 };
 
 function runStoreMigrations(store) {
@@ -278,6 +282,10 @@ function runStoreMigrations(store) {
   // has explicitly toggled it (true or false), `store.has` is true so we leave
   // their choice alone.
   if (!store.has("strictMode")) store.set("strictMode", true);
+
+  // ── Migration: yamnet silence-skip default ON (Issue #72 Phase 3) ──
+  // Existing installs get the safe default; user choice is preserved if set.
+  if (!store.has("yamnetSilenceSkip")) store.set("yamnetSilenceSkip", true);
 }
 
 let mainWindow;

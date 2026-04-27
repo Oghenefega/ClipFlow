@@ -1,115 +1,143 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-25 — Session 28 — Issue #72 Phase 1 shipped (UX + heartbeat infra). Next: Phase 2 (scene_change optimization)._
+_Last updated: 2026-04-27 — Session 29 — Phase 2 dropped + Phase 3 (yamnet) shipped. Next: Phase 4 (pitch_spike)._
 
 ---
 
 ## One-line TL;DR
 
-**Issue #72 Phase 1 is done.** Strict-mode toggle + `PROGRESS` heartbeat protocol + signal-health UI + ask-degrade modal all shipped. Smoke test on reference 30-min RL recording produced a clear strict abort + a working non-strict modal — no silent degradation. **Phase 2 (scene_change → <15s)** is next, and it's the cheapest fix in the four-phase plan.
+Issue #72 collapsed from 4 phases to 3 — Phase 2 (scene_change) was dropped on the merits after data showed the speedup target unreachable AND the signal contributes minimally to clip selection. Phase 3 (yamnet) shipped: ~339ms → ~71ms per inference call via `num_threads=8`, plus a conservative RMS pre-filter (threshold 0.002, default ON, settings toggle) that skips genuinely silent frames. End-to-end yamnet on the reference 30-min RL recording: **626s → 130s, all 4 reaction events preserved bit-identically.** In-app smoke test passed in both toggle states. Phase 4 (pitch_spike) is the only remaining piece of Issue #72.
 
 ---
 
-## What just shipped (session 28)
+## What just shipped (session 29)
 
-Phase 1 closes the silent-degradation hole that was the original #72 bug. Three failure modes are now diagnosed from real heartbeat data on the reference recording:
+### Phase 2 — scene_change DROPPED
 
-| Signal | Failure mode | Phase 1 detection | Phase 2-4 fix |
-| --- | --- | --- | --- |
-| `scene_change` | **stall** (~30s post-grace) | showinfo lines stop arriving — software decode too slow | **Phase 2:** `-hwaccel auto` + `scale=640:360` |
-| `yamnet` | **backstop** (361s) | alive the whole time but ~65ms × 1850 frames = 120s+ | **Phase 3:** batch inference + skip silent frames |
-| `pitch_spike` | **stall** (~30s post-grace) | atomic pYIN call can't emit progress mid-flight | **Phase 4:** chunk + parallelize so heartbeats fire between chunks |
+Evidence-driven decision after three failed attempts to hit `<15s`:
+1. `-hwaccel auto` chose dxva2 but actual HEVC decode stayed software-side (`hevc (native)` in stderr); `+ scale=640:360` was *slightly slower* than baseline (168s vs 151s).
+2. `+ -an` (skip audio decode) shaved 14% to 147s — audio wasn't the bottleneck.
+3. `+ -skip_frame nokey` was fast-but-broken (5s with 1 cut at the wrong timestamp).
+4. Plan-B i-frame heuristic via ffprobe was dead — keyframe size doesn't correlate with scene cuts in NVENC HEVC. Two real cuts had keyframes in the median size band (rank 192 and 218 of 433).
+5. Hardware decode capped near 12× realtime; `<15s` would need ~120× realtime which means not decoding pixels at all.
 
-All four files I changed are committed; live screenshot showed the signal-health table with three explicit ❌ rows + the ask-degrade modal listing each failure reason. **The bug is fixed in the user-experience sense:** failures are loud, never silent.
+Strategic call: signal contributed binary boost on ~6 segments out of hundreds, lagged audio reaction signals that already detected the same moments. Deleted entirely. See [tasks/todo.md](tasks/todo.md) (the previous Phase 2 plan and resolution block were captured there in session 29 mid-work; Phase 4 plan replaces it next session).
+
+### Phase 3 — yamnet SHIPPED
+
+Two stacked wins on [tools/signals/yamnet_events.py](tools/signals/yamnet_events.py):
+
+1. **`Interpreter(model_path=..., num_threads=min(os.cpu_count() or 4, 8))`** — ai-edge-litert defaults to single-threaded; this enables TFLite's CPU thread pool. Per-call inference: ~339ms → ~71ms. **Dominant lever — 4.8× speedup from this alone.**
+2. **RMS pre-filter at threshold 0.002** — calibrated below typical microphone room-tone (~0.001–0.003). Frames quieter than this mathematically cannot contain reaction-class sounds. At this threshold, the filter skips ~1.5% of frames on typical content — small speedup, big quality guarantee. Tunable via the new `yamnetSilenceSkip` settings toggle.
+
+Combined: yamnet on reference 30-min RL: **626s → 130s** with 4/4 reaction events preserved bit-identically (same timestamps, classes, scores).
+
+### Settings toggle (`yamnetSilenceSkip`)
+
+- Default ON. Migration in [src/main/main.js](src/main/main.js) writes `true` for existing installs without clobbering explicit user choices.
+- UI toggle lives in the existing "Pipeline Quality" card alongside strict mode in [src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js). Label: "Skip silent audio in YAMNet."
+- When OFF, threads `--no-rms-skip` to the Python script which sets the effective threshold to 0.0 and runs inference on every frame.
+
+### In-app smoke test results
+
+Reference 30-min RL recording, strict mode OFF (so pitch_spike's stall doesn't abort the pipeline):
+
+- **Skip ON:** yamnet 134.9s ✓, pitch_spike stall ❌ (expected), 15 clips generated
+- **Skip OFF:** yamnet 135.7s ✓, pitch_spike stall ❌ (expected), modal appeared correctly
+- ~1s difference between toggle states — confirms the toggle is a quality guarantee, not a meaningful performance lever at threshold 0.002
+
+### Files touched (session 29)
+
+- `tools/signals/scene_change.py` — DELETED
+- `src/main/signals.js` — scene_change references removed across 13 sites; archetype weights renormalized; `spawnYamnet` accepts `silenceSkip` option; `runSignalExtraction` accepts `yamnetSilenceSkip`
+- `src/main/main.js` — defaults + migration for `yamnetSilenceSkip`
+- `src/main/ai-pipeline.js` — reads `yamnetSilenceSkip` from store, passes to `runSignalExtraction`
+- `tools/signals/yamnet_events.py` — `num_threads`, RMS pre-filter, `--no-rms-skip` flag, audio/model-load timings
+- `src/renderer/views/UploadView.js` — scene_change row removed (5-row table now)
+- `src/renderer/views/SettingsView.js` — yamnetSilenceSkip toggle in Pipeline Quality card
+- `tasks/todo.md` — Phase 3 plan written, executed, replaced with this state
+- `HANDOFF.md` — this file
+- `CHANGELOG.md` — session 29 entry prepended
 
 ---
 
-## Start the next session here — Issue #72 Phase 2
+## Start the next session here — Issue #72 Phase 4 (pitch_spike)
 
-**Read [#72](https://github.com/Oghenefega/ClipFlow/issues/72) "Phase 2 — scene_change optimization" before touching anything.** Founder direction is locked: Path A only (no retreat to lower-quality fallback), cheapest-first, concrete pioneer gate.
+**Read [#72](https://github.com/Oghenefega/ClipFlow/issues/72) before touching anything.** Direction is locked: Path A only (no degraded fallback), cheapest-first, concrete pioneer gate.
 
-### Phase 2 plan in plain language
+### Phase 4 plan in plain language (high-level — write a detailed plan to [tasks/todo.md](tasks/todo.md) at session start per global rule 1)
 
-scene_change today does single-threaded software decode of a 1080×1920 @ 60fps 30-min recording with a scene-detect filter on every decoded frame. That's ~108k frames at software-decode speeds. Two stacked one-line changes should crush this:
+pitch_spike's failure mode in Phase 1's smoke test is **stall**, not backstop. The pYIN call (`librosa.pyin(...)`) is one atomic operation with no callback or progress hook — it can't emit `PROGRESS` heartbeats mid-call. The script today emits `PROGRESS 0.0` at start, then runs pYIN for 100+ seconds while the stall timer counts down. At 30s post-grace the timer fires and kills the process. Phase 1's design accepted this — it's the failure mode the heartbeat protocol surfaces.
 
-1. **Add `-hwaccel auto`** to the ffmpeg command. Enables DXVA2/D3D11VA hardware decode on Windows. 5–10x decode speedup, effectively free.
-2. **Pre-scale via `scale=640:360`** before the scene-detect filter. Scene cuts are obvious at low res; decoding 640×360 vs 1080×1920 is a 9x pixel reduction. ~3–5x on top of hwaccel.
+Three plausible cheap fixes per the issue body:
 
-Stacked, this should drop scene_change from 120s+ to well under 15s on the reference recording.
+1. **Chunk the audio into N segments and run pYIN per-chunk.** After each chunk emits a `PROGRESS` heartbeat, then continue to the next. Chunk size is a tradeoff: too small (e.g., 10s) = more overhead per chunk; too large (e.g., 60s) = stall timer still fires within a single chunk. ~30s chunks should keep heartbeats firing within the 30s stall window with margin.
+2. **Replace pYIN with a faster pitch tracker.** [`librosa.yin`](https://librosa.org/doc/main/generated/librosa.yin.html) is the older single-pitch YIN algorithm; pYIN is the probabilistic refinement. YIN is faster but slightly less accurate. May or may not satisfy the precision needed for pitch-spike detection.
+3. **GPU-accelerated pitch via [torchcrepe](https://github.com/maxrmorrison/torchcrepe)** — a deep-learning pitch tracker that runs on the RTX 3090. Larger refactor (new dep, model load), but could be much faster end-to-end if the per-chunk loop in option 1 is still too slow.
 
-### File touched
+### Files this would touch
 
-- [tools/signals/scene_change.py:71-77](tools/signals/scene_change.py#L71) — the `cmd = [...]` block. Add `-hwaccel auto` before `-i`. Add the scale filter to the `-vf` chain: `scale=640:360,select='gt(scene,0.4)',showinfo`.
+- [tools/signals/pitch_spike.py](tools/signals/pitch_spike.py) — chunk loop, per-chunk pYIN call, heartbeat emission. Existing `progress(p)` helper at the top of the file is reusable.
 
-That's it. No new IPC, no new UI. Phase 1's signal-health table will show scene_change going green in <15s and the user will see the live progress bar advancing fast.
+That's it. No Node-side changes, no UI changes, no settings — Phase 1 already wired the plumbing.
 
-### Pioneer gate — concrete
+### Pioneer gate
 
-If hwaccel + scale doesn't hit <15s in one focused session: prototype an i-frame heuristic via `ffprobe -show_frames` (gaming recordings often i-frame-align at hard scene cuts). If that misses too many soft cuts, write a custom thumbnail-diff detector. The issue body has the ranked options.
+If chunked pYIN doesn't get pitch_spike under 60s on the reference recording AND the stall timer doesn't false-fire, fall back to YIN (option 2) then torchcrepe (option 3).
 
-### Acceptance for Phase 2
+### Acceptance for Phase 4
 
-- scene_change completes in <15s on the reference 30-min RL recording.
-- Detected scene-cut count within 10% of the current implementation (sanity check against the pre-fix output).
-- Signal-health UI shows scene_change advancing live and finishing green.
-- No regression in any other signal's behavior.
+- pitch_spike completes under ~60s on reference 30-min RL recording.
+- `PROGRESS` heartbeats fire steadily throughout — stall timer never fires.
+- Detected pitch-spike events within ~10% of an unbatched baseline (need to capture this baseline first since Phase 1 always killed pitch_spike before it could complete).
+- Signal-health UI shows pitch_spike advancing live and finishing green ✓.
+- No regression in the four other working signals.
+- In-app smoke test with **strict mode ON** (the real default) — pipeline runs end-to-end without modal intervention. This is the success state Phase 1 was building toward.
+
+### Plan-first protocol (non-negotiable)
+
+Per global CLAUDE.md rule 1: write the Phase 4 plan to [tasks/todo.md](tasks/todo.md) (currently has the Phase 3 plan that was just executed — replace it) and **stop for approval before any code.**
+
+### Baseline capture
+
+The pre-Phase-4 pitch_spike has never run to completion on this recording (Phase 1 always killed it). So Step 1 of Phase 4 will be: temporarily widen the stall timer (one-off non-committed edit to `STALL_TIMEOUT_MS` in `runPythonSignal`, or run pitch_spike standalone via CLI bypassing the timer entirely — same trick used for Phases 2 and 3). Get the unfiltered event count and timestamps. Revert the timer. THEN apply the chunking patch and validate against that baseline. The pre-extracted reference audio at `tmp/phase3-baseline/audio.wav` is still on disk and can be reused — saves the ffmpeg extraction step.
 
 ---
 
-## Plan-first protocol
+## Other open work
 
-Per global CLAUDE.md rule 1: write the Phase 2 plan to [tasks/todo.md](tasks/todo.md) (currently holds the Phase 1 plan with all decisions resolved — replace it) and **stop for approval before any code.** Phase 2 is a one-file change but the pioneer-gate logic + the validation step (comparing scene-cut counts) deserve explicit acceptance criteria.
-
----
-
-## Reference materials
-
-- **Reference recording:** `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\Test Footage\2026-10\RL 2026-10-15 Day9 Pt1.mp4`
-- **Phase 1 smoke-test log:** the latest `processing/logs/RL_2026-10-15_Day9_Pt1_<timestamp>.log` from this session — should contain the `signals_complete: ...` summary line with `pitch_spike (stall, ...)`, `yamnet (backstop, ...)`, `scene_change (stall, ...)`.
-- **Issue #72 body:** the carrier doc, Phases 1–4 with locked directions and pioneer gates.
-- **Phase 1 plan + resolved decisions:** [tasks/todo.md](tasks/todo.md).
-- **Spec:** `specs/lever-1-signal-extraction-v1.md` (background context).
+- **Issue [#74](https://github.com/Oghenefega/ClipFlow/issues/74)** — pre-launch UX hardening: hide pipeline internals from end users (replace "YAMNet," "Pitch spike," etc. with branded copy). Filed this session. Don't do before Phase 4 closes; should land before any external user runs the pipeline.
+- **Issue [#75](https://github.com/Oghenefega/ClipFlow/issues/75)** — Clip cutting + retranscription performance (37% + 26% of pipeline compute). Filed this session after analyzing the in-app smoke-test log. **The next big-impact work after Phase 4.** Three stacked levers on Clip Cutting (stream-copy where keyframe-aligned, NVENC where re-encode needed, parallel cuts) and two on Clip Retranscription (whisperx batching, pipeline parallelism). Combined: ~13.5 min compute → ~4–6 min compute on the reference recording. Pre-launch performance hardening.
+- **Issue [#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher rigidity. Orthogonal, smaller scope, can slot between #72 phases.
+- **Issue [#73](https://github.com/Oghenefega/ClipFlow/issues/73)** — Cold-start UX (3–5s blank screen). Two-phase plan in the issue body.
 
 ---
 
 ## Logs / debugging
 
 - **App log:** `%APPDATA%\clipflow\logs\app.log` — main process events, IPC errors, store mutations.
-- **Pipeline logs:** `processing/logs/<videoName>.log` — per-pipeline-run stdout/stderr from every Python script + the new Phase 1 structured failure lines (`<signal> stalled — no PROGRESS for 30s (total elapsed Ns); killing`, `<signal> backstop fired at Ns; killing`, `signals_complete: computed=... failed=...`).
-- **Phase 1 protocol on the wire:** open DevTools (Ctrl+Shift+I) and run `window.clipflow.onSignalProgress((d) => console.log(d))` to see the IPC events as they fire.
+- **Pipeline logs:** `processing/logs/<videoName>.log` — per-pipeline-run stdout/stderr from every step. Phase 3 added new lines to `yamnet_events.py` stderr: `Audio length: ... (loaded in ...s)`, `Model loaded in ...s`, `Skipped N/M silent frames (RMS < T); inference loop ...s`. Greppable.
+- **Latest reference log:** `processing/logs/RL_2026-10-15_Day9_Pt1_1777296803915.log` — full session 29 in-app smoke test. Useful as Phase 4's "what does a working pipeline look like" reference.
+- **Phase 1 IPC on the wire:** open DevTools (Ctrl+Shift+I) and run `window.clipflow.onSignalProgress((d) => console.log(d))` to see live signal events. 5 signals now (no scene_change).
+- **Phase 4 baseline note:** if you need to capture the unfiltered pitch_spike baseline before patching, run standalone via the betterwhisperx Python and the existing `tmp/phase3-baseline/audio.wav` (already extracted). Same approach as Phases 2 and 3.
 
 ---
 
 ## Watch out for
 
-- **Phase 1 stall-timer assumes well-behaved heartbeats.** scene_change today gets killed by the stall timer because showinfo lines stop arriving fast enough on a slow decode. Once Phase 2 lands, the heartbeat will fire correctly and the timer won't false-fire. **Don't soften the 30s stall window to "make Phase 1 pass" before Phase 2 — that defeats the whole design.**
-- **`-hwaccel auto` falls back to software decode if no hardware decoder is available.** On Fega's machine that won't matter (Windows + GPU), but it's worth noting in code review: if a user has no GPU, scene_change will just be slow, not broken. Phase 2 should still ship — it's a strict improvement.
-- **The `scale` filter chain order matters.** `scale=640:360,select='gt(scene,0.4)',showinfo` — scale must come first so scene detect runs on the downscaled frames. Putting scale after select would still scale all selected frames but defeat the speedup since selection happens at full resolution.
-- **Some recordings might trigger different scene-cut counts at low res.** That's the validation step — compare against the current count and flag if delta > 10%. Likely fine for gaming content (cuts are visually pronounced), but worth checking.
-- **The `cmd = [...]` block is what gets logged via `logger?.logCommand?.()` — no need to add new logging, the existing pipeline log will show the new ffmpeg invocation verbatim.**
-- **Don't touch heartbeat code in Phase 2.** Phase 1's `progress(p)` calls in scene_change.py (lines 65, 99, 115, 124) work as-is — the speedup just makes them fire faster.
-
----
-
-## Open issues (commercial-launch blockers)
-
-- **[#72](https://github.com/Oghenefega/ClipFlow/issues/72) — Lever 1 signal timeouts.** Phase 1 done. **Phase 2 (scene_change) is next session's work.** Phases 3 (yamnet) and 4 (pitch_spike) follow.
-- **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher rigidity. Orthogonal, smaller scope, can slot between #72 phases.
-- **[#73](https://github.com/Oghenefega/ClipFlow/issues/73)** — Cold-start UX (3–5s blank screen). Two-phase: branded splash window, then bundle code-splitting.
+- **Don't put scene_change back without a fundamentally different approach.** The drop was on the merits: ffmpeg scene-detect is decode-bound and i-frame size doesn't signal scene cuts in NVENC content. A future visual signal (e.g., CLIP embeddings sampled at 0.5fps) would be a new architecture, not reviving the deleted script.
+- **Threshold 0.002 in yamnet is calibrated against gaming audio.** If a future user has a recording with unusual noise floor (e.g., compressed audio with hum at exactly 0.002 RMS), the filter could behave oddly. The toggle exists exactly for this — let users turn it off if it ever misbehaves.
+- **Don't widen the stall window in Phase 4 to "make pitch_spike pass" without chunking.** The whole point of Phase 1 was that the user gets a clear truth. If chunking is the wrong fix, fall back to a different pitch tracker — don't soften the timer.
+- **Phase 1 stall-timer + backstop are unchanged.** Don't touch them. The fix lives in the Python scripts.
+- **The signal-health UI now has 5 rows.** Don't restyle the table for 6. Array-driven render handles it automatically but watch any hardcoded layout assumptions.
+- **`runSignalExtraction` now reads `yamnetSilenceSkip` from electron-store via the AI pipeline.** If Phase 4 needs a similar setting for pitch_spike chunking, mirror the pattern — don't invent a new pathway.
+- **Strict mode is still default ON.** In-app testing of Phase 4 should ideally run with strict ON to verify the pipeline completes without the modal — that's the actual success state.
 
 ---
 
 ## Session model + cost
 
-- **Model used:** Opus 4.7 throughout (full Phase 1 implementation).
-- **Files touched:**
-  - `src/main/main.js` (defaults + migration + signalProgress emit + degradeAnswer IPC)
-  - `src/main/ai-pipeline.js` (signature widened + Stage 4.5 strict/degrade gate + completion-toast variants)
-  - `src/main/signals.js` (`runPythonSignal` rewrite, return-shape change, orchestrator-crash → "extractor" failure)
-  - `src/main/preload.js` (3 new bridge methods)
-  - `tools/signals/yamnet_events.py` (heartbeat helper + 2 emission points)
-  - `tools/signals/pitch_spike.py` (heartbeat helper + 4 emission points)
-  - `tools/signals/scene_change.py` (full Popen rewrite + stderr streaming)
-  - `src/renderer/views/UploadView.js` (PIPELINE_STEPS, signal-health table, completion-toast variants, signalProgress subscription)
-  - `src/renderer/views/SettingsView.js` (Pipeline Quality card with strict-mode toggle)
-  - `src/renderer/App.js` (ask-degrade modal + IPC subscription)
-- **Net result:** seven main-process files clean (`node -c` OK), three Python scripts clean (`py_compile` OK), renderer Vite build clean.
+- **Model:** Opus 4.7 throughout (full session — Phase 2 evidence-gathering, Phase 3 implementation, smoke testing).
+- **Context window at wrap:** ~29% (294.4k / 1M).
+- **Files committed this session:** 9 (see "Files touched" above).
+- **Issues filed:** [#74](https://github.com/Oghenefega/ClipFlow/issues/74), [#75](https://github.com/Oghenefega/ClipFlow/issues/75).
+- **Issue updated:** [#72](https://github.com/Oghenefega/ClipFlow/issues/72) with a Phase 2-drop comment and (this session-end) a Phase 3-ship comment.

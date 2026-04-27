@@ -42,6 +42,14 @@ FRAME_LEN = 15600   # model input — exactly 0.975 s at 16 kHz
 HOP = 15600         # non-overlapping frames (matches spec frame_duration_ms ≈ 960)
 MIN_SCORE = 0.05    # omit frames where no kept class crosses this
 
+# RMS threshold for skipping inference. Tuned to "true silence" — below typical
+# microphone room-tone (~0.001–0.003) but well clear of any low-volume content
+# (whispers, distant TV, soft mouth sounds register at 0.003+). At this threshold
+# a frame mathematically cannot contain a reaction-class sound, so running
+# inference is wasted. User can disable the filter entirely via --no-rms-skip
+# (settings: yamnetSilenceSkip toggle) to force inference on every frame.
+RMS_SKIP_THRESHOLD = 0.002
+
 
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
@@ -85,6 +93,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--audio", required=True)
     ap.add_argument("--output", required=True)
+    ap.add_argument("--no-rms-skip", action="store_true",
+                    help="Disable the RMS pre-filter; run inference on every frame.")
     args = ap.parse_args()
 
     if not os.path.exists(MODEL_PATH):
@@ -95,8 +105,9 @@ def main():
         sys.exit(2)
 
     log(f"Loading audio: {args.audio}")
+    t_audio = time.time()
     audio = load_audio_mono_16k(args.audio)
-    log(f"Audio length: {len(audio) / SAMPLE_RATE:.1f} s")
+    log(f"Audio length: {len(audio) / SAMPLE_RATE:.1f} s (loaded in {time.time() - t_audio:.2f}s)")
 
     class_map = load_class_map(CLASS_MAP_PATH)
     keep_indices = {name: class_map[name] for name in KEEP_CLASSES if name in class_map}
@@ -105,10 +116,16 @@ def main():
         log(f"WARN: missing class names in class map: {missing}")
 
     log("Loading model...")
-    interp = Interpreter(model_path=MODEL_PATH)
+    t_model = time.time()
+    # ai-edge-litert defaults to single-threaded CPU inference. Phase 3 evidence
+    # showed per-call cost of ~339ms single-threaded vs ~71ms at 8 threads on
+    # this YAMNet model. Cap at 8 to avoid oversubscription on small CPUs.
+    n_threads = min(os.cpu_count() or 4, 8)
+    interp = Interpreter(model_path=MODEL_PATH, num_threads=n_threads)
     interp.allocate_tensors()
     inp_idx = interp.get_input_details()[0]["index"]
     out_idx = interp.get_output_details()[0]["index"]
+    log(f"Model loaded in {time.time() - t_model:.2f}s")
     progress(0.0)
 
     frames = []
@@ -117,9 +134,20 @@ def main():
     else:
         n_frames = (len(audio) - FRAME_LEN) // HOP + 1
         log(f"Processing {n_frames} frames...")
+        t_loop = time.time()
+        skipped = 0
+        # Effective threshold: 0 disables the filter (every frame runs inference).
+        effective_threshold = 0.0 if args.no_rms_skip else RMS_SKIP_THRESHOLD
+        if args.no_rms_skip:
+            log("RMS pre-filter DISABLED — running inference on every frame")
         for i in range(n_frames):
             start = i * HOP
             chunk = audio[start:start + FRAME_LEN]
+            rms = float(np.sqrt(np.mean(chunk * chunk)))
+            if rms < effective_threshold:
+                skipped += 1
+                progress(i / n_frames)
+                continue
             interp.set_tensor(inp_idx, chunk)
             interp.invoke()
             scores = interp.get_tensor(out_idx)[0]
@@ -132,6 +160,7 @@ def main():
                     "scores": kept,
                 })
             progress(i / n_frames)
+        log(f"Skipped {skipped}/{n_frames} silent frames (RMS < {effective_threshold}); inference loop {time.time() - t_loop:.2f}s")
 
     out = {
         "signal": "yamnet",

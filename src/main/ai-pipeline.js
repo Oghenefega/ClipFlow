@@ -535,6 +535,7 @@ async function runAIPipeline({
       processingDir, videoName, pythonPath, archetype,
       logger, isTest: !!gameData.isTest,
       sendSignalProgress,
+      yamnetSilenceSkip: store.get("yamnetSilenceSkip") !== false,
     });
     logger.endStep(
       "Signal Extraction",

@@ -75,7 +75,6 @@ const SIGNAL_ROWS = [
   { key: "silence_spike", label: "Silence-then-spike" },
   { key: "yamnet", label: "YAMNet (audio events)" },
   { key: "pitch_spike", label: "Pitch spike" },
-  { key: "scene_change", label: "Scene change" },
 ];
 
 function signalStatusVisuals(status) {

@@ -13,12 +13,15 @@ const PROGRESS_RE = /^PROGRESS\s+([0-9]*\.?[0-9]+)\s*$/;
 // the user gets a clear failure instead of a 5-min silent wait.
 const STALL_TIMEOUT_MS = 30000;
 
-// ─── Archetype-aware composite weights (locked 2026-04-23 — see spec) ───
+// ─── Archetype-aware composite weights ───
+// scene_change dropped 2026-04-25 — proved low signal density on gaming content
+// (6 cuts in 30 min for RL) and lagging vs audio reaction signals; the 0.05
+// it held is folded into energy across all archetypes.
 const ARCHETYPE_WEIGHTS = {
-  hype:        { energy: 0.50, yamnet: 0.15, pitch: 0.10, density: 0.05, reaction_words: 0.10, scene_change: 0.05, spike: 0.05 },
-  competitive: { energy: 0.40, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, scene_change: 0.05, spike: 0.05 },
-  chill:       { energy: 0.30, yamnet: 0.10, pitch: 0.20, density: 0.15, reaction_words: 0.15, scene_change: 0.05, spike: 0.05 },
-  variety:     { energy: 0.40, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, scene_change: 0.05, spike: 0.05 },
+  hype:        { energy: 0.55, yamnet: 0.15, pitch: 0.10, density: 0.05, reaction_words: 0.10, spike: 0.05 },
+  competitive: { energy: 0.45, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, spike: 0.05 },
+  chill:       { energy: 0.35, yamnet: 0.10, pitch: 0.20, density: 0.15, reaction_words: 0.15, spike: 0.05 },
+  variety:     { energy: 0.45, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, spike: 0.05 },
 };
 
 function resolveArchetypeWeights(archetype) {
@@ -325,10 +328,12 @@ function runPythonSignal({
   });
 }
 
-async function spawnYamnet({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress }) {
+async function spawnYamnet({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress, silenceSkip = true }) {
+  const cliArgs = ["--audio", wavPath, "--output", outPath];
+  if (!silenceSkip) cliArgs.push("--no-rms-skip");
   return runPythonSignal({
     scriptName: "yamnet_events.py",
-    cliArgs: ["--audio", wavPath, "--output", outPath],
+    cliArgs,
     pythonPath, outPath, logger, onProgress, sourceDuration,
     startupGraceMs: 15000,   // model load + class-map load
     signalName: "yamnet",
@@ -342,16 +347,6 @@ async function spawnPitchSpike({ wavPath, outPath, pythonPath, sourceDuration, l
     pythonPath, outPath, logger, onProgress, sourceDuration,
     startupGraceMs: 5000,    // audio load
     signalName: "pitch_spike",
-  });
-}
-
-async function spawnSceneChange({ videoPath, outPath, pythonPath, sourceDuration, logger, onProgress }) {
-  return runPythonSignal({
-    scriptName: "scene_change.py",
-    cliArgs: ["--video", videoPath, "--output", outPath],
-    pythonPath, outPath, logger, onProgress, sourceDuration,
-    startupGraceMs: 5000,    // ffmpeg startup + ffprobe
-    signalName: "scene_change",
   });
 }
 
@@ -373,7 +368,7 @@ function redistributeWeights(baseWeights, failedKeys) {
  * is redistributed across surviving signals.
  */
 function buildEventTimeline({
-  energyJson, yamnet, pitch, sceneChange,
+  energyJson, yamnet, pitch,
   density, reactionWords, silenceSpike,
   archetype, videoName, sourceDuration, extraction_ms,
 }) {
@@ -384,7 +379,6 @@ function buildEventTimeline({
   if (silenceSpike) signals_computed.push("silence_spike"); else signals_failed.push("silence_spike");
   if (yamnet) signals_computed.push("yamnet"); else signals_failed.push("yamnet");
   if (pitch) signals_computed.push("pitch_spike"); else signals_failed.push("pitch_spike");
-  if (sceneChange) signals_computed.push("scene_change"); else signals_failed.push("scene_change");
 
   const events = [];
 
@@ -409,12 +403,6 @@ function buildEventTimeline({
           metadata: { mean_f0_hz: w.mean_f0_hz, baseline_f0_hz: pitch.baseline_f0_hz },
         });
       }
-    }
-  }
-
-  if (sceneChange && Array.isArray(sceneChange.events)) {
-    for (const e of sceneChange.events) {
-      events.push({ t_start: e.t, t_end: e.t, signal: "scene_change", score: e.score ?? 1.0, label: "scene_cut", metadata: {} });
     }
   }
 
@@ -458,7 +446,6 @@ function buildEventTimeline({
   const failedWeightKeys = [];
   if (!yamnet) failedWeightKeys.push("yamnet");
   if (!pitch) failedWeightKeys.push("pitch");
-  if (!sceneChange) failedWeightKeys.push("scene_change");
   const weights = redistributeWeights(baseWeights, failedWeightKeys);
 
   // ── Composite score per energy segment ──
@@ -470,7 +457,7 @@ function buildEventTimeline({
     const overlaps = (a0, a1) => !(a1 < segStart || a0 > segEnd);
 
     let yamnet_boost = 0, pitch_boost = 0, density_boost = 0, reaction_boost = 0;
-    let scene_boost = 0, spike_boost = 0;
+    let spike_boost = 0;
 
     for (const e of events) {
       switch (e.signal) {
@@ -486,9 +473,6 @@ function buildEventTimeline({
         case "reaction_words":
           if (overlaps(e.t_start, e.t_end) && e.score > reaction_boost) reaction_boost = e.score;
           break;
-        case "scene_change":
-          if (Math.abs(e.t_start - segMid) < 2.0) scene_boost = 1.0;
-          break;
         case "silence_spike":
           if (overlaps(e.t_start, e.t_end)) spike_boost = 1.0;
           break;
@@ -503,7 +487,6 @@ function buildEventTimeline({
       weights.pitch * pitch_boost +
       weights.density * density_boost +
       weights.reaction_words * reaction_boost +
-      weights.scene_change * scene_boost +
       weights.spike * spike_boost;
 
     segments.push({
@@ -519,7 +502,6 @@ function buildEventTimeline({
       signal_boosts: {
         yamnet: yamnet_boost,
         pitch_spike: pitch_boost,
-        scene_change: scene_boost,
         density: density_boost,
         reaction_words: reaction_boost,
         spike: spike_boost,
@@ -561,6 +543,7 @@ async function runSignalExtraction({
   wavPath, sourceFile, energyJson, transcription,
   processingDir, videoName, pythonPath, archetype,
   logger, isTest = false, sendSignalProgress,
+  yamnetSilenceSkip = true,
 }) {
   // Compute source duration once — used for backstop scaling per-signal.
   let sourceDuration = 0;
@@ -626,7 +609,6 @@ async function runSignalExtraction({
     // ── Python signals (concurrent via Promise.all) ──
     const yamnetOut = path.join(signalsDir, `${videoName}.yamnet.json`);
     const pitchOut = path.join(signalsDir, `${videoName}.pitch_spike.json`);
-    const sceneOut = path.join(signalsDir, `${videoName}.scene_change.json`);
 
     const runPy = async (key, spawnFn) => {
       const startAt = Date.now();
@@ -659,14 +641,13 @@ async function runSignalExtraction({
       }
     };
 
-    const [yamnet, pitch, sceneChange] = await Promise.all([
-      runPy("yamnet", (onProgress) => spawnYamnet({ wavPath, outPath: yamnetOut, pythonPath, sourceDuration, logger, onProgress })),
+    const [yamnet, pitch] = await Promise.all([
+      runPy("yamnet", (onProgress) => spawnYamnet({ wavPath, outPath: yamnetOut, pythonPath, sourceDuration, logger, onProgress, silenceSkip: yamnetSilenceSkip })),
       runPy("pitch_spike", (onProgress) => spawnPitchSpike({ wavPath, outPath: pitchOut, pythonPath, sourceDuration, logger, onProgress })),
-      runPy("scene_change", (onProgress) => spawnSceneChange({ videoPath: sourceFile, outPath: sceneOut, pythonPath, sourceDuration, logger, onProgress })),
     ]);
 
     const eventTimeline = buildEventTimeline({
-      energyJson, yamnet, pitch, sceneChange,
+      energyJson, yamnet, pitch,
       density, reactionWords, silenceSpike,
       archetype, videoName, sourceDuration, extraction_ms,
     });

@@ -77,8 +77,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitThreshold, setSplitThreshold] = useState(30);
   const [splitSourceRetention, setSplitSourceRetention] = useState("keep");
-  // Pipeline quality (Issue #72 Phase 1)
+  // Pipeline quality (Issue #72 Phase 1 + Phase 3)
   const [strictMode, setStrictMode] = useState(true);
+  const [yamnetSilenceSkip, setYamnetSilenceSkip] = useState(true);
 
   // Check ffmpeg + whisper on mount
   useEffect(() => {
@@ -107,6 +108,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (ssr) setSplitSourceRetention(ssr);
         const sm = await window.clipflow.storeGet("strictMode");
         if (sm !== undefined && sm !== null) setStrictMode(!!sm);
+        const yss = await window.clipflow.storeGet("yamnetSilenceSkip");
+        if (yss !== undefined && yss !== null) setYamnetSilenceSkip(!!yss);
         // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
           const r = await window.clipflow.whisperCheck(pp || undefined);
@@ -468,10 +471,13 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
-      {/* Pipeline Quality — strict mode toggle (Issue #72 Phase 1) */}
+      {/* Pipeline Quality — strict mode + yamnet silence skip (Issue #72 Phases 1 & 3) */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Pipeline Quality</div>
+        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Pipeline Quality</div>
+
+        {/* Strict mode */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Strict mode</div>
           <button
             onClick={() => {
               const next = !strictMode;
@@ -486,11 +492,35 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               fontWeight: 700,
             }}
           >
-            {strictMode ? "Strict mode ON" : "Strict mode OFF"}
+            {strictMode ? "ON" : "OFF"}
           </button>
         </div>
-        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 8px 0", lineHeight: 1.5 }}>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 18px 0", lineHeight: 1.5 }}>
           Abort the pipeline if any audio signal fails. Recommended &mdash; your clips reflect every signal we promised. Turn off only if you want to ship clips even when signal extraction degrades.
+        </p>
+
+        {/* YAMNet silence skip */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Skip silent audio in YAMNet</div>
+          <button
+            onClick={() => {
+              const next = !yamnetSilenceSkip;
+              setYamnetSilenceSkip(next);
+              window.clipflow?.storeSet("yamnetSilenceSkip", next);
+            }}
+            style={{
+              ...BTN,
+              background: yamnetSilenceSkip ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${yamnetSilenceSkip ? "rgba(34,197,94,0.4)" : T.border}`,
+              color: yamnetSilenceSkip ? T.green : T.textTertiary,
+              fontWeight: 700,
+            }}
+          >
+            {yamnetSilenceSkip ? "ON" : "OFF"}
+          </button>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
+          Skip YAMNet inference on frames below the microphone&apos;s noise floor (RMS &lt; 0.002 &mdash; truly silent, well below any whisper or low-volume content). Reaction sounds like laughter or shouting cannot occur on these frames, so running inference is wasted work. Turn off to force YAMNet to run on every frame regardless of volume.
         </p>
       </Card>
 
