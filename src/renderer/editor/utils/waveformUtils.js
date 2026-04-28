@@ -17,15 +17,9 @@ export async function extractWaveformPeaks(filePath, peakCount = 800) {
     try {
       const response = await fetch(url);
       arrayBuffer = await response.arrayBuffer();
-    } catch {
-      // Fallback: use IPC to read the file buffer
-      if (window.clipflow?.readFileBuffer) {
-        const buffer = await window.clipflow.readFileBuffer(filePath);
-        arrayBuffer = buffer;
-      } else {
-        console.warn("Waveform: Cannot read file, no IPC fallback available");
-        return null;
-      }
+    } catch (err) {
+      console.warn("Waveform: Cannot read file:", err.message);
+      return null;
     }
 
     // Decode audio from the buffer

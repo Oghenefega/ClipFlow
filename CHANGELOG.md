@@ -4,6 +4,24 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 1: orphaned IPC handlers + preload bridges
+
+### Removed
+- **27 orphaned IPC handlers + matching preload bridge entries** ([src/main/main.js](src/main/main.js), [src/main/preload.js](src/main/preload.js)). Cross-referenced every `ipcMain.handle` against every `ipcRenderer.invoke` against every `window.clipflow.<method>` callsite (324 callsites across 18 renderer files including `src/index.js`). Each removed entry was verified as having zero references in `src/`, no destructuring/aliasing, and no test coverage. Categories dropped:
+  - **fs surface:** `fs:readDir`, `fs:readFile`, `fs:writeFile` (renderer accesses files via dedicated handlers — `metadata:*`, `pipelineLogs:read`, etc.)
+  - **Watcher events with no consumer:** `onFileRemoved`, `onTestFileRemoved` preload listener wrappers + `watcher:stopTest` handler. Test watcher is started but never stopped from renderer (pre-existing pattern; cleans up on app quit).
+  - **Shell + dialog:** `shell:openFolder` (`revealInFolder` is what's used), `dialog:saveFile` (`dialog:openFile` is what's used).
+  - **Legacy ffmpeg surface:** `ffmpeg:extractAudio`, `ffmpeg:thumbnail`, `ffmpeg:analyzeLoudness`. The `ffmpeg.*` module functions remain — called internally from `ai-pipeline.js` and `highlights.js`. Just dropping the IPC layer.
+  - **Whisper renderer-call surface:** `whisper:transcribe` handler + `onWhisperProgress`/`removeWhisperProgressListener` preload listeners. Whisper is called from main pipeline only; renderer no longer transcribes directly.
+  - **Project mutation surface:** `project:create`, `project:save`, `project:addClip`, `project:deleteClip`. The AI pipeline writes projects internally; renderer mutates only specific fields via `project:updateClip`, `project:delete`, `project:updateTestMode`.
+  - **Misc:** `import:cancel`, `metadata:getById`, `preset:getAll`, `preset:calculateDayNumber`, `preset:extractDate`, `feedback:getApproved`, `feedback:getCounts`, `gameProfiles:getAll`, `publishLog:getForClip`, `folder:reorder`, `logs:getModules`, `logs:getSessionLogs`, `logs:getDir`. None had any renderer caller.
+- **Dead `readFileBuffer` fallback in [src/renderer/editor/utils/waveformUtils.js](src/renderer/editor/utils/waveformUtils.js)**. The `catch` branch tried `window.clipflow.readFileBuffer(filePath)` as a fallback when `fetch("file://...")` failed — but `readFileBuffer` was never exposed in the preload bridge, so the conditional always evaluated false and the path was unreachable. Replaced with a direct `console.warn` + `return null`.
+
+### Verification
+- `npm run build:renderer` passes clean (2728 modules, 11s, no errors). Bundle size unchanged from baseline (1.87 MB / 545 KB gzipped — pre-existing > 500 kB warning is tracked under [#73](https://github.com/Oghenefega/ClipFlow/issues/73)).
+- 274 lines removed across 3 files (3 insertions). Net code reduction.
+- No behavior change expected: every removed handler was confirmed unreachable from any renderer code path before deletion.
+
 ## [Unreleased] — 2026-04-28 (session 32) — Issue #76: lazy-cut architecture pivot, 506s → 397s
 
 ### Changed

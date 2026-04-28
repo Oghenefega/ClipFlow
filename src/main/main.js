@@ -532,27 +532,6 @@ ipcMain.handle("dialog:pickFolder", async () => {
   return result.filePaths[0];
 });
 
-// File system: read directory
-ipcMain.handle("fs:readDir", async (_, dirPath) => {
-  try {
-    const files = fs.readdirSync(dirPath);
-    return files.map((name) => {
-      const fullPath = path.join(dirPath, name);
-      const stat = fs.statSync(fullPath);
-      return {
-        name,
-        path: fullPath,
-        isDirectory: stat.isDirectory(),
-        size: stat.size,
-        createdAt: stat.birthtime.toISOString(),
-        modifiedAt: stat.mtime.toISOString(),
-      };
-    });
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
 // File system: rename file
 ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
   try {
@@ -569,27 +548,6 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
 // File system: check if file exists
 ipcMain.handle("fs:exists", async (_, filePath) => {
   return fs.existsSync(filePath);
-});
-
-// File system: read file as text (for OBS logs, CSVs)
-ipcMain.handle("fs:readFile", async (_, filePath) => {
-  try {
-    return fs.readFileSync(filePath, "utf-8");
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-// File system: write file
-ipcMain.handle("fs:writeFile", async (_, filePath, content) => {
-  try {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, content, "utf-8");
-    return { success: true };
-  } catch (err) {
-    return { error: err.message };
-  }
 });
 
 // File watcher: recording folder detection (watches the folder OBS writes .mp4/.mkv into)
@@ -726,30 +684,9 @@ ipcMain.handle("watcher:startTest", async (_, folderPath) => {
   return { success: true };
 });
 
-// Test watcher: stop
-ipcMain.handle("watcher:stopTest", async () => {
-  if (testWatcher) { testWatcher.close(); testWatcher = null; }
-  return { success: true };
-});
-
-// Shell: open folder in explorer
-ipcMain.handle("shell:openFolder", async (_, folderPath) => {
-  shell.openPath(folderPath);
-});
-
 // Shell: open the containing folder in Explorer and select the file
 ipcMain.handle("shell:revealInFolder", async (_, filePath) => {
   shell.showItemInFolder(filePath);
-});
-
-// Dialog: save file (for CSV export)
-ipcMain.handle("dialog:saveFile", async (_, options) => {
-  const result = await dialog.showSaveDialog(mainWindow, {
-    defaultPath: options.defaultPath || "export.csv",
-    filters: options.filters || [{ name: "CSV Files", extensions: ["csv"] }],
-  });
-  if (result.canceled) return null;
-  return result.filePath;
 });
 
 // Dialog: open file (for CSV import)
@@ -778,29 +715,11 @@ ipcMain.handle("ffmpeg:probe", async (_, filePath) => {
   catch (err) { return { error: err.message }; }
 });
 
-ipcMain.handle("ffmpeg:extractAudio", async (_, videoPath, wavPath) => {
-  try {
-    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
-    return await ffmpeg.extractAudio(videoPath, wavPath, audioTrack);
-  }
-  catch (err) { return { error: err.message }; }
-});
-
 // Resolve the user's clipCutEncoder setting once. Throws if the user picked
 // "gpu" but NVENC is unavailable — caller surfaces the error to the user.
 async function resolveClipCutEncoder() {
   return ffmpeg.resolveEncoder(store.get("clipCutEncoder") || "auto");
 }
-
-ipcMain.handle("ffmpeg:thumbnail", async (_, videoPath, outPath, time) => {
-  try { return await ffmpeg.generateThumbnail(videoPath, outPath, time); }
-  catch (err) { return { error: err.message }; }
-});
-
-ipcMain.handle("ffmpeg:analyzeLoudness", async (_, audioPath, segmentDuration) => {
-  try { return await ffmpeg.analyzeLoudness(audioPath, segmentDuration); }
-  catch (err) { return { error: err.message }; }
-});
 
 ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => {
   try {
@@ -1179,26 +1098,6 @@ ipcMain.handle("import:clearSuppression", async (_, filename, sizeBytes) => {
   return { success: true }; // Already cleared
 });
 
-// Cancel an import — delete the copied file and clear suppression
-ipcMain.handle("import:cancel", async (_, targetPath, filename, sizeBytes) => {
-  try {
-    // Clear suppression
-    for (const entry of pendingImports) {
-      if (entry.filename === filename && entry.sizeBytes === sizeBytes) {
-        pendingImports.delete(entry);
-        break;
-      }
-    }
-    // Delete the copied file
-    if (targetPath && fs.existsSync(targetPath)) {
-      fs.unlinkSync(targetPath);
-    }
-    return { success: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
 // ============ WHISPER (BetterWhisperX) ============
 ipcMain.handle("whisper:checkInstalled", async (_, pythonPath) => {
   try {
@@ -1206,31 +1105,6 @@ ipcMain.handle("whisper:checkInstalled", async (_, pythonPath) => {
     return await whisper.checkWhisper(pp);
   }
   catch (err) { return { installed: false, error: err.message }; }
-});
-
-ipcMain.handle("whisper:transcribe", async (_, wavPath, opts) => {
-  try {
-    const storeOpts = {
-      pythonPath: store.get("whisperPythonPath") || opts?.pythonPath || "",
-      model: store.get("whisperModel") || opts?.model || "large-v3-turbo",
-      language: opts?.language || "en",
-      batchSize: opts?.batchSize || 16,
-      computeType: opts?.computeType || "float16",
-      hfToken: store.get("hfToken") || opts?.hfToken || "",
-      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
-    };
-
-    // Send progress events to renderer
-    if (mainWindow) {
-      storeOpts.onProgress = (pct) => {
-        mainWindow.webContents.send("whisper:progress", pct);
-      };
-    }
-
-    return await whisper.transcribe(wavPath, storeOpts);
-  } catch (err) {
-    return { error: err.message };
-  }
 });
 
 // ============ Lazy-cut helpers (#76) ============
@@ -1505,26 +1379,12 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
 });
 
 // ============ PROJECTS ============
-ipcMain.handle("project:create", async (_, data) => {
-  try {
-    const watchFolder = store.get("watchFolder");
-    return projects.createProject(watchFolder, data);
-  } catch (err) { return { error: err.message }; }
-});
-
 ipcMain.handle("project:load", async (_, projectId) => {
   try {
     const watchFolder = store.get("watchFolder");
     const project = projects.loadProject(watchFolder, projectId);
     if (!project) return { error: "Project not found" };
     return { success: true, project };
-  } catch (err) { return { error: err.message }; }
-});
-
-ipcMain.handle("project:save", async (_, project) => {
-  try {
-    const watchFolder = store.get("watchFolder");
-    return projects.saveProject(watchFolder, project);
   } catch (err) { return { error: err.message }; }
 });
 
@@ -1744,20 +1604,6 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   } catch (err) { return { error: err.message }; }
 });
 
-ipcMain.handle("project:addClip", async (_, projectId, clipData) => {
-  try {
-    const watchFolder = store.get("watchFolder");
-    return projects.addClip(watchFolder, projectId, clipData);
-  } catch (err) { return { error: err.message }; }
-});
-
-ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) => {
-  try {
-    const watchFolder = store.get("watchFolder");
-    return projects.deleteClip(watchFolder, projectId, clipId, deleteFile);
-  } catch (err) { return { error: err.message }; }
-});
-
 // ============ PIPELINE: Generate Clips (AI Pipeline) ============
 // Orchestrates: transcribe → energy analysis → frame extraction → Claude API → cut clips → project
 // Pending ask-degrade requests — keyed by requestId, value = the resolver of
@@ -1799,18 +1645,6 @@ ipcMain.handle("feedback:log", async (_, entry) => {
   try {
     return feedbackDb.logFeedback(entry);
   } catch (err) { return { error: err.message }; }
-});
-
-ipcMain.handle("feedback:getApproved", async (_, gameTag, limit) => {
-  try {
-    return feedbackDb.getApprovedClips(gameTag, limit || 20);
-  } catch (err) { return []; }
-});
-
-ipcMain.handle("feedback:getCounts", async (_, gameTag) => {
-  try {
-    return feedbackDb.getFeedbackCounts(gameTag);
-  } catch (err) { return { approved: 0, rejected: 0, total: 0 }; }
 });
 
 // ============ FILE METADATA (Rename System) ============
@@ -1920,17 +1754,6 @@ ipcMain.handle("metadata:search", async (_, filters) => {
     const result = db.exec(sql, params);
     return database.toRows(result);
   } catch (err) { return []; }
-});
-
-ipcMain.handle("metadata:getById", async (_, fileId) => {
-  try {
-    const db = database.getDb();
-    if (!db) return null;
-
-    const result = db.exec("SELECT * FROM file_metadata WHERE id = ?", [fileId]);
-    const rows = database.toRows(result);
-    return rows.length > 0 ? rows[0] : null;
-  } catch (err) { return null; }
 });
 
 ipcMain.handle("labels:suggest", async (_, tag, prefix) => {
@@ -2049,10 +1872,6 @@ function _undoRenameHistory(historyId) {
 }
 
 // ============ NAMING PRESETS (Renderer-accessible) ============
-ipcMain.handle("preset:getAll", async () => {
-  return namingPresets.PRESETS;
-});
-
 ipcMain.handle("preset:formatFilename", async (_, meta, presetId) => {
   try {
     return { filename: namingPresets.formatFilename(meta, presetId) };
@@ -2071,12 +1890,6 @@ ipcMain.handle("preset:getNextPartNumber", async (_, meta, presetId) => {
   } catch (err) { return { partNumber: 1 }; }
 });
 
-ipcMain.handle("preset:calculateDayNumber", async (_, gameEntry, recordingDate) => {
-  try {
-    return namingPresets.calculateDayNumber(gameEntry, recordingDate);
-  } catch (err) { return { dayNumber: 1, newDayCount: 1, newLastDayDate: recordingDate }; }
-});
-
 ipcMain.handle("preset:validateLabel", async (_, label) => {
   return namingPresets.validateLabel(label);
 });
@@ -2087,15 +1900,7 @@ ipcMain.handle("preset:retroactiveRename", async (_, existingFile, triggeringHis
   } catch (err) { return { executed: false, error: err.message }; }
 });
 
-ipcMain.handle("preset:extractDate", async (_, filename, filePath) => {
-  return namingPresets.extractDateFromFilename(filename, filePath);
-});
-
 // ============ GAME PROFILES ============
-ipcMain.handle("gameProfiles:getAll", async () => {
-  return gameProfiles.loadProfiles();
-});
-
 ipcMain.handle("gameProfiles:get", async (_, gameTag) => {
   return gameProfiles.getProfile(gameTag);
 });
@@ -3115,21 +2920,7 @@ ipcMain.handle("publishLog:getRecent", async (_, limit) => {
   return publishLog.getRecentLogs(limit || 50);
 });
 
-ipcMain.handle("publishLog:getForClip", async (_, clipId) => {
-  return publishLog.getLogsForClip(clipId);
-});
-
 // ============ LOGGING & BUG REPORTS ============
-
-// Get available log modules (for the report UI dropdown)
-ipcMain.handle("logs:getModules", async () => {
-  return Object.values(logger.MODULES);
-});
-
-// Get session logs, optionally filtered by modules
-ipcMain.handle("logs:getSessionLogs", async (_, modules) => {
-  return logger.getSessionLogs(modules);
-});
 
 // Build and export a bug report
 ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }) => {
@@ -3153,11 +2944,6 @@ ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }
 // Get app version
 ipcMain.handle("app:getVersion", async () => {
   return app.getVersion();
-});
-
-// Get logs directory path (for dev / Claude Code access)
-ipcMain.handle("logs:getDir", async () => {
-  return logger.getLogsDir();
 });
 
 // ── Project Folders ──
@@ -3264,16 +3050,4 @@ ipcMain.handle("folder:addProjects", async (_, folderId, projectIds) => {
   }
 });
 
-ipcMain.handle("folder:reorder", async (_, folderIds) => {
-  try {
-    const folders = store.get("projectFolders") || [];
-    const reordered = folderIds
-      .map((id) => folders.find((f) => f.id === id))
-      .filter(Boolean);
-    store.set("projectFolders", reordered);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
 

@@ -8,20 +8,14 @@ contextBridge.exposeInMainWorld("clipflow", {
   // File system
   getPathForFile: (file) => webUtils.getPathForFile(file),
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
-  readDir: (dir) => ipcRenderer.invoke("fs:readDir", dir),
   renameFile: (oldPath, newPath) => ipcRenderer.invoke("fs:renameFile", oldPath, newPath),
   fileExists: (path) => ipcRenderer.invoke("fs:exists", path),
-  readFile: (path) => ipcRenderer.invoke("fs:readFile", path),
-  writeFile: (path, content) => ipcRenderer.invoke("fs:writeFile", path, content),
 
   // File watcher
   startWatching: (folder) => ipcRenderer.invoke("watcher:start", folder),
   stopWatching: () => ipcRenderer.invoke("watcher:stop"),
   onFileAdded: (callback) => {
     ipcRenderer.on("watcher:fileAdded", (_, data) => callback(data));
-  },
-  onFileRemoved: (callback) => {
-    ipcRenderer.on("watcher:fileRemoved", (_, data) => callback(data));
   },
   removeFileListeners: () => {
     ipcRenderer.removeAllListeners("watcher:fileAdded");
@@ -30,12 +24,8 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Test file watcher (separate instance, separate events)
   startTestWatching: (folder) => ipcRenderer.invoke("watcher:startTest", folder),
-  stopTestWatching: () => ipcRenderer.invoke("watcher:stopTest"),
   onTestFileAdded: (callback) => {
     ipcRenderer.on("watcher:testFileAdded", (_, data) => callback(data));
-  },
-  onTestFileRemoved: (callback) => {
-    ipcRenderer.on("watcher:testFileRemoved", (_, data) => callback(data));
   },
   removeTestFileListeners: () => {
     ipcRenderer.removeAllListeners("watcher:testFileAdded");
@@ -43,11 +33,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   },
 
   // Shell
-  openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
   revealInFolder: (filePath) => ipcRenderer.invoke("shell:revealInFolder", filePath),
 
   // Dialogs
-  saveFileDialog: (options) => ipcRenderer.invoke("dialog:saveFile", options),
   openFileDialog: (options) => ipcRenderer.invoke("dialog:openFile", options),
 
   // Persistent store
@@ -59,34 +47,20 @@ contextBridge.exposeInMainWorld("clipflow", {
   ffmpegCheck: () => ipcRenderer.invoke("ffmpeg:checkInstalled"),
   ffmpegCheckNvenc: () => ipcRenderer.invoke("ffmpeg:checkNvenc"),
   ffmpegProbe: (filePath) => ipcRenderer.invoke("ffmpeg:probe", filePath),
-  ffmpegExtractAudio: (videoPath, wavPath) => ipcRenderer.invoke("ffmpeg:extractAudio", videoPath, wavPath),
-  ffmpegThumbnail: (videoPath, outPath, time) => ipcRenderer.invoke("ffmpeg:thumbnail", videoPath, outPath, time),
-  ffmpegAnalyzeLoudness: (audioPath, segmentDuration) => ipcRenderer.invoke("ffmpeg:analyzeLoudness", audioPath, segmentDuration),
   ffmpegExtractWaveformPeaks: (filePath, peakCount) => ipcRenderer.invoke("ffmpeg:extractWaveformPeaks", filePath, peakCount),
   waveformExtractCached: (projectId, sourceFilePath, durationSec) => ipcRenderer.invoke("waveform:extractCached", projectId, sourceFilePath, durationSec),
   projectLocateSource: (projectId) => ipcRenderer.invoke("project:locateSource", projectId),
 
   // Whisper
   whisperCheck: (binaryPath) => ipcRenderer.invoke("whisper:checkInstalled", binaryPath),
-  whisperTranscribe: (wavPath, opts) => ipcRenderer.invoke("whisper:transcribe", wavPath, opts),
-  onWhisperProgress: (callback) => {
-    ipcRenderer.on("whisper:progress", (_, pct) => callback(pct));
-  },
-  removeWhisperProgressListener: () => {
-    ipcRenderer.removeAllListeners("whisper:progress");
-  },
 
   // Projects
-  projectCreate: (data) => ipcRenderer.invoke("project:create", data),
   projectLoad: (projectId) => ipcRenderer.invoke("project:load", projectId),
-  projectSave: (project) => ipcRenderer.invoke("project:save", project),
   projectList: () => ipcRenderer.invoke("project:list"),
   projectDelete: (projectId) => ipcRenderer.invoke("project:delete", projectId),
   projectUpdateTestMode: (projectId, testMode) => ipcRenderer.invoke("project:updateTestMode", projectId, testMode),
   fileMoveToTestMode: (fileId, nextIsTest) => ipcRenderer.invoke("file:moveToTestMode", fileId, nextIsTest),
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
-  projectAddClip: (projectId, clipData) => ipcRenderer.invoke("project:addClip", projectId, clipData),
-  projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
 
   // Pipeline
   generateClips: (sourceFile, gameData) => ipcRenderer.invoke("pipeline:generateClips", sourceFile, gameData),
@@ -151,7 +125,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Import external file (drag-and-drop)
   importExternalFile: (sourcePath, watchFolder, testMode = false) => ipcRenderer.invoke("import:externalFile", sourcePath, watchFolder, testMode),
   importClearSuppression: (filename, sizeBytes) => ipcRenderer.invoke("import:clearSuppression", filename, sizeBytes),
-  importCancel: (targetPath, filename, sizeBytes) => ipcRenderer.invoke("import:cancel", targetPath, filename, sizeBytes),
   onImportProgress: (callback) => {
     ipcRenderer.on("import:progress", (_, data) => callback(data));
   },
@@ -163,29 +136,22 @@ contextBridge.exposeInMainWorld("clipflow", {
   fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
   fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),
   fileMetadataSearch: (filters) => ipcRenderer.invoke("metadata:search", filters),
-  fileMetadataGetById: (fileId) => ipcRenderer.invoke("metadata:getById", fileId),
   labelSuggest: (tag, prefix) => ipcRenderer.invoke("labels:suggest", tag, prefix),
   labelRecord: (tag, label) => ipcRenderer.invoke("labels:record", tag, label),
   renameHistoryRecent: (limit) => ipcRenderer.invoke("renameHistory:recent", limit),
   renameHistoryUndo: (historyId) => ipcRenderer.invoke("renameHistory:undo", historyId),
 
   // Naming presets
-  presetGetAll: () => ipcRenderer.invoke("preset:getAll"),
   presetFormatFilename: (meta, presetId) => ipcRenderer.invoke("preset:formatFilename", meta, presetId),
   presetFindCollisions: (meta, presetId) => ipcRenderer.invoke("preset:findCollisions", meta, presetId),
   presetGetNextPartNumber: (meta, presetId) => ipcRenderer.invoke("preset:getNextPartNumber", meta, presetId),
-  presetCalculateDayNumber: (gameEntry, recordingDate) => ipcRenderer.invoke("preset:calculateDayNumber", gameEntry, recordingDate),
   presetValidateLabel: (label) => ipcRenderer.invoke("preset:validateLabel", label),
   presetRetroactiveRename: (existingFile, triggeringHistoryId) => ipcRenderer.invoke("preset:retroactiveRename", existingFile, triggeringHistoryId),
-  presetExtractDate: (filename, filePath) => ipcRenderer.invoke("preset:extractDate", filename, filePath),
 
   // Feedback database
   feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
-  feedbackGetApproved: (gameTag, limit) => ipcRenderer.invoke("feedback:getApproved", gameTag, limit),
-  feedbackGetCounts: (gameTag) => ipcRenderer.invoke("feedback:getCounts", gameTag),
 
   // Game profiles
-  gameProfilesGetAll: () => ipcRenderer.invoke("gameProfiles:getAll"),
   gameProfilesGet: (gameTag) => ipcRenderer.invoke("gameProfiles:get", gameTag),
   gameProfilesUpdatePlayStyle: (gameTag, playStyle) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle),
   gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
@@ -271,7 +237,6 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Publish log
   getPublishLogs: (limit) => ipcRenderer.invoke("publishLog:getRecent", limit),
-  getPublishLogsForClip: (clipId) => ipcRenderer.invoke("publishLog:getForClip", clipId),
 
   // Dev dashboard
   devGetProviderInfo: () => ipcRenderer.invoke("dev:getProviderInfo"),
@@ -294,11 +259,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   folderUpdate: (folderId, patch) => ipcRenderer.invoke("folder:update", folderId, patch),
   folderDelete: (folderId) => ipcRenderer.invoke("folder:delete", folderId),
   folderAddProjects: (folderId, projectIds) => ipcRenderer.invoke("folder:addProjects", folderId, projectIds),
-  folderReorder: (folderIds) => ipcRenderer.invoke("folder:reorder", folderIds),
 
   // Logging & Bug Reports
-  logsGetModules: () => ipcRenderer.invoke("logs:getModules"),
-  logsGetSessionLogs: (modules) => ipcRenderer.invoke("logs:getSessionLogs", modules),
   logsExportReport: (data) => ipcRenderer.invoke("logs:exportReport", data),
-  logsGetDir: () => ipcRenderer.invoke("logs:getDir"),
 });
