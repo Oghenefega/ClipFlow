@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // ffmpeg
   ffmpegCheck: () => ipcRenderer.invoke("ffmpeg:checkInstalled"),
+  ffmpegCheckNvenc: () => ipcRenderer.invoke("ffmpeg:checkNvenc"),
   ffmpegProbe: (filePath) => ipcRenderer.invoke("ffmpeg:probe", filePath),
   ffmpegExtractAudio: (videoPath, wavPath) => ipcRenderer.invoke("ffmpeg:extractAudio", videoPath, wavPath),
   ffmpegCutClip: (srcPath, outPath, startTime, endTime) => ipcRenderer.invoke("ffmpeg:cutClip", srcPath, outPath, startTime, endTime),

@@ -512,10 +512,92 @@ def split_mega_segments(segments, max_duration=10.0):
 #  MAIN
 # ════════════════════════════════════════════════════════════════════════════
 
+def transcribe_one(model, audio_path, output_path, language, initial_prompt):
+    """
+    Transcribe a single audio file using an already-loaded stable-ts model.
+    Writes a JSON result to output_path. Returns segment count on success.
+    Used both by single-clip mode and by batch mode (#75: model loaded once,
+    reused across all clips in a pipeline run to avoid per-clip ~5-8s of
+    Python+CUDA+model-load overhead × N clips).
+    """
+    transcribe_kwargs = {
+        "language": language,
+        # Anti-hallucination: prevent Whisper from conditioning on its own
+        # previous output, which causes repeated phrases (e.g. "Let's go."
+        # echoed across silent/unclear sections of gaming audio)
+        "condition_on_previous_text": False,
+    }
+    if initial_prompt:
+        transcribe_kwargs["initial_prompt"] = initial_prompt
+
+    result = model.transcribe(audio_path, **transcribe_kwargs)
+    n_segs = len(result.segments) if hasattr(result, 'segments') else 0
+    print(f"[INFO] Transcription complete ({audio_path}): {n_segs} segments", file=sys.stderr)
+
+    # ── Refine word timestamps ──
+    # refine() iteratively mutes audio at word boundaries and re-runs
+    # inference to find precise onset/offset times. precision=0.05 gives
+    # 50ms accuracy (good balance of speed vs precision)
+    model.refine(audio_path, result, precision=0.05)
+
+    # ── Convert stable-ts result to ClipFlow format ──
+    segments = []
+    full_text_parts = []
+    for seg in result.segments:
+        text = seg.text.strip()
+        if not text:
+            continue
+        words = []
+        for w in seg.words:
+            word_text = w.word.strip()
+            if not word_text:
+                continue
+            words.append({
+                "word": word_text,
+                "start": round(w.start, 3),
+                "end": round(w.end, 3),
+                "probability": round(getattr(w, 'probability', 1.0), 3),
+            })
+        segments.append({
+            "start": round(seg.start, 3),
+            "end": round(seg.end, 3),
+            "text": text,
+            "words": words,
+        })
+        full_text_parts.append(text)
+
+    # ── Lightweight post-processing (safety net for edge cases) ──
+    import wave
+    with wave.open(audio_path, 'rb') as wf:
+        sr = wf.getframerate()
+        n_channels = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        n_frames = wf.getnframes()
+        raw_bytes = wf.readframes(n_frames)
+    if sampwidth == 2:
+        audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+    elif sampwidth == 4:
+        audio_np = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+    else:
+        audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+    if n_channels > 1:
+        audio_np = audio_np.reshape(-1, n_channels).mean(axis=1)
+
+    segments = postprocess_timestamps(segments, audio_np, sr=sr)
+
+    output = {"segments": segments, "text": " ".join(full_text_parts)}
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False)
+    return len(segments)
+
+
 def main():
     parser = argparse.ArgumentParser(description="ClipFlow stable-ts transcription bridge")
-    parser.add_argument("--audio", required=True, help="Path to audio file (WAV)")
-    parser.add_argument("--output", required=True, help="Path to write JSON output")
+    parser.add_argument("--audio", help="Path to audio file (WAV) — single-clip mode")
+    parser.add_argument("--output", help="Path to write JSON output — single-clip mode")
+    parser.add_argument("--batch", help='Path to batch manifest JSON: [{"audio":"...","output":"..."}, ...]. '
+                                        'Loads model once and processes all items sequentially (#75 Phase 3).')
     parser.add_argument("--model", default="large-v3-turbo", help="Whisper model name")
     parser.add_argument("--language", default="en", help="Language code")
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size for inference (unused by stable-ts, kept for CLI compat)")
@@ -524,9 +606,18 @@ def main():
     parser.add_argument("--initial_prompt", default=None, help="Initial prompt to seed vocabulary hints (slang, proper nouns)")
     args = parser.parse_args()
 
-    if not os.path.exists(args.audio):
-        print(f"Error: Audio file not found: {args.audio}", file=sys.stderr)
-        sys.exit(1)
+    # Validate args: either --batch OR (--audio + --output) required.
+    if args.batch:
+        if not os.path.exists(args.batch):
+            print(f"Error: Batch manifest not found: {args.batch}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        if not args.audio or not args.output:
+            print("Error: --audio and --output are required (or use --batch <manifest>)", file=sys.stderr)
+            sys.exit(1)
+        if not os.path.exists(args.audio):
+            print(f"Error: Audio file not found: {args.audio}", file=sys.stderr)
+            sys.exit(1)
 
     try:
         print_progress(0, "Loading stable-ts...")
@@ -536,9 +627,7 @@ def main():
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Device: {device}, CUDA available: {torch.cuda.is_available()}", file=sys.stderr)
 
-        # ── Step 1: Load model ──
-        # stable-ts wraps faster-whisper for GPU-accelerated transcription
-        # with built-in word-level timestamp refinement
+        # ── Load model ONCE (shared across batch items if --batch) ──
         print_progress(5, "Loading model...")
         model = stable_whisper.load_faster_whisper(
             args.model,
@@ -547,115 +636,46 @@ def main():
         )
         print_progress(15, "Model loaded")
 
-        # ── Step 2: Transcribe with word-level timestamps ──
-        # stable-ts produces word timestamps directly during transcription
-        # using iterative audio muting + probability analysis — no separate
-        # alignment step needed (unlike WhisperX's wav2vec2 approach)
-        print_progress(20, "Transcribing...")
-        transcribe_kwargs = {
-            "language": args.language,
-            # Anti-hallucination: prevent Whisper from conditioning on its own
-            # previous output, which causes repeated phrases (e.g. "Let's go."
-            # echoed across silent/unclear sections of gaming audio)
-            "condition_on_previous_text": False,
-        }
-        if args.initial_prompt:
-            transcribe_kwargs["initial_prompt"] = args.initial_prompt
-
-        result = model.transcribe(args.audio, **transcribe_kwargs)
-        n_segs = len(result.segments) if hasattr(result, 'segments') else 0
-        print(f"[INFO] Transcription complete: {n_segs} segments", file=sys.stderr)
-        print_progress(60, "Transcription complete")
-
-        # ── Step 3: Refine word timestamps ──
-        # refine() iteratively mutes audio at word boundaries and re-runs
-        # inference to find precise onset/offset times. precision=0.05 gives
-        # 50ms accuracy (good balance of speed vs precision)
-        print_progress(65, "Refining word timestamps...")
-        model.refine(args.audio, result, precision=0.05)
-        print_progress(85, "Refinement complete")
-
-        # ── Step 4: Convert stable-ts result to ClipFlow format ──
-        print_progress(88, "Formatting output...")
-        segments = []
-        full_text_parts = []
-
-        for seg in result.segments:
-            text = seg.text.strip()
-            if not text:
-                continue
-
-            seg_start = seg.start
-            seg_end = seg.end
-
-            words = []
-            for w in seg.words:
-                word_text = w.word.strip()
-                if not word_text:
+        if args.batch:
+            # ── Batch mode: process N items with the loaded model ──
+            with open(args.batch, "r", encoding="utf-8") as f:
+                items = json.load(f)
+            if not isinstance(items, list) or not items:
+                print(f"Error: Batch manifest is empty or invalid: {args.batch}", file=sys.stderr)
+                sys.exit(1)
+            n_total = len(items)
+            print(f"[INFO] Batch mode: {n_total} items, model loaded once", file=sys.stderr)
+            success_count = 0
+            for i, item in enumerate(items):
+                audio_path = item.get("audio")
+                output_path = item.get("output")
+                if not audio_path or not output_path:
+                    print(f"[WARN] Skipping batch item {i}: missing audio/output", file=sys.stderr)
                     continue
-                words.append({
-                    "word": word_text,
-                    "start": round(w.start, 3),
-                    "end": round(w.end, 3),
-                    "probability": round(getattr(w, 'probability', 1.0), 3),
-                })
-
-            # Log segment stats for debugging
-            if words:
-                avg_dur = sum((w["end"] - w["start"]) for w in words) / len(words)
-                print(f"[OK]   {seg_start:.1f}-{seg_end:.1f}s: {len(words)} words, avg_dur={avg_dur:.3f}s | \"{text[:60]}\"", file=sys.stderr)
-            else:
-                print(f"[WARN] {seg_start:.1f}-{seg_end:.1f}s: no words | \"{text[:60]}\"", file=sys.stderr)
-
-            segments.append({
-                "start": round(seg_start, 3),
-                "end": round(seg_end, 3),
-                "text": text,
-                "words": words,
-            })
-            full_text_parts.append(text)
-
-        print(f"[INFO] Total: {len(segments)} segments, {sum(len(s['words']) for s in segments)} words", file=sys.stderr)
-
-        # ── Step 5: Lightweight post-processing ──
-        # stable-ts produces high-quality timestamps, so post-processing is
-        # only a safety net for edge cases (zero-duration words, overlaps)
-        print_progress(90, "Post-processing timestamps...")
-
-        # Load audio for energy-based repair of any broken segments
-        # Use stdlib wave module — no extra dependencies needed
-        import wave
-        with wave.open(args.audio, 'rb') as wf:
-            sr = wf.getframerate()
-            n_channels = wf.getnchannels()
-            sampwidth = wf.getsampwidth()
-            n_frames = wf.getnframes()
-            raw_bytes = wf.readframes(n_frames)
-        # Convert to float32 numpy array
-        if sampwidth == 2:
-            audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-        elif sampwidth == 4:
-            audio_np = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+                if not os.path.exists(audio_path):
+                    print(f"[WARN] Skipping batch item {i}: audio not found: {audio_path}", file=sys.stderr)
+                    continue
+                # Progress: 15% (model loaded) + 0..85% across items
+                pct = 15 + int(((i + 1) / n_total) * 85)
+                print_progress(pct, f"Clip {i + 1}/{n_total}")
+                try:
+                    n_segs = transcribe_one(model, audio_path, output_path, args.language, args.initial_prompt)
+                    success_count += 1
+                    print(f"[INFO] Batch {i + 1}/{n_total} done: {n_segs} segments → {output_path}", file=sys.stderr)
+                except Exception as e:
+                    # One clip failure must NOT abort the batch — write nothing,
+                    # caller detects missing output JSON and flags clip.transcriptionFailed.
+                    print(f"[ERROR] Batch {i + 1}/{n_total} failed: {e}", file=sys.stderr)
+                    import traceback
+                    traceback.print_exc(file=sys.stderr)
+            print_progress(100, "Done")
+            print(json.dumps({"success": True, "completed": success_count, "total": n_total}), file=sys.stderr)
         else:
-            audio_np = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-        if n_channels > 1:
-            audio_np = audio_np.reshape(-1, n_channels).mean(axis=1)
-
-        segments = postprocess_timestamps(segments, audio_np, sr=sr)
-        print_progress(95, "Post-processing complete")
-
-        output = {
-            "segments": segments,
-            "text": " ".join(full_text_parts),
-        }
-
-        # Write JSON output
-        os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
-        with open(args.output, "w", encoding="utf-8") as f:
-            json.dump(output, f, ensure_ascii=False)
-
-        print_progress(100, "Done")
-        print(json.dumps({"success": True, "segments": len(segments)}), file=sys.stderr)
+            # ── Single-clip mode (unchanged behavior) ──
+            print_progress(20, "Transcribing...")
+            n_segs = transcribe_one(model, args.audio, args.output, args.language, args.initial_prompt)
+            print_progress(100, "Done")
+            print(json.dumps({"success": True, "segments": n_segs}), file=sys.stderr)
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

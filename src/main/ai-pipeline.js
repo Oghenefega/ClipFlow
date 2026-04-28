@@ -445,6 +445,13 @@ async function runAIPipeline({
     if (probeResult.error) throw new Error(`Probe failed: ${probeResult.error}`);
     logger.endStep("Probe", `${probeResult.duration.toFixed(1)}s, ${probeResult.width}x${probeResult.height}`);
 
+    // Resolve clip-cutting encoder once, fail fast if user picked "gpu" without
+    // NVENC available (#75 design: never silently fall back to CPU).
+    const clipCutEncoderSetting = store.get("clipCutEncoder") || "auto";
+    const clipCutEncoder = await ffmpeg.resolveEncoder(clipCutEncoderSetting);
+    const clipCutEncoderLabel = clipCutEncoder === "nvenc" ? "NVENC" : "x264";
+    logger.info(`Clip cutting: encoder=${clipCutEncoderLabel} (setting=${clipCutEncoderSetting})`);
+
     // ============ Stage 1: Create project ============
     sendProgress("creating", 3, "Creating project...");
     logger.startStep("Create Project");
@@ -638,15 +645,23 @@ async function runAIPipeline({
     logger.endStep("Claude Analysis", `${aiClips.length} clips identified`);
 
     // ============ Stage 7: Cut Clips ============
-    sendProgress("cutting", 75, `Cutting ${aiClips.length} clips...`);
+    // Issue #75 Phase 2: cuts run in parallel up to clipCutConcurrency. Order
+    // matters for clip naming (clip_001, clip_002...) and project.clips array,
+    // so each task writes results into a pre-allocated indexed slot and we
+    // assemble project.clips in source order after the pool drains.
+    const clipCutConcurrency = Math.max(1, Math.min(5, store.get("clipCutConcurrency") || 3));
+    sendProgress("cutting", 75, `Cutting ${aiClips.length} clips (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
     logger.startStep("Clip Cutting");
+    logger.info(`Cutting ${aiClips.length} clips with ${clipCutEncoderLabel}, concurrency=${clipCutConcurrency} (fps=${probeResult.fps || "auto"})`);
     project.status = "clipping";
     projects.saveProject(watchFolder, project);
 
     const clipsDir = projects.getClipsDir(watchFolder, project.id);
     const totalClips = aiClips.length;
+    const clipResults = new Array(totalClips); // index-aligned task outputs
+    let completed = 0;
 
-    for (let i = 0; i < totalClips; i++) {
+    async function cutOneClip(i) {
       const clip = aiClips[i];
       const clipNum = String(i + 1).padStart(3, "0");
       const clipFileName = `clip_${clipNum}.mp4`;
@@ -656,90 +671,179 @@ async function runAIPipeline({
       const startSec = aiPrompt.parseTimestamp(clip.start);
       const endSec = aiPrompt.parseTimestamp(clip.end);
 
-      const pct = 75 + Math.round((i / totalClips) * 20);
-      sendProgress("cutting", pct, `Cutting clip ${i + 1}/${totalClips}...`);
-
       try {
-        await ffmpeg.cutClip(sourceFile, clipPath, startSec, endSec);
+        await ffmpeg.cutClip(sourceFile, clipPath, startSec, endSec, {
+          encoder: clipCutEncoder,
+          fps: probeResult.fps,
+        });
       } catch (e) {
         logger.info(`Clip ${i + 1} cut failed: ${e.message}`);
-        continue;
+        completed++;
+        const pct = 75 + Math.round((completed / totalClips) * 20);
+        sendProgress("cutting", pct, `Cutting clips ${completed}/${totalClips} (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
+        return null; // skipped — assemble step ignores nulls
       }
 
-      // Generate thumbnail at midpoint
+      // Thumbnail (non-critical — cut is the load-bearing step)
       const thumbTime = startSec + (endSec - startSec) / 2;
       try {
         await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
       } catch (e) { /* non-critical */ }
 
-      // Slice word-level timestamps from source transcription for this clip's time range
-      // Offset all timestamps to be clip-local (0-based)
       const clipSubs = sliceSubtitlesFromSource(transcription, startSec, endSec);
 
+      completed++;
+      const pct = 75 + Math.round((completed / totalClips) * 20);
+      sendProgress("cutting", pct, `Cutting clips ${completed}/${totalClips} (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
+
+      return {
+        clip, startSec, endSec, clipPath, thumbPath, clipSubs,
+        clipNumber: clip.clip_number || (i + 1),
+      };
+    }
+
+    // Concurrency pool: N workers pull indices from a shared cursor until done.
+    let cursor = 0;
+    async function worker() {
+      while (true) {
+        const i = cursor++;
+        if (i >= totalClips) return;
+        clipResults[i] = await cutOneClip(i);
+      }
+    }
+    const workers = [];
+    for (let w = 0; w < Math.min(clipCutConcurrency, totalClips); w++) workers.push(worker());
+    await Promise.all(workers);
+
+    // Assemble project.clips in original (source) order so clip_001 stays first.
+    for (let i = 0; i < totalClips; i++) {
+      const r = clipResults[i];
+      if (!r) continue; // skipped failure
       const clipId = projects.generateClipId();
-      // Default title is "Clip N" placeholder. Game tag is a first-class field.
-      // The downstream "AI Titles and Captions" stage overwrites the title later;
-      // a publish guardrail warns if the user tries to post with the placeholder.
-      const clipNumber = clip.clip_number || (i + 1);
       project.clips.push({
         id: clipId,
-        title: `Clip ${clipNumber}`,
+        title: `Clip ${r.clipNumber}`,
         caption: "",
         gameTag: gameData.gameTag || "",
-        startTime: startSec,
-        endTime: endSec,
-        // Phase 4: NLE segments defined at import so render always uses source+segments
-        // (no dependence on a pre-cut clip file). Single segment = [startSec, endSec].
+        startTime: r.startSec,
+        endTime: r.endSec,
         nleSegments: [
-          { id: `seg-${clipId}-0`, sourceStart: startSec, sourceEnd: endSec },
+          { id: `seg-${clipId}-0`, sourceStart: r.startSec, sourceEnd: r.endSec },
         ],
-        highlightScore: Math.round((clip.confidence || 0) * 100),
+        highlightScore: Math.round((r.clip.confidence || 0) * 100),
         highlightReason: "",
         peakQuote: "",
-        energyLevel: clip.energy_level || "",
-        confidence: clip.confidence || 0,
-        hasFrame: clip.has_frame || false,
+        energyLevel: r.clip.energy_level || "",
+        confidence: r.clip.confidence || 0,
+        hasFrame: r.clip.has_frame || false,
         status: "none",
-        subtitles: { sub1: clipSubs, sub2: [] },
+        subtitles: { sub1: r.clipSubs, sub2: [] },
         sfx: [],
         media: [],
         renderStatus: "pending",
         renderPath: null,
-        filePath: clipPath,
-        thumbnailPath: fs.existsSync(thumbPath) ? thumbPath : null,
+        filePath: r.clipPath,
+        thumbnailPath: fs.existsSync(r.thumbPath) ? r.thumbPath : null,
         createdAt: new Date().toISOString(),
       });
     }
 
-    logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully`);
+    logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully (${clipCutEncoderLabel} ×${clipCutConcurrency})`);
 
     // ============ Stage 7b: Per-Clip Retranscription ============
-    // Source-level transcription can hallucinate on long gaming audio.
-    // Each clip is short (30-90s) — retranscribing directly on the clip audio
-    // produces far more accurate word-level subtitles with no slicing artifacts.
-    sendProgress("transcribing-clips", 95, "Retranscribing clips for accurate subtitles...");
+    // Source-level transcription can hallucinate on long gaming audio. Each
+    // clip is short (30-90s) — retranscribing directly on the clip audio
+    // produces far more accurate word-level subtitles with no slicing
+    // artifacts. (lessons.md: never slice from source.)
+    //
+    // #75 Phase 3: instead of spawning a fresh Python process per clip
+    // (paying ~5-8s of import + CUDA init + model load × N), we extract all
+    // clip audios in parallel and then call whisper.transcribeBatch() once.
+    // The Python script loads the model ONCE and reuses it across every clip.
+    sendProgress("transcribing-clips", 95, `Retranscribing ${project.clips.length} clips...`);
     logger.startStep("Clip Retranscription");
-    let retranscribeCount = 0;
-    for (let i = 0; i < project.clips.length; i++) {
-      const clip = project.clips[i];
-      if (!clip.filePath || !fs.existsSync(clip.filePath)) continue;
-      try {
-        const clipWav = clip.filePath.replace(/\.[^.]+$/, "-retranscribe.wav");
-        await ffmpeg.extractAudio(clip.filePath, clipWav, audioTrack);
-        const clipTranscription = await whisper.transcribe(clipWav, whisperOpts);
-        try { fs.unlinkSync(clipWav); } catch (_) {}
-        clip.transcription = clipTranscription;
-        retranscribeCount++;
-        const pct = 95 + Math.round(((i + 1) / project.clips.length) * 2);
-        sendProgress("transcribing-clips", pct, `Retranscribed clip ${i + 1}/${project.clips.length}`);
-      } catch (e) {
-        // Flag the clip so the user knows retranscription failed
-        clip.transcriptionFailed = true;
-        clip.transcriptionError = e.message;
-        logger.warn(`Clip ${i + 1} retranscription failed: ${e.message}`);
+
+    const retranscribeTasks = project.clips
+      .filter((c) => c.filePath && fs.existsSync(c.filePath))
+      .map((clip) => ({
+        clip,
+        clipWav: clip.filePath.replace(/\.[^.]+$/, "-retranscribe.wav"),
+        outputJson: clip.filePath.replace(/\.[^.]+$/, "-retranscribe.json"),
+        extractOk: false,
+        extractError: null,
+      }));
+
+    // ── Step 1: extract audio for every clip in parallel (concurrency=3) ──
+    // Audio extract is cheap (~1-2s/clip), but 15× sequential is ~15-30s.
+    // Pool brings that to ~5-10s. Reuses the same pool pattern as the cut loop.
+    const extractConcurrency = Math.max(1, Math.min(5, store.get("clipCutConcurrency") || 3));
+    let extractCursor = 0;
+    async function extractWorker() {
+      while (true) {
+        const i = extractCursor++;
+        if (i >= retranscribeTasks.length) return;
+        const t = retranscribeTasks[i];
+        try {
+          await ffmpeg.extractAudio(t.clip.filePath, t.clipWav, audioTrack);
+          t.extractOk = true;
+        } catch (e) {
+          t.extractError = e.message;
+          logger.warn(`Clip ${i + 1} audio extract failed: ${e.message}`);
+        }
       }
     }
-    logger.endStep("Clip Retranscription", `${retranscribeCount}/${project.clips.length} clips retranscribed`);
+    const extractWorkers = [];
+    for (let w = 0; w < Math.min(extractConcurrency, retranscribeTasks.length); w++) {
+      extractWorkers.push(extractWorker());
+    }
+    await Promise.all(extractWorkers);
+
+    // ── Step 2: batched transcribe ──
+    // Build manifest of successfully-extracted clips and hand off to Python.
+    // The Python side loads the model once and writes each clip's JSON to
+    // the output path as it finishes — partial progress survives a mid-batch
+    // crash because we read what's on disk after the process exits.
+    const manifest = retranscribeTasks
+      .filter((t) => t.extractOk)
+      .map((t) => ({ audio: t.clipWav, output: t.outputJson }));
+
+    if (manifest.length > 0) {
+      try {
+        const batchResult = await whisper.transcribeBatch(manifest, {
+          ...whisperOpts,
+          onProgress: (pct) => {
+            const overall = 95 + Math.round((pct / 100) * 2);
+            sendProgress("transcribing-clips", overall, `Retranscribing clips... ${pct}%`);
+          },
+        });
+        logger.info(`Batch retranscription returned ${batchResult.completed}/${batchResult.total}`);
+      } catch (e) {
+        logger.warn(`Batch retranscription failed: ${e.message}`);
+      }
+    }
+
+    // ── Step 3: assign results back to clips, cleanup temp files ──
+    let retranscribeCount = 0;
+    for (const t of retranscribeTasks) {
+      if (!t.extractOk) {
+        t.clip.transcriptionFailed = true;
+        t.clip.transcriptionError = t.extractError || "audio extract failed";
+      } else if (fs.existsSync(t.outputJson)) {
+        try {
+          t.clip.transcription = JSON.parse(fs.readFileSync(t.outputJson, "utf-8"));
+          retranscribeCount++;
+        } catch (e) {
+          t.clip.transcriptionFailed = true;
+          t.clip.transcriptionError = `parse error: ${e.message}`;
+        }
+      } else {
+        t.clip.transcriptionFailed = true;
+        t.clip.transcriptionError = "transcription output missing (Python error?)";
+      }
+      try { fs.unlinkSync(t.clipWav); } catch (_) {}
+      try { fs.unlinkSync(t.outputJson); } catch (_) {}
+    }
+    logger.endStep("Clip Retranscription", `${retranscribeCount}/${retranscribeTasks.length} clips retranscribed`);
 
     // ============ Stage 8: Save Project ============
     sendProgress("saving", 97, "Saving project...");

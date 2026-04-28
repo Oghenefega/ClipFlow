@@ -157,12 +157,102 @@ function transcribe(wavPath, opts = {}) {
   });
 }
 
+/**
+ * Batch-transcribe N clips with a single Python process. Loads the whisper
+ * model ONCE and reuses it across all items, eliminating ~5-8s of fixed
+ * per-clip overhead (Python+CUDA+model-load) (#75 Phase 3).
+ *
+ * @param {Array<{audio: string, output: string}>} items - Per-clip work units.
+ *   Each `audio` is a WAV path; each `output` is where the result JSON will
+ *   be written. Items with missing audio files are skipped by the Python
+ *   side; the caller detects missing output files and flags failures.
+ * @param {object} opts - Same shape as transcribe() opts (pythonPath, model,
+ *   language, computeType, hfToken, hfHome, gameVocab, initialPrompt,
+ *   onProgress).
+ * @returns {Promise<{ completed: number, total: number }>}
+ */
+function transcribeBatch(items, opts = {}) {
+  const store = getStore();
+  return new Promise((resolve, reject) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return resolve({ completed: 0, total: 0 });
+    }
+    const pythonPath = opts.pythonPath || (store ? store.get("whisperPythonPath") : null);
+    if (!pythonPath || !fs.existsSync(pythonPath)) {
+      return reject(new Error(`Python not found at: ${pythonPath}`));
+    }
+
+    const scriptPath = path.join(__dirname, "..", "..", "..", "..", "tools", "transcribe.py");
+    if (!fs.existsSync(scriptPath)) {
+      return reject(new Error(`Transcription script not found at: ${scriptPath}`));
+    }
+
+    // Write batch manifest next to the first item's output JSON so it sits
+    // beside the work — easier to debug. Cleaned up after the run.
+    const firstOut = items[0].output || items[0].audio;
+    const manifestPath = firstOut.replace(/\.[^.]+$/, "") + ".batch-manifest.json";
+    fs.writeFileSync(manifestPath, JSON.stringify(items), "utf-8");
+
+    const model = opts.model || (store ? store.get("whisperModel") : null) || "large-v3-turbo";
+    const language = opts.language || "en";
+    const computeType = opts.computeType || "float16";
+
+    const defaultSlangPrompt = [
+      "ain't, gonna, gotta, wanna, y'all, bro, nah, fam, dawg, bruh",
+      "tryna, finna, boutta, lowkey, highkey, deadass, bussin, sus, cap, no cap",
+      "lit, fire, bet, dope, vibe, salty, clutch, cracked, goated, mid",
+      "GG, OP, nerf, buff, AFK, respawn, aggro, ADS, headshot, one-shot",
+      "let's go, oh my god, what the, are you kidding me",
+      "Fega",
+    ].join(", ") + (opts.gameVocab || "");
+    const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
+
+    const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || "D:\\whisper\\hf_cache";
+    let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
+    cmd += ` --batch "${manifestPath}"`;
+    cmd += ` --model ${model}`;
+    cmd += ` --language ${language}`;
+    cmd += ` --compute_type ${computeType}`;
+    if (opts.hfToken) cmd += ` --hf_token ${opts.hfToken}`;
+    cmd += ` --initial_prompt "${initialPrompt.replace(/"/g, '\\"')}"`;
+    cmd += `"`;
+
+    const proc = exec(cmd, {
+      timeout: 3600000, // 60 minutes max for the whole batch
+      maxBuffer: 100 * 1024 * 1024,
+    }, (err, stdout, stderr) => {
+      try { fs.unlinkSync(manifestPath); } catch (_) {}
+      if (err) {
+        const errOutput = (stderr || "").slice(-2000);
+        return reject(new Error(`Batch transcription failed: ${err.message}\n${errOutput}`));
+      }
+      // Count outputs that actually got written. The Python side writes each
+      // item's JSON immediately on completion, so even if a later item fails
+      // the earlier successful clips are intact on disk.
+      let completed = 0;
+      for (const item of items) {
+        if (item.output && fs.existsSync(item.output)) completed++;
+      }
+      resolve({ completed, total: items.length });
+    });
+
+    if (opts.onProgress && proc.stderr) {
+      proc.stderr.on("data", (data) => {
+        const str = data.toString();
+        const pctMatch = str.match(/(\d+)%/);
+        if (pctMatch) opts.onProgress(parseInt(pctMatch[1], 10));
+      });
+    }
+  });
+}
+
 // ── Provider Implementation ──
 
 const provider = {
   name: "stable-ts",
   checkSetup,
   transcribe,
+  transcribeBatch,
 };
 
 // Self-register

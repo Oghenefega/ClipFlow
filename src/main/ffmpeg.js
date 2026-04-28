@@ -17,6 +17,81 @@ function checkFfmpeg() {
   });
 }
 
+// NVENC capability cache. The encoder list doesn't change at runtime, so we
+// only run `ffmpeg -encoders` once and reuse the result for the whole session.
+let _nvencCache = null;
+
+/**
+ * Detect whether the installed ffmpeg supports NVENC (NVIDIA hardware H.264
+ * encoder). Result cached for the process lifetime.
+ * @returns {Promise<boolean>}
+ */
+function checkNvenc() {
+  if (_nvencCache !== null) return Promise.resolve(_nvencCache);
+  return new Promise((resolve) => {
+    execFile("ffmpeg", ["-hide_banner", "-encoders"], { timeout: 8000 }, (err, stdout) => {
+      if (err) { _nvencCache = false; return resolve(false); }
+      _nvencCache = /\bh264_nvenc\b/.test(stdout || "");
+      resolve(_nvencCache);
+    });
+  });
+}
+
+/**
+ * Resolve the user's clipCutEncoder preference to a concrete encoder name.
+ * Setting values: "auto" | "gpu" | "cpu".
+ * - "cpu": always libx264.
+ * - "gpu": NVENC required — throws a clear, user-facing error if unavailable.
+ *   Never silently falls back to libx264 (#75 design constraint: user picks
+ *   GPU = clips are made on GPU, full stop).
+ * - "auto": NVENC if detected, libx264 otherwise.
+ * @param {"auto"|"gpu"|"cpu"} setting
+ * @returns {Promise<"nvenc"|"x264">}
+ */
+async function resolveEncoder(setting) {
+  if (setting === "cpu") return "x264";
+  const hasNvenc = await checkNvenc();
+  if (setting === "gpu") {
+    if (!hasNvenc) {
+      throw new Error(
+        "Clip cutting is set to GPU (NVENC) but NVENC was not detected. " +
+        "Switch to CPU or Auto in Settings → Pipeline Quality, or install an " +
+        "NVIDIA driver + an ffmpeg build with --enable-nvenc."
+      );
+    }
+    return "nvenc";
+  }
+  // "auto" — fall through
+  return hasNvenc ? "nvenc" : "x264";
+}
+
+/**
+ * Build the ffmpeg encoder argument array for the given encoder choice.
+ * @param {"nvenc"|"x264"} encoder
+ * @returns {string[]}
+ */
+function buildEncoderArgs(encoder) {
+  if (encoder === "nvenc") {
+    // RTX-class NVENC at visually-lossless settings for social clips.
+    // p4 = balanced preset, cq=19 ≈ crf=18 in software, capped maxrate so a
+    // motion-heavy GOP can't balloon. spatial+temporal AQ improve fine detail.
+    return [
+      "-c:v", "h264_nvenc",
+      "-preset", "p4",
+      "-tune", "hq",
+      "-rc", "vbr",
+      "-cq", "19",
+      "-b:v", "0",
+      "-maxrate", "25M",
+      "-bufsize", "50M",
+      "-spatial_aq", "1",
+      "-temporal_aq", "1",
+    ];
+  }
+  // x264 — the original software path, unchanged.
+  return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18"];
+}
+
 /**
  * Probe a media file for duration, codecs, resolution, etc.
  * Returns { duration, width, height, videoCodec, audioCodec, fps, size }.
@@ -104,37 +179,45 @@ function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
  * @param {string} outPath - Output clip path
  * @param {number} startTime - Start time in seconds
  * @param {number} endTime - End time in seconds
+ * @param {object} [opts]
+ * @param {"nvenc"|"x264"} [opts.encoder="x264"] - Video encoder. NVENC needs
+ *   capability check first (see resolveEncoder). Default x264 preserves
+ *   pre-#75 behavior for any caller that hasn't been updated.
+ * @param {number} [opts.fps] - Pre-probed source fps. If provided, skips the
+ *   per-call probe (#75: avoids 14 redundant probes during a pipeline run).
  * @returns {Promise<{success: true, path: string, duration: number}>}
  */
-async function cutClip(srcPath, outPath, startTime, endTime) {
+async function cutClip(srcPath, outPath, startTime, endTime, opts = {}) {
+  const encoder = opts.encoder === "nvenc" ? "nvenc" : "x264";
   const dir = path.dirname(outPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
   const duration = endTime - startTime;
 
-  // Probe source fps so the output preserves it. OBS captures are often VFR;
-  // re-encoding without an explicit -r can collapse the output to ffmpeg's
-  // default 25fps, which silently halves gameplay smoothness (#38).
+  // Preserve source fps. OBS captures are often VFR; re-encoding without an
+  // explicit -r can collapse output to ffmpeg's default 25fps (#38).
   let fpsArg = [];
-  try {
-    const meta = await probe(srcPath);
-    if (Number.isFinite(meta.fps) && meta.fps > 0 && meta.fps <= 240) {
-      fpsArg = ["-r", String(meta.fps)];
+  let fps = Number.isFinite(opts.fps) ? opts.fps : null;
+  if (fps == null) {
+    try {
+      const meta = await probe(srcPath);
+      if (Number.isFinite(meta.fps) && meta.fps > 0 && meta.fps <= 240) fps = meta.fps;
+    } catch (_) {
+      // Probe failure: fall back to ffmpeg default (no -r). Better to cut at
+      // wrong fps than to fail the cut.
     }
-  } catch (_) {
-    // Probe failure: fall back to ffmpeg default (no -r). Better to cut
-    // at wrong fps than to fail the cut.
   }
+  if (Number.isFinite(fps) && fps > 0 && fps <= 240) fpsArg = ["-r", String(fps)];
 
   return new Promise((resolve, reject) => {
-    // Re-encode for frame-accurate cuts. Stream copy (-c copy) seeks to
-    // the nearest keyframe which can be 2-10s before startTime, causing
-    // subtitle timestamps to be ahead of the actual audio.
+    // Re-encode for frame-accurate cuts. Stream copy (-c copy) seeks to the
+    // nearest keyframe which can be 2-10s before startTime, causing subtitle
+    // timestamps to be ahead of the actual audio.
     const args = [
       "-ss", String(startTime),
       "-i", srcPath,
       "-t", String(duration),
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+      ...buildEncoderArgs(encoder),
       ...fpsArg,
       "-c:a", "aac", "-b:a", "192k",
       "-avoid_negative_ts", "make_zero",
@@ -143,7 +226,7 @@ async function cutClip(srcPath, outPath, startTime, endTime) {
     ];
     // Allow longer timeout for re-encoding (10 minutes)
     execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) return reject(new Error(`Clip cut failed: ${err.message}`));
+      if (err) return reject(new Error(`Clip cut failed (${encoder}): ${err.message}`));
       resolve({ success: true, path: outPath, duration });
     });
   });
@@ -479,15 +562,16 @@ function cleanupThumbnailStrip(thumbDir) {
  * @param {Array<{start: number, end: number}>} segments - Time ranges to keep (source-absolute)
  * @returns {Promise<{success: true, path: string, duration: number}>}
  */
-function concatCutClip(srcPath, outPath, segments) {
+function concatCutClip(srcPath, outPath, segments, opts = {}) {
+  const encoder = opts.encoder === "nvenc" ? "nvenc" : "x264";
   return new Promise((resolve, reject) => {
     if (!segments || segments.length === 0) {
       return reject(new Error("No segments to concatenate"));
     }
 
-    // Single segment: just use regular cutClip
+    // Single segment: just use regular cutClip (carry encoder + fps through).
     if (segments.length === 1) {
-      return cutClip(srcPath, outPath, segments[0].start, segments[0].end)
+      return cutClip(srcPath, outPath, segments[0].start, segments[0].end, opts)
         .then(resolve).catch(reject);
     }
 
@@ -495,7 +579,8 @@ function concatCutClip(srcPath, outPath, segments) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     // Build FFmpeg filter_complex for concat:
-    // Each segment gets video trim + audio trim, then all are concatenated
+    // Each segment gets video trim + audio trim, then all are concatenated.
+    // Filter graph runs on CPU frames; NVENC uploads to GPU at encode time.
     const filters = [];
     const concatInputs = [];
 
@@ -519,7 +604,7 @@ function concatCutClip(srcPath, outPath, segments) {
       "-i", srcPath,
       "-filter_complex", filters.join(";"),
       "-map", "[outv]", "-map", "[outa]",
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+      ...buildEncoderArgs(encoder),
       "-c:a", "aac", "-b:a", "192k",
       "-avoid_negative_ts", "make_zero",
       "-y",
@@ -527,7 +612,7 @@ function concatCutClip(srcPath, outPath, segments) {
     ];
 
     execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) return reject(new Error(`Concat cut failed: ${err.message}`));
+      if (err) return reject(new Error(`Concat cut failed (${encoder}): ${err.message}`));
       resolve({ success: true, path: outPath, duration: totalDuration });
     });
   });
@@ -535,6 +620,8 @@ function concatCutClip(srcPath, outPath, segments) {
 
 module.exports = {
   checkFfmpeg,
+  checkNvenc,
+  resolveEncoder,
   probe,
   extractAudio,
   cutClip,

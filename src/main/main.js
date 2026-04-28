@@ -286,6 +286,16 @@ function runStoreMigrations(store) {
   // ── Migration: yamnet silence-skip default ON (Issue #72 Phase 3) ──
   // Existing installs get the safe default; user choice is preserved if set.
   if (!store.has("yamnetSilenceSkip")) store.set("yamnetSilenceSkip", true);
+
+  // ── Migration: clip cutting encoder default "auto" (Issue #75 Phase 1) ──
+  // "auto" = NVENC if detected, else x264. "gpu" = strict NVENC (errors if
+  // unavailable, never silently falls back). "cpu" = libx264.
+  if (!store.has("clipCutEncoder")) store.set("clipCutEncoder", "auto");
+
+  // ── Migration: clip cutting parallelism (Issue #75 Phase 2) ──
+  // Number of clips cut concurrently. NVENC on RTX 30-series supports ~5
+  // simultaneous sessions; default 3 is conservative. Range clamped 1-5.
+  if (!store.has("clipCutConcurrency")) store.set("clipCutConcurrency", 3);
 }
 
 let mainWindow;
@@ -758,6 +768,11 @@ ipcMain.handle("ffmpeg:checkInstalled", async () => {
   catch (err) { return { installed: false, error: err.message }; }
 });
 
+ipcMain.handle("ffmpeg:checkNvenc", async () => {
+  try { return { available: await ffmpeg.checkNvenc() }; }
+  catch (err) { return { available: false, error: err.message }; }
+});
+
 ipcMain.handle("ffmpeg:probe", async (_, filePath) => {
   try { return await ffmpeg.probe(filePath); }
   catch (err) { return { error: err.message }; }
@@ -771,8 +786,17 @@ ipcMain.handle("ffmpeg:extractAudio", async (_, videoPath, wavPath) => {
   catch (err) { return { error: err.message }; }
 });
 
+// Resolve the user's clipCutEncoder setting once. Throws if the user picked
+// "gpu" but NVENC is unavailable — caller surfaces the error to the user.
+async function resolveClipCutEncoder() {
+  return ffmpeg.resolveEncoder(store.get("clipCutEncoder") || "auto");
+}
+
 ipcMain.handle("ffmpeg:cutClip", async (_, srcPath, outPath, startTime, endTime) => {
-  try { return await ffmpeg.cutClip(srcPath, outPath, startTime, endTime); }
+  try {
+    const encoder = await resolveClipCutEncoder();
+    return await ffmpeg.cutClip(srcPath, outPath, startTime, endTime, { encoder });
+  }
   catch (err) { return { error: err.message }; }
 });
 
@@ -1250,7 +1274,8 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
     const baseName = path.basename(clip.filePath, ext);
     const tempPath = path.join(clipDir, `${baseName}_extended${ext}`);
 
-    await ffmpeg.cutClip(sourceFile, tempPath, startTime, newEndTime);
+    const encoder = await resolveClipCutEncoder();
+    await ffmpeg.cutClip(sourceFile, tempPath, startTime, newEndTime, { encoder });
 
     // Replace old clip file with new one
     const finalPath = clip.filePath;
@@ -1309,7 +1334,8 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
     const baseName = path.basename(clip.filePath, ext);
     const tempPath = path.join(clipDir, `${baseName}_extended_left${ext}`);
 
-    await ffmpeg.cutClip(sourceFile, tempPath, newStart, endTime);
+    const encoder = await resolveClipCutEncoder();
+    await ffmpeg.cutClip(sourceFile, tempPath, newStart, endTime, { encoder });
 
     // Replace old clip file with new one
     const finalPath = clip.filePath;
@@ -1367,7 +1393,8 @@ ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
     const baseName = path.basename(clip.filePath, ext);
     const tempPath = path.join(clipDir, `${baseName}_concat${ext}`);
 
-    await ffmpeg.concatCutClip(sourceFile, tempPath, segments);
+    const encoder = await resolveClipCutEncoder();
+    await ffmpeg.concatCutClip(sourceFile, tempPath, segments, { encoder });
 
     const finalPath = clip.filePath;
     if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
@@ -1429,7 +1456,8 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
     const baseName = path.basename(clip.filePath, ext);
     const tempPath = path.join(clipDir, `${baseName}_recut${ext}`);
 
-    await ffmpeg.cutClip(sourceFile, tempPath, newStart, newEnd);
+    const encoder = await resolveClipCutEncoder();
+    await ffmpeg.cutClip(sourceFile, tempPath, newStart, newEnd, { encoder });
 
     const finalPath = clip.filePath;
     if (fs.existsSync(finalPath)) {

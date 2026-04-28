@@ -80,6 +80,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   // Pipeline quality (Issue #72 Phase 1 + Phase 3)
   const [strictMode, setStrictMode] = useState(true);
   const [yamnetSilenceSkip, setYamnetSilenceSkip] = useState(true);
+  // Clip cutting encoder (Issue #75 Phase 1) — "auto" | "gpu" | "cpu"
+  const [clipCutEncoder, setClipCutEncoderState] = useState("auto");
+  const [nvencAvailable, setNvencAvailable] = useState(null); // null = unknown, true/false once probed
+  // Clip cutting parallelism (Issue #75 Phase 2) — 1..5
+  const [clipCutConcurrency, setClipCutConcurrencyState] = useState(3);
 
   // Check ffmpeg + whisper on mount
   useEffect(() => {
@@ -110,6 +115,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (sm !== undefined && sm !== null) setStrictMode(!!sm);
         const yss = await window.clipflow.storeGet("yamnetSilenceSkip");
         if (yss !== undefined && yss !== null) setYamnetSilenceSkip(!!yss);
+        // Clip cutting encoder (#75) — load setting + probe NVENC capability
+        const cce = await window.clipflow.storeGet("clipCutEncoder");
+        if (cce === "gpu" || cce === "cpu" || cce === "auto") setClipCutEncoderState(cce);
+        const ccc = await window.clipflow.storeGet("clipCutConcurrency");
+        if (Number.isFinite(ccc) && ccc >= 1 && ccc <= 5) setClipCutConcurrencyState(ccc);
+        if (window.clipflow?.ffmpegCheckNvenc) {
+          const nv = await window.clipflow.ffmpegCheckNvenc();
+          setNvencAvailable(!!nv?.available);
+        }
         // Check whisperx with stored python path
         if (window.clipflow?.whisperCheck) {
           const r = await window.clipflow.whisperCheck(pp || undefined);
@@ -519,8 +533,92 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             {yamnetSilenceSkip ? "ON" : "OFF"}
           </button>
         </div>
-        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 18px 0", lineHeight: 1.5 }}>
           Skip YAMNet inference on frames below the microphone&apos;s noise floor (RMS &lt; 0.002 &mdash; truly silent, well below any whisper or low-volume content). Reaction sounds like laughter or shouting cannot occur on these frames, so running inference is wasted work. Turn off to force YAMNet to run on every frame regardless of volume.
+        </p>
+
+        {/* Clip cutting encoder (#75 Phase 1) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Clip cutting encoder</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[
+              { value: "auto", label: "Auto" },
+              { value: "gpu",  label: "GPU" },
+              { value: "cpu",  label: "CPU" },
+            ].map(opt => {
+              const active = clipCutEncoder === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setClipCutEncoderState(opt.value);
+                    window.clipflow?.storeSet("clipCutEncoder", opt.value);
+                  }}
+                  style={{
+                    ...BTN,
+                    padding: "6px 12px",
+                    background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${active ? "rgba(34,197,94,0.4)" : T.border}`,
+                    color: active ? T.green : T.textTertiary,
+                    fontWeight: 700,
+                    fontSize: 11,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
+          {clipCutEncoder === "gpu" && (
+            <>Forces NVENC (NVIDIA hardware encoder). Pipeline aborts with a clear error if NVENC isn&apos;t available &mdash; never silently falls back to CPU.</>
+          )}
+          {clipCutEncoder === "cpu" && (
+            <>Forces software x264. Slower but works on any system. Use this if NVENC output ever shows artifacts.</>
+          )}
+          {clipCutEncoder === "auto" && (
+            <>Uses NVENC if detected, otherwise falls back to x264. Pipeline log + on-screen progress show which encoder ran for every clip.</>
+          )}
+          {nvencAvailable !== null && (
+            <span style={{ display: "block", marginTop: 6, color: nvencAvailable ? T.green : T.textTertiary }}>
+              NVENC detected: {nvencAvailable ? "yes" : "no"}
+            </span>
+          )}
+        </p>
+
+        {/* Parallel cuts (#75 Phase 2) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, marginBottom: 8 }}>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Parallel cuts</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3, 4, 5].map(n => {
+              const active = clipCutConcurrency === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => {
+                    setClipCutConcurrencyState(n);
+                    window.clipflow?.storeSet("clipCutConcurrency", n);
+                  }}
+                  style={{
+                    ...BTN,
+                    padding: "6px 10px",
+                    minWidth: 32,
+                    background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${active ? "rgba(34,197,94,0.4)" : T.border}`,
+                    color: active ? T.green : T.textTertiary,
+                    fontWeight: 700,
+                    fontSize: 11,
+                  }}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
+          Number of clips cut in parallel. Higher = faster but more GPU/disk load. RTX 30-series cards comfortably handle 3 concurrent NVENC sessions; 4&ndash;5 may help on top-tier GPUs but can throttle on lower-end cards. Drop to 1 if you see per-clip failures.
         </p>
       </Card>
 
