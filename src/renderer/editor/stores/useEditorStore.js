@@ -174,6 +174,18 @@ const useEditorStore = create((set, get) => ({
       useSubtitleStore.setState({ _undoStack: [], _redoStack: [], _lastUndoPushTime: 0 });
     };
 
+    // Merge per-clip saved segmentMode into the template before applying, so
+    // applyTemplate builds editSegments at the final mode in a single pass
+    // (rather than building at template's mode then rebuilding at saved mode).
+    const applyMergedTemplate = (tpl) => {
+      if (!tpl) return;
+      const savedMode = clip?.subtitleStyle?.segmentMode;
+      const merged = savedMode !== undefined
+        ? { ...tpl, subtitle: { ...tpl.subtitle, segmentMode: savedMode } }
+        : tpl;
+      applyTemplate(merged);
+    };
+
     if (window.clipflow?.storeGet) {
       Promise.all([
         window.clipflow.storeGet("defaultTemplateId"),
@@ -186,14 +198,14 @@ const useEditorStore = create((set, get) => ({
           ...(Array.isArray(savedTemplates) ? savedTemplates : []),
         ];
         const tpl = allTemplates.find((t) => t.id === id) || allTemplates[0];
-        if (tpl) applyTemplate(tpl);
+        applyMergedTemplate(tpl);
         restoreSavedStyles();
       }).catch(() => {
-        applyTemplate(BUILTIN_TEMPLATE);
+        applyMergedTemplate(BUILTIN_TEMPLATE);
         restoreSavedStyles();
       });
     } else {
-      applyTemplate(BUILTIN_TEMPLATE);
+      applyMergedTemplate(BUILTIN_TEMPLATE);
       restoreSavedStyles();
     }
 

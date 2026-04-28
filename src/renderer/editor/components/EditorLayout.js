@@ -559,8 +559,12 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         const updatedClip = { ...clip, transcription: result.transcription };
         const updatedProject = { ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) };
         useEditorStore.setState({ project: updatedProject, clip: updatedClip });
-        // Reload subtitle segments from the new transcription
+        // Reload subtitle segments from the new transcription. initSegments only
+        // sets originalSegments — we explicitly rebuild editSegments here to
+        // preserve the user's current mode rather than reset to default.
+        const currentMode = useSubtitleStore.getState().segmentMode || "3word";
         useSubtitleStore.getState().initSegments(updatedProject, updatedClip);
+        useSubtitleStore.getState().setSegmentMode(currentMode);
         setRetranscribeStage("Done!");
         setTimeout(() => { setRetranscribing(false); setRetranscribeStage(""); }, 1500);
       }

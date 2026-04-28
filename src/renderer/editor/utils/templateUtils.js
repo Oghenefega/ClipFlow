@@ -23,6 +23,7 @@ export const BUILTIN_TEMPLATE = {
     bgOn: false, bgOpacity: 80, bgColor: "#000000", bgPaddingX: 12, bgPaddingY: 8, bgRadius: 6,
     highlightColor: "#4cce8a", lineMode: "1L", subMode: "karaoke", yPercent: 80,
     animateOn: false, animateScale: 1.2, animateGrowFrom: 0.8, animateSpeed: 0.2,
+    segmentMode: "3word",
   },
 };
 

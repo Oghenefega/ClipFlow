@@ -283,10 +283,12 @@ const useSubtitleStore = create((set, get) => ({
       glowOffsetX: "glowOffsetX", glowOffsetY: "glowOffsetY",
       bgOn: "bgOn", bgOpacity: "bgOpacity", bgColor: "bgColor",
       bgPaddingX: "bgPaddingX", bgPaddingY: "bgPaddingY", bgRadius: "bgRadius",
-      highlightColor: "highlightColor", segmentMode: "segmentMode",
+      highlightColor: "highlightColor",
       syncOffset: "syncOffset", subMode: "subMode",
       animateOn: "animateOn", animateScale: "animateScale",
       animateGrowFrom: "animateGrowFrom", animateSpeed: "animateSpeed",
+      // segmentMode is NOT restored here — openClip merges per-clip saved mode
+      // into the template before applyTemplate so editSegments are built once.
     };
     const patch = {};
     for (const [savedKey, storeKey] of Object.entries(mapping)) {
@@ -565,16 +567,20 @@ const useSubtitleStore = create((set, get) => ({
     // Re-number IDs after filtering
     segs.forEach((s, i) => { s.id = i + 1; });
 
-    // Store original sentence-level segments for transcript tab and mode switching
+    // Store original sentence-level segments for transcript tab and mode switching.
+    // editSegments is rebuilt by applyTemplate (which always carries segmentMode now);
+    // initSegments no longer triggers segmentation directly to avoid the double-run on
+    // clip open (#44). Retranscribe path explicitly calls setSegmentMode itself.
+    // Clear editSegments so we don't briefly show prior clip's segments before applyTemplate fires.
     set({
       _sourceOrigin: clipOrigin,
       originalSegments: segs,
+      editSegments: [],
+      activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,
       editingWordKey: null,
     });
-    // Default to 3-word chunking for edit subtitles
-    get().setSegmentMode("3word");
   },
 
   // ── Undo/Redo actions (segments + styling across all stores) ──
