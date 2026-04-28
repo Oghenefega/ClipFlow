@@ -537,9 +537,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           Skip YAMNet inference on frames below the microphone&apos;s noise floor (RMS &lt; 0.002 &mdash; truly silent, well below any whisper or low-volume content). Reaction sounds like laughter or shouting cannot occur on these frames, so running inference is wasted work. Turn off to force YAMNet to run on every frame regardless of volume.
         </p>
 
-        {/* Clip cutting encoder (#75 Phase 1) */}
+        {/* Render encoder (lazy-cut #76: setting now applies at publish time) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Clip cutting encoder</div>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Render encoder</div>
           <div style={{ display: "flex", gap: 6 }}>
             {[
               { value: "auto", label: "Auto" },
@@ -572,13 +572,13 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
         <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
           {clipCutEncoder === "gpu" && (
-            <>Forces NVENC (NVIDIA hardware encoder). Pipeline aborts with a clear error if NVENC isn&apos;t available &mdash; never silently falls back to CPU.</>
+            <>Forces NVENC (NVIDIA hardware encoder) when rendering published clips. Render aborts with a clear error if NVENC isn&apos;t available &mdash; never silently falls back to CPU.</>
           )}
           {clipCutEncoder === "cpu" && (
-            <>Forces software x264. Slower but works on any system. Use this if NVENC output ever shows artifacts.</>
+            <>Forces software x264 for published clips. Slower but works on any system. Use this if NVENC output ever shows artifacts.</>
           )}
           {clipCutEncoder === "auto" && (
-            <>Uses NVENC if detected, otherwise falls back to x264. Pipeline log + on-screen progress show which encoder ran for every clip.</>
+            <>Uses NVENC if detected, otherwise falls back to x264. Applied when a clip is published or batch-rendered.</>
           )}
           {nvencAvailable !== null && (
             <span style={{ display: "block", marginTop: 6, color: nvencAvailable ? T.green : T.textTertiary }}>
@@ -587,9 +587,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           )}
         </p>
 
-        {/* Parallel cuts (#75 Phase 2) */}
+        {/* Parallel renders — pool size for batch publish (lazy-cut #76 retains the setting) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, marginBottom: 8 }}>
-          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Parallel cuts</div>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Parallel audio extracts</div>
           <div style={{ display: "flex", gap: 6 }}>
             {[1, 2, 3, 4, 5].map(n => {
               const active = clipCutConcurrency === n;
@@ -618,7 +618,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </div>
         </div>
         <p style={{ color: T.textTertiary, fontSize: 12, margin: "0", lineHeight: 1.5 }}>
-          Number of clips cut in parallel. Higher = faster but more GPU/disk load. RTX 30-series cards comfortably handle 3 concurrent NVENC sessions; 4&ndash;5 may help on top-tier GPUs but can throttle on lower-end cards. Drop to 1 if you see per-clip failures.
+          Number of clips processed in parallel during the AI pipeline&apos;s per-clip retranscription stage. Higher = faster but more disk load. 3 is a safe default. Drop to 1 if you see audio-extract failures.
         </p>
       </Card>
 

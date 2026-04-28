@@ -531,15 +531,24 @@ const useEditorStore = create((set, get) => ({
             ),
           }));
         } else {
-          // Update clip data with new boundaries
-          const newClip = { ...clip, endTime: newSourceEnd, filePath: result.filePath };
+          // Lazy-cut (#76): handler returned new nleSegments; clip.filePath
+          // stays whatever it was (null for new clips, legacy MP4 for old ones).
+          const nleSegs = result.nleSegments || clip.nleSegments;
+          const newClip = { ...clip, endTime: newSourceEnd, nleSegments: nleSegs };
           const newProject = {
             ...project,
             clips: project.clips.map((c) => (c.id === clip.id ? newClip : c)),
           };
-          set({ clip: newClip, project: newProject, sourceEndTime: newSourceEnd, videoVersion: get().videoVersion + 1 });
+          set({
+            clip: newClip,
+            project: newProject,
+            sourceEndTime: newSourceEnd,
+            nleSegments: nleSegs,
+            videoVersion: get().videoVersion + 1,
+          });
 
-          // Update video duration in playback store
+          // Update video duration + segments in playback store
+          usePlaybackStore.getState().setNleSegments(nleSegs);
           usePlaybackStore.getState().setDuration(newAudioEnd);
 
           // Pull new subtitle segments for the extended range from project transcription
@@ -627,12 +636,13 @@ const useEditorStore = create((set, get) => ({
           })),
         }));
 
-        // Update clip data with new boundaries
+        // Lazy-cut (#76): handler returned new nleSegments; no MP4 was rewritten.
+        const nleSegs = result.nleSegments || clip.nleSegments;
         const newClip = {
           ...clip,
           startTime: newSourceStart,
-          filePath: result.filePath,
           duration: result.duration,
+          nleSegments: nleSegs,
         };
         const newProject = {
           ...project,
@@ -643,10 +653,12 @@ const useEditorStore = create((set, get) => ({
           project: newProject,
           sourceStartTime: newSourceStart,
           maxExtendLeftSec: newSourceStart, // updated — less room to extend left now
+          nleSegments: nleSegs,
           videoVersion: get().videoVersion + 1,
         });
 
-        // Update playback duration
+        // Update playback duration + segments
+        usePlaybackStore.getState().setNleSegments(nleSegs);
         usePlaybackStore.getState().setDuration(result.duration);
 
         // Shift existing subtitles forward and prepend new ones for the revealed range
@@ -838,12 +850,13 @@ const useEditorStore = create((set, get) => ({
     }
 
     const newDuration = result.duration;
+    const nleSegs = result.nleSegments || clip.nleSegments;
     const newClip = {
       ...clip,
       startTime: newSourceStart,
       endTime: newSourceEnd,
       duration: newDuration,
-      filePath: result.filePath,
+      nleSegments: nleSegs,
     };
     const newProject = {
       ...project,
@@ -857,9 +870,11 @@ const useEditorStore = create((set, get) => ({
       sourceEndTime: newSourceEnd,
       maxExtendSec: maxExtend > 0 ? maxExtend : newDuration,
       maxExtendLeftSec: newSourceStart,
-      waveformPeaks: null, // Invalidate — will re-extract from new video file on loadedmetadata
+      nleSegments: nleSegs,
+      waveformPeaks: null, // Invalidate — clip range changed
       videoVersion: get().videoVersion + 1,
     });
+    usePlaybackStore.getState().setNleSegments(nleSegs);
     usePlaybackStore.getState().setDuration(newDuration);
     console.log("[Recut] Success — newDuration:", newDuration, "videoVersion:", get().videoVersion);
   },
@@ -895,12 +910,13 @@ const useEditorStore = create((set, get) => ({
     const newDuration = result.duration;
     const newStart = sourceSegments[0].start;
     const newEnd = sourceSegments[sourceSegments.length - 1].end;
+    const nleSegs = result.nleSegments || clip.nleSegments;
     const newClip = {
       ...clip,
       startTime: newStart,
       endTime: newEnd,
       duration: newDuration,
-      filePath: result.filePath,
+      nleSegments: nleSegs,
     };
     const newProject = {
       ...project,
@@ -914,9 +930,11 @@ const useEditorStore = create((set, get) => ({
       sourceEndTime: newEnd,
       maxExtendSec: maxExtend > 0 ? maxExtend : newDuration,
       maxExtendLeftSec: newStart,
+      nleSegments: nleSegs,
       waveformPeaks: null,
       videoVersion: get().videoVersion + 1,
     });
+    usePlaybackStore.getState().setNleSegments(nleSegs);
     usePlaybackStore.getState().setDuration(newDuration);
     console.log("[ConcatRecut] Success — newDuration:", newDuration, "segments:", sourceSegments.length);
   },
@@ -1056,12 +1074,13 @@ const useEditorStore = create((set, get) => ({
         console.error("[RevertClip] Failed:", result.error);
       } else {
         const newDuration = result.duration;
+        const nleSegs = result.nleSegments || clip.nleSegments;
         const newClip = {
           ...clip,
           startTime: targetStart,
           endTime: targetEnd,
           duration: newDuration,
-          filePath: result.filePath,
+          nleSegments: nleSegs,
         };
         const newProject = {
           ...project,
@@ -1074,11 +1093,13 @@ const useEditorStore = create((set, get) => ({
           sourceEndTime: clipMeta.sourceEndTime ?? targetEnd,
           maxExtendLeftSec: clipMeta.maxExtendLeftSec ?? targetStart,
           maxExtendSec: clipMeta.maxExtendSec ?? (get().sourceDuration - targetStart),
-          waveformPeaks: null, // Invalidate — re-extract from reverted video file
+          nleSegments: nleSegs,
+          waveformPeaks: null, // Invalidate — clip range changed
           videoVersion: get().videoVersion + 1,
         });
 
-        // Update playback duration
+        // Update playback duration + segments
+        usePlaybackStore.getState().setNleSegments(nleSegs);
         usePlaybackStore.getState().setDuration(newDuration);
 
         console.log("[RevertClip] Success. New duration:", newDuration);

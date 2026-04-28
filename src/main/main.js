@@ -792,14 +792,6 @@ async function resolveClipCutEncoder() {
   return ffmpeg.resolveEncoder(store.get("clipCutEncoder") || "auto");
 }
 
-ipcMain.handle("ffmpeg:cutClip", async (_, srcPath, outPath, startTime, endTime) => {
-  try {
-    const encoder = await resolveClipCutEncoder();
-    return await ffmpeg.cutClip(srcPath, outPath, startTime, endTime, { encoder });
-  }
-  catch (err) { return { error: err.message }; }
-});
-
 ipcMain.handle("ffmpeg:thumbnail", async (_, videoPath, outPath, time) => {
   try { return await ffmpeg.generateThumbnail(videoPath, outPath, time); }
   catch (err) { return { error: err.message }; }
@@ -1241,7 +1233,29 @@ ipcMain.handle("whisper:transcribe", async (_, wavPath, opts) => {
   }
 });
 
-// ============ EXTEND CLIP (re-cut from source with new boundaries) ============
+// ============ Lazy-cut helpers (#76) ============
+// Recut/extend/concat handlers no longer re-encode MP4s. They mutate the
+// clip's source-absolute boundaries (startTime/endTime) and nleSegments.
+// The render path consumes nleSegments at publish time to produce the final
+// MP4. This makes editor edits effectively instant (no NVENC encode per drag).
+
+function ensureNleSegments(clip) {
+  if (Array.isArray(clip.nleSegments) && clip.nleSegments.length > 0) {
+    return clip.nleSegments.map((s, i) => ({
+      id: s.id || `seg-${clip.id}-${i}`,
+      sourceStart: s.sourceStart,
+      sourceEnd: s.sourceEnd,
+    }));
+  }
+  // Legacy clip without nleSegments — synthesize from clip bounds.
+  return [{
+    id: `seg-${clip.id}-0`,
+    sourceStart: clip.startTime || 0,
+    sourceEnd: clip.endTime || 0,
+  }];
+}
+
+// ============ EXTEND CLIP (lazy: mutate nleSegments) ============
 ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => {
   try {
     const watchFolder = store.get("watchFolder");
@@ -1253,56 +1267,37 @@ ipcMain.handle("clip:extend", async (_, projectId, clipId, newSourceEndTime) => 
     const clip = (project.clips || []).find((c) => c.id === clipId);
     if (!clip) return { error: "Clip not found" };
 
-    const sourceFile = project.sourceFile;
-    if (!sourceFile || !fs.existsSync(sourceFile)) {
-      return { error: "Source recording not found. Cannot extend clip." };
-    }
-
     const startTime = clip.startTime || 0;
     const newEndTime = Math.min(newSourceEndTime, project.sourceDuration || newSourceEndTime);
 
-    require("electron-log/main").scope("editor").debug("ExtendRight", { startTime: clip.startTime, endTime: clip.endTime, newEndTime, sourceFile });
+    require("electron-log/main").scope("editor").debug("ExtendRight (lazy)", { startTime, oldEnd: clip.endTime, newEndTime });
 
     if (newEndTime <= startTime) {
       return { error: `Invalid extend range: newEndTime=${newEndTime} <= startTime=${startTime}` };
     }
 
-    // Re-cut from source with new boundaries
-    // Use a temp path first, then replace the original clip file
-    const clipDir = path.dirname(clip.filePath);
-    const ext = path.extname(clip.filePath);
-    const baseName = path.basename(clip.filePath, ext);
-    const tempPath = path.join(clipDir, `${baseName}_extended${ext}`);
+    const segs = ensureNleSegments(clip);
+    segs[segs.length - 1].sourceEnd = newEndTime;
 
-    const encoder = await resolveClipCutEncoder();
-    await ffmpeg.cutClip(sourceFile, tempPath, startTime, newEndTime, { encoder });
-
-    // Replace old clip file with new one
-    const finalPath = clip.filePath;
-    if (fs.existsSync(finalPath)) {
-      fs.unlinkSync(finalPath);
-    }
-    fs.renameSync(tempPath, finalPath);
-
-    // Update clip metadata in project JSON
     const newDuration = newEndTime - startTime;
     projects.updateClip(watchFolder, projectId, clipId, {
       endTime: newEndTime,
       duration: newDuration,
+      nleSegments: segs,
     });
 
     return {
       success: true,
-      filePath: finalPath,
       duration: newDuration,
       newEndTime,
+      nleSegments: segs,
     };
   } catch (err) {
     return { error: err.message };
   }
 });
 
-// ============ EXTEND CLIP LEFT (backwards) ============
+// ============ EXTEND CLIP LEFT (lazy: mutate nleSegments) ============
 ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTime) => {
   try {
     const watchFolder = store.get("watchFolder");
@@ -1314,57 +1309,39 @@ ipcMain.handle("clip:extendLeft", async (_, projectId, clipId, newSourceStartTim
     const clip = (project.clips || []).find((c) => c.id === clipId);
     if (!clip) return { error: "Clip not found" };
 
-    const sourceFile = project.sourceFile;
-    if (!sourceFile || !fs.existsSync(sourceFile)) {
-      return { error: "Source recording not found. Cannot extend clip." };
-    }
-
     const endTime = clip.endTime || 0;
     const newStart = Math.max(0, newSourceStartTime);
 
-    require("electron-log/main").scope("editor").debug("ExtendLeft", { startTime: clip.startTime, endTime: clip.endTime, duration: clip.duration, newSourceStartTime, newStart, endTime, sourceFile });
+    require("electron-log/main").scope("editor").debug("ExtendLeft (lazy)", { oldStart: clip.startTime, endTime, newStart });
 
     if (newStart >= endTime) {
       return { error: `Invalid extend range: newStart=${newStart} >= endTime=${endTime}` };
     }
 
-    // Re-cut from source with new boundaries
-    const clipDir = path.dirname(clip.filePath);
-    const ext = path.extname(clip.filePath);
-    const baseName = path.basename(clip.filePath, ext);
-    const tempPath = path.join(clipDir, `${baseName}_extended_left${ext}`);
+    const segs = ensureNleSegments(clip);
+    segs[0].sourceStart = newStart;
 
-    const encoder = await resolveClipCutEncoder();
-    await ffmpeg.cutClip(sourceFile, tempPath, newStart, endTime, { encoder });
-
-    // Replace old clip file with new one
-    const finalPath = clip.filePath;
-    if (fs.existsSync(finalPath)) {
-      fs.unlinkSync(finalPath);
-    }
-    fs.renameSync(tempPath, finalPath);
-
-    // Update clip metadata in project JSON
     const newDuration = endTime - newStart;
-    const delta = (clip.startTime || 0) - newStart; // how much we extended backwards
+    const delta = (clip.startTime || 0) - newStart; // seconds prepended
     projects.updateClip(watchFolder, projectId, clipId, {
       startTime: newStart,
       duration: newDuration,
+      nleSegments: segs,
     });
 
     return {
       success: true,
-      filePath: finalPath,
       duration: newDuration,
       newStartTime: newStart,
-      delta, // seconds shifted backwards — all existing timestamps need += delta
+      delta,
+      nleSegments: segs,
     };
   } catch (err) {
     return { error: err.message };
   }
 });
 
-// ============ CONCAT RE-CUT (splice out deleted sections) ============
+// ============ CONCAT RE-CUT (lazy: replace nleSegments) ============
 ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
   try {
     const watchFolder = store.get("watchFolder");
@@ -1376,48 +1353,39 @@ ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
     const clip = (project.clips || []).find((c) => c.id === clipId);
     if (!clip) return { error: "Clip not found" };
 
-    const sourceFile = project.sourceFile;
-    if (!sourceFile || !fs.existsSync(sourceFile)) {
-      return { error: "Source recording not found. Cannot concat recut." };
-    }
-
     if (!segments || segments.length === 0) {
       return { error: "No segments provided for concat recut" };
     }
 
     const logger = require("electron-log/main").scope("editor");
-    logger.debug("ConcatRecut", { clipId, segments });
+    logger.debug("ConcatRecut (lazy)", { clipId, segmentCount: segments.length });
 
-    const clipDir = path.dirname(clip.filePath);
-    const ext = path.extname(clip.filePath);
-    const baseName = path.basename(clip.filePath, ext);
-    const tempPath = path.join(clipDir, `${baseName}_concat${ext}`);
+    const sorted = [...segments].sort((a, b) => a.start - b.start);
+    const newSegs = sorted.map((s, i) => ({
+      id: `seg-${clip.id}-${Date.now()}-${i}`,
+      sourceStart: s.start,
+      sourceEnd: s.end,
+    }));
 
-    const encoder = await resolveClipCutEncoder();
-    await ffmpeg.concatCutClip(sourceFile, tempPath, segments, { encoder });
-
-    const finalPath = clip.filePath;
-    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
-    fs.renameSync(tempPath, finalPath);
-
-    const newDuration = segments.reduce((sum, s) => sum + (s.end - s.start), 0);
-    const newStart = segments[0].start;
-    const newEnd = segments[segments.length - 1].end;
+    const newDuration = newSegs.reduce((sum, s) => sum + (s.sourceEnd - s.sourceStart), 0);
+    const newStart = newSegs[0].sourceStart;
+    const newEnd = newSegs[newSegs.length - 1].sourceEnd;
 
     projects.updateClip(watchFolder, projectId, clipId, {
       startTime: newStart,
       endTime: newEnd,
       duration: newDuration,
-      transcription: null,
+      nleSegments: newSegs,
+      transcription: null, // splice changed; per-clip transcription is stale
     });
 
-    logger.debug("ConcatRecut success", { duration: newDuration, segmentCount: segments.length });
+    logger.debug("ConcatRecut success (lazy)", { duration: newDuration, segmentCount: newSegs.length });
     return {
       success: true,
-      filePath: finalPath,
       duration: newDuration,
       newStartTime: newStart,
       newEndTime: newEnd,
+      nleSegments: newSegs,
     };
   } catch (err) {
     require("electron-log/main").scope("editor").error("ConcatRecut failed", { error: err.message });
@@ -1425,7 +1393,7 @@ ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
   }
 });
 
-// ============ RE-CUT CLIP (arbitrary boundaries — used by undo) ============
+// ============ RE-CUT CLIP (lazy: replace with single nleSegment) ============
 ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTime) => {
   try {
     const watchFolder = store.get("watchFolder");
@@ -1437,49 +1405,37 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
     const clip = (project.clips || []).find((c) => c.id === clipId);
     if (!clip) return { error: "Clip not found" };
 
-    const sourceFile = project.sourceFile;
-    if (!sourceFile || !fs.existsSync(sourceFile)) {
-      return { error: "Source recording not found. Cannot recut clip." };
-    }
-
     const newStart = Math.max(0, newStartTime);
     const newEnd = Math.min(newEndTime, project.sourceDuration || newEndTime);
 
-    require("electron-log/main").scope("editor").debug("Recut", { startTime: clip.startTime, endTime: clip.endTime, newStart, newEnd, sourceFile });
+    require("electron-log/main").scope("editor").debug("Recut (lazy)", { oldStart: clip.startTime, oldEnd: clip.endTime, newStart, newEnd });
 
     if (newStart >= newEnd) {
       return { error: `Invalid recut range: newStart=${newStart} >= newEnd=${newEnd}` };
     }
 
-    const clipDir = path.dirname(clip.filePath);
-    const ext = path.extname(clip.filePath);
-    const baseName = path.basename(clip.filePath, ext);
-    const tempPath = path.join(clipDir, `${baseName}_recut${ext}`);
-
-    const encoder = await resolveClipCutEncoder();
-    await ffmpeg.cutClip(sourceFile, tempPath, newStart, newEnd, { encoder });
-
-    const finalPath = clip.filePath;
-    if (fs.existsSync(finalPath)) {
-      fs.unlinkSync(finalPath);
-    }
-    fs.renameSync(tempPath, finalPath);
+    const newSegs = [{
+      id: `seg-${clip.id}-${Date.now()}-0`,
+      sourceStart: newStart,
+      sourceEnd: newEnd,
+    }];
 
     const newDuration = newEnd - newStart;
     projects.updateClip(watchFolder, projectId, clipId, {
       startTime: newStart,
       endTime: newEnd,
       duration: newDuration,
-      transcription: null, // Clear stale transcription — no longer matches recut video
+      nleSegments: newSegs,
+      transcription: null, // bounds changed; per-clip transcription is stale
     });
 
-    require("electron-log/main").scope("editor").debug("Recut success", { duration: newDuration, start: newStart, end: newEnd });
+    require("electron-log/main").scope("editor").debug("Recut success (lazy)", { duration: newDuration, start: newStart, end: newEnd });
     return {
       success: true,
-      filePath: finalPath,
       duration: newDuration,
       newStartTime: newStart,
       newEndTime: newEnd,
+      nleSegments: newSegs,
     };
   } catch (err) {
     require("electron-log/main").scope("editor").error("Recut failed", { error: err.message });
@@ -1487,7 +1443,7 @@ ipcMain.handle("clip:recut", async (_, projectId, clipId, newStartTime, newEndTi
   }
 });
 
-// ============ RE-TRANSCRIBE CLIP ============
+// ============ RE-TRANSCRIBE CLIP (lazy-cut: extract audio from source range) ============
 ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
   try {
     const watchFolder = store.get("watchFolder");
@@ -1497,17 +1453,25 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
     const clip = (project.clips || []).find((c) => c.id === clipId);
     if (!clip) return { error: "Clip not found" };
 
-    // The clip has its own video file — transcribe it directly
-    const clipPath = clip.filePath;
-    if (!clipPath || !fs.existsSync(clipPath)) {
-      return { error: `Clip file not found: ${clipPath}` };
+    const sourceFile = project.sourceFile;
+    if (!sourceFile || !fs.existsSync(sourceFile)) {
+      return { error: "Source recording not found. Cannot retranscribe clip." };
     }
 
-    // Step 1: Extract audio from clip video (use configured mic track)
-    const wavPath = clipPath.replace(/\.[^.]+$/, "-retranscribe.wav");
+    const startSec = clip.startTime || 0;
+    const endSec = clip.endTime || 0;
+    if (!(endSec > startSec)) {
+      return { error: `Invalid clip range: ${startSec}-${endSec}` };
+    }
+
+    // Step 1: Extract audio range from source (lazy-cut: no clip MP4 to read from)
+    const clipsDir = projects.getClipsDir(watchFolder, projectId);
+    if (!fs.existsSync(clipsDir)) fs.mkdirSync(clipsDir, { recursive: true });
+    const safeId = String(clip.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const wavPath = path.join(clipsDir, `${safeId}-retranscribe.wav`);
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "extracting", pct: 10 });
     const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
-    await ffmpeg.extractAudio(clipPath, wavPath, audioTrack);
+    await ffmpeg.extractAudioRange(sourceFile, wavPath, startSec, endSec, audioTrack);
 
     // Step 2: Transcribe with whisperx
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 });
@@ -2586,10 +2550,12 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
       outputPath = path.join(outputFolder, fileName);
     }
 
+    const encoder = await resolveClipCutEncoder();
     const result = await render.renderClip(clipData, projectData, outputPath, {
       subtitleStyle: options?.subtitleStyle || {},
       captionStyle: options?.captionStyle || {},
       captionSegments: options?.captionSegments || [],
+      encoder,
       onProgress: (p) => {
         mainWindow?.webContents.send("render:progress", p);
       },
@@ -2632,8 +2598,10 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
       if (!outputDir) return { error: "Output folder not configured. Go to Settings." };
     }
 
+    const encoder = await resolveClipCutEncoder();
     const results = await render.batchRender(clips, projectData, outputDir, {
       subtitleStyle: options?.subtitleStyle || {},
+      encoder,
       onProgress: (p) => {
         mainWindow?.webContents.send("render:progress", p);
       },

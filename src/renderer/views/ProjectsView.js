@@ -109,7 +109,7 @@ const FALLBACK_TEMPLATE = {
 // Module-level ref: only one preview video plays at a time
 let _activeVideoRef = null;
 
-function ClipVideoPlayer({ clip, template }) {
+function ClipVideoPlayer({ clip, project, template }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
@@ -117,8 +117,17 @@ function ClipVideoPlayer({ clip, template }) {
   const [videoDuration, setVideoDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
-  const duration = Math.round((clip.endTime || 0) - (clip.startTime || 0));
-  const filePath = clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null;
+  // Lazy-cut (#76): prefer project.sourceFile (single source of truth) and
+  // bound playback to the clip's [startTime, endTime] range. Fall back to a
+  // legacy clip MP4 for session-31-era projects where no source remains.
+  const clipStart = clip.startTime || 0;
+  const clipEnd = clip.endTime || 0;
+  const duration = Math.round(clipEnd - clipStart);
+  const sourceMode = !!project?.sourceFile;
+  const videoFilePath = sourceMode
+    ? `file://${project.sourceFile.replace(/\\/g, "/")}`
+    : (clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null);
+  const filePath = videoFilePath; // alias kept for the existing logic below
   const thumbPath = clip.thumbnailPath ? `file://${clip.thumbnailPath.replace(/\\/g, "/")}` : null;
 
   const tpl = template || FALLBACK_TEMPLATE;
@@ -158,12 +167,23 @@ function ClipVideoPlayer({ clip, template }) {
 
   const scaleFactor = CONTAINER_W / 1080;
 
-  // Metadata + external pause handlers
+  // Metadata + external pause handlers.
+  // In sourceMode: <video> plays the full source recording. Effective duration
+  // is the clip range, not the source duration; seek to clipStart on load.
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    const onDurationChange = () => setVideoDuration(vid.duration || 0);
-    const onLoadedMetadata = () => setVideoDuration(vid.duration || 0);
+    const onDurationChange = () => {
+      setVideoDuration(sourceMode ? Math.max(0, clipEnd - clipStart) : (vid.duration || 0));
+    };
+    const onLoadedMetadata = () => {
+      if (sourceMode) {
+        if (Math.abs(vid.currentTime - clipStart) > 0.05) vid.currentTime = clipStart;
+        setVideoDuration(Math.max(0, clipEnd - clipStart));
+      } else {
+        setVideoDuration(vid.duration || 0);
+      }
+    };
     const onExternalPause = () => setIsPlaying(false);
     vid.addEventListener("durationchange", onDurationChange);
     vid.addEventListener("loadedmetadata", onLoadedMetadata);
@@ -173,20 +193,34 @@ function ClipVideoPlayer({ clip, template }) {
       vid.removeEventListener("loadedmetadata", onLoadedMetadata);
       vid.removeEventListener("clipflow-paused", onExternalPause);
     };
-  }, [showVideo]);
+  }, [showVideo, sourceMode, clipStart, clipEnd]);
 
-  // High-frequency time updates via rAF (matches editor's ~60Hz for smooth subtitle sync)
+  // High-frequency time updates via rAF. In sourceMode, currentTime is reported
+  // clip-relative (subtract clipStart). Bound at clipEnd: pause + snap back.
   useEffect(() => {
     if (!isPlaying) return;
     let rafId;
     const tick = () => {
       const vid = videoRef.current;
-      if (vid && !isSeeking) setCurrentTime(vid.currentTime);
+      if (vid && !isSeeking) {
+        if (sourceMode) {
+          if (vid.currentTime >= clipEnd - 0.05) {
+            vid.pause();
+            vid.currentTime = clipStart;
+            setCurrentTime(0);
+            setIsPlaying(false);
+            return;
+          }
+          setCurrentTime(Math.max(0, vid.currentTime - clipStart));
+        } else {
+          setCurrentTime(vid.currentTime);
+        }
+      }
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [isPlaying, isSeeking]);
+  }, [isPlaying, isSeeking, sourceMode, clipStart, clipEnd]);
 
   // Abort video fetch on unmount — prevents Chromium renderer crash
   useEffect(() => {
@@ -230,9 +264,10 @@ function ClipVideoPlayer({ clip, template }) {
     if (!vid || !videoDuration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    vid.currentTime = pct * videoDuration;
-    setCurrentTime(pct * videoDuration);
-  }, [videoDuration]);
+    const clipRel = pct * videoDuration;
+    vid.currentTime = sourceMode ? (clipStart + clipRel) : clipRel;
+    setCurrentTime(clipRel);
+  }, [videoDuration, sourceMode, clipStart]);
 
   const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 
@@ -513,7 +548,7 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
 
       {/* Video player — larger */}
       <ClipPreviewBoundary>
-        <ClipVideoPlayer clip={clip} template={template || FALLBACK_TEMPLATE} />
+        <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} />
       </ClipPreviewBoundary>
 
       {/* Right: details + transcript */}

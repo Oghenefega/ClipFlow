@@ -60,7 +60,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   ffmpegCheckNvenc: () => ipcRenderer.invoke("ffmpeg:checkNvenc"),
   ffmpegProbe: (filePath) => ipcRenderer.invoke("ffmpeg:probe", filePath),
   ffmpegExtractAudio: (videoPath, wavPath) => ipcRenderer.invoke("ffmpeg:extractAudio", videoPath, wavPath),
-  ffmpegCutClip: (srcPath, outPath, startTime, endTime) => ipcRenderer.invoke("ffmpeg:cutClip", srcPath, outPath, startTime, endTime),
   ffmpegThumbnail: (videoPath, outPath, time) => ipcRenderer.invoke("ffmpeg:thumbnail", videoPath, outPath, time),
   ffmpegAnalyzeLoudness: (audioPath, segmentDuration) => ipcRenderer.invoke("ffmpeg:analyzeLoudness", audioPath, segmentDuration),
   ffmpegExtractWaveformPeaks: (filePath, peakCount) => ipcRenderer.invoke("ffmpeg:extractWaveformPeaks", filePath, peakCount),

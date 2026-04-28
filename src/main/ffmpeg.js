@@ -174,62 +174,52 @@ function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
 }
 
 /**
- * Cut a clip from a source video.
- * @param {string} srcPath - Source video
- * @param {string} outPath - Output clip path
- * @param {number} startTime - Start time in seconds
- * @param {number} endTime - End time in seconds
- * @param {object} [opts]
- * @param {"nvenc"|"x264"} [opts.encoder="x264"] - Video encoder. NVENC needs
- *   capability check first (see resolveEncoder). Default x264 preserves
- *   pre-#75 behavior for any caller that hasn't been updated.
- * @param {number} [opts.fps] - Pre-probed source fps. If provided, skips the
- *   per-call probe (#75: avoids 14 redundant probes during a pipeline run).
- * @returns {Promise<{success: true, path: string, duration: number}>}
+ * Extract a time range of audio from a source video as WAV (16kHz mono).
+ * Used by lazy-cut retranscription (#76): rather than extracting audio from a
+ * pre-cut clip MP4, slice directly from the source. Same WAV format as
+ * extractAudio() — fully interchangeable for the Whisper pipeline.
+ * @param {string} videoPath - Source video
+ * @param {string} wavPath - Output WAV path
+ * @param {number} startSec - Start time in seconds (source-absolute)
+ * @param {number} endSec - End time in seconds (source-absolute)
+ * @param {number} [audioTrackIndex=0] - 0-based audio stream index
+ * @returns {Promise<{success: true, path: string}>}
  */
-async function cutClip(srcPath, outPath, startTime, endTime, opts = {}) {
-  const encoder = opts.encoder === "nvenc" ? "nvenc" : "x264";
-  const dir = path.dirname(outPath);
+function extractAudioRange(videoPath, wavPath, startSec, endSec, audioTrackIndex = 0) {
+  const dir = path.dirname(wavPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  const duration = endTime - startTime;
-
-  // Preserve source fps. OBS captures are often VFR; re-encoding without an
-  // explicit -r can collapse output to ffmpeg's default 25fps (#38).
-  let fpsArg = [];
-  let fps = Number.isFinite(opts.fps) ? opts.fps : null;
-  if (fps == null) {
-    try {
-      const meta = await probe(srcPath);
-      if (Number.isFinite(meta.fps) && meta.fps > 0 && meta.fps <= 240) fps = meta.fps;
-    } catch (_) {
-      // Probe failure: fall back to ffmpeg default (no -r). Better to cut at
-      // wrong fps than to fail the cut.
-    }
+  const trackIdx = Number.isFinite(audioTrackIndex) && audioTrackIndex >= 0 ? audioTrackIndex : 0;
+  const duration = endSec - startSec;
+  if (!(duration > 0)) {
+    return Promise.reject(new Error(`extractAudioRange: invalid range ${startSec}-${endSec}`));
   }
-  if (Number.isFinite(fps) && fps > 0 && fps <= 240) fpsArg = ["-r", String(fps)];
 
-  return new Promise((resolve, reject) => {
-    // Re-encode for frame-accurate cuts. Stream copy (-c copy) seeks to the
-    // nearest keyframe which can be 2-10s before startTime, causing subtitle
-    // timestamps to be ahead of the actual audio.
+  const run = (idx) => new Promise((resolve, reject) => {
+    // -ss before -i = fast (input) seek; close enough for audio-only since
+    // we re-encode to PCM (no keyframe artifacts to worry about).
     const args = [
-      "-ss", String(startTime),
-      "-i", srcPath,
+      "-ss", String(startSec),
+      "-i", videoPath,
       "-t", String(duration),
-      ...buildEncoderArgs(encoder),
-      ...fpsArg,
-      "-c:a", "aac", "-b:a", "192k",
-      "-avoid_negative_ts", "make_zero",
+      "-map", `0:a:${idx}`,
+      "-vn",
+      "-acodec", "pcm_s16le",
+      "-ar", "16000",
+      "-ac", "1",
       "-y",
-      outPath,
+      wavPath,
     ];
-    // Allow longer timeout for re-encoding (10 minutes)
     execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) return reject(new Error(`Clip cut failed (${encoder}): ${err.message}`));
-      resolve({ success: true, path: outPath, duration });
+      if (err) return reject(new Error(`Audio range extraction failed (track ${idx}): ${err.message}`));
+      resolve({ success: true, path: wavPath });
     });
   });
+
+  if (trackIdx > 0) {
+    return run(trackIdx).catch(() => run(0));
+  }
+  return run(0);
 }
 
 /**
@@ -553,79 +543,14 @@ function cleanupThumbnailStrip(thumbDir) {
   }
 }
 
-/**
- * Concatenate multiple time ranges from a source file into a single output.
- * Used when a mid-section is deleted — splices out the gap so the output
- * file only contains the kept segments, properly stitched together.
- * @param {string} srcPath - Source video
- * @param {string} outPath - Output clip path
- * @param {Array<{start: number, end: number}>} segments - Time ranges to keep (source-absolute)
- * @returns {Promise<{success: true, path: string, duration: number}>}
- */
-function concatCutClip(srcPath, outPath, segments, opts = {}) {
-  const encoder = opts.encoder === "nvenc" ? "nvenc" : "x264";
-  return new Promise((resolve, reject) => {
-    if (!segments || segments.length === 0) {
-      return reject(new Error("No segments to concatenate"));
-    }
-
-    // Single segment: just use regular cutClip (carry encoder + fps through).
-    if (segments.length === 1) {
-      return cutClip(srcPath, outPath, segments[0].start, segments[0].end, opts)
-        .then(resolve).catch(reject);
-    }
-
-    const dir = path.dirname(outPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    // Build FFmpeg filter_complex for concat:
-    // Each segment gets video trim + audio trim, then all are concatenated.
-    // Filter graph runs on CPU frames; NVENC uploads to GPU at encode time.
-    const filters = [];
-    const concatInputs = [];
-
-    segments.forEach((seg, i) => {
-      filters.push(
-        `[0:v]trim=start=${seg.start}:end=${seg.end},setpts=PTS-STARTPTS[v${i}]`
-      );
-      filters.push(
-        `[0:a]atrim=start=${seg.start}:end=${seg.end},asetpts=PTS-STARTPTS[a${i}]`
-      );
-      concatInputs.push(`[v${i}][a${i}]`);
-    });
-
-    filters.push(
-      `${concatInputs.join("")}concat=n=${segments.length}:v=1:a=1[outv][outa]`
-    );
-
-    const totalDuration = segments.reduce((sum, s) => sum + (s.end - s.start), 0);
-
-    const args = [
-      "-i", srcPath,
-      "-filter_complex", filters.join(";"),
-      "-map", "[outv]", "-map", "[outa]",
-      ...buildEncoderArgs(encoder),
-      "-c:a", "aac", "-b:a", "192k",
-      "-avoid_negative_ts", "make_zero",
-      "-y",
-      outPath,
-    ];
-
-    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) return reject(new Error(`Concat cut failed (${encoder}): ${err.message}`));
-      resolve({ success: true, path: outPath, duration: totalDuration });
-    });
-  });
-}
-
 module.exports = {
   checkFfmpeg,
   checkNvenc,
   resolveEncoder,
+  buildEncoderArgs,
   probe,
   extractAudio,
-  cutClip,
-  concatCutClip,
+  extractAudioRange,
   generateThumbnail,
   analyzeLoudness,
   extractWaveformPeaks,

@@ -374,37 +374,6 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
 }
 
 /**
- * Cut a clip using stream copy (fast, no re-encode).
- * Falls back to re-encode if stream copy fails.
- */
-function cutClipFast(srcPath, outPath, startTime, endTime) {
-  return new Promise((resolve, reject) => {
-    const dir = path.dirname(outPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const args = [
-      "-ss", String(startTime),
-      "-to", String(endTime),
-      "-i", srcPath,
-      "-c", "copy",
-      "-avoid_negative_ts", "make_zero",
-      "-y",
-      outPath,
-    ];
-
-    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
-      if (err) {
-        // Fallback to re-encode
-        return ffmpeg.cutClip(srcPath, outPath, startTime, endTime)
-          .then(resolve)
-          .catch(reject);
-      }
-      resolve({ success: true, path: outPath, duration: endTime - startTime });
-    });
-  });
-}
-
-/**
  * Main AI pipeline orchestrator.
  *
  * @param {object} opts
@@ -444,13 +413,6 @@ async function runAIPipeline({
     const probeResult = await ffmpeg.probe(sourceFile);
     if (probeResult.error) throw new Error(`Probe failed: ${probeResult.error}`);
     logger.endStep("Probe", `${probeResult.duration.toFixed(1)}s, ${probeResult.width}x${probeResult.height}`);
-
-    // Resolve clip-cutting encoder once, fail fast if user picked "gpu" without
-    // NVENC available (#75 design: never silently fall back to CPU).
-    const clipCutEncoderSetting = store.get("clipCutEncoder") || "auto";
-    const clipCutEncoder = await ffmpeg.resolveEncoder(clipCutEncoderSetting);
-    const clipCutEncoderLabel = clipCutEncoder === "nvenc" ? "NVENC" : "x264";
-    logger.info(`Clip cutting: encoder=${clipCutEncoderLabel} (setting=${clipCutEncoderSetting})`);
 
     // ============ Stage 1: Create project ============
     sendProgress("creating", 3, "Creating project...");
@@ -644,47 +606,37 @@ async function runAIPipeline({
     const aiClips = claudeResult.clips;
     logger.endStep("Claude Analysis", `${aiClips.length} clips identified`);
 
-    // ============ Stage 7: Cut Clips ============
-    // Issue #75 Phase 2: cuts run in parallel up to clipCutConcurrency. Order
-    // matters for clip naming (clip_001, clip_002...) and project.clips array,
-    // so each task writes results into a pre-allocated indexed slot and we
-    // assemble project.clips in source order after the pool drains.
-    const clipCutConcurrency = Math.max(1, Math.min(5, store.get("clipCutConcurrency") || 3));
-    sendProgress("cutting", 75, `Cutting ${aiClips.length} clips (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
-    logger.startStep("Clip Cutting");
-    logger.info(`Cutting ${aiClips.length} clips with ${clipCutEncoderLabel}, concurrency=${clipCutConcurrency} (fps=${probeResult.fps || "auto"})`);
+    // ============ Stage 7: Build Clip Metadata (lazy-cut, #76) ============
+    // Lazy-cut: no MP4 is materialized at pipeline time. Each clip is just a
+    // source range + nleSegments. The final MP4 is only ever produced at
+    // publish/render time, and only for clips the user actually approves.
+    //
+    // Thumbnails ARE generated here (cheap, source-direct, useful in Projects
+    // view). Subtitles for each clip are sliced from the source transcription
+    // here as a starting point — Stage 7b will overwrite with per-clip whisper
+    // output for accuracy.
+    const thumbConcurrency = Math.max(1, Math.min(5, store.get("clipCutConcurrency") || 3));
+    sendProgress("cutting", 75, `Preparing ${aiClips.length} clip ranges...`);
+    logger.startStep("Clip Metadata");
+    logger.info(`Lazy-cut: skipping MP4 materialization for ${aiClips.length} clips (final cuts happen at publish time)`);
     project.status = "clipping";
     projects.saveProject(watchFolder, project);
 
     const clipsDir = projects.getClipsDir(watchFolder, project.id);
+    if (!fs.existsSync(clipsDir)) fs.mkdirSync(clipsDir, { recursive: true });
     const totalClips = aiClips.length;
-    const clipResults = new Array(totalClips); // index-aligned task outputs
-    let completed = 0;
+    const clipResults = new Array(totalClips); // index-aligned slots
+    let thumbsDone = 0;
 
-    async function cutOneClip(i) {
+    async function buildOneClip(i) {
       const clip = aiClips[i];
       const clipNum = String(i + 1).padStart(3, "0");
-      const clipFileName = `clip_${clipNum}.mp4`;
-      const clipPath = path.join(clipsDir, clipFileName);
       const thumbPath = path.join(clipsDir, `clip_${clipNum}_thumb.jpg`);
 
       const startSec = aiPrompt.parseTimestamp(clip.start);
       const endSec = aiPrompt.parseTimestamp(clip.end);
 
-      try {
-        await ffmpeg.cutClip(sourceFile, clipPath, startSec, endSec, {
-          encoder: clipCutEncoder,
-          fps: probeResult.fps,
-        });
-      } catch (e) {
-        logger.info(`Clip ${i + 1} cut failed: ${e.message}`);
-        completed++;
-        const pct = 75 + Math.round((completed / totalClips) * 20);
-        sendProgress("cutting", pct, `Cutting clips ${completed}/${totalClips} (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
-        return null; // skipped — assemble step ignores nulls
-      }
-
-      // Thumbnail (non-critical — cut is the load-bearing step)
+      // Thumbnail at midpoint — non-critical; clip metadata stands without it.
       const thumbTime = startSec + (endSec - startSec) / 2;
       try {
         await ffmpeg.generateThumbnail(sourceFile, thumbPath, thumbTime);
@@ -692,33 +644,33 @@ async function runAIPipeline({
 
       const clipSubs = sliceSubtitlesFromSource(transcription, startSec, endSec);
 
-      completed++;
-      const pct = 75 + Math.round((completed / totalClips) * 20);
-      sendProgress("cutting", pct, `Cutting clips ${completed}/${totalClips} (${clipCutEncoderLabel} ×${clipCutConcurrency})...`);
+      thumbsDone++;
+      const pct = 75 + Math.round((thumbsDone / totalClips) * 10);
+      sendProgress("cutting", pct, `Preparing clip ${thumbsDone}/${totalClips}...`);
 
       return {
-        clip, startSec, endSec, clipPath, thumbPath, clipSubs,
+        clip, startSec, endSec, thumbPath, clipSubs,
         clipNumber: clip.clip_number || (i + 1),
       };
     }
 
-    // Concurrency pool: N workers pull indices from a shared cursor until done.
+    // Concurrency pool — thumbnails only, fast.
     let cursor = 0;
     async function worker() {
       while (true) {
         const i = cursor++;
         if (i >= totalClips) return;
-        clipResults[i] = await cutOneClip(i);
+        clipResults[i] = await buildOneClip(i);
       }
     }
     const workers = [];
-    for (let w = 0; w < Math.min(clipCutConcurrency, totalClips); w++) workers.push(worker());
+    for (let w = 0; w < Math.min(thumbConcurrency, totalClips); w++) workers.push(worker());
     await Promise.all(workers);
 
-    // Assemble project.clips in original (source) order so clip_001 stays first.
+    // Assemble project.clips in source order so clip_001 stays first.
     for (let i = 0; i < totalClips; i++) {
       const r = clipResults[i];
-      if (!r) continue; // skipped failure
+      if (!r) continue;
       const clipId = projects.generateClipId();
       project.clips.push({
         id: clipId,
@@ -742,13 +694,13 @@ async function runAIPipeline({
         media: [],
         renderStatus: "pending",
         renderPath: null,
-        filePath: r.clipPath,
+        filePath: null, // lazy-cut: no MP4 until publish time (#76)
         thumbnailPath: fs.existsSync(r.thumbPath) ? r.thumbPath : null,
         createdAt: new Date().toISOString(),
       });
     }
 
-    logger.endStep("Clip Cutting", `${project.clips.length} clips cut successfully (${clipCutEncoderLabel} ×${clipCutConcurrency})`);
+    logger.endStep("Clip Metadata", `${project.clips.length} clip ranges prepared (lazy-cut)`);
 
     // ============ Stage 7b: Per-Clip Retranscription ============
     // Source-level transcription can hallucinate on long gaming audio. Each
@@ -763,19 +715,24 @@ async function runAIPipeline({
     sendProgress("transcribing-clips", 95, `Retranscribing ${project.clips.length} clips...`);
     logger.startStep("Clip Retranscription");
 
-    const retranscribeTasks = project.clips
-      .filter((c) => c.filePath && fs.existsSync(c.filePath))
-      .map((clip) => ({
+    // Lazy-cut (#76): audio is sliced directly from the source recording, not
+    // from a pre-cut clip MP4. Each clip already has source-absolute
+    // startTime/endTime — extractAudioRange does the seek + extract in one
+    // ffmpeg call.
+    const retranscribeTasks = project.clips.map((clip) => {
+      const safeId = String(clip.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+      return {
         clip,
-        clipWav: clip.filePath.replace(/\.[^.]+$/, "-retranscribe.wav"),
-        outputJson: clip.filePath.replace(/\.[^.]+$/, "-retranscribe.json"),
+        clipWav: path.join(clipsDir, `${safeId}-retranscribe.wav`),
+        outputJson: path.join(clipsDir, `${safeId}-retranscribe.json`),
         extractOk: false,
         extractError: null,
-      }));
+      };
+    });
 
     // ── Step 1: extract audio for every clip in parallel (concurrency=3) ──
     // Audio extract is cheap (~1-2s/clip), but 15× sequential is ~15-30s.
-    // Pool brings that to ~5-10s. Reuses the same pool pattern as the cut loop.
+    // Pool brings that to ~5-10s. Reuses the same pool pattern as the build loop.
     const extractConcurrency = Math.max(1, Math.min(5, store.get("clipCutConcurrency") || 3));
     let extractCursor = 0;
     async function extractWorker() {
@@ -784,7 +741,9 @@ async function runAIPipeline({
         if (i >= retranscribeTasks.length) return;
         const t = retranscribeTasks[i];
         try {
-          await ffmpeg.extractAudio(t.clip.filePath, t.clipWav, audioTrack);
+          await ffmpeg.extractAudioRange(
+            sourceFile, t.clipWav, t.clip.startTime, t.clip.endTime, audioTrack
+          );
           t.extractOk = true;
         } catch (e) {
           t.extractError = e.message;

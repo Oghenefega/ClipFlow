@@ -84,7 +84,11 @@ function buildNleFilterComplex(nleSegments, hasFrames) {
  *
  * NLE-aware: assembles the final video from source file + NLE segments using
  * FFmpeg trim/concat, then composites subtitle overlay frames on top.
- * Falls back to using clipData.filePath directly if no NLE segments exist.
+ *
+ * Lazy-cut (#76): nleSegments + sourceFile is the canonical render input.
+ * Legacy fallback to clipData.filePath only kicks in when sourceFile is gone
+ * AND a pre-cut clip MP4 exists on disk (session-31-era projects). Anything
+ * else throws — we don't want to silently render the wrong range.
  *
  * @param {object} clipData - Clip object with nleSegments, subtitles, captions, styles
  * @param {object} projectData - Project with sourceFile, sourceDuration
@@ -97,15 +101,26 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
     try {
       const { onProgress } = options;
       const nleSegments = clipData.nleSegments || [];
-      const useNle = nleSegments.length > 0 && projectData.sourceFile;
+      const sourceFile = projectData.sourceFile;
+      const sourceOk = sourceFile && fs.existsSync(sourceFile);
+      const useNle = nleSegments.length > 0 && sourceOk;
 
-      // Source file: NLE mode uses original recording; fallback uses pre-cut clip
-      const srcFile = useNle
-        ? projectData.sourceFile
-        : (clipData.filePath || projectData.sourceFile);
-
-      if (!srcFile || !fs.existsSync(srcFile)) {
-        return reject(new Error(`Source file not found: ${srcFile}`));
+      // Resolve source: prefer NLE (source + segments). Only fall back to a
+      // legacy clip MP4 if the source has gone offline. If neither path is
+      // viable, fail loudly — never silently produce a wrong-range render.
+      let srcFile;
+      if (useNle) {
+        srcFile = sourceFile;
+        console.log("[Render] Using NLE path (source + nleSegments)");
+      } else if (clipData.filePath && fs.existsSync(clipData.filePath)) {
+        srcFile = clipData.filePath;
+        console.log(`[Render] Falling back to legacy clip MP4 (source ${sourceOk ? "ok" : "offline"}, no nleSegments=${nleSegments.length === 0})`);
+      } else {
+        return reject(new Error(
+          `Cannot render clip: no nleSegments and no legacy clip file. ` +
+          `sourceFile=${sourceFile || "(none)"} exists=${sourceOk}, ` +
+          `clip.filePath=${clipData.filePath || "(none)"}, nleSegments=${nleSegments.length}`
+        ));
       }
 
       const dir = path.dirname(outputPath);
@@ -223,17 +238,20 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         );
       }
 
-      // Output encoding — force source FPS to prevent 60fps→25fps drops
+      // Output encoding — force source FPS to prevent 60fps→25fps drops.
+      // Encoder selection comes from clipCutEncoder setting (auto/gpu/cpu),
+      // resolved by the caller. Lazy-cut (#76) moved this from AI-pipeline-time
+      // to publish-time, so the user's GPU pick is honored here.
+      const renderEncoder = options.encoder === "nvenc" ? "nvenc" : "x264";
       args.push(
         "-r", String(Math.round(sourceFps)),
-        "-c:v", "libx264",
-        "-preset", "medium",
-        "-crf", "18",
+        ...require("./ffmpeg").buildEncoderArgs(renderEncoder),
         "-c:a", "aac",
         "-b:a", "192k",
         "-movflags", "+faststart",
         outputPath
       );
+      console.log(`[Render] Encoder: ${renderEncoder === "nvenc" ? "NVENC" : "x264"}`);
 
       console.log("[Render] FFmpeg args:", args.join(" "));
 
@@ -303,6 +321,7 @@ async function batchRender(clips, projectData, outputDir, options = {}) {
         subtitleStyle: options.subtitleStyle || clip.subtitleStyle,
         captionStyle: options.captionStyle || clip.captionStyle,
         captionSegments: clip.captionSegments || [],
+        encoder: options.encoder,
         onProgress: (p) => {
           if (options.onProgress) {
             const overallPct = Math.round(((i + p.pct / 100) / total) * 100);
