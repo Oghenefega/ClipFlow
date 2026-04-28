@@ -58,10 +58,6 @@ const useCaptionStore = create((set, get) => ({
   captionBgRadius: 6,
   captionEffectOrder: ["glow", "stroke", "shadow", "background"],
 
-  // ── Deprecated timing fields — kept for undo snapshot compat ──
-  captionStartSec: 0,
-  captionEndSec: null,
-
   // ── Segment CRUD ──
   addCaptionSegment: (text, startSec, endSec) => {
     _pushCrossUndo();
@@ -179,20 +175,6 @@ const useCaptionStore = create((set, get) => ({
     });
   },
 
-  // ── Legacy timing setters — update first segment's timing ──
-  setCaptionStartSec: (t) => set((s) => {
-    if (s.captionSegments.length === 0) return { captionStartSec: t };
-    const segs = [...s.captionSegments];
-    segs[0] = { ...segs[0], startSec: t };
-    return { captionSegments: segs, captionStartSec: t };
-  }),
-  setCaptionEndSec: (t) => set((s) => {
-    if (s.captionSegments.length === 0) return { captionEndSec: t };
-    const segs = [...s.captionSegments];
-    segs[0] = { ...segs[0], endSec: t };
-    return { captionSegments: segs, captionEndSec: t };
-  }),
-
   // ── Actions (all styling setters push cross-store undo) ──
   setCaptionFontFamily: (f) => { _pushCrossUndo(); set({ captionFontFamily: f }); },
   setCaptionFontWeight: (w) => { _pushCrossUndo(); set({ captionFontWeight: w }); },
@@ -277,8 +259,6 @@ const useCaptionStore = create((set, get) => ({
       set({
         captionSegments: savedSegments,
         captionText: savedSegments[0]?.text || text,
-        captionStartSec: savedSegments[0]?.startSec || 0,
-        captionEndSec: savedSegments[0]?.endSec || null,
       });
     } else {
       // Legacy: create single segment from captionText
@@ -287,8 +267,6 @@ const useCaptionStore = create((set, get) => ({
       set({
         captionSegments: text ? [{ id, text, startSec: 0, endSec: null }] : [],
         captionText: text,
-        captionStartSec: 0,
-        captionEndSec: null,
       });
     }
   },
@@ -305,8 +283,6 @@ const useCaptionStore = create((set, get) => ({
       captionBold: true,
       captionItalic: true,
       captionUnderline: false,
-      captionStartSec: 0,
-      captionEndSec: null,
     });
   },
 }));

@@ -25,7 +25,6 @@ const useLayoutStore = create((set, get) => ({
   // ── Timeline ──
   tlCollapsed: false,
   tlHeight: TL_DEFAULT,
-  tlOverlay: false,
 
   // ── Timeline zoom ──
   tlZoom: 1,
@@ -58,7 +57,6 @@ const useLayoutStore = create((set, get) => ({
 
   toggleTlCollapse: () => set((s) => ({ tlCollapsed: !s.tlCollapsed })),
   setTlHeight: (h) => set({ tlHeight: h }),
-  setTlOverlay: (v) => set({ tlOverlay: v }),
   setTlZoom: (z) => set({ tlZoom: z }),
 
   setZoom: (z) => set({ zoom: z }),

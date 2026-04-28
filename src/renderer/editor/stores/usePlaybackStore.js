@@ -11,8 +11,6 @@ const usePlaybackStore = create((set, get) => ({
   duration: 0,
   tlSpeed: "1x",
   tlScrubbing: false,
-  trimIn: 0,
-  trimOut: null, // null = full clip duration
 
   // NLE segment list — set by editor store whenever segments change
   nleSegments: [],
@@ -172,16 +170,12 @@ const usePlaybackStore = create((set, get) => ({
 
   setTlSpeed: (speed) => set({ tlSpeed: speed }),
   setTlScrubbing: (v) => set({ tlScrubbing: v }),
-  setTrimIn: (t) => set({ trimIn: t }),
-  setTrimOut: (t) => set({ trimOut: t }),
 
   reset: () => set({
     playing: false,
     currentTime: 0,
     duration: 0,
     tlScrubbing: false,
-    trimIn: 0,
-    trimOut: null,
     nleSegments: [],
   }),
 }));

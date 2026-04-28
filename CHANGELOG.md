@@ -4,6 +4,22 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 2: orphaned Zustand state fields + setters
+
+### Removed
+- **`useCaptionStore.captionStartSec` / `captionEndSec` + their setters** ([src/renderer/editor/stores/useCaptionStore.js](src/renderer/editor/stores/useCaptionStore.js)). The in-source comment claimed these were "kept for undo snapshot compat" but verification showed they were NOT in the `CAP_KEYS` undo snapshot list ([useSubtitleStore.js:45-58](src/renderer/editor/stores/useSubtitleStore.js)) — the fields had zero external readers, zero callers for `setCaptionStartSec`/`setCaptionEndSec`, and no disk persistence (`_doSilentSave` writes `captionSegments` and `captionStyle`, not these). Cleaned references in `initFromClip` and `reset` accordingly.
+- **`usePlaybackStore.trimIn` / `trimOut` + their setters** ([src/renderer/editor/stores/usePlaybackStore.js](src/renderer/editor/stores/usePlaybackStore.js)). Pre-NLE-segment trim surface, replaced by `nleSegments`-based trimming after the lazy-cut pivot. Zero external readers, zero callers. Cleaned references in `reset()`.
+- **`useLayoutStore.tlOverlay` + `setTlOverlay`** ([src/renderer/editor/stores/useLayoutStore.js](src/renderer/editor/stores/useLayoutStore.js)). Timeline-overlay toggle with no consumer anywhere in the codebase.
+
+### Audit notes — what I checked but didn't touch
+- **`useEditorStore.audioSegments` and its 7 actions are NOT dead.** The HANDOFF flagged this as a removal candidate, but [LeftPanelNew.js:926-939](src/renderer/editor/components/LeftPanelNew.js) still consumes it for the audio-segment ripple-delete UI. Removing it would have broken that surface — keeping intact pending a separate audit of whether the LeftPanelNew code path is itself reachable post-lazy-cut. Filed as a Pass 3 follow-up.
+- **`useEditorStore.videoVersion` is ALIVE.** Used by [PreviewPanelNew.js:411](src/renderer/editor/components/PreviewPanelNew.js) as a cache-buster query param to force `<video>` element reload after recut.
+
+### Verification
+- `npm run build:renderer` passes clean (2728 modules, 12s, no errors). Bundle size unchanged.
+- Electron startup probe: 30s run, zero error-pattern matches in app.log delta. App launched, database initialized, 11 preview-frame generations completed cleanly. **Caveat:** probe doesn't open the editor UI, so the modified `initFromClip`/`reset` runtime paths weren't exercised at runtime. Static verification was strict: zero external readers, fields not in undo snapshot, not persisted.
+- 32 lines removed across 3 store files. No schema migration needed (none of the dropped fields were ever written to disk).
+
 ## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 1: orphaned IPC handlers + preload bridges
 
 ### Removed
