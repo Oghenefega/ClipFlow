@@ -755,12 +755,11 @@ export default function TimelinePanelNew() {
           </TooltipProvider>
           <div className="w-[90px]">
             <Slider
-              value={[Math.round(50 + (Math.log2(tlZoom) / Math.log2(20)) * 50)]}
+              value={[Math.round((Math.log(tlZoom / 0.2) / Math.log(100)) * 100)]}
               min={0} max={100} step={1}
               onValueChange={([v]) => {
-                // Map slider 0-100 to zoom: 50=1.0x, 0=0.05x, 100=20x (log scale)
-                const t = (v - 50) / 50; // -1 to +1
-                const zoom = Math.pow(20, t); // 20^-1=0.05 → 20^0=1 → 20^1=20
+                // Slider 0-100 spans zoom [0.2x, 20x] log scale: v=0 → 0.2x, v=50 → 2x, v=100 → 20x
+                const zoom = 0.2 * Math.pow(100, v / 100);
                 setTlZoom(Math.max(0.2, Math.min(20, +zoom.toFixed(3))));
               }}
               className="flex-1"
