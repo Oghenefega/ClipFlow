@@ -4,6 +4,27 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 3: stale planning docs + dead constant
+
+### Removed
+- **4 stale planning docs in `tasks/`** — work shipped or superseded:
+  - `tasks/cost-estimate.md` (Mar 20) and `tasks/cost-estimate-2.md` (Mar 5) — point-in-time codebase metrics, numbers massively stale (e.g. 4,806 lines in March vs. ~30k+ now). One-shot analyses, not living docs.
+  - `tasks/nle-architecture-plan.md` (Apr 7) — pre-lazy-cut architecture spec ("Replace destructive editing model with source-reference segments, derived timeline positions, and FFmpeg-only-at-export"). Lazy-cut pivot in session 32 fully shipped this scope.
+  - `tasks/subtitle-timing-rebuild-spec.md` (Apr 3, v1) — explicitly superseded by `subtitle-timing-rebuild-spec-v2.md` per its own header.
+- **`MERGE_THRESHOLD` constant** ([src/renderer/editor/components/timeline/timelineConstants.js](src/renderer/editor/components/timeline/timelineConstants.js)). The export was self-described `// legacy — superseded by clustering`. It was imported in [TimelinePanelNew.js:24](src/renderer/editor/components/TimelinePanelNew.js) but never referenced in the file body — orphan import + orphan constant. Cleaned both.
+
+### Audit notes — what I checked but didn't touch
+- **`subtitle-timing-rebuild-spec-v2.md`** kept — DRAFT pending approval, status unclear from session history. Surfaced for review.
+- **`tasks/lessons.md`** kept — append-only ongoing lessons log.
+- **TODO in [src/main/naming-presets.js:294](src/main/naming-presets.js)** kept — "Editor check will be added when editor integration is built". This is a real, still-relevant reminder: the editor exists but the in-use check from main's `isFileInUse()` would need a clean cross-process query, not trivial. Genuine TODO, not stale.
+- **Chokidar `unlink` emit in [main.js:652-658](src/main/main.js)** kept — the IPC `webContents.send` fires to nobody now (Pass 1 dropped `onFileRemoved`/`onTestFileRemoved` bridges) but the `stabilityChecksInFlight.delete(fp)` line is still load-bearing. Marginal cleanup, scope creep.
+- **Dead-export sweep across `src/`** — surfaced ~150 exports; cross-referencing each individually was disproportionate to value at this stage. Limited to high-confidence orphans only (just `MERGE_THRESHOLD`). Future audit candidate.
+
+### Verification
+- `npm run build:renderer` passes clean (2728 modules, 13s, no errors).
+- Electron startup probe: 30s run, zero error-pattern matches in app.log delta. App launched, database initialized, 11 preview-frame generations completed cleanly.
+- 4 docs deleted (~84 KB), 2 lines removed (1 import + 1 constant). No code-behavior change.
+
 ## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 2: orphaned Zustand state fields + setters
 
 ### Removed
