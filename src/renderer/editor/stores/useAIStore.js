@@ -64,6 +64,9 @@ const useAIStore = create((set, get) => ({
     useEditorStore.getState().setClipTitle(newTitle);
     useEditorStore.getState().markDirty();
     set({ acceptedTitleIdx: idx });
+    // Persist immediately so the accepted title can't be lost by navigating
+    // away before autosave fires (#8). Fire-and-forget — UI doesn't block.
+    useEditorStore.getState().handleSave().catch((e) => console.error("Auto-save after acceptTitle failed:", e));
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", titleChosen: newTitle, game: aiGame, timestamp: Date.now(),
     });
@@ -75,6 +78,8 @@ const useAIStore = create((set, get) => ({
     useCaptionStore.getState().setCaptionText(text);
     useEditorStore.getState().markDirty();
     set({ acceptedCaptionIdx: idx });
+    // Persist immediately — same reasoning as acceptTitle (#8).
+    useEditorStore.getState().handleSave().catch((e) => console.error("Auto-save after acceptCaption failed:", e));
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", captionChosen: text, game: aiGame, timestamp: Date.now(),
     });
