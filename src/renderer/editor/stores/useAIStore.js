@@ -12,6 +12,11 @@ const useAIStore = create((set, get) => ({
   aiRejections: [],
   acceptedTitleIdx: null,
   acceptedCaptionIdx: null,
+  // Per-clip cache of AI state (suggestions, context, rejections, accepted indices).
+  // In-memory only; dies on app close. Lets the user see prior suggestions when
+  // bouncing between clips in one session without re-paying for the API call (#8).
+  // Permanent learning data lives separately via window.clipflow.anthropicLogHistory.
+  _perClipCache: {},
 
   // ── Actions ──
   setAiContext: (c) => set({ aiContext: c }),
@@ -102,6 +107,43 @@ const useAIStore = create((set, get) => ({
     acceptedTitleIdx: null,
     acceptedCaptionIdx: null,
   }),
+
+  // Save current clip's AI state to cache, restore new clip's cached state (#8).
+  // Called from useEditorStore.openClip in place of reset() so users see their
+  // prior suggestions when switching between clips in a session.
+  swapToClip: (oldClipId, newClipId) => {
+    const state = get();
+    const cache = { ...state._perClipCache };
+    if (oldClipId) {
+      cache[oldClipId] = {
+        aiContext: state.aiContext,
+        aiSuggestions: state.aiSuggestions,
+        aiRejections: state.aiRejections,
+        acceptedTitleIdx: state.acceptedTitleIdx,
+        acceptedCaptionIdx: state.acceptedCaptionIdx,
+      };
+    }
+    const cached = newClipId ? cache[newClipId] : null;
+    set({
+      _perClipCache: cache,
+      aiContext: cached?.aiContext ?? "",
+      aiSuggestions: cached?.aiSuggestions ?? null,
+      aiRejections: cached?.aiRejections ?? [],
+      acceptedTitleIdx: cached?.acceptedTitleIdx ?? null,
+      acceptedCaptionIdx: cached?.acceptedCaptionIdx ?? null,
+      aiGenerating: false,
+      aiError: "",
+    });
+  },
+
+  // Drop a clip's cached AI state. Called when a clip is published — its
+  // suggestions are no longer needed (#8).
+  clearCacheForClip: (clipId) => {
+    if (!clipId) return;
+    const cache = { ...get()._perClipCache };
+    delete cache[clipId];
+    set({ _perClipCache: cache });
+  },
 }));
 
 export default useAIStore;

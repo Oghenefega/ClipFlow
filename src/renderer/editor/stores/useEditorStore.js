@@ -66,7 +66,13 @@ const useEditorStore = create((set, get) => ({
     useSubtitleStore.getState().clearAll();
     useCaptionStore.getState().initFromClip(null);
     usePlaybackStore.getState().reset();
-    try { useAIStore.getState().reset(); } catch (e) {}
+    // AI store: swap cache instead of reset, so user's prior suggestions for
+    // this clip survive a tab/clip switch within a session (#8).
+    try {
+      const oldClipId = get().clip?.id || null;
+      const newClipId = editorContext?.clipId || null;
+      useAIStore.getState().swapToClip(oldClipId, newClipId);
+    } catch (e) {}
     set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [] });
 
     // Load full project via IPC — localProjects are summaries without clips
