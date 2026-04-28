@@ -457,210 +457,44 @@ export default function App() {
     { id: "settings", icon: "\u2699\ufe0f", label: "Settings" },
   ];
 
-  const renderView = () => {
-    if (view === "rename") {
-      return (
-        <RenameView
-          gamesDb={gamesDb}
-          mainGameName={mainGame}
-          pendingRenames={pendingRenames}
-          setPendingRenames={setPendingRenames}
-          renameHistory={renameHistory}
-          setRenameHistory={setRenameHistory}
-          onAddGame={(entryType) => setShowAddGame(entryType || "game")}
-          onGameDayUpdate={handleGameDayUpdate}
-          watchFolder={watchFolder}
-          testWatchFolder={testWatchFolder}
-        />
-      );
-    }
-    if (view === "recordings") {
-      return (
-        <RecordingsView
-          gamesDb={gamesDb}
-          localProjects={localProjects}
-          testWatchFolder={testWatchFolder}
-          onProjectCreated={(projectId) => {
-            // Refresh local projects list from disk
-            window.clipflow?.projectList().then((result) => {
-              if (result?.projects) setLocalProjects(result.projects);
-            });
-          }}
-        />
-      );
-    }
-    if (view === "editor") {
-      return <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={async () => {
-        // Refresh project from disk so saved subtitleStyle/captionStyle are picked up
-        if (editorContext?.projectId) {
-          try {
-            const full = await window.clipflow.projectLoad(editorContext.projectId);
-            if (full?.project) {
-              setLocalProjects((prev) => prev.map((p) => p.id === editorContext.projectId ? full.project : p));
-              setSelProj((prev) => prev && prev.id === editorContext.projectId ? full.project : prev);
-            }
-          } catch (e) { console.error("Failed to refresh project after editor:", e); }
-        }
-        setEditorContext(null); setView("clips");
-      }} onClipRendered={async (projectId) => {
-        try {
-          const full = await window.clipflow.projectLoad(projectId);
-          if (full?.project) {
-            setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
-            setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
-          }
-        } catch (e) { console.error("Failed to refresh project after render:", e); }
-      }} />;
-    }
-    if (view === "queue") {
-      return (
-        <QueueView
-          allClips={allClips}
-          localProjects={localProjects}
-          mainGame={mainGame}
-          mainGameTag={mainGameTag}
-          platforms={platforms}
-          trackerData={trackerData}
-          setTrackerData={setTrackerData}
-          weeklyTemplate={weeklyTemplate}
-          weekTemplateOverrides={weekTemplateOverrides}
-          ytDescriptions={ytDescriptions}
-          setYtDescriptions={setYtDescriptions}
-          captionTemplates={captionTemplates}
-          setCaptionTemplates={setCaptionTemplates}
-          platformOptions={platformOptions}
-          setPlatformOptions={setPlatformOptions}
-          gamesDb={gamesDb}
-          requireHashtagInTitle={requireHashtagInTitle}
-        />
-      );
-    }
-    if (view === "tracker") {
-      return (
-        <TrackerView
-          mainGame={mainGame}
-          mainGameTag={mainGameTag}
-          trackerData={trackerData}
-          setTrackerData={setTrackerData}
-          weeklyTemplate={weeklyTemplate}
-          setWeeklyTemplate={setWeeklyTemplate}
-          weekTemplateOverrides={weekTemplateOverrides}
-          setWeekTemplateOverrides={setWeekTemplateOverrides}
-          savedTemplates={savedTemplates}
-          setSavedTemplates={setSavedTemplates}
-          gamesDb={gamesDb}
-        />
-      );
-    }
-    if (view === "settings") {
-      return (
-        <SettingsView
-          mainGame={mainGame}
-          setMainGame={setMainGame}
-          mainPool={mainPool}
-          setMainPool={setMainPool}
-          gamesDb={gamesDb}
-          setGamesDb={setGamesDb}
-          onEditGame={handleEditGame}
-          onAddGame={(entryType) => setShowAddGame(entryType || "game")}
-          watchFolder={watchFolder}
-          setWatchFolder={setWatchFolder}
-          testWatchFolder={testWatchFolder}
-          setTestWatchFolder={setTestWatchFolder}
-          platforms={platforms}
-          setPlatforms={setPlatforms}
-          outputFolder={outputFolder}
-          setOutputFolder={setOutputFolder}
-          sfxFolder={sfxFolder}
-          setSfxFolder={setSfxFolder}
-          anthropicApiKey={anthropicApiKey}
-          setAnthropicApiKey={setAnthropicApiKey}
-          gatewayUrl={gatewayUrl}
-          setGatewayUrl={setGatewayUrl}
-          gatewayAuthToken={gatewayAuthToken}
-          setGatewayAuthToken={setGatewayAuthToken}
-          youtubeClientId={youtubeClientId}
-          setYoutubeClientId={setYoutubeClientId}
-          youtubeClientSecret={youtubeClientSecret}
-          setYoutubeClientSecret={setYoutubeClientSecret}
-          metaAppId={metaAppId}
-          setMetaAppId={setMetaAppId}
-          metaAppSecret={metaAppSecret}
-          setMetaAppSecret={setMetaAppSecret}
-          instagramAppId={instagramAppId}
-          setInstagramAppId={setInstagramAppId}
-          instagramAppSecret={instagramAppSecret}
-          setInstagramAppSecret={setInstagramAppSecret}
-          tiktokClientKey={tiktokClientKey}
-          setTiktokClientKey={setTiktokClientKey}
-          tiktokClientSecret={tiktokClientSecret}
-          setTiktokClientSecret={setTiktokClientSecret}
-          styleGuide={styleGuide}
-          setStyleGuide={setStyleGuide}
-          requireHashtagInTitle={requireHashtagInTitle}
-          setRequireHashtagInTitle={setRequireHashtagInTitle}
-          collapsedGroups={settingsCollapsed}
-          setCollapsedGroups={setSettingsCollapsed}
-        />
-      );
-    }
-    // Projects / Clips view
-    if (view === "clips" && selProj) {
-      // Use selProj directly — handleSelectProject loads full data into it
-      // Fall back to localProjects lookup if selProj doesn't have clips
-      const fromList = localProjects.find((p) => p.id === selProj.id);
-      const proj = (selProj.clips?.length > 0) ? selProj : (fromList?.clips?.length > 0 ? fromList : selProj);
-      if (!proj) {
-        // Project not found, fall back to list
-        return (
-          <ProjectsListView
-            localProjects={localProjects}
-            setLocalProjects={setLocalProjects}
-            projectFolders={projectFolders}
-            activeFolder={activeFolder}
-            onSelectFolder={setActiveFolder}
-            onFoldersChanged={refreshFolders}
-            onSelect={handleSelectProject}
-            onDeleteProjects={handleDeleteProjects}
-            mainGame={mainGame}
-            gamesDb={gamesDb}
-          />
-        );
-      }
-      return (
-        <ClipBrowser
-          project={proj}
-          onBack={() => { setSelProj(null); setView("projects"); }}
-          onUpdateClip={handleUpdateClip}
-          onTranscript={setTranscript}
-          onEditClipTitle={handleEditClipTitle}
-          onOpenInEditor={handleOpenInEditor}
-          onBatchRender={async (projectId) => {
-            // Reload project data after batch render to reflect updated renderStatus
-            try {
-              const full = await window.clipflow.projectLoad(projectId);
-              if (full?.project) setSelProj(full.project);
-            } catch (e) { /* ignore */ }
-          }}
-          gamesDb={gamesDb}
-        />
-      );
-    }
+  // ClipBrowser is rendered conditionally because it's per-project — entering a
+  // different project mounts a fresh tree, which is the right behavior. Every
+  // other persistent tab is always-mounted in its own scroll container below
+  // to preserve scrollTop across tab switches (#33).
+  const renderClipBrowser = () => {
+    if (view !== "clips" || !selProj) return null;
+    const fromList = localProjects.find((p) => p.id === selProj.id);
+    const proj = (selProj.clips?.length > 0) ? selProj : (fromList?.clips?.length > 0 ? fromList : selProj);
+    if (!proj) return null;
     return (
-      <ProjectsListView
-        localProjects={localProjects}
-        setLocalProjects={setLocalProjects}
-        projectFolders={projectFolders}
-        activeFolder={activeFolder}
-        onSelectFolder={setActiveFolder}
-        onFoldersChanged={refreshFolders}
-        onSelect={handleSelectProject}
-        onDeleteProjects={handleDeleteProjects}
-        mainGame={mainGame}
+      <ClipBrowser
+        project={proj}
+        onBack={() => { setSelProj(null); setView("projects"); }}
+        onUpdateClip={handleUpdateClip}
+        onTranscript={setTranscript}
+        onEditClipTitle={handleEditClipTitle}
+        onOpenInEditor={handleOpenInEditor}
+        onBatchRender={async (projectId) => {
+          try {
+            const full = await window.clipflow.projectLoad(projectId);
+            if (full?.project) setSelProj(full.project);
+          } catch (e) { /* ignore */ }
+        }}
         gamesDb={gamesDb}
       />
     );
   };
+
+  // Helper: per-tab scroll container style. flex:1 + display:block when active,
+  // collapsed when inactive. display:none preserves scrollTop in Chromium.
+  const tabPaneStyle = (active) => ({
+    flex: active ? 1 : "0 0 0",
+    overflow: "auto",
+    scrollbarGutter: "stable",
+    display: active ? "block" : "none",
+  });
+  const showProjectsList = view === "projects" || (view === "clips" && !selProj);
+  const showClipBrowser = view === "clips" && !!selProj;
 
   return (
     <div style={{ background: T.bg, height: "100vh", overflow: "hidden", color: T.text, fontFamily: T.font, display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8 }}>
@@ -672,11 +506,181 @@ export default function App() {
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
-        <div style={{ flex: 1, overflow: view === "editor" ? "hidden" : "auto", scrollbarGutter: view === "editor" ? undefined : "stable" }}>
-          <div style={{ padding: view === "editor" ? 0 : "32px 40px", maxWidth: (view === "recordings" || view === "editor") ? "none" : 860, margin: "0 auto", height: view === "editor" ? "100%" : undefined }}>
-            {renderView()}
+        {/* Each persistent tab is always-mounted with its OWN scroll container so
+            scrollTop is preserved per-tab across switches (#33). display:none keeps
+            scrollTop in Chromium. Editor is the only conditional non-clip view —
+            it's heavy and per-clip. ClipBrowser is per-project and resets each entry. */}
+        <div style={tabPaneStyle(view === "rename")}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            <RenameView
+              gamesDb={gamesDb}
+              mainGameName={mainGame}
+              pendingRenames={pendingRenames}
+              setPendingRenames={setPendingRenames}
+              renameHistory={renameHistory}
+              setRenameHistory={setRenameHistory}
+              onAddGame={(entryType) => setShowAddGame(entryType || "game")}
+              onGameDayUpdate={handleGameDayUpdate}
+              watchFolder={watchFolder}
+              testWatchFolder={testWatchFolder}
+            />
           </div>
         </div>
+        <div style={tabPaneStyle(view === "recordings")}>
+          <div style={{ padding: "32px 40px", margin: "0 auto" }}>
+            <RecordingsView
+              gamesDb={gamesDb}
+              localProjects={localProjects}
+              testWatchFolder={testWatchFolder}
+              onProjectCreated={(projectId) => {
+                window.clipflow?.projectList().then((result) => {
+                  if (result?.projects) setLocalProjects(result.projects);
+                });
+              }}
+            />
+          </div>
+        </div>
+        <div style={tabPaneStyle(view === "queue")}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            <QueueView
+              allClips={allClips}
+              localProjects={localProjects}
+              mainGame={mainGame}
+              mainGameTag={mainGameTag}
+              platforms={platforms}
+              trackerData={trackerData}
+              setTrackerData={setTrackerData}
+              weeklyTemplate={weeklyTemplate}
+              weekTemplateOverrides={weekTemplateOverrides}
+              ytDescriptions={ytDescriptions}
+              setYtDescriptions={setYtDescriptions}
+              captionTemplates={captionTemplates}
+              setCaptionTemplates={setCaptionTemplates}
+              platformOptions={platformOptions}
+              setPlatformOptions={setPlatformOptions}
+              gamesDb={gamesDb}
+              requireHashtagInTitle={requireHashtagInTitle}
+            />
+          </div>
+        </div>
+        <div style={tabPaneStyle(view === "tracker")}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            <TrackerView
+              mainGame={mainGame}
+              mainGameTag={mainGameTag}
+              trackerData={trackerData}
+              setTrackerData={setTrackerData}
+              weeklyTemplate={weeklyTemplate}
+              setWeeklyTemplate={setWeeklyTemplate}
+              weekTemplateOverrides={weekTemplateOverrides}
+              setWeekTemplateOverrides={setWeekTemplateOverrides}
+              savedTemplates={savedTemplates}
+              setSavedTemplates={setSavedTemplates}
+              gamesDb={gamesDb}
+            />
+          </div>
+        </div>
+        <div style={tabPaneStyle(view === "settings")}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            <SettingsView
+              mainGame={mainGame}
+              setMainGame={setMainGame}
+              mainPool={mainPool}
+              setMainPool={setMainPool}
+              gamesDb={gamesDb}
+              setGamesDb={setGamesDb}
+              onEditGame={handleEditGame}
+              onAddGame={(entryType) => setShowAddGame(entryType || "game")}
+              watchFolder={watchFolder}
+              setWatchFolder={setWatchFolder}
+              testWatchFolder={testWatchFolder}
+              setTestWatchFolder={setTestWatchFolder}
+              platforms={platforms}
+              setPlatforms={setPlatforms}
+              outputFolder={outputFolder}
+              setOutputFolder={setOutputFolder}
+              sfxFolder={sfxFolder}
+              setSfxFolder={setSfxFolder}
+              anthropicApiKey={anthropicApiKey}
+              setAnthropicApiKey={setAnthropicApiKey}
+              gatewayUrl={gatewayUrl}
+              setGatewayUrl={setGatewayUrl}
+              gatewayAuthToken={gatewayAuthToken}
+              setGatewayAuthToken={setGatewayAuthToken}
+              youtubeClientId={youtubeClientId}
+              setYoutubeClientId={setYoutubeClientId}
+              youtubeClientSecret={youtubeClientSecret}
+              setYoutubeClientSecret={setYoutubeClientSecret}
+              metaAppId={metaAppId}
+              setMetaAppId={setMetaAppId}
+              metaAppSecret={metaAppSecret}
+              setMetaAppSecret={setMetaAppSecret}
+              instagramAppId={instagramAppId}
+              setInstagramAppId={setInstagramAppId}
+              instagramAppSecret={instagramAppSecret}
+              setInstagramAppSecret={setInstagramAppSecret}
+              tiktokClientKey={tiktokClientKey}
+              setTiktokClientKey={setTiktokClientKey}
+              tiktokClientSecret={tiktokClientSecret}
+              setTiktokClientSecret={setTiktokClientSecret}
+              styleGuide={styleGuide}
+              setStyleGuide={setStyleGuide}
+              requireHashtagInTitle={requireHashtagInTitle}
+              setRequireHashtagInTitle={setRequireHashtagInTitle}
+              collapsedGroups={settingsCollapsed}
+              setCollapsedGroups={setSettingsCollapsed}
+            />
+          </div>
+        </div>
+        <div style={tabPaneStyle(showProjectsList)}>
+          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+            <ProjectsListView
+              localProjects={localProjects}
+              setLocalProjects={setLocalProjects}
+              projectFolders={projectFolders}
+              activeFolder={activeFolder}
+              onSelectFolder={setActiveFolder}
+              onFoldersChanged={refreshFolders}
+              onSelect={handleSelectProject}
+              onDeleteProjects={handleDeleteProjects}
+              mainGame={mainGame}
+              gamesDb={gamesDb}
+            />
+          </div>
+        </div>
+        {/* ClipBrowser — per-project; conditional render so each project is fresh */}
+        {showClipBrowser && (
+          <div style={{ flex: 1, overflow: "auto", scrollbarGutter: "stable" }}>
+            <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+              {renderClipBrowser()}
+            </div>
+          </div>
+        )}
+        {/* Editor — full-pane sibling, only mounted when active */}
+        {view === "editor" && (
+          <div style={{ flex: 1, overflow: "hidden", height: "100%" }}>
+            <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={async () => {
+              if (editorContext?.projectId) {
+                try {
+                  const full = await window.clipflow.projectLoad(editorContext.projectId);
+                  if (full?.project) {
+                    setLocalProjects((prev) => prev.map((p) => p.id === editorContext.projectId ? full.project : p));
+                    setSelProj((prev) => prev && prev.id === editorContext.projectId ? full.project : prev);
+                  }
+                } catch (e) { console.error("Failed to refresh project after editor:", e); }
+              }
+              setEditorContext(null); setView("clips");
+            }} onClipRendered={async (projectId) => {
+              try {
+                const full = await window.clipflow.projectLoad(projectId);
+                if (full?.project) {
+                  setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
+                  setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
+                }
+              } catch (e) { console.error("Failed to refresh project after render:", e); }
+            }} />
+          </div>
+        )}
         <Sidebar
           navItems={navItems}
           activeView={view === "clips" ? "projects" : view}
