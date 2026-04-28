@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-04-28 (session 33) — External technical summary refresh
+
+### Documentation
+- **Refreshed external technical summary** at `C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\technical-summary.md`. The previous version was dated 2026-04-18 and predated 10 days of major work (lazy-cut pivot, NVENC + batched retranscribe, YAMNet signal, scene_change drop, "Clip N" titles, subtitle timing rebuild, autosave, test-mode, security hardening, Sentry + PostHog, toolchain modernization, this dead-code audit). New version is ~360 lines, reflects all changes from sessions 22-33. Refresh history tracked in [docs/external-docs-log.md](docs/external-docs-log.md). Single file, overwritten per project rule (git tracks history in the Obsidian vault, not this repo).
+
 ## [Unreleased] — 2026-04-28 (session 33) — Dead code audit, Pass 3: stale planning docs + dead constant
 
 ### Removed
