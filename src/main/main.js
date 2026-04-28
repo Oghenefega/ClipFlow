@@ -1038,8 +1038,21 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, tes
     const importRoot = testMode
       ? (store.get("testWatchFolder") || path.join(watchFolder, "Test"))
       : watchFolder;
-    const now = new Date();
-    const monthFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // Bucket by RECORDING date, not import date (#61). OBS filenames lead with
+    // YYYY-MM-DD followed by space or underscore (e.g. "2026-03-23 13-33-07.mp4").
+    // Fallbacks: file birthtime (unreliable for copies) → today.
+    const filenameDateMatch = filename.match(/^(\d{4})-(\d{2})-(\d{2})[\s_]/);
+    let monthFolder;
+    if (filenameDateMatch) {
+      monthFolder = `${filenameDateMatch[1]}-${filenameDateMatch[2]}`;
+    } else {
+      let bucketDate;
+      try {
+        const bt = fs.statSync(sourcePath).birthtime;
+        bucketDate = bt && !isNaN(bt) ? bt : new Date();
+      } catch { bucketDate = new Date(); }
+      monthFolder = `${bucketDate.getFullYear()}-${String(bucketDate.getMonth() + 1).padStart(2, "0")}`;
+    }
     const targetDir = path.join(importRoot, monthFolder);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const targetPath = path.join(targetDir, filename);
