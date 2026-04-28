@@ -1,109 +1,107 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-04-27 — Session 31 — Issue #75 Phases 1–3 shipped. Lazy-cut pivot filed as #76, pick that up next._
+_Last updated: 2026-04-28 — Session 32 — Issue #76 lazy-cut pivot shipped. Next session: dead code audit across the codebase._
 
 ---
 
 ## One-line TL;DR
 
-Three stacked wins on the pipeline reference recording: **Clip Cutting 297s → 125s (2.4×), Clip Retranscription 215s → 81s (2.7×), Pipeline total 810s → 506s (1.6×, ~5 min faster every run)**. NVENC encoder + parallel cuts (concurrency=3) for #75's first half; single-Python-process batched retranscription for the second half. New strict "no silent CPU fallback" encoder setting (Auto / GPU / CPU) with live status in Settings. Issue #75's optimization halves are done; the architectural pivot ("lazy-cut") is filed as #76 and is the recommended next session.
+**Pipeline 506s → 397s (1.27×).** Lazy-cut architecture totally replaced the eager-cut model — the AI pipeline no longer materializes per-clip MP4s, the editor's recut handlers mutate `nleSegments` instead of re-encoding (instant edits), and the final MP4 is only ever produced at publish time on approved clips. Issue [#76](https://github.com/Oghenefega/ClipFlow/issues/76) closed alongside [#75](https://github.com/Oghenefega/ClipFlow/issues/75), [#41](https://github.com/Oghenefega/ClipFlow/issues/41), [#42](https://github.com/Oghenefega/ClipFlow/issues/42). Combined with session 31's optimization halves, the AI pipeline is now **810s → 397s (2.04×)** on the reference recording. Next session is a dead-code sweep — we agreed to do it in three reviewable passes after several feature-heavy sessions piled up potential leftovers.
 
 ---
 
-## What just shipped (session 31)
+## What just shipped (session 32)
 
-### Issue #75 Phase 1 — NVENC encoder swap
+### Issue #76 — lazy-cut architecture pivot
 
-**Files:** [src/main/ffmpeg.js](src/main/ffmpeg.js), [src/main/main.js](src/main/main.js), [src/main/preload.js](src/main/preload.js), [src/main/ai-pipeline.js](src/main/ai-pipeline.js), [src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js).
+Source video + `nleSegments` is now the canonical clip representation. The cut work moved from AI-pipeline time to publish/render time and is paid only on clips the user approves.
 
-- Encoder is selectable: `clipCutEncoder` electron-store key, values `"auto"` | `"gpu"` | `"cpu"`, default `"auto"`. Migration adds the key on existing installs.
-- `"gpu"` is **strict**: if NVENC isn't detected, the pipeline aborts with a clear error message ("Switch to CPU or Auto in Settings → Pipeline Quality"). Never silently falls back. This was a hard requirement from the user — they didn't want to think they were on GPU but actually be on CPU.
-- `"auto"` uses NVENC if detected, otherwise x264. **Both pipeline log and on-screen progress text show which encoder ran every time** ("Cutting clip 7/15 (NVENC)..."), so the user is never confused about which path is active.
-- NVENC args: `-c:v h264_nvenc -preset p4 -tune hq -rc vbr -cq 19 -b:v 0 -maxrate 25M -bufsize 50M -spatial_aq 1 -temporal_aq 1`. cq=19 ≈ crf=18 in software for visually-equivalent output.
-- `cutClip` and `concatCutClip` accept new `opts` (`encoder`, `fps`). When fps is provided, the per-call probe is skipped — the AI pipeline used to call `probe()` 16× (Stage 0 + once per clip); now Stage 0's probe is threaded through, dropping the 15 redundant probes.
-- All user-driven recut IPC handlers (`clip:extend`, `clip:extendLeft`, `clip:concatRecut`, `clip:recut`) also use the same encoder selection — editor recuts inherit NVENC.
+**Files:** [src/main/ai-pipeline.js](src/main/ai-pipeline.js), [src/main/ffmpeg.js](src/main/ffmpeg.js), [src/main/main.js](src/main/main.js), [src/main/preload.js](src/main/preload.js), [src/main/render.js](src/main/render.js), [src/renderer/editor/stores/useEditorStore.js](src/renderer/editor/stores/useEditorStore.js), [src/renderer/views/ProjectsView.js](src/renderer/views/ProjectsView.js), [src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js).
 
-**Measured:** 297.1s → 142.7s (2.08×, 154s saved) on the reference 30-min RL recording. Standalone bench: 17.65s (x264) → 9.43s (NVENC) on a single 60s 1080×1920 60fps clip.
+- **Stage 7 (AI pipeline)** stops calling `cutClip`/`concatCutClip`. Each clip is persisted as `{ startTime, endTime, nleSegments: [{ id, sourceStart, sourceEnd }], filePath: null }` plus a thumbnail. Stage 7 went from **124.9s → 4.7s**.
+- **Stage 7b retranscription** extracts audio directly from source ranges via the new `ffmpeg.extractAudioRange(sourceFile, wavPath, startSec, endSec, audioTrackIndex)` helper. The session-31 batched single-Python retranscription is preserved; only the audio-extract step changed. 18/18 successful retranscriptions on the reference run.
+- **Recut IPC handlers** (`clip:extend`, `clip:extendLeft`, `clip:concatRecut`, `clip:recut`) mutate `nleSegments` + `startTime`/`endTime` and return them to the renderer. No ffmpeg call. Trim/extend/splice are effectively instant.
+- **`render.js`** locks down precedence: `nleSegments + sourceFile` → legacy `clip.filePath` (only when source offline) → throw with clear error. No more silent fallback that could render the wrong range.
+- **`render.js` consumes `clipCutEncoder` setting at publish time** — was hardcoded `libx264 -preset medium -crf 18`. The user's GPU pick from #75 is now honored at render time.
+- **Editor renderer** (`useEditorStore`) syncs `nleSegments` from handler responses and pushes to `usePlaybackStore` so timeline/preview/playback stay coherent after edits.
+- **`ProjectsView.ClipVideoPlayer`** plays source-with-seek for new clips (no clip MP4 on disk). `loadedmetadata` seeks to `clip.startTime`, the rAF loop reports clip-relative `currentTime`, playback pauses + snaps back at `clip.endTime`.
+- **Settings UI labels** updated — "Render encoder" / "Parallel audio extracts" — same store keys, same semantics, different invocation point.
+- **Removed dead code:** `ffmpeg.cutClip`, `ffmpeg.concatCutClip`, `ffmpeg:cutClip` IPC + preload bridge, `cutClipFast` helper in ai-pipeline.js, the now-unused `clipCutEncoder` resolution at AI pipeline Stage 0.
 
-### Issue #75 Phase 2 — Parallel cuts (concurrency pool)
+**Measured (reference 30-min RL recording, 18 clips this run vs 15 in session 31):**
+- Pipeline total: **506.2s → 397.5s** (1.27×, 108s saved per source).
+- Stage 7 (Clip Metadata, formerly Clip Cutting): **124.9s → 4.7s** (26.5×).
+- Stage 7b retranscription: 80.7s on 15 clips → 92.7s on 18 clips (per-clip 5.4s → 5.15s — slightly faster).
 
-**Files:** [src/main/main.js](src/main/main.js) (migration), [src/main/ai-pipeline.js](src/main/ai-pipeline.js) (cut loop), [src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js) (1–5 button row).
+User-confirmed in-app: editor opens session-31-era clips, plays correctly, trim/extend/splice all instant, render produces correct final MP4.
 
-- `clipCutConcurrency` electron-store key, default 3, range 1–5. Migration adds the key.
-- Stage 7 cut loop rewritten as concurrency-limited pool: N workers pull indices from a shared cursor; each task writes to a pre-allocated index-aligned slot; `project.clips` assembled in source order after the pool drains so `clip_001` stays first regardless of completion order.
-- **Concurrency=3 is the sweet spot.** Standalone bench at 1/2/3/4: concurrency=3 gave 1.18× over sequential; concurrency=4 was identical (no further gain). RTX 30-series shares one NVENC silicon block across concurrent sessions — encoder bandwidth caps at ~3 sessions of useful work. Higher counts just split bandwidth without amortizing fixed costs.
-- Settings UI dial lets users dial down to 1 if they ever see per-clip failures (no evidence of this on the 3090 reference machine, but if a future user has a lower-end GPU, NVENC session limits could matter).
+### Bug surfaced (filed for follow-up)
 
-**Measured:** 142.7s → 109.9s (1.30× on top of Phase 1) — Phase 2 verification run. The session-31 verification run measured 124.9s (run-to-run variance ±15s on the parallel path is normal; NVENC thermal/driver state). Average ~117s.
-
-### Issue #75 Phase 3 — Batched retranscription (single Python process)
-
-**Files:** [tools/transcribe.py](tools/transcribe.py) (batch mode), [src/main/ai/transcription/stable-ts.js](src/main/ai/transcription/stable-ts.js) (`transcribeBatch`), [src/main/whisper.js](src/main/whisper.js) (re-export + fallback), [src/main/ai-pipeline.js](src/main/ai-pipeline.js) (Stage 7b rewrite).
-
-- `tools/transcribe.py` got a new `--batch <manifest.json>` arg. Manifest is `[{"audio": "...", "output": "..."}, ...]`. Helper `transcribe_one(model, audio, output, language, initial_prompt)` extracted so single-clip and batch paths share the per-clip work.
-- The whole point: **load the model ONCE**, loop over the manifest. Pre-fix, each of 15 clips paid ~5-8s of Python startup + CUDA init + faster-whisper model load + stable-ts init = ~75-120s of pure overhead per pipeline run. Post-fix, ~8s once. The remaining work is actual whisper inference + refine() per clip.
-- Each clip's output JSON is written immediately on completion. If Python crashes mid-batch, partial progress survives on disk — the JS caller reads what's there and flags missing outputs as `clip.transcriptionFailed`.
-- Stage 7b in [ai-pipeline.js](src/main/ai-pipeline.js) rewritten: parallel audio extracts (concurrency pool, reusing `clipCutConcurrency` setting) → single batched transcribe call → assign results back, cleanup temp WAVs and JSON outputs. The lessons.md "never source-slice word timestamps" rule is preserved — every clip still gets transcribed against its own audio, just in one Python process instead of 15.
-
-**Measured:** 214.7s → 80.7s (2.7×) on the reference recording. **15/15 clips transcribed successfully, no failures.** Standalone batch smoke on 3 clips: 29.2s for 3 clips of ~30-45s each, model loaded once.
-
-### Settings UI
-
-[src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js) — the existing "Pipeline Quality" card got two new rows:
-- "Clip cutting encoder" — three-button segmented control (Auto / GPU / CPU) with caption text that changes based on the selected mode (the GPU caption explicitly says "Pipeline aborts with a clear error if NVENC isn't available — never silently falls back to CPU"). "NVENC detected: yes/no" status hint shown live.
-- "Parallel cuts" — five-button row 1–5 (3 highlighted by default).
-
-User confirmed in-app: settings render correctly, NVENC detected = yes, both controls work, editor recut still works, all 15 clips ship cleanly.
+- **[#77](https://github.com/Oghenefega/ClipFlow/issues/77) — editor transcript panel highlights wrong segment during playback.** The subtitle overlay on the preview is correct; the left-panel transcript list highlights a different segment. Surfaced during the lazy-cut visual check on a session-31 legacy project. May be pre-existing or related to the playback-time mapping rewiring done in this session. Worth investigating in a follow-up.
 
 ---
 
-## Why the user's "lazy-cut" pivot is the right next move
+## Why next session is a dead code audit
 
-The user raised this in session and was right: **eager-cutting 15 MP4s upfront is wasted work for clips they won't publish**. Phase 4 of #42 (already shipped) added `nleSegments` to clips so the render path uses source+segments — the cut MP4 is already half-redundant. Today it's only load-bearing for editor preview playback, retranscription audio extract, and thumbnail extract. All three can be source-direct.
+The user raised it at end of session: "we've had a ton of sessions lately, changing things… I wonder if we're just leaving legacy code that is now dead to pile up." Agreed and held off until the lazy-cut commit was checkpointed cleanly.
 
-**Net win projection:** Clip Cutting 124.9s → ~0s blocking (move to per-clip-at-publish, paid only on approved clips). Pipeline ~506s → ~390s. AND wasted cuts on rejected clips drop to zero — if you keep 10 of 15, you save 5 × 8s = ~40s of pure waste.
+### Plan for the audit (three reviewable passes)
 
-This is filed as **issue [#76](https://github.com/Oghenefega/ClipFlow/issues/76)** with full architectural spec. **Read that issue cold at the start of the next session — it's the blueprint.**
+**Pass 1 — orphaned IPC handlers + preload bridges.**
+- IPC handlers in [src/main/main.js](src/main/main.js) and [src/main/preload.js](src/main/preload.js) without renderer callers, vice versa.
+- Preload methods exposed via `window.clipflow.*` that no renderer file reads.
+- Cross-reference: grep all `ipcMain.handle("xxx:yyy", ...)` patterns vs `ipcRenderer.invoke("xxx:yyy", ...)` patterns. List orphans, user approves what to delete.
+
+**Pass 2 — orphaned Zustand actions + state fields + legacy migration paths.**
+- The 6 stores in `src/renderer/editor/stores/` — actions that aren't called, state fields that aren't read.
+- Specifically check the `audioSegments` → `nleSegments` migration in `useEditorStore.initFromContext` — is the legacy field still being written somewhere, or can the migration code be deleted?
+- `transcription` field handling — multiple paths set it; check what's actually consumed.
+
+**Pass 3 — dead helpers, exports, stale TODOs.**
+- Module exports with no importers.
+- `// TODO`, `// FIXME`, `// removed`, `// deprecated` comments — many likely reference resolved issues.
+- Unused constants, dead config keys.
+- Files in `tasks/` (e.g. `subtitle-timing-rebuild-spec.md`, `nle-architecture-plan.md`, `cost-estimate.md`) — likely outdated planning docs that can be archived or deleted now that the work shipped.
+
+### After the audit — tech summary refresh
+
+The canonical technical summary lives at:
+`C:\Users\IAmAbsolute\Documents\Obsidian Vault\The Lab\Businesses\ClipFlow\context\technical-summary.md`
+
+Refresh it AFTER the cleanup so it documents the actual current state, not "current state + dead code we haven't deleted yet." Single file, no version number — overwrite per project rule. Definitely needs an update; pre-lazy-cut summary likely still references `clip.filePath` as load-bearing and the old eager-cut Stage 7.
 
 ---
 
-## Start the next session here
+## Other open candidates if not the audit immediately
 
-1. Run `gh issue list --repo Oghenefega/ClipFlow --state open --limit 50` for the current backlog.
-2. **Recommended pickup: [#76 — lazy-cut architecture pivot](https://github.com/Oghenefega/ClipFlow/issues/76).** That's the architectural unlock. The issue body has the full piece breakdown (A/B/C/D), risk analysis, and acceptance criteria.
-3. Other open candidates if not #76 immediately:
-   - **[#74](https://github.com/Oghenefega/ClipFlow/issues/74)** — Hide pipeline internals UX. Smaller scope, must land before any external user runs the pipeline.
-   - **[#73](https://github.com/Oghenefega/ClipFlow/issues/73)** — Cold-start UX. Independent of pipeline work.
-   - **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher rigidity.
+- **[#77](https://github.com/Oghenefega/ClipFlow/issues/77)** — transcript panel highlight desync. Standalone bug, modest scope.
+- **[#74](https://github.com/Oghenefega/ClipFlow/issues/74)** — Hide pipeline internals from end users (pre-launch UX). Smaller scope, must land before any external user runs the pipeline.
+- **[#73](https://github.com/Oghenefega/ClipFlow/issues/73)** — Cold-start UX (branded splash + bundle code-splitting). Independent of pipeline.
+- **[#70](https://github.com/Oghenefega/ClipFlow/issues/70)** — Rename watcher rigidity.
 
 ---
 
 ## Logs / debugging
 
-- **App log:** `%APPDATA%\clipflow\logs\app.log` — main process events, IPC errors, store mutations.
-- **Pipeline logs:** `processing/logs/<videoName>.log` — per-pipeline-run stdout/stderr from every step. Session 31 added new lines: `Clip cutting: encoder=NVENC (setting=gpu)`, `Cutting 15 clips with NVENC, concurrency=3 (fps=60)`, `[INFO] Batch retranscription returned N/M`. All greppable.
-- **Latest reference log:** [processing/logs/RL_2026-10-15_Day9_Pt1_1777321811452.log](processing/logs/RL_2026-10-15_Day9_Pt1_1777321811452.log) — full session-31 in-app verification with strict GPU mode + batched retranscription. Pipeline total 506.2s, all 6 signals green, 15/15 clips transcribed.
-- **Standalone benchmarks (still on disk in `tmp/`):**
-  - `tmp/nvenc-test/` — single-clip x264 vs NVENC + concurrency 1/2/3/4 timing artifacts.
-  - `tmp/batch-smoke/` — manifest + 3 input WAVs + 3 output JSONs from the batch-mode smoke test. Useful as a reference manifest format for #76.
-- **DevTools live signal events:** `window.clipflow.onSignalProgress((d) => console.log(d))`.
+- **App log:** `%APPDATA%\clipflow\logs\app.log` — main process events, IPC errors, store mutations. Look here for `[Render] Using NLE path...` (lazy-cut hit) vs `[Render] Falling back to legacy clip MP4...` (legacy path).
+- **Pipeline logs:** `processing/logs/<videoName>_<ts>.log` — per-pipeline-run stdout/stderr from every step. Session 32 added a new line: `Lazy-cut: skipping MP4 materialization for N clips (final cuts happen at publish time)`. The `[DONE] Clip Cutting` line is gone, replaced by `[DONE] Clip Metadata (4.7s) — N clip ranges prepared (lazy-cut)`.
+- **Latest reference log:** [processing/logs/RL_2026-10-15_Day9_Pt1_1777373571340.log](processing/logs/RL_2026-10-15_Day9_Pt1_1777373571340.log) — full session-32 in-app verification. Pipeline total 397.5s, all 6 signals green, 18/18 clips retranscribed.
+- **Editor recut paths:** `electron-log` with scope `editor` — look for `ExtendRight (lazy)`, `ExtendLeft (lazy)`, `ConcatRecut (lazy)`, `Recut (lazy)`. Each logs the old + new boundaries. None should report any ffmpeg call or temp file creation.
 
 ---
 
 ## Watch out for
 
-- **Don't change `cutClip`'s default `opts.encoder` away from `"x264"`.** It's deliberately the safe default so any future caller that forgets to pass an encoder gets the original behavior, not a surprise NVENC dependency. The AI pipeline + recut IPC handlers explicitly resolve from the setting and pass it. Anything new should do the same.
-- **Don't strip the `"gpu"` strict-fail behavior** in `resolveEncoder`. The user explicitly asked for "no silent fallback" — if NVENC is missing in GPU mode, throw. Auto mode handles the fallback case loudly.
-- **NVENC output is ~50% larger than x264 at notional-equal quality** (151MB vs 101MB on a 60s 1080×1920 60fps test clip at NVENC cq=19 vs x264 crf=18). Visually equivalent for social. If a future requirement cares about file size, switching the default to `"cpu"` is one line.
-- **Run-to-run variance on parallel cuts is ±15s.** NVENC thermal/driver state. Don't chase a single-run number; average across two runs.
-- **The batched retranscription script writes per-clip JSON outputs immediately.** If you change the cleanup logic in [ai-pipeline.js](src/main/ai-pipeline.js) Stage 7b, make sure failed clips still get their JSON deleted (the current code uses try/unlinkSync in the per-task assignment loop — keep it that way).
-- **`refine()` in stable-ts is the residual cost.** ~5s per clip. Doing 15 clips × ~5s of iterative re-inference is ~75s of the remaining 80.7s retranscription budget. Lazy-cut doesn't change this; an additional optimization (skip-refine on segment-aligned clean clips) is mentioned in #76's notes as a follow-up.
-- **Issue #75 is partially closed.** The optimization halves are done; the architectural pivot is #76. Don't close #75 yet — close it when #76 lands and we can mark "Pipeline cutting + retranscription performance" as fully resolved.
+- **Don't write `clip.filePath` from any new code path.** It's tolerated as a legacy read-fallback (only used when `project.sourceFile` is offline) but every new clip has `filePath: null` and that's the invariant. Recut handlers explicitly preserve a legacy clip's existing filePath without overwriting it; the renderer dropped its `filePath: result.filePath` assignments.
+- **Don't strip the `nleSegments`-precedence check in `render.js`.** The throw on missing segments is deliberate — silent fallback to source-only without segments would render the wrong range. The exact failure mode this prevents: a clip with empty `nleSegments` array would render the entire source recording end-to-end if the fallback chain wasn't tightened.
+- **The `clipCutEncoder` setting now governs publish-time render encoding.** Don't undo the `buildEncoderArgs(encoder)` wiring in render.js — without it, lazy-cut would have silently removed the NVENC acceleration that #75 added.
+- **`ProjectsView.ClipVideoPlayer` is now stateful around clip-relative time.** Don't change `currentTime` semantics without checking the rAF loop's bound-and-snap-back logic at `clipEnd - 0.05`. Subtitle/caption overlays receive clip-relative time; if you reintroduce a path where they get source-absolute time, the karaoke timing will desync (see #77 for a related symptom in a different panel).
+- **Issue #77 may have a similar root cause to a regression class** — left-panel transcript highlights might be reading source-absolute `currentTime` when they should be reading the editor store's mapped timeline time. Worth tracing first if the next session picks it up.
 
 ---
 
 ## Session model + cost
 
-- **Model:** Sonnet 4.6 → Opus 4.7 mid-session for the architectural rethink and the lazy-cut spec.
-- **Files committed this session:** ~7 source files + CHANGELOG.md + HANDOFF.md.
-- **Issues filed:** [#76](https://github.com/Oghenefega/ClipFlow/issues/76) — lazy-cut architecture pivot.
-- **Issues partially closed:** [#75](https://github.com/Oghenefega/ClipFlow/issues/75) — optimization halves shipped, architectural half delegated to #76.
+- **Model:** Opus 4.7 throughout — architectural rewrite + verification.
+- **Files committed this session:** 9 source files + CHANGELOG.md + tasks/todo.md (commit `cca1920`).
+- **Issues closed:** [#76](https://github.com/Oghenefega/ClipFlow/issues/76), [#75](https://github.com/Oghenefega/ClipFlow/issues/75), [#41](https://github.com/Oghenefega/ClipFlow/issues/41), [#42](https://github.com/Oghenefega/ClipFlow/issues/42).
+- **Issues filed:** [#77](https://github.com/Oghenefega/ClipFlow/issues/77) — transcript panel highlight desync.
