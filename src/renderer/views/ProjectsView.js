@@ -111,11 +111,13 @@ let _activeVideoRef = null;
 
 function ClipVideoPlayer({ clip, project, template }) {
   const videoRef = useRef(null);
+  const seekbarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isBarHovered, setIsBarHovered] = useState(false);
 
   // Lazy-cut (#76): prefer project.sourceFile (single source of truth) and
   // bound playback to the clip's [startTime, endTime] range. Fall back to a
@@ -261,8 +263,12 @@ function ClipVideoPlayer({ clip, project, template }) {
 
   const handleSeek = useCallback((e) => {
     const vid = videoRef.current;
-    if (!vid || !videoDuration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    const bar = seekbarRef.current;
+    if (!vid || !videoDuration || !bar) return;
+    // Use the seekbar ref instead of e.currentTarget — when this is called
+    // from a window-level mousemove during drag, currentTarget is the window
+    // (no getBoundingClientRect), which crashes the renderer.
+    const rect = bar.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const clipRel = pct * videoDuration;
     vid.currentTime = sourceMode ? (clipStart + clipRel) : clipRel;
@@ -374,9 +380,14 @@ function ClipVideoPlayer({ clip, project, template }) {
         </div>
       </div>
 
-      {/* Seek bar — below the video */}
+      {/* Seek bar — below the video. Rendered as a 12px hover-zone hugging the
+          video card so the click target is comfortable, with a 4px visible track
+          centered inside. No CSS transition on the fill — at 60fps rAF cadence,
+          a transition causes perceptible lag and the bar appears to "stick"
+          until the next big jump (#79). */}
       {showVideo && videoDuration > 0 && (
         <div
+          ref={seekbarRef}
           data-seekbar="true"
           onClick={handleSeek}
           onMouseDown={(e) => {
@@ -387,17 +398,40 @@ function ClipVideoPlayer({ clip, project, template }) {
             window.addEventListener("mousemove", onMove);
             window.addEventListener("mouseup", onUp);
           }}
+          onMouseEnter={() => setIsBarHovered(true)}
+          onMouseLeave={() => setIsBarHovered(false)}
           style={{
-            width: "100%", height: 6, background: "rgba(255,255,255,0.1)",
-            borderRadius: "0 0 4px 4px", cursor: "pointer", position: "relative",
-            marginTop: -1,
+            width: "100%", height: 12, cursor: "pointer", position: "relative",
+            marginTop: -1, display: "flex", alignItems: "center",
           }}
         >
+          {/* Track */}
           <div style={{
-            width: `${progress}%`, height: "100%",
-            background: T.accent, borderRadius: "0 0 4px 4px",
-            transition: isSeeking ? "none" : "width 0.1s linear",
-          }} />
+            width: "100%", height: (isBarHovered || isSeeking) ? 6 : 4,
+            background: "rgba(255,255,255,0.12)",
+            borderRadius: 999, overflow: "hidden",
+            transition: "height 120ms ease",
+          }}>
+            {/* Fill — no width transition; rAF updates drive smoothness */}
+            <div style={{
+              width: `${progress}%`, height: "100%",
+              background: `linear-gradient(90deg, ${T.accent} 0%, ${T.accentLight || T.accent} 100%)`,
+              borderRadius: 999,
+              boxShadow: `0 0 6px ${T.accent}66`,
+            }} />
+          </div>
+          {/* Playhead knob — only when hovered/seeking */}
+          {(isBarHovered || isSeeking) && (
+            <div style={{
+              position: "absolute",
+              left: `calc(${progress}% - 6px)`,
+              width: 12, height: 12,
+              borderRadius: "50%",
+              background: "#fff",
+              boxShadow: `0 0 8px ${T.accent}cc, 0 1px 4px rgba(0,0,0,0.4)`,
+              pointerEvents: "none",
+            }} />
+          )}
         </div>
       )}
     </div>
