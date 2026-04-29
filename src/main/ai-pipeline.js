@@ -628,13 +628,35 @@ async function runAIPipeline({
     const clipResults = new Array(totalClips); // index-aligned slots
     let thumbsDone = 0;
 
+    // Safety net: ensure no clip is shorter than this floor — if the AI ever
+    // returns something tighter than its prompt allows, we extend with a
+    // lead-in bias (60% before, 40% after) and clamp to source bounds (#16).
+    const MIN_CLIP_DURATION = 7;
+
     async function buildOneClip(i) {
       const clip = aiClips[i];
       const clipNum = String(i + 1).padStart(3, "0");
       const thumbPath = path.join(clipsDir, `clip_${clipNum}_thumb.jpg`);
 
-      const startSec = aiPrompt.parseTimestamp(clip.start);
-      const endSec = aiPrompt.parseTimestamp(clip.end);
+      let startSec = aiPrompt.parseTimestamp(clip.start);
+      let endSec = aiPrompt.parseTimestamp(clip.end);
+      const rawDuration = endSec - startSec;
+      if (rawDuration < MIN_CLIP_DURATION) {
+        const need = MIN_CLIP_DURATION - rawDuration;
+        const leadIn = need * 0.6;
+        const tail = need - leadIn;
+        startSec = Math.max(0, startSec - leadIn);
+        endSec = Math.min(probeResult.duration, endSec + tail);
+        // If clamped against a source edge, push the gap to the other side
+        // so we still hit the floor when there's room.
+        const after = endSec - startSec;
+        if (after < MIN_CLIP_DURATION) {
+          const remaining = MIN_CLIP_DURATION - after;
+          if (startSec > 0) startSec = Math.max(0, startSec - remaining);
+          else if (endSec < probeResult.duration) endSec = Math.min(probeResult.duration, endSec + remaining);
+        }
+        logger.info(`[clip ${i + 1}] extended ${rawDuration.toFixed(1)}s → ${(endSec - startSec).toFixed(1)}s (#16 safety net)`);
+      }
 
       // Thumbnail at midpoint — non-critical; clip metadata stands without it.
       const thumbTime = startSec + (endSec - startSec) / 2;

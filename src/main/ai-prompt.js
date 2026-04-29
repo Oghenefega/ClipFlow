@@ -107,11 +107,11 @@ ${pickCriteria}
   // ── Section 5: Clip Boundary Rules ──
   sections.push(`# CLIP BOUNDARY RULES
 
-1. Every clip MUST be between 30 and 90 seconds long
+1. Every clip MUST be between 7 and 90 seconds long. Match length to the moment: short punchy reactions (7-20s) are great when the joke or peak lands instantly; longer clips (20-90s) suit setups that need narrative buildup
 2. Never start a clip mid-sentence — find a natural speech boundary
 3. Never end a clip abruptly — include at least 2-3 seconds of reaction after the peak moment
-4. Start clips 3-5 seconds BEFORE the action begins (setup matters for narrative arc)
-5. The best clips have a clear structure: setup > escalation > peak moment > reaction
+4. Start clips with enough setup that a viewer dropping in cold understands the moment (often 3-5s before the action; less if the moment is self-contained)
+5. The best clips have a clear structure: setup > escalation > peak moment > reaction. Shorter clips compress this; don't pad with empty time just to hit a length
 6. If a moment needs more than 90 seconds to land, it is not a good short-form clip — skip it
 7. Timestamps must match the transcript — do not invent timestamps that don't appear in the source`);
 
@@ -125,7 +125,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 {
   "clip_number": <integer, sequential starting at 1>,
   "start": <string, format "HH:MM:SS", must exist in transcript>,
-  "end": <string, format "HH:MM:SS", must be after start, clip duration 30-90 seconds>,
+  "end": <string, format "HH:MM:SS", must be after start, clip duration 7-90 seconds>,
   "energy_level": <string, one of: "LOW", "MED", "HIGH", "EXPLOSIVE">,
   "has_frame": <boolean, true if a provided screenshot falls within this clip's time range>,
   "confidence": <number, 0.50 to 1.00, how confident you are this is a great clip>
@@ -137,7 +137,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - clip_number must be sequential: 1, 2, 3, ...
 - start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")
 - end must use format HH:MM:SS (zero-padded)
-- end minus start must be between 30 and 90 seconds
+- end minus start must be between 7 and 90 seconds
 - energy_level must be exactly one of: "LOW", "MED", "HIGH", "EXPLOSIVE"
 - confidence must be a decimal number between 0.50 and 1.00
 - has_frame must be a boolean (true or false), not a string
