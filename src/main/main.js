@@ -326,6 +326,7 @@ const isDev = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: CLIPFLOW_PROFILE === "dev" ? "ClipFlow [DEV]" : "ClipFlow",
     width: 1280,
     height: 860,
     minWidth: 960,

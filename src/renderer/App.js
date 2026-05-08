@@ -504,6 +504,9 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
           <div style={{ width: 20, height: 20, borderRadius: 5, background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, boxShadow: "0 1px 8px rgba(139,92,246,0.3)" }}>⚡</div>
           <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>ClipFlow</span>
+          {window.clipflow?.profile === "dev" && (
+            <span style={{ fontSize: 9, fontWeight: 800, color: "#ff9500", background: "rgba(255,149,0,0.15)", border: "1px solid rgba(255,149,0,0.5)", padding: "1px 5px", borderRadius: 3, letterSpacing: "0.5px", marginLeft: 4 }}>DEV</span>
+          )}
         </div>
       </div>
       <UpdateBanner />

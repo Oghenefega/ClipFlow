@@ -5,6 +5,9 @@ try { require("@sentry/electron/preload"); } catch (_) {}
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("clipflow", {
+  // Profile (#80) — "dev" or "prod"
+  profile: process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod",
+
   // File system
   getPathForFile: (file) => webUtils.getPathForFile(file),
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
