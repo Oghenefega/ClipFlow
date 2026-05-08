@@ -1,8 +1,22 @@
+// Profile redirect MUST happen before Sentry require (#80).
+// sentry-electron caches app.getPath("userData") at module-load time
+// (getsentry/sentry-electron#796), so any setPath after the require is too late.
+const { app } = require("electron");
+const path = require("path");
+const fs = require("fs");
+
+const CLIPFLOW_PROFILE = process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod";
+if (CLIPFLOW_PROFILE === "dev") {
+  const devUserData = path.join(app.getPath("appData"), "clipflow-dev");
+  app.setPath("userData", devUserData);
+}
+
 require("dotenv").config();
 const Sentry = require("@sentry/electron/main");
 
 Sentry.init({
   dsn: "https://849738274a045a047fd2068789244d13@o4511147466752000.ingest.us.sentry.io/4511147471077376",
+  environment: CLIPFLOW_PROFILE,
 });
 
 // Suppress EPIPE errors from Sentry/electron-log writing to a closed stdout pipe on quit
@@ -12,9 +26,7 @@ process.on("uncaughtException", (err) => {
   throw err;
 });
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
-const path = require("path");
-const fs = require("fs");
+const { BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
 const ffmpeg = require("./ffmpeg");

@@ -56,13 +56,38 @@ Renderer is Vite (migrated from CRA). Commands:
 ```bash
 npm install                  # Install deps
 npm run build:renderer       # Build renderer → build/ (vite build)
-npm start                    # Launch Electron (loads from build/)
-npm run dev                  # Vite dev server + Electron with hot reload
+npm start                    # Launch Electron from source (prod profile)
+npm run dev                  # Vite + Electron from source (dev profile)
+npm run build                # Build installer → dist/ClipFlow Setup *.exe
+npm run dev:seed             # Copy prod data → dev profile (--force to overwrite)
 ```
 
 `isDev` in `src/main/main.js` is `false` — Electron loads from `build/`. `npm run dev` starts Vite on http://localhost:3000 and flips the renderer to dev-server mode.
 
 **After ANY code change:** build + `npm start` to visually verify. Non-negotiable.
+
+## Dev / Daily profile split (#80)
+
+Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never touch real data.
+
+| Profile | userData | DB | How to launch |
+|---|---|---|---|
+| **prod** (daily) | `%APPDATA%\clipflow\` | `%APPDATA%\clipflow\data\clipflow.db` (packaged) or `<repo>/data/` (source) | Start Menu (installed exe) or `npm start` |
+| **dev** | `%APPDATA%\clipflow-dev\` | `%APPDATA%\clipflow-dev\data\clipflow.db` | `npm run dev` |
+
+The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path.
+
+**Promotion loop (manual reinstall, Stage 1):**
+1. Tweak in dev (`npm run dev`).
+2. When ready: `npm run build`.
+3. Run the new installer in `dist/`. Overwrites the prior install. Real data in `%APPDATA%\clipflow\` is preserved.
+4. Launch from Start Menu — new code, same data.
+
+**Stage 2 (planned):** in-app update notifier reads `dist/` for newer installers and offers a one-click "Install update" button. No GitHub Releases, no auto-download.
+
+**Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
+
+**Cross-tree requires:** `src/main/render.js` requires from `src/renderer/editor/models/`. Those files are bundled via `package.json` `build.files` — adding new cross-tree imports requires updating that list or the packaged exe will crash at startup.
 
 ## Coding Conventions
 

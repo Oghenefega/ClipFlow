@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { app } = require("electron");
 const log = require("electron-log/main").scope("database");
 
 let initSqlJs;
@@ -9,7 +10,14 @@ try {
   initSqlJs = null;
 }
 
-const DB_DIR = path.join(__dirname, "..", "..", "data");
+// DB location depends on context (#80):
+//   packaged exe (any profile)        → %APPDATA%\<profile>\data   (repo not bundled)
+//   source-running, dev profile       → %APPDATA%\clipflow-dev\data
+//   source-running, prod (npm start)  → <repo>/data                 (legacy, unchanged)
+const DB_DIR =
+  app.isPackaged || process.env.CLIPFLOW_PROFILE === "dev"
+    ? path.join(app.getPath("userData"), "data")
+    : path.join(__dirname, "..", "..", "data");
 const DB_PATH = path.join(DB_DIR, "clipflow.db");
 const OLD_FEEDBACK_PATH = path.join(DB_DIR, "feedback.db");
 

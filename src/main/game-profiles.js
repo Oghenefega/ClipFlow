@@ -1,7 +1,14 @@
 const path = require("path");
 const fs = require("fs");
+const { app } = require("electron");
 
-const PROFILES_PATH = path.join(__dirname, "..", "..", "data", "game_profiles.json");
+// Same path rule as database.js (#80): packaged or dev profile uses userData,
+// source-running prod keeps the legacy repo path.
+const DATA_DIR =
+  app.isPackaged || process.env.CLIPFLOW_PROFILE === "dev"
+    ? path.join(app.getPath("userData"), "data")
+    : path.join(__dirname, "..", "..", "data");
+const PROFILES_PATH = path.join(DATA_DIR, "game_profiles.json");
 
 /**
  * Load all game profiles from disk.

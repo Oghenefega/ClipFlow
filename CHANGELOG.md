@@ -4,6 +4,33 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-08 (session 35) — Dev/Daily profile split (#80) — installable daily exe with isolated dev sandbox
+
+### Added
+- **`CLIPFLOW_PROFILE` env var** ([main.js](src/main/main.js)) at the very top of `main.js`, before any other module loads. When set to `dev`, redirects `app.setPath('userData')` to `%APPDATA%\clipflow-dev\`. Default (unset or `prod`) keeps `%APPDATA%\clipflow\` exactly where it was. Sentry require + init moved AFTER the redirect because sentry-electron caches `app.getPath('userData')` at module-load time per [getsentry/sentry-electron#796](https://github.com/getsentry/sentry-electron/issues/796); Sentry now also receives `environment: <profile>` for dashboard tagging.
+- **DB path resolves three ways** ([database.js](src/main/database.js), [game-profiles.js](src/main/game-profiles.js)): packaged exe (any profile) → `%APPDATA%\<profile>\data\`, source-running dev → `%APPDATA%\clipflow-dev\data\`, source-running prod (`npm start`) → `<repo>/data/` (legacy, unchanged for backward compatibility). Pre-existing repo-relative path in main process was the cause of a packaged-build startup crash that surfaced this session.
+- **`npm run dev:seed`** ([scripts/seed-dev-profile.js](scripts/seed-dev-profile.js)) — one-time copy of prod userData + repo `data/` into the dev profile. Idempotent (refuses overwrite without `--force`). Skips Chromium cache subdirs (Cache, GPUCache, IndexedDB, etc.) and gracefully skips locked files if the daily app is open during seeding.
+- **Daily-driver as installed exe.** `npm run build` (already configured via electron-builder) produces an NSIS installer at `dist/ClipFlow Setup *.exe`. Installed exe runs `CLIPFLOW_PROFILE=prod` by default and lives at `%LOCALAPPDATA%\Programs\ClipFlow\`. Promotion = `npm run build` + reinstall (Stage 2 will replace this manual step with an in-app update notifier).
+
+### Changed
+- **`package.json` `build.files`** now includes `src/renderer/editor/models/**/*` (excluding `__tests__/`). [render.js](src/main/render.js) imports from `../renderer/editor/models/timeMapping` and `segmentModel`; these renderer source files were not bundled in the packaged exe and crashed startup with `MODULE_NOT_FOUND`. Three model files (`segmentModel.js`, `segmentOps.js`, `timeMapping.js`) only depend on each other — self-contained, safe to bundle into the main process bundle.
+- **`package.json` scripts:** `dev` now sets `CLIPFLOW_PROFILE=dev` before launching Vite + Electron. New `dev:seed` script wired to `node scripts/seed-dev-profile.js`. `start` and `build` unchanged.
+- **CLAUDE.md** gained a "Dev / Daily profile split" section documenting the two-profile model, data locations, the manual reinstall promotion loop, and the cross-tree require gotcha for future sessions.
+
+### Migration (one-time, performed in this session)
+- Copied `<repo>/data/clipflow.db` (~176 KB) and `<repo>/data/game_profiles.json` (~6 KB) → `%APPDATA%\clipflow\data\` so the newly-installed packaged daily exe sees existing feedback votes, file metadata, custom labels, rename history, and game profiles.
+
+### Verification
+- `npm run build:renderer` clean (2728 modules, 12-13s).
+- `npm run build` produces `dist/ClipFlow Setup 0.1.0-alpha.exe` (113 MB).
+- Packaged exe launches cleanly: log line `Database initialized at C:\Users\IAmAbsolute\AppData\Roaming\clipflow\data\clipflow.db (schema v4)`, 11 preview frames generated, no errors in app.log.
+- `npm run dev` launches in parallel with `CLIPFLOW_PROFILE=dev`; log lines confirm `clipflow-dev\logs\app.log` is being written separately from prod. Dev DB at `clipflow-dev\data\clipflow.db`. Profiles fully isolated.
+- Daily projects, OAuth tokens, queue all confirmed intact post-install.
+- `dev:seed` copy completed cleanly; dev profile starts populated with a snapshot of prod.
+
+### Known issue surfaced (not fixed this session)
+- **[#81](https://github.com/Oghenefega/ClipFlow/issues/81) — Connected platform avatars blocked by CSP.** `img-src 'self' data: blob: file:` doesn't allow external HTTPS, so platform-CDN avatar URLs (TikTok, YouTube, Facebook, Instagram CDN domains) render as broken-image placeholders. Pre-existing since H2/#48 in session 18; surfaced now because the packaged exe forces a fresh page-load with strict CSP. Filed as separate issue, out of scope for #80.
+
 ## [Unreleased] — 2026-04-29 (session 34) — Small-wins sweep: 8 issues closed, 2 follow-ups filed
 
 ### Fixed
