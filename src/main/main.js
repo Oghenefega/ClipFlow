@@ -2971,6 +2971,50 @@ ipcMain.handle("app:getVersion", async () => {
   return app.getVersion();
 });
 
+// ── Local update notifier (#80 Stage 2) ──
+// Bare-bones: scans <repo>/dist for the newest ClipFlow installer.
+// Banner shows if its filename version differs from the running app version.
+// Click "Install" → spawn installer + quit. No download, no GitHub, no auto-anything.
+const UPDATE_DIST_DIR = "C:\\Users\\IAmAbsolute\\Desktop\\ClipFlow\\dist";
+const INSTALLER_PATTERN = /^ClipFlow Setup (.+?)\.exe$/i;
+
+ipcMain.handle("update:check", async () => {
+  try {
+    if (!fs.existsSync(UPDATE_DIST_DIR)) return { available: false };
+    const entries = fs.readdirSync(UPDATE_DIST_DIR);
+    const candidates = entries
+      .map((name) => {
+        const m = name.match(INSTALLER_PATTERN);
+        if (!m) return null;
+        const fullPath = path.join(UPDATE_DIST_DIR, name);
+        const stat = fs.statSync(fullPath);
+        return { name, version: m[1], path: fullPath, mtime: stat.mtimeMs };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.mtime - a.mtime);
+    if (candidates.length === 0) return { available: false };
+    const newest = candidates[0];
+    const current = app.getVersion();
+    if (newest.version === current) return { available: false, current };
+    return { available: true, current, newVersion: newest.version, installerPath: newest.path };
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `update:check failed: ${err.message}`);
+    return { available: false, error: err.message };
+  }
+});
+
+ipcMain.handle("update:install", async (_, installerPath) => {
+  try {
+    const { spawn } = require("child_process");
+    spawn(installerPath, [], { detached: true, stdio: "ignore" }).unref();
+    setTimeout(() => app.quit(), 300);
+    return { success: true };
+  } catch (err) {
+    logger.error(logger.MODULES.system, `update:install failed: ${err.message}`);
+    return { success: false, error: err.message };
+  }
+});
+
 // ── Project Folders ──
 
 function reconcileFolders(folders, existingProjectIds) {

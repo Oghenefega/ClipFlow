@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Shell
   revealInFolder: (filePath) => ipcRenderer.invoke("shell:revealInFolder", filePath),
 
+  // Local update notifier (#80 Stage 2)
+  checkForUpdate: () => ipcRenderer.invoke("update:check"),
+  installUpdate: (installerPath) => ipcRenderer.invoke("update:install", installerPath),
+
   // Dialogs
   openFileDialog: (options) => ipcRenderer.invoke("dialog:openFile", options),
 

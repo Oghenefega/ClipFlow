@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import posthog from "posthog-js";
 import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
+import UpdateBanner from "./components/UpdateBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
 import RenameView from "./views/RenameView";
 import RecordingsView from "./views/UploadView";
@@ -505,6 +506,7 @@ export default function App() {
           <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>ClipFlow</span>
         </div>
       </div>
+      <UpdateBanner />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
         {/* Each persistent tab is always-mounted with its OWN scroll container so
             scrollTop is preserved per-tab across switches (#33). display:none keeps

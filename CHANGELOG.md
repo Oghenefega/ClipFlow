@@ -4,6 +4,25 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-08 (session 35 cont.) — Stage 2: bare-bones local update notifier
+
+### Added
+- **Local update notifier** ([UpdateBanner.js](src/renderer/components/UpdateBanner.js), [main.js](src/main/main.js), [preload.js](src/main/preload.js)). On launch the renderer calls `update:check` which scans hardcoded `C:\Users\IAmAbsolute\Desktop\ClipFlow\dist` for `ClipFlow Setup *.exe` files, picks the one with the newest mtime, parses its version. If that version differs from `app.getVersion()`, a small accent-tinted banner appears below the title bar: "Update available — \<version\>" with Install / Later buttons. Click Install → spawns the installer detached + quits the app; the user reopens to land on the new version. Click Later → banner hides for the session and reappears on next launch if the candidate is still newer. No GitHub Releases, no auto-download, no dismiss persistence — bare bones by design.
+- **`update:check` and `update:install` IPC handlers + preload bridge.** `update:check` returns `{ available, current, newVersion, installerPath }` or `{ available: false }`. `update:install(installerPath)` spawns the NSIS installer with `detached: true, stdio: "ignore"` and quits the app 300ms later.
+- **Version bumped to 0.1.1-alpha** to mark the first build that contains the update notifier itself.
+
+### How the loop works now
+1. Edit code in dev (`npm run dev`).
+2. Bump `package.json` version when ready to ship the change to daily.
+3. `npm run build` → new installer in `dist/`.
+4. Open daily. Banner appears. Click Install. Daily quits, installer runs, relaunch.
+
+### Out of scope (intentional)
+- No "Installing…" progress UI beyond the disabled-button state — the installer's own NSIS UI is what the user sees during install.
+- No persistence of dismissed versions — keeps state model trivial.
+- No Settings field for the dist-folder path — hardcoded to the current repo location for now. Future `#XX` if the repo ever moves.
+- No GitHub Action / GitHub Releases publishing — local-only by user's design call.
+
 ## [Unreleased] — 2026-05-08 (session 35) — Dev/Daily profile split (#80) — installable daily exe with isolated dev sandbox
 
 ### Added
