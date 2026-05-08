@@ -6,6 +6,7 @@ export default function UpdateBanner() {
   const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
+    if (window.clipflow?.profile === "dev") return; // banner is for daily only
     if (!window.clipflow?.checkForUpdate) return;
     window.clipflow.checkForUpdate().then((result) => {
       if (result?.available) setInfo(result);
