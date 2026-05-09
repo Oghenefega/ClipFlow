@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-08 (session 35 cont.) — CSP avatar allowlist (#81 closed) + #82 filed
+
+### Fixed
+- **#81 — OAuth avatars in Settings → Connected Platforms.** [index.html](index.html) `img-src` directive previously had no HTTPS sources, so platform-CDN avatar URLs from Facebook (`*.fbcdn.net`), Instagram (`*.cdninstagram.com`), TikTok (`*.tiktokcdn.com`, `*.tiktokcdn-us.com`), YouTube (`yt3.ggpht.com`), and Google (`*.googleusercontent.com`) were all blocked. Added a specific allowlist (not `https:` wildcard) covering the seven CDN domains plus `platform-lookaside.fbsbx.com` for Facebook page-pic fallback. Pre-existing since H2/#48 in session 18.
+- During verification, surfaced that the CSP fix exposes a second-order issue: Instagram and TikTok return *signed expiring URLs* (`oe=` and `x-expires=` params) which had elapsed in the token store, returning HTTP 403 even with CSP open. Reconnecting both accounts captures fresh URLs as a one-time unblock; durable fix tracked in **#82** (cache OAuth avatars to disk at connect time, serve via `file:`).
+
+### Discovered (not fixed)
+- **`isDev = false` is hardcoded** in [main.js](src/main/main.js:325) — `npm run dev` starts Vite on localhost:3000 but the Electron window still loads from `build/index.html`, ignoring the dev server. CLAUDE.md's claim that `npm run dev` "flips the renderer to dev-server mode" is wrong and was corrected only in CLAUDE.md edits this session. Not refactored — separate scope, would touch all three of `isDev` plumbing, `CLIPFLOW_PROFILE` integration, and HMR.
+- **Build → window CSP propagation:** changes to source `index.html` only take effect in a running Electron window after `npm run build:renderer` AND a full Electron restart (Ctrl+R or Ctrl+Shift+R does not re-parse meta-tag CSP — Chromium caches it from initial document parse). Documented in this changelog so future sessions don't burn time on the same gotcha.
+
 ## [Unreleased] — 2026-05-08 (session 35 cont.) — Stage 2: bare-bones local update notifier
 
 ### Added
