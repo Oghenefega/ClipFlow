@@ -189,8 +189,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   };
 
   const handleConnectInstagram = async () => {
-    if (!instagramAppId || !instagramAppSecret) {
-      alert("Configure your Instagram App ID and App Secret in the API Credentials section below first.");
+    if (!metaAppId || !metaAppSecret) {
+      alert("Configure your Meta App ID and App Secret in the API Credentials section below first. Instagram publishing authenticates via Facebook and requires your IG to be linked to a Facebook Page you manage.");
       return;
     }
     setConnectingPlatform("instagram");
@@ -810,6 +810,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             <button
               onClick={handleConnectInstagram}
               disabled={connectingPlatform === "instagram"}
+              title="Authenticates via Facebook. Your Instagram must be linked to a Facebook Page you manage."
               style={{ ...BTN, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontWeight: 700, opacity: connectingPlatform === "instagram" ? 0.5 : 1 }}
             >
               {connectingPlatform === "instagram" ? "Connecting..." : "+ Instagram"}

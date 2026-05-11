@@ -2549,12 +2549,13 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
     if (account.expiresAt && Date.now() > account.expiresAt) {
       require("electron-log/main").scope("tiktok").info("Token expired, refreshing");
       const clientKey = store.get("tiktokClientKey");
-      if (!clientKey || !account.refreshToken) {
+      const clientSecret = store.get("tiktokClientSecret");
+      if (!clientKey || !clientSecret || !account.refreshToken) {
         const err = "Cannot refresh TikTok token. Please reconnect in Settings.";
         publishLog.logPublish({ ...logBase, status: "failed", error: err });
         return { error: err };
       }
-      const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, account.refreshToken);
+      const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, clientSecret, account.refreshToken);
       require("electron-log/main").scope("tiktok").debug("Token refresh result", refreshResult);
       if (refreshResult.error || !refreshResult.access_token) {
         const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
@@ -2608,23 +2609,28 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
   }
 });
 
-// ── Instagram Business Login OAuth ──
+// ── Instagram OAuth (via Facebook Login) ──
+//
+// Despite the name, this authenticates the user via facebook.com — Instagram
+// publishing through graph.facebook.com is the only path that supports
+// resumable upload (the IG-direct path on graph.instagram.com does not). The
+// user's IG must be linked to a Facebook Page they manage.
 
 ipcMain.handle("oauth:instagram:connect", async () => {
   try {
-    const appId = store.get("instagramAppId");
-    const appSecret = store.get("instagramAppSecret");
+    const appId = store.get("metaAppId");
+    const appSecret = store.get("metaAppSecret");
 
     if (!appId || !appSecret) {
-      return { error: "Instagram App ID and App Secret must be configured in Settings before connecting." };
+      return { error: "Meta App ID and App Secret must be configured in Settings before connecting Instagram." };
     }
 
-    require("electron-log/main").scope("instagram-oauth").info("Starting Instagram Business Login flow");
-    const accountData = await instagramOAuth.startOAuthFlow(appId, appSecret);
+    require("electron-log/main").scope("meta").info("Starting Instagram (via Facebook Login) OAuth flow");
+    const accountData = await metaOAuth.startInstagramOAuthFlow(appId, appSecret);
 
-    const accountId = `ig_${accountData.openId}`;
+    const accountId = `ig_${accountData.igAccountId}`;
     tokenStore.saveAccount(accountId, accountData);
-    require("electron-log/main").scope("instagram-oauth").info("Account saved", { accountId, displayName: accountData.displayName });
+    require("electron-log/main").scope("meta").info("IG account saved", { accountId, displayName: accountData.displayName });
 
     return {
       success: true,
@@ -2638,11 +2644,11 @@ ipcMain.handle("oauth:instagram:connect", async () => {
         connected: true,
         openId: accountData.openId,
         igAccountId: accountData.igAccountId,
-        loginType: "instagram_business_login",
+        loginType: "facebook_login",
       },
     };
   } catch (err) {
-    require("electron-log/main").scope("instagram-oauth").error("OAuth connect failed", { error: err.message });
+    require("electron-log/main").scope("meta").error("Instagram OAuth connect failed", { error: err.message });
     return { error: err.message };
   }
 });
@@ -2659,7 +2665,7 @@ ipcMain.handle("oauth:facebook:connect", async () => {
     }
 
     require("electron-log/main").scope("meta").info("Starting Facebook Page OAuth flow");
-    const accountData = await metaOAuth.startOAuthFlow(appId, appSecret);
+    const accountData = await metaOAuth.startFacebookOAuthFlow(appId, appSecret);
 
     const accountId = `fb_${accountData.pageId}`;
     tokenStore.saveAccount(accountId, accountData);

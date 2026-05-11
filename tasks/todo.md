@@ -4,62 +4,72 @@
 
 ---
 
-## Active: Retry-failed-publishes feature (Session 36)
+## Code Complete (Pending Verification): IG-via-FB-Login publishing + TikTok refresh fix (Session 37)
 
-**Goal:** When publishing a clip partially fails (e.g. YT + FB succeed, IG + TT fail), the clip must stay visible in the queue with a per-platform failure indicator and a Retry button. Failure state must survive app restart.
+**Status:** All 4 code changes landed and build is clean. Pending: user clicks through OAuth + retries a previously-failed publish.
 
-**Why:** Today the clip disappears from queue/scheduled/failed views after any publish attempt because [QueueView.js:635](src/renderer/views/QueueView.js:635) calls `logPost` unconditionally — that writes to `trackerData`, which the `approved` filter excludes ([line 189–190](src/renderer/views/QueueView.js:189)). User has to re-render the same clip from the editor just to see it again in the queue, with no way to retry the platforms that failed. `publishStatus` is React-only state, so even before the disappearance, an app restart loses the failure record.
+**Goals:**
+1. Instagram publishing works again. Path: Facebook Login OAuth → resumable upload via `graph.facebook.com/{ig-user-id}/media`. Replaces current IG Direct Login flow which can't do resumable.
+2. TikTok token refresh fixed. Currently fails with "malformed parameters" because `client_secret` is missing from the request body.
 
----
-
-## Plan (4 changes, all in renderer + one clip-field add)
-
-### 1. Persist per-platform publish state on the clip
-- New optional field on the clip object: `publishState: { [accountKey]: "success" | { error: string, at: ISO } }`
-- After every publish attempt (in both `publishClip` and `retryFailed`), call `projectUpdateClip` with the per-platform result. Mirror locally via the existing `updateClipInState` helper (already wired in this session).
-- Field is additive — no schema migration needed; `updateClip` accepts arbitrary updates ([projects.js:203](src/main/projects.js:203)).
-
-### 2. Gate `logPost` on full success
-- In `publishClip`: only call `logPost` if `allSuccess === true`.
-- Partial-fail / total-fail clips stay in `approved` because they're never written to `trackerData`.
-- Side-effect: tracker reflects "what actually went live on all enabled platforms" only, which is a cleaner semantic than today.
-
-### 3. Re-hydrate `publishStatus` from `clip.publishState` on mount
-- A `useEffect` keyed on `approved` builds initial `publishStatus[clipId] = { state, platforms }` from any clip's `publishState`.
-- Lets the "Failed" filter and retry path work after restart, no matter when the failure happened.
-
-### 4. Make the Retry button discoverable
-- The `retryFailed(clipId)` function already exists — just verify the button renders when `publishStatus[clipId]?.state === "failed"`.
-- If it's currently buried in the platform-status pill area, hoist it to the clip row's primary action so it's not missed.
+**Why:**
+- IG: `graph.instagram.com` (IG Direct Login) doesn't support resumable upload per Meta docs. Only `graph.facebook.com` (FB Login flow) does. Session 36's IGSID/`/me/media` fix worked around one error but exposed this deeper limitation. User has rejected hosted-clip approach (option B in plan). FB Login is option A: requires user's IG to be linked to a Facebook Page — confirmed yes.
+- TikTok: [tiktok.js:294](src/main/oauth/tiktok.js:294) `refreshAccessToken(clientKey, refreshToken)` sends only `client_key, grant_type, refresh_token`. TikTok's `/v2/oauth/token/` requires `client_secret` for every grant type.
 
 ---
 
-## File impact
+## Plan
 
-- `src/renderer/views/QueueView.js` — `publishClip` (gate logPost + persist), `retryFailed` (persist), one `useEffect` to hydrate, retry button placement
-- No main-process changes — `project:updateClip` already accepts arbitrary fields
+### A. Two separate Meta OAuth flows (not unified)
 
-## Verification (must run all)
+User explicitly wants separate "Connect Facebook" and "Connect Instagram" buttons, scope-minimized per flow.
 
-1. Disconnect Instagram in Settings (force a failure) and publish a clip with 4 platforms enabled
-2. After publish: YT + FB succeed, IG fails → clip **stays visible** in queue
-3. Filter dropdown set to "Failed" → clip appears
-4. Each platform pill on the clip shows correct icon (✅ / ❌)
-5. Click **Retry** → only IG (the failed one) is retried; YT + FB are skipped
-6. Reconnect IG (using today's loginType-inference fix), retry again → all green, clip moves out of queue (logPost runs, tracker gets the entry)
-7. Close + reopen ClipFlow before retrying → clip still shows as failed; Retry still works
+| Flow | Scopes | Saves |
+|---|---|---|
+| Connect Facebook | `pages_show_list, pages_read_engagement, pages_manage_posts, business_management` | FB Page account (`fb_${pageId}`) — current behavior, unchanged |
+| Connect Instagram | `pages_show_list, pages_read_engagement, instagram_basic, instagram_content_publish` | IG account (`ig_${igAccountId}`) with `loginType: "facebook_login"`, `accessToken = pageAccessToken` |
 
-## Effort & risk
+Note: IG flow needs `pages_show_list` + `pages_read_engagement` to resolve the IG account from the linked Page. Does **not** request `pages_manage_posts` and does **not** save a FB Page record.
 
-- **Effort:** ~45 min
-- **Risk:** Low. Additive clip field. Existing publish flow only changes in two places (`logPost` gating + state persistence). The hydration effect is the only net-new logic.
+### B. File-by-file changes
+
+1. **[src/main/oauth/meta.js](src/main/oauth/meta.js)** — refactor:
+   - Rename current `startOAuthFlow` → `startFacebookOAuthFlow` (same logic).
+   - Add `startInstagramOAuthFlow(appId, appSecret, timeoutMs)` — different `SCOPES`, after Page fetch does `GET /{pageId}?fields=instagram_business_account{id,username,profile_picture_url}`, returns IG-shaped account data.
+   - Keep `refreshLongLivedToken` shared.
+2. **[src/main/main.js](src/main/main.js)** — split IPC handler:
+   - Existing meta-connect handler (~line 2660) → `oauth:facebook:connect` (uses `startFacebookOAuthFlow`).
+   - New `oauth:instagram:connect` (uses `startInstagramOAuthFlow`, saves IG account).
+   - Remove the old IG-Direct connect handler that used `instagramOAuth.startOAuthFlow`.
+3. **[src/main/preload.js](src/main/preload.js)** — expose `connectFacebook` and `connectInstagram` as separate bridge methods. Remove old IG-Direct bridge method.
+4. **Settings UI (renderer)** — rewire existing "Connect Instagram" button to new IPC. Add subtitle: "Your IG must be linked to a Facebook Page." Keep "Connect Facebook" button untouched.
+5. **[src/main/oauth/instagram-oauth.js](src/main/oauth/instagram-oauth.js)** — can be deleted after verification (do this at the end, not preemptively).
+6. **[src/main/oauth/instagram-publish.js](src/main/oauth/instagram-publish.js)** — no changes. Existing `useIgGraph=false` branch is what we'll hit.
+
+### C. TikTok refresh fix (bundled)
+
+7. **[src/main/oauth/tiktok.js:294](src/main/oauth/tiktok.js:294)** — add `clientSecret` parameter to `refreshAccessToken`, include in POST body.
+8. **[src/main/main.js:2557](src/main/main.js:2557)** — pass `clientSecret` (already resolved in scope above this call).
+
+---
+
+## Verification
+
+1. Build + reinstall 0.1.2-alpha (or bump to 0.1.3-alpha).
+2. Disconnect current IG account (which is IG Direct Login flow) in Settings.
+3. Click new "Connect Instagram" → Meta OAuth dialog should show IG + Page-read scopes, no `pages_manage_posts`.
+4. After consent: only an Instagram account record appears in Settings, no FB Page record.
+5. Click "Connect Facebook" separately → confirm Page-only flow still works and saves only a FB Page record.
+6. Retry the existing failed Arc Raiders clip in queue → IG publish succeeds via resumable upload (look for `useIgGraph=false` in app log).
+7. TikTok: trigger a publish that requires a token refresh (or wait until refresh path fires) → should no longer return "malformed parameters."
 
 ## Out of scope
 
-- Tracker entries for partial-success runs (today's behavior: only fully-successful runs go to tracker — keeping that)
-- Retrying for scheduled clips at the time the schedule fires (separate concern — scheduler isn't running publishes today, the user manually triggers from the queue UI)
-- Notification / toast when a publish fails in the background
+- App review submission to Meta for `instagram_content_publish` advanced access (separate workstream — current dev mode access is sufficient for testing with the linked IG account).
+- TikTok content posting audit ([#83](https://github.com/Oghenefega/clipflow/issues/83)) — separate session.
+- Migration script for users with old IG Direct Login records — disconnecting + reconnecting in Settings handles it manually.
 
----
+## Effort & risk
 
-## Awaiting approval before any code changes.
+- **Effort:** ~60–75 min code + ~5 min user reconnect.
+- **Risk:** Low. Publish code path (`useIgGraph=false`) is already proven; only OAuth + account-record glue is new. TikTok fix is 4 lines.

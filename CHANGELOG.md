@@ -4,6 +4,25 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-11 (session 37) — Instagram via Facebook Login + TikTok refresh fix
+
+### Changed
+- **Instagram now publishes via Facebook Login flow** ([meta.js](src/main/oauth/meta.js), [main.js](src/main/main.js)). The `"+ Instagram"` button in Settings now authenticates against `facebook.com/dialog/oauth` (using the same Pages Publisher Meta app as Facebook) and saves an account with `loginType: "facebook_login"`. The existing IG publish handler routes these through `graph.facebook.com/{ig-user-id}/media` with `upload_type=resumable` — the only path Meta exposes that supports binary upload. The IG Business Login direct flow (graph.instagram.com) was a dead end: it only supports `video_url` pull from a publicly-hosted URL, which contradicts ClipFlow's local-first pipeline. Confirmed via Meta's official docs: *"Resumable upload is only for apps that have implemented Facebook Login for Business."*
+- **`meta.js` refactored into two flows** sharing one OAuth callback server. `startFacebookOAuthFlow(appId, appSecret)` (renamed from `startOAuthFlow`) requests Page-publishing scopes only. New `startInstagramOAuthFlow(appId, appSecret)` requests IG-publishing scopes (`pages_show_list, pages_read_engagement, instagram_basic, instagram_content_publish, business_management` — no `pages_manage_posts`), walks the user's Pages to find the first one with a linked Instagram Business Account via `GET /{pageId}?fields=instagram_business_account{id,username,profile_picture_url}`, and returns an Instagram account record using the **page access token** (the publish-authenticating credential for IG-via-FB).
+- **Instagram Settings button reads Meta credentials, not Instagram-direct credentials** ([SettingsView.js](src/renderer/views/SettingsView.js)). The validate gate for `handleConnectInstagram` now checks `metaAppId/metaAppSecret`. Tooltip on the button: "Authenticates via Facebook. Your Instagram must be linked to a Facebook Page you manage."
+- **Legacy IG Direct OAuth flow ([instagram-oauth.js](src/main/oauth/instagram-oauth.js)) is no longer reachable from the UI** — the IPC handler `oauth:instagram:connect` now invokes `metaOAuth.startInstagramOAuthFlow`. The legacy module is still imported for the IG-Business-Login token-refresh path in case any pre-existing accounts persist with `loginType: "instagram_business_login"`; safe to delete after the user disconnects + reconnects their IG account.
+
+### Fixed
+- **TikTok token refresh always failed with "The request parameters are malformed"** ([tiktok.js](src/main/oauth/tiktok.js), [main.js](src/main/main.js)). `refreshAccessToken(clientKey, refreshToken)` only sent three body fields (`client_key`, `grant_type`, `refresh_token`) — TikTok's `/v2/oauth/token/` requires `client_secret` for every grant type, including `refresh_token`. Added `clientSecret` parameter to the function and pass it from the publish handler's refresh call. (The auth-code-exchange path was already correct; only refresh was broken.)
+
+### How to verify
+1. Disconnect the existing Instagram account in Settings → Connected Platforms.
+2. Click **+ Instagram** → consent dialog opens at facebook.com with Page + Instagram scopes (no `pages_manage_posts`) → grant.
+3. Settings shows an Instagram account only (no extra Facebook Page record from this flow).
+4. Click **+ Facebook Page** separately → consent dialog requests Page scopes only → Facebook Page record appears alongside.
+5. Retry the failed Arc Raiders clip in the Queue → Instagram publishes via resumable upload (app log shows the FB-Login graph host).
+6. Trigger a TikTok publish that requires a token refresh → no "malformed parameters" error.
+
 ## [Unreleased] — 2026-05-09 → 2026-05-11 (session 36) — 0.1.2-alpha: queue staleness, IG token routing, retry-failed, auto-fire scheduler, thumbnail URLs, TikTok audit prep
 
 ### Added

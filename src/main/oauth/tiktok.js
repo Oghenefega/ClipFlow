@@ -290,10 +290,12 @@ async function fetchUserProfile(accessToken) {
 
 /**
  * Refresh an expired access token.
+ * TikTok's /v2/oauth/token/ requires client_secret for every grant type, including refresh_token.
  */
-async function refreshAccessToken(clientKey, refreshToken) {
+async function refreshAccessToken(clientKey, clientSecret, refreshToken) {
   return httpsPost(TIKTOK_TOKEN_URL, {
     client_key: clientKey,
+    client_secret: clientSecret,
     grant_type: "refresh_token",
     refresh_token: refreshToken,
   });

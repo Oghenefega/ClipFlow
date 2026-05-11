@@ -1,17 +1,27 @@
 /**
- * Meta OAuth 2.0 flow for ClipFlow (Facebook Login — Pages only).
+ * Meta OAuth 2.0 flows for ClipFlow.
  *
- * Handles Facebook Page publishing. Instagram is handled separately
- * via instagram-oauth.js (Instagram Business Login).
+ * Two public entry points share a single OAuth dance against facebook.com:
  *
- * Flow:
- *   1. Start local HTTP server on port 8083
- *   2. Open Facebook auth dialog in system browser
- *   3. Intercept callback to extract auth code
- *   4. Exchange code for short-lived token
- *   5. Exchange short-lived for long-lived token (60 days)
- *   6. Fetch user profile and Pages
- *   7. Return complete account data with Page info
+ *   startFacebookOAuthFlow  — requests Page-publishing scopes, returns a Facebook
+ *                             Page account record (saved as "fb_<pageId>" upstream).
+ *
+ *   startInstagramOAuthFlow — requests Instagram-publishing scopes, resolves the
+ *                             IG Business Account linked to the user's Facebook
+ *                             Page, returns an Instagram account record using the
+ *                             page access token. Saved as "ig_<igAccountId>"
+ *                             upstream. The IG publish handler routes these
+ *                             accounts through graph.facebook.com (resumable
+ *                             upload) because loginType === "facebook_login".
+ *
+ * Why two flows: users explicitly opt into FB-Page-publishing or IG-publishing.
+ * Each flow requests only the scopes it needs (no pages_manage_posts in the IG
+ * flow, no IG scopes in the FB flow) and saves only the account it produced.
+ *
+ * Resumable upload to Instagram requires Facebook Login per Meta docs — the
+ * Instagram Login direct path (graph.instagram.com) does not expose it. Hence
+ * the Instagram flow here, despite its name, authenticates the user via
+ * facebook.com and uses the Page-linked IG Business Account ID.
  */
 const http = require("http");
 const https = require("https");
@@ -25,11 +35,20 @@ const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 const CALLBACK_PORT = 8083;
 const REDIRECT_URI = `http://localhost:${CALLBACK_PORT}/callback`;
 
-// Scopes for Facebook Page publishing only (Instagram handled by instagram-oauth.js)
-const SCOPES = [
+const FACEBOOK_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
+  "business_management",
+].join(",");
+
+// IG-via-FB needs page lookup scopes to resolve the linked IG Business Account,
+// plus the IG publishing scopes. Deliberately omits pages_manage_posts.
+const INSTAGRAM_SCOPES = [
+  "pages_show_list",
+  "pages_read_engagement",
+  "instagram_basic",
+  "instagram_content_publish",
   "business_management",
 ].join(",");
 
@@ -61,15 +80,10 @@ function httpsGet(url, headers = {}) {
 }
 
 /**
- * Start the Meta OAuth flow.
- * Opens BrowserWindow, intercepts redirect, exchanges code, fetches profile + pages.
- *
- * @param {string} appId - Meta App ID
- * @param {string} appSecret - Meta App Secret
- * @param {number} [timeoutMs=120000] - Timeout for auth (2 minutes)
- * @returns {Promise<object>} Account data
+ * Run the OAuth dance against facebook.com, then hand the long-lived user token
+ * to the supplied finalizer which returns the platform-specific account record.
  */
-function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
+function runOAuthFlow({ appId, appSecret, timeoutMs, scopes, finalizer, scopeName }) {
   return new Promise((resolve, reject) => {
     let timeoutHandle = null;
     let server = null;
@@ -90,7 +104,6 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
       fn();
     };
 
-    // Start local callback server
     server = http.createServer(async (req, res) => {
       const reqUrl = new URL(req.url, `http://localhost:${CALLBACK_PORT}`);
       if (reqUrl.pathname !== "/callback") {
@@ -118,17 +131,14 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
       }
 
       try {
-        log.info("Got auth code, exchanging for token...");
+        log.info(`Got auth code (${scopeName}), exchanging for token...`);
 
-        // Step 1: Exchange code for short-lived token
         const shortLived = await exchangeCode(appId, appSecret, code);
         if (shortLived.error) {
           throw new Error(shortLived.error.message || JSON.stringify(shortLived.error));
         }
 
         log.info("Got short-lived token, exchanging for long-lived...");
-
-        // Step 2: Exchange for long-lived token (60 days)
         const longLived = await exchangeForLongLived(appId, appSecret, shortLived.access_token);
         if (longLived.error) {
           throw new Error(longLived.error.message || JSON.stringify(longLived.error));
@@ -138,59 +148,13 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
         const expiresIn = longLived.expires_in || 5184000; // 60 days default
         log.info("Long-lived token obtained", { expiresIn });
 
-        // Step 3: Fetch user profile
-        log.info("Fetching user profile...");
-        const profile = await fetchProfile(accessToken);
-        log.info("User fetched", { name: profile.name, id: profile.id });
-
-        // Step 4: Fetch Pages
-        log.info("Fetching Pages...");
-        const pagesData = await fetchPages(accessToken);
-        const pages = pagesData.data || [];
-        log.info("Pages found", { count: pages.length });
-
-        if (pages.length === 0) {
-          throw new Error("No Facebook Pages found. You need to manage at least one Page to connect.");
-        }
-
-        // Use first page (TODO: let user pick if multiple)
-        const page = pages[0];
-        const pageId = page.id;
-        const pageName = page.name;
-        const pageAccessToken = page.access_token;
-
-        log.info("Using page", { pageId, pageName });
-
-        // Fetch Page profile picture instead of personal profile picture
-        const pageAvatarUrl = `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/picture?type=large&redirect=false&access_token=${pageAccessToken}`;
-        let avatarUrl = profile.picture?.data?.url || "";
-        try {
-          const pagePic = await httpsGet(pageAvatarUrl);
-          if (pagePic.data?.url) avatarUrl = pagePic.data.url;
-        } catch (e) {
-          log.warn("Failed to fetch page picture, using user profile pic", { error: e.message });
-        }
-
-        const accountData = {
-          platform: "Facebook",
-          loginType: "facebook_login",
-          openId: profile.id,
-          accessToken,
-          refreshToken: "",
-          expiresAt: Date.now() + expiresIn * 1000,
-          scope: SCOPES,
-          displayName: pageName || profile.name,
-          avatarUrl,
-          pageId,
-          pageName,
-          pageAccessToken,
-        };
+        const accountData = await finalizer({ accessToken, expiresIn, scopes });
 
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(buildCallbackPage(true, `Connected as ${profile.name}!`));
+        res.end(buildCallbackPage(true, `Connected as ${accountData.displayName}!`));
         settle(() => resolve(accountData));
       } catch (err) {
-        log.error("OAuth error", { error: err.message });
+        log.error(`${scopeName} OAuth error`, { error: err.message });
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(buildCallbackPage(false, err.message));
         settle(() => reject(err));
@@ -198,13 +162,12 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
     });
 
     server.listen(CALLBACK_PORT, "127.0.0.1", () => {
-      log.info("Callback server listening", { port: CALLBACK_PORT });
+      log.info(`Callback server listening (${scopeName})`, { port: CALLBACK_PORT });
 
-      // Build the authorization URL and open in system browser
       const authUrl = new URL(AUTH_URL);
       authUrl.searchParams.set("client_id", appId);
       authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
-      authUrl.searchParams.set("scope", SCOPES);
+      authUrl.searchParams.set("scope", scopes);
       authUrl.searchParams.set("response_type", "code");
 
       log.info("Opening system browser for auth");
@@ -215,10 +178,136 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
       settle(() => reject(new Error(`Meta OAuth server error: ${err.message}`)));
     });
 
-    // Timeout
     timeoutHandle = setTimeout(() => {
       settle(() => reject(new Error("Meta authorization timed out. Please try again.")));
     }, timeoutMs);
+  });
+}
+
+/**
+ * Finalizer for the Facebook Page flow. Picks the user's first Page and returns
+ * an FB Page account record (the publish handler uses pageAccessToken to publish).
+ */
+async function facebookFinalizer({ accessToken, expiresIn, scopes }) {
+  const profile = await fetchProfile(accessToken);
+  log.info("FB user fetched", { name: profile.name, id: profile.id });
+
+  const pagesData = await fetchPages(accessToken);
+  const pages = pagesData.data || [];
+  log.info("Pages found", { count: pages.length });
+
+  if (pages.length === 0) {
+    throw new Error("No Facebook Pages found. You need to manage at least one Page to connect.");
+  }
+
+  // TODO: let user pick when multiple pages exist
+  const page = pages[0];
+  log.info("Using page", { pageId: page.id, pageName: page.name });
+
+  let avatarUrl = profile.picture?.data?.url || "";
+  try {
+    const pageAvatarUrl = `${GRAPH_BASE}/${page.id}/picture?type=large&redirect=false&access_token=${page.access_token}`;
+    const pagePic = await httpsGet(pageAvatarUrl);
+    if (pagePic.data?.url) avatarUrl = pagePic.data.url;
+  } catch (e) {
+    log.warn("Failed to fetch page picture, using user profile pic", { error: e.message });
+  }
+
+  return {
+    platform: "Facebook",
+    loginType: "facebook_login",
+    openId: profile.id,
+    accessToken,
+    refreshToken: "",
+    expiresAt: Date.now() + expiresIn * 1000,
+    scope: scopes,
+    displayName: page.name || profile.name,
+    avatarUrl,
+    pageId: page.id,
+    pageName: page.name,
+    pageAccessToken: page.access_token,
+  };
+}
+
+/**
+ * Finalizer for the Instagram (via FB Login) flow. Resolves the IG Business
+ * Account linked to one of the user's Pages and returns an IG account record
+ * using the page access token. The downstream publish handler routes this
+ * record through graph.facebook.com/{ig-user-id}/media (resumable upload).
+ */
+async function instagramFinalizer({ accessToken, expiresIn, scopes }) {
+  const profile = await fetchProfile(accessToken);
+  log.info("FB user fetched (IG flow)", { name: profile.name, id: profile.id });
+
+  const pagesData = await fetchPages(accessToken);
+  const pages = pagesData.data || [];
+  log.info("Pages found (IG flow)", { count: pages.length });
+
+  if (pages.length === 0) {
+    throw new Error("No Facebook Pages found. Your Instagram account must be linked to a Facebook Page to publish via this app.");
+  }
+
+  // Walk pages looking for the first one with a linked IG Business Account.
+  let igAccount = null;
+  let linkedPage = null;
+  for (const page of pages) {
+    try {
+      const result = await httpsGet(
+        `${GRAPH_BASE}/${page.id}?fields=instagram_business_account{id,username,profile_picture_url}&access_token=${page.access_token}`
+      );
+      if (result.instagram_business_account?.id) {
+        igAccount = result.instagram_business_account;
+        linkedPage = page;
+        break;
+      }
+    } catch (e) {
+      log.warn("Page IG lookup failed", { pageId: page.id, error: e.message });
+    }
+  }
+
+  if (!igAccount || !linkedPage) {
+    throw new Error("No Instagram Business Account is linked to any of your Facebook Pages. Link your Instagram account to a Page in Meta Business Suite first.");
+  }
+
+  log.info("Found linked IG account", { igId: igAccount.id, username: igAccount.username, pageId: linkedPage.id });
+
+  return {
+    platform: "Instagram",
+    loginType: "facebook_login",
+    openId: profile.id,
+    accessToken: linkedPage.access_token, // page token authenticates IG publishing
+    refreshToken: "",
+    expiresAt: Date.now() + expiresIn * 1000,
+    scope: scopes,
+    displayName: igAccount.username || profile.name,
+    avatarUrl: igAccount.profile_picture_url || profile.picture?.data?.url || "",
+    igAccountId: igAccount.id,
+    pageId: linkedPage.id,
+    pageName: linkedPage.name,
+  };
+}
+
+/**
+ * Start the Facebook Page OAuth flow.
+ */
+function startFacebookOAuthFlow(appId, appSecret, timeoutMs = 120000) {
+  return runOAuthFlow({
+    appId, appSecret, timeoutMs,
+    scopes: FACEBOOK_SCOPES,
+    finalizer: facebookFinalizer,
+    scopeName: "facebook",
+  });
+}
+
+/**
+ * Start the Instagram (via Facebook Login) OAuth flow.
+ */
+function startInstagramOAuthFlow(appId, appSecret, timeoutMs = 120000) {
+  return runOAuthFlow({
+    appId, appSecret, timeoutMs,
+    scopes: INSTAGRAM_SCOPES,
+    finalizer: instagramFinalizer,
+    scopeName: "instagram",
   });
 }
 
@@ -273,7 +362,6 @@ async function fetchPages(accessToken) {
 
 /**
  * Refresh a long-lived token (must be done before 60-day expiry).
- * Returns a new long-lived token.
  */
 async function refreshLongLivedToken(appId, appSecret, currentToken) {
   const url = `${GRAPH_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${currentToken}`;
@@ -281,7 +369,8 @@ async function refreshLongLivedToken(appId, appSecret, currentToken) {
 }
 
 module.exports = {
-  startOAuthFlow,
+  startFacebookOAuthFlow,
+  startInstagramOAuthFlow,
   refreshLongLivedToken,
   REDIRECT_URI,
   GRAPH_API_VERSION,
