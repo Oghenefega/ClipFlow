@@ -2712,7 +2712,16 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
       return { error: err };
     }
 
-    const isIgLogin = account.loginType === "instagram_business_login";
+    // Infer login type when missing from older saved accounts (loginType wasn't persisted
+    // by token-store before today's fix). IG Business Login accounts get the `ig_` prefix
+    // on accountId from instagram-oauth.js; the publish handler MUST route their tokens to
+    // graph.instagram.com or Meta returns "Cannot parse access token".
+    let isIgLogin = account.loginType === "instagram_business_login";
+    if (!account.loginType && account.platform === "Instagram" && String(accountId).startsWith("ig_")) {
+      isIgLogin = true;
+      tokenStore.setLoginType(accountId, "instagram_business_login");
+      require("electron-log/main").scope("instagram").info("Backfilled loginType=instagram_business_login", { accountId });
+    }
     require("electron-log/main").scope("instagram").info("Starting publish", { title, accountId, loginType: isIgLogin ? "ig_login" : "fb_login" });
     let accessToken = account.accessToken;
 

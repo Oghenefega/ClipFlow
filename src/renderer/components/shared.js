@@ -5,6 +5,12 @@ import T from "../styles/theme";
 export const extractGameTag = (t) => { const m = t.match(/#(\w+)/); return m ? m[1].toLowerCase() : null; };
 export const hasHashtag = (t) => /#\w+/.test(t);
 
+// Convert a Windows file path to a Chromium-safe file:// URL.
+// `#` and `?` would otherwise be parsed as URL fragment/query delimiters and
+// truncate the path — common when clip filenames contain a hashtag (e.g. "...#rocketleague.jpg").
+export const toFileUrl = (p) =>
+  p ? `file://${p.replace(/\\/g, "/").replace(/#/g, "%23").replace(/\?/g, "%3F")}` : "";
+
 // Seconds → "Xh Ym" / "Ym" (human-readable duration)
 export const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0m";

@@ -133,10 +133,12 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
   };
 
   const result = await apiPost("/v2/post/publish/video/init/", body, accessToken);
-  log.debug("Init response", { result });
+  log.info("Init response", { result });
 
   if (result.error?.code && result.error.code !== "ok") {
-    throw new Error(`Upload init failed: ${result.error.message || result.error.code}`);
+    const code = result.error.code || "unknown_code";
+    const logId = result.error.log_id || "no_log_id";
+    throw new Error(`Upload init failed [${code}, log_id=${logId}]: ${result.error.message || code}`);
   }
 
   return {

@@ -13,6 +13,7 @@ import useEditorStore from "../stores/useEditorStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
+import { toFileUrl } from "../../components/shared";
 import useCaptionStore from "../stores/useCaptionStore";
 import {
   Undo2,
@@ -152,7 +153,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                 >
                   {c.thumbnailPath ? (
                     <img
-                      src={`file://${c.thumbnailPath.replace(/\\/g, "/")}`}
+                      src={toFileUrl(c.thumbnailPath)}
                       alt=""
                       className="w-full h-full object-contain"
                       draggable={false}

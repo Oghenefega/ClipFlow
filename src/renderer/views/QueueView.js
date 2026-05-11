@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
+import TestChip from "../components/TestChip";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -107,19 +108,35 @@ const PLACEHOLDER_TITLE_RE = /^Clip \d+$/;
 const isPlaceholderTitle = (title) => PLACEHOLDER_TITLE_RE.test((title || "").trim());
 
 // Resolve caption for a platform using template + clip data, respecting overrides
-function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions) {
+function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb) {
   // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
   const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
-  // YouTube description comes from ytDescriptions per-game system
+  // YouTube description comes from ytDescriptions per-game system.
+  // ytDescriptions is keyed by game display name ("Arc Raiders"). Projects store
+  // clip.gameTag as the short abbreviation from gamesDb (e.g. "RL", "AR") OR sometimes
+  // as a hashtag slug ("rocketleague") via title extraction. Resolve via gamesDb by
+  // matching either form to find the display name.
   if (platformKey === "youtube") {
-    const gameKey = Object.keys(ytDescriptions || {}).find((k) => {
-      const tag = (ytDescriptions[k]?.tag || k || "").toLowerCase();
-      return tag === gameTag.toLowerCase() || k.toLowerCase() === gameTag.toLowerCase();
-    });
-    if (gameKey && ytDescriptions[gameKey]?.desc) {
-      return ytDescriptions[gameKey].desc
+    let key = null;
+    const game = (gamesDb || []).find((g) =>
+      (g.tag || "").toLowerCase() === gameTag ||
+      (g.hashtag || "").toLowerCase() === gameTag
+    );
+    if (game?.name && ytDescriptions?.[game.name]) {
+      key = game.name;
+    } else {
+      // Permissive fallback for legacy entries: match a key whose spaces-stripped lowercase form == gameTag.
+      key = Object.keys(ytDescriptions || {}).find((k) =>
+        k.toLowerCase().replace(/\s+/g, "") === gameTag
+      ) || null;
+    }
+    if (key && ytDescriptions[key]?.desc) {
+      // Prefer the gamesDb hashtag for {gametitle} substitution so saved templates
+      // still render "#rocketleague" even when clip.gameTag is the short form ("RL").
+      const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
+      return ytDescriptions[key].desc
         .replace(/\{title\}/g, clip.title || "")
-        .replace(/#{gametitle}/g, gameTag ? `#${gameTag}` : "");
+        .replace(/#{gametitle}/g, hashtagForSub ? `#${hashtagForSub}` : "");
     }
     return clip.title || "";
   }
@@ -151,12 +168,21 @@ function charCountColor(len, max) {
 }
 
 export default function QueueView({
-  allClips, localProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
+  allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
   platformOptions, setPlatformOptions, gamesDb,
   requireHashtagInTitle = true,
 }) {
+  // Mirror a successful projectUpdateClip into local React state so derived UI
+  // (filters, scheduled section, override displays) updates without a tab reload.
+  const updateClipInState = React.useCallback((projectId, clipId, updates) => {
+    if (!setLocalProjects) return;
+    setLocalProjects((prev) => prev.map((p) =>
+      p.id !== projectId ? p : { ...p, clips: (p.clips || []).map((c) =>
+        c.id !== clipId ? c : { ...c, ...updates })
+    }));
+  }, [setLocalProjects]);
   const scheduledClipIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
   const scheduledTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
   // projectId → metadata (gameTag, gameColor, name, testMode). gameTag is lowercased
@@ -199,6 +225,72 @@ export default function QueueView({
   const schedTime = `${schedHour.padStart(2, "0")}:${schedMin.padStart(2, "0")}`;
   // publishStatus: { [clipId]: { state: "publishing"|"done"|"failed", platforms: { [key]: "pending"|"publishing"|"done"|"failed"|errorMsg } } }
   const [publishStatus, setPublishStatus] = useState({});
+  // Hydrate publishStatus from clip.publishState (persisted to disk) on mount and as new
+  // clips appear, so failed-publish clips remain retryable across app restarts. We track
+  // hydrated clipIds in a ref to avoid clobbering live in-memory state once a publish run
+  // for that clip is in progress.
+  const hydratedPublishRef = useRef(new Set());
+  useEffect(() => {
+    let updates = null;
+    for (const clip of approved) {
+      if (hydratedPublishRef.current.has(clip.id)) continue;
+      hydratedPublishRef.current.add(clip.id);
+      const ps = clip.publishState;
+      if (!ps || Object.keys(ps).length === 0) continue;
+      const platforms = {};
+      let anyFailed = false;
+      for (const [k, v] of Object.entries(ps)) {
+        if (v === "success") platforms[k] = "done";
+        else if (v && typeof v === "object" && v.error) { platforms[k] = v.error; anyFailed = true; }
+      }
+      updates = updates || {};
+      updates[clip.id] = { state: anyFailed ? "failed" : "done", platforms };
+    }
+    if (updates) setPublishStatus((prev) => ({ ...updates, ...prev }));
+  }, [approved]);
+  // ── Auto-fire scheduler ──
+  // Ticks once per minute (plus once on mount) and triggers publishClip for any clip
+  // whose scheduledAt has passed. Clears scheduledAt at fire time so the same clip
+  // can't double-fire if the publish takes >60s or if the user reopens the app late.
+  // Test-mode clips are skipped (publish is blocked for them anyway).
+  // Limitation: only fires while ClipFlow is running. App closed at scheduled time =
+  // the next tick after reopen catches it (still due because scheduledAt <= now).
+  const autoFiringRef = useRef(new Set());
+  const tickRef = useRef();
+  tickRef.current = async () => {
+    if (publishingRef.current) return;
+    const now = Date.now();
+    const due = approved
+      .filter((c) =>
+        c.scheduledAt &&
+        new Date(c.scheduledAt).getTime() <= now &&
+        !autoFiringRef.current.has(c.id) &&
+        !isClipTest(c)
+      )
+      .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+    for (const clip of due) {
+      if (publishingRef.current) break;
+      autoFiringRef.current.add(clip.id);
+      console.log("[Scheduler] Firing scheduled publish:", clip.title, "(was scheduled for", clip.scheduledAt + ")");
+      try {
+        await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt: null });
+        updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
+      } catch (_) { /* non-fatal */ }
+      try {
+        await publishClip(clip.id, null);
+      } catch (e) {
+        console.error("[Scheduler] Auto-fire failed for", clip.id, e);
+      } finally {
+        autoFiringRef.current.delete(clip.id);
+      }
+    }
+  };
+  useEffect(() => {
+    const fire = () => tickRef.current?.();
+    fire();
+    const id = setInterval(fire, 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [scheduled, setScheduled] = useState({});
   const publishingRef = useRef(false);
   const [publishLogs, setPublishLogs] = useState([]);
@@ -223,7 +315,8 @@ export default function QueueView({
   const dequeueClip = async (clip) => {
     if (!clip._projectId) return;
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { status: "dequeued" });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { status: "dequeued" });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { status: "dequeued" });
     } catch (e) { console.error("Dequeue failed:", e); }
   };
 
@@ -232,7 +325,8 @@ export default function QueueView({
     const trimmed = editTitleValue.trim();
     if (!trimmed || trimmed === clip.title || !clip._projectId) { setEditingTitle(null); return; }
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { title: trimmed });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { title: trimmed });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { title: trimmed });
     } catch (e) { console.error("Title update failed:", e); }
     setEditingTitle(null);
   };
@@ -243,19 +337,21 @@ export default function QueueView({
     const current = clip.platformToggles || {};
     const updated = { ...current, [platformKey]: current[platformKey] === false ? true : false };
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { platformToggles: updated });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { platformToggles: updated });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { platformToggles: updated });
     } catch (e) { console.error("Platform toggle failed:", e); }
   };
 
   // Phase 2: Save caption override for a platform
   const saveCaptionOverride = async (clip, platformKey, value) => {
     if (!clip._projectId) return;
-    const resolved = resolveCaption(platformKey, clip, captionTemplates, ytDescriptions);
+    const resolved = resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb);
     const current = clip.captionOverrides || {};
     // If value matches template, clear the override
     const updated = { ...current, [platformKey]: value === resolved ? undefined : value };
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionOverrides: updated });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionOverrides: updated });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { captionOverrides: updated });
     } catch (e) { console.error("Caption override save failed:", e); }
     setEditingCaption(null);
   };
@@ -267,7 +363,8 @@ export default function QueueView({
     const updated = { ...current };
     delete updated[platformKey];
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionOverrides: updated });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionOverrides: updated });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { captionOverrides: updated });
     } catch (e) { console.error("Caption reset failed:", e); }
     setEditingCaption(null);
   };
@@ -277,7 +374,8 @@ export default function QueueView({
     if (!clip._projectId) return;
     const ytTitle = value.trim() || null; // null = fallback to clip.title
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeTitle: ytTitle });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeTitle: ytTitle });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { youtubeTitle: ytTitle });
     } catch (e) { console.error("YouTube title save failed:", e); }
     setEditingYtTitle(null);
   };
@@ -286,14 +384,15 @@ export default function QueueView({
   const saveYoutubePrivacy = async (clip, value) => {
     if (!clip._projectId) return;
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubePrivacy: value });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubePrivacy: value });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { youtubePrivacy: value });
     } catch (e) { console.error("YouTube privacy save failed:", e); }
   };
 
   // Phase 2: Get effective caption for a clip+platform (override or resolved template)
   const getEffectiveCaption = (clip, platformKey) => {
     if (clip.captionOverrides?.[platformKey] != null) return clip.captionOverrides[platformKey];
-    return resolveCaption(platformKey, clip, captionTemplates, ytDescriptions);
+    return resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb);
   };
 
   // Phase 2: Get which platform keys are enabled for a clip
@@ -316,7 +415,8 @@ export default function QueueView({
     }
     const scheduledAt = `${date}T${time}:00`;
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { scheduledAt });
     } catch (e) { console.error("Schedule save failed:", e); }
     setSchedAction(null);
   };
@@ -325,7 +425,8 @@ export default function QueueView({
   const unscheduleClip = async (clip) => {
     if (!clip._projectId) return;
     try {
-      await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt: null });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt: null });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
     } catch (e) { console.error("Unschedule failed:", e); }
   };
 
@@ -384,6 +485,7 @@ export default function QueueView({
     const failedKeys = Object.entries(ps.platforms).filter(([, st]) => st !== "done" && st !== "pending" && st !== "publishing").map(([k]) => k);
     if (failedKeys.length === 0) { publishingRef.current = false; return; }
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing" } }));
+    let nextPublishState = { ...(clip.publishState || {}) };
     let allSuccess = true;
     for (const platKey of failedKeys) {
       const plat = activePlat.find((p) => p.key === platKey);
@@ -404,18 +506,39 @@ export default function QueueView({
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
+          nextPublishState[platKey] = { error: String(result.error), at: new Date().toISOString() };
           allSuccess = false;
         } else {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
+          nextPublishState[platKey] = "success";
         }
       } catch (err) {
         setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: err.message || "Failed" } } }));
+        nextPublishState[platKey] = { error: err.message || "Failed", at: new Date().toISOString() };
         allSuccess = false;
       }
+      try {
+        const updates = { publishState: { ...nextPublishState } };
+        await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
+        updateClipInState(clip._projectId, clip.id, updates);
+      } catch (_) { /* non-fatal */ }
     }
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: allSuccess ? "done" : "failed" } }));
     publishingRef.current = false;
     loadPublishLogs();
+
+    // If retry brought every enabled platform on this clip to success, the publish run
+    // is now complete — log to tracker so the clip moves out of the queue.
+    if (allSuccess) {
+      const enabledKeys = getEnabledPlatforms(clip)
+        .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk)?.key)
+        .filter(Boolean);
+      const everyDone = enabledKeys.every((k) => nextPublishState[k] === "success");
+      if (everyDone) {
+        const now = new Date();
+        logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+      }
+    }
   };
 
   // Phase 4: Open confirmation modal before publishing
@@ -526,6 +649,9 @@ export default function QueueView({
     setSelClip(null);
     setSchedAction(null);
 
+    // Track per-platform persistence on the clip itself so failures survive app restart
+    // and the clip stays visible/retryable in the queue (#retry-failed-publishes).
+    let nextPublishState = { ...(clip.publishState || {}) };
     let allSuccess = true;
 
     for (let i = 0; i < enabledPlat.length; i++) {
@@ -575,30 +701,43 @@ export default function QueueView({
         if (result?.error) {
           console.error(`[Publish] ${plat.platform} failed for ${plat.key}:`, result.error);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } } }));
+          nextPublishState[plat.key] = { error: String(result.error), at: new Date().toISOString() };
           allSuccess = false;
         } else {
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
+          nextPublishState[plat.key] = "success";
         }
       } catch (err) {
         console.error(`[Publish] Error for ${plat.key}:`, err);
         setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: err.message || "Failed" } } }));
+        nextPublishState[plat.key] = { error: err.message || "Failed", at: new Date().toISOString() };
         allSuccess = false;
       }
+      // Persist this platform's outcome on the clip after each attempt so a mid-loop
+      // app close still leaves the clip in a recoverable state.
+      try {
+        const updates = { publishState: { ...nextPublishState } };
+        await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
+        updateClipInState(clip._projectId, clip.id, updates);
+      } catch (_) { /* non-fatal — in-memory publishStatus is the source of truth for this session */ }
     }
 
     // Final status
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: allSuccess ? "done" : "failed" } }));
 
-    // Log to tracker
-    if (scheduleOpts) {
-      const d = dates.find((x) => x.iso === scheduleOpts.date);
-      const tl = TIME_OPTIONS.find((x) => x.value === scheduleOpts.time)?.label || scheduleOpts.time;
-      setScheduled((p) => ({ ...p, [clipId]: `${d?.label || scheduleOpts.date} at ${tl}` }));
-      logPost(clip, scheduleOpts.date, d?.dayName || "", tl, true);
-    } else {
-      const now = new Date();
-      logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+    // Tracker entry only on full success — partial failures must remain visible in the
+    // queue so the user can retry the failed platforms (#retry-failed-publishes).
+    if (allSuccess) {
+      if (scheduleOpts) {
+        const d = dates.find((x) => x.iso === scheduleOpts.date);
+        const tl = TIME_OPTIONS.find((x) => x.value === scheduleOpts.time)?.label || scheduleOpts.time;
+        setScheduled((p) => ({ ...p, [clipId]: `${d?.label || scheduleOpts.date} at ${tl}` }));
+        logPost(clip, scheduleOpts.date, d?.dayName || "", tl, true);
+      } else {
+        const now = new Date();
+        logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+      }
     }
 
     publishingRef.current = false;
@@ -732,7 +871,7 @@ export default function QueueView({
               <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
                 <div style={{ width: 60, flexShrink: 0 }}>
                   <div style={{ aspectRatio: "9/16", borderRadius: 8, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {clip.thumbnailPath ? <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 20 }}>{"\uD83C\uDFAC"}</span>}
+                    {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 20 }}>{"\uD83C\uDFAC"}</span>}
                   </div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -843,7 +982,7 @@ export default function QueueView({
                     {/* Thumbnail */}
                     <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {clip.thumbnailPath ? (
-                        <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
                         <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>
                       )}
@@ -871,7 +1010,7 @@ export default function QueueView({
                     <div style={{ textAlign: "right" }}>
                       {!isPub && !isPublishing && hasVideoId && (
                         isClipTest(clip) ? (
-                          <button disabled title="Test clip — publishing blocked. Untoggle TEST on the project to go live." style={{ padding: "5px 12px", borderRadius: 6, border: `1px dashed ${T.borderHover}`, background: "transparent", color: T.textMuted, fontSize: 10, fontWeight: 700, cursor: "not-allowed", fontFamily: T.font }}>Test</button>
+                          <TestChip isTest disabled size="sm" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
                         ) : (
                           <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
                         )
@@ -887,7 +1026,7 @@ export default function QueueView({
                         <div style={{ width: 120, flexShrink: 0 }}>
                           <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {clip.thumbnailPath ? (
-                              <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             ) : (
                               <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>
                             )}
@@ -1110,12 +1249,15 @@ export default function QueueView({
                               <button onClick={() => { setSchedAction("schedule"); const sug = autoSuggestSlot(); if (sug) { setSchedDate(sug.date); setSchedHour(sug.hour); setSchedMin(sug.min); } }} disabled={!hasVideoId} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: hasVideoId ? T.textSecondary : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Schedule</button>
                             )}
                             {!isPub && !isPublishing && (
-                              <button
-                                onClick={() => pubNow(clip.id)}
-                                disabled={!hasVideoId || publishingRef.current || isClipTest(clip)}
-                                title={isClipTest(clip) ? "Test clip — publishing blocked. Untoggle TEST on the project to go live." : undefined}
-                                style={{ padding: "7px 14px", borderRadius: 7, border: isClipTest(clip) ? `1px dashed ${T.borderHover}` : "none", background: isClipTest(clip) ? "transparent" : (hasVideoId ? T.green : "rgba(255,255,255,0.04)"), color: isClipTest(clip) ? T.textMuted : (hasVideoId ? "#0a0b10" : T.textMuted), fontSize: 11, fontWeight: 700, cursor: isClipTest(clip) ? "not-allowed" : (hasVideoId ? "pointer" : "default"), fontFamily: T.font }}
-                              >{isClipTest(clip) ? "Test — cannot publish" : "Publish Now"}</button>
+                              isClipTest(clip) ? (
+                                <TestChip isTest disabled size="md" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
+                              ) : (
+                                <button
+                                  onClick={() => pubNow(clip.id)}
+                                  disabled={!hasVideoId || publishingRef.current}
+                                  style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}
+                                >Publish Now</button>
+                              )
                             )}
                           </div>
                           {/* Phase 3: Schedule picker with auto-suggest */}
@@ -1182,7 +1324,7 @@ export default function QueueView({
               >
                 {/* Thumbnail */}
                 <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {clip.thumbnailPath ? <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>}
+                  {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 16 }}>{"\uD83C\uDFAC"}</span>}
                 </div>
                 {/* Title */}
                 <div style={{ minWidth: 0, paddingRight: 8 }}>
@@ -1208,7 +1350,7 @@ export default function QueueView({
                   <div style={{ display: "flex", gap: 24 }}>
                     <div style={{ width: 120, flexShrink: 0 }}>
                       <div style={{ aspectRatio: "9/16", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {clip.thumbnailPath ? <img src={`file://${clip.thumbnailPath.replace(/\\/g, "/")}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>}
+                        {clip.thumbnailPath ? <img src={toFileUrl(clip.thumbnailPath)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: T.textMuted, fontSize: 32 }}>{"\uD83C\uDFAC"}</span>}
                       </div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>

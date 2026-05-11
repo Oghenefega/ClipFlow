@@ -83,6 +83,10 @@ function saveAccount(id, data) {
     connectedAt: data.connectedAt || new Date().toISOString(),
   };
   // Meta-specific fields (Instagram + Facebook)
+  // loginType distinguishes "instagram_business_login" (token routes via graph.instagram.com)
+  // from "facebook_login" (token routes via graph.facebook.com). Without this, the publish
+  // handler can't pick the right Graph API host and Meta returns "Cannot parse access token".
+  if (data.loginType) entry.loginType = data.loginType;
   if (data.igAccountId) entry.igAccountId = data.igAccountId;
   if (data.pageId) entry.pageId = data.pageId;
   if (data.pageName) entry.pageName = data.pageName;
@@ -169,6 +173,19 @@ function updateTokens(id, accessToken, refreshToken, expiresAt) {
   return true;
 }
 
+/**
+ * Set the loginType field on an existing account (backfill helper).
+ * Used when publish-time inference detects a Meta login type that wasn't persisted
+ * on the original connect (e.g., for accounts saved before loginType was tracked).
+ */
+function setLoginType(id, loginType) {
+  const accounts = tokenStore.get("accounts") || {};
+  if (!accounts[id]) return false;
+  accounts[id].loginType = loginType;
+  tokenStore.set("accounts", accounts);
+  return true;
+}
+
 module.exports = {
   init,
   saveAccount,
@@ -177,5 +194,6 @@ module.exports = {
   getAccountsForUI,
   removeAccount,
   updateTokens,
+  setLoginType,
   PLATFORM_ABBR,
 };

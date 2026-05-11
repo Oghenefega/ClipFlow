@@ -156,14 +156,27 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
   };
   if (caption) containerBody.caption = caption;
 
+  // For Instagram Business Login (graph.instagram.com), the `/me/media` endpoint
+  // resolves to whichever IG user the access token represents — no stored ID lookup.
+  // The OAuth `user_id` field captured at connect time is *not* always the same
+  // identifier the Content Publishing API expects, so we route through `/me` instead.
+  // For Facebook Login (graph.facebook.com), keep the explicit IG account ID — that
+  // flow uses the FB-Page-linked IG Business Account ID, which is reliable.
+  const containerPath = useIgGraph ? `${GRAPH_BASE}/me/media` : `${GRAPH_BASE}/${igUserId}/media`;
+  log.info("Container request", { url: containerPath, igUserId, useIgGraph });
   const containerResult = await graphPost(
-    `${GRAPH_BASE}/${igUserId}/media`,
+    containerPath,
     containerBody,
     accessToken
   );
+  log.info("Container response", { result: containerResult });
 
   if (containerResult.error) {
-    throw new Error(`Container creation failed: ${containerResult.error.message}`);
+    const errType = containerResult.error.type || "?";
+    const errCode = containerResult.error.code || "?";
+    const errSub = containerResult.error.error_subcode || "?";
+    const traceId = containerResult.error.fbtrace_id || "?";
+    throw new Error(`Container creation failed [type=${errType}, code=${errCode}, sub=${errSub}, trace=${traceId}]: ${containerResult.error.message}`);
   }
 
   const containerId = containerResult.id;
@@ -206,9 +219,11 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     if (statusCode === "FINISHED") {
       onProgress({ stage: "publishing", pct: 85, detail: "Publishing Reel..." });
 
-      // Step 4: Publish the container
+      // Step 4: Publish the container — route via /me for IG Business Login (same
+      // reasoning as Step 1: avoids stored-IG-user-id mismatch).
+      const publishPath = useIgGraph ? `${GRAPH_BASE}/me/media_publish` : `${GRAPH_BASE}/${igUserId}/media_publish`;
       const publishResult = await graphPost(
-        `${GRAPH_BASE}/${igUserId}/media_publish`,
+        publishPath,
         { creation_id: containerId },
         accessToken
       );

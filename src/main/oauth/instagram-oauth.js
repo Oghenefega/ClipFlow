@@ -222,7 +222,7 @@ async function handleAuthCode(appId, appSecret, code) {
     throw new Error(profile.error.message || "Failed to fetch profile");
   }
 
-  log.info("Profile fetched", { username: profile.username, accountType: profile.account_type });
+  log.info("Profile fetched", { id: profile.id, user_id: profile.user_id, username: profile.username, accountType: profile.account_type });
 
   return {
     platform: "Instagram",
@@ -265,7 +265,10 @@ async function exchangeForLongLived(appSecret, shortLivedToken) {
  * Fetch Instagram user profile.
  */
 async function fetchProfile(accessToken) {
-  return httpsGet(`${IG_GRAPH_BASE}/me?fields=user_id,username,account_type,profile_picture_url&access_token=${accessToken}`);
+  // Include both `id` and `user_id` — they can differ for IG Business Login accounts.
+  // The Content Publishing API expects the value resolvable via `/me`, so we log both
+  // to confirm at OAuth time and route publish calls through `/me/...` regardless.
+  return httpsGet(`${IG_GRAPH_BASE}/me?fields=id,user_id,username,account_type,profile_picture_url&access_token=${accessToken}`);
 }
 
 /**

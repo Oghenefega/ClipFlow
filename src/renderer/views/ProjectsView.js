@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import * as Sentry from "@sentry/electron/renderer";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill } from "../components/shared";
+import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl } from "../components/shared";
 import TestChip from "../components/TestChip";
 import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
@@ -130,7 +130,7 @@ function ClipVideoPlayer({ clip, project, template }) {
     ? `file://${project.sourceFile.replace(/\\/g, "/")}`
     : (clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null);
   const filePath = videoFilePath; // alias kept for the existing logic below
-  const thumbPath = clip.thumbnailPath ? `file://${clip.thumbnailPath.replace(/\\/g, "/")}` : null;
+  const thumbPath = clip.thumbnailPath ? toFileUrl(clip.thumbnailPath) : null;
 
   const tpl = template || FALLBACK_TEMPLATE;
   const CONTAINER_W = 220;
