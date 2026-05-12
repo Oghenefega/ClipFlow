@@ -579,3 +579,12 @@ Produce the audit as a visible report to the user BEFORE proposing the next task
 ## End-of-session: suggest a session name (2026-04-14)
 **Mistake:** At session wrap, I gave the handoff + commit but didn't propose a session title for the user to rename "start new coding session" to. User had to ask.
 **Rule:** End-of-session process must include proposing a short descriptive session name (one line + 2–3 alternatives) alongside HANDOFF/CHANGELOG/commit. Do it unprompted.
+
+## Ask "anything else?" BEFORE the wrap actions, not after (2026-05-11)
+**Mistake:** User said "close out this session" and I immediately wrote HANDOFF, committed, pushed, then asked "anything else before this session sleeps?" That order is backwards — at that point the paperwork is already done and the question is rhetorical. User correctly called it out.
+**Why it's wrong:** "Close out this session" is a goal, not a green-lit batch of irreversible actions. There may be a small thing the user wants tweaked in HANDOFF, or a tag they want cut, or a cleanup commit they want bundled — all easier BEFORE the wrap commit lands and gets pushed.
+**Rule:** When the user signals session-end ("close out", "wrap up", "let's end the session"), do this order:
+1. State what's about to happen — "I'm going to write HANDOFF, commit, push, suggest a name. Anything to add or fix first?"
+2. **Wait for the user's reply.** Even a one-word "go" counts.
+3. Then execute the wrap.
+Same principle applies to any other multi-step irreversible close-out (commit + push at task-end). Surface the plan, then execute. Don't bundle the "are we done?" question into the same message as the work.
