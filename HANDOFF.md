@@ -1,120 +1,98 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-05-11 — Session 36 — 0.1.2-alpha: queue staleness, IG token routing + endpoint fix, retry-failed publishes, auto-fire scheduler, thumbnail URLs, Test pill consistency, TikTok audit spec'd_
+_Last updated: 2026-05-11 — Session 37 — 0.1.3-alpha: Instagram via Facebook Login + TikTok refresh fix_
 
 ---
 
 ## One-line TL;DR
 
-**Built 0.1.2-alpha. Eleven things land: schedule persistence, YT-description per-game lookup, IG token routing (`loginType` infer + backfill) plus the deeper `/me/media` endpoint fix, retry-failed-publishes with disk persistence, 60s auto-fire scheduler, thumbnail-URL `#`/`?` encoding, TestChip-on-queue, plus diagnostic logging that turned vague TT/IG errors into actionable codes. TikTok Content Posting audit is now spec'd in [#83](https://github.com/Oghenefega/ClipFlow/issues/83) for the next session to execute end-to-end.**
+**Instagram publishing is unblocked.** Switched the Connect Instagram flow to authenticate via Facebook (the only path Meta exposes that supports resumable upload of local MP4s). User confirmed end-to-end success on the Arc Raiders clip that had been failing for two sessions: `post_id: 18088961429203817`. Also fixed TikTok token refresh (missing `client_secret`).
 
 ---
 
-## Action item — install 0.1.2-alpha (~118 MB)
+## What shipped (session 37)
 
-`dist/ClipFlow Setup 0.1.2-alpha.exe` was overwritten **five times** during this session as features stacked. Final timestamp: **2026-05-11 01:17**. Daily should show the update banner on next launch — click Install. Once installed, run through "How to verify" below.
+### The IG fix
 
----
+The deep diagnosis: `graph.instagram.com` (Instagram Business Login direct) **does not support resumable upload**. Only `graph.facebook.com` (Facebook Login flow) does. Session 36 worked around one symptom (`/me/media` routing) but hit this fundamental wall next. Verified against Meta's official docs: *"Resumable upload is only for apps that have implemented Facebook Login for Business."*
 
-## What shipped (session 36)
+User explicitly rejected the alternative (hosting the clip at a public URL and using `video_url` pull) — that's the path Meta actually pushes for IG Direct apps, but it requires Supabase Storage or equivalent. Out of scope until the broader backend stack lands.
 
-### Group 1 — Queue + publish foundation
+So the fix was structural: **route the Connect Instagram button through facebook.com OAuth.** The user's IG must be linked to a Facebook Page they manage. Confirmed yes for Fega.
 
-1. **Save Schedule + 8 other clip-mutations now refresh local state** ([QueueView.js](src/renderer/views/QueueView.js)). New `updateClipInState` helper plus `setLocalProjects` plumbed from App.js. Without this the disk got written but UI showed stale data — scheduled clips didn't appear in the Scheduled section, etc.
-2. **YT description per-game lookup fixed for multi-word games.** Was matching `"rocket league"` (display-name lowercased) against `"rl"` (`clip.gameTag` lowercased) — never resolved. Now matches either `gamesDb.tag` (short form) OR `gamesDb.hashtag` (slug) against the clip's gameTag.
-3. **Retry-failed-publishes feature.** Per-platform results persist on `clip.publishState` so failure state survives app restart. Partial-fail clips stay in queue with Retry button; `logPost` only fires on full success of currently-enabled platforms (not all-platforms-ever).
-4. **Auto-fire scheduler** — 60s tick + once on mount. Clears `scheduledAt` at fire time to prevent double-fire. Skips test clips. Stable-interval ref pattern so closure always sees latest `publishClip`. Logs `[Scheduler] Firing scheduled publish:` to DevTools console for visibility.
+### Files changed (all committed in `be528b1`)
 
-### Group 2 — Visual polish
+- **[src/main/oauth/meta.js](src/main/oauth/meta.js)** — refactored into two public flows sharing one OAuth callback server:
+  - `startFacebookOAuthFlow(appId, appSecret)` — renamed from `startOAuthFlow`. Same scopes as before (`pages_show_list, pages_read_engagement, pages_manage_posts, business_management`). Returns Facebook Page account record.
+  - `startInstagramOAuthFlow(appId, appSecret)` — new. Scopes: `pages_show_list, pages_read_engagement, instagram_basic, instagram_content_publish, business_management` (deliberately NO `pages_manage_posts`). After auth, walks user's Pages, GETs `/{pageId}?fields=instagram_business_account{id,username,profile_picture_url}` on each until it finds a linked IG Business Account. Returns an Instagram account record using **the page's access token** (the credential that authenticates IG publishing via FB Login).
+- **[src/main/main.js](src/main/main.js)** — split IPC handlers:
+  - `oauth:instagram:connect` now reads `metaAppId/metaAppSecret` (not the legacy `instagramAppId/instagramAppSecret`) and invokes `metaOAuth.startInstagramOAuthFlow`. Saves the new account record with `loginType: "facebook_login"`.
+  - `oauth:facebook:connect` calls renamed `metaOAuth.startFacebookOAuthFlow`. Behavior unchanged.
+- **[src/renderer/views/SettingsView.js](src/renderer/views/SettingsView.js)** — `handleConnectInstagram` validates `metaAppId/metaAppSecret`. Updated alert copy + tooltip on the "+ Instagram" button: *"Authenticates via Facebook. Your Instagram must be linked to a Facebook Page you manage."*
+- **[src/main/oauth/tiktok.js](src/main/oauth/tiktok.js) + [src/main/main.js:2552](src/main/main.js:2552)** — `refreshAccessToken` now takes `(clientKey, clientSecret, refreshToken)`. TikTok's `/v2/oauth/token/` requires `client_secret` for every grant type; the previous 2-arg call returned "The request parameters are malformed" on every refresh.
 
-5. **Thumbnail URLs encode `#` and `?`** via new `toFileUrl()` helper in [components/shared.js](src/renderer/components/shared.js). Applied at 7 render sites. Clips with hashtags in their filenames (e.g. `Something Is WRONG ... #rocketleague_thumb.jpg`) now render their thumbnails — Chromium had been silently truncating at the `#` fragment delimiter.
-6. **TestChip on Queue tab** — replaced two inline disabled-button representations with the existing yellow-glow `<TestChip isTest disabled />`. Queue now matches Projects/Rename/Recordings.
+### Version bump
 
-### Group 3 — Instagram
-
-7. **`loginType` is now persisted in token store** ([token-store.js](src/main/token-store.js)). OAuth callbacks were passing it but `saveAccount` dropped it. Added to entry shape + a `setLoginType(id, value)` backfill helper.
-8. **Publish handler infers IG Business Login** when `loginType` is blank, `platform === "Instagram"`, and `accountId` starts with `ig_`. Backfills via `setLoginType` on first fire. This fixed the original `"Cannot parse access token"` error — graph.facebook.com couldn't read IG-format tokens.
-9. **`/me/media` for IG Business Login** ([instagram-publish.js](src/main/oauth/instagram-publish.js)). The OAuth response's `user_id` field is the Instagram-Scoped User ID (IGSID), not the Instagram User ID the Content Publishing API expects at `/{ig-user-id}/media`. Routed both container-create and media-publish through `/me/...` for IG Business Login (FB Login flow kept explicit ID since it gets the right ID from `page.instagram_business_account.id`).
-10. **OAuth diagnostic** — `fetchProfile` now also requests the `id` field and logs both `id` and `user_id` at connect time.
-
-### Group 4 — Diagnostics that surfaced root causes
-
-11. **TikTok + IG error codes now visible.** TikTok's init failure includes the actual code + log_id in the thrown error string. IG's container-creation surfaces `type`, `code`, `error_subcode`, `fbtrace_id`. Without these we'd have stayed stuck. Specifically they revealed:
-   - **TikTok:** `unaudited_client_can_only_post_to_private_accounts` — TikTok Content Posting API has its own audit track separate from Login Kit, and Fega had only completed Login Kit. Application started this session, got stuck at "Supporting documents" → filed as **[#83](https://github.com/Oghenefega/ClipFlow/issues/83)** with the full spec at [`tasks/specs/tiktok-content-posting-audit.md`](tasks/specs/tiktok-content-posting-audit.md) for the next session to complete.
-   - **IG:** `code=100, sub=33` "Object with ID does not exist" — diagnosed as the IGSID/IG-User-ID mismatch, fixed via the `/me/media` change above.
+`0.1.2-alpha` → `0.1.3-alpha`. Installer at `dist/ClipFlow Setup 0.1.3-alpha.exe` (113 MB). Daily update banner picks it up automatically since the version differs from the prior install.
 
 ---
 
-## Open verification items
+## Verified
 
-These shipped but need you to run them in the installed daily:
+User confirmed at 19:47:39 (Fega's local time, 2026-05-11):
+- ✅ Old IG account disconnected without error.
+- ✅ New "+ Instagram" button kicks off Facebook OAuth.
+- ✅ After consent, only an Instagram account appears (no extra Facebook Page record from this flow — exactly what user wanted).
+- ✅ Retry on the previously-failed Arc Raiders clip → IG publish succeeded. `post_id: 18088961429203817`, container/publish via `graph.facebook.com` resumable upload.
 
-1. **IG publish via `/me/media`** — click Retry Failed on the Arc Raiders clip currently in the queue. Should succeed. If it does, IG is fully unblocked.
-2. **Auto-fire scheduler** — schedule a clip 2 minutes out, wait. Open DevTools → Console → watch for `[Scheduler] Firing scheduled publish:` at the scheduled time. Within 60s of `scheduledAt` the publish should kick off automatically.
-3. **Retry-failed across restart** — schedule something with IG disabled. Let it fail on IG. Close + reopen ClipFlow. Verify the clip still shows as "failed" with the Retry button available (publishState hydrated from disk).
-4. **TestChip on Queue** — any test-project clip in the queue should show the yellow-glow TEST chip, not a muted gray "Test" button.
-
----
-
-## Filed for follow-up
-
-### [#83](https://github.com/Oghenefega/ClipFlow/issues/83) — TikTok Content Posting API audit
-
-**Spec:** [`tasks/specs/tiktok-content-posting-audit.md`](tasks/specs/tiktok-content-posting-audit.md). Full plan including 7 UX requirements, file-by-file implementation, additive `clip.tiktokOptions` data shape, three-MP4 scripted recording playbook, and verbatim form copy. Effort estimate ~2.5h end-to-end including recording. **This is the next session's clean kickoff** — read the spec end-to-end before starting.
-
-Why it's here, not done: TikTok's Content Sharing Guidelines require specific per-post UX controls (privacy selector populated from `creator_info/query`, three interaction toggles, handle display, Music Usage Confirmation text, Community Guidelines link). ClipFlow today exposes none of those — they'd reject the audit recording on sight.
-
-### [#82](https://github.com/Oghenefega/ClipFlow/issues/82) — Cache OAuth avatars to disk (still open)
-
-No movement this session. Filed in session 35; durable fix for IG/TikTok signed-URL expiry. Independent of #83.
-
----
-
-## Pre-launch issue list snapshot
-
-Open issues unchanged from session 35 unless noted. Two additions this session: **#83 filed**, **#78 still untouched** (the big subtitle-edits-lost one — flagged session 34, still the most architecturally significant pre-launch bug after publishing flows are settled).
-
-(Full open list in session-35 HANDOFF — not re-pasting here to keep this file scannable. Run `gh issue list --repo Oghenefega/ClipFlow --state open --limit 50` at next session start.)
+Not yet verified (no immediate testing path):
+- TikTok refresh — fires only on token expiry. Will be confirmed implicitly the next time a TikTok token rolls over.
+- The "+ Facebook Page" button after the meta.js refactor — should be unchanged behaviorally (same scopes, same finalizer logic, just moved into a shared helper), but a quick sanity click would be reassuring.
 
 ---
 
 ## Watch out for
 
-- **0.1.2-alpha was rebuilt with the same filename five times** during this session as features stacked. The newest one (timestamp **2026-05-11 01:17**) has everything. If you accidentally installed an earlier 0.1.2-alpha from earlier in the session, it'll be missing pieces — reinstall from `dist/` to be safe.
-- **Auto-fire scheduler only fires while ClipFlow is running.** If you schedule 10 PM and the app is closed at 10 PM, nothing happens at 10 PM. On next launch the first tick (within ~1s of mount) catches anything overdue and fires it. True background scheduling requires Supabase + cron worker (separate, pre-launch).
-- **The `isDev` hardcode in main.js:325 is still false.** `npm run dev` starts Vite on localhost:3000 but Electron loads `build/index.html`. Existing wart, not addressed this session.
-- **All my `npm start` / dev-source Electron windows from this session were killed by `taskkill /IM electron.exe /F` during rebuilds.** If you have a dev-source ClipFlow open later, that's a fresh launch, not lingering state from today.
-- **Main-process changes (token-store, main.js, oauth/*.js) only take effect on full app restart**, not Ctrl+R. Reinstalling 0.1.2-alpha forces this anyway, but worth knowing for next session's iteration loop.
-- **The TikTok publish flow still hardcodes `PUBLIC_TO_EVERYONE`** at line 122 of [tiktok-publish.js](src/main/oauth/tiktok-publish.js). This is part of what #83's UX rebuild will replace — until then, even after audit approval, every TikTok post would go public regardless of user intent.
-- **The Instagram `igAccountId` field is still stored on the account record** even though we now publish via `/me/media`. Harmless — it's just not used by the IG Business Login path anymore. Could be cleaned up but not pressing.
+- **Stale Instagram account records in `instagramAppId/instagramAppSecret` store keys.** The IG Settings credential fields in the UI are still wired to those legacy keys, but the IG connect button no longer reads them — it reads `metaAppId/metaAppSecret`. The legacy fields are harmless dead UI for now. **Cleanup follow-up:** remove the IG App ID + Secret rows from Settings → API Credentials, since they no longer drive anything.
+- **`src/main/oauth/instagram-oauth.js` is now reachable from exactly one place** — the `isIgLogin` branch of the IG publish handler's token-refresh path ([main.js:2734](src/main/main.js:2734)). That branch only fires for accounts saved before session 37 (`loginType: "instagram_business_login"`). Fega's account is now FB-Login, so this code is dead for him. Safe to delete entirely along with the legacy refresh branch when the codebase is more confident it has no pre-37 IG records left. Not urgent.
+- **`instagramAppId`/`instagramAppSecret` store keys** still get persisted via the App.js `useEffect` and rendered in Settings. Same cleanup as above — removing the form fields is one edit, then those store keys can be left as orphaned data (no migration needed; electron-store tolerates unused keys).
+- **The `oauth:instagram:connect` handler depends on the user having configured the Meta app credentials, not Instagram-specific ones.** If they wipe Meta credentials and only keep Instagram credentials (now-orphaned), the IG connect button will throw a configure-first alert. The alert copy mentions Meta App ID specifically to head this off, but worth noting.
+- **No business_management consent prompt may surprise reviewers later.** When app review happens, Meta may ask why `business_management` is in the IG scope set — it's there because the FB Login flow defaults to it, but the IG publish path doesn't strictly require it. Trim if app review pushes back.
 
 ---
 
 ## Logs / debugging
 
-- **App log (prod profile):** `%APPDATA%\clipflow\logs\app.log` — most useful trace from this session is around `2026-05-09 09:41:14` (first TT/IG failures), then `16:21:05` (loginType backfill), then `16:36:59` (post-`/me/media` test, where IG and TT both showed the new diagnostic codes).
-- **Publish log:** `%APPDATA%\clipflow\clipflow-publish-log.json` — JSON history of every publish attempt with timestamps, status, error, and (where captured) raw apiResponse.
-- **DevTools console** — `[Scheduler] Firing scheduled publish:` lines are visible from the auto-fire tick. Open with Ctrl+Shift+I in the running app.
-- **Build artifacts:** `build/index-*.js` is ~1.87 MB minified, ~547 KB gzipped (2728 modules). `dist/ClipFlow Setup 0.1.2-alpha.exe` is ~118 MB.
+- **App log (prod profile):** `%APPDATA%\clipflow\logs\app.log` — search for `"Found linked IG account"` and `"IG account saved"` to confirm the new flow ran. Key trace lines from the verified run (2026-05-11 ~19:47):
+  - `[meta] Starting Instagram (via Facebook Login) OAuth flow`
+  - `[meta] FB user fetched (IG flow) { name: ..., id: ... }`
+  - `[meta] Found linked IG account { igId, username: "fegagaming", pageId }`
+  - `[meta] IG account saved { accountId: "ig_...", displayName: "fegagaming" }`
+- **Publish log:** `%APPDATA%\clipflow\clipflow-publish-log.json` — Arc Raiders clip's successful entry has `apiResponse` with the resumable container ID and the final `post_id`.
+- **OAuth dialog scope confirmation:** if you want to sanity-check what permissions the user actually granted, log the scope string from `longLived.scope` in the meta.js `runOAuthFlow` callback — it returns the actual granted scope list. Not added in this session (would require adding a log line and rebuilding), but trivial if it matters.
+- **TikTok refresh:** when it does fire, look for `[tiktok] Token expired, refreshing` followed by `[tiktok] Token refresh result` with a populated `access_token`. If you see the request reach the API and come back with the legacy `"The request parameters are malformed"`, then `tiktokClientSecret` is probably empty in the store — check Settings → API Credentials.
 
 ---
 
 ## Next steps for next session — candidate priorities
 
-**Strongest single-session candidate: #83 (TikTok Content Posting audit).** Spec is durable, ~2.5h, unblocks the last social platform. Read [`tasks/specs/tiktok-content-posting-audit.md`](tasks/specs/tiktok-content-posting-audit.md) before starting.
+**Top picks:**
+- **[#83](https://github.com/Oghenefega/ClipFlow/issues/83) — TikTok Content Posting audit.** Spec at [`tasks/specs/tiktok-content-posting-audit.md`](tasks/specs/tiktok-content-posting-audit.md). ~2.5h. Unblocks the last social platform. Self-contained clean kickoff.
+- **#78 — saved subtitle edits silently lost on reopen.** Biggest architectural pre-launch bug still open. Needs a source-of-truth decision (`clip.subtitles.sub1` vs `clip.transcription`).
+- **Fix the `isDev` hardcode at [src/main/main.js:325](src/main/main.js:325).** ~30–45 min. Pays off in every dev session afterwards (lets HMR work via `npm run dev`).
 
-**Strong alternatives:**
-- **#78** — saved subtitle edits silently lost on reopen. Still the biggest architectural pre-launch bug. Needs a decision on `clip.subtitles.sub1` vs `clip.transcription` as the source of truth.
-- **Fix the `isDev` hardcode.** ~30–45 min, pays off every dev session thereafter (and would let HMR work in `npm run dev`).
-- **Clear out a few cosmetic pre-launch issues** (#69, #70, #74, #5, #7) for momentum.
+**Smaller cleanups worth bundling:**
+- Remove IG App ID / App Secret rows from Settings → API Credentials (now unused).
+- Delete [src/main/oauth/instagram-oauth.js](src/main/oauth/instagram-oauth.js) + its single remaining call site at [main.js:2734](src/main/main.js:2734).
+- [#82](https://github.com/Oghenefega/ClipFlow/issues/82) — OAuth avatar caching to disk (signed-URL expiry). Small, isolated.
 
-If #83 lands cleanly and you have time the same session, follow up with #82 (avatar caching) — small, isolated, finishes the OAuth-data-hygiene loop.
+**Cosmetic batch for momentum:** #69, #70, #74, #5, #7 — all small.
 
 ---
 
 ## Session model + cost
 
-- **Model:** Sonnet throughout.
-- **Commits this session:** none yet — wrap-up commit pending.
-- **Issues filed:** 1 (#83).
-- **Issues closed:** 0.
-- **Tag candidate after this session:** `git tag stable-2026-05-11-session-36` for instant rollback if 0.1.2-alpha breaks something subtle.
+- **Model:** Opus 4.7 (per global rule, only for complex architecture/diagnosis; Sonnet for execution would have been fine in retrospect since the diagnosis ended up cleanly traced via Meta docs).
+- **Commits this session:** 1 (`be528b1`). Pushed to origin/master.
+- **Issues filed:** 0.
+- **Issues closed:** 0 (no pre-existing issue tracked IG publishing — fix was diagnosed inline).
+- **Tag candidate:** `git tag stable-2026-05-11-session-37` if you want a rollback point after observing 0.1.3-alpha for a day.
