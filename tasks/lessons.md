@@ -588,3 +588,8 @@ Produce the audit as a visible report to the user BEFORE proposing the next task
 2. **Wait for the user's reply.** Even a one-word "go" counts.
 3. Then execute the wrap.
 Same principle applies to any other multi-step irreversible close-out (commit + push at task-end). Surface the plan, then execute. Don't bundle the "are we done?" question into the same message as the work.
+
+## Don't assume burned-in text is a ClipFlow subtitle (2026-05-14)
+**Mistake:** While debugging missing subtitles on a published clip, I extracted frames and saw a green-bar text overlay ("RETURNING TO SPERANZA"). I concluded the render had burned in *one* subtitle. The user corrected me: that was in-game HUD text. The rendered file actually had **zero** ClipFlow subtitles.
+**Why it's wrong:** Gaming footage is full of HUD/UI text that can superficially resemble a caption style. Visual frame inspection alone can't distinguish ClipFlow's burned-in overlay from the game's own text.
+**Rule:** When verifying whether subtitles were burned in, don't rely on "I see text in the frame." Cross-check against the clip's actual subtitle data (segment text + timestamps) — does the on-screen text match a known subtitle segment at that timestamp? If it doesn't match, it's not ours. Better still, verify against a clip with distinctive subtitle text, or confirm the styling matches the clip's subtitleStyle exactly.

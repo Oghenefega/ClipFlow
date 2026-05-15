@@ -136,21 +136,63 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       console.log("[Render] Source FPS:", sourceFps);
 
       // ── Subtitle segments ──
-      // EditorLayout pre-maps subtitles to timeline time for single-clip render.
-      // For batch render (from disk), subtitles may still be source-absolute —
-      // detect via _format marker and map here as a safety net.
+      // EditorLayout pre-maps subtitles to timeline time for single-clip render
+      // (passes subtitles as a plain array). For render-from-disk (batch/queue),
+      // mirror useSubtitleStore.initSegments' priority: clip.transcription is the
+      // accurate per-clip re-transcription and wins over clip.subtitles.sub1,
+      // which can be stale or polluted with the whole-recording transcript.
       let subtitleSegments = [];
+      let subsAreSourceAbsolute = false;
       if (Array.isArray(clipData.subtitles)) {
         subtitleSegments = clipData.subtitles;
-      } else if (clipData.subtitles) {
-        if (clipData.subtitles.sub1) subtitleSegments.push(...clipData.subtitles.sub1);
-        if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
+      } else {
+        const clipOrigin = clipData.startTime || 0;
+        const clipDur = (clipData.endTime || 0) - clipOrigin;
+        const trSegs = clipData.transcription?.segments || [];
+        let transcriptionIsStale = false;
+        if (trSegs.length > 0 && clipDur > 0) {
+          const lastEnd = Math.max(...trSegs.map((s) => s.end || 0));
+          if (lastEnd > clipDur * 1.5) transcriptionIsStale = true;
+        }
+
+        if (trSegs.length > 0 && !transcriptionIsStale) {
+          // clip.transcription is clip-relative (0-based).
+          if (useNle) {
+            // Shift to source-absolute so visibleSubtitleSegments can map it.
+            subtitleSegments = trSegs.map((s) => ({
+              ...s,
+              startSec: (s.start || 0) + clipOrigin,
+              endSec: (s.end || 0) + clipOrigin,
+              words: (s.words || []).map((w) => ({
+                ...w,
+                start: (w.start ?? s.start ?? 0) + clipOrigin,
+                end: (w.end ?? s.end ?? 0) + clipOrigin,
+              })),
+            }));
+            subsAreSourceAbsolute = true;
+          } else {
+            // Legacy pre-cut clip: clip-relative already equals timeline time.
+            subtitleSegments = trSegs.map((s) => ({
+              ...s,
+              startSec: s.start || 0,
+              endSec: s.end || 0,
+            }));
+          }
+          console.log("[Render] Subtitle source: clip.transcription,", subtitleSegments.length, "segments");
+        } else if (clipData.subtitles) {
+          if (clipData.subtitles.sub1) subtitleSegments.push(...clipData.subtitles.sub1);
+          if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
+          subsAreSourceAbsolute = clipData.subtitles._format === "source-absolute";
+          console.log(
+            "[Render] Subtitle source: clip.subtitles.sub1,", subtitleSegments.length, "segments",
+            transcriptionIsStale ? "(clip.transcription was stale)" : ""
+          );
+        }
       }
 
       // If subtitles are source-absolute and we have NLE segments, map to timeline time.
-      // EditorLayout already does this for single-clip render, but batch render needs it too.
-      const isSourceAbsolute = clipData.subtitles?._format === "source-absolute";
-      if (useNle && isSourceAbsolute && subtitleSegments.length > 0) {
+      // EditorLayout already does this for single-clip render, but render-from-disk needs it too.
+      if (useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
         const mapped = visibleSubtitleSegments(subtitleSegments, nleSegments);
         subtitleSegments = mapped.map((seg) => ({
           ...seg,

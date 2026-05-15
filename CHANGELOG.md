@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-14 (session 38) — Disk-render subtitle source priority
+
+### Fixed
+- **Render-from-disk now prefers `clip.transcription` over `clip.subtitles.sub1`** ([render.js](src/main/render.js)). Mirrors the priority ladder in `useSubtitleStore.initSegments` so the disk render path (batch/Queue/Projects re-render) and the editor preview both read subtitles from the same source. Previously, `render.js` blindly concatenated `clip.subtitles.sub1` and ran it through `visibleSubtitleSegments` against the NLE windows. When `sub1` is stale or polluted with the whole-recording transcript (a known upstream defect — see follow-up issue), almost every segment falls outside the clip's NLE source range and gets filtered out, producing a rendered MP4 with effectively no subtitles even though the editor preview shows them correctly. This was the root cause behind the Arc Raiders Instagram post that uploaded with no spoken subtitles on May 9. Includes the same stale-transcription detection as `initSegments` (`lastEnd > clipDuration * 1.5`) and handles both NLE and legacy pre-cut clip paths. Adds `[Render] Subtitle source: ...` log line so future renders make their source choice visible.
+
+### Notes
+- Does **not** fix the underlying `clip.subtitles.sub1` pollution itself (confirmed on at least two clips — Arc Raiders had 84 whole-recording segments for a 13s clip, Rocket League Diamond had 1620 for a 49s clip). The render-priority fix routes around the pollution by preferring the accurate per-clip `clip.transcription`. The pollution defect is filed as a separate follow-up.
+
 ## [Unreleased] — 2026-05-11 (session 37) — Instagram via Facebook Login + TikTok refresh fix
 
 ### Changed
