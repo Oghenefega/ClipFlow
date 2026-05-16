@@ -1,0 +1,23 @@
+The full timeline shows three main tracks:
+1. The captions track, the title that would be shown on the video or also serves as a track for text.
+2. An additional text subtitle track that shows the subtitles of the video.
+3. An audio track that serves as what is happening in the video, with audio waveforms.
+4. A fourth track that can be added when extra audio wants to be added to the video, responsive so that when selected and held down it can be dragged to scrub through the whole timeline.
+The subtitle can never be more extended than the video. That means if the video is cut down or shrunk, the subtitle also shrinks to align with where the video ends. If the video goes from 16 seconds to 10 seconds, the subtitle also drops to 10 seconds. The same goes for the caption. If the caption is 16 seconds but the video is dropped to 10 seconds, then the caption drops to 10 seconds as well.
+The timeline has the ability to splice or split sections in the videos wherever the header is. A shortcut key can be enabled to split the track, the audio track, when it is selected. There is a zoom in and zoom out button that also has a scroll to scroll in and out of the video or scroll in and out of the timeline to be able to see intricate parts, to zoom into certain aspects of the timeline (aka going into smaller increments of time). When you zoom out it zooms out the 16 seconds or however long the video might be.
+There is the ability to speed up a video or slow it down:
+- 0.25 speed
+- 0.5 speed
+- 0.75 speed
+- 1x speed
+- 1.25x speed
+- 1.5x speed
+- 2x speed
+There is a button that allows you to minimize or hide the timeline as well. On the top of the timeline there is a play button. When pressed it turns into a pause button and when you press pause it turns into a play button. On the left side it tells you where on the time code of a video you are and on the right side it tells you the full length of the video.
+If you right click on the audio track, which represents the video, there are options that allow you to:
+- Delete that section of the clip
+- Delete scene
+- Create that as a new video, as a new clip in the project
+- Duplicate the original video
+When you click on the audio track, you can see it selected and the ability to shrink the front and the end part of that section of the video is possible. The same goes for the subtitle track and the captions track. When you click on the captions track there's a physical visual marker that lets you know you can drag it to extend it or drag it to reduce it.
+There are buttons to zoom into the timeline and buttons to zoom out, along with a slider that allows you to zoom in and out. If you drag it left it zooms in and if you drag it right it zooms out. There are buttons that allow you to hide the timeline that also have shortcut keys that can be set in the settings. There are buttons to allow you to split or splice a video, to splice the video or caption or subtitle. There's a header that is very responsive to mouse movement so where the header goes. 

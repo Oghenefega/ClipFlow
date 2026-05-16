@@ -1,0 +1,8 @@
+The top bar just above the preview that sits across the very top at the right side is the ability to save the video after an edit is done, with a drop-down that also allows you to send it to be queued. You can also just save the edit so you know you're done saving changes.
+In the middle is the title of the video. The title that is going to go up on YouTube. That is the title of the video that is there. There is a drop-down button just beside it and when that is clicked, when that is selected, it actually shows the next videos. It shows all the videos that are within that project that can be edited so you can jump from one video to another. When you look at those videos, you can see:
+- their names
+- a visual presentation or thumbnail of those videos
+- their titles
+- the duration of the videos
+If you click on that drop-down button again, it hides those videos that could be selected.
+On the left side is an undo button and a redo button. It also has the Vizard logo, which serves as a way for you to go to the main projects folder where you see all the videos. It goes to the main projects tab.

@@ -1,0 +1,42 @@
+Right panel. The right panel has a bunch of features, buttons, and tools at your disposal. The AI tools would be the AI titles. That's what I would use the AI tools for. I wouldn't be recreating "Remove Silence" but in the case of VISA, the AI tools, when you click on it, it expands and you can see "Remove Silence". You can apply these different AI effects on the audio tab. You see the ability to add. When you click on the plus sign, it gives you the option to add to the timeline, to add a song, cinematic ambient, to the timeline if you want to. These audios are within Vizard. In my case I would be uploading them.  
+  
+The music audio tab also has the ability to search. It gives you the ability to tag certain songs with different filters:
+
+*   Ambience
+*   Chill
+*   Happy
+*   Scary
+*   Pop
+
+different tags.  
+  
+There's the brand kit. The brand kit has templates that give a certain style and theme for the style of the subtitle and for the style of the caption. If you want the style of the subtitle to have green text and a white glow and you want the captions to have red text and a blue glow, the brand kit template gives you the ability to save that as a template so you can have multiple templates. That's what the brand kit serves as. Same goes for the template; it serves as a brand template. There are more things to the brand kit, like a saved outro or a logo that shows across the video, but I don't think I need that or want an outro.  
+  
+Now the subtitles have different settings. When you click on the settings of the subtitles here, you can see different things that can be changed in the settings. You can:
+
+*   change the font
+*   change the font size
+*   change the alignment from left, middle, or right
+*   make the font bold, italic, or underlined
+*   change the casing to upper and lower case or all upper case
+*   change the line spacing
+*   change the color of the font
+
+You can change the subtitles from appearing only one line per screen or two lines per screen. You can also change the color of the font and the way the color will be displayed in the UI. It is beautiful and allows you to really see the different types of colors you can change from and change to. There's also a highlight button that enables you to highlight certain words. There are different highlight options and when you hover over certain buttons, it displays what it is: highlight color three or highlight color two.  
+  
+When you click on the one line per screen, it gives a drop down that shows you if you want to select one line per screen. The subtitles pack shows you can save subtitle settings here and choose from a drop down of subtitle presets that you have created. In my case the caption/text settings toolbar allows you to add a headline, which is the same as a caption title, or a body of text, which is just random text that can show up at different times in the video, not the same as a subtitle. There's a preset. I am not really going to need a preset but settings gives you the ability to change different things. When you go into the settings of the text, you see the ability to change:
+
+*   what the text says
+*   the font
+*   the BIU alignment
+*   the case
+*   the line spacing
+
+You can also change certain things like:
+- the shadow
+- the intensity of the shadow
+- the stroke
+- the background
+You click the plus sign and it enables the shadow or you can press the minus button and it removes the shadow. You click on the shadow and you have the ability to change the transparency and change the color of the stroke and the shadow as well, with a very fully featured color tab that allows you to select from all the colors that exist.
+The upload tab shows you the ability to drop, drag, or drop images, videos, or audios or GIFs onto Clip Flow to save them within Clip Flow. That can then be added to the timeline.
+

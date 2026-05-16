@@ -1,0 +1,12 @@
+Overview - In this overview the whole video editor UI is displayed.
+- On the left side you have the transcript and edit subtitles panel.
+- In the middle is the preview.
+- On the right side are a set of two bars that when selected slide out. The brand kit slides out, the template slides out, and the audio slides out one after the other.
+- At the bottom is the timeline and they all have intricate details and buttons that they function with.
+- The timeline has a captions track, a subtitles track, and an audio track that also serves as the video track but it shows the audio waveforms of the video file.
+- There is a header that can be dragged left and right across the full timeline for the duration of the video.
+- The subtitles can't go longer than where the video ends.
+- There are buttons all over the timeline: buttons to pause and play, buttons to zoom in the timeline or zoom out.
+- At the very top is the title of the video; that is where you can change the title of the video if need be.
+- At the top right you can also save the changes you've made to the video.
+You

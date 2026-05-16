@@ -1,0 +1,7 @@
+Adjust subtitle start and end time - when selected, when the time code is selected here, the ability to adjust the time, the start and end, is possible. You can drag the slider to change where that subtitle section begins and where it ends, connected to the next subtitle.
+Edit subtitles:
+- Edit subtitles when you click on this toolbar; it shows a dropdown of what the subtitles look like and in paragraph form.
+- Edit subtitles when you hover on a subtitle, on a word in one of the subtitle sections; it shows a bunch of colors that you can highlight and make the subtitle that color.
+- I like subtitle word.
+Under the transcript and subtitles header there is a search function that you can use to search through the subtitles. Toggle between subtitle paragraph and subtitle sentence and that changes how the subtitle is displayed.
+There are subtitle settings that enable you to see if you want subtitles to have punctuation, if you want the subtitles to be displayed, or if you want them to have. There's a larger view of what the subtitles look like and the transcript, which is straightforward and just shows everything the subtitle has. It also has a search function, the ability to copy the transcript text or download it.
