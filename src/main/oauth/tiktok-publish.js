@@ -19,6 +19,23 @@ const TIKTOK_API_BASE = "https://open.tiktokapis.com";
 const MAX_SINGLE_CHUNK = 64 * 1024 * 1024; // 64 MB — TikTok max single chunk
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB for multi-chunk uploads (files > 64MB)
 
+// Compute chunk_size / total_chunk_count per TikTok's Content Posting API rules:
+//   - Files ≤ 64MB: single chunk with chunk_size = video_size, total_chunk_count = 1.
+//   - Files > 64MB: chunk_size = 10MB; total_chunk_count = floor(video_size / chunk_size).
+//     The LAST chunk absorbs the remainder, so it's between chunk_size and 2×chunk_size
+//     (TikTok requires chunk_size * total_chunk_count <= video_size, last chunk takes rest).
+// Previously this used Math.ceil, which produced total_chunk_count * chunk_size > video_size
+// and got rejected by /v2/post/publish/video/init/ with "The total chunk count is invalid".
+function calculateChunking(fileSize) {
+  if (fileSize <= MAX_SINGLE_CHUNK) {
+    return { chunkSize: fileSize, chunkCount: 1 };
+  }
+  return {
+    chunkSize: CHUNK_SIZE,
+    chunkCount: Math.floor(fileSize / CHUNK_SIZE),
+  };
+}
+
 // ── HTTP helpers ──
 
 function apiPost(endpoint, body, accessToken) {
@@ -106,14 +123,7 @@ async function queryCreatorInfo(accessToken) {
  * @returns {{ publish_id: string, upload_url: string }}
  */
 async function initializeUpload(accessToken, postInfo, fileSize) {
-  let chunkCount, chunkSize;
-  if (fileSize <= MAX_SINGLE_CHUNK) {
-    chunkCount = 1;
-    chunkSize = fileSize;
-  } else {
-    chunkSize = CHUNK_SIZE;
-    chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
-  }
+  const { chunkSize, chunkCount } = calculateChunking(fileSize);
   log.info("Initializing direct post upload", { fileSize, chunkCount, chunkSize });
 
   const body = {
@@ -123,6 +133,11 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
       disable_duet: postInfo.disable_duet || false,
       disable_stitch: postInfo.disable_stitch || false,
       disable_comment: postInfo.disable_comment || false,
+      // Commercial Content Disclosure (TikTok Content Sharing Guidelines)
+      // brand_content_toggle = paid partnership / third-party promotion
+      // brand_organic_toggle = creator promoting their own brand
+      brand_content_toggle: postInfo.brand_content_toggle || false,
+      brand_organic_toggle: postInfo.brand_organic_toggle || false,
     },
     source_info: {
       source: "FILE_UPLOAD",
@@ -156,14 +171,7 @@ async function initializeUpload(accessToken, postInfo, fileSize) {
  * @returns {{ publish_id: string, upload_url: string }}
  */
 async function initializeInboxUpload(accessToken, fileSize) {
-  let chunkCount, chunkSize;
-  if (fileSize <= MAX_SINGLE_CHUNK) {
-    chunkCount = 1;
-    chunkSize = fileSize;
-  } else {
-    chunkSize = CHUNK_SIZE;
-    chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
-  }
+  const { chunkSize, chunkCount } = calculateChunking(fileSize);
   log.info("Initializing inbox upload", { fileSize, chunkCount, chunkSize });
 
   const body = {
@@ -230,8 +238,10 @@ function putEntireFile(uploadUrl, buffer, totalSize) {
 }
 
 async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
-  if (fileSize <= MAX_SINGLE_CHUNK) {
-    // Single upload — read entire file and PUT
+  const { chunkSize, chunkCount } = calculateChunking(fileSize);
+
+  if (chunkCount === 1) {
+    // Single upload — read entire file and PUT in one request.
     log.info("Single-chunk upload", { fileSize, filePath });
     const buffer = fs.readFileSync(filePath);
     if (onProgress) onProgress({ pct: 50, detail: "Uploading video..." });
@@ -241,17 +251,21 @@ async function uploadVideoChunks(uploadUrl, filePath, fileSize, onProgress) {
     return;
   }
 
-  log.info("Chunked upload starting", { chunkCount, filePath });
+  // Multi-chunk: the LAST chunk absorbs the remainder, so it can be larger than
+  // chunkSize (up to 2 × chunkSize). This matches calculateChunking's contract
+  // and what init told TikTok via total_chunk_count.
+  log.info("Chunked upload starting", { chunkCount, chunkSize, fileSize, filePath });
   const fd = fs.openSync(filePath, "r");
   try {
     for (let i = 0; i < chunkCount; i++) {
-      const start = i * CHUNK_SIZE;
-      const bytesToRead = Math.min(CHUNK_SIZE, fileSize - start);
+      const start = i * chunkSize;
+      const isLast = i === chunkCount - 1;
+      const bytesToRead = isLast ? (fileSize - start) : chunkSize;
       const end = start + bytesToRead - 1;
       const buffer = Buffer.alloc(bytesToRead);
       fs.readSync(fd, buffer, 0, bytesToRead, start);
 
-      log.info("Uploading chunk", { chunk: `${i + 1}/${chunkCount}`, bytes: `${start}-${end}/${fileSize}` });
+      log.info("Uploading chunk", { chunk: `${i + 1}/${chunkCount}`, bytes: `${start}-${end}/${fileSize}`, isLast });
       await putChunk(uploadUrl, buffer, start, end, fileSize);
 
       const pct = Math.round(((i + 1) / chunkCount) * 100);
@@ -332,28 +346,48 @@ async function publishVideo(accessToken, videoPath, options = {}, onProgress) {
     progress("init", 10, "Initializing upload...");
     ({ publish_id, upload_url } = await initializeInboxUpload(accessToken, fileSize));
   } else {
-    // Direct post flow — query creator info for allowed privacy levels
+    // Direct post flow — query creator info to validate caller-supplied options.
+    // Per TikTok Content Sharing Guidelines, all per-post settings come from the
+    // user via the UX panel; this function just validates + forwards them.
     progress("creator_info", 5, "Checking creator permissions...");
     const creatorInfo = await queryCreatorInfo(accessToken);
-    const allowedPrivacy = creatorInfo.privacy_level_options || ["PUBLIC_TO_EVERYONE"];
+    const allowedPrivacy = creatorInfo.privacy_level_options || [];
 
-    // Use requested privacy level if allowed, otherwise fall back to first allowed
-    const requested = options.privacy_level || "PUBLIC_TO_EVERYONE";
-    const privacyLevel = allowedPrivacy.includes(requested) ? requested : allowedPrivacy[0];
+    // Privacy: caller MUST pick one (no silent default per guideline A2).
+    if (!options.privacy_level) {
+      throw new Error("TikTok privacy level is required — please pick one in the export panel before publishing.");
+    }
+    if (allowedPrivacy.length && !allowedPrivacy.includes(options.privacy_level)) {
+      throw new Error(`TikTok privacy "${options.privacy_level}" is not allowed for this account. Allowed: ${allowedPrivacy.join(", ")}`);
+    }
 
-    const disableDuet = creatorInfo.duet_disabled || false;
-    const disableStitch = creatorInfo.stitch_disabled || false;
-    const disableComment = creatorInfo.comment_disabled || false;
+    // Branded content cannot be private (guideline A5 constraint).
+    if (options.brand_content_toggle && options.privacy_level === "SELF_ONLY") {
+      throw new Error("Branded content cannot be set to private (SELF_ONLY) — choose a different privacy level.");
+    }
 
-    log.info("Privacy level", { privacyLevel, allowedPrivacy });
+    // Interaction toggles: caller's choice wins, but creator_info's *_disabled
+    // flags force-on as defense in depth (UI also greys these out per A6).
+    const disableDuet = creatorInfo.duet_disabled ? true : (options.disable_duet || false);
+    const disableStitch = creatorInfo.stitch_disabled ? true : (options.disable_stitch || false);
+    const disableComment = creatorInfo.comment_disabled ? true : (options.disable_comment || false);
+
+    log.info("Publish options", {
+      privacyLevel: options.privacy_level,
+      disableDuet, disableStitch, disableComment,
+      brandContent: options.brand_content_toggle || false,
+      brandOrganic: options.brand_organic_toggle || false,
+    });
 
     progress("init", 10, "Initializing upload...");
     ({ publish_id, upload_url } = await initializeUpload(accessToken, {
       title: options.title || options.caption || "",
-      privacy_level: privacyLevel,
+      privacy_level: options.privacy_level,
       disable_duet: disableDuet,
       disable_stitch: disableStitch,
       disable_comment: disableComment,
+      brand_content_toggle: options.brand_content_toggle || false,
+      brand_organic_toggle: options.brand_organic_toggle || false,
     }, fileSize));
   }
 

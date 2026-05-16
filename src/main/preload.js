@@ -208,6 +208,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // TikTok publishing
   tiktokPublish: (params) => ipcRenderer.invoke("tiktok:publish", params),
+  tiktokQueryCreatorInfo: (params) => ipcRenderer.invoke("tiktok:queryCreatorInfo", params),
   onTiktokPublishProgress: (callback) => {
     ipcRenderer.on("tiktok:publishProgress", (_, data) => callback(data));
   },
@@ -259,6 +260,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // App version
   getAppVersion: () => ipcRenderer.invoke("app:getVersion"),
+  openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
 
   // Project Folders
   folderList: () => ipcRenderer.invoke("folder:list"),

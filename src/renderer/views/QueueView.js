@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, extractGameTag, hasHashtag, toFileUrl } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, extractGameTag, hasHashtag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import TestChip from "../components/TestChip";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -101,6 +101,15 @@ const PLATFORM_META = {
   youtube:   { label: "YouTube",   abbr: "YT", bg: "#c4302b",  border: "none" },
 };
 
+// Human-friendly labels for TikTok privacy_level enum values returned by creator_info.
+// Used in the per-clip TikTok options panel dropdown.
+const TIKTOK_PRIVACY_LABELS = {
+  PUBLIC_TO_EVERYONE: "Public",
+  MUTUAL_FOLLOW_FRIENDS: "Friends",
+  FOLLOWER_OF_CREATOR: "Followers",
+  SELF_ONLY: "Only me",
+};
+
 // #71: A clip is "placeholder-named" if its title is the unedited "Clip N" default
 // the pipeline assigned. Manual rename or AI Titles overwrite the title to something
 // else and silence the warning. Strict pattern — anything past the number opts out.
@@ -167,6 +176,303 @@ function charCountColor(len, max) {
   return T.textTertiary;
 }
 
+// TikTok per-clip options panel — guideline-compliant UX for Content Posting API
+// audit (https://developers.tiktok.com/doc/content-sharing-guidelines/).
+//
+// Wave 2 scope (this revision):
+//   A1 — "Posting as <nickname> (@<handle>)" header
+//   A2 — privacy dropdown sourced from creator_info, no default value
+//
+// Later waves will add interaction toggles, commercial disclosure, etc.
+function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
+  const [creatorInfo, setCreatorInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch creator info on mount (and whenever the account changes).
+  // `cancelled` guard prevents setState after unmount if the user closes the
+  // panel mid-fetch. On success, also pushes the data up via callback so the
+  // parent's publish-button gate can apply A7 (duration check) synchronously.
+  useEffect(() => {
+    if (!account?.key) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    window.clipflow?.tiktokQueryCreatorInfo({ accountId: account.key })
+      .then((r) => {
+        if (cancelled) return;
+        if (r?.error) {
+          setError(r.error);
+          setCreatorInfo(null);
+        } else {
+          const info = r.creatorInfo || null;
+          setCreatorInfo(info);
+          setError(null);
+          if (info && onCreatorInfoLoaded) onCreatorInfoLoaded(account.key, info);
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e.message || "Failed to load TikTok options");
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [account?.key, onCreatorInfoLoaded]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 11, color: T.textTertiary }}>
+        Loading TikTok options…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 11, color: T.red, background: T.redDim }}>
+        Couldn't load TikTok options — {error}. Publishing to TikTok is blocked until this resolves.
+      </div>
+    );
+  }
+
+  // A1: prefer creator_info's canonical fields (matches what TikTok's guideline
+  // calls "the creator's nickname"); fall back to the stored account record if
+  // for some reason the API returned an empty value.
+  const nickname = creatorInfo?.creator_nickname || account.displayName || "TikTok";
+  const handle = creatorInfo?.creator_username || account.name || "";
+
+  // A2 + A5 cross-constraint: branded content can NOT be private, so SELF_ONLY
+  // is filtered out of the dropdown whenever Branded Content is active. The
+  // auto-clear at toggle-time handles the "already picked SELF_ONLY" case so
+  // the dropdown can never display a now-invalid current value.
+  const brandedActive = clip.tiktokIsBrandedContent === true;
+  const rawPrivacyOptions = Array.isArray(creatorInfo?.privacy_level_options) ? creatorInfo.privacy_level_options : [];
+  const privacyOptions = brandedActive ? rawPrivacyOptions.filter((o) => o !== "SELF_ONLY") : rawPrivacyOptions;
+
+  // A2: per guideline, dropdown has NO default value — user must actively pick.
+  // We surface this by border-coloring the select red until set, plus a small
+  // "Required" hint adjacent to it.
+  const privacySet = !!clip.tiktokPrivacy;
+
+  // A5 state derivations
+  const disclosureOn = clip.tiktokCommercialDisclosure === true;
+  const yourBrandOn = clip.tiktokIsYourBrand === true;
+  const subOptionPicked = yourBrandOn || brandedActive;
+
+  // A7 — in-panel duration check. Surfaces a visible error inline so the user
+  // sees the problem without having to click Publish. Parent's gate also blocks
+  // publish using the same data via the onCreatorInfoLoaded callback.
+  const maxDurationSec = creatorInfo?.max_video_post_duration_sec;
+  const clipDurationSec = Number(clip.duration);
+  const durationTooLong = !!maxDurationSec && Number.isFinite(clipDurationSec) && clipDurationSec > maxDurationSec;
+
+  // Toggling Branded Content ON while SELF_ONLY is selected must clear the
+  // privacy back to unset (forces re-pick). Other state changes don't need
+  // similar handling.
+  const handleBrandedContentToggle = () => {
+    const next = !brandedActive;
+    const partial = { tiktokIsBrandedContent: next };
+    if (next && clip.tiktokPrivacy === "SELF_ONLY") partial.tiktokPrivacy = null;
+    onSave(partial);
+  };
+
+  // Toggling the master disclosure OFF resets both sub-options back to false
+  // so re-enabling later starts from a clean state (matches TikTok's UX where
+  // unchecking the master collapses + clears the section).
+  const handleDisclosureMasterToggle = () => {
+    const next = !disclosureOn;
+    if (next) onSave({ tiktokCommercialDisclosure: true });
+    else onSave({ tiktokCommercialDisclosure: false, tiktokIsYourBrand: false, tiktokIsBrandedContent: false });
+  };
+
+  return (
+    <>
+      {/* A1 — Posting-as header */}
+      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600 }}>Posting as</span>
+        <span style={{ fontSize: 11, color: T.text, fontWeight: 700 }}>{nickname}</span>
+        {handle && (
+          <span style={{ fontSize: 11, color: T.textSecondary, fontFamily: T.mono }}>@{handle}</span>
+        )}
+      </div>
+
+      {/* A2 — Privacy dropdown. Uses the custom Select component instead of a
+          native <select> because Chromium's default option rendering has poor
+          contrast on dark backgrounds (text barely readable until hovered). */}
+      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, minWidth: 50 }}>Privacy</span>
+        <Select
+          value={clip.tiktokPrivacy || ""}
+          onChange={(value) => onSave({ tiktokPrivacy: value || null })}
+          options={[
+            { value: "", label: "— Select privacy —" },
+            ...privacyOptions.map((opt) => ({ value: opt, label: TIKTOK_PRIVACY_LABELS[opt] || opt })),
+          ]}
+          style={{ minWidth: 160 }}
+        />
+        {!privacySet && (
+          <span style={{ fontSize: 10, color: T.red, fontWeight: 700 }}>Required</span>
+        )}
+      </div>
+
+      {/* A3 + A6 — Interaction toggles (Disable Duet/Stitch/Comment).
+          Each toggle is a pill: OFF (transparent) = allow, ON (green) = disable.
+          If creator_info reports the feature disabled at account level, the toggle
+          is locked ON with reduced opacity and not-allowed cursor (A6 force-on). */}
+      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, marginBottom: 6 }}>Interactions</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <TiktokInteractionToggle
+            label="Disable Duet"
+            userOn={clip.tiktokDisableDuet === true}
+            forceOn={creatorInfo?.duet_disabled === true}
+            onToggle={() => onSave({ tiktokDisableDuet: !(clip.tiktokDisableDuet === true) })}
+          />
+          <TiktokInteractionToggle
+            label="Disable Stitch"
+            userOn={clip.tiktokDisableStitch === true}
+            forceOn={creatorInfo?.stitch_disabled === true}
+            onToggle={() => onSave({ tiktokDisableStitch: !(clip.tiktokDisableStitch === true) })}
+          />
+          <TiktokInteractionToggle
+            label="Disable Comment"
+            userOn={clip.tiktokDisableComment === true}
+            forceOn={creatorInfo?.comment_disabled === true}
+            onToggle={() => onSave({ tiktokDisableComment: !(clip.tiktokDisableComment === true) })}
+          />
+        </div>
+      </div>
+
+      {/* A7 — Duration check. Rendered as an inline error banner inside the
+          panel when the clip exceeds the account's max video duration. Publish
+          gate (parent) enforces the same check at the button level. */}
+      {durationTooLong && (
+        <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.redBorder}`, background: T.redDim, fontSize: 10, color: T.red, fontWeight: 700 }}>
+          This clip is {Math.round(clipDurationSec)}s — your TikTok account only allows posts up to {maxDurationSec}s. Trim the clip or use a shorter render.
+        </div>
+      )}
+
+      {/* A5 — Commercial Content Disclosure.
+          Master toggle (OFF by default) reveals two sub-options when on.
+          Conditional label shows what TikTok will visibly tag the post as.
+          When the user enables this but doesn't pick a sub-option, the
+          publish button is gated via getTiktokBlockReason (verbatim tooltip
+          per the guideline). */}
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+        <div
+          onClick={(e) => { e.stopPropagation(); handleDisclosureMasterToggle(); }}
+          style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+        >
+          <Checkbox checked={disclosureOn} size={16} />
+          <span style={{ fontSize: 11, color: T.text, fontWeight: 600 }}>Disclose commercial content</span>
+        </div>
+        {disclosureOn && (
+          <div style={{ marginTop: 8, marginLeft: 24, display: "flex", flexDirection: "column", gap: 6 }}>
+            {/* Sub-option: Your Brand */}
+            <div
+              onClick={(e) => { e.stopPropagation(); onSave({ tiktokIsYourBrand: !yourBrandOn }); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+            >
+              <Checkbox checked={yourBrandOn} size={14} />
+              <span style={{ fontSize: 11, color: T.text }}>Your Brand</span>
+              <span style={{ fontSize: 10, color: T.textTertiary }}>— you&apos;re promoting yourself or your own product</span>
+            </div>
+            {/* Sub-option: Branded Content */}
+            <div
+              onClick={(e) => { e.stopPropagation(); handleBrandedContentToggle(); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+            >
+              <Checkbox checked={brandedActive} size={14} />
+              <span style={{ fontSize: 11, color: T.text }}>Branded Content</span>
+              <span style={{ fontSize: 10, color: T.textTertiary }}>— paid partnership with a third party</span>
+            </div>
+            {/* Conditional label hint or "Required" prompt */}
+            {!subOptionPicked && (
+              <div style={{ marginTop: 4, fontSize: 10, color: T.red, fontWeight: 700 }}>
+                Required — pick at least one sub-option above.
+              </div>
+            )}
+            {brandedActive && (
+              <div style={{ marginTop: 4, fontSize: 10, color: T.textSecondary, fontStyle: "italic" }}>
+                Your post will be labeled as &quot;Paid partnership&quot;.
+              </div>
+            )}
+            {yourBrandOn && !brandedActive && (
+              <div style={{ marginTop: 4, fontSize: 10, color: T.textSecondary, fontStyle: "italic" }}>
+                Your post will be labeled as &quot;Promotional content&quot;.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* A4 — Music Usage Confirmation disclosure (with conditional Branded
+          Content Policy variant per A5 rule 4/5). Verbatim wording per the
+          Content Sharing Guidelines; links open in the OS default browser
+          via the openExternal IPC. */}
+      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10, color: T.textTertiary, fontStyle: "italic", lineHeight: 1.5 }}>
+        By posting, you agree to TikTok&apos;s{" "}
+        {brandedActive && (
+          <>
+            <a
+              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/bc-policy/en");
+              }}
+              style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
+            >Branded Content Policy</a>{" and "}
+          </>
+        )}
+        <a
+          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/music-usage-confirmation/en");
+          }}
+          style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
+        >Music Usage Confirmation</a>.
+      </div>
+    </>
+  );
+}
+
+// Pill-style toggle for the TikTok interaction section. Three states:
+//   off:      transparent bg, grey text                 (= "allow")
+//   on:       green bg + green text                     (= user-disabled)
+//   force-on: green bg + reduced opacity + lock cursor  (= TikTok-disabled at account level)
+//
+// Force-on is non-clickable and surfaces a tooltip explaining the constraint.
+function TiktokInteractionToggle({ label, userOn, forceOn, onToggle }) {
+  const on = userOn || forceOn;
+  const locked = forceOn;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); if (!locked) onToggle(); }}
+      disabled={locked}
+      title={locked
+        ? `${label} is enforced by your TikTok account settings — change it in the TikTok app to control it here.`
+        : (on ? `Click to allow this interaction on the post.` : `Click to disable this interaction on the post.`)}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px",
+        borderRadius: 20,
+        border: `1px solid ${on ? T.green : T.border}`,
+        background: on ? "rgba(74,222,128,0.12)" : "transparent",
+        color: on ? T.green : T.textSecondary,
+        opacity: locked ? 0.55 : 1,
+        cursor: locked ? "not-allowed" : "pointer",
+        fontSize: 10, fontWeight: 700, transition: "all 0.15s", fontFamily: T.font,
+      }}
+    >
+      {locked && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>(LOCKED)</span>}
+      {label}
+    </button>
+  );
+}
+
 export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
@@ -225,6 +531,16 @@ export default function QueueView({
   const schedTime = `${schedHour.padStart(2, "0")}:${schedMin.padStart(2, "0")}`;
   // publishStatus: { [clipId]: { state: "publishing"|"done"|"failed", platforms: { [key]: "pending"|"publishing"|"done"|"failed"|errorMsg } } }
   const [publishStatus, setPublishStatus] = useState({});
+  // TikTok creator_info, cached by accountId. Populated by TiktokOptionsPanel
+  // on mount (it fetches from main process); read by getTiktokBlockReason so the
+  // publish gate can enforce the A7 duration check synchronously at render time.
+  // If an account's info hasn't been fetched yet (panel never opened), the gate
+  // skips duration validation — TikTok itself rejects too-long videos at init.
+  const [tiktokCreatorInfo, setTiktokCreatorInfo] = useState({});
+  const onTiktokCreatorInfoLoaded = React.useCallback((accountId, info) => {
+    if (!accountId || !info) return;
+    setTiktokCreatorInfo((prev) => ({ ...prev, [accountId]: info }));
+  }, []);
   // Hydrate publishStatus from clip.publishState (persisted to disk) on mount and as new
   // clips appear, so failed-publish clips remain retryable across app restarts. We track
   // hydrated clipIds in a ref to avoid clobbering live in-memory state once a publish run
@@ -389,6 +705,18 @@ export default function QueueView({
     } catch (e) { console.error("YouTube privacy save failed:", e); }
   };
 
+  // TikTok Content Posting API audit: persist any subset of the per-clip TikTok
+  // flat fields (tiktokPrivacy / tiktokDisable* / tiktokCommercialDisclosure /
+  // tiktokIsYourBrand / tiktokIsBrandedContent). The TiktokOptionsPanel calls
+  // this on each user interaction.
+  const saveTiktokFields = async (clip, partial) => {
+    if (!clip._projectId || !partial || typeof partial !== "object") return;
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, partial);
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, partial);
+    } catch (e) { console.error("TikTok fields save failed:", e); }
+  };
+
   // Phase 2: Get effective caption for a clip+platform (override or resolved template)
   const getEffectiveCaption = (clip, platformKey) => {
     if (clip.captionOverrides?.[platformKey] != null) return clip.captionOverrides[platformKey];
@@ -402,6 +730,40 @@ export default function QueueView({
       .map((p) => accountToPlatformKey(p))
       .filter((k) => k && toggles[k] !== false)
       .filter((v, i, a) => a.indexOf(v) === i); // dedupe
+  };
+
+  // TikTok Content Posting API audit: returns a human-readable reason string if
+  // publishing should be blocked because the clip's TikTok options are incomplete
+  // or invalid, or null if TikTok publishing is allowed (or TikTok isn't enabled).
+  // Covers privacy (Wave 2), commercial-disclosure validation (Wave 5), and
+  // duration check (Wave 6). Capacity (A8) is handled post-publish via error
+  // translation since creator_info doesn't expose a pre-flight capacity flag.
+  const getTiktokBlockReason = (clip) => {
+    const enabled = getEnabledPlatforms(clip);
+    if (!enabled.includes("tiktok")) return null;
+    if (!clip.tiktokPrivacy) return "Pick a TikTok privacy level in the TikTok panel before publishing.";
+    if (clip.tiktokCommercialDisclosure === true) {
+      const youBrand = clip.tiktokIsYourBrand === true;
+      const branded = clip.tiktokIsBrandedContent === true;
+      // Verbatim wording from TikTok's Content Sharing Guidelines.
+      if (!youBrand && !branded) {
+        return "You need to indicate if your content promotes yourself, a third party, or both.";
+      }
+      if (branded && clip.tiktokPrivacy === "SELF_ONLY") {
+        return "Branded content cannot be set to private — please choose a different privacy level.";
+      }
+    }
+    // A7 — duration check. Skipped when creator_info hasn't been loaded yet
+    // (panel not yet opened) since the value isn't available pre-flight; in
+    // that case TikTok's own API rejects too-long videos at init.
+    const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
+    const info = tiktokAccount ? tiktokCreatorInfo[tiktokAccount.key] : null;
+    const maxSec = info?.max_video_post_duration_sec;
+    const clipDuration = Number(clip.duration);
+    if (maxSec && Number.isFinite(clipDuration) && clipDuration > maxSec) {
+      return `This clip is ${Math.round(clipDuration)}s — your TikTok account only allows posts up to ${maxSec}s.`;
+    }
+    return null;
   };
 
   // Phase 3: Schedule a clip (persist scheduledAt on clip object, don't publish yet)
@@ -496,7 +858,21 @@ export default function QueueView({
       try {
         let result;
         if (plat.platform === "TikTok" && window.clipflow?.tiktokPublish) {
-          result = await window.clipflow.tiktokPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, postMode: platformOptions?.tiktokPostMode || "direct_post", isTest: isClipTest(clip) });
+          result = await window.clipflow.tiktokPublish({
+            accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
+            caption, clipId: clip.id,
+            postMode: platformOptions?.tiktokPostMode || "direct_post",
+            isTest: isClipTest(clip),
+            tiktokFields: {
+              privacy: clip.tiktokPrivacy || null,
+              disableDuet: clip.tiktokDisableDuet === true,
+              disableStitch: clip.tiktokDisableStitch === true,
+              disableComment: clip.tiktokDisableComment === true,
+              commercialDisclosure: clip.tiktokCommercialDisclosure === true,
+              isYourBrand: clip.tiktokIsYourBrand === true,
+              isBrandedContent: clip.tiktokIsBrandedContent === true,
+            },
+          });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
           result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
@@ -646,7 +1022,10 @@ export default function QueueView({
     const platStatuses = {};
     enabledPlat.forEach((p) => { platStatuses[p.key] = "pending"; });
     setPublishStatus((prev) => ({ ...prev, [clipId]: { state: "publishing", platforms: { ...platStatuses } } }));
-    setSelClip(null);
+    // Keep the clip expanded so the per-platform publish results panel (and the
+    // TikTok A9 "may take a few minutes" notice on success) stay visible. The
+    // previous `setSelClip(null)` here auto-collapsed and hid the live status.
+    setSelClip(clipId);
     setSchedAction(null);
 
     // Track per-platform persistence on the clip itself so failures survive app restart
@@ -671,8 +1050,18 @@ export default function QueueView({
         if (plat.platform === "TikTok" && window.clipflow?.tiktokPublish) {
           result = await window.clipflow.tiktokPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
-            caption, clipId: clip.id, postMode: platformOptions?.tiktokPostMode || "direct_post",
+            caption, clipId: clip.id,
+            postMode: platformOptions?.tiktokPostMode || "direct_post",
             isTest: isClipTest(clip),
+            tiktokFields: {
+              privacy: clip.tiktokPrivacy || null,
+              disableDuet: clip.tiktokDisableDuet === true,
+              disableStitch: clip.tiktokDisableStitch === true,
+              disableComment: clip.tiktokDisableComment === true,
+              commercialDisclosure: clip.tiktokCommercialDisclosure === true,
+              isYourBrand: clip.tiktokIsYourBrand === true,
+              isBrandedContent: clip.tiktokIsBrandedContent === true,
+            },
           });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
           result = await window.clipflow.instagramPublish({
@@ -1011,9 +1400,17 @@ export default function QueueView({
                       {!isPub && !isPublishing && hasVideoId && (
                         isClipTest(clip) ? (
                           <TestChip isTest disabled size="sm" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
-                        ) : (
-                          <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
-                        )
+                        ) : (() => {
+                          const tikBlock = getTiktokBlockReason(clip);
+                          return (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (!tikBlock) pubNow(clip.id); }}
+                              disabled={!!tikBlock}
+                              title={tikBlock || undefined}
+                              style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(255,255,255,0.04)" : T.green, color: tikBlock ? T.textMuted : "#0a0b10", fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
+                            >Publish</button>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
@@ -1158,6 +1555,20 @@ export default function QueueView({
                                         </div>
                                       )}
 
+                                      {/* TikTok: per-clip options panel (Content Posting API audit) */}
+                                      {pk === "tiktok" && (() => {
+                                        const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
+                                        if (!tiktokAccount) return null;
+                                        return (
+                                          <TiktokOptionsPanel
+                                            clip={clip}
+                                            account={tiktokAccount}
+                                            onSave={(partial) => saveTiktokFields(clip, partial)}
+                                            onCreatorInfoLoaded={onTiktokCreatorInfoLoaded}
+                                          />
+                                        );
+                                      })()}
+
                                       {/* Caption body */}
                                       <div style={{ padding: "8px 12px" }}>
                                         {isYt && <div style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, marginBottom: 4 }}>Description</div>}
@@ -1198,28 +1609,45 @@ export default function QueueView({
                             );
                           })()}
 
-                          {/* Publishing progress (if active) — only shows enabled platforms */}
-                          {(isPublishing || isFailed) && ps?.platforms && (
-                            <div style={{ background: T.surface, border: `1px solid ${isPublishing ? T.yellowBorder : T.redBorder}`, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
-                              <SectionLabel>{isPublishing ? "Publishing..." : "Publish results"}</SectionLabel>
-                              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
-                                {Object.keys(ps.platforms).map((platKey) => {
-                                  const plat = activePlat.find((p) => p.key === platKey);
-                                  if (!plat) return null;
-                                  const st = ps.platforms[platKey] || "pending";
-                                  const { icon, color } = getPlatStatusIcon(st);
-                                  return (
-                                    <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
-                                      <span style={{ fontSize: 12 }}>{icon}</span>
-                                      <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
-                                      <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? (publishProgress?.detail || "Connecting...") : st === "done" ? "Sent" : st}</span>
-                                    </div>
-                                  );
-                                })}
+                          {/* Publishing progress (if active) — only shows enabled platforms.
+                              After success we keep the panel visible with green styling so
+                              the per-platform statuses and the TikTok "processing" notice
+                              (A9) stay readable until the user navigates away. */}
+                          {(isPublishing || isFailed || isPub) && ps?.platforms && (() => {
+                            const tiktokDone = Object.entries(ps.platforms).some(([k, st]) => {
+                              const p = activePlat.find((ap) => ap.key === k);
+                              return p?.platform === "TikTok" && st === "done";
+                            });
+                            const borderColor = isPublishing ? T.yellowBorder : isFailed ? T.redBorder : T.greenBorder;
+                            const heading = isPublishing ? "Publishing..." : isFailed ? "Publish results" : "Published";
+                            return (
+                              <div style={{ background: T.surface, border: `1px solid ${borderColor}`, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
+                                <SectionLabel>{heading}</SectionLabel>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                                  {Object.keys(ps.platforms).map((platKey) => {
+                                    const plat = activePlat.find((p) => p.key === platKey);
+                                    if (!plat) return null;
+                                    const st = ps.platforms[platKey] || "pending";
+                                    const { icon, color } = getPlatStatusIcon(st);
+                                    return (
+                                      <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                                        <span style={{ fontSize: 12 }}>{icon}</span>
+                                        <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
+                                        <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? (publishProgress?.detail || "Connecting...") : st === "done" ? "Sent" : st}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                {isFailed && ps.error && <div style={{ marginTop: 8, color: T.red, fontSize: 11, fontWeight: 600 }}>{ps.error}</div>}
+                                {/* A9 — TikTok processing notice per Content Sharing Guidelines */}
+                                {tiktokDone && (
+                                  <div style={{ marginTop: 10, fontSize: 10, color: T.textTertiary, fontStyle: "italic", borderTop: `1px solid ${T.border}`, paddingTop: 8 }}>
+                                    Your TikTok post may take a few minutes to appear on your profile.
+                                  </div>
+                                )}
                               </div>
-                              {isFailed && ps.error && <div style={{ marginTop: 8, color: T.red, fontSize: 11, fontWeight: 600 }}>{ps.error}</div>}
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Not rendered warning */}
                           {!hasVideoId && (
@@ -1251,13 +1679,18 @@ export default function QueueView({
                             {!isPub && !isPublishing && (
                               isClipTest(clip) ? (
                                 <TestChip isTest disabled size="md" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
-                              ) : (
-                                <button
-                                  onClick={() => pubNow(clip.id)}
-                                  disabled={!hasVideoId || publishingRef.current}
-                                  style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}
-                                >Publish Now</button>
-                              )
+                              ) : (() => {
+                                const tikBlock = getTiktokBlockReason(clip);
+                                const canPub = hasVideoId && !publishingRef.current && !tikBlock;
+                                return (
+                                  <button
+                                    onClick={() => { if (canPub) pubNow(clip.id); }}
+                                    disabled={!canPub}
+                                    title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
+                                    style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(255,255,255,0.04)", color: canPub ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
+                                  >Publish Now</button>
+                                );
+                              })()
                             )}
                           </div>
                           {/* Phase 3: Schedule picker with auto-suggest */}
@@ -1338,9 +1771,17 @@ export default function QueueView({
                 <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
                 {/* Action */}
                 <div style={{ textAlign: "right" }}>
-                  {!isPub && !isPublishing && hasVideoId && (
-                    <button onClick={(e) => { e.stopPropagation(); pubNow(clip.id); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: T.green, color: "#0a0b10", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Publish</button>
-                  )}
+                  {!isPub && !isPublishing && hasVideoId && (() => {
+                    const tikBlock = getTiktokBlockReason(clip);
+                    return (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (!tikBlock) pubNow(clip.id); }}
+                        disabled={!!tikBlock}
+                        title={tikBlock || undefined}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: tikBlock ? "rgba(255,255,255,0.04)" : T.green, color: tikBlock ? T.textMuted : "#0a0b10", fontSize: 10, fontWeight: 700, cursor: tikBlock ? "not-allowed" : "pointer", fontFamily: T.font }}
+                      >Publish</button>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1385,9 +1826,18 @@ export default function QueueView({
                         <button onClick={() => unscheduleClip(clip)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Unschedule</button>
                         {isFailed && <button onClick={() => retryFailed(clip.id)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Retry Failed</button>}
                         <div style={{ flex: 1 }} />
-                        {!isPub && !isPublishing && (
-                          <button onClick={() => pubNow(clip.id)} disabled={!hasVideoId || publishingRef.current} style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: hasVideoId ? T.green : "rgba(255,255,255,0.04)", color: hasVideoId ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: hasVideoId ? "pointer" : "default", fontFamily: T.font }}>Publish Now</button>
-                        )}
+                        {!isPub && !isPublishing && (() => {
+                          const tikBlock = getTiktokBlockReason(clip);
+                          const canPub = hasVideoId && !publishingRef.current && !tikBlock;
+                          return (
+                            <button
+                              onClick={() => { if (canPub) pubNow(clip.id); }}
+                              disabled={!canPub}
+                              title={tikBlock || (!hasVideoId ? "Render the clip before publishing." : undefined)}
+                              style={{ padding: "7px 14px", borderRadius: 7, border: "none", background: canPub ? T.green : "rgba(255,255,255,0.04)", color: canPub ? "#0a0b10" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canPub ? "pointer" : "not-allowed", fontFamily: T.font }}
+                            >Publish Now</button>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

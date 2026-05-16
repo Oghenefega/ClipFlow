@@ -2524,7 +2524,46 @@ ipcMain.handle("oauth:tiktok:connect", async () => {
 
 // ── TikTok Content Posting ──
 
-ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest }) => {
+// Query TikTok creator info for the per-clip options panel.
+// Returns the allowed privacy levels, *_disabled interaction flags,
+// max_video_post_duration_sec, and capacity flag the UI needs to render
+// guideline-compliant controls before publish.
+ipcMain.handle("tiktok:queryCreatorInfo", async (_event, { accountId }) => {
+  const log = require("electron-log/main").scope("tiktok");
+  try {
+    const account = tokenStore.getAccount(accountId);
+    if (!account) return { error: "TikTok account not found. Please reconnect in Settings." };
+
+    let accessToken = account.accessToken;
+    if (account.expiresAt && Date.now() > account.expiresAt) {
+      log.info("Token expired in queryCreatorInfo, refreshing");
+      const clientKey = store.get("tiktokClientKey");
+      const clientSecret = store.get("tiktokClientSecret");
+      if (!clientKey || !clientSecret || !account.refreshToken) {
+        return { error: "Cannot refresh TikTok token. Please reconnect in Settings." };
+      }
+      const r = await tiktokOAuth.refreshAccessToken(clientKey, clientSecret, account.refreshToken);
+      if (r.error || !r.access_token) {
+        return { error: `Token refresh failed: ${r.error_description || r.error || "Unknown error"}` };
+      }
+      tokenStore.updateTokens(
+        accountId,
+        r.access_token,
+        r.refresh_token || account.refreshToken,
+        Date.now() + (r.expires_in || 86400) * 1000,
+      );
+      accessToken = r.access_token;
+    }
+
+    const info = await tiktokPublish.queryCreatorInfo(accessToken);
+    return { success: true, creatorInfo: info };
+  } catch (err) {
+    log.error("queryCreatorInfo failed", { error: err.message });
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields }) => {
   const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "TikTok", accountId, accountName: "", videoPath };
   try {
     if (isTest) {
@@ -2575,13 +2614,22 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
     const postCaption = caption || title || "";
     require("electron-log/main").scope("tiktok").debug("Caption", { caption: postCaption });
 
-    // Publish with progress events
+    // Per-clip TikTok options collected via the export panel (guideline-compliant UX).
+    // tiktokFields shape: { privacy, disableDuet, disableStitch, disableComment,
+    //                        commercialDisclosure, isYourBrand, isBrandedContent }
+    // All optional in transit; publishVideo enforces privacy presence for direct_post.
+    const t = tiktokFields || {};
     const result = await tiktokPublish.publishVideo(
       accessToken,
       videoPath,
       {
         title: postCaption,
-        privacy_level: "PUBLIC_TO_EVERYONE",
+        privacy_level: t.privacy || null,
+        disable_duet: t.disableDuet === true,
+        disable_stitch: t.disableStitch === true,
+        disable_comment: t.disableComment === true,
+        brand_content_toggle: t.commercialDisclosure === true && t.isBrandedContent === true,
+        brand_organic_toggle: t.commercialDisclosure === true && t.isYourBrand === true,
         mode: postMode || "direct_post",
       },
       (progress) => {
@@ -2605,9 +2653,42 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
   } catch (err) {
     require("electron-log/main").scope("tiktok").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
-    return { error: err.message };
+    return { error: translateTiktokPublishError(err.message) };
   }
 });
+
+// Translate raw TikTok API error messages into user-facing strings. Handles the
+// guideline-mandated A8 (capacity) friendly message plus a few other common
+// audit-related errors. Original message is preserved as fallback so unknown
+// errors still surface verbatim instead of being masked.
+function translateTiktokPublishError(msg) {
+  if (!msg || typeof msg !== "string") return "TikTok publish failed.";
+  const lower = msg.toLowerCase();
+  // A8 — daily/posting capacity reached. TikTok signals this with various
+  // codes; match by substring to catch them all.
+  if (
+    lower.includes("daily_quota_limit_exceeded") ||
+    lower.includes("daily_post_limit") ||
+    lower.includes("rate_limit_exceeded") ||
+    lower.includes("posting_limit") ||
+    lower.includes("quota_exceeded")
+  ) {
+    return "TikTok says this account has reached its posting limit — try again later.";
+  }
+  // Spam / temp ban — separate from capacity but related friendly framing.
+  if (lower.includes("spam_risk") || lower.includes("user_banned_from_posting")) {
+    return "TikTok has temporarily blocked this account from posting. Try again later or check your TikTok account status.";
+  }
+  // Unaudited client (the exact error this whole feature is meant to unblock).
+  if (lower.includes("unaudited_client_can_only_post_to_private_accounts")) {
+    return "TikTok hasn't audited this app yet — direct posting is locked to private. Submit the Content Posting API audit to unlock public posts.";
+  }
+  // Video duration / size violations.
+  if (lower.includes("video_pull_failed") || lower.includes("invalid_param") && lower.includes("duration")) {
+    return "TikTok rejected this video — it may be too long for your account, or in an unsupported format.";
+  }
+  return msg;
+}
 
 // ── Instagram OAuth (via Facebook Login) ──
 //
@@ -2985,6 +3066,19 @@ ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }
 // Get app version
 ipcMain.handle("app:getVersion", async () => {
   return app.getVersion();
+});
+
+// Open an external URL in the OS default browser. Only http/https allowed so a
+// compromised renderer can't trigger arbitrary protocols (file://, custom schemes, etc.).
+ipcMain.handle("app:openExternal", async (_event, url) => {
+  try {
+    if (typeof url !== "string") return { error: "url must be a string" };
+    if (!/^https?:\/\//i.test(url)) return { error: "Only http(s) URLs allowed" };
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // ── Local update notifier (#80 Stage 2) ──
