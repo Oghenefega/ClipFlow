@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-16 (session 40) — Real brand glyphs replace letter chips
+
+### Added
+- **`PlatformIcon` component** ([src/renderer/components/PlatformIcon.js](src/renderer/components/PlatformIcon.js)) — renders official brand glyphs for Facebook, Instagram, TikTok, and YouTube from `src/renderer/assets/platforms/`. Accepts `{ platform, size, style }`; resolves the icon URL via Vite's asset bundling (hashed filenames at build, works in Electron's `file://` context). Includes a `VISUAL_SCALE` map (per-platform multipliers applied via CSS `transform: scale()`) so the four glyphs render at the same visual weight despite different built-in canvas padding — YouTube's red play button (which sits with whitespace in a wider-than-tall canvas) gets a 1.45× bump; TikTok a 1.1× bump; Facebook and Instagram render 1:1. Transform doesn't affect layout box, so flex alignment and gap spacing in the Queue chip layout are unaffected.
+- **Brand icon assets** ([src/renderer/assets/platforms/](src/renderer/assets/platforms/)) — `facebook.png` (54 KB), `instagram.png` (19 KB, downscaled from the 2.6 MB IG brand-pack PNG via FFmpeg to 128×128), `tiktok.svg` (2.1 KB), `youtube.png` (17 KB). Total icon footprint ~107 KB. Pulled from Fega's official brand asset packs in `C:\Users\IAmAbsolute\Desktop\ClipFlow stuff\ClipFlow Social Media Icons\`. The original `Instagram_Glyph_Gradient.svg` from Meta's pack was 10.9 MB (embedded raster + full-resolution paths) — rejected in favor of the resized PNG to keep the renderer bundle lean.
+
+### Changed
+- **Queue tab platform indicators** ([src/renderer/views/QueueView.js](src/renderer/views/QueueView.js)) — five sites that previously rendered colored circles containing the platform's first letter (`F`/`Y`/`I`/`T`) now render `<PlatformIcon>`. Sites: per-clip caption preview header (14px), the list-item row's compact platform-toggle indicators (20px, preserves the dimmed-when-off opacity), the platform-pill row above caption cards (18px, two duplicate render sites), and the caption-card section header (16px). The `PLATFORM_META.bg` / `PLATFORM_META.abbr` fields stay in the file — `abbr` is still read by `logPost` for the spreadsheet export.
+
 ## [0.1.5-alpha] — 2026-05-16 (session 39) — TikTok Content Posting API audit UX
 
 The full per-clip TikTok options panel that the [Content Sharing Guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines/) audit reviewer scores recordings against. Every guideline-mandated UX control is now visible on the export panel; every guideline-mandated behavior is enforced in code. Unblocks the Content Posting API submission — direct posts with `PUBLIC_TO_EVERYONE` privacy stop returning `unaudited_client_can_only_post_to_private_accounts` once the audit passes.

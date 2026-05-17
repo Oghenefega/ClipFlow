@@ -4,6 +4,7 @@ import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, extractGameTag, hasHashtag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import TestChip from "../components/TestChip";
+import PlatformIcon from "../components/PlatformIcon";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -1278,7 +1279,7 @@ export default function QueueView({
                   return (
                     <div key={pk} style={{ borderRadius: 6, border: `1px solid ${T.border}`, padding: "8px 12px", background: "rgba(255,255,255,0.02)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                        <span style={{ width: 14, height: 14, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 800, background: meta.bg, color: "#fff" }}>{meta.abbr[0]}</span>
+                        <PlatformIcon platform={pk} size={14} />
                         <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{meta.label}</span>
                         {isYt && <span style={{ fontSize: 10, color: T.textTertiary, marginLeft: "auto" }}>Title: {clip.youtubeTitle || clip.title}</span>}
                       </div>
@@ -1389,7 +1390,7 @@ export default function QueueView({
                         const pk = accountToPlatformKey(p);
                         const isOn = pk && (clip.platformToggles || {})[pk] !== false;
                         return (
-                          <span key={p.key} style={{ width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: p.platform === "TikTok" ? "#000" : p.platform === "Instagram" ? "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" : p.platform === "YouTube" ? "#c4302b" : p.platform === "Facebook" ? "#1877f2" : "rgba(255,255,255,0.1)", color: "#fff", border: p.platform === "TikTok" ? "1px solid rgba(255,255,255,0.15)" : "none", opacity: isOn ? 1 : 0.25, transition: "opacity 0.15s" }}>{p.abbr?.[0] || p.platform[0]}</span>
+                          <PlatformIcon key={p.key} platform={pk} size={20} style={{ opacity: isOn ? 1 : 0.25, transition: "opacity 0.15s" }} />
                         );
                       })}
                     </div>
@@ -1473,7 +1474,7 @@ export default function QueueView({
                                     opacity: isOn ? 1 : 0.4, cursor: "pointer", transition: "all 0.15s", fontFamily: T.font,
                                   }}
                                 >
-                                  <span style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: meta.bg, color: "#fff", border: pk === "tiktok" ? "1px solid rgba(255,255,255,0.15)" : "none", flexShrink: 0 }}>{meta.abbr[0]}</span>
+                                  <PlatformIcon platform={pk} size={18} />
                                   <span style={{ fontSize: 11, fontWeight: 600, color: isOn ? T.text : T.textTertiary }}>{meta.label}</span>
                                 </button>
                               );
@@ -1505,7 +1506,7 @@ export default function QueueView({
                                       {/* Caption card header */}
                                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}` }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                          <span style={{ width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, background: meta.bg, color: "#fff", border: pk === "tiktok" ? "1px solid rgba(255,255,255,0.12)" : "none" }}>{meta.abbr[0]}</span>
+                                          <PlatformIcon platform={pk} size={16} />
                                           <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{meta.label}</span>
                                           {hasOverride && <span style={{ fontSize: 9, fontWeight: 700, color: T.accent, background: T.accentDim, padding: "1px 6px", borderRadius: 4 }}>Custom</span>}
                                         </div>
@@ -1811,7 +1812,7 @@ export default function QueueView({
                           return (
                             <button key={p.key} onClick={(e) => { e.stopPropagation(); togglePlatform(clip, pk); }}
                               style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px 4px 6px", borderRadius: 20, border: `1px solid ${isOn ? "rgba(255,255,255,0.12)" : T.border}`, background: isOn ? "rgba(255,255,255,0.06)" : "transparent", opacity: isOn ? 1 : 0.4, cursor: "pointer", transition: "all 0.15s", fontFamily: T.font }}>
-                              <span style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: meta.bg, color: "#fff", border: pk === "tiktok" ? "1px solid rgba(255,255,255,0.15)" : "none", flexShrink: 0 }}>{meta.abbr[0]}</span>
+                              <PlatformIcon platform={pk} size={18} />
                               <span style={{ fontSize: 11, fontWeight: 600, color: isOn ? T.text : T.textTertiary }}>{meta.label}</span>
                             </button>
                           );
