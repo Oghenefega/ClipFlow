@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-21 (session 42) — AI caption/title architecture (content foundation for #85)
+
+Content foundation for the [#85](https://github.com/Oghenefega/ClipFlow/issues/85) AI title/caption overhaul. No runtime behaviour changes yet — this is the research-backed architecture the prompt rewrite will be built on, distilled from a 37-source NotebookLM research notebook (vidiq hook guides, Jenny Hoyos, Creator Hooks, George Blackman, Paddy Galloway, MrBeast production docs, and 11 real viral gaming Shorts).
+
+### Added
+- **`src/main/data/caption-frameworks.md`** — architecture document for AI title/caption generation. Defines a content-first generation pipeline (`Clip Truth → 3 Pillars → Driver → Execution → 3 cards`): each hook is found in the clip's actual footage, structured by 3 pillars (Character/Target, Concept/Transformation, Stakes), powered by one or two of 4 root psychological drivers (Alertness, Friction, Utility, Resonance), then finished against execution rules. Also documents the failure model behind generic AI copy — viewer-agnosticism, cargo-cult sameness, and "answer not equation".
+- **`src/main/data/caption-hook-examples.json`** — machine-readable knowledge base the prompt builder will load: the 3 pillars, 4 drivers, execution rules, payoff-integrity rules, batch logic, 6 worked pipeline examples (each teaches the full reasoning chain rather than a template to copy), 11 real viral gaming titles annotated with drivers, and an anti-pattern list.
+
+### Changed
+- **#85's design dropped the hook-archetype taxonomy.** Extracting the hook *science* from the research notebook showed that archetype-first generation — pick 1 of N named patterns, fill its template — is itself a documented cause of generic AI copy. The architecture is now content-first; archetypes are demoted to informal vocabulary, and the per-card UI chip becomes a short generated plain-language angle label instead of a `hook_archetype` enum.
+
 ## [Unreleased] — 2026-05-16 (session 40) — Real brand glyphs replace letter chips
 
 ### Added

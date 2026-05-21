@@ -1,0 +1,246 @@
+{
+  "_comment": "Machine-readable knowledge base for ClipFlow AI title/caption generation (issue #85). The human-readable architecture and reasoning live in caption-frameworks.md - update both files together. The title/caption prompt builder injects pillars, drivers, execution rules and worked_examples as it generates. Architecture is a pipeline: clip truth -> 3 pillars -> driver -> execution -> 3 cards. There is no archetype layer. worked_examples teach the PIPELINE (the reasoning chain), not templates to copy. real_world_titles are genuine viral gaming Shorts kept for driver grounding only - their original Title Case is the creators', not ClipFlow's casing model (see execution.casing).",
+  "version": 2,
+  "architecture": "clip_truth -> pillars -> driver -> execution -> 3 cards",
+
+  "pillars": [
+    {
+      "id": "character",
+      "label": "Character / Target",
+      "definition": "Who the clip is for, or who is in it - the person the viewer roots for or sees themselves in.",
+      "find_in_clip": "Identify the player, the crew, or the relatable role/behaviour the moment belongs to."
+    },
+    {
+      "id": "concept",
+      "label": "Concept / Transformation",
+      "definition": "What actually happens - the change, the reversal, the before-to-after.",
+      "find_in_clip": "Name the specific event or shift the footage shows."
+    },
+    {
+      "id": "stakes",
+      "label": "Stakes",
+      "definition": "Why it matters - what is on the line.",
+      "find_in_clip": "Identify what could be won or lost: the round, the rank, the loot, pride, the channel."
+    }
+  ],
+
+  "drivers": [
+    {
+      "id": "alertness",
+      "label": "Biological Alertness",
+      "moment": "stops the scroll",
+      "mechanism": "A pattern break wakes the survival brain, which must evaluate the unusual.",
+      "use_when": "The clip has a genuinely surprising or contradictory element. In TEXT, treat this as a constraint - front-load a surprising word - not as the main engine; it mostly delegates to the first frame."
+    },
+    {
+      "id": "friction",
+      "label": "Cognitive Friction",
+      "moment": "earns the click",
+      "mechanism": "An information gap - an open loop the brain itches to close.",
+      "use_when": "The clip has an outcome worth withholding. The hook opens the loop; the footage closes it."
+    },
+    {
+      "id": "utility",
+      "label": "Egocentric Utility",
+      "moment": "earns the click",
+      "mechanism": "The viewer's what's-in-it-for-me calculation - a move from a current pain toward a desired gain.",
+      "use_when": "The clip teaches, warns, or shows a mistake or skill the viewer wants for themselves."
+    },
+    {
+      "id": "resonance",
+      "label": "Empathic Resonance",
+      "moment": "prevents the swipe",
+      "mechanism": "Character, story and social investment - a reason to stay, not just to click.",
+      "use_when": "The clip has a relatable character, a shared feeling, or an underdog/personal story."
+    }
+  ],
+
+  "execution": {
+    "casing": "Sentence case. 1-3 ALL-CAPS words allowed for genuine emphasis on the peak word. Never Title Case - it is the clearest tell of AI short-form copy.",
+    "title": {
+      "length_words": "5-10",
+      "voice": "Headline. Opens a loop; never spoils the outcome.",
+      "suffix": "Ends with one #gamehashtag."
+    },
+    "caption": {
+      "length_words": "3-7, may stretch slightly",
+      "voice": "First-person. One natural thought - the way the creator would say it out loud.",
+      "forbidden": "No constructed two-beat 'setup, then payoff' antithesis ('I said hi, he said no'). No spoiling the outcome - the payoff lives in the footage."
+    },
+    "one_idea": "One idea only. If it needs a second sentence to make sense, cut it.",
+    "specificity": "Name the specific thing - the gun, the rank, the number, the moment. Vague reads as generic.",
+    "readability": "1st-5th grade reading level. Explain the thing simply; don't lean on jargon.",
+    "surface_form_variety": "Across the 3 cards, vary the sentence shape - plain statement, question, short fragment, number-led. Never reuse one shape or one crutch word across the batch."
+  },
+
+  "payoff_integrity": {
+    "discard_rule": "If the clip cannot pay a hook off, discard the hook. A promise the footage doesn't deliver is bad clickbait.",
+    "caption_rule": "The caption opens the loop; the footage closes it. Never put the outcome or punchline in the caption.",
+    "no_invention": "Never invent a game term, player name, or event not present in the clip or transcript."
+  },
+
+  "batch": {
+    "default": "3 titles + 3 captions",
+    "rule": "Each card is a genuinely different ANGLE - a different pillar leading or a different driver. Not the same truth reworded.",
+    "chip": "Each card carries a short plain-language chip describing its angle (e.g. 'Leads with the stakes', 'Innocent setup, no outcome'). Generated to fit the card, not chosen from a fixed list."
+  },
+
+  "worked_examples": [
+    {
+      "content_type": "fail / funny",
+      "clip_truth": "Player waved as a friendly gesture, expecting a roll back (the in-game friendly signal). The enemy shot them instead.",
+      "pillars": {
+        "character": "Anyone who has tried to play friendly in an extraction shooter",
+        "concept": "A trust gesture about to be betrayed",
+        "stakes": "Death, lost loot, being the one who trusted first"
+      },
+      "drivers": ["friction", "resonance"],
+      "title": "I tried to make a friend in Arc Raiders #arcraiders",
+      "caption": "All I did was wave",
+      "chip": "Innocent setup, no outcome",
+      "why": "The caption gives only the innocent setup - the wave - and stops. The viewer has to watch to find out what that wave cost. The footage delivers the betrayal; the caption never does. One natural thought, no two-beat."
+    },
+    {
+      "content_type": "clutch",
+      "clip_truth": "Player is the last one alive in a 1v3, low on HP and almost out of ammo, with the round resting on them.",
+      "pillars": {
+        "character": "The last player standing, and anyone left to clutch it alone",
+        "concept": "A 1v3 with no HP and barely any ammo",
+        "stakes": "The whole round - win it alone or the team loses"
+      },
+      "drivers": ["friction", "resonance"],
+      "title": "Last alive, 1v3, almost no ammo #valorant",
+      "caption": "How am I supposed to win this",
+      "chip": "Leads with the pressure",
+      "why": "The caption is the player's genuine in-the-moment doubt - a question, not a claim - and it never says whether they pulled it off. Friction holds you (can they?); Resonance puts you behind the underdog."
+    },
+    {
+      "content_type": "rage",
+      "clip_truth": "Player loses a match in the final seconds to a cheap mechanic and completely loses their temper.",
+      "pillars": {
+        "character": "The player, and everyone robbed by a cheap game mechanic",
+        "concept": "A near-certain win ripped away at the last second",
+        "stakes": "The match, the rank, the player's last nerve"
+      },
+      "drivers": ["resonance", "friction"],
+      "title": "This game finally made me lose it #rocketleague",
+      "caption": "I was one second from winning",
+      "chip": "Leads with the near-win",
+      "why": "The caption sits the viewer on the brink - one second from a win - and leaves it there. The footage delivers the collapse and the meltdown. The viewer stays to watch the fall they can already feel coming."
+    },
+    {
+      "content_type": "emotional / personal",
+      "clip_truth": "Streamer opens up mid-stream about almost quitting content creation.",
+      "pillars": {
+        "character": "The streamer, and any creator who has thought about quitting",
+        "concept": "A creator at the edge of walking away",
+        "stakes": "Whether the channel - years of work - continues at all"
+      },
+      "drivers": ["resonance", "friction"],
+      "title": "I almost quit during this game #apexlegends",
+      "caption": "I didn't think I'd still be doing this",
+      "chip": "Quiet, reflective open",
+      "why": "No spectacle - the hook is pure Resonance. The caption is one honest, reflective thought that invites the viewer into a vulnerable moment. Friction is light: you stay to hear what they decided."
+    },
+    {
+      "content_type": "skill flex",
+      "clip_truth": "Player lands an extremely difficult trick shot after a long string of failed attempts.",
+      "pillars": {
+        "character": "The player, and every viewer who has tried and failed this exact shot",
+        "concept": "A shot almost nobody lands, finally landed",
+        "stakes": "Reputation, the highlight, proof it is even possible"
+      },
+      "drivers": ["friction", "alertness"],
+      "title": "People said this shot was impossible #fortnite",
+      "caption": "I'd been trying this shot for an hour",
+      "chip": "Leads with the effort",
+      "why": "The caption invests the viewer in the effort - an hour of attempts - without revealing the result. The footage is the verdict. Friction (did it land?) rides on the genuine surprise of the play itself."
+    },
+    {
+      "content_type": "funny",
+      "clip_truth": "A teammate makes a confident call that backfires comedically and costs the round.",
+      "pillars": {
+        "character": "The teammate who made the call - the one everyone has played with",
+        "concept": "A plan that was doomed from the first second",
+        "stakes": "The round, and the teammate's dignity"
+      },
+      "drivers": ["friction", "resonance"],
+      "title": "My teammate had one job #cod",
+      "caption": "He said trust him",
+      "chip": "Sets up the bad idea",
+      "why": "The caption is the teammate's promise - 'trust him' - and nothing more. The comedy is the gap between that promise and what the footage shows. Friction opens the gap; Resonance is the shared 'we have all had this teammate'."
+    }
+  ],
+
+  "real_world_titles": [
+    {
+      "title": "CaseOh Found Himself In Game",
+      "drivers": ["alertness", "friction"],
+      "why": "An absurd visual premise wakes the brain; the outcome is withheld."
+    },
+    {
+      "title": "How ACEU handles a 1v6 In Apex Legends",
+      "drivers": ["friction", "resonance"],
+      "why": "Near-impossible odds stated up front - you watch to see if he survives."
+    },
+    {
+      "title": "Jschlatt is HOW OLD",
+      "drivers": ["friction"],
+      "why": "Withholds the number; the all-caps beat makes you need it."
+    },
+    {
+      "title": "Kai Cenat Recreates His Most Viral Clip",
+      "drivers": ["friction", "resonance"],
+      "why": "Promises a known high-value payoff tied to a creator the viewer already follows."
+    },
+    {
+      "title": "SypherPK Is Being Sued!",
+      "drivers": ["friction", "resonance"],
+      "why": "A high-fear real-world consequence with the story withheld."
+    },
+    {
+      "title": "Why Bugha Almost Quit Fortnite",
+      "drivers": ["friction", "resonance"],
+      "why": "Withholds the reason a legendary player nearly walked away."
+    },
+    {
+      "title": "Why Nadeshot Left 100 Thieves as CEO",
+      "drivers": ["friction"],
+      "why": "The why behind a high-status exit is the open loop."
+    },
+    {
+      "title": "Shroud Admits Asmongold Was Right",
+      "drivers": ["resonance", "friction"],
+      "why": "One authority surrenders status to another - a reversal you have to see."
+    },
+    {
+      "title": "When You Skip All The Dialogue",
+      "drivers": ["resonance", "utility"],
+      "why": "Names a behaviour every player recognises in themselves."
+    },
+    {
+      "title": "Why Fortnite Fired Me",
+      "drivers": ["friction", "resonance"],
+      "why": "A dramatic personal loss with the reason withheld."
+    },
+    {
+      "title": "One streamer can ruin a game's reputation",
+      "drivers": ["alertness", "friction"],
+      "why": "A provocative claim that breaks the expected take."
+    }
+  ],
+
+  "anti_patterns": [
+    "Spoiling the payoff: putting the outcome or punchline in the caption. The caption opens the loop; the footage closes it.",
+    "The two-beat: a constructed 'setup, then payoff' antithesis ('I said hi, he said no'). Reads as AI. Write one natural thought.",
+    "Viewer-agnostic copy: a title written for the creator, not the viewer. Name what is in it for the person watching.",
+    "Cargo-cult sameness: copying a surface tactic without the clip's real truth behind it.",
+    "Hallucinated detail: inventing a game term, player name, or event the clip or transcript doesn't support.",
+    "Title Case: the clearest tell of AI short-form copy. Sentence case only.",
+    "Crutch words: one weak reaction word ('yikes', 'crazy', 'insane') carrying the hook or repeating across the batch.",
+    "Filler openers: 'hey guys', 'ok so', 'welcome back'.",
+    "Over-cleverness: if the hook needs a second sentence to land, cut it.",
+    "Vague stakes: 'this changes everything' names nothing. Name the specific thing on the line.",
+    "Bad clickbait: a promise the clip can't pay off."
+  ]
+}
