@@ -13,9 +13,9 @@ GitHub as a multi-part issue:
 
 **[#85 — AI title/caption generation overhaul](https://github.com/Oghenefega/ClipFlow/issues/85)**
 
-Content-foundation step 1 (NotebookLM research notebook) is done; the
-notebook URL is pinned as a comment on #85. Next is querying that notebook
-to produce `caption-frameworks.md` + `caption-hook-examples.json`.
+Content foundation is complete (session 42) — `caption-frameworks.md` +
+`caption-hook-examples.json` written and committed. Next is the backend
+prompt rewrite; see #85's Backend checklist and HANDOFF.md.
 
 ---
 
