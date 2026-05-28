@@ -11,3 +11,18 @@ data/feedback.db
 data/feedback.db-wal
 data/feedback.db-shm
 processing/
+*.bak
+
+# Claude Code local artifacts (worktrees, local launch config, personal permission overrides)
+.claude/worktrees/
+.claude/launch.json
+.claude/settings.local.json
+
+# Scratch / temp working dirs
+tmp/
+
+# Python bytecode cache
+__pycache__/
+
+# Windows reserved-name junk (stray `> nul` redirects)
+nul
