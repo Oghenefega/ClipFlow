@@ -82,7 +82,8 @@
   "batch": {
     "default": "3 titles + 3 captions",
     "rule": "Each card is a genuinely different ANGLE - a different pillar leading or a different driver. Not the same truth reworded.",
-    "chip": "Each card carries a short plain-language chip describing its angle (e.g. 'Leads with the stakes', 'Innocent setup, no outcome'). Generated to fit the card, not chosen from a fixed list."
+    "chip": "Each card carries a short plain-language chip describing its angle (e.g. 'Innocent setup, no outcome', 'Pressure, asked as a question'). Generated to fit the card, not chosen from a fixed list.",
+    "chip_variety": "Vary the chip's grammatical shape across the 3 cards - never reuse an opening word or template (e.g. NOT 'Leads with X' on more than one card). A noun phrase, a question framing, a 'Sets up...' or 'Stops at...' phrase are all fine; what is banned is sameness of shape."
   },
 
   "worked_examples": [
@@ -111,7 +112,7 @@
       "drivers": ["friction", "resonance"],
       "title": "Last alive, 1v3, almost no ammo #valorant",
       "caption": "How am I supposed to win this",
-      "chip": "Leads with the pressure",
+      "chip": "Pressure, asked as a question",
       "why": "The caption is the player's genuine in-the-moment doubt - a question, not a claim - and it never says whether they pulled it off. Friction holds you (can they?); Resonance puts you behind the underdog."
     },
     {
@@ -125,7 +126,7 @@
       "drivers": ["resonance", "friction"],
       "title": "This game finally made me lose it #rocketleague",
       "caption": "I was one second from winning",
-      "chip": "Leads with the near-win",
+      "chip": "Stops at the near-win",
       "why": "The caption sits the viewer on the brink - one second from a win - and leaves it there. The footage delivers the collapse and the meltdown. The viewer stays to watch the fall they can already feel coming."
     },
     {
@@ -153,7 +154,7 @@
       "drivers": ["friction", "alertness"],
       "title": "People said this shot was impossible #fortnite",
       "caption": "I'd been trying this shot for an hour",
-      "chip": "Leads with the effort",
+      "chip": "The grind before the payoff",
       "why": "The caption invests the viewer in the effort - an hour of attempts - without revealing the result. The footage is the verdict. Friction (did it land?) rides on the genuine surprise of the play itself."
     },
     {

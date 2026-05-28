@@ -46,6 +46,31 @@ function SectionLabel({ children, className = "" }) {
   return <div className={`text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 ${className}`}>{children}</div>;
 }
 
+// Loud section header for the AI panel — title + one-line descriptor so the
+// title/caption distinction teaches itself (#85).
+function AISectionHeader({ title, sub }) {
+  return (
+    <div className="mb-2">
+      <div className="text-[13px] font-semibold text-foreground leading-tight">{title}</div>
+      <div className="text-[11px] text-muted-foreground">{sub}</div>
+    </div>
+  );
+}
+
+// Plain muted angle label under a suggestion — deliberately NOT a pill so it
+// doesn't compete visually with the Apply/Skip buttons (#85).
+function ChipLabel({ children }) {
+  return <div className="text-[11px] italic text-muted-foreground/80 mt-0.5 mb-2">{children}</div>;
+}
+
+// Render a title with its trailing #gamehashtag de-emphasized so the headline
+// reads clean (#85).
+function renderTitleWithHashtag(title) {
+  const m = String(title || "").match(/^([\s\S]*?)(\s*#\S+)\s*$/);
+  if (!m) return title;
+  return <>{m[1]}<span className="text-muted-foreground/70 font-normal">{m[2]}</span></>;
+}
+
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Hold-to-repeat button
 // ════════════════════════════════════════════════════════════════
@@ -677,15 +702,15 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
         <div className="space-y-3">
           {/* Titles */}
           <div>
-            <SectionLabel>Titles</SectionLabel>
+            <AISectionHeader title="Titles" sub="Shows in search & the feed" />
             <div className="space-y-1.5">
               {(aiSuggestions.titles || []).map((t, i) => {
                 const isAccepted = acceptedTitleIdx === i;
                 const isRejected = aiRejections.includes(t.title);
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
-                    <div className="text-xs text-foreground font-medium mb-1">{t.title}</div>
-                    {t.why && <div className="text-[12px] text-muted-foreground mb-2">{t.why}</div>}
+                    <div className="text-sm text-foreground font-medium leading-snug mb-1">{renderTitleWithHashtag(t.title)}</div>
+                    {t.chip && <ChipLabel>{t.chip}</ChipLabel>}
                     <div className="flex gap-1">
                       {isAccepted ? (
                         <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
@@ -703,16 +728,18 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
           </div>
 
           {/* Captions */}
-          <div>
-            <SectionLabel>Captions</SectionLabel>
+          <div className="pt-3 border-t border-border/50">
+            <AISectionHeader title="Captions" sub="Baked onto the video" />
             <div className="space-y-1.5">
               {(aiSuggestions.captions || []).map((c, i) => {
                 const isAccepted = acceptedCaptionIdx === i;
                 const isRejected = aiRejections.includes(c.caption);
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
-                    <div className="text-xs text-foreground mb-1">{c.caption}</div>
-                    {c.why && <div className="text-[12px] text-muted-foreground mb-2">{c.why}</div>}
+                    <div className="border-l-2 border-primary/50 pl-2.5 mb-2">
+                      <div className="text-base text-foreground leading-snug">{c.caption}</div>
+                      {c.chip && <ChipLabel>{c.chip}</ChipLabel>}
+                    </div>
                     <div className="flex gap-1">
                       {isAccepted ? (
                         <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>

@@ -54,6 +54,7 @@ const publishLog = require("./publish-log");
 const logger = require("./logger");
 const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
+const titleCaptionPrompt = require("./ai/title-caption-prompt");
 const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
 require("./ai/providers/anthropic");
@@ -2143,95 +2144,21 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
     if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
     if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
 
-    const systemPrompt = `# TASK
+    // Pipeline-based prompt (#85). Architecture in src/main/data/caption-frameworks.md;
+    // knowledge base in src/main/data/caption-hook-examples.json. Output is 3+3 with
+    // a short `chip` per card (replaces the long `why` paragraph).
+    const systemPrompt = titleCaptionPrompt.buildSystemPrompt({
+      styleGuide,
+      gameContext,
+      styleHistory,
+    });
 
-You are a title and caption specialist for short-form gaming content (YouTube Shorts, TikTok, Instagram Reels). You generate 5 title options and 5 caption options for a gaming clip based on its transcript.
-
----
-
-# DEFINITIONS
-
-## TITLE
-The video's title on the platform. Shows in feed listings and search results.
-
-Rules for titles:
-1. Be short, punchy, and optimized for discoverability (3-10 words before the hashtag)
-2. Include ONLY the game's hashtag at the end (e.g. "My Chess Rating is EMBARRASSING #arcraiders")
-3. Do NOT include generic hashtags like #gaming, #gamingshorts, #shorts, #fyp — the platform description template handles those
-4. Must work as standalone text that makes someone want to click/watch
-5. Capitalize the first letter of each major word
-6. Do not start more than one title with the same word across the 5 suggestions
-7. Do not use "POV:" in more than one title
-8. NEVER use emojis in titles — plain text only
-
-## CAPTION
-Scroll-stopping hook text BAKED INTO the video as a visible text overlay. The FIRST thing viewers read while scrolling.
-
-Rules for captions:
-1. Extremely punchy and short — 1-2 lines max, under 15 words ideal
-2. Must create an immediate emotional reaction: curiosity, shock, humor, or relatability
-3. Use bold, direct language (e.g. "I lost 12 games in ONE NIGHT" not a paragraph)
-4. NEVER include hashtags — those go in the title only
-5. Must make someone STOP SCROLLING before they even hear the audio
-6. Each caption's "why" must name the specific psychological trigger (curiosity gap, shock value, relatability, FOMO, self-deprecation, etc.)
-7. NEVER use emojis in captions — plain text only, no Unicode emoji characters
-
----
-
-# RULES
-
-1. Generate titles and captions as complementary pairs (title 1 pairs with caption 1) but the creator may mix and match
-2. Each title's "why" explains why it performs well for search/discovery
-3. Each caption's "why" names the specific psychological trigger that stops scrolling
-4. If past picks and rejections are provided, analyze the PATTERNS (tone, perspective, length, humor style) — don't just mimic, understand the creator's preferences
-5. All 5 suggestions must be meaningfully different from each other — vary structure, angle, and tone
-6. Do not repeat a pattern the creator has previously rejected
-
-${styleGuide ? `---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
-
----
-
-# OUTPUT FORMAT
-
-Return ONLY valid JSON. Your entire response must be parseable by JSON.parse() with zero modifications.
-
-Schema:
-{
-  "titles": [
-    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
-    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
-    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
-    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" },
-    { "title": "<string, 3-10 words + #gamehashtag>", "why": "<string, 1 sentence explaining discovery value>" }
-  ],
-  "captions": [
-    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
-    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
-    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
-    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" },
-    { "caption": "<string, under 15 words, no hashtags>", "why": "<string, name the psychological trigger>" }
-  ]
-}
-
-## DO NOT:
-- Do not wrap the JSON in markdown code fences
-- Do not add any text before or after the JSON object
-- Do not use placeholder values like "..." or "etc"
-- Do not return fewer than 5 titles or fewer than 5 captions
-- Do not include hashtags in captions — hashtags go in titles only
-- Do not use emojis anywhere — no 🔥, 💀, 😭, etc. Plain text only`;
-
-    let userMessage = `## Clip Transcript:\n${params.transcript || "(no transcript available)"}`;
-    if (params.projectName) userMessage += `\n\n## Project/Game: ${params.projectName}`;
-    if (params.userContext) userMessage += `\n\n## Additional Context from Creator:\n${params.userContext}`;
-    if (params.rejectedSuggestions && params.rejectedSuggestions.length > 0) {
-      userMessage += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;
-      params.rejectedSuggestions.forEach((r) => {
-        // Handle both string format (from sessionRejections) and object format
-        const text = typeof r === "string" ? r : (r.text || r.title || r.caption || "");
-        userMessage += `- "${text}"\n`;
-      });
-    }
+    const userMessage = titleCaptionPrompt.buildUserContent({
+      transcript: params.transcript,
+      projectName: params.projectName,
+      userContext: params.userContext,
+      rejectedSuggestions: params.rejectedSuggestions,
+    });
 
     const provider = llmProvider.getProvider();
     const { text } = await provider.chat({

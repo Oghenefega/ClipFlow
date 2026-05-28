@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-22 (session 43) — AI title/caption prompt rewrite + panel polish (#85)
+
+The backend half of [#85](https://github.com/Oghenefega/ClipFlow/issues/85): generation now actually runs on the content-first pipeline the session-42 architecture defined, and the editor's AI panel was reworked so the output is readable.
+
+### Added
+- **`src/main/ai/title-caption-prompt.js`** — new prompt builder for title/caption generation. Loads `caption-hook-examples.json` and assembles the full pipeline system prompt (clip-truth gate → 3 pillars → 4 drivers → execution rules → payoff integrity → 3-card batch → 6 worked examples → real-world title grounding → anti-patterns), plus a per-clip user-content builder. Output schema is now **3 titles + 3 captions**, each with a short plain-language `chip` angle label instead of the old multi-line `why` paragraph.
+- **`AISectionHeader`, `ChipLabel`, `renderTitleWithHashtag` helpers** ([RightPanelNew.js](src/renderer/editor/components/RightPanelNew.js)) — loud section headers with one-line descriptors ("Shows in search & the feed" / "Baked onto the video"), a plain muted-italic angle label, and de-emphasized hashtag rendering on titles.
+
+### Changed
+- **`anthropic:generate` handler** ([main.js](src/main/main.js)) — the ~80-line inline system prompt and inline user-message build are gone; the handler now calls `title-caption-prompt.js`. Existing style-guide, game-context, and pick/reject-history wiring is preserved and passed through.
+- **AI panel layout** ([RightPanelNew.js](src/renderer/editor/components/RightPanelNew.js)) — titles and captions are now visually distinct: titles render at 14px with a muted hashtag; captions render at 16px with a left accent bar so they read as on-video text; a divider rule separates the two sections. The angle chip is a plain muted-italic label rather than a bordered pill, so it no longer competes with the Apply/Skip buttons.
+- **`caption-hook-examples.json`** — rewrote three worked-example chips that all used the same "Leads with the ___" template (the few-shot leak that made live output formulaic) into varied grammatical shapes; added a `batch.chip_variety` rule banning chip-template reuse across a batch.
+
 ## [Unreleased] — 2026-05-21 (session 42) — AI caption/title architecture (content foundation for #85)
 
 Content foundation for the [#85](https://github.com/Oghenefega/ClipFlow/issues/85) AI title/caption overhaul. No runtime behaviour changes yet — this is the research-backed architecture the prompt rewrite will be built on, distilled from a 37-source NotebookLM research notebook (vidiq hook guides, Jenny Hoyos, Creator Hooks, George Blackman, Paddy Galloway, MrBeast production docs, and 11 real viral gaming Shorts).
