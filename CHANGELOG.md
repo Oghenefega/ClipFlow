@@ -4,12 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-05-22 (session 43) — AI title/caption prompt rewrite + panel polish (#85)
+## [Unreleased] — 2026-05-22 (session 43) — AI title/caption prompt rewrite, panel polish + per-card rephrase/regenerate (#85)
 
-The backend half of [#85](https://github.com/Oghenefega/ClipFlow/issues/85): generation now actually runs on the content-first pipeline the session-42 architecture defined, and the editor's AI panel was reworked so the output is readable.
+The backend half of [#85](https://github.com/Oghenefega/ClipFlow/issues/85): generation now actually runs on the content-first pipeline the session-42 architecture defined, the editor's AI panel was reworked so the output is readable, and each suggestion card can now be rephrased or regenerated individually.
 
 ### Added
 - **`src/main/ai/title-caption-prompt.js`** — new prompt builder for title/caption generation. Loads `caption-hook-examples.json` and assembles the full pipeline system prompt (clip-truth gate → 3 pillars → 4 drivers → execution rules → payoff integrity → 3-card batch → 6 worked examples → real-world title grounding → anti-patterns), plus a per-clip user-content builder. Output schema is now **3 titles + 3 captions**, each with a short plain-language `chip` angle label instead of the old multi-line `why` paragraph.
+- **Per-card Rephrase + Regenerate** — each title/caption card now carries two icon buttons beside Apply/Skip: **Rephrase** (pencil) rewords one card keeping its hook/angle/meaning; **Regenerate** (circular arrow) produces a genuinely different angle for that single slot. Both call leaner single-card prompts (~5.5k vs ~14k chars) and replace only that card, leaving the rest of the batch intact. Only the worked card shows a spinner. Spans `buildSingleSystemPrompt`/`buildSingleUserContent` ([title-caption-prompt.js](src/main/ai/title-caption-prompt.js)), `anthropic:rephraseOption`/`anthropic:regenerateOption` IPC handlers ([main.js](src/main/main.js)), preload bridges, `rephrase`/`regenerate`/`busyCards` in [useAIStore.js](src/renderer/editor/stores/useAIStore.js), and a `CardActions` component in [RightPanelNew.js](src/renderer/editor/components/RightPanelNew.js).
 - **`AISectionHeader`, `ChipLabel`, `renderTitleWithHashtag` helpers** ([RightPanelNew.js](src/renderer/editor/components/RightPanelNew.js)) — loud section headers with one-line descriptors ("Shows in search & the feed" / "Baked onto the video"), a plain muted-italic angle label, and de-emphasized hashtag rendering on titles.
 
 ### Changed

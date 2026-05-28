@@ -12,6 +12,9 @@ const useAIStore = create((set, get) => ({
   aiRejections: [],
   acceptedTitleIdx: null,
   acceptedCaptionIdx: null,
+  // Per-card rephrase/regenerate in flight, keyed "title:0" / "caption:2" (#85).
+  // Transient; lets only the worked card show a spinner.
+  busyCards: {},
   // Per-clip cache of AI state (suggestions, context, rejections, accepted indices).
   // In-memory only; dies on app close. Lets the user see prior suggestions when
   // bouncing between clips in one session without re-paying for the API call (#8).
@@ -22,8 +25,26 @@ const useAIStore = create((set, get) => ({
   setAiContext: (c) => set({ aiContext: c }),
   setAiGame: (g) => set({ aiGame: g }),
 
+  // Gather the per-clip context every title/caption call needs. Uses the
+  // current editor subtitle segments so it reflects trims/edits on the timeline.
+  _collectClipParams: (gamesDb) => {
+    const { aiGame, aiContext } = get();
+    const { project } = useEditorStore.getState();
+    const editSegments = useSubtitleStore.getState().editSegments || [];
+    const transcript = editSegments.map((s) => s.text).join(" ").trim();
+    const activeGame = (gamesDb || []).find((g) => g.name === aiGame);
+    return {
+      transcript,
+      userContext: aiContext.trim(),
+      gameName: aiGame,
+      gameContextAuto: activeGame?.aiContextAuto || "",
+      gameContextUser: activeGame?.aiContextUser || "",
+      projectName: project?.name || "",
+    };
+  },
+
   generate: async (anthropicApiKey, gamesDb) => {
-    const { aiGenerating, aiGame, aiContext, aiRejections } = get();
+    const { aiGenerating, aiRejections } = get();
     const { clip, project } = useEditorStore.getState();
     if (!clip || !project || aiGenerating) return;
     if (!anthropicApiKey) {
@@ -33,22 +54,8 @@ const useAIStore = create((set, get) => ({
 
     set({ aiGenerating: true, aiError: "" });
     try {
-      // Use the current editor subtitle segments — these reflect any trims,
-      // deletions, or edits the user has made on the timeline
-      const editSegments = useSubtitleStore.getState().editSegments || [];
-      const transcript = editSegments
-        .map((s) => s.text)
-        .join(" ")
-        .trim();
-
-      const activeGame = gamesDb.find((g) => g.name === aiGame);
       const result = await window.clipflow.anthropicGenerate({
-        transcript,
-        userContext: aiContext.trim(),
-        gameName: aiGame,
-        gameContextAuto: activeGame?.aiContextAuto || "",
-        gameContextUser: activeGame?.aiContextUser || "",
-        projectName: project.name || "",
+        ...get()._collectClipParams(gamesDb),
         rejectedSuggestions: aiRejections,
       });
 
@@ -62,6 +69,66 @@ const useAIStore = create((set, get) => ({
     }
     set({ aiGenerating: false });
   },
+
+  // Rephrase ("rephrase": same hook, reworded) or regenerate ("regenerate":
+  // new angle) a SINGLE card, replacing just that slot (#85 Chunk A).
+  _runSingleCard: async (mode, anthropicApiKey, gamesDb, kind, idx) => {
+    const { clip } = useEditorStore.getState();
+    if (!clip) return;
+    if (!anthropicApiKey) {
+      set({ aiError: "Anthropic API key not set. Go to Settings." });
+      return;
+    }
+    const cardKey = `${kind}:${idx}`;
+    const listKey = kind === "title" ? "titles" : "captions";
+    const field = kind === "title" ? "title" : "caption";
+
+    const { aiSuggestions, busyCards } = get();
+    const list = aiSuggestions?.[listKey] || [];
+    const card = list[idx];
+    if (!card || busyCards[cardKey]) return;
+
+    set({ busyCards: { ...busyCards, [cardKey]: true }, aiError: "" });
+    try {
+      const params = {
+        ...get()._collectClipParams(gamesDb),
+        kind,
+        currentText: card[field] || "",
+        otherOptions: list.filter((_, i) => i !== idx).map((c) => c?.[field]).filter(Boolean),
+      };
+      const fn = mode === "rephrase"
+        ? window.clipflow.anthropicRephraseOption
+        : window.clipflow.anthropicRegenerateOption;
+      const result = await fn(params);
+
+      if (result.error) {
+        set({ aiError: result.error });
+      } else if (result.success && result.data && result.data[field]) {
+        const s = get();
+        const newList = [...(s.aiSuggestions?.[listKey] || [])];
+        newList[idx] = result.data;
+        const patch = {
+          aiSuggestions: { ...s.aiSuggestions, [listKey]: newList },
+        };
+        // The slot's text changed — drop a stale "Applied" mark on it.
+        if (kind === "title" && s.acceptedTitleIdx === idx) patch.acceptedTitleIdx = null;
+        if (kind === "caption" && s.acceptedCaptionIdx === idx) patch.acceptedCaptionIdx = null;
+        set(patch);
+      } else {
+        set({ aiError: "AI returned no usable result." });
+      }
+    } catch (e) {
+      set({ aiError: e.message });
+    }
+    const after = get().busyCards;
+    const { [cardKey]: _drop, ...rest } = after;
+    set({ busyCards: rest });
+  },
+
+  rephrase: (anthropicApiKey, gamesDb, kind, idx) =>
+    get()._runSingleCard("rephrase", anthropicApiKey, gamesDb, kind, idx),
+  regenerate: (anthropicApiKey, gamesDb, kind, idx) =>
+    get()._runSingleCard("regenerate", anthropicApiKey, gamesDb, kind, idx),
 
   acceptTitle: (titleObj, idx) => {
     const { aiGame } = get();
@@ -106,6 +173,7 @@ const useAIStore = create((set, get) => ({
     aiRejections: [],
     acceptedTitleIdx: null,
     acceptedCaptionIdx: null,
+    busyCards: {},
   }),
 
   // Save current clip's AI state to cache, restore new clip's cached state (#8).
@@ -133,6 +201,7 @@ const useAIStore = create((set, get) => ({
       acceptedCaptionIdx: cached?.acceptedCaptionIdx ?? null,
       aiGenerating: false,
       aiError: "",
+      busyCards: {},
     });
   },
 

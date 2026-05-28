@@ -99,6 +99,8 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Anthropic AI
   anthropicGenerate: (params) => ipcRenderer.invoke("anthropic:generate", params),
+  anthropicRephraseOption: (params) => ipcRenderer.invoke("anthropic:rephraseOption", params),
+  anthropicRegenerateOption: (params) => ipcRenderer.invoke("anthropic:regenerateOption", params),
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
 

@@ -19,7 +19,7 @@ import {
   X, Search, Play, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FolderOpen, FileImage, Film, Volume2,
+  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -69,6 +69,30 @@ function renderTitleWithHashtag(title) {
   const m = String(title || "").match(/^([\s\S]*?)(\s*#\S+)\s*$/);
   if (!m) return title;
   return <>{m[1]}<span className="text-muted-foreground/70 font-normal">{m[2]}</span></>;
+}
+
+// Per-card Rephrase (same idea, new wording) + Regenerate (new angle) icons,
+// pushed to the right of the Apply/Skip row. Shows a spinner while in flight (#85).
+// Native `title` tooltips — always show the correct text (Radix tooltips showed
+// stale text when sliding directly between the two icons). Restyle in the UI pass.
+function CardActions({ busy, onRephrase, onRegenerate }) {
+  if (busy) {
+    return (
+      <div className="ml-auto flex items-center pr-1">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <div className="ml-auto flex items-center gap-0.5">
+      <Button title="Rephrase — same idea, new wording" size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" onClick={onRephrase}>
+        <PenLine className="h-3.5 w-3.5" />
+      </Button>
+      <Button title="Regenerate — new angle" size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" onClick={onRegenerate}>
+        <RefreshCw className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -668,6 +692,9 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
   const acceptTitle = useAIStore((s) => s.acceptTitle);
   const acceptCaption = useAIStore((s) => s.acceptCaption);
   const reject = useAIStore((s) => s.reject);
+  const rephrase = useAIStore((s) => s.rephrase);
+  const regenerate = useAIStore((s) => s.regenerate);
+  const busyCards = useAIStore((s) => s.busyCards);
 
   return (
     <div className="p-3 space-y-3">
@@ -711,7 +738,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="text-sm text-foreground font-medium leading-snug mb-1">{renderTitleWithHashtag(t.title)}</div>
                     {t.chip && <ChipLabel>{t.chip}</ChipLabel>}
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1">
                       {isAccepted ? (
                         <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
                       ) : !isRejected && (
@@ -719,6 +746,13 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptTitle(t, i)}>Apply</Button>
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(t.title)}>Skip</Button>
                         </>
+                      )}
+                      {!isRejected && (
+                        <CardActions
+                          busy={!!busyCards[`title:${i}`]}
+                          onRephrase={() => rephrase(anthropicApiKey, gamesDb, "title", i)}
+                          onRegenerate={() => regenerate(anthropicApiKey, gamesDb, "title", i)}
+                        />
                       )}
                     </div>
                   </div>
@@ -740,7 +774,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                       <div className="text-base text-foreground leading-snug">{c.caption}</div>
                       {c.chip && <ChipLabel>{c.chip}</ChipLabel>}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1">
                       {isAccepted ? (
                         <span className="text-[12px] text-green-500 flex items-center gap-1"><Check className="h-3 w-3" /> Applied</span>
                       ) : !isRejected && (
@@ -748,6 +782,13 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptCaption(c, i)}>Apply</Button>
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(c.caption)}>Skip</Button>
                         </>
+                      )}
+                      {!isRejected && (
+                        <CardActions
+                          busy={!!busyCards[`caption:${i}`]}
+                          onRephrase={() => rephrase(anthropicApiKey, gamesDb, "caption", i)}
+                          onRegenerate={() => regenerate(anthropicApiKey, gamesDb, "caption", i)}
+                        />
                       )}
                     </div>
                   </div>

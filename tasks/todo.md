@@ -50,6 +50,24 @@ Steps:
 Files: `caption-hook-examples.json`, `title-caption-prompt.js`,
 `RightPanelNew.js`. Not doing: per-card icons, fake video-frame previews.
 
+### Chunk A — per-card Rephrase / Regenerate (this session)
+
+Fix one card without re-rolling the batch.
+- **Rephrase** (icon: `PenLine`) — same hook/angle/meaning, reworded only.
+- **Regenerate** (icon: `RefreshCw`) — a new angle for that one slot.
+Both return ONE replacement card `{ title|caption, chip }` (cheaper than a batch).
+
+Steps:
+1. **Prompt module** (`title-caption-prompt.js`) — add `buildSingleSystemPrompt({ mode, kind, styleGuide, gameContext, styleHistory })` (mode = rephrase|regenerate, kind = title|caption; reuses pipeline rule sections, DROPS worked-examples + real-world-titles to stay lean, single-object OUTPUT FORMAT, mode-specific instruction) + `buildSingleUserContent({ kind, currentText, otherOptions, transcript, projectName, userContext })`.
+2. **main.js** — `anthropic:rephraseOption` + `anthropic:regenerateOption` handlers, mirror `anthropic:generate` store reads, `maxTokens ~500`, `extractJSON("object")`.
+3. **preload.js** — `anthropicRephraseOption` + `anthropicRegenerateOption`.
+4. **useAIStore.js** — factor `_collectClipParams()` out of `generate()`; add `busyCards` (keyed `"title:0"`); `rephrase(apiKey, gamesDb, kind, idx)` + `regenerate(...)` that replace the card immutably, clear that slot's accepted index, surface errors.
+5. **RightPanelNew.js** — per-card PenLine + RefreshCw icon buttons (Tooltip) beside Apply/Skip; `Loader2` spin + disable while that card is busy; add `PenLine` to lucide import.
+
+No schema migration (nothing persists — that's Chunk C).
+
+Verify: build + `npm start`. Rephrase → wording changes, angle/meaning holds. Regenerate → different angle, other 2 cards untouched. Only worked card spins; Apply works on new text; casing/hashtag/no-spoiler rules hold.
+
 **Steps (plain language):**
 
 1. **Build a new prompt module** — `src/main/ai/title-caption-prompt.js`.

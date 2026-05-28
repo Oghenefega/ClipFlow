@@ -253,7 +253,141 @@ function buildUserContent({ transcript, projectName, userContext, rejectedSugges
   return out;
 }
 
+// ─── Single-card builders (Rephrase / Regenerate, #85 Chunk A) ─────
+//
+// These act on ONE existing card and return ONE replacement. They reuse the
+// pipeline RULE sections but deliberately omit the worked examples and
+// real-world title list — those teach batch-level angle variety, which a
+// single-card edit doesn't need. Keeping them out makes the call leaner
+// (the point of rephrase/regenerate being cheaper than a full batch).
+
+function singleModeInstruction(mode, kind) {
+  if (mode === "rephrase") {
+    return [
+      `# THIS TASK — REPHRASE`,
+      ``,
+      `You are given ONE existing ${kind}. Keep its hook, its angle, and its meaning EXACTLY the same. Change ONLY the sentence structure and word choice — say the same thing a different way.`,
+      ``,
+      `Do NOT introduce a new idea, a new angle, or a new detail. This is a rewording, not a new hook.`,
+      ``,
+      `Example of the kind of transformation wanted (same meaning, new shape):`,
+      `  "He ran to save his life"  ->  "If he didn't make this run, his life was over"`,
+    ].join("\n");
+  }
+  // regenerate
+  return [
+    `# THIS TASK — REGENERATE`,
+    ``,
+    `You are given ONE existing ${kind} and the other current options. Produce a genuinely DIFFERENT angle on the SAME clip — a different pillar leading, or a different driver.`,
+    ``,
+    `Do NOT reword the given ${kind} and do NOT repeat the angle of any other current option. Find a fresh hook in the same clip truth.`,
+  ].join("\n");
+}
+
+/**
+ * Build the system prompt for a single-card rephrase or regenerate.
+ *
+ * @param {object} opts
+ * @param {"rephrase"|"regenerate"} opts.mode
+ * @param {"title"|"caption"} opts.kind
+ * @param {string} [opts.styleGuide]
+ * @param {string} [opts.gameContext]
+ * @param {string} [opts.styleHistory]
+ * @returns {string}
+ */
+function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "" } = {}) {
+  const isTitle = kind === "title";
+  const outputField = isTitle ? "title" : "caption";
+  const outputDesc = isTitle
+    ? "5-10 words, sentence case (1-3 ALL-CAPS allowed), ends with one #gamehashtag"
+    : "3-7 words, first-person, sentence case (1-3 ALL-CAPS allowed), NO hashtags";
+
+  return `# ROLE
+
+You are a title and caption specialist for short-form gaming clips. You build hooks from a clip using this pipeline — never from a template:
+
+\`\`\`
+  CLIP TRUTH  →  3 PILLARS  →  DRIVER  →  EXECUTION
+\`\`\`
+
+${singleModeInstruction(mode, kind)}
+
+Return exactly ONE ${kind}.
+
+---
+
+# CLIP TRUTH — the gate
+
+${formatPayoffIntegrity()}
+
+---
+
+# THE 3 PILLARS
+
+${formatPillars()}
+
+---
+
+# THE 4 DRIVERS
+
+${formatDrivers()}
+
+---
+
+# EXECUTION
+
+${formatExecution()}
+
+---
+
+# ANTI-PATTERNS — never do these
+
+${formatAntiPatterns()}${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
+
+---
+
+# OUTPUT FORMAT
+
+Return ONLY valid JSON parseable by \`JSON.parse()\` with zero modifications:
+
+\`\`\`json
+{ "${outputField}": "<${outputDesc}>", "chip": "<2-6 words, plain-language angle>" }
+\`\`\`
+
+## DO NOT
+- Wrap the JSON in markdown code fences, or add any text around it
+- Use emojis, Title Case, or hashtags in a caption
+- Spoil the payoff in a caption (it opens the loop; the footage closes it)
+- Use a constructed two-beat ("I said X, he said Y") — write one natural thought`;
+}
+
+/**
+ * Build the user message for a single-card rephrase or regenerate.
+ *
+ * @param {object} opts
+ * @param {"title"|"caption"} opts.kind
+ * @param {string} opts.currentText        The card being changed.
+ * @param {string[]} [opts.otherOptions]   Sibling cards' text (regenerate: avoid their angles).
+ * @param {string} [opts.transcript]
+ * @param {string} [opts.projectName]
+ * @param {string} [opts.userContext]
+ * @returns {string}
+ */
+function buildSingleUserContent({ kind, currentText, otherOptions, transcript, projectName, userContext } = {}) {
+  let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
+  if (projectName) out += `\n\n## Project/Game: ${projectName}`;
+  if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
+  out += `\n\n## The current ${kind} to act on:\n"${currentText || ""}"`;
+  if (Array.isArray(otherOptions) && otherOptions.length > 0) {
+    out += `\n\n## The other current ${kind} options (use a different angle from these):\n`;
+    otherOptions.forEach((t) => { if (t) out += `- "${t}"\n`; });
+  }
+  return out;
+}
+
 module.exports = {
   buildSystemPrompt,
   buildUserContent,
+  buildSingleSystemPrompt,
+  buildSingleUserContent,
 };

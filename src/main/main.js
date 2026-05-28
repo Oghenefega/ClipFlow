@@ -2115,34 +2115,42 @@ ipcMain.handle("dev:deleteStoreKey", async (_, key) => {
 
 // ============ LLM AI API (provider-abstracted) ============
 
+// Build the shared store-derived context (style guide, pick/reject history,
+// game knowledge) for the title/caption prompts. Reused by generate + the
+// single-card rephrase/regenerate handlers (#85).
+function buildTitleCaptionStoreContext(params = {}) {
+  const styleGuide = store.get("styleGuide") || "";
+  const history = store.get("titleCaptionHistory") || [];
+
+  // Last 20 picks and 20 rejections
+  const picks = history.filter((h) => h.type === "pick").slice(-20);
+  const rejects = history.filter((h) => h.type === "reject").slice(-20);
+
+  let styleHistory = "";
+  if (picks.length > 0) {
+    styleHistory += "\n\n## Creator's Past Picks (titles & captions they chose):\n";
+    picks.forEach((p, i) => {
+      styleHistory += `${i + 1}. Title: "${p.titleChosen}" | Caption: "${p.captionChosen}"${p.game ? ` [${p.game}]` : ""}\n`;
+    });
+  }
+  if (rejects.length > 0) {
+    styleHistory += "\n\n## Creator's Past Rejections (titles & captions they passed on):\n";
+    rejects.forEach((r, i) => {
+      styleHistory += `${i + 1}. ${r.titleRejected ? `Title: "${r.titleRejected}"` : `Caption: "${r.captionRejected}"`}${r.game ? ` [${r.game}]` : ""}\n`;
+    });
+  }
+
+  let gameContext = "";
+  if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
+  if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
+
+  return { styleGuide, styleHistory, gameContext };
+}
+
 // Generate titles & captions for a clip
 ipcMain.handle("anthropic:generate", async (_, params) => {
   try {
-    const styleGuide = store.get("styleGuide") || "";
-    const history = store.get("titleCaptionHistory") || [];
-
-    // Build style history context: last 20 picks and 20 rejections
-    const picks = history.filter((h) => h.type === "pick").slice(-20);
-    const rejects = history.filter((h) => h.type === "reject").slice(-20);
-
-    let styleHistory = "";
-    if (picks.length > 0) {
-      styleHistory += "\n\n## Creator's Past Picks (titles & captions they chose):\n";
-      picks.forEach((p, i) => {
-        styleHistory += `${i + 1}. Title: "${p.titleChosen}" | Caption: "${p.captionChosen}"${p.game ? ` [${p.game}]` : ""}\n`;
-      });
-    }
-    if (rejects.length > 0) {
-      styleHistory += "\n\n## Creator's Past Rejections (titles & captions they passed on):\n";
-      rejects.forEach((r, i) => {
-        styleHistory += `${i + 1}. ${r.titleRejected ? `Title: "${r.titleRejected}"` : `Caption: "${r.captionRejected}"`}${r.game ? ` [${r.game}]` : ""}\n`;
-      });
-    }
-
-    // Build game context
-    let gameContext = "";
-    if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
-    if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
+    const { styleGuide, styleHistory, gameContext } = buildTitleCaptionStoreContext(params);
 
     // Pipeline-based prompt (#85). Architecture in src/main/data/caption-frameworks.md;
     // knowledge base in src/main/data/caption-hook-examples.json. Output is 3+3 with
@@ -2181,6 +2189,49 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
     return { error: err.message };
   }
 });
+
+// Rephrase or regenerate a SINGLE title/caption card (#85 Chunk A).
+// mode: "rephrase" (same hook/meaning, reworded) | "regenerate" (new angle).
+// Returns one card object: { title|caption, chip }.
+async function handleSingleCard(mode, params) {
+  try {
+    const kind = params.kind === "caption" ? "caption" : "title";
+    const { styleGuide, styleHistory, gameContext } = buildTitleCaptionStoreContext(params);
+
+    const systemPrompt = titleCaptionPrompt.buildSingleSystemPrompt({
+      mode, kind, styleGuide, gameContext, styleHistory,
+    });
+    const userMessage = titleCaptionPrompt.buildSingleUserContent({
+      kind,
+      currentText: params.currentText,
+      otherOptions: params.otherOptions,
+      transcript: params.transcript,
+      projectName: params.projectName,
+      userContext: params.userContext,
+    });
+
+    const provider = llmProvider.getProvider();
+    const { text } = await provider.chat({
+      model: provider.defaultModel,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+      maxTokens: 500,
+    });
+
+    if (!text) return { error: "Empty response from LLM provider" };
+    try {
+      const parsed = aiPrompt.extractJSON(text, "object");
+      return { success: true, data: parsed };
+    } catch (e) {
+      return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
+    }
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+ipcMain.handle("anthropic:rephraseOption", async (_, params) => handleSingleCard("rephrase", params));
+ipcMain.handle("anthropic:regenerateOption", async (_, params) => handleSingleCard("regenerate", params));
 
 // Research a game using Opus with web search (one-time per game)
 ipcMain.handle("anthropic:researchGame", async (_, gameName) => {
