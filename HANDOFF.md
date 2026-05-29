@@ -1,59 +1,66 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-05-28 — Session 44 — repo hygiene (fixed broken `git add -A`)_
+_Last updated: 2026-05-28 — Session 46 — Editor-store audit (Opus 4.8 dynamic workflows) + Tier-1 fixes_
 
 ---
 
 ## One-line TL;DR
 
-**Short housekeeping session: `git add -A` is fixed.** Deleted the stray `nul` file, gitignored the noise (`.claude/worktrees/`, `tmp/`, `__pycache__/`, `*.bak`, `.claude/launch.json`), and untracked `.claude/settings.local.json` (it auto-churns permission entries every session). One commit pushed (`0c6103a`). No product code touched. **Next session: #85 Chunk B — forward detection context (peak frame, energy, peakMoment) into the title/caption prompt** to kill hallucinations like "lipper kill".
+**Audited all 6 Zustand editor stores with Opus 4.8 dynamic workflows (parallel subagents + adversarial verify + a fresh-eyes second pass), filed 15 issues, fixed the top 3.** Shipped: #94 (clip-switch data loss), #100 (undo system), #91 (AI rejection mislabel, partial). Three commits pushed to master (`aec5c66`, `a1adf2a`, `44988a0`). **12 audit findings remain as open issues #87–#99/#101 for next sessions.**
 
 ---
 
 ## Current State
 
-App is unchanged from session 43 — builds and runs clean (`npm run build:renderer` + `npm start`). The editor AI panel generates 3 titles + 3 captions on the content-first pipeline, with per-card Rephrase/Regenerate working (functional, visually rough by the user's own call — polish deferred). This session was repo hygiene only; no product behaviour changed.
+App builds clean (`npm run build:renderer`, ~10s) after all three fixes. Changes are surgical and isolated to four files: `EditorLayout.js`, `useSubtitleStore.js`, `useCaptionStore.js`, `useAIStore.js`, `RightPanelNew.js`. **Not yet smoke-tested in the running app** — the fixes are build-verified and logically sound but need the user to confirm behaviour (see Verification below). Nothing in the backend/main process or detection pipeline was touched.
 
 ## What Was Just Built
 
-- **`git add -A` unblocked.** Two real blockers removed: the stray `nul` file (Windows reserved device name from an old `> nul` redirect) is deleted, and `.claude/worktrees/` (two embedded git repos from isolated Claude runs) is now gitignored.
-- **`.gitignore` pass** — added `.claude/worktrees/`, `.claude/launch.json`, `.claude/settings.local.json`, `tmp/`, `__pycache__/`, `*.bak`, and `nul`.
-- **`.claude/settings.local.json` untracked** (`git rm --cached`) — it auto-appends permission entries every session, so it showed dirty constantly. File stays on disk and keeps working; git just ignores it now. Matches Claude Code convention for the `.local` overrides file.
+Three Tier-1 fixes from the store audit:
+
+- **#94 — clip switch no longer blanks the outgoing clip** (`aec5c66`). `handleClipSelect` now awaits the save (`handleSave().then(switchToClip)`) before `initFromContext` clears the segment state. Previously the un-awaited save read already-cleared state and persisted empty subtitles/captions onto the clip being left. Mirrors the already-correct `onBackClick`.
+- **#100 — undo system repaired** (`a1adf2a`). Added `_pushUndo` to `splitToWords` + `setSegmentMode` (subtitle) and `updateCaptionSegmentTimes` (caption); moved `_pushUndo` below the guards in `mergeSegment` + `updateWordInSegment` + `rippleDeleteSegment`; made `setShowSubs`/`toggleShowSubs`/`setEmojiOn` push undo (they're in `SUB_STYLE_KEYS` so were causing phantom flips).
+- **#91 — AI rejection mislabel** (`44988a0`, partial). `reject(text, kind)` logs the correct `titleRejected`/`captionRejected` field; `aiRejections` entries are now `{text, kind}`, capped at 40. **Ripple fix:** the `.includes()` rejected-state checks in `RightPanelNew` were updated for the object shape (they'd have silently broken the "skipped" visual otherwise).
 
 ## Key Decisions
 
 | Decision | Why |
 |---|---|
-| Untrack `settings.local.json` rather than keep committing it | It's the personal/local permission-overrides file — by Claude Code convention it should be gitignored. It churned every session. Untracking kills the recurring "modified" noise; the file still works on disk. |
-| No CHANGELOG entry for this session | CHANGELOG tracks product changes ("changes to ClipFlow"). A `.gitignore` + dev-local-settings change is repo hygiene, not product. Next session's real work (Chunk B) gets the changelog entry. |
+| Use dynamic workflows for audit + issue filing, but **single-agent main-thread for the code fixes** | Fixes cluster in 2 files (same-file parallel edits conflict/need merging), and verification (build + npm start) is serial. Workflows shine for many independent same-shape edits across many files — not this. Audit/filing fan-out kept the user's context lean. |
+| #91 `showSubs`/`emojiOn`: add `_pushUndo` rather than remove from `SUB_STYLE_KEYS` | Lower-risk — keeps snapshot/save semantics, matches the dominant file convention (every other style setter pushes). |
+| #91 shipped **partial** | Logging mislabel + capping are contained to `useAIStore`/`RightPanelNew`. True per-kind generation separation needs a backend prompt-builder change (titles+captions share one combined `anthropicGenerate` call) — deferred and noted on the issue. |
+| `aiRejections` string → `{text, kind}` object | Backend `buildUserContent` already accepts `{text}` objects, so no IPC contract break; in-memory only (dies on app close) so no migration. |
 
-## Next Steps (prioritized) — carried forward from session 43
+## Next Steps (prioritized) — remaining audit findings
 
-1. **Chunk B — context forwarding (THIS is the next session's focus).** Forward from detection → title/caption prompt: the **peak-frame screenshot** (persist per-clip during detection — currently extracted but not saved), **`energy_level`** + **`confidence`** from the detection JSON, and a new 1-line **`peakMoment`** description generated during detection. This is the real anti-hallucination fix. Touches the detection pipeline — give it its own session.
-   - Entry points: detection prompt `src/main/ai-prompt.js` (`buildSystemPrompt`/`buildUserContent`); detection pipeline `src/main/ai-pipeline.js`; thread new fields through `useAIStore._collectClipParams` → params → `title-caption-prompt.buildSystemPrompt`/`buildUserContent` (`src/main/ai/title-caption-prompt.js`).
-2. **Chunk C — per-clip `aiHistory` (last 10 batches) + batch arrows in the panel.** Needs a schema migration. NOTE: clip data lives in per-project JSON, not electron-store — verify where it lands before writing migration code (the strict electron-store migration rule may not apply).
-3. **Chunk D — wire `creatorProfile` into the title/caption prompt** (small). Today only styleGuide/game-context/history feed it; the `creatorProfile` object used by detection isn't passed.
-4. **Looks pass on the AI panel** — the "it's ugly" debt. The action row is cramped; the whole panel could be rethought. Pair with [#86](https://github.com/Oghenefega/ClipFlow/issues/86) (icon system) if appetite.
+Tier-2, by impact. **#97 first** — it's the next real fix but deserves its own clean session.
+
+1. **#97 — cross-clip FFmpeg race.** `commitAudioResize`, `commitLeftExtend`, `_recutAfterDelete`, `_concatRecutAfterDelete`, `revertClipBoundaries` capture `clip`/`project`, await IPC, then `set()` from stale captures. Add a `capturedClip.id === get().clip?.id` guard after each await. Touches 5 actions — test carefully.
+2. **#96 / #93 — duration/model consistency.** Redundant/disagreeing `setDuration` after `setNleSegments` (5 sites); empty-delete + `revertClipBoundaries` leave `audioSegments`/`nleSegments` desynced. Decide canonical duration source (prefer letting `setNleSegments` own it) before editing.
+3. **#99 — caption style bleed (NEEDS VERIFY first).** Read `applyTemplate` + a real custom template before touching; confirm whether a custom template that omits a field leaks the prior clip's effect.
+4. **Quick wins:** #101 (`punctuationRemove` — decide persist vs delete), #88 (`initVideoRef` outside `set()` — chore), #92 (false "Applied" badge — needs `_doSilentSave` to return a checkable result).
+5. **Decisions needed before fixing:** #98 (OK to switch all segment IDs to `seg_<ts>_<rand>` string pattern? IDs become strings — check numeric comparisons), #101 (persist `punctuationRemove` or remove dead line?).
+6. **Also commented (not fixed):** #32 root cause = overlay setters skip `markDirty` (+ `capWidthPercent` may not be in save payload). #40 = dead code (`clipFileOffset` always 0, dead `reset()`s in caption/AI stores).
 
 ## Watch Out For
 
-- **The AI panel is functional but visually rough** — user explicitly accepted this and deferred polish. Don't treat the current layout as final.
-- **Chunk B touches the detection pipeline** — the peak frame is extracted but not persisted today; the main lift is saving it per-clip during detection, then threading it forward. Scope it as its own session.
-- **Chunk C migration surface is unclear** — confirm clip-data storage (per-project JSON vs electron-store) before writing the migration.
-- **Single-card output trust** — `_runSingleCard` only accepts the result if `result.data[field]` exists (the right `title`/`caption` key). If the model returns the wrong key it surfaces "AI returned no usable result" rather than silently corrupting the card.
-- **`git add -A` is now safe** — the `nul` + embedded-worktree blockers are gone and the noise is gitignored. (Resolved this session; previously broken.)
+- **Fixes are NOT user-verified yet** — build-verified only. Run the Verification checklist before closing #94/#100/#91 or apply the `status: untested` label per the issue-filing convention if closing pre-verification.
+- **#91 only half-done** — the generation-prompt separation is a backend change; issue stays open.
+- **`aiRejections` shape changed to objects** — any future code reading it must use `.text`/`.kind`, not bare strings. Two `.includes()` sites in RightPanelNew were already fixed; line ~801 only checks `.length` (fine).
+- **`setSegmentMode` still discards user text edits (#89, NOT fixed)** — the undo fix (#100) added `_pushUndo` to it, but the separate text-preservation bug remains open.
+- **Don't auto-fire another workflow without explicit opt-in** ("workflow" keyword / ultracode). The audit + filing runs were ~570K–800K tokens each.
+
+## Verification (do this in the running app)
+
+`npm run build:renderer` + `npm start` (or the installed exe), then:
+1. **#94:** edit subtitles on clip A (don't save), switch to clip B via nav, reopen A → subtitles/captions still present.
+2. **#100:** "split to words" or toggle 3word/1word → Ctrl+Z undoes it. Merge with nothing selected → redo not wiped. Toggle subtitle visibility → an unrelated undo doesn't flip it.
+3. **#91:** Skip a caption suggestion → card dims as "skipped" (object-shape check works).
 
 ## Logs / Debugging
 
-- **No product code or log paths touched this session** — `.gitignore` + git index only.
-- **JSON parse failures** from the model surface as "Failed to parse AI response as JSON" in the AI panel — extraction is `aiPrompt.extractJSON(text, "object")` (`ai-prompt.js:403`). Same path for batch and single-card.
-- **Quick prompt sanity-check** (no app needed): `node -e "const t=require('./src/main/ai/title-caption-prompt'); console.log(t.buildSingleSystemPrompt({mode:'rephrase',kind:'title'}).length)"`.
-- **Verifying generation** requires the real app — `npm run build:renderer` + `npm start`, open a clip, AI Tools drawer, Generate. The renderer is desktop-first; do NOT verify via the Vite dev server.
-- Electron startup log for the running instance is under `%TEMP%\claude\...\tasks\<id>.output`.
-
-## Session model + cost
-
-- **Model:** Opus 4.8.
-- **Commits this session:** 1 — `0c6103a` (repo hygiene: fix broken `git add -A`). Pushed to master.
-- **Issues:** none filed, none closed.
-- **CHANGELOG:** not updated this session (hygiene only — see Key Decisions).
-- Run `/cost` for the dollar figure.
+- **Build:** `npm run build:renderer` (Vite, ~10s). The 1.89 MB chunk-size warning is pre-existing (tracked in #73), unrelated to this session.
+- **No backend/main-process or detection code touched** — all changes are renderer Zustand stores + two components.
+- **Undo internals** live in `useSubtitleStore._pushUndo` (300ms debounce, no-op during drag, 50-entry cap) → `undo`/`redo` restore `editSegments` + cross-store styling via `_restoreStyling`. Caption/layout changes push through `_pushCrossUndo` → subtitle store's `_pushUndo`.
+- **AI rejection log path:** `reject()` → `window.clipflow.anthropicLogHistory({ type:"reject", titleRejected|captionRejected, ... })`. In-memory `aiRejections` feeds `generate()`'s `rejectedSuggestions` → `buildUserContent` in `src/main/ai/title-caption-prompt.js`.
+- **Verifying behaviour requires the real app** — desktop-first; do NOT verify via the Vite dev server.
+- **Issue tracker:** `gh issue list --repo Oghenefega/ClipFlow --state open` — audit findings grouped under `area: editor`/`area: subtitles`/`area: captions`/`area: ai`.
