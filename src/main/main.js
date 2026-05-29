@@ -2165,6 +2165,8 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
       transcript: params.transcript,
       projectName: params.projectName,
       userContext: params.userContext,
+      energyLevel: params.energyLevel,
+      confidence: params.confidence,
       rejectedSuggestions: params.rejectedSuggestions,
     });
 

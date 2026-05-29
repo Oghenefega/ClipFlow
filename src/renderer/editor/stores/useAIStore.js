@@ -29,7 +29,7 @@ const useAIStore = create((set, get) => ({
   // current editor subtitle segments so it reflects trims/edits on the timeline.
   _collectClipParams: (gamesDb) => {
     const { aiGame, aiContext } = get();
-    const { project } = useEditorStore.getState();
+    const { project, clip } = useEditorStore.getState();
     const editSegments = useSubtitleStore.getState().editSegments || [];
     const transcript = editSegments.map((s) => s.text).join(" ").trim();
     const activeGame = (gamesDb || []).find((g) => g.name === aiGame);
@@ -40,6 +40,12 @@ const useAIStore = create((set, get) => ({
       gameContextAuto: activeGame?.aiContextAuto || "",
       gameContextUser: activeGame?.aiContextUser || "",
       projectName: project?.name || "",
+      // Detection signals (#85 Chunk B) — ground generation in the clip's
+      // measured intensity instead of transcript text alone. Both already live
+      // on the clip from detection (ai-pipeline.js); only the batch generate
+      // prompt renders them.
+      energyLevel: clip?.energyLevel || "",
+      confidence: clip?.confidence || 0,
     };
   },
 

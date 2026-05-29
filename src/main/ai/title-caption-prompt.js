@@ -103,6 +103,21 @@ function formatAntiPatterns() {
   return kb.anti_patterns.map((p) => `- ${p}`).join("\n");
 }
 
+// Detection's read of the clip's intensity (#85 Chunk B). Calibration only —
+// these are signals to TONE the wording, never raw material to invent from.
+// Returns "" when neither is present (old projects predate the fields).
+function formatClipSignals(energyLevel, confidence) {
+  const level = (energyLevel || "").trim();
+  const pct = Number.isFinite(confidence) && confidence > 0
+    ? `${Math.round(confidence * 100)}%`
+    : "";
+  if (!level && !pct) return "";
+  const parts = [];
+  if (level) parts.push(`energy ${level}`);
+  if (pct) parts.push(`detection confidence ${pct}`);
+  return `\n\n## Clip Signals (calibration — match the wording's intensity to this, do NOT invent detail from it):\n${parts.join(", ")}`;
+}
+
 // ─── Public API ───────────────────────────────────────────────────
 
 /**
@@ -236,11 +251,14 @@ Schema:
  * @param {string} [opts.transcript]
  * @param {string} [opts.projectName]
  * @param {string} [opts.userContext]
+ * @param {string} [opts.energyLevel]   Detection's energy read (LOW|MED|HIGH|EXPLOSIVE).
+ * @param {number} [opts.confidence]    Detection confidence 0-1.
  * @param {Array}  [opts.rejectedSuggestions]  Strings or { text|title|caption } objects.
  * @returns {string}
  */
-function buildUserContent({ transcript, projectName, userContext, rejectedSuggestions } = {}) {
+function buildUserContent({ transcript, projectName, userContext, energyLevel, confidence, rejectedSuggestions } = {}) {
   let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
+  out += formatClipSignals(energyLevel, confidence);
   if (projectName) out += `\n\n## Project/Game: ${projectName}`;
   if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   if (Array.isArray(rejectedSuggestions) && rejectedSuggestions.length > 0) {

@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-28 (session 45) — Forward clip detection signals into title/caption generation (#85 Chunk B)
+
+Title/caption generation previously saw only the clip transcript, which let it invent visual detail the footage doesn't support. It now also receives the clip's energy level and detection confidence — the signals detection already measured — so wording can be calibrated to the clip's actual intensity.
+
+### Changed
+- **Title/caption batch generation now includes clip signals** — the editor's AI panel passes each clip's `energyLevel` (LOW/MED/HIGH/EXPLOSIVE) and detection `confidence` through to the generation prompt. The prompt renders them as a `## Clip Signals` calibration block (e.g. "energy EXPLOSIVE, detection confidence 93%") with an explicit instruction to match wording intensity to the signal, never to invent detail from it. Spans `_collectClipParams` in [useAIStore.js](src/renderer/editor/stores/useAIStore.js), `buildUserContent` + a new `formatClipSignals` helper in [title-caption-prompt.js](src/main/ai/title-caption-prompt.js), and the `anthropic:generate` handler in [main.js](src/main/main.js). Both fields already lived on every clip from detection — this is pure forwarding, no schema change. Clips predating the fields (older projects) degrade gracefully: the block is omitted entirely. Per-card Rephrase/Regenerate are unchanged. Detection was intentionally left untouched (it stays pick-moments-only); a peak-frame image input was considered and declined this session in favour of text signals.
+
 ## [Unreleased] — 2026-05-22 (session 43) — AI title/caption prompt rewrite, panel polish + per-card rephrase/regenerate (#85)
 
 The backend half of [#85](https://github.com/Oghenefega/ClipFlow/issues/85): generation now actually runs on the content-first pipeline the session-42 architecture defined, the editor's AI panel was reworked so the output is readable, and each suggestion card can now be rephrased or regenerated individually.

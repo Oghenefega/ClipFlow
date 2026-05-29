@@ -6,108 +6,64 @@
 
 ---
 
-## Active Plan — #85 backend prompt rewrite (Session 43)
+## Active Plan — #85 Chunk B: forward clip signals into title/caption prompt (Session 45)
 
 Tracked on GitHub: **[#85 — AI title/caption generation overhaul](https://github.com/Oghenefega/ClipFlow/issues/85)**.
-Content foundation landed in session 42 (`caption-frameworks.md` +
-`caption-hook-examples.json`). This session does the backend prompt rewrite
-only — the part that makes generation actually use the pipeline architecture.
 
-**Goal:** replace the inline title/caption system prompt with a pipeline-based
-prompt builder that loads the caption-hook knowledge base, and change the
-output from 5+5 with long `why` paragraphs to 3+3 with short `chip` angles.
+**Goal:** ground title/caption generation in what detection already knows about
+the clip, so output stops inventing visual detail (e.g. "lipper kill"). The
+title/caption call today sees only the transcript text.
 
-### Backend rewrite — DONE (this session)
-New module `title-caption-prompt.js`, `anthropic:generate` rewired, renderer
-`why`→`chip`. First live run on a Rocket League clip surfaced two issues →
-polish pass below.
+### Decisions (user, this session)
+- **Skip `peakMoment`-in-detection.** Detection was deliberately stripped to
+  pick-moments-only (`ai-prompt.js:152` forbids prose). Don't reverse that.
+- **Text signals only — NO peak-frame image.** Forward `energy_level` +
+  `confidence` as text; no vision input, no `ai-pipeline.js` frame work, no
+  multimodal message. (User accepted this is weaker vs visual hallucinations.)
+- **Batch Generate only.** Single-card Rephrase/Regenerate stay unchanged
+  (cheap, anchored to existing text).
 
-### Polish pass — AI panel (this session, after first run)
+Net effect: `energyLevel` and `confidence` already exist on every clip
+(`ai-pipeline.js:710-711`) and round-trip into the editor untouched
+(`useEditorStore` loads the full clip object). This is pure forwarding — no
+schema change, no migration, no detection change.
 
-First run worked (3+3, sentence case, JSON parsed) but exposed:
-- **Chips read formulaic** — 3 of 6 worked-example chips in the JSON use the
-  same "Leads with the ___" template, so the model copied it ("Leads with the
-  loss of control / the refusal / the specific fault"). My few-shot leak.
-- **No visual hierarchy** — TITLES/CAPTIONS render in identical tiny muted
-  `SectionLabel` style; user couldn't tell where captions began.
-- **Font too small** — `text-xs` (12px) suggestions vs ~16px subtitle words.
-- **Chip looks more clickable than Apply/Skip** — bordered pill vs borderless
-  text buttons (hierarchy inversion).
+### Steps (plain language)
 
-Steps:
-1. **Chip wording (backend).** Rewrite the 3 repeating chips in
-   `caption-hook-examples.json` to vary grammatical shape; add a `chip_variety`
-   rule to `batch` + a DO-NOT line in `title-caption-prompt.js`.
-2. **Section hierarchy (UI).** Loud section headers (foreground, larger) with a
-   one-line descriptor ("Shows in search & the feed" / "Baked onto the video")
-   + a divider before Captions.
-3. **Card identity (UI).** Titles: hashtag rendered muted. Captions: left
-   accent bar + larger text so they read as on-video text.
-4. **Fonts (UI).** Titles → `text-sm` (14px), captions → `text-base` (16px).
-5. **Chip styling (UI).** Soften chip to a plain muted italic label so it stops
-   competing with Apply/Skip.
+1. **Read the two fields renderer-side** — `useAIStore._collectClipParams`
+   (`src/renderer/editor/stores/useAIStore.js:30`). It already pulls `project`
+   from `useEditorStore`; also pull `clip` and add `energyLevel`
+   (`clip.energyLevel`) + `confidence` (`clip.confidence`) to the returned
+   params object. Single-card path reuses this fn but the prompt won't render
+   the new fields, so no behaviour change there.
 
-Files: `caption-hook-examples.json`, `title-caption-prompt.js`,
-`RightPanelNew.js`. Not doing: per-card icons, fake video-frame previews.
+2. **Render the signals in the user message** — `title-caption-prompt.js`
+   `buildUserContent` (`src/main/ai/title-caption-prompt.js:242`). Accept
+   `energyLevel` + `confidence`; when present, append a `## Clip signals` line
+   (energy level + confidence as a %). One short system-prompt note that these
+   are detection's read of the clip's intensity — calibrate tone, don't invent.
 
-### Chunk A — per-card Rephrase / Regenerate (this session)
+3. **Pass them through the handler** — `main.js anthropic:generate`
+   (`src/main/main.js:2164`). Add `energyLevel: params.energyLevel` +
+   `confidence: params.confidence` to the `buildUserContent({...})` call.
 
-Fix one card without re-rolling the batch.
-- **Rephrase** (icon: `PenLine`) — same hook/angle/meaning, reworded only.
-- **Regenerate** (icon: `RefreshCw`) — a new angle for that one slot.
-Both return ONE replacement card `{ title|caption, chip }` (cheaper than a batch).
+### Verify
+`npm run build:renderer` + `npm start`. Open a clip, click Generate. Confirm
+output still parses (3+3, sentence case) and the energy/confidence now shows in
+the prompt path. A clip missing the fields (old project) must degrade
+gracefully — no `## Clip signals` line, no crash. Quality A/B is the user's call.
 
-Steps:
-1. **Prompt module** (`title-caption-prompt.js`) — add `buildSingleSystemPrompt({ mode, kind, styleGuide, gameContext, styleHistory })` (mode = rephrase|regenerate, kind = title|caption; reuses pipeline rule sections, DROPS worked-examples + real-world-titles to stay lean, single-object OUTPUT FORMAT, mode-specific instruction) + `buildSingleUserContent({ kind, currentText, otherOptions, transcript, projectName, userContext })`.
-2. **main.js** — `anthropic:rephraseOption` + `anthropic:regenerateOption` handlers, mirror `anthropic:generate` store reads, `maxTokens ~500`, `extractJSON("object")`.
-3. **preload.js** — `anthropicRephraseOption` + `anthropicRegenerateOption`.
-4. **useAIStore.js** — factor `_collectClipParams()` out of `generate()`; add `busyCards` (keyed `"title:0"`); `rephrase(apiKey, gamesDb, kind, idx)` + `regenerate(...)` that replace the card immutably, clear that slot's accepted index, surface errors.
-5. **RightPanelNew.js** — per-card PenLine + RefreshCw icon buttons (Tooltip) beside Apply/Skip; `Loader2` spin + disable while that card is busy; add `PenLine` to lucide import.
-
-No schema migration (nothing persists — that's Chunk C).
-
-Verify: build + `npm start`. Rephrase → wording changes, angle/meaning holds. Regenerate → different angle, other 2 cards untouched. Only worked card spins; Apply works on new text; casing/hashtag/no-spoiler rules hold.
-
-**Steps (plain language):**
-
-1. **Build a new prompt module** — `src/main/ai/title-caption-prompt.js`.
-   Loads `caption-hook-examples.json`. Exports `buildSystemPrompt()` (the
-   pipeline prompt: clip-truth gate → 3 pillars → 4 drivers → execution rules
-   → payoff integrity → 3-card batch → 6 worked examples → real-world titles
-   → anti-patterns) and `buildUserContent()` (per-clip transcript + context).
-   New output schema: 3 titles + 3 captions, each `{ title/caption, chip }` —
-   no more `why`. Keeps existing wiring for style guide, game context, and
-   pick/reject history (main.js still gathers those and passes them in).
-
-2. **Point `anthropic:generate` at the module** — in `main.js` (~2118-2256),
-   delete the ~80-line inline system prompt and the inline user-message build;
-   call the new module instead. main.js keeps reading styleGuide/history/
-   gameContext from `store` and passes them as inputs.
-
-3. **Renderer field rename** — in `RightPanelNew.js` (AIToolsPanel, ~688/715),
-   change `t.why`/`c.why` → `t.chip`/`c.chip` so the angle chip renders. The
-   batch now naturally shows 3 cards instead of 5 (the `.map` already handles
-   any length). Full chip *styling* + batch arrows + per-card buttons stay in
-   the later UI session.
-
-**Verify:** `npm run build:renderer` + `npm start`. User clicks Generate on a
-real clip. Confirm: 3 titles + 3 captions (not 5), sentence case (no Title
-Case), each card shows a short chip, titles end with `#gamehashtag`, captions
-carry no hashtags, JSON parses (no "Failed to parse AI response" error). The
-blind A/B quality judgment from #85 is the user's iterative call after that.
-
-**File impact:**
+### File impact
 | File | Change |
 |---|---|
-| `src/main/ai/title-caption-prompt.js` | NEW — system + user-content builders |
-| `src/main/main.js` | `anthropic:generate` rewritten to call the module |
-| `src/renderer/editor/components/RightPanelNew.js` | `why` → `chip` field rename |
+| `src/renderer/editor/stores/useAIStore.js` | `_collectClipParams` forwards `energyLevel` + `confidence` |
+| `src/main/ai/title-caption-prompt.js` | `buildUserContent` renders a `## Clip signals` line; system note |
+| `src/main/main.js` | `anthropic:generate` passes the two fields into `buildUserContent` |
 
-**Out of scope this session (later #85 sessions):** `anthropic:rephraseOption`
-+ `anthropic:regenerateOption` IPC handlers; forwarding peak-frame / energy /
-confidence / `peakMoment` from detection; `clip.aiHistory` persistence +
-migration; AI-panel UI overhaul (batch arrows, per-card Rephrase/Regenerate
-buttons, chip styling).
+### Out of scope (later #85 work)
+Peak-frame vision input (declined this session); `peakMoment` generation;
+`clip.aiHistory` persistence + batch arrows (Chunk C); wire `creatorProfile`
+into the prompt (Chunk D); AI-panel looks pass.
 
 ---
 
