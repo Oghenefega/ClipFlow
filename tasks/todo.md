@@ -62,8 +62,20 @@ gracefully — no `## Clip signals` line, no crash. Quality A/B is the user's ca
 
 ### Out of scope (later #85 work)
 Peak-frame vision input (declined this session); `peakMoment` generation;
-`clip.aiHistory` persistence + batch arrows (Chunk C); wire `creatorProfile`
-into the prompt (Chunk D); AI-panel looks pass.
+`clip.aiHistory` persistence + batch arrows (Chunk C); AI-panel looks pass.
+
+### Chunk D — DEFERRED by decision (session 45)
+"Wire `creatorProfile` into the title/caption prompt" is **deliberately
+deferred**, not just postponed. Reasoning: the creator profile is
+**detection-only by design**. Most of its fields don't belong in title/caption
+wording — `archetype` and `momentPriorities` govern *which moments to clip*, and
+feeding `archetype` into the title/caption prompt re-introduces the
+archetype-first/template-y generation that **session 42 deliberately removed**
+(documented cause of generic AI copy). `description` overlaps with the
+`styleGuide` that already feeds the prompt. The only genuinely voice-relevant
+field not already passed is `signaturePhrases`. If revisited, do it ONLY as a
+narrow "add signature phrases as voice flavor" feature — never a full
+profile wire-in.
 
 ---
 
