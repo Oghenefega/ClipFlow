@@ -82,6 +82,7 @@ const useCaptionStore = create((set, get) => ({
   },
 
   updateCaptionSegmentTimes: (segId, startSec, endSec) => {
+    _pushCrossUndo();
     set((s) => ({
       captionSegments: s.captionSegments.map((seg) =>
         seg.id === segId ? { ...seg, startSec, endSec } : seg

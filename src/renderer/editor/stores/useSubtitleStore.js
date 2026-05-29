@@ -657,10 +657,10 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   updateWordInSegment: (segId, wordIdx, newText) => {
-    get()._pushUndo();
     const { editSegments, segmentMode } = get();
     const seg = editSegments.find(s => s.id === segId);
     if (!seg) return;
+    get()._pushUndo();
 
     // Detect multi-word input (e.g., user typed "way I just" to replace "way")
     const inputWords = newText.split(/\s+/).filter(Boolean);
@@ -852,11 +852,11 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   mergeSegment: () => {
-    get()._pushUndo();
     const { activeSegId, editSegments } = get();
     if (!activeSegId) return;
     const idx = editSegments.findIndex(s => s.id === activeSegId);
     if (idx < 0 || idx >= editSegments.length - 1) return;
+    get()._pushUndo();
     const seg = editSegments[idx];
     const next = editSegments[idx + 1];
     const origin = get()._sourceOrigin || 0;
@@ -874,6 +874,7 @@ const useSubtitleStore = create((set, get) => ({
     const seg = editSegments[idx];
     const textWords = seg.text.split(/\s+/).filter(Boolean);
     if (textWords.length <= 1) return;
+    get()._pushUndo();
 
     const origin = get()._sourceOrigin || 0;
     let wordSegs;
@@ -979,10 +980,10 @@ const useSubtitleStore = create((set, get) => ({
   },
 
   rippleDeleteSegment: (segId) => {
-    get()._pushUndo();
     const { editSegments } = get();
     const seg = editSegments.find(s => s.id === segId);
     if (!seg) return;
+    get()._pushUndo();
     const gap = seg.endSec - seg.startSec;
     const origin = get()._sourceOrigin || 0;
     const next = editSegments
@@ -1035,9 +1036,9 @@ const useSubtitleStore = create((set, get) => ({
   setSubColor: (c) => { get()._pushStyleUndo(); set({ subColor: c }); },
   setSubPos: (p) => { get()._pushStyleUndo(); set({ subPos: p }); },
   setPunctOn: (v) => { get()._pushStyleUndo(); set({ punctOn: v }); },
-  setShowSubs: (v) => set({ showSubs: v }),
-  toggleShowSubs: () => set((s) => ({ showSubs: !s.showSubs })),
-  setEmojiOn: (v) => set({ emojiOn: v }),
+  setShowSubs: (v) => { get()._pushStyleUndo(); set({ showSubs: v }); },
+  toggleShowSubs: () => { get()._pushStyleUndo(); set((s) => ({ showSubs: !s.showSubs })); },
+  setEmojiOn: (v) => { get()._pushStyleUndo(); set({ emojiOn: v }); },
   setSubFontFamily: (f) => { get()._pushStyleUndo(); set({ subFontFamily: f }); },
   setSubFontWeight: (w) => { get()._pushStyleUndo(); set({ subFontWeight: w }); },
   setSubItalic: (v) => { get()._pushStyleUndo(); set({ subItalic: v }); },
@@ -1061,6 +1062,7 @@ const useSubtitleStore = create((set, get) => ({
       set({ segmentMode: mode });
       return;
     }
+    get()._pushUndo();
 
     // Identify manually-created segments (user-added, not from transcription).
     // A segment is "manual" if it doesn't overlap with ANY original segment's time range.
