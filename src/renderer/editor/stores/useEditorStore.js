@@ -370,7 +370,11 @@ const useEditorStore = create((set, get) => ({
     set({ audioSegments: remaining });
 
     if (remaining.length === 0) {
-      usePlaybackStore.getState().setDuration(0);
+      // #93: clear BOTH models + persist. Previously left a stale nleSegments
+      // array and never marked dirty, so the empty state could fail to autosave.
+      set({ audioSegments: [], nleSegments: [] });
+      usePlaybackStore.getState().setNleSegments([]); // also sets duration = 0
+      get().markDirty();
       return;
     }
 
@@ -404,8 +408,10 @@ const useEditorStore = create((set, get) => ({
 
     const remainingOrig = audioSegments.filter(s => s.id !== segId);
     if (remainingOrig.length === 0) {
-      set({ audioSegments: [] });
-      usePlaybackStore.getState().setDuration(0);
+      // #93: clear BOTH models + persist (see deleteAudioSegment).
+      set({ audioSegments: [], nleSegments: [] });
+      usePlaybackStore.getState().setNleSegments([]); // also sets duration = 0
+      get().markDirty();
       return;
     }
 
@@ -569,8 +575,7 @@ const useEditorStore = create((set, get) => ({
           });
 
           // Update video duration + segments in playback store
-          usePlaybackStore.getState().setNleSegments(nleSegs);
-          usePlaybackStore.getState().setDuration(newAudioEnd);
+          usePlaybackStore.getState().setNleSegments(nleSegs); // owns duration (#96)
 
           // Pull new subtitle segments for the extended range from project transcription
           get()._extendSubtitles(currentDuration, newAudioEnd);
@@ -683,8 +688,7 @@ const useEditorStore = create((set, get) => ({
         });
 
         // Update playback duration + segments
-        usePlaybackStore.getState().setNleSegments(nleSegs);
-        usePlaybackStore.getState().setDuration(result.duration);
+        usePlaybackStore.getState().setNleSegments(nleSegs); // owns duration (#96)
 
         // Shift existing subtitles forward and prepend new ones for the revealed range
         get()._shiftAndPrependSubtitles(delta, newSourceStart);
@@ -903,8 +907,7 @@ const useEditorStore = create((set, get) => ({
       waveformPeaks: null, // Invalidate — clip range changed
       videoVersion: get().videoVersion + 1,
     });
-    usePlaybackStore.getState().setNleSegments(nleSegs);
-    usePlaybackStore.getState().setDuration(newDuration);
+    usePlaybackStore.getState().setNleSegments(nleSegs); // owns duration (#96)
     console.log("[Recut] Success — newDuration:", newDuration, "videoVersion:", get().videoVersion);
   },
 
@@ -967,8 +970,7 @@ const useEditorStore = create((set, get) => ({
       waveformPeaks: null,
       videoVersion: get().videoVersion + 1,
     });
-    usePlaybackStore.getState().setNleSegments(nleSegs);
-    usePlaybackStore.getState().setDuration(newDuration);
+    usePlaybackStore.getState().setNleSegments(nleSegs); // owns duration (#96)
     console.log("[ConcatRecut] Success — newDuration:", newDuration, "segments:", sourceSegments.length);
   },
 
@@ -1060,9 +1062,8 @@ const useEditorStore = create((set, get) => ({
         endSec: s.endSec == null ? null : s.endSec - shift,
       }));
       needsCapUpdate = true;
-
-      // Update playback duration
-      usePlaybackStore.getState().setDuration(audioEnd - shift);
+      // #96: duration is set once below from the final audio bounds — no interim
+      // setDuration here (it was unconditionally superseded).
     }
 
     if (needsSubUpdate) subStore.setEditSegments(subs);
@@ -1131,13 +1132,16 @@ const useEditorStore = create((set, get) => ({
           maxExtendLeftSec: clipMeta.maxExtendLeftSec ?? targetStart,
           maxExtendSec: clipMeta.maxExtendSec ?? (get().sourceDuration - targetStart),
           nleSegments: nleSegs,
+          // #93: recompute audioSegments to the reverted single-segment bounds —
+          // recut always returns one contiguous segment. Leaving the old extended
+          // bounds desyncs the legacy audio model from nleSegments.
+          audioSegments: [{ id: "audio-1", startSec: 0, endSec: newDuration, sourceOffset: 0 }],
           waveformPeaks: null, // Invalidate — clip range changed
           videoVersion: get().videoVersion + 1,
         });
 
         // Update playback duration + segments
-        usePlaybackStore.getState().setNleSegments(nleSegs);
-        usePlaybackStore.getState().setDuration(newDuration);
+        usePlaybackStore.getState().setNleSegments(nleSegs); // owns duration (#96)
 
         console.log("[RevertClip] Success. New duration:", newDuration);
         get().markDirty();
