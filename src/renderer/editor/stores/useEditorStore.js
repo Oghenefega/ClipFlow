@@ -540,6 +540,9 @@ const useEditorStore = create((set, get) => ({
           project.id, clip.id, newSourceEnd
         );
         console.log("[ExtendRight] IPC result:", JSON.stringify(result));
+        // #97: user switched clips mid-extend — disk already persisted by clipId
+        // in the handler; abort the in-memory write so we don't clobber the now-active clip.
+        if (get().clip?.id !== clip.id || get().project?.id !== project.id) return;
         if (result?.error) {
           console.error("[ExtendRight] Failed:", result.error);
           // Revert audio segment to current duration
@@ -634,6 +637,10 @@ const useEditorStore = create((set, get) => ({
       );
 
       console.log("[ExtendLeft] IPC result:", JSON.stringify(result));
+
+      // #97: user switched clips mid-extend — disk already persisted by clipId
+      // in the handler; abort the in-memory write so we don't clobber the now-active clip.
+      if (get().clip?.id !== clip.id || get().project?.id !== project.id) return;
 
       if (result?.error) {
         console.error("Extend clip left failed:", result.error);
@@ -862,6 +869,10 @@ const useEditorStore = create((set, get) => ({
       project.id, clip.id, newSourceStart, newSourceEnd
     );
 
+    // #97: user switched clips mid-recut — disk already persisted by clipId in
+    // the handler; abort the in-memory write so we don't clobber the now-active clip.
+    if (get().clip?.id !== clip.id || get().project?.id !== project.id) return;
+
     if (result?.error) {
       console.error("[Recut] Failed:", result.error);
       throw new Error(result.error);
@@ -919,6 +930,10 @@ const useEditorStore = create((set, get) => ({
     const result = await window.clipflow.concatRecutClip(
       project.id, clip.id, sourceSegments
     );
+
+    // #97: user switched clips mid-recut — disk already persisted by clipId in
+    // the handler; abort the in-memory write so we don't clobber the now-active clip.
+    if (get().clip?.id !== clip.id || get().project?.id !== project.id) return;
 
     if (result?.error) {
       console.error("[ConcatRecut] Failed:", result.error);
@@ -1087,6 +1102,10 @@ const useEditorStore = create((set, get) => ({
       );
 
       console.log("[RevertClip] IPC result:", JSON.stringify(result));
+
+      // #97: user switched clips mid-revert — disk already persisted by clipId
+      // in the handler; abort the in-memory write so we don't clobber the now-active clip.
+      if (get().clip?.id !== clip.id || get().project?.id !== project.id) return;
 
       if (result?.error) {
         console.error("[RevertClip] Failed:", result.error);

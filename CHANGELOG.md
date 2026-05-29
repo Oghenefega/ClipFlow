@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-05-29 (session 47) — #97 cross-clip FFmpeg race
+
+### Fixed
+- **Cross-clip corruption from stale async writes (#97).** Five async editor actions (`commitAudioResize` right-extend branch, `commitLeftExtend`, `_recutAfterDelete`, `_concatRecutAfterDelete`, `revertClipBoundaries`) capture `clip`/`project`, await an FFmpeg recut/extend (~100–150 ms plus a file-handle-release delay), then `set()` derived state from the captured values. Switching clips during that window let the post-await write clobber the freshly-loaded clip with the previous clip's boundaries/segments — a silent data-integrity bug. Each action now re-checks `get().clip?.id === capturedClip.id && get().project?.id === capturedProject.id` after the await and aborts the in-memory write if the active clip changed. The main-process handlers already persist by `clipId`, so the operated-on clip stays correct on disk; only the stale UI mirror write is skipped. [src/renderer/editor/stores/useEditorStore.js]
+
 ## [Unreleased] — 2026-05-28 (session 46) — Editor-store audit (Opus 4.8 dynamic workflows) + Tier-1 fixes
 
 Used Opus 4.8's new dynamic-workflow mode to audit all 6 Zustand editor stores with parallel subagents and adversarial verification, then a meticulous fresh-eyes second pass that caught cross-store bugs the per-store audit missed. Findings were filed as tracked issues; the three highest-impact ones were fixed this session. The audit surfaced a real data-loss bug, a wider undo-system regression, and an AI-learning-data pollution bug.
