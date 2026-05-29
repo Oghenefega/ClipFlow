@@ -1,11 +1,23 @@
 # ClipFlow — Session Handoff
 _Last updated: 2026-05-28 — Session 46 — Editor-store audit (Opus 4.8 dynamic workflows) + Tier-1 fixes_
+_Amended 2026-05-29 — Session 45 title/caption follow-up appended below the TL;DR (#85 Chunk B shipped, Chunk D deferred). Session 46 body left intact._
 
 ---
 
 ## One-line TL;DR
 
 **Audited all 6 Zustand editor stores with Opus 4.8 dynamic workflows (parallel subagents + adversarial verify + a fresh-eyes second pass), filed 15 issues, fixed the top 3.** Shipped: #94 (clip-switch data loss), #100 (undo system), #91 (AI rejection mislabel, partial). Three commits pushed to master (`aec5c66`, `a1adf2a`, `44988a0`). **12 audit findings remain as open issues #87–#99/#101 for next sessions.**
+
+---
+
+## ⚠️ Also from Session 45 (#85 title/caption) — interleaved with the audit above
+
+A separate Session 45 thread ran around this audit (Chunk B at 20:11, before the audit; Chunk D defer at 00:11, after it). Two items the audit handoff doesn't cover:
+
+- **#85 Chunk B — SHIPPED, needs live verify** (`6edf9df`). Clip `energyLevel` + detection `confidence` are now forwarded into the **batch** title/caption prompt as a `## Clip Signals` calibration block (e.g. "energy EXPLOSIVE, detection confidence 93%"; omitted entirely for old clips that lack the fields). Build + node-level prompt render verified; **live Generate quality test still pending** (see Verification #4). Touched `useAIStore._collectClipParams`, `title-caption-prompt.buildUserContent` (+ new `formatClipSignals`), `main.js anthropic:generate`. Pure forwarding — no schema change, no migration. Per-card Rephrase/Regenerate unchanged.
+- **#85 Chunk D — DEFERRED by decision** (`fdf4038`). "Wire `creatorProfile` into title/caption" is deliberately NOT happening: the profile is detection-only by design; `archetype`/`momentPriorities` don't belong in title wording and re-introduce the generic-copy failure mode session 42 removed. Only `signaturePhrases` would ever be voice-relevant — if revisited, do ONLY that, never a full wire-in. Full reasoning in `tasks/todo.md` + memory `project_chunk_d_deferred.md`.
+
+Note: Session 46's #91 fix also edited `useAIStore.js` (`reject(text, kind)`, `aiRejections` now `{text,kind}` objects) on top of Chunk B — sequential commits, no conflict, both intact.
 
 ---
 
@@ -55,6 +67,7 @@ Tier-2, by impact. **#97 first** — it's the next real fix but deserves its own
 1. **#94:** edit subtitles on clip A (don't save), switch to clip B via nav, reopen A → subtitles/captions still present.
 2. **#100:** "split to words" or toggle 3word/1word → Ctrl+Z undoes it. Merge with nothing selected → redo not wiped. Toggle subtitle visibility → an unrelated undo doesn't flip it.
 3. **#91:** Skip a caption suggestion → card dims as "skipped" (object-shape check works).
+4. **#85 Chunk B:** open a detection-sourced clip → AI Tools → Generate → still 3+3 sentence-case, parses clean, wording tracks the clip's energy. The signal block is prompt-only (invisible in the UI) — judge it by output quality.
 
 ## Logs / Debugging
 
