@@ -600,16 +600,23 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
 
   const handleClipSelect = (clipId) => {
     setNavOpen(false);
-    // Save current clip first, then switch
-    if (dirty) handleSave();
-    // Trigger navigation to new clip — dispatch through editorContext change
-    // For now, we can use the IPC to load the new clip inline
     const newClip = clips.find((c) => c.id === clipId);
-    if (newClip && newClip.id !== clip?.id) {
-      useEditorStore.getState().initFromContext(
-        { projectId: project.id, clipId: newClip.id },
-        [project]
-      );
+    const switchToClip = () => {
+      if (newClip && newClip.id !== clip?.id) {
+        useEditorStore.getState().initFromContext(
+          { projectId: project.id, clipId: newClip.id },
+          [project]
+        );
+      }
+    };
+    // #94: await the save before switching. initFromContext synchronously clears
+    // editSegments/captionSegments/nleSegments, while the async _doSilentSave reads
+    // those lazily — an un-awaited save would capture the cleared state and persist
+    // empty subtitles/captions onto the outgoing clip. Mirror onBackClick.
+    if (dirty) {
+      handleSave().then(switchToClip);
+    } else {
+      switchToClip();
     }
   };
 
