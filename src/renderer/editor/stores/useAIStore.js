@@ -163,12 +163,18 @@ const useAIStore = create((set, get) => ({
     });
   },
 
-  reject: (text) => {
+  reject: (text, kind = "title") => {
     const { aiGame } = get();
-    set((s) => ({ aiRejections: [...s.aiRejections, text] }));
-    window.clipflow?.anthropicLogHistory?.({
-      type: "reject", titleRejected: text, game: aiGame, timestamp: Date.now(),
-    });
+    // Carry kind on each entry (backend buildUserContent accepts {text} objects)
+    // and cap the list so it can't grow unbounded across a session (#91).
+    set((s) => ({ aiRejections: [...s.aiRejections, { text, kind }].slice(-40) }));
+    // Log under the correct field so caption rejections don't pollute the
+    // title learning signal (and vice-versa) in anthropicLogHistory (#91).
+    window.clipflow?.anthropicLogHistory?.(
+      kind === "caption"
+        ? { type: "reject", captionRejected: text, game: aiGame, timestamp: Date.now() }
+        : { type: "reject", titleRejected: text, game: aiGame, timestamp: Date.now() }
+    );
   },
 
   reset: () => set({

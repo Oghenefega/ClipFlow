@@ -733,7 +733,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
             <div className="space-y-1.5">
               {(aiSuggestions.titles || []).map((t, i) => {
                 const isAccepted = acceptedTitleIdx === i;
-                const isRejected = aiRejections.includes(t.title);
+                const isRejected = aiRejections.some((r) => r.text === t.title);
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="text-sm text-foreground font-medium leading-snug mb-1">{renderTitleWithHashtag(t.title)}</div>
@@ -744,7 +744,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                       ) : !isRejected && (
                         <>
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptTitle(t, i)}>Apply</Button>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(t.title)}>Skip</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(t.title, "title")}>Skip</Button>
                         </>
                       )}
                       {!isRejected && (
@@ -767,7 +767,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
             <div className="space-y-1.5">
               {(aiSuggestions.captions || []).map((c, i) => {
                 const isAccepted = acceptedCaptionIdx === i;
-                const isRejected = aiRejections.includes(c.caption);
+                const isRejected = aiRejections.some((r) => r.text === c.caption);
                 return (
                   <div key={i} className={`rounded-md border p-2.5 transition-colors ${isAccepted ? "border-green-500/40 bg-green-500/5" : isRejected ? "opacity-40 border-border/30" : "border-border/40 hover:border-border/60"}`}>
                     <div className="border-l-2 border-primary/50 pl-2.5 mb-2">
@@ -780,7 +780,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                       ) : !isRejected && (
                         <>
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-primary hover:bg-primary/10" onClick={() => acceptCaption(c, i)}>Apply</Button>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(c.caption)}>Skip</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[12px] text-muted-foreground" onClick={() => reject(c.caption, "caption")}>Skip</Button>
                         </>
                       )}
                       {!isRejected && (
