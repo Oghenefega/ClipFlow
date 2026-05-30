@@ -596,8 +596,30 @@ const useEditorStore = create((set, get) => ({
       } finally {
         set({ extending: false, videoVersion: get().videoVersion + 1 });
       }
+    } else if (newAudioEnd < currentDuration - 0.1) {
+      // ── RIGHT TRIM ── (#102) Mirror the left-trim branch: recut to the new
+      // shorter bounds and markDirty, so the trim reaches nleSegments (not just
+      // the legacy audioSegments) and actually persists. Without this the right
+      // edge moved visually but the clip stayed full-length and the trim was
+      // lost on close.
+      set({ extending: true });
+      try {
+        const videoRef = usePlaybackStore.getState().getVideoRef();
+        if (videoRef?.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute("src");
+          videoRef.current.load();
+        }
+        get()._trimToAudioBounds();
+        await get()._recutAfterDelete(Math.max(0, newAudioStart), newAudioEnd);
+        get().markDirty();
+      } catch (err) {
+        console.error("[RightTrim] Error:", err);
+      } finally {
+        set({ extending: false, videoVersion: get().videoVersion + 1 });
+      }
     } else {
-      // Normal trim (no extension)
+      // No meaningful boundary change — just normalize sub/caption extents.
       get()._trimToAudioBounds();
     }
   },
