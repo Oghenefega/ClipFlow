@@ -1,51 +1,52 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-02 — Session 48 — #103 investigation (trim is already correct; dead-code path found)_
+_Last updated: 2026-06-02 — Session 49 — Anti-hallucination tooling: skills as enforcement, lessons.md distilled_
 
 ---
 
 ## One-line TL;DR
 
-**No code changed.** Investigated #103 ("trim collapses spliced clips"), traced the code AND verified in the running app — **it does not reproduce.** The live timeline already trims per-segment and is gap-preserving; the bug #103 cited lives only in `commitAudioResize`, which has **zero callers (dead code)**. Closed #103, filed #104 (dead-code removal) and #105 (over-trim sliver), and flagged that session-47's #102/#97 patched the dead path. Two decisions are waiting on the user (see Next Steps).
+**No app code changed — this was a tooling/process session.** Root problem fixed: `tasks/lessons.md` was a write-only dumping ground (logged but never read mid-work, so it never changed behavior). Built a system where **skills are the enforcement layer** (they auto-load at the moment of work) and lessons.md is just the raw capture log, with a `session-end` step that distills new lessons into skills. Also created a new `clipflow-trace-verify` skill that fires *before* I explain/trace code — born from the previous session's failure where I confidently planned a fix for **dead code** (`commitAudioResize`, zero callers) and only the user's domain knowledge caught it.
 
 ---
 
 ## Current State
 
-App builds clean (`npm run build:renderer`, ~11.6s) and boots clean (Electron 40.9.1, prod profile, v0.1.5-alpha). **Working tree has only docs changes** — `HANDOFF.md`, `CHANGELOG.md`, `tasks/todo.md`, `tasks/lessons.md`. No source code was touched this session.
+App builds clean and boots clean (v0.1.5-alpha, Electron 40.9.1, prod profile) — unchanged this session. **No source code was touched.** All work was in `.claude/` (skills + commands), `tasks/lessons.md`, `CHANGELOG.md`. Working tree is clean; everything pushed to master (`b1603e2` and the HANDOFF commit on top).
 
-## What Was Just Built (this session = investigation + triage, no code)
+## What Was Just Built (tooling/process, no app code)
 
-- **Closed #103** with full reproduction + root-cause notes. Verified in-app that spliced-clip trimming is correct.
-- **Filed #104** (`type: chore`, area: editor/timeline) — remove the dead audio-resize path.
-- **Filed #105** (`type: improvement`, area: editor/timeline) — audio over-trim leaves a ~0.1s sliver; documents the A-vs-B design fork + the duplicate `MIN_SEGMENT_DURATION` constants.
-- **Commented on closed #102 and #97** — they patched the dead `commitAudioResize` path.
-- Updated `tasks/todo.md` (retired the moot #103 plan), `CHANGELOG.md`, `tasks/lessons.md`.
+- **New skill `clipflow-trace-verify`** — triggers BEFORE describing/tracing/diagnosing existing code. Enforces: grep callers first (zero callers = dead = stop), trace top-down from the mount point, attach a liveness proof to every claim, tag verified-vs-assumed. Closes the exact gap that produced the dead-`commitAudioResize` plan.
+- **Distillation pipe in `session-end`** — new step 2 scans lessons added since the `DISTILLED-THROUGH` marker and promotes each into its enforcement home (domain skill / code-review / trace-verify / rarely CLAUDE.md), then reports what moved.
+- **Backstop in `clipflow-code-review`** — new check #7 "am I editing code that actually RUNS?" (grep callers, confirm mounted component). Also fixed the stale `Co-Authored-By: Opus 4.6` → `4.8` in its commit template.
+- **Drained the lessons.md backlog into skills (first full pass)** — skills were already ~40% populated; added only the gaps, terse + deduplicated, across all six skills (segmentation guards, audio-track model, karaoke, whisperx/CUDA, EBUSY/preload, stopPropagation, done-means-audited, root-cause-first, etc.). `lessons.md` reframed as the raw log with a "new lessons below this line" divider; marker advanced.
+- **Memory:** added `feedback_no_code_narration` (always-loaded seatbelt) + linked it to the trace-verify skill.
 
 ## Key Decisions
 
 | Decision | Why |
 |---|---|
-| Close #103 as not-reproducible instead of fixing | Verified in the running app; its root cause is in `commitAudioResize`, which has zero callers. Fixing it would have duplicated already-correct live behavior. |
-| Do NOT blind-fix the #105 sliver | On inspection it's a genuine design fork (auto-remove like subtitles vs keep the trim floor), not a 5-line patch. Filed with options; user decides. |
-| File dead-code removal as #104 (own issue), reference #40 | Big enough to track; #40 is the existing Phase-4 hygiene issue it could fold into. |
-| Flag #102/#97 rather than reopen | Keeps the record honest without issue-churn; the live behavior is correct so nothing's broken. |
+| Skills (not CLAUDE.md) are the enforcement layer | Skills load only when relevant → zero bloat when irrelevant + room for detailed checklists. CLAUDE.md can't hold 114 lessons without becoming the bloat the user refuses. |
+| lessons.md stays the raw capture log | It's fine as a dumping ground IF there's an outflow pipe. The bug was no pipe, not the file. |
+| "Read first" upgraded to "prove it's LIVE" | Last session I *did* read — but read dead code. A `file:line` citation proves existence, not execution. The real teeth are grep-callers + top-down + liveness proof. |
+| Distillation runs at session-end, reports before commit | Keeps the user in the loop to veto routing. |
 
 ## Next Steps (prioritized)
 
-1. **USER DECISION — #105:** auto-remove on over-trim (recommended, matches subtitle/caption tracks + the "industry-standard NLE" principle) vs keep the floor (then just unify the two `MIN_SEGMENT_DURATION` constants). Once chosen, it's a small, well-scoped fix.
-2. **USER DECISION — #104 vs #40:** do the dead-code removal as its own pass, or fold into #40. Before deleting, run a final caller check (incl. dynamic `getState()` access + `preload.js` exports `extendClip`/`recutClip`).
-3. **Session-46 audit leftovers still open:** #99 (caption style bleed — needs read-first investigation of `applyTemplate`), #92 (false "Applied" badge), #93 (still open — empty-delete/revert sync, partly live via `rippleDeleteAudioSegment`), plus #87–#90, #95, #98, #101.
+1. **Prove the system works.** It's built but unproven — the skills only matter if they auto-fire on the next editor/media/IPC task and I follow them unprompted. **#104 (dead-code removal) is the ideal first test** of `clipflow-trace-verify` for real.
+2. **USER DECISION — #105:** auto-remove on audio over-trim (recommended — matches subtitle/caption tracks + industry-standard NLE principle) vs keep the floor (then just unify the two `MIN_SEGMENT_DURATION` constants).
+3. **USER DECISION — #104 vs #40:** dead-code removal as its own pass or folded into #40. Run a final caller check before deleting (incl. dynamic `getState()` access + `preload.js` exports).
+4. **Session-46 audit leftovers still open:** #99, #92, #93, #87–#90, #95, #98, #101.
 
 ## Watch Out For
 
-- **`commitAudioResize` and friends are DEAD but look live.** Confirmed zero callers: `commitAudioResize` (`useEditorStore.js:488`), `commitLeftExtend` (`:628`), `_recutAfterDelete` (`:881`), `revertClipBoundaries` (`:1103`), `deleteAudioSegment` (`:367`), and the `clip:recut` IPC handler (`main.js:1298`). Do NOT reason about audio-trim behavior from these — they don't run.
-- **The LIVE audio path:** `TimelinePanelNew.js:1026` maps `nleSegments` → one `WaveformTrack` per segment; handles → `trimNleSegmentLeft/Right` / `extendNleSegment*` / `deleteNleSegment` / `splitAtTimeline`. The only live use of the old `audioSegments`/`rippleDeleteAudioSegment` is the LeftPanel "Delete subtitle + clip" button (`LeftPanelNew.js:939`) → `_concatRecutAfterDelete` → `concatRecutClip`. Keep `_concatRecutAfterDelete` and `_trimToAudioBounds`.
-- **Two `MIN_SEGMENT_DURATION` constants disagree:** `segmentOps.js:14` = 0.05, `timelineConstants.js:66` = 0.1, and `WaveformTrack.js` hardcodes 0.1. Unify in #105.
-- **Process lesson (now in `tasks/lessons.md`):** a `file:line` citation proves a function EXISTS, not that it RUNS. Before building any claim/plan on a function, **grep its callers — zero callers = dead.** Trace top-down from the mount point, not bottom-up from a plausibly-named handler. Tag claims verified-vs-assumed. User's trigger: "did you grep the callers?"
+- **`commitAudioResize` and friends are DEAD but look live.** Zero callers: `commitAudioResize` (`useEditorStore.js:488`), `commitLeftExtend` (`:628`), `_recutAfterDelete` (`:881`), `revertClipBoundaries` (`:1103`), `deleteAudioSegment` (`:367`), `clip:recut` IPC (`main.js:1298`). Do NOT reason about audio-trim from these. **The LIVE path:** `TimelinePanelNew.js:1026` → per-segment `WaveformTrack` → `trimNleSegmentLeft/Right` (`segmentOps.js:86,104`). Keep `_concatRecutAfterDelete` + `_trimToAudioBounds` (still live via `LeftPanelNew.js:939`).
+- **Two `MIN_SEGMENT_DURATION` constants disagree:** `segmentOps.js:14`=0.05 vs `timelineConstants.js:66`=0.1 (and `WaveformTrack.js` hardcodes 0.1). Unify in #105.
+- **The whole point of this session is unproven until exercised.** If on the next editor task the relevant skill does NOT auto-load, the fix is to sharpen that skill's `description` trigger — not to abandon the approach.
+- **Standing process rule:** a `file:line` citation proves a function EXISTS, not that it RUNS. Grep callers before building any claim on it. User's trigger phrase: **"did you grep the callers?"**
 
 ## Logs / Debugging
 
-- **Build:** `npm run build:renderer` (Vite, ~11.6s). The 1.89 MB chunk-size warning is pre-existing (#73), unrelated.
-- **Run for verification:** `npm start` (prod profile from source, real data). Closed = quit (app exited cleanly when window closed). No dev server (desktop-first).
-- **Issue tracker:** `gh issue list --repo Oghenefega/ClipFlow --state open`. New this session: #104, #105. Closed: #103. Commented (closed): #102, #97.
-- **No backend/main-process/detection code touched.** Investigation-only session.
+- **No app build run this session** — only `.md` (skill/command/doc) edits, nothing the renderer or main process executes. No verification build needed.
+- **Commits this session:** `18b528d` (distillation system + trace-verify skill), `ae6cc7f` (4.6→4.8 attribution fix), `b1603e2` (backlog distillation), + this HANDOFF commit.
+- **New skill is live** — `clipflow-trace-verify` appears in the skill registry. First real trigger test pending (next trace/explain request).
+- **Issue tracker unchanged this session** — no issues filed/closed. Open work tracked under #104, #105, and the session-46 leftovers.
