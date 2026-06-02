@@ -1,68 +1,51 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-05-30 — Session 47 — Editor-store consistency fixes (#97, #96, #93, #102) + fresh-eyes review_
+_Last updated: 2026-06-02 — Session 48 — #103 investigation (trim is already correct; dead-code path found)_
 
 ---
 
 ## One-line TL;DR
 
-**Shipped four editor-store data-integrity fixes (#97, #96, #93, #102), all build-verified and boot-clean but NOT yet user-verified in the running app.** Three commits to master (`71342bd`, `8053819`, `7f82b45`). A fresh-eyes review surfaced two pre-existing bugs now filed as **#102 (fixed this session)** and **#103 (open)**. All four fixes touch one file: `src/renderer/editor/stores/useEditorStore.js`.
+**No code changed.** Investigated #103 ("trim collapses spliced clips"), traced the code AND verified in the running app — **it does not reproduce.** The live timeline already trims per-segment and is gap-preserving; the bug #103 cited lives only in `commitAudioResize`, which has **zero callers (dead code)**. Closed #103, filed #104 (dead-code removal) and #105 (over-trim sliver), and flagged that session-47's #102/#97 patched the dead path. Two decisions are waiting on the user (see Next Steps).
 
 ---
 
 ## Current State
 
-App builds clean (`npm run build:renderer`, ~10s) and boots clean (schema v4, no app-level errors) after all four fixes. Changes are surgical and isolated to **one file** — `src/renderer/editor/stores/useEditorStore.js` — plus CHANGELOG. No backend/main-process, IPC, or detection code touched. **Not yet smoke-tested in the running app** — fixes are build-verified and logically traced but need the user to confirm behaviour (see Verification below).
+App builds clean (`npm run build:renderer`, ~11.6s) and boots clean (Electron 40.9.1, prod profile, v0.1.5-alpha). **Working tree has only docs changes** — `HANDOFF.md`, `CHANGELOG.md`, `tasks/todo.md`, `tasks/lessons.md`. No source code was touched this session.
 
-## What Was Just Built
+## What Was Just Built (this session = investigation + triage, no code)
 
-Four fixes, all in `useEditorStore.js`:
-
-- **#97 — cross-clip stale-write corruption** (`71342bd`). Five async actions (`commitAudioResize` right-extend branch, `commitLeftExtend`, `_recutAfterDelete`, `_concatRecutAfterDelete`, `revertClipBoundaries`) captured `clip`/`project`, awaited an FFmpeg recut/extend (~100–150 ms + file-handle-release delay), then `set()` derived state from the stale captures. Switching clips during the await clobbered the freshly-loaded clip. Each now re-checks `get().clip?.id !== clip.id || get().project?.id !== project.id` after the await and aborts the in-memory write. Disk is already persisted by `clipId` in the handler, so no data is lost.
-- **#96 — single source of truth for timeline duration** (`8053819`). `setNleSegments` already sets `duration = getTimelineDuration(segs)` (the gaps-removed sum the seek/clamp logic uses); five sites immediately overwrote it with the handlers' span-based value, which is wrong for multi-segment clips. Dropped all five redundant `setDuration` calls + one dead interim `setDuration` in `_trimToAudioBounds` (superseded by the final audio-bounds sync).
-- **#93 — audio/NLE model drift** (`8053819`). (1) Empty-delete branch in `deleteAudioSegment` + `rippleDeleteAudioSegment` now clears `nleSegments` in both stores (`setNleSegments([])`) and `markDirty()`s, so the empty state actually autosaves. (2) `revertClipBoundaries` now recomputes `audioSegments` to the reverted single-segment bounds instead of leaving stale extended bounds.
-- **#102 — right-trim now recuts and persists** (`7f82b45`). Dragging the audio segment's right edge inward only ran `_trimToAudioBounds()` — never updated `nleSegments`, never recut, never `markDirty()`. The clip stayed full-length (playhead could seek past the cut) and the trim was lost on close. Right-trim branch now mirrors the left-trim path: `_trimToAudioBounds()` → `_recutAfterDelete(max(0,start), end)` → `markDirty()`, with a symmetric ±0.1 s deadzone so a no-op click doesn't trigger a needless recut.
+- **Closed #103** with full reproduction + root-cause notes. Verified in-app that spliced-clip trimming is correct.
+- **Filed #104** (`type: chore`, area: editor/timeline) — remove the dead audio-resize path.
+- **Filed #105** (`type: improvement`, area: editor/timeline) — audio over-trim leaves a ~0.1s sliver; documents the A-vs-B design fork + the duplicate `MIN_SEGMENT_DURATION` constants.
+- **Commented on closed #102 and #97** — they patched the dead `commitAudioResize` path.
+- Updated `tasks/todo.md` (retired the moot #103 plan), `CHANGELOG.md`, `tasks/lessons.md`.
 
 ## Key Decisions
 
 | Decision | Why |
 |---|---|
-| `setNleSegments` owns duration; drop the 5 manual `setDuration` calls | The seek/clamp logic already uses `getTimelineDuration(nleSegments)`; the manual span-based value diverges for multi-segment clips and was a latent bug, not just redundancy. |
-| #93 empty-delete: clear both models + `markDirty`, but do NOT clear subtitles/captions | Matched the issue's acceptance criteria exactly; clearing the user's subtitle work on a delete is destructive and out of scope. |
-| #102 right-trim mirrors left-trim (`_recutAfterDelete`) rather than a new per-segment trim | Lowest-risk, consistent with the working gesture, correct for the common single-segment case. The multi-segment limitation it inherits is tracked separately as #103. |
-| #102 deadzone `currentDuration - 0.1` | Symmetric with the existing extend threshold (`+0.1`); avoids a pointless FFmpeg recut + dirty flag on a no-op click. |
-| Did NOT fix the sub-deadzone left-nudge `audioSegments[0].startSec` drift | <0.1 s, invisible, self-heals on reopen (`initAudioSegments` regenerates `[0, duration]`). Code for zero benefit. |
-| Filed #103 rather than expanding #102 scope | Multi-segment trim collapse affects BOTH left- and right-trim and needs a design change (gap-preserving `trimSegmentRight`); too big/risky for this pass. |
+| Close #103 as not-reproducible instead of fixing | Verified in the running app; its root cause is in `commitAudioResize`, which has zero callers. Fixing it would have duplicated already-correct live behavior. |
+| Do NOT blind-fix the #105 sliver | On inspection it's a genuine design fork (auto-remove like subtitles vs keep the trim floor), not a 5-line patch. Filed with options; user decides. |
+| File dead-code removal as #104 (own issue), reference #40 | Big enough to track; #40 is the existing Phase-4 hygiene issue it could fold into. |
+| Flag #102/#97 rather than reopen | Keeps the record honest without issue-churn; the live behavior is correct so nothing's broken. |
 
 ## Next Steps (prioritized)
 
-1. **VERIFY the four shipped fixes in the running app** (checklist below), then close #97/#96/#93/#102 — or apply `status: untested` if closing pre-verification.
-2. **#103 — multi-segment trim collapse** (newly filed). Audio-resize trim routes through single-segment `recutClip`, collapsing gaps on spliced clips and re-including deleted footage. Fix BOTH trim directions via the gap-preserving `trimSegmentLeft`/`trimSegmentRight` actions (already exist, ~lines 280-288). Needs a design decision first.
-3. **Remaining Tier-2 from the session-46 audit:** #99 (caption style bleed — NEEDS read-first investigation of `applyTemplate` + a real custom template), #92 (false "Applied" badge — needs `_doSilentSave` to return a checkable result).
-4. **Quick wins:** #101 (`punctuationRemove` — persist vs delete decision), #88 (`initVideoRef` outside `set()` — chore).
-5. **Deeper gap noted on #93:** deleting the last audio segment doesn't durably persist as empty — `clip.startTime`/`endTime` aren't cleared, so reopen resurrects the full clip via `createInitialSegments`. Out of scope for #93; needs an explicit empty-clip shape or a UI guard preventing last-segment delete. See the #93 issue comment.
+1. **USER DECISION — #105:** auto-remove on over-trim (recommended, matches subtitle/caption tracks + the "industry-standard NLE" principle) vs keep the floor (then just unify the two `MIN_SEGMENT_DURATION` constants). Once chosen, it's a small, well-scoped fix.
+2. **USER DECISION — #104 vs #40:** do the dead-code removal as its own pass, or fold into #40. Before deleting, run a final caller check (incl. dynamic `getState()` access + `preload.js` exports `extendClip`/`recutClip`).
+3. **Session-46 audit leftovers still open:** #99 (caption style bleed — needs read-first investigation of `applyTemplate`), #92 (false "Applied" badge), #93 (still open — empty-delete/revert sync, partly live via `rippleDeleteAudioSegment`), plus #87–#90, #95, #98, #101.
 
 ## Watch Out For
 
-- **All four fixes are build-verified only, NOT user-verified.** Run the Verification checklist before closing.
-- **`audioSegments` are ephemeral/derived, `nleSegments` are the persisted truth.** `initFromContext` clears `audioSegments` to `[]` (line 76) and `initAudioSegments(duration)` regenerates them as a single `[0, duration]` on each open. So `audioSegments` mid-session consistency matters (downstream legacy ops read it) but it doesn't round-trip — `nleSegments` is what persists and drives playback.
-- **Empty `nleSegments` is a normal state**, not novel — `usePlaybackStore.reset()` sets it `[]` on every clip switch. All consumers already guard `length === 0`. #93's clear-to-empty is safe.
-- **#97 guard side-effects are intentional and harmless:** on a clip-switch abort, the trailing `markDirty()` flags the NEW clip (re-saves its own correct state) and the `finally` bumps `videoVersion` on the new clip (clean reload). Not corruption.
-- **#103 (multi-segment trim collapse) and #102 share the `_recutAfterDelete` path** — when fixing #103, fix left- AND right-trim together for symmetry.
-- **Don't auto-fire a workflow without explicit opt-in.** This session was all single-agent main-thread work.
-
-## Verification (do this in the running app)
-
-`npm run build:renderer` + `npm start` (or the installed exe), then:
-1. **#97:** start an extend/trim/delete on clip A, switch to clip B *during* the FFmpeg op → clip B's boundaries/subtitles stay intact (no cross-clip overwrite).
-2. **#96:** trim/extend/delete → timeline length + playhead clamping stay consistent; on a clip with a mid-section delete (multi-segment), timeline length matches actual playable duration.
-3. **#93a:** delete the *last* remaining audio segment → duration 0; close + reopen → confirm no crash / no stale-`nleSegments` mismatch mid-session (note: clip currently resurrects full per the known gap above — that's #93's out-of-scope follow-up, not a regression).
-4. **#93b:** extend a clip, undo, then trim/resize again → operates on correct reverted bounds (no jump to stale extended length).
-5. **#102:** drag a clip's right edge inward → playhead can no longer scrub past the new end; close + reopen → trim still there.
+- **`commitAudioResize` and friends are DEAD but look live.** Confirmed zero callers: `commitAudioResize` (`useEditorStore.js:488`), `commitLeftExtend` (`:628`), `_recutAfterDelete` (`:881`), `revertClipBoundaries` (`:1103`), `deleteAudioSegment` (`:367`), and the `clip:recut` IPC handler (`main.js:1298`). Do NOT reason about audio-trim behavior from these — they don't run.
+- **The LIVE audio path:** `TimelinePanelNew.js:1026` maps `nleSegments` → one `WaveformTrack` per segment; handles → `trimNleSegmentLeft/Right` / `extendNleSegment*` / `deleteNleSegment` / `splitAtTimeline`. The only live use of the old `audioSegments`/`rippleDeleteAudioSegment` is the LeftPanel "Delete subtitle + clip" button (`LeftPanelNew.js:939`) → `_concatRecutAfterDelete` → `concatRecutClip`. Keep `_concatRecutAfterDelete` and `_trimToAudioBounds`.
+- **Two `MIN_SEGMENT_DURATION` constants disagree:** `segmentOps.js:14` = 0.05, `timelineConstants.js:66` = 0.1, and `WaveformTrack.js` hardcodes 0.1. Unify in #105.
+- **Process lesson (now in `tasks/lessons.md`):** a `file:line` citation proves a function EXISTS, not that it RUNS. Before building any claim/plan on a function, **grep its callers — zero callers = dead.** Trace top-down from the mount point, not bottom-up from a plausibly-named handler. Tag claims verified-vs-assumed. User's trigger: "did you grep the callers?"
 
 ## Logs / Debugging
 
-- **Build:** `npm run build:renderer` (Vite, ~10s). The 1.89 MB chunk-size warning is pre-existing (#73), unrelated.
-- **No backend/main-process or detection code touched** — all changes are renderer Zustand store (`useEditorStore.js`).
-- **Duration owner:** `usePlaybackStore.setNleSegments` → `getTimelineDuration(segments)` = sum of `segmentDuration` = `sourceEnd - sourceStart`. `seekTo` clamps to the same. The legacy `_trimToAudioBounds` still sets duration from the `audioSegments` model (line ~1076) for trim-only paths — the one remaining non-`nleSegments` duration write, by design (superseded by `setNleSegments` whenever a recut follows).
-- **Trim branch map in `commitAudioResize`:** left-extend (`start < -0.1`) → `commitLeftExtend`; left-trim (`start > 0.01`) → `_recutAfterDelete`; right-extend (`end > dur+0.1`) → `extendClip`; right-trim (`end < dur-0.1`) → `_recutAfterDelete` (#102); else (`±0.1` deadzone) → `_trimToAudioBounds` only.
-- **Issue tracker:** `gh issue list --repo Oghenefega/ClipFlow --state open`. New this session: #103. Pending verification/close: #93, #96, #97, #102. Still-open session-46 audit findings: #87–#92, #95, #98, #99, #101.
+- **Build:** `npm run build:renderer` (Vite, ~11.6s). The 1.89 MB chunk-size warning is pre-existing (#73), unrelated.
+- **Run for verification:** `npm start` (prod profile from source, real data). Closed = quit (app exited cleanly when window closed). No dev server (desktop-first).
+- **Issue tracker:** `gh issue list --repo Oghenefega/ClipFlow --state open`. New this session: #104, #105. Closed: #103. Commented (closed): #102, #97.
+- **No backend/main-process/detection code touched.** Investigation-only session.

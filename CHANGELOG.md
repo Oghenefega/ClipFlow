@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-02 (session 48) — #103 investigation: trim is already correct; dead-code path identified
+
+No code changed this session — the work was investigation and issue triage. Outcome corrects the record on the session-47 entry below.
+
+### Notes
+- **#103 ("trim collapses spliced clips") closed as NOT reproducible.** Traced the code, then verified in the running app: making a spliced clip (mid-section ripple-delete → two adjacent audio blocks) and trimming either edge does not re-include deleted footage, and over-trimming one piece stops at its own edge without touching the neighbour. The live timeline trims per-segment — `TimelinePanelNew.js:1026` renders one `WaveformTrack` per `nleSegment`, each with its own handles → `trimNleSegmentLeft/Right` (`segmentOps.js:86,104`), which is already gap-preserving. The flatten bug #103 cites lives only in `commitAudioResize`, which has **zero callers**.
+- **Correction to session 47:** #102 ("right-trim now recuts and persists") and most of #97's guards patched the dead `commitAudioResize` path, so they had no user-facing effect. The live right-trim was already correct. Flagged on the closed issues.
+- **Filed #104** (chore) — remove the dead single-block audio-resize path (`commitAudioResize`, `commitLeftExtend`, `_recutAfterDelete`, `revertClipBoundaries`, `deleteAudioSegment`, `clip:recut` IPC); may fold into #40.
+- **Filed #105** (improvement) — audio over-trim leaves a ~0.1s sliver (no over-trim cleanup, unlike the subtitle/caption tracks); needs a design call (auto-remove vs keep floor) + unify the duplicate `MIN_SEGMENT_DURATION` constants (`segmentOps.js`=0.05 vs `timelineConstants.js`=0.1).
+
 ## [Unreleased] — 2026-05-29 (session 47) — Editor-store consistency fixes (#97, #96, #93, #102)
 
 ### Fixed
