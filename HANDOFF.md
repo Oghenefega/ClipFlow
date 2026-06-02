@@ -1,52 +1,54 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-02 — Session 49 — Anti-hallucination tooling: skills as enforcement, lessons.md distilled_
+_Last updated: 2026-06-02 — Session 50 — #104 dead audio-resize subsystem removed + dead-code inventory on #40_
 
 ---
 
 ## One-line TL;DR
 
-**No app code changed — this was a tooling/process session.** Root problem fixed: `tasks/lessons.md` was a write-only dumping ground (logged but never read mid-work, so it never changed behavior). Built a system where **skills are the enforcement layer** (they auto-load at the moment of work) and lessons.md is just the raw capture log, with a `session-end` step that distills new lessons into skills. Also created a new `clipflow-trace-verify` skill that fires *before* I explain/trace code — born from the previous session's failure where I confidently planned a fix for **dead code** (`commitAudioResize`, zero callers) and only the user's domain knowledge caught it.
-
----
+Deleted the entire dead single-block audio-resize/extend/recut subsystem (#104 — ~759 lines, 15 symbols across 3 files, all caller-verified to zero live refs first), proved `clipflow-trace-verify` works on its first real test (it caught two HANDOFF inaccuracies), and produced a tiered dead-code inventory for the rest of the codebase (posted to #40). Renderer builds clean; user smoke-tested (app loads, no deleted-symbol errors).
 
 ## Current State
 
-App builds clean and boots clean (v0.1.5-alpha, Electron 40.9.1, prod profile) — unchanged this session. **No source code was touched.** All work was in `.claude/` (skills + commands), `tasks/lessons.md`, `CHANGELOG.md`. Working tree is clean; everything pushed to master (`b1603e2` and the HANDOFF commit on top).
+App builds clean (`npm run build:renderer` → 2734 modules, only the pre-existing #73 chunk-size warning). `main.js`/`preload.js` syntax-checked with `node --check`. Working tree clean, everything pushed to master. Latest commit `3d6be91`. v0.1.5-alpha, prod profile.
 
-## What Was Just Built (tooling/process, no app code)
+## What Was Built / Done
 
-- **New skill `clipflow-trace-verify`** — triggers BEFORE describing/tracing/diagnosing existing code. Enforces: grep callers first (zero callers = dead = stop), trace top-down from the mount point, attach a liveness proof to every claim, tag verified-vs-assumed. Closes the exact gap that produced the dead-`commitAudioResize` plan.
-- **Distillation pipe in `session-end`** — new step 2 scans lessons added since the `DISTILLED-THROUGH` marker and promotes each into its enforcement home (domain skill / code-review / trace-verify / rarely CLAUDE.md), then reports what moved.
-- **Backstop in `clipflow-code-review`** — new check #7 "am I editing code that actually RUNS?" (grep callers, confirm mounted component). Also fixed the stale `Co-Authored-By: Opus 4.6` → `4.8` in its commit template.
-- **Drained the lessons.md backlog into skills (first full pass)** — skills were already ~40% populated; added only the gaps, terse + deduplicated, across all six skills (segmentation guards, audio-track model, karaoke, whisperx/CUDA, EBUSY/preload, stopPropagation, done-means-audited, root-cause-first, etc.). `lessons.md` reframed as the raw log with a "new lessons below this line" divider; marker advanced.
-- **Memory:** added `feedback_no_code_narration` (always-loaded seatbelt) + linked it to the trace-verify skill.
+- **#104 CLOSED — removed the dead single-block audio-resize subsystem.** The legacy `audioSegments`-based "drag edge → commit on mouse-up → re-encode" flow, fully superseded by the live per-segment NLE trim (`TimelinePanelNew` → one `WaveformTrack` per `nleSegment` → `segmentOps.js trimNleSegmentLeft/Right`). Removed across 3 files:
+  - `useEditorStore.js`: `deleteAudioSegment`, `resizeAudioSegment`, `commitAudioResize`, `commitLeftExtend`, `_shiftAndPrependSubtitles`, `_shiftCaptionLeft`, `_extendSubtitles`, `_extendCaptionToAudioEnd`, `_recutAfterDelete`, `revertClipBoundaries`
+  - `preload.js`: `extendClip`, `extendClipLeft`, `recutClip`
+  - `main.js`: `ensureNleSegments` + `clip:extend`, `clip:extendLeft`, `clip:recut` handlers
+  - **Live path preserved:** `rippleDeleteAudioSegment`, `_concatRecutAfterDelete`, `_trimToAudioBounds`, `concatRecutClip` / `clip:concatRecut`. Also fixed one stale comment that referenced the deleted `deleteAudioSegment`.
+- **Dead-code inventory → #40** (comment). Tiered map of remaining dead code with a method note. See Next Steps.
+- **Issue bookkeeping:** #104 closed (label `status: untested`); #64 updated with a concrete root cause; #106 filed (passive-listener console error).
 
 ## Key Decisions
 
 | Decision | Why |
 |---|---|
-| Skills (not CLAUDE.md) are the enforcement layer | Skills load only when relevant → zero bloat when irrelevant + room for detailed checklists. CLAUDE.md can't hold 114 lessons without becoming the bloat the user refuses. |
-| lessons.md stays the raw capture log | It's fine as a dumping ground IF there's an outflow pipe. The bug was no pipe, not the file. |
-| "Read first" upgraded to "prove it's LIVE" | Last session I *did* read — but read dead code. A `file:line` citation proves existence, not execution. The real teeth are grep-callers + top-down + liveness proof. |
-| Distillation runs at session-end, reports before commit | Keeps the user in the loop to veto routing. |
+| Delete the FULL verified island (15 symbols), not the 6 HANDOFF listed | Leaving half a dead subsystem re-creates the exact "is this live?" confusion. All 15 caller-verified dead. |
+| Detection ≠ deletion | Produced an inventory (#40) but deleted nothing beyond #104 — deletion stays incremental + per-symbol verified. |
+| knip is NOT the right detector for ClipFlow | Dead code here is object-literal Zustand actions + IPC channels — neither is an ES export, so knip is blind/noisy. Per-symbol reference counting + handled-vs-invoked IPC diffing is the real detector. |
 
 ## Next Steps (prioritized)
 
-1. **Prove the system works.** It's built but unproven — the skills only matter if they auto-fire on the next editor/media/IPC task and I follow them unprompted. **#104 (dead-code removal) is the ideal first test** of `clipflow-trace-verify` for real.
-2. **USER DECISION — #105:** auto-remove on audio over-trim (recommended — matches subtitle/caption tracks + industry-standard NLE principle) vs keep the floor (then just unify the two `MIN_SEGMENT_DURATION` constants).
-3. **USER DECISION — #104 vs #40:** dead-code removal as its own pass or folded into #40. Run a final caller check before deleting (incl. dynamic `getState()` access + `preload.js` exports).
-4. **Session-46 audit leftovers still open:** #99, #92, #93, #87–#90, #95, #98, #101.
+1. **Tier 1 cleanup (#40):** 23 dead Zustand actions, same #104 discipline (grep callers + confirm no live twin, delete in verified batches). Notables: `extendNleSegmentLeft/Right` (likely superseded by `segmentOps` trim), `audioSegments` remnants (`setAudioSegments`/`initAudioSegments`/`splitAudioSegment`), unwired subtitle UI (`canUndo`/`canRedo`/`toggleShowSubs`/`setEmojiOn`). Full list in the #40 comment.
+2. **Tier 2 (#40):** 3 unused files (`waveformUtils.js`, `editorPrimitives.js`, `main/publish.js`) + 9 unused npm deps (7 radix + 2 csv + `@electron/rebuild`) — verify, then remove.
+3. **#64 waveform MAXBUFFER** — root cause now known (large-source PCM > 50MB buffer); fix = downsample in ffmpeg or stream via spawn, don't just raise the cap.
+4. **Real user bugs when ready:** #78 / #84 (user subtitle edits silently lost on reopen) — the trust-killing class.
 
 ## Watch Out For
 
-- **`commitAudioResize` and friends are DEAD but look live.** Zero callers: `commitAudioResize` (`useEditorStore.js:488`), `commitLeftExtend` (`:628`), `_recutAfterDelete` (`:881`), `revertClipBoundaries` (`:1103`), `deleteAudioSegment` (`:367`), `clip:recut` IPC (`main.js:1298`). Do NOT reason about audio-trim from these. **The LIVE path:** `TimelinePanelNew.js:1026` → per-segment `WaveformTrack` → `trimNleSegmentLeft/Right` (`segmentOps.js:86,104`). Keep `_concatRecutAfterDelete` + `_trimToAudioBounds` (still live via `LeftPanelNew.js:939`).
-- **Two `MIN_SEGMENT_DURATION` constants disagree:** `segmentOps.js:14`=0.05 vs `timelineConstants.js:66`=0.1 (and `WaveformTrack.js` hardcodes 0.1). Unify in #105.
-- **The whole point of this session is unproven until exercised.** If on the next editor task the relevant skill does NOT auto-load, the fix is to sharpen that skill's `description` trigger — not to abandon the approach.
-- **Standing process rule:** a `file:line` citation proves a function EXISTS, not that it RUNS. Grep callers before building any claim on it. User's trigger phrase: **"did you grep the callers?"**
+- **#104 is `status: untested`** — user confirmed "cuts look fine" + clean console, but interactive trim/delete wasn't explicitly walked. Remove the label once trim-inward + ripple-delete are confirmed working.
+- **Extend-outward may do nothing — PRE-EXISTING, not a #104 regression.** The live extend setters `extendNleSegmentLeft/Right` were already dead before this session (they're in the Tier 1 list). #104 didn't touch extend behavior.
+- **Tier 1 needs per-symbol verification before deletion** — the inventory is a candidate map, not a delete list. Some "unwired subtitle UI" may be intentionally-staged features, not rot.
+- **HANDOFF self-correction precedent:** the session-49 HANDOFF mis-credited the live concat keeper and undercounted the dead set. Trust grep over prior handoff prose.
 
 ## Logs / Debugging
 
-- **No app build run this session** — only `.md` (skill/command/doc) edits, nothing the renderer or main process executes. No verification build needed.
-- **Commits this session:** `18b528d` (distillation system + trace-verify skill), `ae6cc7f` (4.6→4.8 attribution fix), `b1603e2` (backlog distillation), + this HANDOFF commit.
-- **New skill is live** — `clipflow-trace-verify` appears in the skill registry. First real trigger test pending (next trace/explain request).
-- **Issue tracker unchanged this session** — no issues filed/closed. Open work tracked under #104, #105, and the session-46 leftovers.
+- **Build:** `npm run build:renderer` clean (2734 modules, 12.13s). `node --check` passed on main.js + preload.js. No `npm run build` installer this session.
+- **DevTools during smoke test surfaced two pre-existing errors (NOT from #104):**
+  - `Waveform extraction failed (track 0): ERR_CHILD_PROCESS_STDIO_MAXBUFFER` → root cause for #64 (PCM overflow past the 50MB `execFile` buffer in `ffmpeg.js:332`). Recorded on #64.
+  - `Unable to preventDefault inside passive event listener` (react-dom) → filed as #106.
+  - Confirmed ABSENT: any error referencing `commitAudioResize` / `recutClip` / `extendClip` / `resizeAudioSegment` — proves the cuts are clean.
+- **Dead-code audit method (reusable):** per-symbol reference count across `src/` (action name appearing once = dead) + IPC handled-vs-invoked diff. knip only useful for unused files/deps; its "unused exports" are CJS dynamic-require noise.
+- **Commits this session:** `3d6be91` (#104 removal + CHANGELOG session-50 entry) + this HANDOFF commit.
