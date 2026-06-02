@@ -174,18 +174,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   pipelineLogsDeleteOld: (days) => ipcRenderer.invoke("pipelineLogs:deleteOld", days),
   pipelineLogsMonthlyCost: () => ipcRenderer.invoke("pipelineLogs:monthlyCost"),
 
-  // Extend a clip (re-cut from source with new end time)
-  extendClip: (projectId, clipId, newSourceEndTime) =>
-    ipcRenderer.invoke("clip:extend", projectId, clipId, newSourceEndTime),
-
-  // Extend a clip backwards (re-cut from source with earlier start time)
-  extendClipLeft: (projectId, clipId, newSourceStartTime) =>
-    ipcRenderer.invoke("clip:extendLeft", projectId, clipId, newSourceStartTime),
-
-  // Re-cut a clip to arbitrary boundaries (used by undo)
-  recutClip: (projectId, clipId, newStartTime, newEndTime) =>
-    ipcRenderer.invoke("clip:recut", projectId, clipId, newStartTime, newEndTime),
-
   // Concat re-cut: splice multiple segments from source into one clip (mid-section delete)
   concatRecutClip: (projectId, clipId, segments) =>
     ipcRenderer.invoke("clip:concatRecut", projectId, clipId, segments),

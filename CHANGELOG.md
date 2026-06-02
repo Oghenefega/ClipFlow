@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-02 (session 50) — #104 dead-code removal: the superseded single-block audio-resize subsystem
+
+### Removed
+- **Deleted the entire dead single-block audio-resize / extend / recut subsystem (#104).** This was the legacy `audioSegments`-based "drag a segment edge → commit on mouse-up → re-encode the clip" flow, fully superseded by the live per-segment NLE trim (`TimelinePanelNew` → one `WaveformTrack` per `nleSegment` → `trimNleSegmentLeft/Right`). Every symbol removed was caller-verified to zero live references first. HANDOFF had enumerated 6 dead symbols; tracing the full call graph showed the real island was ~15 — the extend half (`extendClip`/`extendClipLeft` + four subtitle/caption shift helpers + the `ensureNleSegments` main-process helper) was missed. Removed: from `useEditorStore.js` — `deleteAudioSegment`, `resizeAudioSegment`, `commitAudioResize`, `commitLeftExtend`, `_shiftAndPrependSubtitles`, `_shiftCaptionLeft`, `_extendSubtitles`, `_extendCaptionToAudioEnd`, `_recutAfterDelete`, `revertClipBoundaries`; from `preload.js` — `extendClip`, `extendClipLeft`, `recutClip` bridges; from `main.js` — `ensureNleSegments` helper and the `clip:extend`, `clip:extendLeft`, `clip:recut` IPC handlers. ~759 lines across three files. The live path is untouched: `rippleDeleteAudioSegment`, `_concatRecutAfterDelete`, `_trimToAudioBounds`, `concatRecutClip` / `clip:concatRecut` all preserved. Renderer builds clean; `main.js`/`preload.js` syntax-checked. [src/renderer/editor/stores/useEditorStore.js, src/main/preload.js, src/main/main.js]
+
+### Notes
+- **Two HANDOFF inaccuracies corrected during the trace** (caught by `clipflow-trace-verify`'s grep-callers discipline): (1) the live concat path's real keeper is `rippleDeleteAudioSegment` (called from `LeftPanelNew.js:939`), not `_concatRecutAfterDelete` "via LeftPanelNew:939" as written; (2) the dead set was larger than the 6 listed — the whole extend subsystem cascaded dead once its only callers (`commitAudioResize`/`commitLeftExtend`) were confirmed unreachable.
+
 ## [Unreleased] — 2026-06-02 (session 48) — #103 investigation: trim is already correct; dead-code path identified
 
 No code changed this session — the work was investigation and issue triage. Outcome corrects the record on the session-47 entry below.
