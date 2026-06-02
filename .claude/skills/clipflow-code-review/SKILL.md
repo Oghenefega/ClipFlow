@@ -41,6 +41,12 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] Did I remove a component? Check it's not referenced elsewhere
 - [ ] Did I change a store action? Check all call sites still pass correct args
 
+### 7. Liveness — am I editing code that actually RUNS?
+- [ ] Before editing a function, `Grep` for its callers. **Zero callers = dead code.** Editing it has no user-facing effect (this is how #102/#97 got patched into the dead `commitAudioResize` path).
+- [ ] Did I confirm the component/handler I changed is the one actually mounted (top-down from `EditorLayout`), not a similarly-named twin?
+- [ ] If I claimed "this fixes X," can I name the live path mount→handler that the user's gesture actually hits? If not, verify in the running app before saying done.
+- [ ] See the `clipflow-trace-verify` skill for the full grep-callers / top-down / liveness-proof protocol.
+
 ## Build & Launch Protocol
 
 After passing the checklist:

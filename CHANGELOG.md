@@ -14,6 +14,9 @@ No code changed this session — the work was investigation and issue triage. Ou
 - **Filed #104** (chore) — remove the dead single-block audio-resize path (`commitAudioResize`, `commitLeftExtend`, `_recutAfterDelete`, `revertClipBoundaries`, `deleteAudioSegment`, `clip:recut` IPC); may fold into #40.
 - **Filed #105** (improvement) — audio over-trim leaves a ~0.1s sliver (no over-trim cleanup, unlike the subtitle/caption tracks); needs a design call (auto-remove vs keep floor) + unify the duplicate `MIN_SEGMENT_DURATION` constants (`segmentOps.js`=0.05 vs `timelineConstants.js`=0.1).
 
+### Added (tooling / process)
+- **Lesson-distillation system so `tasks/lessons.md` stops being a write-only dumping ground.** Root problem: lessons were logged but never read mid-work, so they never changed behavior. Fix routes lessons into skills (which auto-load at the moment of work) instead of bloating CLAUDE.md. Three parts: (1) new `clipflow-trace-verify` skill that triggers BEFORE explaining/tracing/diagnosing any existing code — carries the grep-callers / top-down-from-mount / liveness-proof checklist born from the dead-`commitAudioResize` failure; (2) a "distill new lessons" step added to the `session-end` command that, each session, promotes new lessons.md entries into their enforcement home (domain skill / code-review / trace-verify / rarely CLAUDE.md) and advances a `DISTILLED-THROUGH` marker; (3) a "Liveness — am I editing code that actually RUNS?" backstop check added to the `clipflow-code-review` skill. lessons.md is now explicitly the raw capture log; skills are the enforcement layer.
+
 ## [Unreleased] — 2026-05-29 (session 47) — Editor-store consistency fixes (#97, #96, #93, #102)
 
 ### Fixed

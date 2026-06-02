@@ -1,6 +1,8 @@
 # ClipFlow — Lessons Learned
 
 > After ANY correction from the user, add the pattern here.
+> This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
+> <!-- DISTILLED-THROUGH: 2026-06-02 — entries below this date's marker are awaiting distillation into skills. Update this date after each distillation pass. -->
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
 ## Negative constraints in CLAUDE.md are load-bearing — don't drop them as "bloat" (2026-04-25)
