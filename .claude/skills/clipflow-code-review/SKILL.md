@@ -65,7 +65,7 @@ NEVER skip steps 1-2. NEVER say "done" without a successful build.
 - Detail 1
 - Detail 2
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 ```
 
 Verbs: Fix, Add, Remove, Update, Refactor, Clean up
