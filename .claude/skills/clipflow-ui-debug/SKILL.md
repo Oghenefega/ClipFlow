@@ -71,3 +71,14 @@ Any container with `borderRadius` + scrollable content needs this pattern.
 - ResizablePanel sizes must sum to 100% — if they don't, the library normalizes proportionally and your intended sizes are wrong
 - Dropdowns with >20 options are bad UX — split into grouped sections
 - Don't add UI controls that duplicate existing ones — check first, merge if overlap exists
+
+## Distilled Lessons (gaps)
+
+- **React synthetic `stopPropagation` does NOT stop native `window`/`document` listeners.** `onMouseDown={e => e.stopPropagation()}` only blocks other React handlers; a `window.addEventListener('mousedown')` still fires. Use a `data-*` attribute + `e.target.closest('[data-menu]')` check in the window handler instead.
+- **`overflow: hidden` clips absolutely-positioned submenus** (e.g. a color picker at `left: 100%`). Use `overflow: visible`, or render the submenu outside the parent. Don't put `overflow: hidden` on a container whose children extend beyond its bounds.
+- **Collapsed panels must leave the layout, not just hide.** `maxHeight: 0` inside a `ResizablePanelGroup` still reserves the panel's percentage. To actually release space, conditionally render / remove it from the flow.
+- **Thumbnails match content aspect ratio.** Vertical gaming clips are 9:16 — use `aspect-ratio: 9/16` + `object-contain`, never a 16:9 `aspect-video` container (center-crops/zooms).
+- **Large lists use native scrolling.** `overflow-y: auto` + `max-height`, NOT shadcn `ScrollArea` (no mouse-wheel support). Always test with the real item count, not 3-4 items.
+- **Text-heavy left panel needs a generous default width (~35%),** not 25% — a narrow default squishes the transcript/subtitle reading column.
+- **Scores show a scale** — `X/Y` or `X.X/10`, never a raw number with no context (`28` tells the user nothing).
+- **Technical IDs/hashes go in detail/expanded views,** not list summaries.

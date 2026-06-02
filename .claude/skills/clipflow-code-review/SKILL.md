@@ -79,6 +79,19 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 5. **Skip screenshot analysis** — every screenshot deserves 10 seconds of actual visual analysis.
 6. **Add fallbacks** — the user explicitly said: "I would rather the app not work than use something unbearable and frankly unusable." Fail visibly. Always.
 
+## Distilled Lessons (process — write/done time)
+
+- **"Done means audited."** When a fix is confirmed working, BEFORE pivoting to the next task: re-read the actual shipped diff (not a summary), re-read logs from the successful run (double-fires, new warnings), trace edge cases the test didn't hit, grep for scaffolding left behind, and state the root cause in one plain sentence. File any separate issues found.
+- **Never mark a task DONE until the user confirms.** Mark "awaiting verification" at most. If they go quiet for a couple sessions, proactively ask "did X work?"
+- **Batch related fixes.** Read ALL affected files first, diagnose ALL root causes, implement together, build once — don't fix-one/rebuild/repeat.
+- **Never remove working features during a fix without explicit approval.** If code looks unused, grep callers, then ASK. Document anything removed in the commit message.
+- **Never recommend or implement auto-deletion of user data** without asking first (pipeline logs hold cost/perf history).
+- **When migrating to a new system, delete the old code aggressively** — don't keep fallbacks to the deprecated path "just in case." They rot, mask new-system bugs, and cause "which path am I on?" confusion. Git is the backup. (Only check: is it actually dead? grep callers.)
+- **Never remove debug `console.log`s during active development** — they're load-bearing for current debugging. Cleanup is only for stable, shipped, confirmed-working features. ClipFlow is not there yet.
+- **ClipFlow is a desktop app — never optimize web metrics.** No bundle-size reduction, code-splitting, lazy-loading, or CDN concerns (files are on local disk; lazy-load adds "Loading…" flashes for zero benefit). Valid targets: IPC speed, FFmpeg efficiency, render perf, memory, startup time.
+- **New visual styles must be additive / opt-in** — never replace the user's established default look (karaoke highlight, subtitle style) without consent. Their current look is their brand.
+- **Always add diagnostic logging** for any IPC call that can fail (`console.error` with full context values); add `console.log` at key decision points during feature dev.
+
 ## Lesson Capture
 
 After ANY correction from the user:

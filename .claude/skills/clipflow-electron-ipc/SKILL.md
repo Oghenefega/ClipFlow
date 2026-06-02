@@ -128,3 +128,12 @@ useEffect(() => { doSomething(clipDuration) }, [clipDuration]);
 ```
 
 `const` is NOT hoisted like `var`. Temporal Dead Zone = ReferenceError = blank screen.
+
+## Distilled Lessons (gaps)
+
+- **Windows file locking (EBUSY).** Before any IPC that replaces/deletes a clip file on disk, unload the `<video>` first (`removeAttribute('src')` + `.load()`), then wait ~100ms for the OS to release the handle. Replacing a file Chromium has open throws `EBUSY: resource busy or locked`.
+- **The preload script is a single point of failure — never add a bare `require()`.** Any uncaught error in `preload.js` crashes the script, so `contextBridge.exposeInMainWorld('clipflow', …)` never runs and `window.clipflow` is `undefined` → the app loads as an empty shell with zero data. Wrap every third-party require in try/catch. After ANY preload change, open DevTools and check for red errors (terminal shows "no errors" even when preload died).
+- **Native Node modules fail in Electron on Windows** (`better-sqlite3` → `node-gyp`/`electron-rebuild` failures). Use a WASM alternative — `sql.js` (async init, zero native compilation, cross-platform).
+- **No Node `path` module in the renderer.** Use `str.split(/[/\\]/).pop()` for basename etc. `path` is main-process only.
+- **Pass explicit data fields to AI prompts — never let the model infer them.** e.g. inject the game's exact `gameHashtag` into the IPC handler + system prompt; don't rely on the model deriving `#eggingon` from the name "Egging On".
+- **Don't invent API model IDs** — grep `main.js` for the proven IDs already in the `anthropic:*` handlers. (See `clipflow-trace-verify`.)

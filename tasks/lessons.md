@@ -2,7 +2,9 @@
 
 > After ANY correction from the user, add the pattern here.
 > This file is the RAW CAPTURE LOG (intake), not the enforcement layer. It does not change behavior on its own — I never read it mid-work. The `session-end` command distills NEW entries into the place that actually fires (a domain skill, the code-review checklist, or rarely CLAUDE.md/memory). lessons.md feeds; skills enforce.
-> <!-- DISTILLED-THROUGH: 2026-06-02 — entries below this date's marker are awaiting distillation into skills. Update this date after each distillation pass. -->
+> <!-- DISTILLED-THROUGH: 2026-06-02 — FULL BACKLOG distilled into skills on 2026-06-02 (editor-patterns, ffmpeg-media, electron-ipc, ui-debug, code-review, trace-verify). New lessons added BELOW this line are awaiting distillation; advance this marker after each session-end pass. A handful of niche/no-skill-home lessons (Vizard API shapes, TikTok PKCE hex, caption-spoiler/AI-tell copy guidance, CLAUDE.md-editing meta, session-wrap behaviors) intentionally remain here only. -->
+> <!-- NEXT-UNDISTILLED-BELOW -->
+> #### ↓↓↓ New lessons go below this line ↓↓↓
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
 ## Negative constraints in CLAUDE.md are load-bearing — don't drop them as "bloat" (2026-04-25)

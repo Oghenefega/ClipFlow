@@ -42,3 +42,12 @@ User's one-line trigger to pop this failure mid-conversation: **"did you grep th
 ## Hard Rule
 
 If the user pushes back from domain knowledge ("I'm positive I've seen that", "that's not how it works"), treat it as a likely-correct signal and re-verify from scratch — grep callers, re-trace top-down. Do not defend the original trace. It should never have to get to a pushback, but when it does, the pushback wins until proven otherwise.
+
+## Distilled Lessons (process — diagnosis discipline)
+
+- **Diagnose root cause BEFORE writing any fix.** Trace the data flow in code, find the EXACT line where behavior diverges from expectation, fix THAT. If the architecture is wrong, rebuild it — never stack workarounds on a broken foundation.
+- **For multi-layer bugs (FFmpeg → file → IPC → store → renderer), trace the ENTIRE pipeline end-to-end before touching anything.** Identify ALL mismatches first, then fix from the foundation up — not symptom by symptom. (Chains of 8+ symptom-patches are how things end up "severely broken.")
+- **When a fix doesn't work or creates a new bug, STOP patching — the diagnosis is wrong.** Don't tweak the same property/value a 2nd or 3rd time. Re-read from scratch and re-diagnose. (After 2 failed attempts: full re-read, find where the mental model is wrong, propose a new approach.)
+- **Verify which component is ACTUALLY rendering before editing or explaining it.** Trace the import/mount chain from the entry point (`EditorLayout`) — two parallel implementations are common (`RightPanelNew` vs `RightZone`, `BrandDrawer` vs inline `BrandKitPanel`). grep the import in the layout file, not just anywhere.
+- **Re-read files the user sends** (via `@` or "read this") with the Read tool EVERY time — never assume contents are unchanged from a prior read, even with the same filename.
+- **Don't invent or guess identifiers** (API model IDs, field names, store keys) — grep the codebase for the proven existing value first.

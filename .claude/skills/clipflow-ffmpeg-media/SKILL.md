@@ -87,3 +87,13 @@ exec(`cmd /c "set "PATH=${dllDir};%PATH%" && "${binary}" ${args}"`)
 | Transcribe | 600s |
 | Render (ASS burn-in) | 600s |
 | Thumbnail | 30s |
+
+## Distilled Lessons (gaps)
+
+- **Preserve source framerate on clip cuts.** `cutClip` has historically dropped 60fps → 25fps — make the cut match the source rate (e.g. `-r` matching source / don't let the encoder default it down). Verify output fps after changing cut args.
+- **Per-clip re-transcription for word-level karaoke.** NEVER slice word timestamps from a long source transcription and offset them — whisperx wav2vec2 alignment degrades badly on long audio (uniform ~0.7s spacing, mega-segments). Re-transcribe each SHORT clip (15-60s) individually. Source-level transcription is fine for highlight detection (segment-level timing is enough there).
+- **whisperx.align() is lossy** — it silently drops segments it can't align (the rest pass through, so a "did it return anything" fallback never triggers). ALWAYS merge aligned output with the raw transcription by text match; keep the raw segment when the aligned one is missing. Log dropped segments.
+- **CUDA version must match between torch and ctranslate2.** ctranslate2 4.7.1 needs `cublas64_12.dll` → torch must be a cu12x build (e.g. 2.7.1+cu126). `torch.version.cuda` is the thing that matters; system CUDA version is irrelevant — torch bundles its own DLLs in `torch/lib/`.
+- **`initial_prompt` seeds slang/gaming vocab** ("ain't", "gonna", proper nouns) — but it goes in the `asr_options` dict of `whisperx.load_model()`, NOT as a `transcribe()` kwarg (`transcribe()` doesn't accept it → crash). Keep it concise.
+- **Never add Whisper flags that penalize silence** (`no_speech_threshold`) — gaming audio has legitimate long silences (stealth, boss fights) followed by loud reactions; you'd drop the payoff. Only target repetition/hallucination: `condition_on_previous_text=False`, `compression_ratio_threshold`, `log_prob_threshold`.
+- **Verifying burned-in subtitles:** don't trust "I see text in the frame" — gaming HUD/UI text looks like a caption. Cross-check on-screen text against the clip's actual subtitle data (segment text + timestamp at that moment). If it doesn't match a known segment, it's not ours.
