@@ -155,7 +155,19 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           if (lastEnd > clipDur * 1.5) transcriptionIsStale = true;
         }
 
-        if (trSegs.length > 0 && !transcriptionIsStale) {
+        // #78: editor-saved sub1 (_format "source-absolute", written only by the editor)
+        // is the user's authoritative copy and wins over raw clip.transcription — mirror
+        // useSubtitleStore.initSegments' load priority so renders match the editor preview.
+        const hasEditedSubs = clipData.subtitles?._format === "source-absolute"
+          && clipData.subtitles.sub1?.length > 0;
+
+        if (hasEditedSubs) {
+          // Already source-absolute; visibleSubtitleSegments maps to timeline below.
+          subtitleSegments.push(...clipData.subtitles.sub1);
+          if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
+          subsAreSourceAbsolute = true;
+          console.log("[Render] Subtitle source: clip.subtitles.sub1 (editor-saved),", subtitleSegments.length, "segments");
+        } else if (trSegs.length > 0 && !transcriptionIsStale) {
           // clip.transcription is clip-relative (0-based).
           if (useNle) {
             // Shift to source-absolute so visibleSubtitleSegments can map it.
@@ -180,6 +192,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           }
           console.log("[Render] Subtitle source: clip.transcription,", subtitleSegments.length, "segments");
         } else if (clipData.subtitles) {
+          // Pipeline-generated sub1 (no _format): clip-relative.
           if (clipData.subtitles.sub1) subtitleSegments.push(...clipData.subtitles.sub1);
           if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
           subsAreSourceAbsolute = clipData.subtitles._format === "source-absolute";

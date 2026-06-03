@@ -557,7 +557,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       } else {
         // Update clip data in editor store WITHOUT full reinit
         // (initFromContext is too heavy — it resets waveform, playback, templates, undo stack)
-        const updatedClip = { ...clip, transcription: result.transcription };
+        // #78: also drop the in-memory editor-saved sub1 so the immediate initSegments
+        // below rebuilds from the fresh transcription, not stale edits. Disk was cleared
+        // server-side in retranscribe:clip.
+        const updatedClip = { ...clip, transcription: result.transcription, subtitles: { sub1: [], sub2: [] } };
         const updatedProject = { ...project, clips: project.clips.map(c => c.id === clip.id ? updatedClip : c) };
         useEditorStore.setState({ project: updatedProject, clip: updatedClip });
         // Reload subtitle segments from the new transcription. initSegments only

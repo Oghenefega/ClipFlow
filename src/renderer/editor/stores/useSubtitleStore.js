@@ -184,6 +184,7 @@ const useSubtitleStore = create((set, get) => ({
   // ── Editable segments (source of truth — timestamps are SOURCE-ABSOLUTE) ──
   editSegments: [],
   originalSegments: [], // preserved for segment mode switching
+  _skipNextSegmentation: false, // #78: set on editor-saved load so applyTemplate's setSegmentMode doesn't re-chunk away manual edits
   _sourceOrigin: 0, // clip.startTime — used to convert source-absolute to display time
 
   // ── Undo/Redo history ──
@@ -304,6 +305,7 @@ const useSubtitleStore = create((set, get) => ({
     set({
       editSegments: [],
       originalSegments: [],
+      _skipNextSegmentation: false,
       activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,
@@ -377,23 +379,27 @@ const useSubtitleStore = create((set, get) => ({
     let sourceOffset = 0;          // amount to ADD to convert raw timestamps → source-absolute
     let rawIsSourceAbsolute = false; // whether raw data is already in source time
 
-    if (hasClipTranscription && !transcriptionIsStale) {
+    // #78: editor-saved edits (_format "source-absolute", written only by the editor
+    // save path) are the user's authoritative copy and must win over raw
+    // clip.transcription, which the editor never updates. Pipeline-born sub1 has no
+    // _format, so fresh never-edited clips still prefer the accurate retranscription.
+    const hasEditorSavedSubs = hasClipSubtitles && clip.subtitles._format === "source-absolute";
+
+    if (hasEditorSavedSubs) {
+      // Editor-saved: already source-absolute, clip-bounded (#84 filter on save).
+      segments = clip.subtitles.sub1;
+      sourceOffset = 0;
+      rawIsSourceAbsolute = true;
+    } else if (hasClipTranscription && !transcriptionIsStale) {
       // Re-transcribed: clip-relative (0-based) → add clipOrigin for source-absolute
       segments = clip.transcription.segments;
       sourceOffset = clipOrigin;
       rawIsSourceAbsolute = false;
     } else if (hasClipSubtitles) {
-      if (clip.subtitles._format === "source-absolute") {
-        // Editor-saved in new source-absolute format
-        segments = clip.subtitles.sub1;
-        sourceOffset = 0;
-        rawIsSourceAbsolute = true;
-      } else {
-        // Pipeline-generated or old editor-saved: clip-relative (0-based)
-        segments = clip.subtitles.sub1;
-        sourceOffset = clipOrigin;
-        rawIsSourceAbsolute = false;
-      }
+      // Pipeline-generated sub1 (no _format): clip-relative (0-based)
+      segments = clip.subtitles.sub1;
+      sourceOffset = clipOrigin;
+      rawIsSourceAbsolute = false;
     } else if (Array.isArray(clip?.subtitles) && clip.subtitles.length > 0) {
       // Legacy: editor saved as flat array before format fix (clip-relative)
       segments = clip.subtitles;
@@ -409,13 +415,15 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    const effectiveSource = hasClipTranscription && !transcriptionIsStale
-      ? "clip-transcription"
-      : hasClipSubtitles
-        ? "clip-subtitles"
-        : Array.isArray(clip?.subtitles) && clip.subtitles.length > 0
-          ? "clip-subtitles-legacy"
-          : "project-transcription";
+    const effectiveSource = hasEditorSavedSubs
+      ? "clip-subtitles-edited"
+      : hasClipTranscription && !transcriptionIsStale
+        ? "clip-transcription"
+        : hasClipSubtitles
+          ? "clip-subtitles"
+          : Array.isArray(clip?.subtitles) && clip.subtitles.length > 0
+            ? "clip-subtitles-legacy"
+            : "project-transcription";
     console.log(`[initSegments] source=${effectiveSource}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
 
     // ─── Normalize primary segments to source-absolute time ───────────────
@@ -572,10 +580,16 @@ const useSubtitleStore = create((set, get) => ({
     // initSegments no longer triggers segmentation directly to avoid the double-run on
     // clip open (#44). Retranscribe path explicitly calls setSegmentMode itself.
     // Clear editSegments so we don't briefly show prior clip's segments before applyTemplate fires.
+    // #78: when loading the user's OWN saved edits, editSegments IS the final
+    // chunking — manual splits/merges/timestamp tweaks live in it. Populate it
+    // directly and tell the upcoming applyTemplate→setSegmentMode to skip the
+    // re-chunk (which would algorithmically regenerate segments and discard those
+    // edits). Pipeline/transcription loads keep the rebuild-via-applyTemplate flow.
     set({
       _sourceOrigin: clipOrigin,
       originalSegments: segs,
-      editSegments: [],
+      editSegments: hasEditorSavedSubs ? segs : [],
+      _skipNextSegmentation: hasEditorSavedSubs,
       activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,
@@ -1057,7 +1071,15 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Segment mode switching ──
   setSegmentMode: (mode) => {
-    const { originalSegments, editSegments } = get();
+    const { originalSegments, editSegments, _skipNextSegmentation } = get();
+    if (_skipNextSegmentation) {
+      // #78: editSegments was populated directly from the user's saved edits in
+      // initSegments. Re-chunking here would discard manual splits/merges/timestamp
+      // edits — just record the mode. A later EXPLICIT mode change (flag already
+      // cleared) re-chunks as normal.
+      set({ segmentMode: mode, _skipNextSegmentation: false });
+      return;
+    }
     if (!originalSegments || originalSegments.length === 0) {
       set({ segmentMode: mode });
       return;

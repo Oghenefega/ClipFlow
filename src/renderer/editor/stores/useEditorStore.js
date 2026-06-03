@@ -634,11 +634,21 @@ const useEditorStore = create((set, get) => ({
         bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
         yPercent: layState.capYPercent ?? 15,
       };
+      // #84: persist only subtitles that fall within the clip's CURRENT nleSegments
+      // source range (covers trims + extends). editSegments also carries source-wide
+      // "extras" merged in for extend-coverage (useSubtitleStore.initSegments) — those
+      // must NOT be written to sub1 or it gets polluted with the whole recording. They
+      // are re-derived live from project.transcription on every open.
+      const persistedSubs = (nleSegments && nleSegments.length > 0)
+        ? editSegments.filter((s) =>
+            nleSegments.some((n) => s.startSec < n.sourceEnd && s.endSec > n.sourceStart)
+          )
+        : editSegments;
       await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
         caption: capState.captionText,
         captionSegments: capState.captionSegments,
-        subtitles: { sub1: editSegments, sub2: [], _format: "source-absolute" },
+        subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
         nleSegments: nleSegments,
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,

@@ -39,6 +39,7 @@ const database = require("./database");
 const feedbackDb = require("./feedback");
 const namingPresets = require("./naming-presets");
 const fileMigration = require("./file-migration");
+const subtitlePollutionMigration = require("./subtitle-pollution-migration");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
@@ -514,6 +515,20 @@ app.whenReady().then(async () => {
     }).catch((err) => {
       logger.error(logger.MODULES.system, `File migration failed: ${err.message}`);
     });
+
+    // #84: one-time repair of polluted clip.subtitles.sub1 (whole-recording spans).
+    // Synchronous + fast (file reads only, no probes), gated by its own store flag.
+    try {
+      const subResult = subtitlePollutionMigration.runSubtitlePollutionMigration(watchFolder, store, projects);
+      if (subResult.clipsFixed > 0) {
+        logger.info(logger.MODULES.system, `Subtitle pollution repair: ${subResult.clipsFixed} clip(s) across ${subResult.repaired} project(s)`);
+      }
+      if (subResult.errors.length > 0) {
+        logger.warn(logger.MODULES.system, `Subtitle pollution repair had ${subResult.errors.length} errors`, { errors: subResult.errors.slice(0, 5) });
+      }
+    } catch (err) {
+      logger.error(logger.MODULES.system, `Subtitle pollution repair failed: ${err.message}`);
+    }
   }
 
   createWindow();
@@ -1242,8 +1257,11 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
     try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
 
     // Step 4: Save clip-level transcription to project
+    // #78: a fresh retranscription is the new source of truth — drop any editor-saved
+    // sub1 (which now wins over clip.transcription on reopen) so the redo isn't defeated
+    // by stale/polluted edits. Clearing _format makes the new transcription authoritative.
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "saving", pct: 95 });
-    const updates = { transcription };
+    const updates = { transcription, subtitles: { sub1: [], sub2: [] } };
     await projects.updateClip(watchFolder, projectId, clipId, updates);
 
     if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "done", pct: 100 });

@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-02 (session 51) — #78/#84 subtitle persistence fix (implemented, untested) + #66/#77 root cause found
+
+### Fixed
+- **#84 — `clip.subtitles.sub1` no longer gets polluted with the whole-recording transcript.** The editor save path (`useEditorStore.js _doSilentSave`) was writing the entire `editSegments` array — which includes the source-wide "extras" `initSegments` merges in for extend-coverage — into `sub1`. Save now filters `editSegments` to the clip's current `nleSegments` source range before persisting (`persistedSubs`). A one-time startup migration (`subtitle-pollution-migration.js`, gated by `subtitlePollutionRepairComplete`) repairs existing polluted clips by trimming their `sub1` to clip range, preserving in-range edits. [src/renderer/editor/stores/useEditorStore.js, src/main/subtitle-pollution-migration.js, src/main/main.js]
+- **#78 — user-edited subtitles no longer silently lost on clip reopen.** Editor-saved `sub1` (marked `_format: "source-absolute"`, written only by the editor) now wins over raw `clip.transcription` on load (`useSubtitleStore.initSegments`) and on render-from-disk (`render.js`). Crucially, when loading saved edits, `editSegments` is populated directly and a `_skipNextSegmentation` flag tells the open-time `applyTemplate → setSegmentMode` NOT to algorithmically re-chunk — which would otherwise regenerate manual splits/merges/timestamp edits away. Explicit later mode changes still re-chunk. Retranscribe clears `sub1`/`_format` on disk (`main.js retranscribe:clip`) and in memory (`EditorLayout.js`) so a redo wins. [src/renderer/editor/stores/useSubtitleStore.js, src/renderer/editor/stores/useEditorStore.js, src/main/render.js, src/main/main.js, src/renderer/editor/components/EditorLayout.js]
+
+### Notes
+- **#78/#84 are IMPLEMENTED but UNTESTED.** Renderer builds clean, main-process syntax OK. Manual verification was blocked — see below.
+- **Root cause found for #66 + #77 (the blocker).** The left editor panel (Transcript + Edit-subtitles tabs in `LeftPanelNew.js`) renders the RAW source-absolute segment arrays (`originalSegments` / `editSegments`) with no clip-range filter and no timeline-time mapping. Consequence: (#66) a 1-min clip's panels show the entire 30-min recording's text; (#77) the play-along word highlight is dead because playback counts in clip/timeline time (0→1:05) while the listed segments are in source-absolute time (e.g. 3:05) — the two time spaces never match (the preview overlay works because it uses the timeline-mapped view). Both share one fix: drive the left panel from the same clip-trimmed, timeline-mapped segment list the preview already uses. NOT YET FIXED — needs a plan (the Edit-subtitles panel is also the edit surface, so split/merge/add actions must be re-checked under timeline-time). [src/renderer/editor/components/LeftPanelNew.js]
+
 ## [Unreleased] — 2026-06-02 (session 50) — #104 dead-code removal: the superseded single-block audio-resize subsystem
 
 ### Removed
