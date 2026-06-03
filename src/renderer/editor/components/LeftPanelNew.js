@@ -34,7 +34,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
-import { timelineToSource } from "../models/timeMapping";
+import { timelineToSource, sourceToTimeline } from "../models/timeMapping";
 import { fmtTime, parseTime } from "../utils/timeUtils";
 
 const PUNCTUATION_OPTIONS = [
@@ -219,11 +219,22 @@ function SubtitleSettingsPopover() {
 function TimecodePopover({ segment, children }) {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const editSegments = useSubtitleStore((s) => s.editSegments);
+  const nleSegments = useEditorStore((s) => s.nleSegments);
   const duration = usePlaybackStore((s) => s.duration);
 
   // The `segment` prop is the timeline-mapped render copy (#66/#77). Edits must
-  // write SOURCE-absolute time, so look up the raw store segment by id and drive
-  // the slider/apply entirely from it — keeping this popover's behavior unchanged.
+  // write SOURCE-absolute time, so the slider/clamp/apply work entirely in source
+  // time off the raw store segment. Only the two displayed numbers are translated
+  // to/from timeline time so they match the segment row instead of showing the
+  // full-recording source timecode.
+  const toTimeline = (src) => {
+    const m = sourceToTimeline(src, nleSegments || []);
+    return m.found ? m.timelineTime : src;
+  };
+  const toSource = (tl) => {
+    const m = timelineToSource(tl, nleSegments || []);
+    return m.found ? m.sourceTime : tl;
+  };
   const segIdx = editSegments.findIndex((s) => s.id === segment.id);
   const seg = segIdx >= 0 ? editSegments[segIdx] : segment;
   const [localStart, setLocalStart] = useState(seg.startSec);
@@ -290,19 +301,19 @@ function TimecodePopover({ segment, children }) {
           {/* Time inputs */}
           <div className="flex items-center justify-center gap-1.5">
             <input
-              value={fmtTime(localStart)}
+              value={fmtTime(toTimeline(localStart))}
               onChange={(e) => {
-                const sec = parseTime(e.target.value);
-                if (!isNaN(sec)) handleRangeChange([sec, localEnd]);
+                const tl = parseTime(e.target.value);
+                if (!isNaN(tl)) handleRangeChange([toSource(tl), localEnd]);
               }}
               className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
             <span className="text-[hsl(240_5%_50%)] text-xs">–</span>
             <input
-              value={fmtTime(localEnd)}
+              value={fmtTime(toTimeline(localEnd))}
               onChange={(e) => {
-                const sec = parseTime(e.target.value);
-                if (!isNaN(sec)) handleRangeChange([localStart, sec]);
+                const tl = parseTime(e.target.value);
+                if (!isNaN(tl)) handleRangeChange([localStart, toSource(tl)]);
               }}
               className="w-[72px] h-6 px-0.5 text-xs font-mono text-center rounded bg-[hsl(240_6%_15%)] border border-[hsl(240_4%_22%)] text-white outline-none focus:border-primary/50"
             />
