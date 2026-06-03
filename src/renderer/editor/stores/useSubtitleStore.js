@@ -16,6 +16,33 @@ function _displayFmt(sourceTimeSec, origin) {
   return fmtTime(sourceTimeSec - (origin || 0));
 }
 
+// Map a source-absolute segment list through the active NLE segments into
+// timeline coordinates (clip-range filtered, 0-based). Shared by the preview
+// overlay path and the left panel (#66/#77). Returns the input unchanged when
+// no NLE data is available yet.
+function _mapSegmentsToTimeline(segs, sourceOrigin) {
+  let nleSegments;
+  try {
+    nleSegments = useEditorStore.getState().nleSegments;
+  } catch (_) { return segs; }
+  if (!nleSegments || nleSegments.length === 0) return segs;
+
+  const mapped = visibleSubtitleSegments(segs, nleSegments);
+  return mapped.map((seg) => ({
+    ...seg,
+    startSec: seg.timelineStartSec,
+    endSec: seg.timelineEndSec,
+    start: fmtTime(seg.timelineStartSec),
+    end: fmtTime(seg.timelineEndSec),
+    dur: (seg.timelineEndSec - seg.timelineStartSec).toFixed(1) + "s",
+    words: (seg.words || []).map((w) => ({
+      ...w,
+      start: w.timelineStart !== undefined ? w.timelineStart : w.start - sourceOrigin,
+      end: w.timelineEnd !== undefined ? w.timelineEnd : w.end - sourceOrigin,
+    })),
+  }));
+}
+
 // ── Cross-store styling snapshot keys ──
 // These keys are captured in undo snapshots so styling changes are undoable.
 const SUB_STYLE_KEYS = [
@@ -323,28 +350,15 @@ const useSubtitleStore = create((set, get) => ({
   getTimelineMappedSegments: () => {
     const { editSegments, _sourceOrigin } = get();
     if (!editSegments || editSegments.length === 0) return [];
+    return _mapSegmentsToTimeline(editSegments, _sourceOrigin);
+  },
 
-    let nleSegments;
-    try {
-      nleSegments = useEditorStore.getState().nleSegments;
-    } catch (_) { return editSegments; }
-
-    if (!nleSegments || nleSegments.length === 0) return editSegments;
-
-    const mapped = visibleSubtitleSegments(editSegments, nleSegments);
-    return mapped.map(seg => ({
-      ...seg,
-      startSec: seg.timelineStartSec,
-      endSec: seg.timelineEndSec,
-      start: fmtTime(seg.timelineStartSec),
-      end: fmtTime(seg.timelineEndSec),
-      dur: (seg.timelineEndSec - seg.timelineStartSec).toFixed(1) + "s",
-      words: (seg.words || []).map(w => ({
-        ...w,
-        start: w.timelineStart !== undefined ? w.timelineStart : w.start - _sourceOrigin,
-        end: w.timelineEnd !== undefined ? w.timelineEnd : w.end - _sourceOrigin,
-      })),
-    }));
+  // Same timeline mapping for the read-only Transcript tab's source segments,
+  // so it shows the clip range in timeline time instead of the whole recording (#66/#77).
+  getTimelineMappedOriginalSegments: () => {
+    const { originalSegments, _sourceOrigin } = get();
+    if (!originalSegments || originalSegments.length === 0) return [];
+    return _mapSegmentsToTimeline(originalSegments, _sourceOrigin);
   },
 
   // ── Init from project data ──

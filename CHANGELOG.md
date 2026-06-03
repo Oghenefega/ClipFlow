@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-03 (session 52) — #66/#77 editor left panel: clip-range + timeline-time mapping (implemented, untested)
+
+### Fixed
+- **#66 — editor left panel no longer shows the whole source recording.** Both the Transcript and Edit-subtitles tabs (`LeftPanelNew.js`) rendered the raw source-absolute segment arrays (`originalSegments` / `editSegments`) with no clip-range filter, so a 1-min clip's panels scrolled through the entire ~30-min recording. Both tabs now render from the same clip-trimmed, timeline-mapped segment list the preview overlay already uses (`visibleSubtitleSegments` → timeline coords). Extracted the existing `getTimelineMappedSegments` transform into a shared `_mapSegmentsToTimeline` helper and added a `getTimelineMappedOriginalSegments` getter for the Transcript tab. [src/renderer/editor/stores/useSubtitleStore.js, src/renderer/editor/components/LeftPanelNew.js]
+- **#77 — play-along highlight in the left panel works again.** The highlight compared playback `currentTime` (timeline time, 0-based) against segment/word times that were source-absolute (e.g. 600s+), so the condition never matched for a mid-source clip. With the panel now driven by timeline-mapped segments, both sides are in timeline time and the active segment/word highlight tracks playback. Click-to-seek (`seekTo(seg.startSec)`), which was passing source-absolute seconds into a timeline-expecting `seekTo`, is corrected by the same change. [src/renderer/editor/components/LeftPanelNew.js]
+
+### Changed
+- **"Add subtitle at playhead" now inserts at the correct source position.** `createSegmentAtTime` expects source-absolute time but was being fed timeline `currentTime`; the handler now maps timeline→source via `timelineToSource` before inserting. [src/renderer/editor/components/LeftPanelNew.js]
+- **`TimecodePopover` and the "delete subtitle + clip" audio-overlap math re-derive the raw store segment by id** so edits/overlap detection stay in source-absolute time even though the rendered segment is now timeline-mapped. Edit actions (split/merge/delete/word-edit) are unchanged — they remain keyed by segment id on the raw store. [src/renderer/editor/components/LeftPanelNew.js]
+
+### Notes
+- **IMPLEMENTED but UNTESTED — needs Fega's manual walk on a real mid-source clip** (`npm start`, prod profile). Renderer builds clean (only the pre-existing #73 chunk-size warning).
+- **Known limitation (filed):** `selectedWordInfo.wordIdx` is captured from the timeline-mapped word list but `splitSegment()` indexes the raw word list. These match 1:1 for normal clips; they can diverge only for a subtitle segment that straddles an *internal* audio deletion (some words dropped by `visibleWords`). Tracked separately.
+- **#78/#84 (session 51) deliberately left untouched** this session per direction. Their separately-found string-timestamp defect (the editor-saved load path reads display-string `start`/`end` into numeric `startSec`) is NOT addressed here and still blocks verifying #78/#84.
+
 ## [Unreleased] — 2026-06-02 (session 51) — #78/#84 subtitle persistence fix (implemented, untested) + #66/#77 root cause found
 
 ### Fixed

@@ -34,6 +34,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
+import { timelineToSource } from "../models/timeMapping";
 import { fmtTime, parseTime } from "../utils/timeUtils";
 
 const PUNCTUATION_OPTIONS = [
@@ -219,29 +220,34 @@ function TimecodePopover({ segment, children }) {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const duration = usePlaybackStore((s) => s.duration);
-  const [localStart, setLocalStart] = useState(segment.startSec);
-  const [localEnd, setLocalEnd] = useState(segment.endSec);
+
+  // The `segment` prop is the timeline-mapped render copy (#66/#77). Edits must
+  // write SOURCE-absolute time, so look up the raw store segment by id and drive
+  // the slider/apply entirely from it — keeping this popover's behavior unchanged.
+  const segIdx = editSegments.findIndex((s) => s.id === segment.id);
+  const seg = segIdx >= 0 ? editSegments[segIdx] : segment;
+  const [localStart, setLocalStart] = useState(seg.startSec);
+  const [localEnd, setLocalEnd] = useState(seg.endSec);
   const [open, setOpen] = useState(false);
 
   // Find neighbor boundaries to prevent overlap
-  const segIdx = editSegments.findIndex((s) => s.id === segment.id);
   const prevSeg = segIdx > 0 ? editSegments[segIdx - 1] : null;
   const nextSeg = segIdx < editSegments.length - 1 ? editSegments[segIdx + 1] : null;
 
   // Slider range: ±5s around current segment, clamped to neighbors and video bounds
-  const sliderMin = Math.max(0, prevSeg ? prevSeg.endSec : segment.startSec - 5);
+  const sliderMin = Math.max(0, prevSeg ? prevSeg.endSec : seg.startSec - 5);
   const sliderMax = Math.min(
-    duration > 0 ? duration : segment.endSec + 10,
-    nextSeg ? nextSeg.startSec : segment.endSec + 5
+    duration > 0 ? duration : seg.endSec + 10,
+    nextSeg ? nextSeg.startSec : seg.endSec + 5
   );
   const minGap = 0.1;
 
   useEffect(() => {
     if (open) {
-      setLocalStart(segment.startSec);
-      setLocalEnd(segment.endSec);
+      setLocalStart(seg.startSec);
+      setLocalEnd(seg.endSec);
     }
-  }, [open, segment.startSec, segment.endSec]);
+  }, [open, seg.startSec, seg.endSec]);
 
   const handleRangeChange = (values) => {
     let [newStart, newEnd] = values;
@@ -359,7 +365,14 @@ function SegmentModeDropdown() {
 //  TRANSCRIPT TAB — continuous paragraph with inline editing
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
-  const originalSegments = useSubtitleStore((s) => s.originalSegments);
+  const rawOriginalSegments = useSubtitleStore((s) => s.originalSegments);
+  const nleSegments = useEditorStore((s) => s.nleSegments);
+  // #66/#77: render the clip range in timeline time (not the whole source recording).
+  // Recomputes only when the source segments or NLE layout change.
+  const originalSegments = useMemo(
+    () => useSubtitleStore.getState().getTimelineMappedOriginalSegments(),
+    [rawOriginalSegments, nleSegments]
+  );
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
@@ -592,7 +605,15 @@ function TranscriptTab() {
 //  EDIT SUBTITLES TAB — with playback-following active word
 // ════════════════════════════════════════════════════════════════
 function EditSubtitlesTab() {
-  const editSegments = useSubtitleStore((s) => s.editSegments);
+  const rawEditSegments = useSubtitleStore((s) => s.editSegments);
+  const nleSegments = useEditorStore((s) => s.nleSegments);
+  // #66/#77: render/highlight/seek from the clip-range, timeline-mapped list
+  // (same transform the preview overlay uses). Edit actions stay keyed by id on
+  // the raw store, so split/merge/delete/word-edit are unaffected.
+  const editSegments = useMemo(
+    () => useSubtitleStore.getState().getTimelineMappedSegments(),
+    [rawEditSegments, nleSegments]
+  );
   const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
@@ -792,8 +813,12 @@ function EditSubtitlesTab() {
               <button
                 className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
                 onClick={() => {
-                  const time = usePlaybackStore.getState().currentTime;
-                  const newId = createSegmentAtTime(time);
+                  // currentTime is timeline time; createSegmentAtTime expects
+                  // source-absolute, so map it back through the NLE segments (#66/#77).
+                  const tlTime = usePlaybackStore.getState().currentTime;
+                  const map = timelineToSource(tlTime, nleSegments || []);
+                  const srcTime = map.found ? map.sourceTime : tlTime;
+                  const newId = createSegmentAtTime(srcTime);
                   if (newId) setEditingWord({ segId: newId, wordIdx: 0, selectAll: true, isNew: true });
                 }}
               >
@@ -924,8 +949,11 @@ function EditSubtitlesTab() {
                             // Delete subtitle + overlapping audio segment
                             const edStore = useEditorStore.getState();
                             const audioSegs = edStore.audioSegments;
+                            // seg is timeline-mapped; audio segments are source-absolute,
+                            // so look up the raw subtitle segment by id for the overlap (#66/#77).
+                            const rawSeg = useSubtitleStore.getState().editSegments.find(s => s.id === seg.id) || seg;
                             const overlapping = audioSegs.filter(
-                              a => a.startSec < seg.endSec && a.endSec > seg.startSec
+                              a => a.startSec < rawSeg.endSec && a.endSec > rawSeg.startSec
                             );
                             // Delete subtitle first
                             useSubtitleStore.getState().rippleDeleteSegment(seg.id);
