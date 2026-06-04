@@ -220,7 +220,6 @@ function TimecodePopover({ segment, children }) {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const editSegments = useSubtitleStore((s) => s.editSegments);
   const nleSegments = useEditorStore((s) => s.nleSegments);
-  const duration = usePlaybackStore((s) => s.duration);
 
   // The `segment` prop is the timeline-mapped render copy (#66/#77). Edits must
   // write SOURCE-absolute time, so the slider/clamp/apply work entirely in source
@@ -245,12 +244,16 @@ function TimecodePopover({ segment, children }) {
   const prevSeg = segIdx > 0 ? editSegments[segIdx - 1] : null;
   const nextSeg = segIdx < editSegments.length - 1 ? editSegments[segIdx + 1] : null;
 
-  // Slider range: ±5s around current segment, clamped to neighbors and video bounds
-  const sliderMin = Math.max(0, prevSeg ? prevSeg.endSec : seg.startSec - 5);
-  const sliderMax = Math.min(
-    duration > 0 ? duration : seg.endSec + 10,
-    nextSeg ? nextSeg.startSec : seg.endSec + 5
-  );
+  // Slider range: ±5s around current segment, clamped to neighbors and the
+  // clip's SOURCE extent. Everything here is source-absolute (matches
+  // updateSegmentTimes); do NOT use playback `duration`, which is timeline time
+  // and would collapse the range for a mid-source clip (#13).
+  const startMap = sourceToTimeline(seg.startSec, nleSegments || []);
+  const containingNle = startMap.found ? nleSegments[startMap.segmentIndex] : null;
+  const clipSrcStart = containingNle ? containingNle.sourceStart : 0;
+  const clipSrcEnd = containingNle ? containingNle.sourceEnd : seg.endSec + 10;
+  const sliderMin = Math.max(clipSrcStart, prevSeg ? prevSeg.endSec : seg.startSec - 5);
+  const sliderMax = Math.min(clipSrcEnd, nextSeg ? nextSeg.startSec : seg.endSec + 5);
   const minGap = 0.1;
 
   useEffect(() => {
@@ -902,7 +905,15 @@ function EditSubtitlesTab() {
                   <div className="flex items-center gap-2 mb-1">
                     <TimecodePopover segment={seg}>
                       <button
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          // Select the segment (highlights it on the timeline too)
+                          // but don't seek — opening a timecode editor isn't navigation.
+                          // selectedWordInfo makes the selection stick when paused
+                          // (the playhead auto-track guard), matching a timeline click.
+                          e.stopPropagation();
+                          setActiveSegId(seg.id);
+                          setSelectedWordInfo({ segId: seg.id, wordIdx: 0 });
+                        }}
                         className="text-xs font-mono text-muted-foreground hover:text-amber-400 transition-colors cursor-pointer"
                       >
                         {seg.start} — {seg.end}

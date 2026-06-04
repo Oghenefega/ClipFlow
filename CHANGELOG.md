@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-03 (session 53) — #66/#77 verified + timecode-popover editing fix + left-panel↔timeline selection sync
+
+### Fixed
+- **#66 / #77 verified and closed.** Fega confirmed on a freshly-cut mid-source clip: both tabs show only the clip's lines and the play-along highlight + click-to-seek track in sync. (The session-52 popover display fix was already correct — Fega had been testing a renderer bundle built ~25 min before that commit; a rebuild surfaced the working fix.)
+- **Timecode popover slider + time inputs were unusable on mid-source clips.** The slider, its `localStart`/`localEnd` values, and the neighbor clamps all operate in source-absolute time, but `sliderMax` mixed in playback `duration` — which is *timeline* time. For a clip starting deep in the recording this collapsed the range (`sliderMin` ≈ 600s > `sliderMax` ≈ clip length), so dragging snapped the end to the clip end, the start wouldn't move, and typing into the inputs was clamped to garbage. Bounds now derive from the containing NLE segment's `sourceStart`/`sourceEnd` (source space), so drag/type/Apply all work. Removed the now-orphaned `duration` subscription. [src/renderer/editor/components/LeftPanelNew.js]
+
+### Added
+- **Left-panel subtitle selection now drives the timeline highlight.** Clicking a segment's timecode, a word, or a row in Edit subtitles now outlines the same block on the timeline (previously the sync was one-way: timeline→panel only). Implemented by mirroring `activeSegId` onto the timeline's selection state. Scoped to the paused state so the selection outline isn't yanked around while `activeSegId` auto-follows the playhead during playback. Clicking a timecode also selects the segment (sets `activeSegId` + `selectedWordInfo`) without seeking — opening a time editor isn't navigation. [src/renderer/editor/components/TimelinePanelNew.js, src/renderer/editor/components/LeftPanelNew.js]
+
 ## [Unreleased] — 2026-06-03 (session 52) — #66/#77 editor left panel: clip-range + timeline-time mapping (implemented, untested)
 
 ### Fixed

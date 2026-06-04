@@ -46,6 +46,7 @@ export default function TimelinePanelNew() {
   const updateSegmentTimes = useSubtitleStore((s) => s.updateSegmentTimes);
   const splitSegment = useSubtitleStore((s) => s.splitSegment);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
+  const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const deleteSegment = useSubtitleStore((s) => s.deleteSegment);
   const rippleDeleteSegment = useSubtitleStore((s) => s.rippleDeleteSegment);
 
@@ -542,6 +543,16 @@ export default function TimelinePanelNew() {
     }
     if (track === "cap") useCaptionStore.getState().setActiveCaptionId(segId);
   }, [setActiveSegId]);
+
+  // Mirror the left-panel's active subtitle onto the timeline selection so
+  // clicking a timecode/word/row in Edit Subtitles highlights the same block
+  // here. Paused only — `activeSegId` auto-follows the playhead during playback
+  // (LeftPanelNew), and we don't want the selection outline chasing it.
+  useEffect(() => {
+    if (playing || !activeSegId) return;
+    setSelectedSegIds(new Set([activeSegId]));
+    setSelectedTrack("sub");
+  }, [activeSegId, playing]);
 
   // ── Unified split ──
   const handleSplit = useCallback(() => {
