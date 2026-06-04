@@ -6,6 +6,46 @@
 
 ---
 
+## Active Plan — "Delete subtitle + clip" = option 1 (cut only the span)
+
+**Status:** IMPLEMENTED — renderer builds clean (bundle index-CAAwcJcI.js, only #73
+chunk-size warning). Awaiting Fega's interactive verify. Not committed yet.
+
+**Implemented** in LeftPanelNew.js: added `getSegmentTimelineRange` import; rewrote the
+"Delete subtitle + clip" onClick — map span source→timeline, splitAtTimeline at both ends,
+deleteNleSegment the isolated middle, plain deleteSegment (no ripple) for the subtitle.
+Diverged from the original handoff plan: built on the live `nleSegments` timeline instead
+of the legacy `audioSegments` path (that path was coordinate-broken AND zeroed the timeline).
+Used plain deleteSegment not rippleDeleteSegment for the subtitle — ripple shifts later subs'
+source values and desyncs them from footage (latent bug in the existing timeline delete path,
+likely part of #93).
+
+**Decision:** Cut ONLY this subtitle's span out of the live `nleSegments` timeline,
+removing video + subtitle. Abandon the legacy `audioSegments` path entirely.
+
+**Root cause of current broken button** (LeftPanelNew.js:967–994):
+- Calls `rippleDeleteAudioSegment` (useEditorStore.js:367) — the ONLY caller. The live
+  timeline is `nleSegments`, not `audioSegments` (legacy, never rendered).
+- Overlap check (LeftPanelNew.js:977) mixes spaces: clip-relative `audioSegments`
+  (start at 0) vs source-absolute `editSegments` (useSubtitleStore.js:443). On mid-source
+  clips it misfires; when it hits the lone segment, rippleDeleteAudioSegment zeroes the
+  whole timeline (useEditorStore.js:374–380) → "wipes the timeline" symptom.
+
+**Fix (single file — LeftPanelNew.js ~967–994, rewrite the onClick):**
+1. Map subtitle source-abs `[startSec,endSec]` → timeline via `sourceToTimeline`.
+2. `splitAtTimeline(tlStart)` then `splitAtTimeline(tlEnd)` — isolate the span.
+3. `deleteNleSegment(middleSegId)` — gap ripple-closes (timeline derives position; no recut).
+4. `rippleDeleteSegment(seg.id)` — remove the subtitle.
+
+**No store changes.** `rippleDeleteAudioSegment` becomes fully dead → flag for #40, don't
+delete this session.
+
+**Verify:** mid-source clip → "Delete subtitle + clip" on a middle line → that span gone,
+clip shortens by ~span, neighbors ripple-close, undo restores. Test on freshly-cut clip
+(editor-saved clips still hit #78 empty-panel).
+
+---
+
 ## Active Plan — #78 + #84: subtitle persistence (one root cause)
 
 **Status:** IMPLEMENTED — renderer builds clean, main-process syntax OK. Awaiting Fega's

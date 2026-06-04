@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-04 (session 54) — "Delete subtitle + clip" cuts only the span (no more timeline wipe)
+
+### Fixed
+- **"Delete subtitle + clip" wiped the entire timeline instead of cutting the subtitle's span.** Both copies of the action deleted the *whole* overlapping NLE segment; on a clip that is a single NLE segment spanning its full length (the common case), that removed everything and zeroed the timeline. Rewrote both to **isolate the subtitle's span**: split the NLE timeline at the span's start/end, then `deleteNleSegment` only the isolated middle slice (the gap ripple-closes automatically since timeline position is derived from segment order). Verified by Fega on a fresh clip. [src/renderer/editor/components/TimelinePanelNew.js, src/renderer/editor/components/LeftPanelNew.js]
+- **Subtitle-to-footage desync on cut.** The action used `rippleDeleteSegment`, which shifts later subtitles' *source* values left — desyncing them from footage once the NLE span is removed and re-mapped. Now uses a plain (non-ripple) `deleteSegment`; the `nleSegments` mapping repositions the remaining subtitles correctly and keeps them glued to their audio. Subtitles inside the cut span auto-hide via the mapping and are filtered out on save (#84).
+
+### Changed
+- **"Delete subtitle + clip" now operates on the live `nleSegments` timeline, not the legacy `audioSegments` subsystem.** The old LeftPanel handler called `rippleDeleteAudioSegment` (the only caller) and compared clip-relative audio bounds against source-absolute subtitle times — a coordinate mismatch on any mid-source clip. The rewrite stays entirely in the rendered timeline's coordinate space. [src/renderer/editor/components/LeftPanelNew.js]
+
+### Notes
+- The rewrite orphaned `rippleDeleteAudioSegment` and the broader legacy `audioSegments` subsystem (now 0 live callers, but still persisted on save) — filed **#108** for the audit/removal.
+- The action was duplicated across two files (timeline right-click menu + Edit-subtitles row trash menu) rather than sharing a store action, which is why a fix to one didn't fix the other — filed **#109** to extract a single shared action.
+
 ## [Unreleased] — 2026-06-03 (session 53) — #66/#77 verified + timecode-popover editing fix + left-panel↔timeline selection sync
 
 ### Fixed

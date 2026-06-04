@@ -1111,10 +1111,11 @@ export default function TimelinePanelNew() {
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
           onDuplicate={() => { /* TODO */ }}
           onDeleteWithAudio={() => {
-            // Delete the subtitle/caption AND the overlapping NLE segment
+            // "Delete subtitle/caption + clip" = cut ONLY this segment's span out
+            // of the live NLE timeline (option 1). editSegments here are already
+            // timeline-mapped, so seg.startSec/endSec are timeline coords.
             const track = contextMenu.track;
             const segId = contextMenu.segId;
-            // Find the subtitle/caption segment to get its time range (timeline coords)
             let seg;
             if (track === "sub") {
               seg = editSegments.find(s => s.id === segId);
@@ -1123,32 +1124,33 @@ export default function TimelinePanelNew() {
             }
             if (!seg) return;
 
-            // Find overlapping NLE segment(s) in timeline space
-            const overlappingNle = nleSegments.filter(nleSeg => {
-              const range = getSegmentTimelineRange(nleSeg.id, nleSegments);
-              return range && range.start < seg.endSec && range.end > seg.startSec;
-            });
+            const tlStart = seg.startSec;
+            const tlEnd = seg.endSec;
+            // Isolate the span: split the NLE timeline at both ends, then delete
+            // the segment(s) now sitting inside [tlStart, tlEnd]. Deleting an NLE
+            // segment ripples the gap closed automatically (timeline position is
+            // derived from segment order). Splitting first is what stops a single
+            // clip-spanning NLE segment from wiping the whole timeline.
+            splitAtTimeline(tlStart);
+            splitAtTimeline(tlEnd);
+            const afterSplit = useEditorStore.getState().nleSegments;
+            const spanIds = afterSplit
+              .filter(s => {
+                const r = getSegmentTimelineRange(s.id, afterSplit);
+                return r && r.start >= tlStart - 0.01 && r.end <= tlEnd + 0.01;
+              })
+              .map(s => s.id);
 
-            // Delete the subtitle/caption first
+            // Remove this subtitle/caption (plain delete — NO ripple, which would
+            // shift later segments' source values and desync them from footage).
+            // Subtitles inside the cut span auto-hide via the nleSegments mapping
+            // and are filtered out on save (#84).
             if (track === "sub") {
-              rippleDeleteSegment(segId);
+              deleteSegment(segId);
             } else if (track === "cap") {
-              rippleDeleteCaptionSegment(segId);
+              deleteCaptionSegment(segId);
             }
-
-            // Then delete matching NLE segments and their overlapping subtitles
-            overlappingNle.forEach(nleSeg => {
-              const range = getSegmentTimelineRange(nleSeg.id, nleSegments);
-              if (range) {
-                const subStore = useSubtitleStore.getState();
-                const mappedSubs = subStore.getTimelineMappedSegments();
-                const overlappingSubs = mappedSubs.filter(
-                  s => s.startSec >= range.start && s.endSec <= range.end && s.id !== segId
-                );
-                overlappingSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
-              }
-              deleteNleSegment(nleSeg.id);
-            });
+            spanIds.forEach(id => deleteNleSegment(id));
 
             setSelectedTrack(null);
             setSelectedSegIds(new Set());

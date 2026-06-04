@@ -34,7 +34,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
-import { timelineToSource, sourceToTimeline } from "../models/timeMapping";
+import { timelineToSource, sourceToTimeline, getSegmentTimelineRange } from "../models/timeMapping";
 import { fmtTime, parseTime } from "../utils/timeUtils";
 
 const PUNCTUATION_OPTIONS = [
@@ -968,26 +968,43 @@ function EditSubtitlesTab() {
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Delete subtitle + overlapping audio segment
+                            // "Delete subtitle + clip" = cut ONLY this subtitle's span out
+                            // of the live NLE timeline (option 1). Everything stays in
+                            // timeline space, built on nleSegments (the rendered timeline)
+                            // — the legacy audioSegments path is not used.
                             const edStore = useEditorStore.getState();
-                            const audioSegs = edStore.audioSegments;
-                            // seg is timeline-mapped; audio segments are source-absolute,
-                            // so look up the raw subtitle segment by id for the overlap (#66/#77).
-                            const rawSeg = useSubtitleStore.getState().editSegments.find(s => s.id === seg.id) || seg;
-                            const overlapping = audioSegs.filter(
-                              a => a.startSec < rawSeg.endSec && a.endSec > rawSeg.startSec
-                            );
-                            // Delete subtitle first
-                            useSubtitleStore.getState().rippleDeleteSegment(seg.id);
-                            // Delete overlapping audio segments + their subtitles
-                            overlapping.forEach(a => {
-                              const subStore = useSubtitleStore.getState();
-                              const innerSubs = subStore.editSegments.filter(
-                                s => s.startSec >= a.startSec && s.endSec <= a.endSec
-                              );
-                              innerSubs.forEach(s => subStore.rippleDeleteSegment(s.id));
-                              edStore.rippleDeleteAudioSegment(a.id);
-                            });
+                            // The displayed `seg` is timeline-mapped; the raw subtitle in
+                            // editSegments is source-absolute. Use the raw span to convert
+                            // source → timeline.
+                            const rawSeg = useSubtitleStore.getState().editSegments.find(s => s.id === seg.id);
+                            if (!rawSeg) { deleteSegment(seg.id); return; }
+                            const nleSegs = edStore.nleSegments;
+                            const startMap = sourceToTimeline(rawSeg.startSec, nleSegs);
+                            const endMap = sourceToTimeline(rawSeg.endSec, nleSegs);
+                            // If the span can't be mapped onto the timeline, just drop the
+                            // subtitle (no footage to cut).
+                            if (!startMap.found || !endMap.found) { deleteSegment(seg.id); return; }
+                            const tlStart = startMap.timelineTime;
+                            const tlEnd = endMap.timelineTime;
+                            // Isolate the span: split the NLE timeline at both ends, then
+                            // delete the segment(s) now sitting inside [tlStart, tlEnd].
+                            // Deleting an NLE segment ripples the gap closed automatically
+                            // (timeline position is derived from segment order).
+                            edStore.splitAtTimeline(tlStart);
+                            edStore.splitAtTimeline(tlEnd);
+                            const afterSplit = useEditorStore.getState().nleSegments;
+                            const spanIds = afterSplit
+                              .filter(s => {
+                                const r = getSegmentTimelineRange(s.id, afterSplit);
+                                return r && r.start >= tlStart - 0.01 && r.end <= tlEnd + 0.01;
+                              })
+                              .map(s => s.id);
+                            // Remove this subtitle (plain delete — NO ripple, which would
+                            // shift later subtitles' source values and desync them from
+                            // footage). Subtitles inside the cut span auto-hide via the
+                            // nleSegments mapping and are filtered out on save (#84).
+                            deleteSegment(seg.id);
+                            spanIds.forEach(id => useEditorStore.getState().deleteNleSegment(id));
                           }}
                         >
                           <Film className="h-3.5 w-3.5 text-red-500" /> Delete subtitle + clip
