@@ -25,6 +25,14 @@ let _autosaveTimer = null;
 let _savesInFlight = 0;
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
+// _loadGen guards initFromContext against overlapping/stale runs. initFromContext is
+// async + destructive (it clears all stores, then awaits project load, then applies
+// template/style in a Promise). If two runs overlap (rapid clip switch, StrictMode
+// double-invoke), a stale run could clobber the live one — manifesting as an
+// intermittent empty timeline or the saved style snapping back to template default.
+// Each run captures its generation; after every await it bails if a newer run started.
+let _loadGen = 0;
+
 const useEditorStore = create((set, get) => ({
   // ── Core data ──
   project: null,
@@ -61,6 +69,10 @@ const useEditorStore = create((set, get) => ({
       return;
     }
 
+    // Claim this load generation. Any earlier in-flight run is now stale and will
+    // bail at its next checkpoint instead of clobbering the state we're about to set.
+    const myGen = ++_loadGen;
+
     // CRITICAL: Clear all stores BEFORE async load to prevent old data leaking
     // into the new clip while the project loads from disk
     useSubtitleStore.getState().clearAll();
@@ -88,6 +100,9 @@ const useEditorStore = create((set, get) => ({
       // Fallback to summary (won't have clips, but prevents crash)
       project = localProjects.find((p) => p.id === editorContext.projectId) || null;
     }
+
+    // A newer load started while we awaited — abandon this stale run.
+    if (myGen !== _loadGen) return;
 
     // Compute source boundaries for clip extension
     const sourceStart = clip?.startTime || 0;
@@ -123,6 +138,9 @@ const useEditorStore = create((set, get) => ({
         sourceOffline = !exists;
       }
     } catch (_) { sourceOffline = false; }
+
+    // A newer load started while we awaited fileExists — abandon this stale run.
+    if (myGen !== _loadGen) return;
 
     set({
       project,
@@ -198,6 +216,9 @@ const useEditorStore = create((set, get) => ({
         window.clipflow.storeGet("layoutTemplates"),
         window.clipflow.storeGet("builtInTemplateDeleted"),
       ]).then(([defaultId, savedTemplates, builtInDeleted]) => {
+        // A newer load started while storeGet resolved — don't apply this run's
+        // template/style over the current clip (was the style-revert race).
+        if (myGen !== _loadGen) return;
         const id = defaultId || "fega-default";
         const allTemplates = [
           ...(builtInDeleted ? [] : [BUILTIN_TEMPLATE]),
@@ -207,6 +228,7 @@ const useEditorStore = create((set, get) => ({
         applyMergedTemplate(tpl);
         restoreSavedStyles();
       }).catch(() => {
+        if (myGen !== _loadGen) return;
         applyMergedTemplate(BUILTIN_TEMPLATE);
         restoreSavedStyles();
       });

@@ -1,46 +1,53 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-04 — Session 54 — "Delete subtitle + clip" now cuts only the span (no more timeline wipe); duplicated logic extracted to one shared store action (#109). Committed + pushed (`26d5c8a`)._
+_Last updated: 2026-06-05 — Session 55 — Editor reopen reliability: race-proof init + word-spacing + edited-clip data integrity. All fixes verified by Fega. Committed + pushed._
 
 ---
 
 ## One-line TL;DR
 
-"Delete subtitle + clip" was wiping the entire timeline because both copies of the handler deleted the *whole* overlapping NLE segment (and a clip is usually one full-length segment). Rewrote it to isolate and cut only the subtitle's/caption's span, then extracted the duplicated logic into a single `useEditorStore.deleteSpanWithClip` action. Fega verified the fix on a fresh clip. All committed + pushed.
+Edited clips were misbehaving on reopen — subtitles flickering on/off, saved style snapping to template default, and (after the load was fixed) words rendered with no spaces. Root causes were a **destructive async init re-firing on every autosave** (race), a **string-vs-numeric timestamp read** on the editor-saved path, and a **`join("")` text rebuild**. All three fixed in code. Separately, did a **one-time data repair** of Fega's clip library (reset 21 clips to the default template; regenerated 5 clips whose saved subtitle word-boundaries were destroyed). Fega verified spacing, positions, and caption style all correct.
 
 ## Current State
 
-Renderer builds clean (`npm run build:renderer`, ~10s, only the pre-existing #73 chunk-size warning). v0.1.5-alpha, prod profile. Working tree clean except the usual runtime churn (`data/clipflow.db`, `data/game_profiles.json` — intentionally NOT committed). HEAD = `26d5c8a`.
+Renderer builds clean (`npm run build:renderer`, ~9s, only the pre-existing #73 chunk-size warning). Code changes committed + pushed. Working tree clean except the usual runtime churn (`data/clipflow.db`, `data/game_profiles.json` — intentionally NOT committed). `build/` is **not** git-tracked.
 
-## What Was Built (session 54)
+## What Was Built (session 55)
 
-- **Fixed "Delete subtitle + clip" wiping the timeline (verified).** Both entry points deleted the whole overlapping NLE segment; since a clip is typically a single NLE segment spanning its full length, that zeroed the timeline. Now: map the span → timeline coords, `splitAtTimeline` at both ends, `deleteNleSegment` only the isolated middle slice (gap ripple-closes — timeline position is derived from segment order).
-- **Subtitle-to-footage desync avoided.** Switched from `rippleDeleteSegment` to plain `deleteSegment` for the sub/cap. Ripple shifts later subtitles' *source* values left → desync once the NLE span is re-mapped. Plain delete + the `nleSegments` mapping keeps survivors glued to their audio. (The old timeline delete path still ripples — latent desync bug, likely part of #93.)
-- **#109 — one shared action.** Extracted `useEditorStore.deleteSpanWithClip(track, segId)`. Both the timeline right-click menu (`TimelinePanelNew` `onDeleteWithAudio`) and the Edit-subtitles row trash menu (`LeftPanelNew`) now delegate. Handles Subtitle (source-absolute → mapped) and Caption (already timeline time) tracks. Closed #109 (`status: untested` — post-refactor build not re-clicked by Fega).
-- **Two earlier-session entry points were duplicates.** That's why the first fix attempt (LeftPanel row menu) didn't change what Fega saw (he was using the timeline right-click). Both fixed; now unified.
+Three code fixes (all on the editor reopen path):
+- **Race-proof init (the intermittency).** `initFromContext` ([useEditorStore.js](src/renderer/editor/stores/useEditorStore.js)) clears all stores then awaits a project load then applies template/style async — and the effect that called it was keyed on `localProjects`, which changes identity on every autosave. So autosaves re-fired the destructive init mid-edit and overlapping runs raced. Fixed two ways: (1) [EditorView.js](src/renderer/editor/EditorView.js) init effect now keyed on `editorContext` only; (2) added a module-level `_loadGen` generation guard — each run bails after every `await` (and inside the template/style Promise) if a newer run started.
+- **String→numeric timestamp read.** The editor-saved branch of `initSegments` ([useSubtitleStore.js](src/renderer/editor/stores/useSubtitleStore.js):~402) read display-string `s.start`/`s.end` instead of numeric `s.startSec`/`s.endSec`; the shared `primaryRaw` map does `s.start + offset` → string concat → NaN → dropped segments. Now normalizes `sub1` to numeric `{start,end,text,words}`.
+- **Word-spacing.** Final segment text was rebuilt with `repairedWords.map(w=>w.word).join("")` (~line 582) but `mergeWordTokens` outputs bare words → "isitmy". Changed to `join(" ")`. Fresh clips were re-segmented and escaped it; editor-saved clips (`_skipNextSegmentation`) kept the broken text.
+
+One-time data repair of Fega's library (`W:\…\Vertical Recordings Onwards\.clipflow\projects\*\project.json`, via throwaway node scripts — **not** committed code):
+- Reset 21 edited clips' subtitle + caption **style and position** to the default template `tpl-1773820239682` "Karaoke ClipFlow Style" (subtitle yPercent 34.4, caption yPercent 76.8).
+- Cleared corrupted `sub1` on 5 clips ("You Have No Survival Instinct…", "I Can Carry 70 Pounds…", Clip 1, Clip 2, Clip 6) whose word boundaries were destroyed (lossy in `sub1`); they re-derive clean subtitles from intact `clip.transcription` on next editor open.
+- Backups: `project.json.styleReset-*.bak` and `project.json.reset2-*.bak` next to each project file.
 
 ## Key Decisions
 
-- **"Delete subtitle/caption + clip" = cut only that span** (Fega-confirmed via AskUserQuestion: cut only this span, remove video + subtitle). NOT delete the whole containing segment.
-- **Built on the live `nleSegments` timeline, abandoned the legacy `audioSegments` path.** The old handler was the only caller of `rippleDeleteAudioSegment` and mixed coordinate spaces (clip-relative audio vs source-absolute subs).
-- **Plain delete, never ripple, for the sub/cap in this action** — the mapping repositions survivors; rippling would desync them.
+- **Going-forward style behavior is already correct** — each clip freezes its own style snapshot when edited; changing the default template later only affects new clips. No redesign needed; Fega confirmed this is what he wants (NOT a live "template = source of truth" model, which would retroactively restyle old clips).
+- **Corrupted-word recovery = regenerate from transcription, not repair `sub1`.** `sub1` word boundaries were lossy; `clip.transcription` (and `project.transcription`) were intact. Clearing `sub1` lets the tested editor path re-derive correctly rather than hand-rolling segmentation in a script.
+- **Data repair preserved** caption text (`captionSegments`), source transcription, and timeline cuts — only style/position changed (+ `sub1` cleared on the 5 corrupted).
 
 ## Next Steps (prioritized)
 
-1. **#108 — remove dead legacy `audioSegments` subsystem.** `rippleDeleteAudioSegment` now has 0 callers; the broader subsystem (`initAudioSegments`, `splitAudioSegment`, `_trimToAudioBounds`, `_concatRecutAfterDelete`, ~25 refs in useEditorStore) is legacy. **CAUTION: `audioSegments` is still persisted on save** (`useEditorStore.js:653`), so this is a back-compat audit, not a blind delete. Do the audit (no live readers across renderer + main + `render.js`), write a short plan, then remove/quarantine. Fold into #40 if preferred.
-2. **#78/#84 string-timestamp fix** (still owed): editor-saved clips render an EMPTY panel because `initSegments` reads display-string `s.start`/`s.end` into numeric `startSec` → NaN. Implemented last session but UNVERIFIED. Test editor-saved-clip persistence.
-3. Backlog: #107 (split-at-word on internal-deletion clips), #95/#98/#87 (subtitle word/id edge cases), #64 (waveform MAXBUFFER), #105 (over-trim sliver), #40 (dead-code hygiene), #93 (audioSegments/nleSegments sync — note the ripple-desync in the *old* timeline delete path).
+1. **#111 — Projects-tab preview shows no subtitles for the 5 cleared clips** until each is reopened + Saved (preview reads saved `sub1`; editor derives from transcription). Immediate workaround: open + Save those 5. Proper fix ties into #110.
+2. **#110 — unify editor vs Projects-preview subtitle data path** (single shared "saved-clip → display-segments" function so the two can't drift). The overlay *components* are already shared; only the data-prep differs (`buildPreviewSegments` vs the editor's live pipeline). Fixing this resolves #111.
+3. **Confirm subtitle position 34% reads right visually** — template stores subtitle yPercent at 34.4 (upper-middle). If Fega expected lower, adjust the template (not the clips).
+4. Backlog: #108 (dead legacy `audioSegments`), #107/#95/#98/#87 (subtitle word/id edge cases), #64 (waveform "unavailable" — still showing on every clip), #57 (re-render storm), #40 (dead-code hygiene).
 
 ## Watch Out For
 
-- **Editor-saved clips still render an EMPTY panel** — that's the #78/#84 string-`startSec` bug (NaN → segments dropped), NOT a regression. Test editor work on freshly-cut / retranscribed clips until #78/#84 is fixed.
-- **Source vs timeline coordinate domains are THE recurring editor footgun.** Playback `currentTime`/`duration` = TIMELINE; raw subtitle store `editSegments` `startSec`/`endSec`/`words[].start` = SOURCE-absolute; **caption store `captionSegments` = TIMELINE time** (not mapped, unlike subtitles); the panel maps source→timeline via `getTimelineMapped*` before render. `seekTo`/`updateSegmentTimes`: `seekTo` expects TIMELINE, `createSegmentAtTime`/`updateSegmentTimes` expect SOURCE. Declare which space any new math is in.
-- **Two "Delete subtitle + clip" buttons exist** (timeline right-click + Edit-subtitles row trash, the latter hidden until row hover). They now share `deleteSpanWithClip` — change the action, not the call sites.
-- **Don't commit `data/clipflow.db` / `data/game_profiles.json`** — they mutate every `npm start`.
+- **The Projects preview and the editor read subtitles from different sources** (saved `sub1` vs derived-from-transcription). This is the #110/#111 drift — any clip with empty `sub1` shows in the editor but not the preview.
+- **Source vs timeline coordinate domains** remain the recurring editor footgun. Subtitle store `editSegments` `startSec`/`endSec`/`words[].start` = SOURCE-absolute; caption `captionSegments` = TIMELINE time; playback `currentTime`/`duration` = TIMELINE. **Saved `sub1` objects carry BOTH a display-STRING `start`/`end` and numeric `startSec`/`endSec` — always read the numeric ones.**
+- **Don't read displayed subtitle text as ground truth on edited clips saved before this session** — word boundaries may be collapsed in `sub1`. The intact source is `clip.transcription` / `project.transcription`.
+- **Data repair scripts were one-off node scripts run against the W: drive — not in the repo.** Backups (`.bak`) are next to each `project.json`. Don't commit `data/clipflow.db` / `data/game_profiles.json`.
+- **`npm start` does NOT auto-rebuild** — always `npm run build:renderer` first or you'll test stale code. Fully close ClipFlow before relaunching so it loads rewritten `project.json` files and doesn't re-save stale in-memory state over them.
 
 ## Logs / Debugging
 
-- **Build:** `npm run build:renderer` clean (~10s, only the #73 chunk-size warning). Renderer loads from `build/` (`isDev=false`). **`npm start` does NOT auto-rebuild** — always `build:renderer` first or you'll test stale code.
-- **Relaunch loop:** `taskkill //F //IM electron.exe //T` before a fresh `npm start` (clears single-instance lock / stale in-memory bundle).
-- **DevTools in prod:** `CLIPFLOW_DEVTOOLS=1 npm start`.
-- **Boot signal:** look for `(system) > App started {...}` + `(database) > Database initialized ... (schema v4)` in the npm start output. GPU/`disk_cache`/`service_worker_storage` ERROR lines on launch are benign Chromium noise on Windows, not crashes.
-- **The shared cut action:** `useEditorStore.deleteSpanWithClip(track, segId)` — `track` is `"sub"` or `"cap"`; subtitle span comes from raw source-absolute `editSegments` (mapped via `sourceToTimeline`), caption span is read straight off `captionSegments`.
+- **Build:** `npm run build:renderer` (~9s, only #73 warning). Renderer loads from `build/` (`isDev=false`).
+- **Relaunch loop:** `taskkill //F //IM electron.exe //T` before a fresh `npm start`.
+- **DevTools in prod:** `CLIPFLOW_DEVTOOLS=1 npm start`. NOTE: renderer `console.log` (e.g. `[initSegments] source=…`) goes to DevTools, **not** the terminal.
+- **Clip data on disk:** `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\.clipflow\projects\<projectId>\project.json`. Each clip has `subtitleStyle`, `captionStyle`, `subtitles.sub1` (with `_format:"source-absolute"` if editor-saved), `captionSegments`, `transcription`, `nleSegments`.
+- **Settings/templates:** `%APPDATA%\clipflow\clipflow-settings.json` — `watchFolder`, `defaultTemplateId`, `layoutTemplates[]` (each has `.subtitle` and `.caption` style objects).

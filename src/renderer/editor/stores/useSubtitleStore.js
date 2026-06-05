@@ -401,7 +401,18 @@ const useSubtitleStore = create((set, get) => ({
 
     if (hasEditorSavedSubs) {
       // Editor-saved: already source-absolute, clip-bounded (#84 filter on save).
-      segments = clip.subtitles.sub1;
+      // sub1 objects are persisted editSegments — they carry display-STRING start/end
+      // ("00:05.0") alongside the numeric startSec/endSec. The shared primaryRaw map
+      // below does `s.start + sourceOffset`; reading the strings makes that string
+      // concatenation → NaN downstream → dropped segments → empty panel (#78/#84).
+      // Normalize to the numeric {start,end} shape the pipeline expects (words are
+      // already numeric, source-absolute).
+      segments = clip.subtitles.sub1.map((s) => ({
+        start: s.startSec,
+        end: s.endSec,
+        text: s.text,
+        words: s.words,
+      }));
       sourceOffset = 0;
       rawIsSourceAbsolute = true;
     } else if (hasClipTranscription && !transcriptionIsStale) {
@@ -566,9 +577,13 @@ const useSubtitleStore = create((set, get) => ({
           }
         }
 
-        // Rebuild segment text from surviving words (boundary trim may have removed some)
+        // Rebuild segment text from surviving words (boundary trim may have removed some).
+        // mergeWordTokens rebuilds each word from segmentText.split(/\s+/) → bare words
+        // with NO leading space, so they must be joined WITH a space. Editor-saved clips
+        // set _skipNextSegmentation, so this text is final for them (no applyTemplate
+        // re-chunk to fix it) — join("") here collapsed words into "andreconnecting".
         const segText = repairedWords.length > 0
-          ? repairedWords.map((w) => w.word).join("").trim()
+          ? repairedWords.map((w) => w.word).join(" ").trim()
           : s.text;
 
         return {

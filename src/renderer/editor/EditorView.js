@@ -37,10 +37,16 @@ export default function EditorView({ gamesDb = [], editorContext, localProjects 
   // Subscribe to clip so component re-renders after initFromContext sets it
   const clip = useEditorStore((s) => s.clip);
 
-  // Initialize stores from context on mount (or when context changes)
+  // Initialize stores from context on mount (or when the opened clip changes).
+  // Keyed on editorContext ONLY (stable per clip-open). localProjects is a useState
+  // array in App.js whose identity changes on every autosave — including it here
+  // re-fired this destructive init mid-edit, racing the live load (intermittent empty
+  // timeline / saved style snapping back to template default). localProjects is only a
+  // rare fallback inside initFromContext, so a stale closure value is acceptable.
   useEffect(() => {
     useEditorStore.getState().initFromContext(editorContext, localProjects);
-  }, [editorContext, localProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorContext]);
 
   return (
     <EditorErrorBoundary>

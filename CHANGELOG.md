@@ -4,6 +4,22 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-05 (session 55) — Editor reopen reliability: race-proof init, subtitle word-spacing, edited-clip style/data integrity
+
+### Fixed
+- **Subtitles intermittently failed to load on clip open (timeline empty, "back out and reopen" sometimes fixed it).** The editor's setup (`initFromContext`) is async and destructive (it clears all stores, then awaits a project load, then applies template + saved styles in a Promise), and it was keyed on `localProjects` — a React state array that changes identity on **every autosave** (~800ms while dirty). So mid-edit, a save re-fired the setup, and overlapping runs raced; whichever finished last "won," producing the on/off flicker. Two fixes: (1) keyed the init effect on `editorContext` only (stable per clip-open) so autosaves no longer re-trigger it; (2) added a load-generation guard to `initFromContext` so any stale/overlapping run bails at its next checkpoint instead of clobbering the live load. [src/renderer/editor/EditorView.js, src/renderer/editor/stores/useEditorStore.js]
+- **Saved style snapping back to template default on reopen.** Same race — `restoreSavedStyles()` is the last step of setup, so an overlapping re-init clobbered it (subtitles showed the template's plain style instead of the clip's saved one). Fixed by the same race guard above. [src/renderer/editor/stores/useEditorStore.js]
+- **Edited clips reopened with corrupted subtitle timing (empty/blank subtitle panel).** On reopen, the editor-saved branch of `initSegments` read each subtitle's **display-string** `start`/`end` (`"00:05.0"`) instead of the numeric `startSec`/`endSec`. The shared pipeline does `s.start + offset`, so this produced string concatenation → `NaN` downstream → segments dropped. Now normalizes saved `sub1` to the numeric `{start,end}` shape (words already numeric). [src/renderer/editor/stores/useSubtitleStore.js]
+- **Subtitle words rendered with no spaces between them ("isitmy" instead of "is it my").** `mergeWordTokens` rebuilds each word from `segmentText.split(/\s+/)` → bare words with no leading space, but the final text rebuild glued them with `join("")`. Fresh clips were re-segmented afterward and escaped it; editor-saved clips set `_skipNextSegmentation`, so the broken text was final for them. Changed the rebuild to `join(" ")`. (Note: this stops the corruption going forward but cannot recover words already collapsed in saved data — see Data below.) [src/renderer/editor/stores/useSubtitleStore.js]
+
+### Data (one-time repair of Fega's clip library — not code)
+- **Reset all edited clips' subtitle + caption style and position to the default template ("Karaoke ClipFlow Style").** Older clips carried stale per-clip style snapshots (smaller font, no glow) that the editor faithfully restored; per Fega's request, conformed 21 clips to the template (subtitle → 34% from top, caption → 77%). Timestamped `.bak` backups written next to each `project.json`.
+- **Regenerated subtitles for 5 clips whose saved `sub1` had word boundaries destroyed** ("is it my" collapsed to a single word `"isitmy"` over repeated save/reload cycles — lossy, unrecoverable from `sub1`). Cleared their corrupted `sub1` so the editor re-derives clean, properly-spaced subtitles from their intact `clip.transcription` on next open.
+
+### Notes
+- The two-prep-paths drift between the editor and the Projects preview was discussed at length — filed **#110** (unify subtitle data path so editor and Projects preview can't diverge).
+- Clearing the 5 clips' `sub1` left the Projects preview blank for them until each is reopened+saved (the preview reads saved `sub1`; the editor derives from transcription) — filed **#111** (ties into #110). Workaround: open + Save those 5 clips.
+
 ## [Unreleased] — 2026-06-04 (session 54) — "Delete subtitle + clip" cuts only the span (no more timeline wipe)
 
 ### Fixed
