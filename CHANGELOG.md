@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-05 (session 59) — #113: Projects preview now mirrors editor trims, cuts, and extends (no more deleted-footage playback or drifted subtitles)
+
+### Fixed
+- **The Projects-tab preview ignored every timeline edit made in the editor — it replayed footage you'd deleted and let subtitles and captions drift out of sync (#113).** The preview player ran on a different clock than the editor: it played the raw source span `[clip.startTime, clip.endTime]` and never read the clip's cut list (`nleSegments`), so internal deletions, start/end trims, and extends were all invisible — the video played straight through deleted spans, and because `clip.startTime` goes stale after a trim, the subtitle karaoke highlight drifted or went dead partway. Captions were misaligned too: they're saved in cut-compressed "timeline" time, but the preview fed them raw clip-relative time. Fixed by moving the whole preview into the editor's timeline domain whenever a clip carries `nleSegments` — playback now walks the surviving segments (skipping deleted spans, honoring trims and extends) via the editor's own `sourceToTimeline`/`timelineToSource` mapping, the seek bar maps back across cuts, and subtitles route through the same `visibleSubtitleSegments` the editor uses (segments in deleted regions drop, survivors compress onto a 0-based timeline). Captions realign for free off the corrected playhead. Clips never touched in the editor keep their existing raw-span behavior unchanged. Verified by Fega hands-on — cut, trim, and extend all now reflect in the preview — plus a 26-assertion synthetic reproduction of the mapping math. [src/renderer/views/ProjectsView.js, src/renderer/editor/utils/buildPreviewSubtitles.js]
+
+### Notes
+- Reuses the editor's proven NLE mapping (`src/renderer/editor/models/timeMapping.js`) rather than new math; no editor code changed, and `clip.startTime`/`endTime` were deliberately left as the original recorded bounds (not repurposed to mean trimmed bounds) per the #113 root-cause analysis — the preview consumes `nleSegments` instead. This completes the editor↔preview parity that #110 began on the data side, now extended to video playback + timeline.
+
 ## [Unreleased] — 2026-06-05 (session 58) — #110: editor and Projects preview now share ONE subtitle resolver (no more drift)
 
 ### Changed

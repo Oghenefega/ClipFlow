@@ -6,10 +6,40 @@
 
 ---
 
-## NEXT SESSION (Fega's order) — #113 first, then #98
+## SESSION 59 — #113 DONE ✅ (Fega-confirmed), #98 next
 
-Both are PRE-EXISTING bugs surfaced while testing #110 Step 1+2 (not regressions — verified via git diff). Full root cause + file:line live in the GitHub issue comments.
-1. **#113 — Projects preview honors editor trims/cuts** (`nleSegments`). Clears deleted-footage playback, dead karaoke highlight on trimmed clips, and the extend mismatch. (a) map `ClipVideoPlayer` playback through `nleSegments` (mirror `PreviewPanelNew.js:791-836`); (b) NLE-map preview subtitles via `visibleSubtitleSegments`. Do NOT fix by persisting stale `clip.startTime/endTime` — see HANDOFF "Watch Out For".
+#113 shipped + verified hands-on (cut/trim/extend all reflect in the Projects preview).
+#98 still pending. Both were PRE-EXISTING bugs surfaced while testing #110 Step 1+2.
+
+### #113 — Projects preview honors editor trims/cuts/extends — DONE, closed
+
+Root cause (traced end-to-end S59): the preview player lives in CLIP-RELATIVE time
+(`vid.currentTime − clipStart`); the editor saves clip data in TIMELINE time (cut-compressed).
+`ClipVideoPlayer` (`ProjectsView.js:112-276`) reads ZERO `nleSegments` → plays raw
+`[clip.startTime, clip.endTime]` (deleted footage), subtitles shifted by `clipStart` only
+(`buildPreviewSubtitles.js:106-107`), and captions (saved TIMELINE time, `useEditorStore.js:355-357,731`)
+fed clip-relative time → also misaligned today. Disk contract confirmed: `subtitles.sub1`
+source-absolute + `nleSegments` persisted (`useEditorStore.js:732-733`).
+
+Fix = move the whole preview into TIMELINE time when `clip.nleSegments?.length > 0` (else current behavior):
+- **(a) Video** — `ClipVideoPlayer`: gate `useNle = sourceMode && nleSegments?.length`.
+  - load seek → `nleSegments[0].sourceStart` (not `clipStart`).
+  - effective duration → `getTimelineDuration(nleSegments)`.
+  - rAF tick → map `vid.currentTime` (source-abs, since preview plays the SOURCE file → offset 0)
+    via a small local mapper mirroring `usePlaybackStore.mapSourceTime` (gap-crossing seek + atEnd);
+    `setCurrentTime(timelineTime)`.
+  - seek handler → `vid.currentTime = timelineToSource(timelineRel, nleSegments)`.
+- **(b) Subtitles** — `resolvePreviewSegments` (`buildPreviewSubtitles.js`): when `clip.nleSegments?.length`,
+  map source-absolute display segs through `visibleSubtitleSegments` + field-rename
+  (mirror `_mapSegmentsToTimeline` `useSubtitleStore.js:24-45`) INSTEAD of the `clipStart` shift.
+- **(c) Captions** — no data change; they're already timeline-time. The (a) currentTime switch fixes them.
+
+Reuse `sourceToTimeline / timelineToSource / getTimelineDuration / visibleSubtitleSegments`
+from `editor/models/timeMapping` (already ESM-imported in renderer via `usePlaybackStore.js:2-6`).
+Do NOT persist stale `clip.startTime/endTime` (HANDOFF "Watch Out For"). Don't touch `mapSourceTime`/
+editor stores (not mounted in Projects tab). Verify: build + `npm start`, open Projects, play a
+trimmed/cut clip — deleted footage skipped, karaoke + captions track.
+
 2. **#98 — split/created-segment integrity.** (a) Collision-proof segment IDs (`splitSegment`/`createSegmentAtTime`/1word split → use `addSegmentAt`'s `"seg_"+Date.now()+"_"+random`). (b) Synthesize a word entry for text-only segments so `findActiveWord` renders them.
 3. Then close #110 (with `status: untested`) once Fega's hands-on pass is clean.
 

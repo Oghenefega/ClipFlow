@@ -6,6 +6,7 @@ import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePi
 import TestChip from "../components/TestChip";
 import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
+import { sourceToTimeline, timelineToSource, getTimelineDuration } from "../editor/models/timeMapping";
 
 // Error boundary for clip preview — prevents bad clip data from crashing the whole app
 class ClipPreviewBoundary extends React.Component {
@@ -109,6 +110,31 @@ const FALLBACK_TEMPLATE = {
 // Module-level ref: only one preview video plays at a time
 let _activeVideoRef = null;
 
+// Map a source-absolute timestamp onto a clip's NLE timeline (deleted spans skipped).
+// Mirrors usePlaybackStore.mapSourceTime, but the Projects preview <video> plays the SOURCE
+// file directly, so vid.currentTime is already source-absolute (no clipFileOffset). Returns
+// { timelineTime, needsSeek, seekTo, atEnd }; timelineTime is -1 while parked in a deleted
+// gap, signalling the caller to freeze the playhead until the seek lands. #113
+function mapPreviewSourceTime(sourceAbs, nle) {
+  const mapped = sourceToTimeline(sourceAbs, nle);
+  if (mapped.found) {
+    const seg = nle[mapped.segmentIndex];
+    if (sourceAbs >= seg.sourceEnd - 0.02) {
+      const next = nle[mapped.segmentIndex + 1];
+      if (next) return { timelineTime: mapped.timelineTime, needsSeek: true, seekTo: next.sourceStart, atEnd: false };
+      return { timelineTime: getTimelineDuration(nle), needsSeek: false, seekTo: 0, atEnd: true };
+    }
+    return { timelineTime: mapped.timelineTime, needsSeek: false, seekTo: 0, atEnd: false };
+  }
+  // In a deleted gap — seek forward into the next surviving segment, if any.
+  for (let i = 0; i < nle.length; i++) {
+    if (nle[i].sourceStart > sourceAbs) {
+      return { timelineTime: -1, needsSeek: true, seekTo: nle[i].sourceStart, atEnd: false };
+    }
+  }
+  return { timelineTime: getTimelineDuration(nle), needsSeek: false, seekTo: 0, atEnd: true };
+}
+
 function ClipVideoPlayer({ clip, project, template }) {
   const videoRef = useRef(null);
   const seekbarRef = useRef(null);
@@ -124,8 +150,15 @@ function ClipVideoPlayer({ clip, project, template }) {
   // legacy clip MP4 for session-31-era projects where no source remains.
   const clipStart = clip.startTime || 0;
   const clipEnd = clip.endTime || 0;
-  const duration = Math.round(clipEnd - clipStart);
   const sourceMode = !!project?.sourceFile;
+  // #113: when the clip carries editor trims/cuts, play through the NLE segment list
+  // (skip deleted spans) and report cut-compressed timeline time — the same domain the
+  // saved subtitles and captions live in. Unedited/legacy clips keep raw-span playback.
+  const nleSegments = clip.nleSegments;
+  const useNle = sourceMode && Array.isArray(nleSegments) && nleSegments.length > 0;
+  const playStart = useNle ? nleSegments[0].sourceStart : clipStart;
+  const effDuration = useNle ? getTimelineDuration(nleSegments) : Math.max(0, clipEnd - clipStart);
+  const duration = Math.round(effDuration);
   const videoFilePath = sourceMode
     ? `file://${project.sourceFile.replace(/\\/g, "/")}`
     : (clip.filePath ? `file://${clip.filePath.replace(/\\/g, "/")}` : null);
@@ -176,12 +209,12 @@ function ClipVideoPlayer({ clip, project, template }) {
     const vid = videoRef.current;
     if (!vid) return;
     const onDurationChange = () => {
-      setVideoDuration(sourceMode ? Math.max(0, clipEnd - clipStart) : (vid.duration || 0));
+      setVideoDuration(sourceMode ? effDuration : (vid.duration || 0));
     };
     const onLoadedMetadata = () => {
       if (sourceMode) {
-        if (Math.abs(vid.currentTime - clipStart) > 0.05) vid.currentTime = clipStart;
-        setVideoDuration(Math.max(0, clipEnd - clipStart));
+        if (Math.abs(vid.currentTime - playStart) > 0.05) vid.currentTime = playStart;
+        setVideoDuration(effDuration);
       } else {
         setVideoDuration(vid.duration || 0);
       }
@@ -195,7 +228,7 @@ function ClipVideoPlayer({ clip, project, template }) {
       vid.removeEventListener("loadedmetadata", onLoadedMetadata);
       vid.removeEventListener("clipflow-paused", onExternalPause);
     };
-  }, [showVideo, sourceMode, clipStart, clipEnd]);
+  }, [showVideo, sourceMode, playStart, effDuration]);
 
   // High-frequency time updates via rAF. In sourceMode, currentTime is reported
   // clip-relative (subtract clipStart). Bound at clipEnd: pause + snap back.
@@ -205,7 +238,22 @@ function ClipVideoPlayer({ clip, project, template }) {
     const tick = () => {
       const vid = videoRef.current;
       if (vid && !isSeeking) {
-        if (sourceMode) {
+        if (useNle) {
+          // Walk the NLE timeline: skip deleted spans, report cut-compressed time.
+          const result = mapPreviewSourceTime(vid.currentTime, nleSegments);
+          if (result.atEnd) {
+            vid.pause();
+            vid.currentTime = playStart;
+            setCurrentTime(0);
+            setIsPlaying(false);
+            return;
+          }
+          if (result.needsSeek && !vid.seeking &&
+              Math.abs(vid.currentTime - result.seekTo) > 0.05) {
+            vid.currentTime = result.seekTo;
+          }
+          if (result.timelineTime >= 0) setCurrentTime(result.timelineTime);
+        } else if (sourceMode) {
           if (vid.currentTime >= clipEnd - 0.05) {
             vid.pause();
             vid.currentTime = clipStart;
@@ -222,7 +270,7 @@ function ClipVideoPlayer({ clip, project, template }) {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [isPlaying, isSeeking, sourceMode, clipStart, clipEnd]);
+  }, [isPlaying, isSeeking, useNle, nleSegments, playStart, sourceMode, clipStart, clipEnd]);
 
   // Abort video fetch on unmount — prevents Chromium renderer crash
   useEffect(() => {
@@ -270,10 +318,16 @@ function ClipVideoPlayer({ clip, project, template }) {
     // (no getBoundingClientRect), which crashes the renderer.
     const rect = bar.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const clipRel = pct * videoDuration;
-    vid.currentTime = sourceMode ? (clipStart + clipRel) : clipRel;
-    setCurrentTime(clipRel);
-  }, [videoDuration, sourceMode, clipStart]);
+    const rel = pct * videoDuration;
+    if (useNle) {
+      // videoDuration is timeline time → map the target back to a source position.
+      const r = timelineToSource(rel, nleSegments);
+      vid.currentTime = r.found ? r.sourceTime : playStart;
+    } else {
+      vid.currentTime = sourceMode ? (clipStart + rel) : rel;
+    }
+    setCurrentTime(rel);
+  }, [videoDuration, useNle, nleSegments, playStart, sourceMode, clipStart]);
 
   const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 

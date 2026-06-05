@@ -12,6 +12,7 @@
 
 import { segmentWords } from "./segmentWords";
 import { resolveClipSubtitles } from "./resolveSubtitles";
+import { visibleSubtitleSegments } from "../models/timeMapping";
 
 // ── Strip punctuation per template config ──
 
@@ -84,6 +85,7 @@ export function resolvePreviewSegments(clip, project, template) {
   const punctRm = tpl.punctuationRemove || {};
   const mode = tpl.segmentMode || "3word";
   const clipStart = clip.startTime || 0;
+  const nleSegments = clip.nleSegments;
 
   const { segments, isPreChunked, source } = resolveClipSubtitles(clip, project, {
     includeExtras: false,
@@ -97,23 +99,55 @@ export function resolvePreviewSegments(clip, project, template) {
     ? segments
     : segmentWords(flattenWordsForChunk(segments), mode);
 
-  // Shift to clip-relative (subtract the clip origin) at the very edge, then strip
-  // punctuation per template. Both pre-chunked and re-chunked segments are source-absolute.
-  return displaySegs.map((seg) => {
+  // Move SOURCE-ABSOLUTE segments into the preview's playback domain (#113):
+  //   • Edited clips (nleSegments present): map through the NLE segment list so the preview
+  //     honors the user's trims/cuts — subtitles in deleted spans drop, survivors compress
+  //     onto a 0-based timeline. Mirrors the editor's _mapSegmentsToTimeline, and lines up
+  //     with the <video>, which now reports that same cut-compressed timeline.
+  //   • Unedited / legacy clips (no nleSegments): a plain clip-relative shift (subtract the
+  //     clip origin), matching the raw [startTime, endTime] playback those clips still use.
+  const domainSegs = (nleSegments && nleSegments.length > 0)
+    ? visibleSubtitleSegments(
+        // visibleSubtitleSegments keys off startSec/endSec; pre-chunked core segments carry
+        // start/end while segmentWords output carries startSec/endSec — normalize both.
+        displaySegs.map((seg) => ({
+          ...seg,
+          startSec: seg.startSec ?? seg.start ?? 0,
+          endSec: seg.endSec ?? seg.end ?? 0,
+        })),
+        nleSegments
+      ).map((seg) => ({
+        ...seg,
+        startSec: seg.timelineStartSec,
+        endSec: seg.timelineEndSec,
+        words: (seg.words || []).map((w) => ({
+          ...w,
+          start: w.timelineStart !== undefined ? w.timelineStart : w.start,
+          end: w.timelineEnd !== undefined ? w.timelineEnd : w.end,
+        })),
+      }))
+    : displaySegs.map((seg) => ({
+        ...seg,
+        startSec: (seg.startSec ?? seg.start ?? 0) - clipStart,
+        endSec: (seg.endSec ?? seg.end ?? 0) - clipStart,
+        words: (seg.words || []).map((w) => ({
+          ...w,
+          start: (w.start ?? w.startSec ?? 0) - clipStart,
+          end: (w.end ?? w.endSec ?? 0) - clipStart,
+        })),
+      }));
+
+  // Strip punctuation per template at the very edge, then rebuild segment text from the
+  // surviving words. A word-less segment keeps its original text (empty text renders nothing).
+  return domainSegs.map((seg) => {
     const strippedWords = (seg.words || []).map((w) => ({
       ...w,
       word: stripPunct(w.word || w.text || "", punctRm),
-      start: (w.start ?? w.startSec ?? 0) - clipStart,
-      end: (w.end ?? w.endSec ?? 0) - clipStart,
     }));
     return {
       ...seg,
-      // Preserve original text for a word-less segment instead of clobbering it to ""
-      // (an empty text makes SubtitleOverlay render nothing).
       text: strippedWords.length > 0 ? strippedWords.map((w) => w.word).join(" ") : (seg.text || ""),
       words: strippedWords,
-      startSec: (seg.startSec ?? seg.start ?? 0) - clipStart,
-      endSec: (seg.endSec ?? seg.end ?? 0) - clipStart,
     };
   });
 }
