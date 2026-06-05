@@ -6,6 +6,15 @@
 
 ---
 
+## NEXT SESSION (Fega's order) — #113 first, then #98
+
+Both are PRE-EXISTING bugs surfaced while testing #110 Step 1+2 (not regressions — verified via git diff). Full root cause + file:line live in the GitHub issue comments.
+1. **#113 — Projects preview honors editor trims/cuts** (`nleSegments`). Clears deleted-footage playback, dead karaoke highlight on trimmed clips, and the extend mismatch. (a) map `ClipVideoPlayer` playback through `nleSegments` (mirror `PreviewPanelNew.js:791-836`); (b) NLE-map preview subtitles via `visibleSubtitleSegments`. Do NOT fix by persisting stale `clip.startTime/endTime` — see HANDOFF "Watch Out For".
+2. **#98 — split/created-segment integrity.** (a) Collision-proof segment IDs (`splitSegment`/`createSegmentAtTime`/1word split → use `addSegmentAt`'s `"seg_"+Date.now()+"_"+random`). (b) Synthesize a word entry for text-only segments so `findActiveWord` renders them.
+3. Then close #110 (with `status: untested`) once Fega's hands-on pass is clean.
+
+---
+
 ## #110 — unify editor + preview subtitle data path — Step 1 + 2 DONE (session 58)
 
 **Status:** Step 1 + 2 implemented, build-clean, adversarially verified behavior-preserving.
