@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-05 (session 56) — Projects-tab preview subtitles: fix domain mismatch + add the editor's transcription fallback (#111)
+
+### Fixed
+- **Projects-tab preview showed no subtitles for any edited (editor-saved) clip.** The preview `<video>` reports clip-relative (0-based) time, but editor-saved `sub1` carries **source-absolute** timestamps (position in the whole recording, `_format: "source-absolute"`), and `buildPreviewSegments` never subtracted the clip origin. So the overlay compared, e.g., `currentTime` 0–30s against segments at 125–155s → `findActiveWord` matched nothing → blank. Added a `clipStart` parameter that shifts source-absolute segments/words back to clip-relative; pipeline (no `_format`) and legacy-array formats are already 0-based and untouched. [src/renderer/editor/utils/buildPreviewSubtitles.js, src/renderer/views/ProjectsView.js]
+- **Preview required a manual editor open + Save before subtitles appeared (the "two-step" bug, #111).** The editor derives subtitles from a 5-source priority chain (saved `sub1` → `clip.transcription` → pipeline `sub1` → legacy array → `project.transcription`), but the preview read **only** `sub1`. Clips whose `sub1` was empty (e.g. the 5 clips whose `sub1` was cleared in session 55) therefore showed nothing until a Save copied the editor-derived segments into `sub1`. Added `resolvePreviewSegments(clip, project, template)` — the preview now falls back to `clip.transcription` (clip-relative, no offset) or `project.transcription` (source-absolute, origin subtracted) when `sub1` is empty, mirroring the editor's stale-transcription guard. Subtitles render automatically, no Save round-trip. Verified by Fega. [src/renderer/editor/utils/buildPreviewSubtitles.js, src/renderer/views/ProjectsView.js]
+
+### Notes
+- This is the first half of **#110** (single shared subtitle resolver). The preview now has the editor's fallback; the remaining #110 work is to route the editor's `initSegments` through the same resolver so the two paths can never diverge again.
+
 ## [Unreleased] — 2026-06-05 (session 55) — Editor reopen reliability: race-proof init, subtitle word-spacing, edited-clip style/data integrity
 
 ### Fixed

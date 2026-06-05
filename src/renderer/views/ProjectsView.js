@@ -4,7 +4,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, Badge, PageHeader, TabBar, InfoBanner, ViralBar, Checkbox, GamePill, toFileUrl } from "../components/shared";
 import TestChip from "../components/TestChip";
-import { buildPreviewSegments } from "../editor/utils/buildPreviewSubtitles";
+import { resolvePreviewSegments } from "../editor/utils/buildPreviewSubtitles";
 import { SubtitleOverlay, CaptionOverlay } from "../editor/components/PreviewOverlays";
 
 // Error boundary for clip preview — prevents bad clip data from crashing the whole app
@@ -153,8 +153,8 @@ function ClipVideoPlayer({ clip, project, template }) {
 
   // Build display-ready subtitle segments (segmented + punctuation stripped)
   const microSegments = useMemo(() => {
-    return buildPreviewSegments(clip.subtitles, { subtitle: subTpl });
-  }, [clip.subtitles, subTpl]);
+    return resolvePreviewSegments(clip, project, { subtitle: subTpl });
+  }, [clip, project, subTpl]);
 
   // Caption segments from saved clip data
   const captions = useMemo(() => clip.captionSegments || [], [clip.captionSegments]);
