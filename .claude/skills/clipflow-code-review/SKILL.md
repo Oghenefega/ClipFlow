@@ -91,6 +91,7 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 - **ClipFlow is a desktop app — never optimize web metrics.** No bundle-size reduction, code-splitting, lazy-loading, or CDN concerns (files are on local disk; lazy-load adds "Loading…" flashes for zero benefit). Valid targets: IPC speed, FFmpeg efficiency, render perf, memory, startup time.
 - **New visual styles must be additive / opt-in** — never replace the user's established default look (karaoke highlight, subtitle style) without consent. Their current look is their brand.
 - **Always add diagnostic logging** for any IPC call that can fail (`console.error` with full context values); add `console.log` at key decision points during feature dev.
+- **Verification steps for the user must be jargon-free, and split from my own checks.** Fega is the tester but NOT a coder. Present any verification as two parts: "I'll do this (you don't watch)" — build, automated repro/tests, log inspection — and "What I need from you (~N min, no tech)" in plain app-user words ("open a couple clips, do the captions still match the audio? screenshot anything off"). NEVER ask him to read logs, confirm an internal field value (`startSec`), use code verbs ("init", "re-transcribe"), or hunt for a broken clip by its symptom. Prefer proving the fix myself with a synthetic reproduction so his look is a bonus regression pass, not the correctness gate. See memory `feedback_plan_clarity`.
 
 ## Lesson Capture
 
