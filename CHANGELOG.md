@@ -12,10 +12,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - **"Delete subtitle + clip" now operates on the live `nleSegments` timeline, not the legacy `audioSegments` subsystem.** The old LeftPanel handler called `rippleDeleteAudioSegment` (the only caller) and compared clip-relative audio bounds against source-absolute subtitle times — a coordinate mismatch on any mid-source clip. The rewrite stays entirely in the rendered timeline's coordinate space. [src/renderer/editor/components/LeftPanelNew.js]
+- **#109 — the duplicated "Delete subtitle/caption + clip" logic is now a single shared store action.** Both the timeline right-click menu (TimelinePanelNew) and the Edit-subtitles row trash menu (LeftPanelNew) carried independent copies, which is why an earlier fix to one didn't fix the other. Extracted into `useEditorStore.deleteSpanWithClip(track, segId)`; both call sites now delegate to it. Handles both the Subtitle track (source-absolute → mapped to timeline) and the Caption track (already timeline time). [src/renderer/editor/stores/useEditorStore.js, src/renderer/editor/components/TimelinePanelNew.js, src/renderer/editor/components/LeftPanelNew.js]
 
 ### Notes
 - The rewrite orphaned `rippleDeleteAudioSegment` and the broader legacy `audioSegments` subsystem (now 0 live callers, but still persisted on save) — filed **#108** for the audit/removal.
-- The action was duplicated across two files (timeline right-click menu + Edit-subtitles row trash menu) rather than sharing a store action, which is why a fix to one didn't fix the other — filed **#109** to extract a single shared action.
+- The action was duplicated across two files (timeline right-click menu + Edit-subtitles row trash menu) rather than sharing a store action, which is why a fix to one didn't fix the other — resolved this session via **#109** (shared `deleteSpanWithClip` action; see Changed).
 
 ## [Unreleased] — 2026-06-03 (session 53) — #66/#77 verified + timecode-popover editing fix + left-panel↔timeline selection sync
 

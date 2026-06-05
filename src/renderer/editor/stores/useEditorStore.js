@@ -8,7 +8,7 @@ import useLayoutStore from "./useLayoutStore";
 import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
-import { getTimelineDuration } from "../models/timeMapping";
+import { getTimelineDuration, sourceToTimeline, getSegmentTimelineRange } from "../models/timeMapping";
 import { splitAtTimeline, deleteSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 
 // ── Autosave internals (module-closure, NOT in state) ──
@@ -307,6 +307,65 @@ const useEditorStore = create((set, get) => ({
     set({ nleSegments: newSegs });
     usePlaybackStore.getState().setNleSegments(newSegs);
     get().markDirty();
+  },
+
+  /**
+   * "Delete subtitle/caption + clip" — cut ONLY this segment's span out of the
+   * live NLE timeline (#109: single shared action for both the timeline
+   * right-click menu and the Edit-subtitles row trash menu, which previously
+   * carried duplicate copies that could drift).
+   *
+   * Splits the NLE timeline at the span's start/end, then deletes only the
+   * isolated middle slice (the gap ripple-closes — timeline position is derived
+   * from segment order). Uses a PLAIN delete for the sub/cap, never ripple:
+   * rippling shifts later segments' source values and desyncs them from footage,
+   * whereas the nleSegments mapping already repositions the survivors correctly.
+   * Subtitles inside the cut span auto-hide via the mapping and are filtered out
+   * on save (#84).
+   *
+   * @param {"sub"|"cap"} track
+   * @param {string} segId
+   */
+  deleteSpanWithClip: (track, segId) => {
+    const subStore = useSubtitleStore.getState();
+    const capStore = useCaptionStore.getState();
+
+    // Resolve the span in TIMELINE coordinates. Subtitles are stored
+    // source-absolute (→ map through nleSegments); captions are already in
+    // timeline time.
+    let tlStart, tlEnd;
+    if (track === "sub") {
+      const raw = subStore.editSegments.find((s) => s.id === segId);
+      if (!raw) return;
+      const a = sourceToTimeline(raw.startSec, get().nleSegments);
+      const b = sourceToTimeline(raw.endSec, get().nleSegments);
+      // Span can't be mapped onto the timeline → just drop the subtitle.
+      if (!a.found || !b.found) { subStore.deleteSegment(segId); return; }
+      tlStart = a.timelineTime;
+      tlEnd = b.timelineTime;
+    } else if (track === "cap") {
+      const seg = capStore.captionSegments.find((s) => s.id === segId);
+      if (!seg) return;
+      tlStart = seg.startSec;
+      tlEnd = seg.endSec;
+    } else {
+      return;
+    }
+
+    // Isolate the span, then delete only the segment(s) inside it.
+    get().splitAtTimeline(tlStart);
+    get().splitAtTimeline(tlEnd);
+    const afterSplit = get().nleSegments;
+    const spanIds = afterSplit
+      .filter((s) => {
+        const r = getSegmentTimelineRange(s.id, afterSplit);
+        return r && r.start >= tlStart - 0.01 && r.end <= tlEnd + 0.01;
+      })
+      .map((s) => s.id);
+
+    if (track === "sub") subStore.deleteSegment(segId);
+    else capStore.deleteCaptionSegment(segId);
+    spanIds.forEach((id) => get().deleteNleSegment(id));
   },
 
   /**

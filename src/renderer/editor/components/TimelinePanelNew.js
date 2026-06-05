@@ -1111,47 +1111,10 @@ export default function TimelinePanelNew() {
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
           onDuplicate={() => { /* TODO */ }}
           onDeleteWithAudio={() => {
-            // "Delete subtitle/caption + clip" = cut ONLY this segment's span out
-            // of the live NLE timeline (option 1). editSegments here are already
-            // timeline-mapped, so seg.startSec/endSec are timeline coords.
-            const track = contextMenu.track;
-            const segId = contextMenu.segId;
-            let seg;
-            if (track === "sub") {
-              seg = editSegments.find(s => s.id === segId);
-            } else if (track === "cap") {
-              seg = captionSegs.find(s => s.id === segId);
-            }
-            if (!seg) return;
-
-            const tlStart = seg.startSec;
-            const tlEnd = seg.endSec;
-            // Isolate the span: split the NLE timeline at both ends, then delete
-            // the segment(s) now sitting inside [tlStart, tlEnd]. Deleting an NLE
-            // segment ripples the gap closed automatically (timeline position is
-            // derived from segment order). Splitting first is what stops a single
-            // clip-spanning NLE segment from wiping the whole timeline.
-            splitAtTimeline(tlStart);
-            splitAtTimeline(tlEnd);
-            const afterSplit = useEditorStore.getState().nleSegments;
-            const spanIds = afterSplit
-              .filter(s => {
-                const r = getSegmentTimelineRange(s.id, afterSplit);
-                return r && r.start >= tlStart - 0.01 && r.end <= tlEnd + 0.01;
-              })
-              .map(s => s.id);
-
-            // Remove this subtitle/caption (plain delete — NO ripple, which would
-            // shift later segments' source values and desync them from footage).
-            // Subtitles inside the cut span auto-hide via the nleSegments mapping
-            // and are filtered out on save (#84).
-            if (track === "sub") {
-              deleteSegment(segId);
-            } else if (track === "cap") {
-              deleteCaptionSegment(segId);
-            }
-            spanIds.forEach(id => deleteNleSegment(id));
-
+            // "Delete subtitle/caption + clip" — cut only this span out of the
+            // NLE timeline. Shared store action (#109) so the timeline menu and
+            // the Edit-subtitles row menu can't drift apart.
+            useEditorStore.getState().deleteSpanWithClip(contextMenu.track, contextMenu.segId);
             setSelectedTrack(null);
             setSelectedSegIds(new Set());
           }}
