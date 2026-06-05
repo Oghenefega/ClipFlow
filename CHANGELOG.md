@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-05 (session 58) — #110: editor and Projects preview now share ONE subtitle resolver (no more drift)
+
+### Changed
+- **The editor and the Projects-tab preview now derive subtitles from a single shared resolver, so they can no longer disagree (#110, Step 1 + 2).** Previously each computed subtitles independently — the editor's `initSegments` ran source selection, source-wide extras, mega-segment/duplicate cleanup and word repair, while the preview did a lighter, divergent version. Session 56 patched the visible symptoms (#111); this removes the root cause. Extracted the editor's exact logic into a new shared core, `resolveClipSubtitles(clip, project, { includeExtras, verbose })` ([src/renderer/editor/utils/resolveSubtitles.js]), plus the two word-repair helpers into [src/renderer/editor/utils/wordRepair.js]. Both the editor (`initSegments`) and the preview (`resolvePreviewSegments`) now call the core; the editor passes `includeExtras:true` (its extends-coverage stays editor-only) and `verbose:true` (keeps the `[initSegments]` Sentry breadcrumbs), the preview passes `false`/silent. The core was lifted out verbatim, so editor output is byte-for-byte unchanged (verified against the prior commit by a multi-agent adversarial review: word-repair extraction, core faithfulness, the editor display tail, and downstream consumers all confirmed identical). [src/renderer/editor/stores/useSubtitleStore.js, src/renderer/editor/utils/resolveSubtitles.js, src/renderer/editor/utils/wordRepair.js, src/renderer/editor/utils/buildPreviewSubtitles.js]
+- **The Projects preview now honors a clip's manual chunking.** For an edited (editor-saved) clip the preview shows the exact line groupings you split/merged in the editor, instead of re-chunking the words from scratch — the most visible editor↔preview drift, now gone. Never-edited clips still chunk through the shared `segmentWords`. The preview also gained the editor's word-synthesis fallback (text-only segments no longer vanish) and stopped clobbering a word-less segment's text to empty. [src/renderer/editor/utils/buildPreviewSubtitles.js]
+
+### Removed
+- **Deleted the preview's now-dead bespoke subtitle code** — `buildPreviewSegments`, `gatherWords`, and the duplicate `isTranscriptionStale` in `buildPreviewSubtitles.js`, all superseded by the shared resolver. [src/renderer/editor/utils/buildPreviewSubtitles.js]
+
+### Notes
+- **#110 stays open pending a hands-on editor regression pass** (the agreed hard gate, since Step 2 touches the live `initSegments` path). Walk a fresh pipeline clip, an edited clip (manual split/merge + matching Projects preview), an extended clip, a retranscribed clip, and a legacy flat-array clip in the editor before closing. Renderer builds clean.
+- **Known residual (Step 3, not done):** never-edited clips can show a slightly different *line break* (not timing) at segment joins on long transcripts, because the editor's `setSegmentMode` does an extra word-dedup + second timestamp pass before chunking that the preview skips. It self-corrects the moment the clip is saved (it becomes pre-chunked → both paths match exactly). Closing it means routing `setSegmentMode` and the preview through one shared chunk helper — a separate session (hot editor path).
+
 ## [Unreleased] — 2026-06-05 (session 57) — Editor crash hardening: tolerate string-typed subtitle timestamps (Sentry "toFixed is not a function")
 
 ### Fixed

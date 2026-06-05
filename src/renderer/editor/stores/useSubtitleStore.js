@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { fmtTime } from "../utils/timeUtils";
 import { segmentWords } from "../utils/segmentWords";
 import { cleanWordTimestamps } from "../utils/cleanWordTimestamps";
+import { resolveClipSubtitles } from "../utils/resolveSubtitles";
 import { visibleSubtitleSegments } from "../models/timeMapping";
 // Cross-store imports — accessed only inside function bodies (after init),
 // so ESM live bindings resolve the cycle correctly. Do NOT destructure or
@@ -140,71 +141,6 @@ function _restoreStyling(snapshot, subSet) {
       usePlaybackStore.setState({ nleSegments: snapshot.nleSegments });
     } catch (_) {}
   }
-}
-
-// ── Merge whisper subword tokens into real words using segment text as ground truth ──
-// Whisper/whisperx tokenizes at subword level: "raiders" → ["ra","iders"],
-// "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"]
-// We use the segment's .text field (which has correct words) to guide merging.
-function mergeWordTokens(words, segmentText) {
-  if (!words || words.length === 0) return words;
-  if (!segmentText) return words;
-
-  // Get the real words from the segment text
-  const realWords = segmentText.trim().split(/\s+/).filter(Boolean);
-  if (realWords.length === 0) return words;
-
-  const merged = [];
-  let tokenIdx = 0;
-
-  for (const realWord of realWords) {
-    if (tokenIdx >= words.length) break;
-
-    // Start building the merged word from current token
-    const mergedWord = { ...words[tokenIdx] };
-    let built = words[tokenIdx].word.trim();
-    tokenIdx++;
-
-    // Keep consuming tokens until we've built the full real word
-    // Compare case-insensitively and strip punctuation for matching
-    const realClean = realWord.replace(/[.,!?;:'"]/g, "").toLowerCase();
-    let builtClean = built.replace(/[.,!?;:'"]/g, "").toLowerCase();
-    let safety = 0;
-
-    while (builtClean !== realClean && tokenIdx < words.length && safety < 10) {
-      const nextToken = words[tokenIdx];
-      built += nextToken.word.trim();
-      builtClean = built.replace(/[.,!?;:'"]/g, "").toLowerCase();
-      mergedWord.end = nextToken.end;
-      tokenIdx++;
-      safety++;
-    }
-
-    // Use the real word text (preserves original casing/punctuation)
-    mergedWord.word = realWord;
-    merged.push(mergedWord);
-  }
-
-  // If there are leftover tokens not matched to any real word, append them
-  // (shouldn't happen with correct data, but don't lose anything)
-  while (tokenIdx < words.length) {
-    merged.push({ ...words[tokenIdx] });
-    tokenIdx++;
-  }
-
-  return merged;
-}
-
-// ── Validate and clamp word timestamps to segment boundaries ──
-// Per-clip transcription (WhisperX on short clip audio) produces accurate word
-// timestamps. This function just ensures they stay within segment bounds.
-function validateWords(words, segStart, segEnd) {
-  if (!words || words.length === 0) return words;
-  return words.map(w => ({
-    ...w,
-    start: Math.max(segStart, Math.min(segEnd, w.start)),
-    end: Math.max(segStart, Math.min(segEnd, w.end)),
-  }));
 }
 
 const useSubtitleStore = create((set, get) => ({
@@ -368,263 +304,58 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Priority: 1) clip.transcription (re-transcribed, IF still valid for current duration),
-    //           2) clip.subtitles.sub1 (pipeline-generated or editor-saved),
-    //           3) project.transcription (source-level, already source-absolute)
-    const hasClipTranscription = !!clip?.transcription?.segments?.length;
-    const hasClipSubtitles = clip?.subtitles?.sub1?.length > 0;
-    const hasProjectTranscription = !!project?.transcription?.segments?.length;
-    const clipOrigin = clip.startTime || 0; // source-absolute origin for this clip
+    // Source selection (5-source priority chain) + source-wide extras for extends +
+    // cleanup + word repair all live in the shared resolveClipSubtitles core, so the
+    // editor and the Projects preview can never diverge (#110). This was extracted
+    // verbatim FROM this function, so output is unchanged.
+    //   - includeExtras:true — keep the editor's source-wide extends coverage (preview off).
+    //   - verbose:true — keep the [initSegments] … console/Sentry breadcrumbs.
+    // The core returns SOURCE-ABSOLUTE segments + isPreChunked (true for editor-saved,
+    // whose manual chunking is final) + source (null only when no subtitle data exists).
+    const { segments, isPreChunked, clipOrigin, source } = resolveClipSubtitles(
+      clip,
+      project,
+      { includeExtras: true, verbose: true }
+    );
 
-    // Detect stale transcription: if its time span significantly exceeds clip duration,
-    // it was made before a trim and no longer matches the current video file
-    let transcriptionIsStale = false;
-    if (hasClipTranscription) {
-      const segs = clip.transcription.segments;
-      const lastEnd = Math.max(...segs.map(s => s.end || 0));
-      const clipDur = clip.duration || 0;
-      if (clipDur > 0 && lastEnd > clipDur * 1.5) {
-        console.warn(`[initSegments] Stale transcription detected: spans ${lastEnd.toFixed(1)}s but clip is ${clipDur.toFixed(1)}s — skipping`);
-        transcriptionIsStale = true;
-      }
-    }
-
-    let segments;
-    let sourceOffset = 0;          // amount to ADD to convert raw timestamps → source-absolute
-    let rawIsSourceAbsolute = false; // whether raw data is already in source time
-
-    // #78: editor-saved edits (_format "source-absolute", written only by the editor
-    // save path) are the user's authoritative copy and must win over raw
-    // clip.transcription, which the editor never updates. Pipeline-born sub1 has no
-    // _format, so fresh never-edited clips still prefer the accurate retranscription.
-    const hasEditorSavedSubs = hasClipSubtitles && clip.subtitles._format === "source-absolute";
-
-    if (hasEditorSavedSubs) {
-      // Editor-saved: already source-absolute, clip-bounded (#84 filter on save).
-      // sub1 objects are persisted editSegments — they carry display-STRING start/end
-      // ("00:05.0") alongside the numeric startSec/endSec. The shared primaryRaw map
-      // below does `s.start + sourceOffset`; reading the strings makes that string
-      // concatenation → NaN downstream → dropped segments → empty panel (#78/#84).
-      // Normalize to the numeric {start,end} shape the pipeline expects (words are
-      // already numeric, source-absolute).
-      segments = clip.subtitles.sub1.map((s) => ({
-        start: s.startSec,
-        end: s.endSec,
-        text: s.text,
-        words: s.words,
-      }));
-      sourceOffset = 0;
-      rawIsSourceAbsolute = true;
-    } else if (hasClipTranscription && !transcriptionIsStale) {
-      // Re-transcribed: clip-relative (0-based) → add clipOrigin for source-absolute
-      segments = clip.transcription.segments;
-      sourceOffset = clipOrigin;
-      rawIsSourceAbsolute = false;
-    } else if (hasClipSubtitles) {
-      // Pipeline-generated sub1 (no _format): clip-relative (0-based)
-      segments = clip.subtitles.sub1;
-      sourceOffset = clipOrigin;
-      rawIsSourceAbsolute = false;
-    } else if (Array.isArray(clip?.subtitles) && clip.subtitles.length > 0) {
-      // Legacy: editor saved as flat array before format fix (clip-relative)
-      segments = clip.subtitles;
-      sourceOffset = clipOrigin;
-      rawIsSourceAbsolute = false;
-    } else if (hasProjectTranscription) {
-      // Source-level transcription: already source-absolute
-      segments = project.transcription.segments;
-      sourceOffset = 0;
-      rawIsSourceAbsolute = true;
-    } else {
+    if (source === null) {
       set({ editSegments: [], activeSegId: null, _sourceOrigin: clipOrigin });
       return;
     }
 
-    const effectiveSource = hasEditorSavedSubs
-      ? "clip-subtitles-edited"
-      : hasClipTranscription && !transcriptionIsStale
-        ? "clip-transcription"
-        : hasClipSubtitles
-          ? "clip-subtitles"
-          : Array.isArray(clip?.subtitles) && clip.subtitles.length > 0
-            ? "clip-subtitles-legacy"
-            : "project-transcription";
-    console.log(`[initSegments] source=${effectiveSource}, sourceOffset=${sourceOffset.toFixed(2)}, rawIsSourceAbsolute=${rawIsSourceAbsolute}, segments=${segments.length}`);
-
-    // ─── Normalize primary segments to source-absolute time ───────────────
-    // After this step everything downstream works in source-absolute, so the
-    // primary-vs-extras distinction disappears before the cleanup pipeline runs.
-    // Number() guards against a timestamp persisted as a string (e.g. legacy data
-    // where startSec was saved as "5.2" instead of 5.2). "5.2" + sourceOffset
-    // string-concatenates, then a downstream .toFixed() throws — the Sentry
-    // "x.toFixed is not a function" crash in initSegments. All five source branches
-    // converge here, so this is the single choke point that protects every one.
-    // Number("5.2") === 5.2; Number(5.2) is an identity no-op for healthy data.
-    const primaryRaw = segments.map((s) => ({
-      start: Number(s.start) + sourceOffset,
-      end: Number(s.end) + sourceOffset,
+    // ─── Build final editSegments display shape ───────────────────────────
+    // Core segments are source-absolute; display start/end are clip-relative via
+    // _displayFmt. Downstream visibleSubtitleSegments + nleSegments handle timeline
+    // clipping, so extends reveal already-loaded segments instead of discarding them.
+    const segs = segments.map((s, i) => ({
+      id: i + 1,
+      start: _displayFmt(s.start, clipOrigin),   // display: clip-relative
+      end: _displayFmt(s.end, clipOrigin),
+      dur: ((s.end - s.start).toFixed(1)) + "s",
       text: s.text,
-      words: (s.words || []).map((w) => ({
-        word: w.word,
-        start: Number(w.start ?? s.start) + sourceOffset,
-        end: Number(w.end ?? s.end) + sourceOffset,
-        probability: w.probability ?? 1,
-      })),
+      track: "s1",
+      conf: "high",
+      startSec: s.start,   // SOURCE-ABSOLUTE
+      endSec: s.end,       // SOURCE-ABSOLUTE
+      warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
+      words: s.words,      // word.start/end are SOURCE-ABSOLUTE
     }));
-
-    // ─── Pull source-wide extras when primary is clip-bounded ─────────────
-    // Primary clip.transcription / clip.subtitles covers only [clip.startTime,
-    // clip.endTime]. If the user extends the clip past those bounds we need
-    // project.transcription (source-wide) to populate the newly-visible audio.
-    // Union happens BEFORE the cleanup pipeline so extras get the SAME
-    // mega-segment filter / dedup / word-repair the primary data gets —
-    // otherwise whisperx artifacts in project.transcription leak only into
-    // extended regions, creating inconsistent subtitle quality within a clip.
-    const primaryIsProjectTranscription = effectiveSource === "project-transcription";
-    let extrasRaw = [];
-    if (hasProjectTranscription && !primaryIsProjectTranscription) {
-      const overlapsPrimary = (start, end) =>
-        primaryRaw.some((p) => start < p.end && end > p.start);
-      extrasRaw = project.transcription.segments
-        .filter((s) => !overlapsPrimary(s.start, s.end))
-        .map((s) => ({
-          start: s.start, // project.transcription is already source-absolute
-          end: s.end,
-          text: s.text,
-          words: (s.words || []).map((w) => ({
-            word: w.word,
-            start: w.start ?? s.start,
-            end: w.end ?? s.end,
-            probability: w.probability ?? 1,
-          })),
-        }));
-      if (extrasRaw.length > 0) {
-        console.log(`[initSegments] Merged ${extrasRaw.length} source-wide segments from project.transcription for extends coverage`);
-      }
-    }
-
-    const unionRaw = [...primaryRaw, ...extrasRaw].sort((a, b) => a.start - b.start);
-
-    // ─── Cleanup pipeline (runs once over the unioned raw segments) ───────
-
-    // Filter out "mega-segments" — transcription artifacts where stable-ts/Whisper
-    // outputs a single segment spanning the entire audio with all words crammed in,
-    // alongside proper sentence-level segments. The mega-segment has compressed
-    // word timestamps that cause ghost subtitles racing ahead during pauses.
-    const clipDur = clip.endTime && clip.startTime ? (clip.endTime - clip.startTime) : (clip.duration || 0);
-    const filteredSegments = unionRaw.length > 1
-      ? unionRaw.filter((s) => {
-          const segDur = (s.end || 0) - (s.start || 0);
-          const wordCount = s.words?.length || 0;
-          const isMega = segDur > 0 && clipDur > 0 && segDur > clipDur * 0.85 && wordCount > 20;
-          if (isMega) {
-            console.warn(`[initSegments] Filtering mega-segment: ${segDur.toFixed(1)}s, ${wordCount} words (clip ${clipDur.toFixed(1)}s)`);
-          }
-          return !isMega;
-        })
-      : unionRaw;
-
-    // Remove overlapping duplicate segments — whisperx sometimes emits two segments
-    // covering the same time range with the same words
-    const stripPunct = (t) => (t || "").toLowerCase().replace(/[.,!?;:'"]+/g, "").trim();
-    const deduped = [];
-    for (const s of filteredSegments) {
-      const overlap = deduped.find(
-        (d) => Math.abs(d.start - s.start) < 0.3 && Math.abs(d.end - s.end) < 0.3
-      );
-      if (!overlap) deduped.push(s);
-    }
-    if (deduped.length < filteredSegments.length) {
-      console.log(`[initSegments] Removed ${filteredSegments.length - deduped.length} duplicate overlapping segments`);
-    }
-
-    // Remove consecutive duplicate words within segments — whisperx sometimes
-    // outputs the same word twice with slightly different timestamps (e.g. "friendly," then "friendly")
-    for (const s of deduped) {
-      if (!s.words || s.words.length < 2) continue;
-      const cleaned = [s.words[0]];
-      for (let i = 1; i < s.words.length; i++) {
-        const prev = s.words[i - 1];
-        const curr = s.words[i];
-        if (stripPunct(curr.word) === stripPunct(prev.word) && Math.abs(curr.start - prev.end) < 0.5) {
-          // Keep the first occurrence but extend its end time
-          cleaned[cleaned.length - 1] = { ...cleaned[cleaned.length - 1], end: curr.end };
-        } else {
-          cleaned.push(curr);
-        }
-      }
-      if (cleaned.length < s.words.length) {
-        console.log(`[initSegments] Deduped ${s.words.length - cleaned.length} consecutive duplicate words in segment "${(s.text || "").slice(0, 30)}"`);
-        s.words = cleaned;
-        s.text = cleaned.map((w) => w.word).join(" ");
-      }
-    }
-
-    // ─── Build final editSegments shape ───────────────────────────────────
-    // Timestamps are already source-absolute. Downstream visibleSubtitleSegments
-    // + nleSegments handle timeline clipping, so extends reveal already-loaded
-    // segments instead of finding them discarded at init time.
-    const segs = deduped
-      .map((s, i) => {
-        const segStartSec = s.start;
-        const segEndSec = s.end;
-
-        const rawWords = mergeWordTokens(s.words, s.text);
-        const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
-        const repairedWords = cleanWordTimestamps(validatedWords, {
-          segStart: segStartSec,
-          segEnd: segEndSec,
-        });
-
-        if (i === 0) {
-          console.log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${(s.text || "").slice(0, 40)}"`);
-          if (repairedWords.length > 0) {
-            console.log(`[initSegments] First word: "${repairedWords[0].word}" at ${repairedWords[0].start.toFixed(3)}-${repairedWords[0].end.toFixed(3)}`);
-          }
-        }
-
-        // Rebuild segment text from surviving words (boundary trim may have removed some).
-        // mergeWordTokens rebuilds each word from segmentText.split(/\s+/) → bare words
-        // with NO leading space, so they must be joined WITH a space. Editor-saved clips
-        // set _skipNextSegmentation, so this text is final for them (no applyTemplate
-        // re-chunk to fix it) — join("") here collapsed words into "andreconnecting".
-        const segText = repairedWords.length > 0
-          ? repairedWords.map((w) => w.word).join(" ").trim()
-          : s.text;
-
-        return {
-          id: i + 1,
-          start: _displayFmt(segStartSec, clipOrigin),   // display: clip-relative
-          end: _displayFmt(segEndSec, clipOrigin),
-          dur: ((segEndSec - segStartSec).toFixed(1)) + "s",
-          text: segText || s.text,
-          track: "s1",
-          conf: "high",
-          startSec: segStartSec,   // SOURCE-ABSOLUTE
-          endSec: segEndSec,       // SOURCE-ABSOLUTE
-          warning: (segEndSec - segStartSec) > 10 ? "Long segment — consider splitting" : null,
-          words: repairedWords,    // word.start/end are SOURCE-ABSOLUTE
-        };
-      })
-      .filter((s) => s.words.length > 0 || (s.text || "").trim().length > 0); // Drop empty segments from boundary trim
-    // Re-number IDs after filtering
-    segs.forEach((s, i) => { s.id = i + 1; });
 
     // Store original sentence-level segments for transcript tab and mode switching.
     // editSegments is rebuilt by applyTemplate (which always carries segmentMode now);
     // initSegments no longer triggers segmentation directly to avoid the double-run on
     // clip open (#44). Retranscribe path explicitly calls setSegmentMode itself.
     // Clear editSegments so we don't briefly show prior clip's segments before applyTemplate fires.
-    // #78: when loading the user's OWN saved edits, editSegments IS the final
-    // chunking — manual splits/merges/timestamp tweaks live in it. Populate it
-    // directly and tell the upcoming applyTemplate→setSegmentMode to skip the
-    // re-chunk (which would algorithmically regenerate segments and discard those
-    // edits). Pipeline/transcription loads keep the rebuild-via-applyTemplate flow.
+    // #78: when loading the user's OWN saved edits (isPreChunked), editSegments IS the
+    // final chunking — manual splits/merges/timestamp tweaks live in it. Populate it
+    // directly and tell the upcoming applyTemplate→setSegmentMode to skip the re-chunk
+    // (which would algorithmically regenerate segments and discard those edits).
+    // Pipeline/transcription loads keep the rebuild-via-applyTemplate flow.
     set({
       _sourceOrigin: clipOrigin,
       originalSegments: segs,
-      editSegments: hasEditorSavedSubs ? segs : [],
-      _skipNextSegmentation: hasEditorSavedSubs,
+      editSegments: isPreChunked ? segs : [],
+      _skipNextSegmentation: isPreChunked,
       activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,

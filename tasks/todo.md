@@ -6,73 +6,49 @@
 
 ---
 
-## NEXT SESSION — #110: unify editor + preview subtitle data path (Step 1 + 2)
+## #110 — unify editor + preview subtitle data path — Step 1 + 2 DONE (session 58)
 
-**Status:** APPROVED by Fega. Do BOTH steps in one fresh session (he asked to combine
-them). Not started. This touches the editor's working `initSegments` path, so treat the
-editor regression pass as a hard gate, not a formality.
+**Status:** Step 1 + 2 implemented, build-clean, adversarially verified behavior-preserving.
+**#110 stays OPEN** pending Fega's hands-on editor regression pass (the HARD GATE below).
 
-### Why (context from session 56)
-Session 56 fixed the *symptoms* of editor↔preview drift (#111: origin offset + a
-transcription fallback in the preview). But the two paths still compute subtitles
-independently, so they can still diverge. #110 makes them share ONE resolver.
+### What shipped (session 58)
+- New [`utils/wordRepair.js`](src/renderer/editor/utils/wordRepair.js) — `mergeWordTokens` +
+  `validateWords` moved out of the store verbatim (byte-identical, verified vs HEAD).
+- New [`utils/resolveSubtitles.js`](src/renderer/editor/utils/resolveSubtitles.js) —
+  `resolveClipSubtitles(clip, project, { includeExtras, verbose })`. The shared core: source
+  selection (5-source chain) + extras (gated `includeExtras`) + cleanup + word repair.
+  Extracted verbatim from `initSegments`. Returns SOURCE-ABSOLUTE `{segments, isPreChunked,
+  clipOrigin, source}`. Logs gated behind `verbose` so the editor keeps its `[initSegments]`
+  Sentry breadcrumbs while preview cards resolve silently.
+- [`buildPreviewSubtitles.js`](src/renderer/editor/utils/buildPreviewSubtitles.js) —
+  `resolvePreviewSegments` now calls the core (`includeExtras:false`). Pre-chunked
+  (editor-saved) clips honor the user's chunking as-is; others re-chunk via `segmentWords`.
+  Deleted orphaned `buildPreviewSegments` / `gatherWords` / `isTranscriptionStale`. Added
+  `flattenWordsForChunk` (synthesizes words from text for word-less segments — restores the
+  old gatherWords / setSegmentMode fallback) + a text-clobber guard.
+- [`useSubtitleStore.js`](src/renderer/editor/stores/useSubtitleStore.js) — `initSegments`
+  now calls the core and keeps only the display-shape tail. Tail verified byte-identical to
+  HEAD (display fields, both set() paths, id numbering). Orphaned helper import removed.
 
-### The 4 divergence surfaces (all verified by reading the code this session)
-The editor's `initSegments` ([useSubtitleStore.js:365-627](src/renderer/editor/stores/useSubtitleStore.js#L365)) does work the preview's `resolvePreviewSegments` ([buildPreviewSubtitles.js](src/renderer/editor/utils/buildPreviewSubtitles.js)) skips:
-1. **Source selection** — editor uses a 5-source priority chain (saved → clip.transcription
-   → pipeline sub1 → legacy → project.transcription); preview now has a fallback but
-   different ordering (prefers sub1).
-2. **Extras merge** — editor pulls source-wide `project.transcription` for clip *extends*
-   ([:469-500](src/renderer/editor/stores/useSubtitleStore.js#L469)). EDITOR-ONLY — preview
-   shows the saved clip range, never needs extends. Gate behind a flag.
-3. **Cleanup + word repair** — editor filters mega-segments, dedups overlapping segments,
-   dedups repeated words ([:502-555](src/renderer/editor/stores/useSubtitleStore.js#L502)),
-   then `mergeWordTokens` → `validateWords` → `cleanWordTimestamps` ([:566-571](src/renderer/editor/stores/useSubtitleStore.js#L566)). Preview does none of this.
-4. **Chunking (most visible drift)** — editor HONORS the user's manual chunking for
-   editor-saved clips (`_skipNextSegmentation`, [:621](src/renderer/editor/stores/useSubtitleStore.js#L621)); otherwise re-chunks via `segmentWords(mode)`. The preview RE-CHUNKS
-   editor-saved clips too → a manual split/merge shows different line groupings in preview.
+### HARD GATE — Fega's editor regression pass (walk in `npm run dev`)
+Open the editor on each and confirm subtitles look/behave right + Projects preview matches:
+1. **Fresh pipeline clip** (never edited) — subtitles populate, chunk normally.
+2. **Edited clip** — a manual split/merge persists AND the Projects preview shows the SAME
+   line groupings (this is the main drift #110 fixes — should now be exact).
+3. **Extended clip** — extras still populate the revealed audio (editor-only extras intact).
+4. **Retranscribed clip** — fresh transcription wins, prior edits cleared.
+5. **Legacy flat-array clip** (old save format) — still renders.
+Plus: render-from-Queue/Projects output matches the editor preview.
 
-Already-shared utils (good): `segmentWords` ([utils/segmentWords.js](src/renderer/editor/utils/segmentWords.js)) and `cleanWordTimestamps`
-([utils/cleanWordTimestamps.js](src/renderer/editor/utils/cleanWordTimestamps.js)).
-Currently store-private and must be extracted: `mergeWordTokens`, `validateWords`
-(both in [useSubtitleStore.js](src/renderer/editor/stores/useSubtitleStore.js)).
-
-### Step 1 — extract shared core, route PREVIEW through it (low risk; editor untouched)
-- New `src/renderer/editor/utils/wordRepair.js` — move `mergeWordTokens` + `validateWords`
-  out of the store (extract verbatim; update the store to import them).
-- New `src/renderer/editor/utils/resolveSubtitles.js` — pure
-  `resolveClipSubtitles(clip, project, { includeExtras })` returning cleaned,
-  SOURCE-ABSOLUTE segments + an `isPreChunked` flag (true for editor-saved). Encapsulates
-  divergence surfaces 1 + (optional) 2 + 3, extracted verbatim from `initSegments`.
-- Rewrite `resolvePreviewSegments` to call it with `includeExtras: false`, then for display:
-  if `isPreChunked` → honor boundaries as-is; else → `segmentWords(mode)`; then shift to
-  clip-relative (subtract `clip.startTime`) + strip punctuation.
-- **Verify:** a clip with a MANUAL SPLIT shows identical groupings in editor and Projects
-  preview; a transcription-fallback clip looks clean (no mega-segment ghosting); session-56
-  fixes still hold (edited clips + previously-blank clips render).
-
-### Step 2 — route the editor's `initSegments` through the SAME core (the real guarantee)
-- Refactor `initSegments` to call `resolveClipSubtitles(clip, project, { includeExtras: true })`,
-  delete its inline copy of surfaces 1-3, then keep only its tail: format `editSegments`
-  display shape + set `_skipNextSegmentation = isPreChunked`.
-- **Behavior-preserving:** the core was extracted FROM `initSegments`, so editor output must
-  be identical. This is what structurally prevents future drift.
-- **Editor regression pass (HARD GATE) — walk all in `npm start`:** fresh pipeline clip,
-  edited clip (manual split/merge persists), EXTENDED clip (extras still populate revealed
-  audio), retranscribed clip (fresh wins, prior edits cleared), legacy flat-array clip.
-  Plus render-from-Queue/Projects matches editor preview.
-
-### Files
-`useSubtitleStore.js` (import extracted helpers; Step 2 refactor), new `utils/wordRepair.js`,
-new `utils/resolveSubtitles.js`, `buildPreviewSubtitles.js` (`resolvePreviewSegments`),
-`ProjectsView.js` (already calls the resolver — no change expected).
-
-### Watch out for
-- **Domain discipline:** core returns SOURCE-ABSOLUTE; preview converts to clip-relative at
-  the very edge. `clip.transcription` is clip-relative (offset = clipOrigin); editor-saved
-  sub1 + `project.transcription` are source-absolute (offset 0). Same rules as `initSegments`.
-- **Extras merge is editor-only** — don't let it leak into the preview (gate on `includeExtras`).
-- Extract helpers VERBATIM in Step 1 so Step 2's editor output is byte-identical.
+### Step 3 (follow-up, NOT done) — full chunking parity for never-edited clips
+The only remaining residual: for NON-pre-chunked clips the editor's `setSegmentMode` runs an
+extra cross-word dedup + a second (bounds-less) `cleanWordTimestamps` before `segmentWords`;
+the preview calls `segmentWords` directly on the flattened core words. Can shift a line break
+at segment joins on long never-edited transcripts (timing unaffected). Self-heals on save
+(clip becomes pre-chunked → exact match). To close: extract `setSegmentMode`'s chunk
+pre-pipeline (gather→dedup→clean→segmentWords) into ONE shared helper used by BOTH
+`setSegmentMode` and the preview. Touches a hot editor path → own session + its own
+regression pass. Low user impact; do when convenient.
 
 ---
 
