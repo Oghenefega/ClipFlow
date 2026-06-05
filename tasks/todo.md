@@ -6,19 +6,16 @@
 
 ---
 
-## Active Plan — "Delete subtitle + clip" = option 1 (cut only the span)
+## DONE this session (54) — "Delete subtitle + clip" cut-only-span + #109 refactor
 
-**Status:** IMPLEMENTED — renderer builds clean (bundle index-CAAwcJcI.js, only #73
-chunk-size warning). Awaiting Fega's interactive verify. Not committed yet.
-
-**Implemented** in LeftPanelNew.js: added `getSegmentTimelineRange` import; rewrote the
-"Delete subtitle + clip" onClick — map span source→timeline, splitAtTimeline at both ends,
-deleteNleSegment the isolated middle, plain deleteSegment (no ripple) for the subtitle.
-Diverged from the original handoff plan: built on the live `nleSegments` timeline instead
-of the legacy `audioSegments` path (that path was coordinate-broken AND zeroed the timeline).
-Used plain deleteSegment not rippleDeleteSegment for the subtitle — ripple shifts later subs'
-source values and desyncs them from footage (latent bug in the existing timeline delete path,
-likely part of #93).
+**Status:** SHIPPED + verified by Fega. Commits 28d167c (fix) + 26d5c8a (#109 refactor).
+- Fix: cut only the subtitle/caption span out of the live `nleSegments` timeline
+  (splitAtTimeline ×2 → deleteNleSegment the isolated middle; plain non-ripple
+  sub/cap delete). Was wiping the whole timeline because both handlers deleted the
+  entire overlapping NLE segment.
+- #109: extracted `useEditorStore.deleteSpanWithClip(track, segId)`; both menus delegate.
+  Closed #109 (status: untested — post-refactor not re-clicked).
+- Filed #108 (dead legacy `audioSegments` subsystem — next).
 
 **Decision:** Cut ONLY this subtitle's span out of the live `nleSegments` timeline,
 removing video + subtitle. Abandon the legacy `audioSegments` path entirely.
