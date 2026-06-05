@@ -6,130 +6,73 @@
 
 ---
 
-## DONE this session (54) — "Delete subtitle + clip" cut-only-span + #109 refactor
+## NEXT SESSION — #110: unify editor + preview subtitle data path (Step 1 + 2)
 
-**Status:** SHIPPED + verified by Fega. Commits 28d167c (fix) + 26d5c8a (#109 refactor).
-- Fix: cut only the subtitle/caption span out of the live `nleSegments` timeline
-  (splitAtTimeline ×2 → deleteNleSegment the isolated middle; plain non-ripple
-  sub/cap delete). Was wiping the whole timeline because both handlers deleted the
-  entire overlapping NLE segment.
-- #109: extracted `useEditorStore.deleteSpanWithClip(track, segId)`; both menus delegate.
-  Closed #109 (status: untested — post-refactor not re-clicked).
-- Filed #108 (dead legacy `audioSegments` subsystem — next).
+**Status:** APPROVED by Fega. Do BOTH steps in one fresh session (he asked to combine
+them). Not started. This touches the editor's working `initSegments` path, so treat the
+editor regression pass as a hard gate, not a formality.
 
-**Decision:** Cut ONLY this subtitle's span out of the live `nleSegments` timeline,
-removing video + subtitle. Abandon the legacy `audioSegments` path entirely.
+### Why (context from session 56)
+Session 56 fixed the *symptoms* of editor↔preview drift (#111: origin offset + a
+transcription fallback in the preview). But the two paths still compute subtitles
+independently, so they can still diverge. #110 makes them share ONE resolver.
 
-**Root cause of current broken button** (LeftPanelNew.js:967–994):
-- Calls `rippleDeleteAudioSegment` (useEditorStore.js:367) — the ONLY caller. The live
-  timeline is `nleSegments`, not `audioSegments` (legacy, never rendered).
-- Overlap check (LeftPanelNew.js:977) mixes spaces: clip-relative `audioSegments`
-  (start at 0) vs source-absolute `editSegments` (useSubtitleStore.js:443). On mid-source
-  clips it misfires; when it hits the lone segment, rippleDeleteAudioSegment zeroes the
-  whole timeline (useEditorStore.js:374–380) → "wipes the timeline" symptom.
+### The 4 divergence surfaces (all verified by reading the code this session)
+The editor's `initSegments` ([useSubtitleStore.js:365-627](src/renderer/editor/stores/useSubtitleStore.js#L365)) does work the preview's `resolvePreviewSegments` ([buildPreviewSubtitles.js](src/renderer/editor/utils/buildPreviewSubtitles.js)) skips:
+1. **Source selection** — editor uses a 5-source priority chain (saved → clip.transcription
+   → pipeline sub1 → legacy → project.transcription); preview now has a fallback but
+   different ordering (prefers sub1).
+2. **Extras merge** — editor pulls source-wide `project.transcription` for clip *extends*
+   ([:469-500](src/renderer/editor/stores/useSubtitleStore.js#L469)). EDITOR-ONLY — preview
+   shows the saved clip range, never needs extends. Gate behind a flag.
+3. **Cleanup + word repair** — editor filters mega-segments, dedups overlapping segments,
+   dedups repeated words ([:502-555](src/renderer/editor/stores/useSubtitleStore.js#L502)),
+   then `mergeWordTokens` → `validateWords` → `cleanWordTimestamps` ([:566-571](src/renderer/editor/stores/useSubtitleStore.js#L566)). Preview does none of this.
+4. **Chunking (most visible drift)** — editor HONORS the user's manual chunking for
+   editor-saved clips (`_skipNextSegmentation`, [:621](src/renderer/editor/stores/useSubtitleStore.js#L621)); otherwise re-chunks via `segmentWords(mode)`. The preview RE-CHUNKS
+   editor-saved clips too → a manual split/merge shows different line groupings in preview.
 
-**Fix (single file — LeftPanelNew.js ~967–994, rewrite the onClick):**
-1. Map subtitle source-abs `[startSec,endSec]` → timeline via `sourceToTimeline`.
-2. `splitAtTimeline(tlStart)` then `splitAtTimeline(tlEnd)` — isolate the span.
-3. `deleteNleSegment(middleSegId)` — gap ripple-closes (timeline derives position; no recut).
-4. `rippleDeleteSegment(seg.id)` — remove the subtitle.
+Already-shared utils (good): `segmentWords` ([utils/segmentWords.js](src/renderer/editor/utils/segmentWords.js)) and `cleanWordTimestamps`
+([utils/cleanWordTimestamps.js](src/renderer/editor/utils/cleanWordTimestamps.js)).
+Currently store-private and must be extracted: `mergeWordTokens`, `validateWords`
+(both in [useSubtitleStore.js](src/renderer/editor/stores/useSubtitleStore.js)).
 
-**No store changes.** `rippleDeleteAudioSegment` becomes fully dead → flag for #40, don't
-delete this session.
+### Step 1 — extract shared core, route PREVIEW through it (low risk; editor untouched)
+- New `src/renderer/editor/utils/wordRepair.js` — move `mergeWordTokens` + `validateWords`
+  out of the store (extract verbatim; update the store to import them).
+- New `src/renderer/editor/utils/resolveSubtitles.js` — pure
+  `resolveClipSubtitles(clip, project, { includeExtras })` returning cleaned,
+  SOURCE-ABSOLUTE segments + an `isPreChunked` flag (true for editor-saved). Encapsulates
+  divergence surfaces 1 + (optional) 2 + 3, extracted verbatim from `initSegments`.
+- Rewrite `resolvePreviewSegments` to call it with `includeExtras: false`, then for display:
+  if `isPreChunked` → honor boundaries as-is; else → `segmentWords(mode)`; then shift to
+  clip-relative (subtract `clip.startTime`) + strip punctuation.
+- **Verify:** a clip with a MANUAL SPLIT shows identical groupings in editor and Projects
+  preview; a transcription-fallback clip looks clean (no mega-segment ghosting); session-56
+  fixes still hold (edited clips + previously-blank clips render).
 
-**Verify:** mid-source clip → "Delete subtitle + clip" on a middle line → that span gone,
-clip shortens by ~span, neighbors ripple-close, undo restores. Test on freshly-cut clip
-(editor-saved clips still hit #78 empty-panel).
-
----
-
-## Active Plan — #78 + #84: subtitle persistence (one root cause)
-
-**Status:** IMPLEMENTED — renderer builds clean, main-process syntax OK. Awaiting Fega's
-manual verification (subtitle edit→save→reopen persistence can only be confirmed
-interactively). Not committed yet.
-
-### Implemented (6 changes)
-- [x] **1. Save filter** — `useEditorStore.js:641` `_doSilentSave`: `persistedSubs`
-  filters `editSegments` to current `nleSegments` source ranges before writing `sub1`.
-- [x] **2. Load priority** — `useSubtitleStore.js:380` `initSegments`: editor-saved
-  `sub1` (`_format`) wins over `clip.transcription`. `effectiveSource` updated.
-- [x] **3. Skip re-chunk on saved load (the #78 crux)** — `initSegments` populates
-  `editSegments` directly from saved subs + sets `_skipNextSegmentation`; `setSegmentMode`
-  honors the flag so applyTemplate's open-time call doesn't algorithmically re-chunk away
-  manual splits/merges/timestamps. Explicit later mode-change still re-chunks.
-- [x] **4. Retranscribe reset** — `main.js:1246` (disk) + `EditorLayout.js:560`
-  (in-memory) clear `sub1`/`_format` so a redo wins.
-- [x] **5. render.js mirror** — editor-saved `sub1` preferred over transcription.
-- [x] **6. Migration** — `subtitle-pollution-migration.js`, wired into `main.js` startup,
-  gated by `subtitlePollutionRepairComplete`; filters polluted `sub1` to clip ranges.
-
-### Manual verification still owed (Fega)
-- Edit text → save → close → reopen → text persists.
-- Split + merge a segment → save → reopen → splits/merges persist (this is what change #3 buys).
-- Change segmentMode → save → reopen → mode persists; then explicitly toggle mode → re-chunks.
-- Retranscribe → fresh transcription wins, prior edits cleared.
-- Fresh never-edited pipeline clip → unchanged behavior.
-- Render from Queue/Projects matches editor preview.
-- Existing polluted clips (e.g. the #84 RL clip) load clip-range subs after migration runs once.
-
-### Original root cause / design notes (for reference)
-
-### Root cause (verified, trace-confirmed)
-`editSegments` carries two different things: (a) the clip's real subtitles, and
-(b) source-wide "extra" segments merged in for extend-coverage
-([useSubtitleStore.js:446-465](src/renderer/editor/stores/useSubtitleStore.js:446)).
-On save, **both** are dumped into `clip.subtitles.sub1` with `_format:"source-absolute"`
-([useEditorStore.js:641](src/renderer/editor/stores/useEditorStore.js:641)) → `sub1`
-gets the whole recording = **#84 pollution**. Because `sub1` is then untrustworthy,
-both the reopen loader ([useSubtitleStore.js:380-396](src/renderer/editor/stores/useSubtitleStore.js:380))
-and render ([render.js:141-188](src/main/render.js:141)) prefer raw `clip.transcription`
-— which the editor never updates — so **user edits in `sub1` are silently ignored = #78.**
-The `_format` marker is written **only** by editor save, so it cleanly distinguishes
-"user-edited" (authoritative) from "pipeline-born" (transcription wins).
-
-### Design decision (approved)
-Persist the **current `nleSegments` range** (not the original clip range) so edits to
-extended audio survive. Known/intended tradeoff: shrinking past an edited subtitle then
-saving drops that edit (re-derived from raw transcription if re-extended).
-
-### Steps
-1. **Stop the pollution (#84)** — `useEditorStore.js:641` save: filter `editSegments`
-   to segments overlapping the union of `nleSegments` `[sourceStart, sourceEnd]` before
-   writing `sub1`. Predicate only (no remap); keep source-absolute. Extras re-derive
-   live on open.
-2. **Make saved edits win (#78)** — `useSubtitleStore.js:380` load priority becomes:
-   editor-saved `sub1` (`_format === "source-absolute"`) → `clip.transcription` (if not
-   stale) → pipeline `sub1` (no `_format`) → `project.transcription`. Fresh pipeline
-   clips (no `_format`) unchanged.
-3. **Retranscribe resets** — `EditorLayout.js:560`: `updatedClip` clears `subtitles`
-   (`{sub1:[],sub2:[]}`, drop `_format`) before `initSegments`, and persist the clear
-   via `projectUpdateClip` so disk matches and the new transcription becomes truth.
-4. **render.js mirror** — `render.js:141-188`: reorder to prefer `_format` sub1 over
-   `clip.transcription`, matching step 2.
-5. **Migration (main.js)** — for clips with `_format:"source-absolute"` sub1 spanning
-   well past their range, filter `sub1` to the clip's `nleSegments` ranges (same
-   predicate as step 1) — preserves in-range edits, drops only pollution. Fallback:
-   clear `sub1` if a clip has no `nleSegments`. (pipeline.md hard rule: every shape
-   change gets a migration; must handle fresh installs.)
-
-### Verification criteria
-- Edit text / split / merge a subtitle → save → close → reopen → edit persists exactly.
-- Extend clip → edit revealed subtitle → save → reopen → persists.
-- Shrink clip → save → reopen → out-of-range subs gone, in-range intact (intended).
-- Retranscribe → fresh transcription wins, prior edits cleared.
-- Fresh never-edited pipeline clip → behaves as today (transcription used).
-- Render from Queue/Projects matches editor preview (no empty-subtitle renders).
-- Inspect `project.json`: an edited clip's `sub1` spans only its `nleSegments` range.
-- Migration: existing polluted clips load clip-range subs, no whole-recording spans.
-- `npm run build:renderer` clean + `npm start` manual walk of the above.
+### Step 2 — route the editor's `initSegments` through the SAME core (the real guarantee)
+- Refactor `initSegments` to call `resolveClipSubtitles(clip, project, { includeExtras: true })`,
+  delete its inline copy of surfaces 1-3, then keep only its tail: format `editSegments`
+  display shape + set `_skipNextSegmentation = isPreChunked`.
+- **Behavior-preserving:** the core was extracted FROM `initSegments`, so editor output must
+  be identical. This is what structurally prevents future drift.
+- **Editor regression pass (HARD GATE) — walk all in `npm start`:** fresh pipeline clip,
+  edited clip (manual split/merge persists), EXTENDED clip (extras still populate revealed
+  audio), retranscribed clip (fresh wins, prior edits cleared), legacy flat-array clip.
+  Plus render-from-Queue/Projects matches editor preview.
 
 ### Files
-`useEditorStore.js` (save), `useSubtitleStore.js` (load), `EditorLayout.js`
-(retranscribe), `render.js` (render-from-disk), `main.js` (migration).
+`useSubtitleStore.js` (import extracted helpers; Step 2 refactor), new `utils/wordRepair.js`,
+new `utils/resolveSubtitles.js`, `buildPreviewSubtitles.js` (`resolvePreviewSegments`),
+`ProjectsView.js` (already calls the resolver — no change expected).
 
-### Session-48 context (kept for reference)
-#103 closed not-reproducible; spun out #104 (done), #105 (open sliver design call).
+### Watch out for
+- **Domain discipline:** core returns SOURCE-ABSOLUTE; preview converts to clip-relative at
+  the very edge. `clip.transcription` is clip-relative (offset = clipOrigin); editor-saved
+  sub1 + `project.transcription` are source-absolute (offset 0). Same rules as `initSegments`.
+- **Extras merge is editor-only** — don't let it leak into the preview (gate on `includeExtras`).
+- Extract helpers VERBATIM in Step 1 so Step 2's editor output is byte-identical.
 
 ---
 
