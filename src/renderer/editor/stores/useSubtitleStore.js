@@ -12,6 +12,13 @@ import useLayoutStore from "./useLayoutStore";
 import useEditorStore from "./useEditorStore";
 import usePlaybackStore from "./usePlaybackStore";
 
+// Collision-proof segment ID. Date.now() alone has only ms resolution, so two
+// mints in the same millisecond produced duplicate IDs (#98) — the monotonic
+// counter guarantees uniqueness no matter how fast operations fire. IDs are
+// per-session (initSegments re-keys on load), so the counter needn't persist.
+let _segIdSeq = 0;
+const _newSegId = () => "seg_" + Date.now() + "_" + (_segIdSeq++).toString(36);
+
 // Format a source-absolute timestamp for display (relative to clip origin)
 function _displayFmt(sourceTimeSec, origin) {
   return fmtTime(sourceTimeSec - (origin || 0));
@@ -453,7 +460,7 @@ const useSubtitleStore = create((set, get) => ({
       const origin = get()._sourceOrigin || 0;
       const newSegs = inputWords.map((word, i) => ({
         ...seg,
-        id: i === 0 ? seg.id : Date.now() + i,
+        id: i === 0 ? seg.id : _newSegId(),
         text: word,
         startSec: seg.startSec + i * perWord,
         endSec: seg.startSec + (i + 1) * perWord,
@@ -551,7 +558,7 @@ const useSubtitleStore = create((set, get) => ({
     get()._pushUndo();
     const origin = get()._sourceOrigin || 0;
     const newSeg = {
-      id: "seg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      id: _newSegId(),
       startSec,
       endSec,
       start: _displayFmt(startSec, origin),
@@ -625,7 +632,7 @@ const useSubtitleStore = create((set, get) => ({
     const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec + 0.01) : [];
     const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec - 0.01) : [];
     const seg1 = { ...seg, endSec: splitSec, end: _displayFmt(splitSec, origin), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
-    const seg2 = { ...seg, id: Date.now(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
+    const seg2 = { ...seg, id: _newSegId(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     set({ editSegments: next, selectedWordInfo: null, activeSegId: seg1.id });
@@ -662,7 +669,7 @@ const useSubtitleStore = create((set, get) => ({
       // Use actual word-level timestamps
       wordSegs = seg.words.map((w, i) => ({
         ...seg,
-        id: Date.now() + i,
+        id: _newSegId(),
         startSec: w.start,
         endSec: w.end,
         start: _displayFmt(w.start, origin),
@@ -686,7 +693,7 @@ const useSubtitleStore = create((set, get) => ({
       const perWord = totalDur / textWords.length;
       wordSegs = textWords.map((w, i) => ({
         ...seg,
-        id: Date.now() + i,
+        id: _newSegId(),
         startSec: seg.startSec + i * perWord,
         endSec: seg.startSec + (i + 1) * perWord,
         start: _displayFmt(seg.startSec + i * perWord, origin),
@@ -733,7 +740,7 @@ const useSubtitleStore = create((set, get) => ({
     if (endSec - startSec < 0.05) endSec = startSec + 0.1;
 
     const origin = get()._sourceOrigin || 0;
-    const newId = Date.now();
+    const newId = _newSegId();
     const newSeg = {
       id: newId,
       start: _displayFmt(startSec, origin),
@@ -904,7 +911,7 @@ const useSubtitleStore = create((set, get) => ({
     // ── Delegate to pure segmentation function (spec v1.1) ──
     const origin = get()._sourceOrigin || 0;
     const rawSegs = segmentWords(cleanedWords, mode).map((seg, i) => ({
-      id: Date.now() + i,
+      id: _newSegId(),
       start: _displayFmt(seg.startSec, origin),
       end: _displayFmt(seg.endSec, origin),
       dur: (seg.endSec - seg.startSec).toFixed(1) + "s",
