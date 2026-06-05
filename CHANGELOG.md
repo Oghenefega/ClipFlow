@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-05 (session 57) — Editor crash hardening: tolerate string-typed subtitle timestamps (Sentry "toFixed is not a function")
+
+### Fixed
+- **Opening certain saved clips crashed the editor with `TypeError: x.toFixed is not a function` in `initSegments` (live Sentry crash, 7 events June 2–5).** A subtitle's start time was persisted as *text* (`"5.2"`) instead of a *number* (`5.2`) on some clips — almost certainly leftover legacy data, since no current write path produces strings (verified: pipeline, transcription, and editor-save all write numbers). When `initSegments` did `startTime + offset`, text + number string-concatenated, and a downstream `.toFixed()` then threw, aborting the editor's subtitle load. Wrapped the segment and word timestamps in `Number()` at the shared `primaryRaw` map — the single point all five subtitle sources converge through — so a stray string parses cleanly (`Number("5.2") === 5.2`; `Number(5.2)` is a no-op for healthy clips). Self-healing: the next Save rewrites that clip's timestamps as clean numbers on disk. Builds on the session-55 fix that switched the editor-saved branch from the display-string `start`/`end` to numeric `startSec`/`endSec` — this hardens the case where `startSec` itself is a string, and extends the guard to all five source branches. Verified with a focused reproduction (string timestamp crashes old code, passes new) plus a clean renderer build. [src/renderer/editor/stores/useSubtitleStore.js]
+
 ## [Unreleased] — 2026-06-05 (session 56) — Projects-tab preview subtitles: fix domain mismatch + add the editor's transcription fallback (#111)
 
 ### Fixed

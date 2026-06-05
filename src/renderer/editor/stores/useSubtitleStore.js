@@ -454,14 +454,20 @@ const useSubtitleStore = create((set, get) => ({
     // ─── Normalize primary segments to source-absolute time ───────────────
     // After this step everything downstream works in source-absolute, so the
     // primary-vs-extras distinction disappears before the cleanup pipeline runs.
+    // Number() guards against a timestamp persisted as a string (e.g. legacy data
+    // where startSec was saved as "5.2" instead of 5.2). "5.2" + sourceOffset
+    // string-concatenates, then a downstream .toFixed() throws — the Sentry
+    // "x.toFixed is not a function" crash in initSegments. All five source branches
+    // converge here, so this is the single choke point that protects every one.
+    // Number("5.2") === 5.2; Number(5.2) is an identity no-op for healthy data.
     const primaryRaw = segments.map((s) => ({
-      start: s.start + sourceOffset,
-      end: s.end + sourceOffset,
+      start: Number(s.start) + sourceOffset,
+      end: Number(s.end) + sourceOffset,
       text: s.text,
       words: (s.words || []).map((w) => ({
         word: w.word,
-        start: (w.start ?? s.start) + sourceOffset,
-        end: (w.end ?? s.end) + sourceOffset,
+        start: Number(w.start ?? s.start) + sourceOffset,
+        end: Number(w.end ?? s.end) + sourceOffset,
         probability: w.probability ?? 1,
       })),
     }));
