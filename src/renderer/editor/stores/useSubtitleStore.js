@@ -24,6 +24,24 @@ function _displayFmt(sourceTimeSec, origin) {
   return fmtTime(sourceTimeSec - (origin || 0));
 }
 
+// Build an even-split word-list from a segment's text across its time range. The viewer
+// and the video exporter draw karaoke word-by-word from words[] (segment text is only a
+// fallback used when words is empty), so a manually-created segment with words:[] renders
+// without a highlight and is dropped when merged into a segment that has words. Giving
+// manual subtitles a synthesized word-list keeps them behaving like real ones everywhere.
+function _wordsFromText(startSec, endSec, text) {
+  const tw = (text || "").trim().split(/\s+/).filter(Boolean);
+  if (tw.length === 0) return [];
+  const span = Math.max(0, (endSec || 0) - (startSec || 0));
+  const per = span / tw.length;
+  return tw.map((w, i) => ({
+    word: w,
+    start: startSec + i * per,
+    end: startSec + (i + 1) * per,
+    probability: 1,
+  }));
+}
+
 // Map a source-absolute segment list through the active NLE segments into
 // timeline coordinates (clip-range filtered, 0-based). Shared by the preview
 // overlay path and the left panel (#66/#77). Returns the input unchanged when
@@ -437,9 +455,16 @@ const useSubtitleStore = create((set, get) => ({
   updateSegmentText: (segId, text) => {
     get()._pushUndo();
     set((s) => ({
-      editSegments: s.editSegments.map(seg =>
-        seg.id === segId ? { ...seg, text } : seg
-      ),
+      editSegments: s.editSegments.map(seg => {
+        if (seg.id !== segId) return seg;
+        // A manually-created segment has words:[]; give it an even-split word-list the
+        // moment it gets text so it renders with a karaoke highlight and survives a merge.
+        // Real segments already carry accurate word timings, so leave those untouched.
+        const words = (!seg.words || seg.words.length === 0)
+          ? _wordsFromText(seg.startSec, seg.endSec, text)
+          : seg.words;
+        return { ...seg, text, words };
+      }),
     }));
   },
 
@@ -565,7 +590,7 @@ const useSubtitleStore = create((set, get) => ({
       end: _displayFmt(endSec, origin),
       dur: (endSec - startSec).toFixed(1) + "s",
       text: text || "",
-      words: [],
+      words: _wordsFromText(startSec, endSec, text),
     };
     set((s) => ({
       editSegments: [...s.editSegments, newSeg].sort((a, b) => a.startSec - b.startSec),
@@ -647,7 +672,11 @@ const useSubtitleStore = create((set, get) => ({
     const seg = editSegments[idx];
     const next = editSegments[idx + 1];
     const origin = get()._sourceOrigin || 0;
-    const merged = { ...seg, endSec: next.endSec, end: _displayFmt(next.endSec, origin), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [...(seg.words || []), ...(next.words || [])] };
+    // Synthesize a word-list for any wordless-but-texted operand (a manual subtitle saved
+    // before it had words) so the merged words[] always covers the full merged text —
+    // otherwise the manual word survives in .text but vanishes from the karaoke render.
+    const _w = (sg) => (sg.words && sg.words.length > 0) ? sg.words : _wordsFromText(sg.startSec, sg.endSec, sg.text);
+    const merged = { ...seg, endSec: next.endSec, end: _displayFmt(next.endSec, origin), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [..._w(seg), ..._w(next)] };
     const arr = [...editSegments];
     arr.splice(idx, 2, merged);
     set({ editSegments: arr });
