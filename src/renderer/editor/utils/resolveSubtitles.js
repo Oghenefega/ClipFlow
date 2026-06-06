@@ -185,7 +185,11 @@ export function resolveClipSubtitles(clip, project, { includeExtras = false, ver
   // alongside proper sentence-level segments. The mega-segment has compressed
   // word timestamps that cause ghost subtitles racing ahead during pauses.
   const clipDur = clip.endTime && clip.startTime ? (clip.endTime - clip.startTime) : (clip.duration || 0);
-  const filteredSegments = unionRaw.length > 1
+  // #115: editor-saved subs are the user's authoritative, already-curated copy —
+  // skip the whisperx-artifact cleanups (mega-filter here, segment dedup + empty-drop
+  // below) that would delete legit hand-split short segments or new blank ones. Raw
+  // transcription still gets the full cleanup on its first load (hasEditorSavedSubs false).
+  const filteredSegments = (!hasEditorSavedSubs && unionRaw.length > 1)
     ? unionRaw.filter((s) => {
         const segDur = (s.end || 0) - (s.start || 0);
         const wordCount = s.words?.length || 0;
@@ -200,15 +204,23 @@ export function resolveClipSubtitles(clip, project, { includeExtras = false, ver
   // Remove overlapping duplicate segments — whisperx sometimes emits two segments
   // covering the same time range with the same words
   const stripPunct = (t) => (t || "").toLowerCase().replace(/[.,!?;:'"]+/g, "").trim();
-  const deduped = [];
-  for (const s of filteredSegments) {
-    const overlap = deduped.find(
-      (d) => Math.abs(d.start - s.start) < 0.3 && Math.abs(d.end - s.end) < 0.3
-    );
-    if (!overlap) deduped.push(s);
-  }
-  if (deduped.length < filteredSegments.length) {
-    log(`[initSegments] Removed ${filteredSegments.length - deduped.length} duplicate overlapping segments`);
+  // #115: skip the segment dedup for editor-saved data — a hand-split short phrase
+  // ("This guy" → "This" + "guy" ~0.12-0.24s apart) trips the 0.3s start+end test and
+  // the second half is silently dropped, then lost permanently on the next autosave.
+  let deduped;
+  if (hasEditorSavedSubs) {
+    deduped = filteredSegments;
+  } else {
+    deduped = [];
+    for (const s of filteredSegments) {
+      const overlap = deduped.find(
+        (d) => Math.abs(d.start - s.start) < 0.3 && Math.abs(d.end - s.end) < 0.3
+      );
+      if (!overlap) deduped.push(s);
+    }
+    if (deduped.length < filteredSegments.length) {
+      log(`[initSegments] Removed ${filteredSegments.length - deduped.length} duplicate overlapping segments`);
+    }
   }
 
   // Remove consecutive duplicate words within segments — whisperx sometimes
@@ -272,7 +284,10 @@ export function resolveClipSubtitles(clip, project, { includeExtras = false, ver
         words: repairedWords, // word.start/end are SOURCE-ABSOLUTE
       };
     })
-    .filter((s) => s.words.length > 0 || (s.text || "").trim().length > 0); // Drop empty segments from boundary trim
+    // #115: keep blank segments for editor-saved data — a newly-created (still-empty)
+    // subtitle must persist so the user can type into it on reopen. Raw transcription
+    // still drops empties left by boundary trim.
+    .filter((s) => hasEditorSavedSubs || s.words.length > 0 || (s.text || "").trim().length > 0);
 
   return {
     segments: resolvedSegments,
