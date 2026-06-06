@@ -127,6 +127,7 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 ## Karaoke / Word Highlighting
 
 - Drive karaoke from **word timestamps**, never segment boundaries. Build a flat global word index across all segments; the active word = the most recent word that started; derive the containing segment from the word.
+- **`words[]` must always cover the segment's `text` (or be empty).** The viewer AND the burned-in exporter render word-by-word from `words[]`; `text` is only the fallback used when `words` is empty. A *partial* `words[]` silently drops the missing word from the render while the panel/timeline (which read `text`) still show it. Any op that sets text or resizes a segment must keep them in sync — manual/blank segments get even-split synth words via `_wordsFromText`. (#116; resize variant = #117)
 - Word effects (glow/text-shadow) are **per-span (per-word)**, never per-container — the active word's glow color = `highlightColor`.
 - On **word click**, highlight THAT word immediately from the explicit selection — don't wait for playback time to catch up (causes off-by-one).
 
