@@ -542,18 +542,29 @@ const useSubtitleStore = create((set, get) => ({
           const startChanged = Math.abs(delta) > 0.001;
 
           if (durChanged) {
-            // Trim operation — duration changed, one edge moved
-            // Filter out words fully outside new boundaries, clamp the rest
-            updatedWords = updatedWords
-              .filter(w => {
-                // Keep word if any part falls within the new boundaries
-                return w.end > startSec && w.start < endSec;
-              })
-              .map(w => ({
+            // Trim/extend — duration changed (#117). NEVER drop words: a partial
+            // words[] silently desyncs from text and the dropped word vanishes from
+            // the render (PreviewOverlays draws from words[] when non-empty), and the
+            // loss is irreversible via the handle. If no word falls fully outside the
+            // new bounds, clamp each word (preserves transcribed audio-sync timing).
+            // Only when a trim WOULD cut a word off entirely do we re-space all words
+            // proportionally into the new range — the lone way to keep that word
+            // without inverting it; lossless and reversible.
+            const wouldDrop = updatedWords.some(w => !(w.end > startSec && w.start < endSec));
+            if (wouldDrop) {
+              const scale = oldDur > 0 ? newDur / oldDur : 1;
+              updatedWords = updatedWords.map(w => ({
+                ...w,
+                start: Math.max(startSec, Math.min(endSec, startSec + (w.start - oldStart) * scale)),
+                end: Math.max(startSec, Math.min(endSec, startSec + (w.end - oldStart) * scale)),
+              }));
+            } else {
+              updatedWords = updatedWords.map(w => ({
                 ...w,
                 start: Math.max(w.start, startSec),
                 end: Math.min(w.end, endSec),
               }));
+            }
           } else if (startChanged) {
             // Move operation — same duration, both edges shifted by delta
             updatedWords = updatedWords.map(w => ({
