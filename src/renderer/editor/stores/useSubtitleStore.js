@@ -565,6 +565,16 @@ const useSubtitleStore = create((set, get) => ({
                 end: Math.min(w.end, endSec),
               }));
             }
+            // #118: pin the outer words to the block edges so neither end is a
+            // dead zone. Extending the left edge earlier (startSec shrinks) leaves
+            // the first word's start at its old, later value, so the block is on
+            // screen with nothing highlighted until then; the right edge has the
+            // mirror trailing gap. Force the first word to start at the block start
+            // and the last word to end at the block end. Interior words keep their
+            // real audio-synced timing, and text/words stay in sync (timings only).
+            updatedWords[0] = { ...updatedWords[0], start: startSec };
+            const lastIdx = updatedWords.length - 1;
+            updatedWords[lastIdx] = { ...updatedWords[lastIdx], end: endSec };
           } else if (startChanged) {
             // Move operation — same duration, both edges shifted by delta
             updatedWords = updatedWords.map(w => ({
