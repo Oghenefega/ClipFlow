@@ -6,15 +6,43 @@
 
 ---
 
-## No active plan
+## Active plan — Recordings tab: two-line cards so filenames are readable
 
-Session 63 shipped & closed **#118** (resize dead zone), **#119** (per-word "teeth" +
-per-word placement), and **#120** (inter-word spaces in viewer + export) — all
-Fega-verified except #120's visual confirm (closed `status: untested`; confirm via a
-render or with the word-pop animation off, then drop the label).
+**Problem.** On the Recordings tab each recording is a single horizontal row where the
+filename (`flex:1`) competes with 5 fixed-size elements (checkbox, game-tag pill, TEST
+chip, size, status badge). At ~7 columns (`PILL_MIN = 200`) each card is only ~200px, so
+the name gets ~6–8 chars → "AR Da…". Fega can't tell Day 17 from Day 20. Approved
+direction (session 64): **two-line cards**. Scoped precursor to the larger Recordings
+redesign (which stays a separate conversation).
 
-Next natural work is the same `words[]`/`text` subtitle family — see GitHub: #95, #107,
-#87, #101, #89, #84. Pick one and plan it here before coding.
+**File impact:** `src/renderer/views/UploadView.js` ONLY. No store / IPC / data / migration.
+- `PILL_MIN` (line 87): 200 → ~270 (≈5 columns).
+- Card render block (~1140–1240): restructure to `[checkbox] + [column: name line / metadata line]`.
+
+**Layout.**
+- Card: row, add `borderLeft: 3px solid <gameColor>` — the colored bar now IDs the game
+  (replacing the tag pill's color job).
+  - Checkbox — unchanged, `flexShrink:0`.
+  - Inner column (`flex:1; minWidth:0`):
+    - **Line 1 — filename** (hero): fontSize 13, weight 600, up to 2 lines
+      (`-webkit-line-clamp:2`), `title={full original filename}` for hover.
+    - **Line 2 — metadata** (muted, ~10px): size · TEST chip · status badge
+      (✓clips / DONE-× / progress%). Drop the redundant "AR" text pill (name already
+      starts with the tag; left color bar carries the game ID).
+- Preserve ALL existing behavior: card `onClick` toggles selection; TestChip + DONE/reset
+  "×" keep their `stopPropagation`; done / generating / selected styling unchanged.
+
+**Steps.** (1) bump PILL_MIN→270; (2) restructure card JSX into checkbox + 2-line column,
+move TEST/size/status to line 2, add left color border; (3) add `title` (full
+`current_filename`) on the name; (4) `npm run build:renderer` + relaunch + visual check.
+
+**Verification (Fega, plain).** Open Recordings → names read on their own line, long names
+wrap/show fully; game color still visible as a left bar; TEST toggle, DONE ×, size, ✓clip
+count all still present + working; hover a name shows the full original filename; ~5
+columns; clicking a card still selects it.
+
+**Out of scope (next conversation):** the larger Recordings redesign — filters, sort,
+search, thumbnails, bulk actions, overall layout.
 
 ---
 
