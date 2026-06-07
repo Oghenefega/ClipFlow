@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-07 (session 63) — #118 + #119 + #120: subtitle word-timing polish — no dead zone on resize, draggable per-word "teeth", real inter-word spaces
+
+### Added
+- **Draggable per-word "teeth" on the selected timeline subtitle block (#119).** Each internal word boundary on a selected subtitle block now shows a small draggable tick (top knob + divider line); drag it to set exactly when the next word's karaoke highlight fires. It sets `words[i].end = words[i+1].start` to the dragged time, clamped so neither adjacent word collapses below a floor, with the block edges, every other word, and the segment `text` untouched — so word/text stay in sync (the #118 edge-pins are preserved) and it's undoable. New `setWordBoundary` store action plus the timeline UI; the per-word timing data already existed, so this is a UI layer + one action with no data-model change. Teeth deliberately hide on a block whose words were split by an audio cut (mapped word count ≠ source count) so a positional boundary index can never edit the wrong word. Verified by a 31/31 synthetic harness (clamp between neighbors, text/edge sync, invalid-index no-op, undo) + Fega hands-on. [src/renderer/editor/stores/useSubtitleStore.js, src/renderer/editor/components/timeline/SegmentBlock.js, src/renderer/editor/components/TimelinePanelNew.js, src/renderer/editor/components/timeline/timelineConstants.js]
+
+### Fixed
+- **Extending a subtitle block's left edge left the first word un-highlighted until its original start — a visible "dead zone" (#118).** On a left-extend, `updateSegmentTimes` clamped each word to the new bounds, but `Math.max(word.start, newStart)` kept the first word's start at its old (later) value, so the subtitle appeared on screen with nothing highlighted until then (with a mirror trailing gap on a right-extend). Fixed by pinning the outer words to the block edges after the resize re-time — `words[0].start = blockStart` and `words[last].end = blockEnd` — so the first word highlights the instant the block appears and the last word holds to the end; interior words keep their real audio-synced timing, the move path is unchanged, and text/words stay in sync. Verified by a 36/36 synthetic harness (extend left/right, trim, move, would-drop) + Fega hands-on. [src/renderer/editor/stores/useSubtitleStore.js]
+- **Subtitle words ran together with no space between them in the viewer and the burned-in export (#120).** Word-by-word rendering put the inter-word separator space as a trailing character INSIDE each word's `display:inline-block` span, where browsers collapse trailing whitespace — so adjacent words touched ("andreconnecting"). Fixed in BOTH renderers (the editor/Projects preview and the offscreen export renderer) by emitting the space as a sibling text node between the word spans instead of inside them, so rendered videos get real spaces too. The text-fallback path (which `.join(" ")`s) was already correct. Note: while the word-pop/scale animation is on, the highlighted word scales up over the gap and visually masks the space, so the fix is most visible with the pop off or in a render — #120 was closed `status: untested` pending that visual confirmation. [src/renderer/editor/components/PreviewOverlays.js, public/subtitle-overlay/overlay-renderer.js]
+
+### Changed
+- **The selected timeline subtitle block now lays each word out in its own time-section** instead of bundling the whole text at the left edge, so the words line up under the teeth that divide them. Only the selected block does this (others keep the single left-aligned label), and each tooth now sits where the next word begins so it's flush with the word sections. [src/renderer/editor/components/timeline/SegmentBlock.js]
+
+### Notes
+- **Left the viewer's character-limit line-chunking (~16-char timed reveal) as-is, per Fega's call.** A long 3-word subtitle still reveals its last word on a second "line" when the playhead reaches it (e.g. "and reconnecting" then "man") — that's the intended progressive-caption look, not a bug. Only the missing-space rendering was changed.
+
 ## [Unreleased] — 2026-06-07 (session 62) — #117: trimming a subtitle block's edge no longer deletes a word
 
 ### Fixed
