@@ -399,17 +399,17 @@ function TranscriptTab() {
   const [matchIdx, setMatchIdx] = useState(0);
   const [editingWord, setEditingWord] = useState(null); // { globalIdx }
 
-  // Build flat word list with segment context for editing
-  // Each word carries segId + segWordIdx for editing, plus segBreakAfter for paragraph breaks
+  // Build flat word list with segment context for editing.
+  // Each word carries segId + segWordIdx so a clicked/edited word maps back to its segment.
+  // No paragraph breaks — the transcript flows as one continuous, naturally-wrapping paragraph.
   const allWords = useMemo(() => {
     const words = [];
-    originalSegments.forEach((seg, segIndex) => {
+    originalSegments.forEach((seg) => {
       let segWordIdx = 0;
       if (seg.words && seg.words.length > 0) {
-        seg.words.forEach((w, wi) => {
+        seg.words.forEach((w) => {
           words.push({
             ...w, segId: seg.id, segWordIdx: segWordIdx++,
-            segBreakAfter: wi === seg.words.length - 1 && segIndex < originalSegments.length - 1,
           });
         });
       } else {
@@ -423,7 +423,6 @@ function TranscriptTab() {
             end: seg.startSec + (i + 1) * perWord,
             segId: seg.id,
             segWordIdx: segWordIdx++,
-            segBreakAfter: i === textWords.length - 1 && segIndex < originalSegments.length - 1,
           });
         });
       }
@@ -562,7 +561,7 @@ function TranscriptTab() {
           >
             {w.word}
           </span>
-          {w.segBreakAfter ? <><br /><br /></> : (idx < allWords.length - 1 ? " " : "")}
+          {idx < allWords.length - 1 ? " " : ""}
         </React.Fragment>
       );
     });

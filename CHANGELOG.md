@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-07 (session 64) — Transcript tab reads as a flowing paragraph again
+
+### Fixed
+- **The Transcript tab rendered one subtitle chunk per line instead of a flowing paragraph (on edited/saved clips).** The transcript reads from `originalSegments` and inserted a double line-break after every segment — fine when those segments are whole sentences (fresh transcription), but for editor-saved clips `originalSegments` holds the user's final 1–3 word chunks, so every couple of words got its own line and the panel looked like the Edit subtitles view. Fixed by flowing all words together with spaces as one continuous, naturally-wrapping paragraph and removing the per-segment break (`segBreakAfter`) entirely. The Edit subtitles tab (still segment-by-segment) and the burned-in export are untouched, and word-click-to-seek / double-click-to-edit still work. Verified by Fega hands-on (Clip 1 + Clip 17). [src/renderer/editor/components/LeftPanelNew.js]
+
 ## [Unreleased] — 2026-06-07 (session 63) — #118 + #119 + #120: subtitle word-timing polish — no dead zone on resize, draggable per-word "teeth", real inter-word spaces
 
 ### Added
