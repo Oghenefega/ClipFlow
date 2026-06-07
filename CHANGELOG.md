@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-07 (session 62) — #117: trimming a subtitle block's edge no longer deletes a word
+
+### Fixed
+- **Trimming a subtitle block's edge past a word silently deleted that word from the rendered video (#117).** Captions draw word-by-word from each segment's `words[]` list (the segment `text` string is only a fallback used when `words` is empty), and the same overlay drives the editor viewer, the Projects preview, and the burned-in export. When a timeline trim — or a shorter range set via the ⏱ time popover — moved an edge past a word, `updateSegmentTimes` filtered that word out of `words[]` but left it in `text`, so the word vanished from the rendered video/preview while the left panel and timeline still showed it, and re-extending the edge couldn't bring it back (its timing was gone). Same `words[]`/`text`-desync family as #116, this time via resize. Fixed so the trim branch never drops a word: when no word falls fully outside the new bounds it clamps each word to the bounds (preserving transcribed audio-sync timing for normal trims); only when a trim would cut a word off entirely does it re-space all the words proportionally into the new range — lossless, reversible, and never inverting a word. The move and extend paths are unchanged. Verified by a synthetic harness driving the real store action (40/40: trim left/right past a word, small clamp-trim with real-timing preservation, move, extend, transcribed uneven words, and a trim→extend round-trip) and Fega hands-on. [src/renderer/editor/stores/useSubtitleStore.js]
+
+### Notes
+- **Two follow-ups filed while testing #117 — planned in `tasks/todo.md`, awaiting approval, no code yet.** **#118** (bug) — extending a subtitle's LEFT edge earlier leaves the first word un-highlighted from the new block start until its original start time (a ~2s inert "dead zone"); proposed fix pins the outer words to the block edges so the first/last word always highlights at the boundary. Pre-existing — not caused by #117. **#119** (feature) — draggable per-word "teeth" at each word boundary on the selected subtitle block, to set when each word's highlight fires; the per-word timing data already exists, so it's a UI layer plus one store action.
+- **Workflow note:** a `Fix #N` commit keyword auto-closes the issue on push to master *before* hands-on verification — so resolution notes now go via `gh issue comment`, not `gh issue close --comment` (which no-ops on an already-closed issue). Captured in memory.
+
 ## [Unreleased] — 2026-06-06 (session 61) — #115 + #116: hand-split / manually-created subtitles stop vanishing (on reopen, on merge) and now highlight correctly
 
 ### Fixed
