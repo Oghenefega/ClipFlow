@@ -210,27 +210,30 @@ export function SubtitleOverlay({
             }
 
             return (
-              <span
-                key={isSingleWord ? `sw-${animKey}-${globalIdx}` : globalIdx}
-                style={wordStyle}
-              >
-                {wordText}{suffix}
-                {useProgressiveFill && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      top: 0,
-                      color: highlightColor,
-                      textShadow: wordShadows.active,
-                      clipPath: `inset(0 ${(100 - wordProgress * 100).toFixed(1)}% 0 0)`,
-                      pointerEvents: "none",
-                    }}
-                  >
-                    {wordText}{suffix}
-                  </span>
-                )}
-              </span>
+              // The inter-word space MUST be a sibling text node, not a trailing
+              // char inside the inline-block word span — browsers collapse trailing
+              // whitespace inside an inline-block, making words touch ("andreconnecting").
+              <React.Fragment key={isSingleWord ? `sw-${animKey}-${globalIdx}` : globalIdx}>
+                <span style={wordStyle}>
+                  {wordText}
+                  {useProgressiveFill && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 0,
+                        color: highlightColor,
+                        textShadow: wordShadows.active,
+                        clipPath: `inset(0 ${(100 - wordProgress * 100).toFixed(1)}% 0 0)`,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {wordText}
+                    </span>
+                  )}
+                </span>
+                {suffix}
+              </React.Fragment>
             );
           })}
         </div>

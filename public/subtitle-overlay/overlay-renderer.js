@@ -222,7 +222,7 @@ function renderSubtitle(timestamp) {
         const base = document.createElement("span");
         base.style.color = subColor;
         if (shadows.normal) base.style.textShadow = shadows.normal;
-        base.textContent = wordText + suffix;
+        base.textContent = wordText;
         wrapper.appendChild(base);
 
         // Highlighted overlay with clip-path
@@ -233,7 +233,7 @@ function renderSubtitle(timestamp) {
         overlay.style.color = highlightColor;
         if (shadows.active) overlay.style.textShadow = shadows.active;
         overlay.style.clipPath = `inset(0 ${(100 - wordProgress * 100).toFixed(1)}% 0 0)`;
-        overlay.textContent = wordText + suffix;
+        overlay.textContent = wordText;
         wrapper.appendChild(overlay);
 
         if (animateOn && !isSingleWord) {
@@ -241,6 +241,9 @@ function renderSubtitle(timestamp) {
         }
 
         textDiv.appendChild(wrapper);
+        // Inter-word space as a sibling text node, NOT a trailing char inside the
+        // inline-block wrapper (trailing whitespace there collapses → words touch).
+        if (suffix) textDiv.appendChild(document.createTextNode(suffix));
       } else {
         // Instant highlight (default): whole word gets color immediately
         const span = document.createElement("span");
@@ -261,8 +264,9 @@ function renderSubtitle(timestamp) {
           }
         }
 
-        span.textContent = wordText + suffix;
+        span.textContent = wordText;
         textDiv.appendChild(span);
+        if (suffix) textDiv.appendChild(document.createTextNode(suffix));
       }
     });
 
