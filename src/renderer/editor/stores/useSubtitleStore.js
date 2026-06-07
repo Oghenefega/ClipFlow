@@ -599,6 +599,34 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // Drag a per-word boundary on a subtitle block (#119 "teeth"). Moves ONLY the
+  // internal boundary between word[boundaryIdx] and word[boundaryIdx+1] — i.e. when
+  // the next word's karaoke highlight fires — setting words[i].end = words[i+1].start
+  // to the (clamped) source time. Every other word, both block edges (words[0].start /
+  // words[last].end), and `text` are untouched, so words/text stay in sync and the
+  // #118 edge-pins are preserved. Clamped so neither adjacent word collapses below MIN;
+  // never reorders. sourceTimeSec is source-absolute (caller maps timeline→source).
+  setWordBoundary: (segId, boundaryIdx, sourceTimeSec) => {
+    get()._pushUndo();
+    const MIN = 0.02; // seconds — floor on a single word's duration
+    set((s) => ({
+      editSegments: s.editSegments.map((seg) => {
+        if (seg.id !== segId) return seg;
+        const words = seg.words;
+        if (!words || boundaryIdx < 0 || boundaryIdx >= words.length - 1) return seg;
+        const i = boundaryIdx;
+        const lower = words[i].start + MIN;
+        const upper = words[i + 1].end - MIN;
+        if (lower >= upper) return seg; // both words too short to split — no-op
+        const t = Math.max(lower, Math.min(upper, sourceTimeSec));
+        const newWords = words.map((w, idx) =>
+          idx === i ? { ...w, end: t } : idx === i + 1 ? { ...w, start: t } : w
+        );
+        return { ...seg, words: newWords };
+      }),
+    }));
+  },
+
   // Add a new segment at a specific time range (used by drag-split)
   addSegmentAt: (startSec, endSec, text) => {
     get()._pushUndo();

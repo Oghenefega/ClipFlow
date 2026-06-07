@@ -1,13 +1,15 @@
 import React, { useState, useRef, useCallback } from "react";
-import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
+import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, WORD_TOOTH_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, rippleAnimating }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
   const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
   const rafRef = useRef(null);
   const dragThresholdRef = useRef(false);
+  const startToothRef = useRef({ x: 0, t0: 0 });
+  const toothRafRef = useRef(null);
 
   const segDur = seg.endSec - seg.startSec;
   const leftPx = duration > 0 ? (seg.startSec / duration) * timelineWidth : 0;
@@ -87,7 +89,46 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     window.addEventListener("pointerup", onUp);
   }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onDrag, onDragEnd, dragging]);
 
+  // ── Per-word boundary "teeth" drag (#119) — selected subtitle blocks only ──
+  // Mirrors onHandleDown but moves an INTERNAL word boundary, not a block edge.
+  // words[i].end is in the block's display coordinate space (timeline when the clip
+  // has NLE cuts, source otherwise); the parent maps the reported time back to
+  // source via toSource() before committing through setWordBoundary.
+  const onToothDown = useCallback((boundaryIdx, e) => {
+    e.stopPropagation();
+    const w = (seg.words || [])[boundaryIdx];
+    if (!w) return;
+    startToothRef.current = { x: e.clientX, t0: w.end };
+    document.body.style.cursor = "col-resize";
+
+    const onMove = (ev) => {
+      if (toothRafRef.current) cancelAnimationFrame(toothRafRef.current);
+      toothRafRef.current = requestAnimationFrame(() => {
+        const dx = ev.clientX - startToothRef.current.x;
+        const dtSec = duration > 0 ? (dx / timelineWidth) * duration : 0;
+        onWordBoundaryDrag(seg.id, boundaryIdx, startToothRef.current.t0 + dtSec);
+      });
+    };
+    const onUp = () => {
+      if (toothRafRef.current) cancelAnimationFrame(toothRafRef.current);
+      document.body.style.cursor = "";
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      if (onWordBoundaryDragEnd) onWordBoundaryDragEnd(seg.id);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [seg.id, seg.words, duration, timelineWidth, onWordBoundaryDrag, onWordBoundaryDragEnd]);
+
   const showHandles = selected || hovered;
+
+  // Internal word boundaries to draw as draggable "teeth" (#119). Only on a
+  // selected subtitle block (parent supplies onWordBoundaryDrag) with ≥2 words, and
+  // only when no NLE cut splits the block (mapped word count === source count — else
+  // a positional boundary index wouldn't line up with the source word it edits).
+  const teethWords = seg.words || [];
+  const showTeeth = selected && typeof onWordBoundaryDrag === "function"
+    && teethWords.length >= 2 && teethWords.length === sourceWordCount && duration > 0;
 
   // Background with subtle gradient for depth
   const bgColor = selected ? trackColor.selected : hovered ? trackColor.hover : trackColor.bg;
@@ -171,6 +212,38 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
           }}
         />
       </div>
+
+      {/* Per-word boundary "teeth" — draggable internal word boundaries (#119) */}
+      {showTeeth && teethWords.slice(0, -1).map((w, i) => {
+        const relPx = ((w.end - seg.startSec) / duration) * timelineWidth;
+        // Skip teeth sitting on/over the block edges (where the trim handles live)
+        if (relPx <= 2 || relPx >= widthPx - 2) return null;
+        return (
+          <div
+            key={`tooth-${i}`}
+            className="absolute top-0 bottom-0 z-20 cursor-col-resize"
+            style={{ left: relPx - WORD_TOOTH_HIT_W / 2, width: WORD_TOOTH_HIT_W }}
+            onPointerDown={(e) => onToothDown(i, e)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* vertical divider line */}
+            <div
+              className="absolute top-0 bottom-0"
+              style={{ left: WORD_TOOTH_HIT_W / 2 - 0.75, width: 1.5, background: "rgba(255,255,255,0.4)" }}
+            />
+            {/* top grab knob */}
+            <div
+              className="absolute -top-0.5"
+              style={{
+                left: WORD_TOOTH_HIT_W / 2 - 3,
+                width: 6, height: 7, borderRadius: 2,
+                background: trackColor.ring,
+                boxShadow: `0 0 5px ${trackColor.ring}`,
+              }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -181,10 +254,13 @@ export default React.memo(SegmentBlock, (prev, next) => {
     prev.seg.startSec === next.seg.startSec &&
     prev.seg.endSec === next.seg.endSec &&
     prev.seg.text === next.seg.text &&
+    prev.seg.words === next.seg.words &&
     prev.selected === next.selected &&
     prev.duration === next.duration &&
     prev.timelineWidth === next.timelineWidth &&
     prev.rippleAnimating === next.rippleAnimating &&
-    prev.onDrag === next.onDrag
+    prev.sourceWordCount === next.sourceWordCount &&
+    prev.onDrag === next.onDrag &&
+    prev.onWordBoundaryDrag === next.onWordBoundaryDrag
   );
 });

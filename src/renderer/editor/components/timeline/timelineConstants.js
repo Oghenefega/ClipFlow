@@ -60,6 +60,10 @@ export const CLUSTER_MIN_WIDTH_PX = 40;
 // ── Interaction ──
 export const TRIM_HANDLE_VISUAL_W = 4;
 export const TRIM_HANDLE_HIT_W = 14;
+// Per-word "teeth" boundary handle (#119) — internal word-boundary drag on a
+// selected subtitle block. Slightly narrower than the trim handle so adjacent
+// teeth on short words don't overlap.
+export const WORD_TOOTH_HIT_W = 12;
 export const SNAP_THRESHOLD_PX = 6;
 export const RIPPLE_ANIM_MS = 200;
 export const SEGMENT_RADIUS = 4;

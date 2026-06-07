@@ -86,6 +86,7 @@ export default function TimelinePanelNew() {
   const prevZoomRef = useRef(tlZoom);
   const dragOriginalsRef = useRef(null); // snapshot of all segment positions before drag
   const resizeOriginalsRef = useRef(null); // snapshot of all segment positions before resize
+  const wordBoundaryDraggingRef = useRef(false); // true while a word "tooth" is dragged (#119)
   const dragPhantomsRef = useRef([]); // phantom right portions during middle-case drag
   const [dragPhantoms, setDragPhantoms] = useState([]);
   const scrubRafRef = useRef(null);
@@ -103,6 +104,16 @@ export default function TimelinePanelNew() {
     () => useSubtitleStore.getState().getTimelineMappedSegments(),
     [rawEditSegments, nleSegments]
   );
+
+  // Source-word count per segment id (#119). Word "teeth" use positional boundary
+  // indices, which only line up with the source words when no NLE cut dropped a word
+  // from the mapped block — SegmentBlock compares this against its mapped word count
+  // and hides teeth on a straddling block rather than editing the wrong word.
+  const sourceWordCounts = useMemo(() => {
+    const m = {};
+    for (const s of rawEditSegments) m[s.id] = (s.words || []).length;
+    return m;
+  }, [rawEditSegments]);
 
   // Helper: convert timeline time → source time for subtitle operations
   const toSource = useCallback((timelineTime) => {
@@ -520,6 +531,26 @@ export default function TimelinePanelNew() {
       deleteSegment(seg.id);
     }
   }, [deleteSegment]);
+
+  // Drag a per-word boundary "tooth" (#119). SegmentBlock reports the new boundary
+  // time in timeline coords; map to source and commit. startDrag/endDrag wrap the
+  // whole gesture as a single undo entry (setWordBoundary's own _pushUndo no-ops
+  // mid-drag), mirroring the resize path.
+  const handleWordBoundaryDrag = useCallback((segId, boundaryIdx, timelineTime) => {
+    const store = useSubtitleStore.getState();
+    if (!wordBoundaryDraggingRef.current) {
+      store.startDrag();
+      wordBoundaryDraggingRef.current = true;
+    }
+    store.setWordBoundary(segId, boundaryIdx, toSource(timelineTime));
+  }, [toSource]);
+
+  const handleWordBoundaryDragEnd = useCallback(() => {
+    if (wordBoundaryDraggingRef.current) {
+      useSubtitleStore.getState().endDrag();
+      wordBoundaryDraggingRef.current = false;
+    }
+  }, []);
 
   // ── Segment selection (multi-select support) ──
   const handleSegSelect = useCallback((track, segId, event) => {
@@ -983,6 +1014,9 @@ export default function TimelinePanelNew() {
                       onResizeEnd={handleSubtitleResizeEnd}
                       onDrag={handleSubtitleDrag}
                       onDragEnd={handleSubtitleDragEnd}
+                      onWordBoundaryDrag={handleWordBoundaryDrag}
+                      onWordBoundaryDragEnd={handleWordBoundaryDragEnd}
+                      sourceWordCount={sourceWordCounts[seg.id] ?? 0}
                       rippleAnimating={rippleAnimating}
                     />
                   ))}
