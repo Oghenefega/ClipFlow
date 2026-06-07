@@ -96,9 +96,12 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
   // source via toSource() before committing through setWordBoundary.
   const onToothDown = useCallback((boundaryIdx, e) => {
     e.stopPropagation();
-    const w = (seg.words || [])[boundaryIdx];
-    if (!w) return;
-    startToothRef.current = { x: e.clientX, t0: w.end };
+    // Tooth boundary i sits where word i+1 starts (= when the next word's highlight
+    // fires). setWordBoundary collapses any gap by setting word[i].end and
+    // word[i+1].start to the dragged time.
+    const nextW = (seg.words || [])[boundaryIdx + 1];
+    if (!nextW) return;
+    startToothRef.current = { x: e.clientX, t0: nextW.start };
     document.body.style.cursor = "col-resize";
 
     const onMove = (ev) => {
@@ -167,15 +170,34 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Segment text */}
-      <div className="absolute inset-0 flex items-center px-2 pointer-events-none select-none overflow-hidden">
-        <span
-          className="text-[10px] font-medium truncate block w-full leading-tight"
-          style={{ color: trackColor.text }}
-        >
-          {seg.text}
-        </span>
-      </div>
+      {/* Segment text — on a selected block, place each word inside its own time
+          section (#119); otherwise a single left-bundled label. */}
+      {showTeeth ? (
+        teethWords.map((w, i) => {
+          const wLeft = ((w.start - seg.startSec) / duration) * timelineWidth;
+          const wWidth = Math.max(0, ((w.end - w.start) / duration) * timelineWidth);
+          return (
+            <div
+              key={`word-${i}`}
+              className="absolute top-0 bottom-0 flex items-center justify-center px-0.5 pointer-events-none select-none overflow-hidden"
+              style={{ left: wLeft, width: wWidth }}
+            >
+              <span className="text-[10px] font-medium truncate leading-tight" style={{ color: trackColor.text }}>
+                {w.word}
+              </span>
+            </div>
+          );
+        })
+      ) : (
+        <div className="absolute inset-0 flex items-center px-2 pointer-events-none select-none overflow-hidden">
+          <span
+            className="text-[10px] font-medium truncate block w-full leading-tight"
+            style={{ color: trackColor.text }}
+          >
+            {seg.text}
+          </span>
+        </div>
+      )}
 
       {/* Left trim handle — wide hit area, thin visual */}
       <div
@@ -214,8 +236,9 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       </div>
 
       {/* Per-word boundary "teeth" — draggable internal word boundaries (#119) */}
-      {showTeeth && teethWords.slice(0, -1).map((w, i) => {
-        const relPx = ((w.end - seg.startSec) / duration) * timelineWidth;
+      {showTeeth && teethWords.slice(0, -1).map((_w, i) => {
+        // Place the tooth where the NEXT word begins (flush with its section).
+        const relPx = ((teethWords[i + 1].start - seg.startSec) / duration) * timelineWidth;
         // Skip teeth sitting on/over the block edges (where the trim handles live)
         if (relPx <= 2 || relPx >= widthPx - 2) return null;
         return (
