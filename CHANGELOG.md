@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-07 (session 65) — Recordings card redesign designed & specced (Option A, #122)
+
+### Added
+- **Recordings card redesign — design finalized as an interactive HTML prototype (`mockups/recordings-cards.html`), filed for build as #122.** Iterated with Fega to "Option A": single-line cards (~5 columns), the left-edge game-colour accent bar removed (read as an "AI-generated" cliché), a header quick-toggle switching the game tag between the full `AR` pill and a minimized slim `|` line (default full, to persist as a setting), the file size dropped from the card face (kept on hover via the title), the DONE badge replaced by a bare green ✓ that arms to a red ✕ on click and un-marks on a second click, and the left selection checkbox removed in favour of a whole-card highlight (purple = selected) so there is only one checkmark on a card. This is the spec artifact + plan only — no app code changed this session.
+
+### Notes
+- **A two-line Recordings card layout was built this session, then reverted.** It fixed filename truncation ("AR Da…") but lost the compact, dense "pill" look (dead space under every card) and was rejected on sight, so `UploadView.js` was restored to its prior committed state. The readable-filenames goal is now carried by the approved single-line Option A (#122). Net `UploadView.js` change this session = none.
+
 ## [Unreleased] — 2026-06-07 (session 64) — Transcript tab reads as a flowing paragraph again
 
 ### Fixed
