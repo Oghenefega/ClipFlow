@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 70) — Recordings (i) info popover built + Play-in-editor (#125)
+
+### Added
+- **Recordings card "(i) info popover" — built and shipped (#125).** Each recording card now has a hover-revealed `(i)` button (hidden until you hover the card, sits to the left of the green ✓). Clicking it opens the approved "Spotlight" popover: the full filename, a **Duration + Size** stat pair (equal-size values, accent eyebrow on Duration), and three actions — **Play in editor**, **Open in Explorer**, and a clickable **TEST chip**. The popover closes on outside-click, Esc, or scroll. [src/renderer/views/UploadView.js]
+- **Play a raw recording in the editor (source-preview mode, #125).** "Play in editor" opens the untouched source recording in the real editor as a watch-only preview — no project or clip is created, and Save/Render/Re-transcribe all no-op, so there is zero risk of disk writes or project corruption. The editor synthesizes a lightweight shell (`__source_preview__`) and the timeline, scrubber, and waveform self-fill from the video's metadata. Back returns you to the Recordings tab. This is also the in-app way to confirm the #64 waveform fix on a long (~30-min) source. [src/renderer/App.js, src/renderer/editor/stores/useEditorStore.js]
+
+### Changed
+- **TEST toggle moved off the card into the (i) popover (#125).** The always-visible TEST pill is gone from the recording card; TEST is now the popover's clickable chip (yellow = on / grey = off), reusing the same move-between-folders logic. Keeps the card row uncluttered. [src/renderer/views/UploadView.js]
+- **Recording hover tooltip now shows duration (#125).** The custom hover tooltip reads `size · duration` (older recordings with no stored duration just show size). [src/renderer/views/UploadView.js]
+
 ## [Unreleased] — 2026-06-08 (session 69) — Waveform crash fixed (#64); Recordings (i) info popover designed (#125)
 
 ### Added

@@ -98,7 +98,7 @@ const CLUSTER_SHELL = {
   animation: "clipflowClusterUp 0.18s ease-out",
 };
 
-export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, testWatchFolder = "" }) {
+export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, testWatchFolder = "" }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
@@ -120,6 +120,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [armedDone, setArmedDone] = useState({}); // fileId → true when armed (green ✓ → red ✕)
   const [tip, setTip] = useState(null); // #122: custom hover tooltip { name, size, left, top, above }
   const tipTimer = useRef(null); // #122: ~1.5s delay timer for the hover tooltip
+  const [infoPop, setInfoPop] = useState(null); // #125: open (i) Spotlight popover { fileId, left, top }
 
   // #60: transient error surface for failed test-mode moves (locked file, etc.)
   const [moveError, setMoveError] = useState(null);
@@ -476,6 +477,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     const payload = {
       name: f.current_filename,
       size: formatSize(f.file_size_bytes),
+      dur: f.duration_seconds ? formatDuration(f.duration_seconds) : null, // #125: duration in tooltip
       left: Math.min(Math.max(r.left + r.width / 2, 140), window.innerWidth - 140),
       top: below ? r.bottom + 8 : r.top - 8,
       above: !below,
@@ -485,6 +487,38 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   };
   const hideTip = () => { clearTimeout(tipTimer.current); setTip(null); };
   useEffect(() => () => clearTimeout(tipTimer.current), []);
+
+  // #125: open the (i) Spotlight popover anchored below the clicked button (flips up
+  // if it would clip off-screen). Toggles closed if already open for this file.
+  const openInfoPop = (e, f) => {
+    e.stopPropagation();
+    hideTip();
+    if (infoPop?.fileId === f.id) { setInfoPop(null); return; }
+    const br = e.currentTarget.getBoundingClientRect();
+    const PW = 248, PH = 240;
+    let left = Math.max(10, Math.min(br.right - PW, window.innerWidth - PW - 10));
+    let top = br.bottom + 8;
+    if (top + PH > window.innerHeight - 10) top = Math.max(10, br.top - PH - 8);
+    setInfoPop({ fileId: f.id, left, top });
+  };
+  // #125: close the popover on outside-click / Esc / scroll. Deferred attach so the
+  // opening click (which bubbles to document above the React root) doesn't self-close it.
+  useEffect(() => {
+    if (!infoPop) return;
+    const close = () => setInfoPop(null);
+    const onKey = (ev) => { if (ev.key === "Escape") setInfoPop(null); };
+    const t = setTimeout(() => {
+      document.addEventListener("click", close);
+      document.addEventListener("keydown", onKey);
+      window.addEventListener("scroll", close, true);
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [infoPop]);
 
   // --- Group files by month (from date column), test files get their own group ---
   // #60: filter by main-vs-test before grouping
@@ -1317,6 +1351,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                     return (
                       <div
                         key={f.id}
+                        className="cf-rec-card"
                         onClick={() => { if (!fileDone) toggle(f.id); }}
                         onMouseEnter={(e) => showTip(e, f)}
                         onMouseLeave={hideTip}
@@ -1352,12 +1387,27 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           {shortName(f)}
                         </span>
 
-                        <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
-                          <TestChip
-                            isTest={f.is_test === 1}
-                            onToggle={(next) => handleToggleRecordingTest(f.id, next)}
-                          />
-                        </span>
+                        {/* #125: hover-revealed (i) — opens the Spotlight popover (filename,
+                            duration/size, Play in editor, Open in Explorer, TEST chip).
+                            Sits left of the green ✓; TEST moved into the popover. */}
+                        <button
+                          className={"cf-info-btn" + (infoPop?.fileId === f.id ? " cf-info-btn-open" : "")}
+                          onClick={(e) => openInfoPop(e, f)}
+                          onMouseEnter={hideTip}
+                          title="Info & actions"
+                          aria-label="Info & actions"
+                          style={{
+                            flexShrink: 0, width: 19, height: 19, padding: 0,
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            borderRadius: "50%", border: `1px solid ${T.borderHover}`,
+                            background: "transparent", color: T.textSecondary, cursor: "pointer",
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ width: 12, height: 12 }}>
+                            <line x1="12" y1="7" x2="12" y2="7" />
+                            <line x1="12" y1="10.5" x2="12" y2="16.5" />
+                          </svg>
+                        </button>
 
                         {/* Status badges */}
                         {project && (
@@ -1410,6 +1460,16 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       <style>{`
         @keyframes clipflowClusterUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes clipflowPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        /* #125: (i) info button — hidden until card hover, fades in; stays lit while its popover is open */
+        .cf-info-btn { opacity: 0; transform: scale(0.82); transition: opacity .14s ease, transform .14s ease, border-color .12s, color .12s, background .12s; }
+        .cf-rec-card:hover .cf-info-btn { opacity: 1; transform: scale(1); }
+        .cf-info-btn-open { opacity: 1 !important; transform: scale(1) !important; }
+        .cf-info-btn:hover, .cf-info-btn-open { border-color: #8b5cf6 !important; color: #a78bfa !important; background: rgba(139,92,246,0.12) !important; }
+        /* #125: Spotlight popover action rows */
+        .cf-spot-action { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; cursor: pointer; color: #edeef2; font-size: 12.5px; font-weight: 500; padding: 9px 14px; text-align: left; transition: background .1s; }
+        .cf-spot-action:hover { background: #16171f; }
+        .cf-spot-action svg { width: 15px; height: 15px; color: rgba(255,255,255,0.55); flex-shrink: 0; }
+        .cf-spot-action:hover svg { color: #a78bfa; }
       `}</style>
       {batchState ? (
         <div style={CLUSTER_SHELL}>
@@ -1471,9 +1531,101 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
         }}>
           <div style={{ color: T.text, fontSize: 12, fontFamily: T.mono, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>{tip.name}</div>
-          <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, marginTop: 3 }}>{tip.size}</div>
+          <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, marginTop: 3 }}>
+            {tip.dur ? `${tip.size}  ·  ${tip.dur}` : tip.size}
+          </div>
         </div>
       )}
+
+      {/* #125: (i) Spotlight popover — filename + Duration/Size stats, Play, Open, TEST chip */}
+      {infoPop && (() => {
+        const pf = files.find((x) => x.id === infoPop.fileId);
+        if (!pf) return null;
+        const pGame = findGameByTag(pf.tag, gamesDb);
+        const pTagColor = pGame?.color || T.accent;
+        const pDur = pf.duration_seconds ? formatDuration(pf.duration_seconds) : "—";
+        const pSize = formatSize(pf.file_size_bytes);
+        const pIsTest = pf.is_test === 1;
+        return (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed", left: infoPop.left, top: infoPop.top, zIndex: 1001, width: 248,
+              background: "#15161d", border: `1px solid ${T.borderHover}`, borderRadius: 13,
+              boxShadow: "0 18px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02)", overflow: "hidden",
+            }}
+          >
+            {/* hero — accent-tinted strip with filename + Duration/Size (equal stats) */}
+            <div style={{
+              padding: "12px 14px 13px",
+              background: "linear-gradient(180deg, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.02) 70%, transparent 100%)",
+              borderBottom: `1px solid ${T.border}`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+                {pf.tag && (
+                  <span style={{
+                    display: "inline-flex", padding: "2px 5px", background: `${pTagColor}18`,
+                    border: `1px solid ${pTagColor}44`, borderRadius: 4, fontSize: 9, fontWeight: 700,
+                    color: pTagColor, fontFamily: T.mono, letterSpacing: "0.5px", flexShrink: 0,
+                  }}>{pf.tag}</span>
+                )}
+                <span title={pf.current_filename} style={{
+                  color: T.textSecondary, fontFamily: T.mono, fontSize: 10.5, fontWeight: 500,
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0,
+                }}>{pf.current_filename}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 28 }}>
+                <div>
+                  <div style={{ color: T.accentLight, fontSize: 8.5, fontWeight: 700, letterSpacing: "0.9px", textTransform: "uppercase", marginBottom: 4 }}>Duration</div>
+                  <div style={{ color: T.text, fontFamily: T.mono, fontWeight: 600, fontSize: 22, lineHeight: 1, letterSpacing: "-0.5px" }}>{pDur}</div>
+                </div>
+                <div>
+                  <div style={{ color: T.textTertiary, fontSize: 8.5, fontWeight: 700, letterSpacing: "0.9px", textTransform: "uppercase", marginBottom: 4 }}>Size</div>
+                  <div style={{ color: T.text, fontFamily: T.mono, fontWeight: 600, fontSize: 22, lineHeight: 1, letterSpacing: "-0.5px" }}>{pSize}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* actions */}
+            <div style={{ padding: "5px 0" }}>
+              <button
+                className="cf-spot-action" style={{ fontFamily: T.font }}
+                onClick={() => { setInfoPop(null); onOpenSourcePreview?.(pf.current_path, shortName(pf)); }}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z" /></svg>
+                Play in editor
+              </button>
+              <button
+                className="cf-spot-action" style={{ fontFamily: T.font }}
+                onClick={() => { setInfoPop(null); window.clipflow?.revealInFolder?.(pf.current_path); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+                Open in Explorer
+              </button>
+            </div>
+
+            <div style={{ height: 1, background: T.border }} />
+
+            {/* footer — clickable TEST chip (yellow = on / grey = off) */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px 11px" }}>
+              <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <span style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, letterSpacing: "0.3px" }}>TEST</span>
+                <span style={{ color: T.textTertiary, fontSize: 9, fontWeight: 500 }}>exclude from real runs</span>
+              </span>
+              <button
+                onClick={() => handleToggleRecordingTest(pf.id, !pIsTest)}
+                style={{
+                  cursor: "pointer", display: "inline-flex", alignItems: "center", fontFamily: T.mono,
+                  fontSize: 9.5, fontWeight: 700, letterSpacing: "0.7px", padding: "4px 9px", borderRadius: 5,
+                  background: pIsTest ? T.yellowDim : "transparent",
+                  border: `1px solid ${pIsTest ? T.yellowBorder : T.border}`,
+                  color: pIsTest ? T.yellow : T.textTertiary, transition: "all .12s",
+                }}
+              >TEST</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Quick-Import Modal */}
       {renderQuickImportModal()}

@@ -396,6 +396,12 @@ export default function App() {
     setView("editor");
   }, []);
 
+  // #125: open a raw recording in the editor (watch-only source-preview, no project/clip)
+  const handleOpenSourcePreview = useCallback((path, label) => {
+    setEditorContext({ sourcePreviewPath: path, label });
+    setView("editor");
+  }, []);
+
   // Refresh folder list from store (call after any folder mutation or project deletion)
   const refreshFolders = useCallback(async () => {
     const result = await window.clipflow.folderList();
@@ -537,6 +543,7 @@ export default function App() {
               gamesDb={gamesDb}
               localProjects={localProjects}
               testWatchFolder={testWatchFolder}
+              onOpenSourcePreview={handleOpenSourcePreview}
               onProjectCreated={(projectId) => {
                 window.clipflow?.projectList().then((result) => {
                   if (result?.projects) setLocalProjects(result.projects);
@@ -675,7 +682,9 @@ export default function App() {
                   }
                 } catch (e) { console.error("Failed to refresh project after editor:", e); }
               }
-              setEditorContext(null); setView("clips");
+              // #125: source-preview opened from Recordings → return there, not Clips
+              const backTo = editorContext?.sourcePreviewPath ? "recordings" : "clips";
+              setEditorContext(null); setView(backTo);
             }} onClipRendered={async (projectId) => {
               try {
                 const full = await window.clipflow.projectLoad(projectId);

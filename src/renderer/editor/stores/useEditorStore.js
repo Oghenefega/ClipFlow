@@ -69,6 +69,48 @@ const useEditorStore = create((set, get) => ({
       return;
     }
 
+    // #125: Source-preview mode — open a raw recording in the editor with no
+    // backing project/clip (watch-only). Skip the projectLoad IPC and synthesize
+    // a thin shell so videoSrc + waveform + timeline self-fill on onLoadedMetadata.
+    // clip stays null, so Save/Render/Re-transcribe all no-op (zero disk writes).
+    if (editorContext.sourcePreviewPath) {
+      const myGen = ++_loadGen;
+      const path = editorContext.sourcePreviewPath;
+      const label = editorContext.label || "Recording";
+      useSubtitleStore.getState().clearAll();
+      useCaptionStore.getState().initFromClip(null);
+      usePlaybackStore.getState().reset();
+      try { useAIStore.getState().swapToClip(get().clip?.id || null, null); } catch (e) {}
+
+      let sourceOffline = false;
+      try {
+        if (window.clipflow?.fileExists) sourceOffline = !(await window.clipflow.fileExists(path));
+      } catch (_) { sourceOffline = false; }
+      if (myGen !== _loadGen) return; // a newer load started — abandon
+
+      set({
+        project: { id: "__source_preview__", sourceFile: path, name: label, clips: [], transcription: null },
+        clip: null,
+        clipTitle: label,
+        editingTitle: false,
+        dirty: false,
+        waveformPeaks: null,
+        waveformError: null,
+        audioSegments: [],
+        nleSegments: [],
+        sourceStartTime: 0,
+        sourceEndTime: 0,
+        sourceDuration: 0,
+        maxExtendSec: 0,
+        maxExtendLeftSec: 0,
+        extending: false,
+        sourceOffline,
+      });
+      usePlaybackStore.getState().reset();
+      usePlaybackStore.setState({ clipFileOffset: 0, clipFileDuration: 0 });
+      return;
+    }
+
     // Claim this load generation. Any earlier in-flight run is now stale and will
     // bail at its next checkpoint instead of clobbering the state we're about to set.
     const myGen = ++_loadGen;
