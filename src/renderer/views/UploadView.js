@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, GamePill, PageHeader, SectionLabel, Badge, Checkbox, Select, formatDuration } from "../components/shared";
+import { Card, GamePill, PageHeader, SectionLabel, Badge, Select, formatDuration } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
 import TestChip from "../components/TestChip";
 
@@ -98,6 +98,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
+  // #122: Recordings card redesign — tag display mode + per-file two-step un-mark
+  const [tagMode, setTagMode] = useState("full"); // "full" = AR pill, "min" = slim colour bar
+  const [armedDone, setArmedDone] = useState({}); // fileId → true when armed (green ✓ → red ✕)
+  const [tip, setTip] = useState(null); // #122: custom hover tooltip { name, size, left, top, above }
+  const tipTimer = useRef(null); // #122: ~0.5s delay timer for the hover tooltip
 
   // #60: transient error surface for failed test-mode moves (locked file, etc.)
   const [moveError, setMoveError] = useState(null);
@@ -118,12 +123,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   useEffect(() => {
     (async () => {
       if (!window.clipflow?.storeGet) return;
-      const [threshold, enabled] = await Promise.all([
+      const [threshold, enabled, savedTagMode] = await Promise.all([
         window.clipflow.storeGet("splitThresholdMinutes"),
         window.clipflow.storeGet("autoSplitEnabled"),
+        window.clipflow.storeGet("recordingsTagMode"),
       ]);
       if (threshold != null) setSplitThreshold(threshold);
       if (enabled != null) setAutoSplitEnabled(enabled);
+      if (savedTagMode === "full" || savedTagMode === "min") setTagMode(savedTagMode);
     })();
   }, []);
 
@@ -148,6 +155,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       await window.clipflow.storeSet("doneRecordings", next);
     }
   }, []);
+
+  // #122: persist Recordings tag display mode ("full" AR pill | "min" slim colour bar)
+  const changeTagMode = (mode) => {
+    setTagMode(mode);
+    if (window.clipflow?.storeSet) window.clipflow.storeSet("recordingsTagMode", mode);
+  };
 
   // Toggle per-recording test mode — physically moves the file between the
   // main watch folder and test watch folder so disk layout always matches the
@@ -310,10 +323,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     });
   };
 
-  const selCount = Object.values(selected).filter(Boolean).length;
-
   // --- Done helpers ---
   const isDone = (f) => f.status === "done" || !!doneFiles[f.current_filename] || !!findProjectForFile(f, localProjects);
+
+  // #122: selection count excludes done files (done cards are non-selectable in the redesign)
+  const selCount = files.filter((f) => selected[f.id] && !isDone(f)).length;
 
   const markSelectedDone = () => {
     const next = { ...doneFiles };
@@ -339,6 +353,38 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       if (Array.isArray(rows)) setFiles(rows);
     }
   };
+
+  // #122: two-step un-mark for a completed recording (green ✓ → red ✕ → remove from done).
+  // `manual` routes to the right un-mark: doneFiles entry vs SQLite status="done".
+  const handleDoneCheck = (f, manual) => {
+    if (armedDone[f.id]) {
+      if (manual) unmarkDone(f.current_filename);
+      else resetFileDone(f.id);
+      setArmedDone((p) => { const n = { ...p }; delete n[f.id]; return n; });
+    } else {
+      setArmedDone((p) => ({ ...p, [f.id]: true }));
+    }
+  };
+  const disarmDone = (id) => setArmedDone((p) => (p[id] ? (() => { const n = { ...p }; delete n[id]; return n; })() : p));
+
+  // #122: custom dark tooltip for recording cards (replaces the native Win98-style title).
+  // Shows below the card after a ~0.5s hover delay; flips above only if a bottom-row card
+  // has no room below (so it never clips off-screen).
+  const showTip = (e, f) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const below = r.bottom + 70 < window.innerHeight;
+    const payload = {
+      name: f.current_filename,
+      size: formatSize(f.file_size_bytes),
+      left: Math.min(Math.max(r.left + r.width / 2, 140), window.innerWidth - 140),
+      top: below ? r.bottom + 8 : r.top - 8,
+      above: !below,
+    };
+    clearTimeout(tipTimer.current);
+    tipTimer.current = setTimeout(() => setTip(payload), 500);
+  };
+  const hideTip = () => { clearTimeout(tipTimer.current); setTip(null); };
+  useEffect(() => () => clearTimeout(tipTimer.current), []);
 
   // --- Group files by month (from date column), test files get their own group ---
   // #60: filter by main-vs-test before grouping
@@ -1052,18 +1098,46 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         </Card>
       )}
 
-      {/* Header row: count + select all */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      {/* Header row: count + tag toggle + select all */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 14 }}>
         <SectionLabel style={{ margin: 0 }}>
           {files.length} recording{files.length !== 1 ? "s" : ""}
           {totalDone > 0 ? ` \u00b7 ${totalDone} done` : ""}
         </SectionLabel>
-        <button
-          onClick={selectAll}
-          style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
-        >
-          {files.length > 0 && files.every((f) => selected[f.id]) ? "Deselect All" : "Select All"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* #122: tag display toggle \u2014 full AR pill vs slim colour bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: T.mono }}>Tags</span>
+            <div style={{ display: "inline-flex", border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden", background: T.bg }}>
+              {[
+                { key: "full", label: "AR" },
+                { key: "min", label: "|" },
+              ].map((opt) => {
+                const act = tagMode === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => changeTagMode(opt.key)}
+                    title={opt.key === "full" ? "Show game tag labels" : "Minimize tags to a colour bar"}
+                    style={{
+                      appearance: "none", border: "none", cursor: "pointer",
+                      fontFamily: T.mono, fontWeight: 700, fontSize: 12, padding: "4px 12px", minWidth: 36,
+                      background: act ? T.accentDim : "transparent",
+                      color: act ? T.accentLight : T.textSecondary,
+                      boxShadow: act ? `inset 0 0 0 1px ${T.accentBorder}` : "none",
+                    }}
+                  >{opt.label}</button>
+                );
+              })}
+            </div>
+          </div>
+          <button
+            onClick={selectAll}
+            style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
+          >
+            {files.length > 0 && files.every((f) => selected[f.id]) ? "Deselect All" : "Select All"}
+          </button>
+        </div>
       </div>
 
       {/* Month groups */}
@@ -1136,23 +1210,31 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                     const manualDone = !!doneFiles[f.current_filename] && !project && f.status !== "done";
                     const isSel = !!selected[f.id];
                     const isGenerating = generating === f.current_path;
+                    const statusDone = f.status === "done" && !project && !doneFiles[f.current_filename];
+                    const showDoneCheck = manualDone || statusDone;
+                    const armed = !!armedDone[f.id];
 
                     return (
                       <div
                         key={f.id}
-                        onClick={() => toggle(f.id)}
+                        onClick={() => { if (!fileDone) toggle(f.id); }}
+                        onMouseEnter={(e) => showTip(e, f)}
+                        onMouseLeave={hideTip}
                         style={{
-                          display: "flex", alignItems: "center", gap: 6,
-                          padding: "7px 10px", borderRadius: T.radius.md,
-                          border: `1px solid ${fileDone ? "rgba(52,211,153,0.25)" : isGenerating ? T.accentBorder : isSel ? T.accentBorder : T.border}`,
-                          background: fileDone ? "rgba(52,211,153,0.06)" : isSel ? T.accentDim : T.surface,
-                          cursor: "pointer", overflow: "hidden",
-                          opacity: fileDone && !isGenerating ? 0.7 : 1,
+                          display: "flex", alignItems: "center", gap: 7,
+                          padding: "8px 10px", borderRadius: T.radius.md,
+                          border: `1px solid ${isGenerating ? T.accentBorder : fileDone ? "rgba(52,211,153,0.25)" : isSel ? T.accent : T.border}`,
+                          background: isGenerating ? T.accentDim : fileDone ? "rgba(52,211,153,0.06)" : isSel ? T.accentDim : T.surface,
+                          boxShadow: isSel && !fileDone && !isGenerating ? `0 0 0 1px ${T.accent}, 0 3px 14px rgba(139,92,246,0.22)` : "none",
+                          cursor: fileDone ? "default" : "pointer", overflow: "hidden",
+                          transition: "border-color 0.12s, box-shadow 0.12s, background 0.12s",
                         }}
                       >
-                        <Checkbox checked={isSel || fileDone} size={16} />
-
-                        {f.tag && (
+                        {f.tag && (tagMode === "min" ? (
+                          <span style={{
+                            width: 3, height: 14, borderRadius: 2, background: tagColor, flexShrink: 0,
+                          }} />
+                        ) : (
                           <span style={{
                             display: "inline-flex", padding: "2px 5px",
                             background: `${tagColor}18`, border: `1px solid ${tagColor}44`,
@@ -1161,11 +1243,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           }}>
                             {f.tag}
                           </span>
-                        )}
+                        ))}
 
                         <span style={{
-                          color: T.text, fontSize: 12, fontWeight: 600,
-                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1,
+                          color: T.text, fontSize: 12.5, fontWeight: 600,
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0,
                         }}>
                           {shortName(f)}
                         </span>
@@ -1175,10 +1257,6 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                             isTest={f.is_test === 1}
                             onToggle={(next) => handleToggleRecordingTest(f.id, next)}
                           />
-                        </span>
-
-                        <span style={{ color: T.textTertiary, fontSize: 10, fontFamily: T.mono, flexShrink: 0 }}>
-                          {formatSize(f.file_size_bytes)}
                         </span>
 
                         {/* Status badges */}
@@ -1192,39 +1270,18 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           </span>
                         )}
 
-                        {manualDone && (
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 3,
-                            padding: "1px 5px", borderRadius: 4, fontSize: 8, fontWeight: 700,
-                            textTransform: "uppercase", color: T.green,
-                            background: "rgba(52,211,153,0.12)", flexShrink: 0,
-                          }}>
-                            DONE
-                            <span
-                              onClick={(e) => { e.stopPropagation(); unmarkDone(f.current_filename); }}
-                              title="Unmark as done"
-                              style={{ cursor: "pointer", color: T.textMuted, fontSize: 10, fontWeight: 700, marginLeft: 2, lineHeight: 1 }}
-                              onMouseEnter={(e) => { e.currentTarget.style.color = T.red; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; }}
-                            >{"\u00d7"}</span>
-                          </span>
-                        )}
-
-                        {f.status === "done" && !project && !doneFiles[f.current_filename] && (
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 3,
-                            padding: "1px 5px", borderRadius: 4,
-                            fontSize: 8, fontWeight: 700, textTransform: "uppercase",
-                            color: T.green, background: "rgba(52,211,153,0.12)", flexShrink: 0,
-                          }}>
-                            DONE
-                            <span
-                              onClick={(e) => { e.stopPropagation(); resetFileDone(f.id); }}
-                              title="Reset — allow re-generation"
-                              style={{ cursor: "pointer", color: T.textMuted, fontSize: 10, fontWeight: 700, marginLeft: 2, lineHeight: 1 }}
-                              onMouseEnter={(e) => { e.currentTarget.style.color = T.red; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; }}
-                            >{"\u00d7"}</span>
+                        {/* #122: done = bare green check; click -> red X -> un-mark (replaces both DONE+X paths) */}
+                        {showDoneCheck && (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); handleDoneCheck(f, manualDone); }}
+                            onMouseLeave={() => disarmDone(f.id)}
+                            title={armed ? "Click again to remove from completed" : "Completed - click to undo"}
+                            style={{
+                              flexShrink: 0, cursor: "pointer", fontSize: 15, fontWeight: 800,
+                              lineHeight: 1, padding: "0 1px", color: armed ? T.red : T.green,
+                            }}
+                          >
+                            {armed ? "\u2715" : "\u2713"}
                           </span>
                         )}
 
@@ -1290,6 +1347,21 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           onAccept={() => setProfileDiff(null)}
           onDismiss={() => setProfileDiff(null)}
         />
+      )}
+
+      {/* #122: custom hover tooltip (full filename + size) — replaces the native OS title */}
+      {tip && (
+        <div style={{
+          position: "fixed", left: tip.left, top: tip.top,
+          transform: tip.above ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+          zIndex: 1000, pointerEvents: "none",
+          background: "#15161d", border: `1px solid ${T.borderHover}`,
+          borderRadius: 8, padding: "7px 10px", maxWidth: 380,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+        }}>
+          <div style={{ color: T.text, fontSize: 12, fontFamily: T.mono, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 360 }}>{tip.name}</div>
+          <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono, marginTop: 3 }}>{tip.size}</div>
+        </div>
       )}
 
       {/* Quick-Import Modal */}

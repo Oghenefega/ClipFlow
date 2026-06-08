@@ -6,34 +6,21 @@
 
 ---
 
-## Active plan — Recordings card redesign (Option A) → tracked as #122
+## No active plan — #122 shipped (session 66)
 
-**Status:** designed & approved (session 65); **BUILD NEXT SESSION.** The two-line plan that
-was here is DEAD (built, rejected for dead space, reverted). Full spec lives in **#122** and in
-the interactive prototype `mockups/recordings-cards.html` (open in a browser — the top grid IS
-the spec). Short version below.
+**#122 (Recordings card redesign, Option A) is BUILT, verified by Fega, and closed (session 66).**
+Single-line cards, selection-by-highlight (no left checkbox), game-tag full/min header toggle
+(persisted via `recordingsTagMode`), size moved to a custom dark hover tooltip (~0.5s delay,
+below the card), and done = green ✓ → red ✕ → un-mark (replaces both the manual-done and
+`status="done"` paths). Built from `mockups/recordings-cards.html`; see CHANGELOG (2026-06-08).
 
-**Problem.** At ~7 cols (`PILL_MIN=200`) the filename (`flex:1`+ellipsis) competes with
-checkbox + AR pill + TEST + size + DONE and truncates to "AR Da…".
-
-**Approved design (Option A) — single line, ~5 cols, NO left colour bar.** `UploadView.js` only
-(+ a saved setting for the tag mode):
-1. **Drop the left `<Checkbox>`** — selection shown by the card HIGHLIGHT (purple); frees ~22px,
-   removes the redundant two-checkmarks. Card `onClick` already toggles selection.
-2. **Tag full `AR` pill ↔ minimized slim `|` line** via a header quick-toggle; default full;
-   persist as a setting (inspect settings plumbing first; if heavy, `useState` default-full then
-   follow up).
-3. **Drop the visible size**; keep it on the card `title` (full filename + size) for hover.
-4. **DONE badge → bare green ✓**; click → red ✕ → un-mark (per-card armed state). Replaces both
-   `manualDone`/`unmarkDone` and `f.status==="done"`/`resetFileDone`.
-5. **Keep** TEST chip (+`stopPropagation`), `✓ N` clips badge, generating `%`, name
-   `flex:1`+ellipsis+`title`.
-
-**Verify.** `npm run build:renderer` → relaunch → Fega check at ~5 cols; tag toggle persists;
-✓→✕→un-mark on both done paths; selection + generate-count still work.
-
-**Out of scope (separate):** the larger Recordings redesign — filters, sort, search, thumbnails,
-bulk actions, overall layout.
+### Next candidates (pick at session start)
+- **Larger Recordings redesign** (separate from #122) — filters, sort, search, thumbnails, bulk
+  actions, overall layout. Recordings is still V1 beyond the card itself.
+- **Subtitle `words[]`/`text` family** (deferred): #95, #107, #87, #101, #89, #84.
+- **#121** (chore) — `originalSegments` "sentence-level" comment clarification; low priority.
+- Backlog: #64 (waveform empty), #112/#62 (EPIPE / silent audio), #57 (editor lag), #114/#108/#40.
+  Commercial-launch: #20–#23, #50–#56, #73/#74, #85.
 
 ---
 

@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 66) — Recordings card redesign built & shipped (Option A, #122)
+
+### Changed
+- **Recordings cards rebuilt to the approved single-line "Option A" layout (#122).** Selection is now shown by a whole-card purple highlight (accent border + dim fill + soft glow) instead of a left checkbox — the checkbox is removed, which frees horizontal space and eliminates the old two-checkmarks-on-one-card redundancy. The game tag gained a header quick-toggle that switches every card between the full `AR` pill and a minimized slim colour bar (`|`); it defaults to full and persists across restarts via electron-store (`recordingsTagMode`). The on-card file size is gone (now on hover, see below). Done recordings show one bare green ✓ on the right that arms to a red ✕ on first click and un-marks on a second click (moving the mouse away cancels) — this single control replaces BOTH prior "DONE ×" paths (manually-marked-done and SQLite `status="done"`). Done cards are non-selectable, and the footer "Mark N as Done" / generate counts now exclude already-done recordings. Verified by Fega hands-on. [src/renderer/views/UploadView.js]
+
+### Added
+- **Custom dark hover tooltip on recording cards (#122).** Replaces the basic native OS tooltip (the "Windows 98" `title` box) with an app-themed popover — dark surface, mono filename, soft shadow — showing the full filename and size. It appears ~0.5s after hover (cancelled on leave), sits below the card by default and flips above only when a bottom-row card has no room below, and is rendered fixed-position outside the card so the card's `overflow:hidden` can't clip it. [src/renderer/views/UploadView.js]
+
 ## [Unreleased] — 2026-06-07 (session 65) — Recordings card redesign designed & specced (Option A, #122)
 
 ### Added
