@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **TEST toggle moved off the card into the (i) popover (#125).** The always-visible TEST pill is gone from the recording card; TEST is now the popover's clickable chip (yellow = on / grey = off), reusing the same move-between-folders logic. Keeps the card row uncluttered. [src/renderer/views/UploadView.js]
 - **Recording hover tooltip now shows duration (#125).** The custom hover tooltip reads `size · duration` (older recordings with no stored duration just show size). [src/renderer/views/UploadView.js]
 
+### Fixed
+- **Recordings list now sorts in real recording order, not rename order (#126).** Parts within a day were appearing scattered (e.g. AR Day19 showed Pt3, Pt2, Pt1, Pt4) because all three list-load paths sorted by `renamed_at` — the moment you clicked Rename — as the within-day tiebreaker. They now sort by **date → game → day number → part number**, with day/part compared numerically (so Pt2 comes before Pt10 and Day4 before Day33). The three duplicated comparators were consolidated into one shared `compareRecordings` so they can't drift apart again. Verified against the live database (114 recordings): zero part-order violations. Cross-game ordering on the same day falls back to alphabetical-by-game (no sub-day capture time is stored to interleave chronologically). [src/renderer/views/UploadView.js]
+
 ## [Unreleased] — 2026-06-08 (session 69) — Waveform crash fixed (#64); Recordings (i) info popover designed (#125)
 
 ### Added

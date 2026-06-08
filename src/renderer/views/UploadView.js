@@ -40,6 +40,23 @@ function findProjectForFile(row, localProjects) {
   return localProjects.find((p) => p.name === baseName) || null;
 }
 
+// #126: chronological order for the Recordings list — date, then game (tag),
+// then day number, then part number. day_number/part_number compare NUMERICALLY
+// (so Pt2 < Pt10 and Day4 < Day33; nulls sort first within their date+tag).
+// renamed_at is deliberately NOT used: it reflects the order Rename was clicked,
+// which scattered parts (Pt3 before Pt1). Cross-game same-day order falls back to
+// tag alphabetical — no sub-day capture time is stored to do true interleaving.
+// Single source of truth for all three list-load paths (initial / refresh / import).
+function compareRecordings(a, b) {
+  const d = (a.date || "").localeCompare(b.date || "");
+  if (d !== 0) return d;
+  const t = (a.tag || "").localeCompare(b.tag || "");
+  if (t !== 0) return t;
+  const day = (a.day_number ?? 0) - (b.day_number ?? 0);
+  if (day !== 0) return day;
+  return (a.part_number ?? 0) - (b.part_number ?? 0);
+}
+
 // AI pipeline stages in order
 const PIPELINE_STEPS = [
   { key: "probing", label: "Analyzing File", icon: "\uD83D\uDD0D" },
@@ -216,12 +233,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       try {
         const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
         if (Array.isArray(rows)) {
-          // Sort ascending by date then renamed_at (oldest first)
-          rows.sort((a, b) => {
-            const dateComp = (a.date || "").localeCompare(b.date || "");
-            if (dateComp !== 0) return dateComp;
-            return (a.renamed_at || "").localeCompare(b.renamed_at || "");
-          });
+          // #126: chronological order (date → game → day# → part#), oldest first
+          rows.sort(compareRecordings);
           setFiles(rows);
         }
       } catch (e) {
@@ -262,11 +275,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     try {
       const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
       if (Array.isArray(rows)) {
-        rows.sort((a, b) => {
-          const dateComp = (a.date || "").localeCompare(b.date || "");
-          if (dateComp !== 0) return dateComp;
-          return (a.renamed_at || "").localeCompare(b.renamed_at || "");
-        });
+        rows.sort(compareRecordings); // #126: chronological order (see compareRecordings)
         setFiles(rows);
       }
     } catch (_) {}
@@ -778,11 +787,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     try {
       const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
       if (Array.isArray(rows)) {
-        rows.sort((a, b) => {
-          const dateComp = (a.date || "").localeCompare(b.date || "");
-          if (dateComp !== 0) return dateComp;
-          return (a.renamed_at || "").localeCompare(b.renamed_at || "");
-        });
+        rows.sort(compareRecordings); // #126: chronological order (see compareRecordings)
         setFiles(rows);
       }
     } catch (_) {}
