@@ -102,7 +102,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [tagMode, setTagMode] = useState("full"); // "full" = AR pill, "min" = slim colour bar
   const [armedDone, setArmedDone] = useState({}); // fileId → true when armed (green ✓ → red ✕)
   const [tip, setTip] = useState(null); // #122: custom hover tooltip { name, size, left, top, above }
-  const tipTimer = useRef(null); // #122: ~0.5s delay timer for the hover tooltip
+  const tipTimer = useRef(null); // #122: ~1.5s delay timer for the hover tooltip
 
   // #60: transient error surface for failed test-mode moves (locked file, etc.)
   const [moveError, setMoveError] = useState(null);
@@ -368,7 +368,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const disarmDone = (id) => setArmedDone((p) => (p[id] ? (() => { const n = { ...p }; delete n[id]; return n; })() : p));
 
   // #122: custom dark tooltip for recording cards (replaces the native Win98-style title).
-  // Shows below the card after a ~0.5s hover delay; flips above only if a bottom-row card
+  // Shows below the card after a ~1.5s hover delay; flips above only if a bottom-row card
   // has no room below (so it never clips off-screen).
   const showTip = (e, f) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -381,7 +381,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       above: !below,
     };
     clearTimeout(tipTimer.current);
-    tipTimer.current = setTimeout(() => setTip(payload), 500);
+    tipTimer.current = setTimeout(() => setTip(payload), 1500);
   };
   const hideTip = () => { clearTimeout(tipTimer.current); setTip(null); };
   useEffect(() => () => clearTimeout(tipTimer.current), []);

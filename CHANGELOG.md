@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 67)
+
+### Changed
+- **Recordings card hover tooltip now waits ~1.5s before appearing (was ~0.5s).** Fega felt the half-second delay from #122 triggered too eagerly on a casual mouse pass; bumped the show-delay so the filename/size tooltip only surfaces on a deliberate hover. Pure timing tweak — placement, content, and the leave-to-cancel behaviour are unchanged. [src/renderer/views/UploadView.js]
+
 ## [Unreleased] — 2026-06-08 (session 66) — Recordings card redesign built & shipped (Option A, #122)
 
 ### Changed
