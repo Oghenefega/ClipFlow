@@ -9,6 +9,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - **Recordings card hover tooltip now waits ~1.5s before appearing (was ~0.5s).** Fega felt the half-second delay from #122 triggered too eagerly on a casual mouse pass; bumped the show-delay so the filename/size tooltip only surfaces on a deliberate hover. Pure timing tweak — placement, content, and the leave-to-cancel behaviour are unchanged. [src/renderer/views/UploadView.js]
 
+### Added
+- **Recordings action-bar redesign — designed as an interactive HTML prototype (`mockups/recordings-action-bar.html`).** The Generate / Mark-as-Done buttons currently sit inline at the very end of the recordings list, so on a long list they're unreachable without scrolling past every month group. Mocked four floating "contextual action bar" styles (bottom-center pill, sticky top bar, bottom-right corner cluster, full-width bottom dock) over a faithful recordings grid; Fega chose the **corner cluster** (bottom-right) with wording "Generate X Clips" and no Clear button. Design + plan only — no app code changed yet; the build is the next session's active plan (`tasks/todo.md`).
+
+### Notes
+- **Approved for next session: batch generate.** Reading the Generate handler revealed it only ever processed the *first* selected recording (`handleGenerate(selectedFiles[0])`) — the old "(11)" count was cosmetic and the rest of the selection was silently ignored. Fega chose to make Generate process ALL selected recordings sequentially (one after another) so he can batch-generate for daily posting; the corner cluster will wire to a new batched path. Plan, file impact, and verification steps are in `tasks/todo.md`.
+
 ## [Unreleased] — 2026-06-08 (session 66) — Recordings card redesign built & shipped (Option A, #122)
 
 ### Changed

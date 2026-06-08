@@ -1,50 +1,51 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-08 — Session 66 — Built, verified, and shipped #122 (Recordings card redesign, Option A) + a custom hover tooltip. Issue closed._
+_Last updated: 2026-06-08 — Session 67 — Shipped the tooltip-delay fix (~0.5s → 1.5s); designed + got sign-off on the Recordings action-bar redesign (Option C corner cluster) and a batch-generate plan. Build deferred to next session (context ran low)._
 
 ---
 
 ## One-line TL;DR
 
-We built the Option-A Recordings card redesign that was designed in session 65 (spec in #122 + `mockups/recordings-cards.html`): single-line cards, selection-by-card-highlight (left checkbox removed), a game-tag full/min header toggle (persisted), file size moved off the card to hover, and a single green ✓ → red ✕ → un-mark done control replacing both old "DONE ×" paths. Fega verified all of it. We then replaced the basic native hover tooltip with a custom dark one (full filename + size), and after Fega's feedback gave it a ~0.5s show-delay and below-the-card placement. Built clean, verified hands-on, **#122 closed**.
+Two things this session. (1) **Shipped:** the #122 hover tooltip was triggering too fast — bumped its show-delay from ~0.5s to ~1.5s; Fega verified ("delays feel good"), committed `8645c1a`. (2) **Designed, not yet built:** the Recordings tab's Generate / Mark-as-Done buttons sit at the very bottom of the scroll list (unreachable on long lists). Mocked four floating action-bar styles (`mockups/recordings-action-bar.html`); Fega picked **Option C — bottom-right corner cluster**, wording "Generate X Clips", no Clear button. While planning it I found the Generate button only ever processed the *first* selected recording — Fega chose to make it **batch-generate all selected, sequentially**. Full build plan is the ACTIVE PLAN in `tasks/todo.md`, awaiting a final "go".
 
 ## Current State
 
-App is healthy on `0.1.6-alpha`, running from `build/` (prod profile) via a backgrounded `npm start` (shell `beo4dyi8d`) — **close that window when done.** Renderer builds clean (`npm run build:renderer`, ~9.5s, only the pre-existing #73 chunk-size warning). All session work is committed/pushed to master. Working tree should be clean except runtime churn (`data/clipflow.db`, `data/game_profiles.json` — DO NOT commit).
+App is healthy on `0.1.6-alpha`. The tooltip fix is shipped/verified/pushed. The action-bar work is **design + plan only — zero app code changed for it.** Next session: get Fega's "go" and execute the active plan in `tasks/todo.md`. Working tree after this wrap should be clean except runtime churn (`data/clipflow.db`, `data/game_profiles.json` — DO NOT commit).
 
-## What Was Just Built (all in `src/renderer/views/UploadView.js`)
+## What Was Just Built / Done
 
-1. **Dropped the left `<Checkbox>`** — selection is now a whole-card purple highlight (accent border + `accentDim` bg + `0 0 0 1px accent, 0 3px 14px` glow). `Checkbox` import removed. Done cards are non-selectable (`onClick` guards on `!fileDone`).
-2. **Game-tag full/min toggle** — header segmented control (`Tags` `AR` | `|`) next to Select All; `tagMode` state, default `"full"`, persisted via `window.clipflow.storeSet("recordingsTagMode", …)` and loaded in the split-settings effect. Min mode renders a 3×14 colour bar instead of the `AR` pill.
-3. **Removed the on-card size** — now shown in the custom tooltip on hover.
-4. **Done = bare green ✓ → red ✕ → un-mark** — `showDoneCheck = manualDone || statusDone`; per-file `armedDone[id]` two-step (click ✓ arms ✕, click ✕ confirms, `onMouseLeave` disarms). One handler `handleDoneCheck(f, manualDone)` routes to `unmarkDone` (manual) or `resetFileDone` (status). Replaced BOTH old "DONE ×" blocks.
-5. **`selCount` now excludes done** (moved below `isDone` to avoid TDZ) so the footer "Mark N as Done" + generate counts ignore already-done cards.
-6. **Custom hover tooltip** — `tip` state + `tipTimer` ref; `showTip` computes position from `getBoundingClientRect()` and fires `setTip` after 500ms; `hideTip` clears the timer. Rendered fixed-position (outside the card, `pointerEvents:none`) with dark surface + mono filename + size; default below, flips above only when no room below. Cleanup effect clears the timer on unmount.
+1. **Tooltip show-delay ~0.5s → ~1.5s** (`src/renderer/views/UploadView.js`): `setTimeout(..., 500)` → `1500` in `showTip` (:384), plus the two "~0.5s" comments updated (:105, :371). Built clean, launched, Fega verified, committed + pushed `8645c1a`, CHANGELOG'd.
+2. **`mockups/recordings-action-bar.html`** — interactive 4-variant prototype (floating pill / sticky top / corner cluster / bottom dock) over a faithful single-line recordings grid with live click-to-select and a variant switcher. Used to pick the direction.
+3. **ACTIVE PLAN written to `tasks/todo.md`** — corner cluster (Option C) + batch generate, with file impact, steps, proposed defaults, verification, and watch-outs.
+4. **Lessons distilled:** corrected the tooltip show-delay value in `clipflow-ui-debug` (was "~500ms" → now "~1.5s, Fega's preference"); logged the raw lesson in `tasks/lessons.md` and advanced the DISTILLED-THROUGH marker (session 67).
 
 ## Key Decisions
 
-- **Checkmark stays a two-step (✓ → ✕ → confirm), hover-away cancels.** Fega asked why and chose to keep it after the rationale: un-marking is non-destructive (deletes nothing, just re-opens the recording), but the two-step still guards against an accidental single click; the mouse-leave disarm prevents a red ✕ stranding on a done card.
-- **Tooltip conventions are load-bearing.** Replacing the native `title` meant re-implementing its defaults: ~0.5s delay + below placement. Shipped instant+above first, Fega flagged both → fixed. (Lesson distilled into `clipflow-ui-debug`.)
-- **Built from the approved mockup, not the abstract plan.** Session 65's two-line attempt was rejected on render; Option A was approved against `mockups/recordings-cards.html`, so building faithfully from it was safe — and it was.
-- **Tag-mode persistence was light, not heavy** — same `storeGet/storeSet` one-liner pattern as `splitThresholdMinutes`/`doneRecordings`, so it was persisted properly (no `useState`-only fallback needed).
+- **Action bar = Option C (bottom-right corner cluster).** Floats above the bottom nav, appears when ≥1 recording is selected: a "N selected" pill + `✓ Mark Done` + `Generate N Clips`. Chosen over the bottom-center pill / sticky top / full-width dock for minimal footprint (Fega: "minimal and I like the side corner cluster style").
+- **Wording "Generate X Clips"** (not "Generate Clips (11)"), and **no Clear button** (Fega: "I can just uncheck a video").
+- **Generate becomes BATCH.** It currently only runs `handleGenerate(selectedFiles[0])` — the first selected recording only; the "(11)" count was cosmetic. Fega chose to process **all selected recordings sequentially, one after another** (his words), so he can batch-generate for daily posting.
+- **Proposed batch defaults (in the plan, treat as approved unless Fega flips them):** continue on mid-batch error + summarize at end; auto-clear selection when the batch finishes; show the play-style update prompt once after the batch, not between files.
+- **Tooltip delay = ~1.5s** is Fega's preferred feel over the native ~500ms — don't revert to 500ms.
 
 ## Next Steps (prioritized)
 
-1. **Larger Recordings redesign** (separate from #122) — filters, sort, search, thumbnails, bulk actions, overall layout. Recordings is still V1 beyond the card.
-2. Subtitle `words[]`/`text` family (deferred): #95, #107, #87, #101, #89, #84.
-3. **#121** (chore) — `originalSegments` "sentence-level" comment clarification; low priority.
-4. Backlog: #64 (waveform empty), #112/#62 (EPIPE / silent audio), #57 (editor lag), #114/#108/#40. Commercial-launch: #20–#23, #50–#56, #73/#74, #85.
+1. **Get Fega's "go", then BUILD the ACTIVE PLAN in `tasks/todo.md`** — the Option-C corner cluster + sequential batch generate. Single file: `src/renderer/views/UploadView.js`. The plan has the exact steps (replace footer block ~:1306–1338, extract `runOnePipeline`, add `handleGenerateBatch`, wire the cluster, add bottom spacer + "N of M" progress).
+2. Verify per the plan: build + `npm start`, select 2–3 short **TEST** recordings, watch them generate back-to-back with the counter, become projects, selection clears; confirm single-select and quick-import auto-generate still work.
+3. Backlog unchanged: subtitle `words[]`/`text` family (#95, #107, #87, #101, #89, #84); #64 (waveform empty); #112/#62 (EPIPE / silent audio); #57 (editor lag); the larger Recordings redesign (filters/sort/search/thumbnails); commercial-launch milestone (#20–#23, #50–#56, #73/#74, #85).
 
 ## Watch Out For
 
-- **Don't reintroduce the left-edge full-height colour bar** — Fega hates it as an "AI cliché." The min-mode tag is a small 3×14 colour chip that REPLACES the `AR` pill; that's different and approved.
-- **Stray `npm start` (shell `beo4dyi8d`)** is running on the new build — close the window when done; **kill it before any `npm run build`** (packaging locks the binary). `npm run build:renderer` is safe with it running. Kill pattern: `Get-Process electron | ? { $_.Path -like '*Desktop\ClipFlow*' } | Stop-Process -Force` (path-filtered so it won't touch other Electron apps).
-- **No single-instance lock in `main.js`** — relaunching `npm start` opens a SECOND window on the same prod DB. Kill the old instance before relaunching (done this session).
-- **Editing `UploadView.js` near the done badges:** the `×` is stored as the literal escape `×` and there's an em-dash in a `title`; the Edit matcher only auto-swaps ONE unicode form at a time, so a block containing both will fail to match — neutralize one (e.g. em-dash → hyphen) first, then edit.
+- **Don't break quick-import auto-generate** (`UploadView.js:634` calls `handleGenerate` with a single synthesized file). Keep `handleGenerate(file)` working when extracting `runOnePipeline`.
+- **`generating` state is load-bearing** — it hides the action cluster and drives the per-card `%`. In the batch loop, set it to the *current* file and clear it (+ progress/signalHealth) only at the very END of the batch, not after each file. The current code clears via `setTimeout(... , 3000/5000)`; `runOnePipeline` must NOT use that delayed clear or the loop will race.
+- **Stale-closure trap:** `runOnePipeline` must be a clean awaitable that does NOT rely on the `if (generating) return` early-return guard (that closure goes stale inside a synchronous loop).
+- **Floating cluster geometry:** `position:fixed`, `bottom:72` clears the **56px** `Sidebar` bottom nav (title bar is 36px at top). The tabPane scrolls (`overflow:auto`, App.js:491), so add a conditional bottom spacer (~90px) inside the view so the last card row isn't covered when scrolled down. The existing tooltip already uses `position:fixed` here successfully — no transformed-ancestor problem.
+- **Match app conventions in UploadView:** ✓ is `"✓"` / ✕ is `"✕"` (no lucide imported in this file); pull colours from `theme.js` (`T`). The mockup's Generate button had a ⚡ emoji — I deliberately omitted it in the plan (the app uses no emoji-icon buttons); re-confirm with Fega if he wants an icon.
 - **Don't commit `data/clipflow.db` / `data/game_profiles.json`** (runtime churn). Stage source/docs explicitly.
+- **No single-instance lock in `main.js`** — relaunching `npm start` opens a SECOND window on the same prod DB. Kill any open ClipFlow Electron instance before relaunching, and ALWAYS before `npm run build` (packaging locks the binary). Path-filtered kill: `Get-Process electron | ? { $_.Path -like '*Desktop\ClipFlow*' } | Stop-Process -Force` (in raw bash, avoid `$_` — use `Where-Object Path -Like "*Desktop\ClipFlow*"`).
 
 ## Logs / Debugging
 
-- **Build/run:** `npm run build:renderer` (~9.5s, renderer only). `npm start` runs prod from `build/`. Clean boots this session: `App started … 0.1.6-alpha` (electron 40.9.1), `Database initialized … (schema v4)`, `File migration already complete — skipping`, then per-recording `Generated N preview frames`. No errors across three rebuild/relaunch cycles.
-- **Recordings code map (`UploadView.js`, post-#122):** state `tagMode`/`armedDone`/`tip`+`tipTimer` near :101; `changeTagMode` after `persistDone`; `isDone` then `selCount` (excludes done); `handleDoneCheck`/`disarmDone`/`showTip`/`hideTip` after `resetFileDone`; header tag toggle in the "count + tag toggle + select all" row; card block ~:1195–1295 (card div with `onMouseEnter/Leave` :1196, tag full/min ternary :1210, name :1225, TestChip :1232, clip-count badge :1240, unified done ✓/✕ :1250, generating % :1265); custom tooltip render just before the Quick-Import Modal.
-- **Theme tokens** (`src/renderer/styles/theme.js`): accent `#8b5cf6`, accentLight `#a78bfa`, accentDim `rgba(139,92,246,0.12)`, accentBorder `rgba(139,92,246,0.25)`, green `#34d399`, red `#f87171`, surface `#111218`, bg `#0a0b10`, borderHover `rgba(255,255,255,0.12)`, mono `'JetBrains Mono'`.
-- **Tooltip bg** uses a literal `#15161d` (one step above `surface`) for separation from the cards.
+- **Build/run this session:** `npm run build:renderer` clean ~9.9s (only the pre-existing #73 chunk-size warning, `index-*.js` ~1.89 MB). `npm start` booted clean: `App started … 0.1.6-alpha` (electron 40.9.1), `Database initialized … (schema v4)`, `File migration already complete — skipping`, then per-recording `Generated N preview frames`. No errors. (This session's `npm start` ran in background shell `b626vscj4` — it won't survive into next session, but if an Electron window is still open on the prod DB, kill it before any `npm run build`.)
+- **Recordings code map (`UploadView.js`):** state `generating`/`progress`/`signalHealth`/`selected` near :93–98; `onPipelineProgress` live-progress listener :219–220 (drives per-file `%`); `handleGenerate(file)` single-file pipeline :242–302 (uses `setTimeout` to clear `generating` at :262/:279/:300 — extract the core into `runOnePipeline` without that delayed clear); `toggle` :305, `selectAll` :310/:319, `selCount` :330 (excludes done), `markSelectedDone` :332 (clears selection via `setSelected({})` :338); tooltip `showTip` :373 (delay now `1500` at :384) / `hideTip` :386; **footer actions to REPLACE at ~:1306–1338** (currently inline `marginTop:16`, the unreachable bit); custom tooltip render ~:1353.
+- **App shell layout (`App.js`):** outer column `height:100vh` :501; draggable title bar 36px :503; `tabPaneStyle` = `flex/overflow:auto/scrollbarGutter:stable/display` :491 (the tabPane is the scroller); Recordings tabPane :534 with content wrapper `padding:"32px 40px"` :535; bottom nav = `<Sidebar>` :690 (component `Sidebar.js`, `height:56`, in-flow, `flexShrink:0`).
+- **Theme tokens (`theme.js`):** accent `#8b5cf6`, accentLight `#a78bfa`, accentDim `rgba(139,92,246,0.12)`, green `#34d399`, greenBorder `rgba(52,211,153,0.22)`, surface `#111218`, surfaceHover `#16171f`, borderHover `rgba(255,255,255,0.12)`, text `#edeef2`, radius.md `10px`/lg `14px`. Mockup's floating "glass" bg = `rgba(22,23,31,0.92)` + `backdropFilter:"blur(14px)"`.
+- **Keyframe pattern:** the codebase injects keyframes via an inline `<style>{`@keyframes …`}</style>` at the usage site (see `ThumbnailScrubber.js:160`) — use that for the cluster's slide-up, not a global stylesheet.
