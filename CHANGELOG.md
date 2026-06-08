@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 69) — Waveform extraction crash on long sources fixed (#64)
+
+### Fixed
+- **Timeline waveform no longer hangs on "Extracting waveform…" for long recordings (#64).** The audio extractor asked FFmpeg for an output sample rate that grew with the recording's length (`-ar peakCount*10`, and `peakCount` scales with duration). For a 30-minute source that meant FFmpeg piped ~250 MB of raw PCM to stdout, which `execFile` buffers in memory and aborts past its `maxBuffer` cap (`ERR_CHILD_PROCESS_STDIO_MAXBUFFER`) — so extraction returned empty and the timeline spun forever. Short clips happened to fit under the cap, which is why it looked intermittent. Fixed by decoupling the sample rate from `peakCount`: extraction now uses a fixed **1000 Hz** envelope rate, so output is ~3.4 MB for a 30-min source (and stays bounded for any length) while still giving ~250 samples per peak — equal or better waveform detail than before. The `maxBuffer` ceiling was also raised 50 MB → 128 MB as belt-and-suspenders. Verified at the FFmpeg layer against a real 1804s source (248 MB → 3.4 MB). [src/main/ffmpeg.js]
+
+### Notes
+- The `[waveform]` diagnostic lines added in session 59 use raw `console.log`, which reaches the terminal only — never `app.log` — so they're invisible on the installed (no-terminal) build. Not changed here; flagged for a future pass.
+
 ## [Unreleased] — 2026-06-08 (session 68) — Recordings floating action cluster + batch generate shipped (#123)
 
 ### Added

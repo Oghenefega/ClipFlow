@@ -321,7 +321,11 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
       "-map", `0:a:${idx}`,      // select specific audio track (must match transcription track)
       "-vn",                    // no video
       "-ac", "1",               // mono
-      "-ar", String(peakCount * 10), // sample rate: ~peakCount*10 samples
+      // Fixed envelope rate — do NOT scale to peakCount. stdout bytes = rate ×
+      // duration, so a peakCount-scaled rate piped ~250MB for a 30-min source and
+      // blew execFile's maxBuffer (#64). 1000 Hz ≈ 3.4MB at 30min, ~250 samples/
+      // peak; the bucketing below derives all counts from the received byte length.
+      "-ar", "1000",
       "-f", "s16le",            // raw 16-bit signed little-endian PCM
       "-acodec", "pcm_s16le",
       "pipe:1",                 // output to stdout
@@ -329,7 +333,7 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
 
     require("child_process").execFile("ffmpeg", args, {
       timeout: 60000,
-      maxBuffer: 50 * 1024 * 1024,
+      maxBuffer: 128 * 1024 * 1024, // bounded payload (#64) keeps us far under this; cap high as insurance
       encoding: "buffer",
     }, (err, stdout, stderr) => {
       if (err) {
