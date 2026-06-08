@@ -86,6 +86,18 @@ function signalStatusVisuals(status) {
 
 const PILL_MIN = 200;
 
+// #123: floating action cluster (Option C) — bottom-right glass shell. Shared by
+// the action buttons, the in-flight batch pill, and the end-of-run summary toast.
+// bottom:72 clears the 56px bottom nav; zIndex 90 sits below modals (z 1000+).
+const CLUSTER_SHELL = {
+  position: "fixed", right: 28, bottom: 72, zIndex: 90,
+  display: "flex", alignItems: "center", gap: 10,
+  padding: "9px 12px", borderRadius: T.radius.lg,
+  background: "rgba(22,23,31,0.92)", backdropFilter: "blur(14px)",
+  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
+  animation: "clipflowClusterUp 0.18s ease-out",
+};
+
 export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, testWatchFolder = "" }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +110,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
+  // #123: sequential batch-generate — progress, end-of-run summary, and the
+  // play-style review queue drained once the whole batch finishes (no per-file modal spam).
+  const [batchState, setBatchState] = useState(null); // { current, total } while a batch runs
+  const [batchSummary, setBatchSummary] = useState(null); // transient "Clipped N of M" toast
+  const [profileQueue, setProfileQueue] = useState([]); // gameTags queued for play-style review
   // #122: Recordings card redesign — tag display mode + per-file two-step un-mark
   const [tagMode, setTagMode] = useState("full"); // "full" = AR pill, "min" = slim colour bar
   const [armedDone, setArmedDone] = useState({}); // fileId → true when armed (green ✓ → red ✕)
@@ -239,8 +256,26 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     return () => { window.clipflow?.removeSignalProgressListener?.(); };
   }, []);
 
-  const handleGenerate = useCallback(async (file) => {
-    if (generating) return;
+  // Refresh the recordings list from SQLite (oldest first), used after a generate.
+  const refreshFiles = useCallback(async () => {
+    try {
+      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+      if (Array.isArray(rows)) {
+        rows.sort((a, b) => {
+          const dateComp = (a.date || "").localeCompare(b.date || "");
+          if (dateComp !== 0) return dateComp;
+          return (a.renamed_at || "").localeCompare(b.renamed_at || "");
+        });
+        setFiles(rows);
+      }
+    } catch (_) {}
+  }, []);
+
+  // Core single-file pipeline — awaitable, no `generating` guard, no delayed
+  // clear. The caller owns cleanup/refresh/selection so this can be looped over
+  // a batch. Sets `generating` to the current file so its card shows progress.
+  // Returns a result summary the batch runner tallies.
+  const runOnePipeline = useCallback(async (file) => {
     const game = findGameByTag(file.tag, gamesDb);
     setGenerating(file.current_path);
     setProgress({ stage: "probing", pct: 0, detail: "Starting..." });
@@ -259,47 +294,111 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       if (result.error) {
         setProgress({ stage: "failed", pct: 0, detail: result.error });
         posthog.capture("clipflow_pipeline_failed");
-        setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
-      } else {
-        setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
-        posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
-        onProjectCreated?.(result.projectId);
-        // Refresh file list to pick up status changes
-        try {
-          const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-          if (Array.isArray(rows)) {
-            rows.sort((a, b) => {
-              const dateComp = (a.date || "").localeCompare(b.date || "");
-              if (dateComp !== 0) return dateComp;
-              return (a.renamed_at || "").localeCompare(b.renamed_at || "");
-            });
-            setFiles(rows);
-          }
-        } catch (_) {}
-        setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 3000);
-
-        // Check if play style profile update is needed
-        if (result.profileUpdateNeeded && result.gameTag) {
-          try {
-            const updateResult = await window.clipflow.gameProfilesGenerateUpdate(result.gameTag);
-            if (updateResult.success) {
-              setProfileDiff({
-                gameTag: result.gameTag,
-                gameName: updateResult.gameName,
-                oldProfile: updateResult.oldProfile,
-                newProfile: updateResult.newProfile,
-              });
-            }
-          } catch (err) {
-            console.error("Profile update generation failed:", err);
-          }
-        }
+        return { ok: false, error: result.error };
       }
+      setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
+      posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
+      if (result.projectId) onProjectCreated?.(result.projectId);
+      return { ok: true, clipCount: result.clipCount, profileUpdateNeeded: result.profileUpdateNeeded, gameTag: result.gameTag };
     } catch (e) {
       setProgress({ stage: "failed", pct: 0, detail: e.message });
-      setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
+      return { ok: false, error: e.message };
     }
-  }, [generating, gamesDb, onProjectCreated]);
+  }, [gamesDb, onProjectCreated]);
+
+  // Single-file generate — the quick-import auto-generate path (:634). Guards
+  // against concurrent runs, refreshes, clears progress after a beat, shows the
+  // play-style modal inline.
+  const handleGenerate = useCallback(async (file) => {
+    if (generating) return;
+    const result = await runOnePipeline(file);
+    if (!result.ok) {
+      setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 5000);
+      return;
+    }
+    await refreshFiles();
+    setTimeout(() => { setGenerating(null); setProgress(null); setSignalHealth({}); }, 3000);
+    if (result.profileUpdateNeeded && result.gameTag) {
+      try {
+        const updateResult = await window.clipflow.gameProfilesGenerateUpdate(result.gameTag);
+        if (updateResult.success) {
+          setProfileDiff({
+            gameTag: result.gameTag,
+            gameName: updateResult.gameName,
+            oldProfile: updateResult.oldProfile,
+            newProfile: updateResult.newProfile,
+          });
+        }
+      } catch (err) {
+        console.error("Profile update generation failed:", err);
+      }
+    }
+  }, [generating, runOnePipeline, refreshFiles]);
+
+  // #123: batch generate — runs every selected recording through the pipeline
+  // sequentially. Continues past failures, tallies the outcome, and defers all
+  // play-style prompts to a queue drained after the run.
+  const handleGenerateBatch = useCallback(async (batchFiles) => {
+    if (generating || !batchFiles || batchFiles.length === 0) return;
+    const total = batchFiles.length;
+    let succeeded = 0;
+    const failures = [];
+    const profileTags = [];
+    for (let i = 0; i < total; i++) {
+      const file = batchFiles[i];
+      setBatchState({ current: i + 1, total });
+      const result = await runOnePipeline(file);
+      if (result.ok) {
+        succeeded += 1;
+        if (result.profileUpdateNeeded && result.gameTag && !profileTags.includes(result.gameTag)) {
+          profileTags.push(result.gameTag);
+        }
+      } else {
+        failures.push(file.current_filename);
+      }
+    }
+    await refreshFiles();
+    setGenerating(null);
+    setProgress(null);
+    setSignalHealth({});
+    setBatchState(null);
+    setSelected({});
+    setBatchSummary({
+      ok: failures.length === 0,
+      text: failures.length === 0
+        ? `Clipped ${succeeded} of ${total} ✓`
+        : `Clipped ${succeeded} of ${total} — ${failures.length} failed`,
+    });
+    setTimeout(() => setBatchSummary(null), 6000);
+    if (profileTags.length > 0) setProfileQueue(profileTags);
+  }, [generating, runOnePipeline, refreshFiles]);
+
+  // #123: drain the post-batch play-style review queue one modal at a time.
+  // Quick-import (single-file) updates set profileDiff directly and leave this empty.
+  useEffect(() => {
+    if (profileDiff || profileQueue.length === 0) return;
+    let cancelled = false;
+    const gameTag = profileQueue[0];
+    (async () => {
+      try {
+        const updateResult = await window.clipflow.gameProfilesGenerateUpdate(gameTag);
+        if (cancelled) return;
+        if (updateResult.success) {
+          setProfileDiff({
+            gameTag,
+            gameName: updateResult.gameName,
+            oldProfile: updateResult.oldProfile,
+            newProfile: updateResult.newProfile,
+          });
+        }
+        setProfileQueue((q) => q.slice(1));
+      } catch (err) {
+        console.error("Profile update generation failed:", err);
+        if (!cancelled) setProfileQueue((q) => q.slice(1));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profileDiff, profileQueue]);
 
   // --- Selection helpers ---
   const toggle = (id) => setSelected((p) => ({ ...p, [id]: !p[id] }));
@@ -326,8 +425,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   // --- Done helpers ---
   const isDone = (f) => f.status === "done" || !!doneFiles[f.current_filename] || !!findProjectForFile(f, localProjects);
 
-  // #122: selection count excludes done files (done cards are non-selectable in the redesign)
-  const selCount = files.filter((f) => selected[f.id] && !isDone(f)).length;
+  // #122: selection excludes done files (done cards are non-selectable in the redesign)
+  const selectedFiles = files.filter((f) => selected[f.id] && !isDone(f));
+  const selCount = selectedFiles.length;
 
   const markSelectedDone = () => {
     const next = { ...doneFiles };
@@ -852,7 +952,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
               <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
                 {needsSplit ? (
                   <>
-                    <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 6 }}>This will create {quickImport.splitCount} files:</div>
+                    <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 6 }}>This will create {quickImport.splitCount} recordings:</div>
                     {Array.from({ length: quickImport.splitCount }, (_, i) => {
                       const start = i * thresholdSec;
                       const end = Math.min((i + 1) * thresholdSec, quickImport.durationSeconds);
@@ -884,7 +984,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                   fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
                 }}
               >
-                Generate Clips
+                {needsSplit ? `Clip ${quickImport.splitCount} Recordings` : "Clip Recording"}
               </button>
             </>
           )}
@@ -1303,39 +1403,50 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         })}
       </div>
 
-      {/* Footer actions */}
-      <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center" }}>
-        {selCount > 0 && !generating && (
-          <>
-            <button
-              onClick={() => {
-                const selectedFiles = files.filter((f) => selected[f.id] && !isDone(f));
-                if (selectedFiles.length > 0) handleGenerate(selectedFiles[0]);
-              }}
-              disabled={!!generating || files.filter((f) => selected[f.id] && !isDone(f)).length === 0}
-              style={{
-                padding: "10px 18px", borderRadius: T.radius.md, border: "none",
-                background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
-                color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
-                opacity: files.filter((f) => selected[f.id] && !isDone(f)).length === 0 ? 0.5 : 1,
-              }}
-            >
-              Generate Clips ({files.filter((f) => selected[f.id] && !isDone(f)).length})
-            </button>
-            <button
-              onClick={markSelectedDone}
-              style={{
-                padding: "10px 18px", borderRadius: T.radius.md,
-                border: `1px solid rgba(52,211,153,0.25)`, background: "rgba(52,211,153,0.08)",
-                color: T.green, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
-              }}
-            >
-              Mark {selCount} as Done
-            </button>
-          </>
-        )}
-      </div>
+      {/* #123: bottom spacer so the last card row clears the floating cluster when scrolled down */}
+      {(batchState || batchSummary || (selCount > 0 && !generating)) && <div style={{ height: 96 }} />}
+
+      {/* #123: floating action cluster (Option C) — action buttons / batch progress / end-of-run summary */}
+      <style>{`
+        @keyframes clipflowClusterUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes clipflowPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      `}</style>
+      {batchState ? (
+        <div style={CLUSTER_SHELL}>
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: T.accent, boxShadow: `0 0 8px ${T.accent}`, animation: "clipflowPulse 1.1s ease-in-out infinite", flexShrink: 0 }} />
+          <span style={{ color: T.text, fontSize: 13, fontWeight: 600, fontFamily: T.font }}>
+            Clipping recording {batchState.current} of {batchState.total}…
+          </span>
+        </div>
+      ) : selCount > 0 && !generating ? (
+        <div style={CLUSTER_SHELL}>
+          <button
+            onClick={markSelectedDone}
+            style={{
+              padding: "9px 14px", borderRadius: T.radius.md,
+              border: `1px solid ${T.greenBorder}`, background: T.greenDim,
+              color: T.green, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+            }}
+          >
+            ✓ Mark Done
+          </button>
+          <button
+            onClick={() => handleGenerateBatch(selectedFiles)}
+            style={{
+              padding: "9px 16px", borderRadius: T.radius.md, border: "none",
+              background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`,
+              color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: T.font, boxShadow: "0 2px 12px rgba(139,92,246,0.25)",
+            }}
+          >
+            Clip {selCount} Recording{selCount === 1 ? "" : "s"}
+          </button>
+        </div>
+      ) : batchSummary ? (
+        <div style={CLUSTER_SHELL}>
+          <span style={{ color: batchSummary.ok ? T.green : T.yellow, fontSize: 13, fontWeight: 700, fontFamily: T.font }}>{batchSummary.text}</span>
+        </div>
+      ) : null}
 
       {/* Profile Diff Modal — shown when play style update is suggested after pipeline */}
       {profileDiff && (

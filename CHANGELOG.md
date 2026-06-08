@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 68) — Recordings floating action cluster + batch generate shipped (#123)
+
+### Added
+- **Recordings floating action cluster (Option C, #123).** The Generate / Mark-as-Done actions no longer sit inline at the very bottom of the recordings list (unreachable on long lists) — they now live in a floating "glass" cluster pinned to the bottom-right corner that appears whenever ≥1 recording is selected and stays put while you scroll. Two buttons: `✓ Mark Done` and `Clip N Recordings`. No "N selected" count pill (the count already shows in the top bar) and no icon (matches the app's no-emoji-button convention). [src/renderer/views/UploadView.js]
+- **Sequential batch generate (#123).** Generate previously processed only the *first* selected recording; it now runs every selected recording through the clip pipeline one after another. A live pill shows `Clipping recording N of M…`, the active card shows its per-stage progress, and an end-of-run toast reports `Clipped N of M ✓` (or `Clipped N of M — X failed`). Failures don't abort the run — it continues and tallies them. Selection auto-clears when the batch finishes, and any play-style update prompts are deferred to a queue drained after the whole batch, so there are no modal interruptions between files. [src/renderer/views/UploadView.js]
+
+### Changed
+- **"Generate Clips" wording corrected to "Clip Recordings" across the Recordings page (#123).** "Generate N Clips" wrongly implied N output clips, when N is the number of source recordings (each recording yields several clips). The main button now reads `Clip N Recordings`, batch progress reads `Clipping recording N of M`, the end-of-run summary reads `Clipped N of M`, and the quick-import (drag-drop) confirm button + split preview now say `Clip Recording` / `Clip N Recordings` and "create N recordings". [src/renderer/views/UploadView.js]
+
+### Notes
+- Wording and icon options were explored with Fega in an interactive prototype (`mockups/generate-button-icon.html`) — live switchers for both. Outcome: wording `Clip N Recordings`, no icon.
+
 ## [Unreleased] — 2026-06-08 (session 67)
 
 ### Changed

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClipFlow — Generate button icon options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0b10;
+    --surface: #111218;
+    --surface-hover: #16171f;
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2;
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.32);
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.10);
+    --green-border: rgba(52,211,153,0.22);
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 40px 48px 140px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .sub { color: var(--text-2); font-size: 13.5px; margin-top: 6px; line-height: 1.5; max-width: 640px; }
+  .sub b { color: var(--text); font-weight: 600; }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-3); margin: 34px 0 14px;
+  }
+
+  /* Faux recordings grid (context) */
+  .grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    opacity: 0.5; pointer-events: none; filter: saturate(0.9);
+  }
+  .card {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 14px; height: 46px;
+  }
+  .tick { width: 3px; align-self: stretch; border-radius: 3px; }
+  .card .name { font-size: 13px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 9px; font-weight: 700; color: var(--text-3); border: 1px solid var(--border-hover); border-radius: 4px; padding: 2px 5px; letter-spacing: 0.04em; }
+
+  /* The real cluster shell */
+  .cluster {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 14px;
+    background: rgba(22,23,31,0.92);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid var(--border-hover);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+  }
+  .btn-done {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px; border-radius: 10px;
+    border: 1px solid var(--green-border); background: var(--green-dim);
+    color: var(--green); font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer;
+  }
+  .btn-gen {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff; font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer;
+    box-shadow: 0 2px 12px rgba(139,92,246,0.25);
+  }
+  .btn-gen svg { width: 15px; height: 15px; }
+  .btn-gen .emoji { font-size: 14px; line-height: 1; }
+
+  /* Floating live preview, exactly where it sits in-app (bottom-right above the nav) */
+  .floating { position: fixed; right: 28px; bottom: 72px; z-index: 50; }
+  .fake-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 56px; z-index: 40;
+    background: #0c0d13; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 28px;
+    color: var(--text-3); font-size: 11px; font-weight: 600;
+  }
+  .fake-nav span { opacity: 0.6; }
+
+  /* Variant chooser */
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 760px; }
+  .options.wide { grid-template-columns: repeat(2, 1fr); max-width: 680px; }
+  .opt {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 16px 14px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .opt:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .opt.active { border-color: var(--accent); background: rgba(139,92,246,0.06); }
+  .opt .label { font-size: 11px; font-weight: 600; color: var(--text-2); }
+  .opt.active .label { color: var(--accent-light); }
+  .opt .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+  .hint { margin-top: 26px; color: var(--text-2); font-size: 12.5px; line-height: 1.55; max-width: 640px; }
+  .hint code { font-family: var(--mono); font-size: 11.5px; color: var(--accent-light); background: rgba(139,92,246,0.10); padding: 1px 6px; border-radius: 5px; }
+</style>
+</head>
+<body>
+  <div class="title">Generate button — wording &amp; icon</div>
+  <div class="sub"><b>“3 selected”</b> = 3 source recordings, and each produces <b>several</b> clips — so “Generate 3 Clips” is misleading. The count is the input. Pick a wording and an icon below; the real cluster bottom-right updates live.</div>
+
+  <div class="section-label">In context</div>
+  <div class="grid">
+    <div class="card"><div class="tick" style="background:#f97316"></div><div class="name">AR Day19 Pt1</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#8b5cf6"></div><div class="name">AR Day19 Pt4</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#f97316"></div><div class="name">AR Day20 Pt3</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#8b5cf6"></div><div class="name">RL Day1 Pt1</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#ef4444"></div><div class="name">Val Day1 Pt2</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#ef4444"></div><div class="name">Val Day1 Pt1</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#f97316"></div><div class="name">AR Day21 Pt1</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#f97316"></div><div class="name">AR Day21 Pt3</div><div class="badge">TEST</div></div>
+    <div class="card"><div class="tick" style="background:#f97316"></div><div class="name">AR Day22 Pt1</div><div class="badge">TEST</div></div>
+  </div>
+
+  <div class="section-label">Choose wording</div>
+  <div class="options wide" id="wordingOptions"></div>
+  <div class="hint" id="wordingHint"></div>
+
+  <div class="section-label">Choose an icon</div>
+  <div class="options" id="iconOptions"></div>
+  <div class="hint" id="iconHint"></div>
+
+  <!-- live floating cluster -->
+  <div class="floating">
+    <div class="cluster">
+      <button class="btn-done">&#10003; Mark Done</button>
+      <button class="btn-gen" id="liveGen"></button>
+    </div>
+  </div>
+  <div class="fake-nav"><span>Rename</span><span>Recordings</span><span>Editor</span><span>Projects</span><span>Queue</span></div>
+
+<script>
+  // lucide-style monochrome SVGs (stroke = currentColor, inherits button white)
+  const svg = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+
+  const WORDINGS = {
+    clips:     { label: 'Generate Clips',            tag: 'no count',              text: 'Generate Clips',
+                 hint: 'No number on the button — the count already shows in the top bar (“3 selected”). Simplest, and impossible to misread.' },
+    from:      { label: 'Generate from 3 Recordings', tag: 'explicit · my pick',   text: 'Generate from 3 Recordings',
+                 hint: 'Spells out that the 3 is <b>recordings</b>, not output clips. Keeps the count you wanted and kills the ambiguity.' },
+    clipsfrom: { label: 'Generate Clips from 3',      tag: 'keeps both words',     text: 'Generate Clips from 3',
+                 hint: 'Keeps “Clips” and the count, re-ordered so 3 attaches to the source. A touch terse — “3 what?” leans on context.' },
+    clip:      { label: 'Clip 3 Recordings',          tag: 'punchy verb',          text: 'Clip 3 Recordings',
+                 hint: '“Clip” as a verb — short and punchy, clearly acting on the 3 recordings.' },
+    process:   { label: 'Process 3 Recordings',       tag: 'neutral verb',         text: 'Process 3 Recordings',
+                 hint: 'Accurate and neutral, but “Process” is flatter than “Generate” — less of an action you look forward to.' },
+    dot:       { label: 'Generate · 3 Recordings',    tag: 'separator',            text: 'Generate · 3 Recordings',
+                 hint: 'A middot separates the action from the scope. Clean, though a bare “Recordings” scope reads slightly technical.' },
+  };
+
+  const ICONS = {
+    none:     { label: 'No icon',      tag: 'app default', html: '',
+                hint: 'The app uses <b>no emoji-icon buttons</b> anywhere — most consistent with everything else.' },
+    zapEmoji: { label: '⚡ emoji',      tag: 'colour',      html: '<span class="emoji">⚡</span>',
+                hint: 'Full-colour emoji — renders yellow, reads a touch playful, and is the one departure from the app’s no-emoji convention.' },
+    zap:      { label: 'Zap',          tag: 'mono svg',    html: svg('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'),
+                hint: 'Monochrome line icon (inherits the white text). Same “energy / fast” idea as the emoji, but native to the UI.' },
+    sparkles: { label: 'Sparkles',     tag: 'mono svg',    html: svg('<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>'),
+                hint: 'Reads as “AI / generate”. Common on AI actions — clean in monochrome.' },
+    scissors: { label: 'Scissors',     tag: 'mono svg',    html: svg('<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>'),
+                hint: 'Literal — these are clips being cut. Most descriptive of what happens.' },
+    clapper:  { label: 'Clapperboard', tag: 'mono svg',    html: svg('<path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>'),
+                hint: 'Film clapperboard — “make video clips”. Slightly busier at 15px but recognisable.' },
+  };
+
+  const liveGen = document.getElementById('liveGen');
+  const wordingHint = document.getElementById('wordingHint');
+  const iconHint = document.getElementById('iconHint');
+  let curWording = 'from';
+  let curIcon = 'none';
+
+  function renderLive() {
+    liveGen.innerHTML = ICONS[curIcon].html + '<span>' + WORDINGS[curWording].text + '</span>';
+  }
+
+  function buildChooser(containerId, data, sampleHtml, onPick, getCur, hintEl) {
+    const el = document.getElementById(containerId);
+    Object.entries(data).forEach(([key, def]) => {
+      const opt = document.createElement('div');
+      opt.className = 'opt';
+      opt.dataset.key = key;
+      opt.innerHTML =
+        '<button class="btn-gen" tabindex="-1">' + sampleHtml(def) + '</button>' +
+        '<div class="label">' + def.label + '</div>' +
+        '<div class="tag">' + def.tag + '</div>';
+      opt.addEventListener('click', () => {
+        onPick(key);
+        el.querySelectorAll('.opt').forEach((o) => o.classList.toggle('active', o.dataset.key === key));
+        hintEl.innerHTML = '<b>' + def.label + '</b> — ' + def.hint;
+        renderLive();
+      });
+      el.appendChild(opt);
+    });
+    // initial active + hint
+    const cur = getCur();
+    el.querySelectorAll('.opt').forEach((o) => o.classList.toggle('active', o.dataset.key === cur));
+    hintEl.innerHTML = '<b>' + data[cur].label + '</b> — ' + data[cur].hint;
+  }
+
+  // Wording cards show the full phrase (no icon, to isolate the words)
+  buildChooser('wordingOptions', WORDINGS, (def) => '<span>' + def.text + '</span>',
+    (k) => { curWording = k; }, () => curWording, wordingHint);
+  // Icon cards show the icon next to a short, fixed verb
+  buildChooser('iconOptions', ICONS, (def) => def.html + '<span>Generate</span>',
+    (k) => { curIcon = k; }, () => curIcon, iconHint);
+
+  renderLive();
+</script>
+</body>
+</html>
