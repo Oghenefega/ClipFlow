@@ -1,53 +1,53 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-08 — Session 69 — Shipped the #64 waveform-extraction crash fix (committed `92452f2`, awaiting Fega's verification). Designed the Recordings card "(i) info popover" (Spotlight chosen) and wrote the full build plan — **build deferred to next session** (#125). Wrapped at ~200k+ tokens by request._
+_Last updated: 2026-06-08 — Session 70 — Built the #125 (i) info popover + Play-recording-in-editor (shipped & closed), fixed #126 Recordings sort order (shipped, proven at data layer), and refined the (i) glyph to a bare italic `i` (font-based; SVG redraw deferred to #127). Wrapped on request ("we're losing the plot" on icon micro-polish)._
 
 ---
 
 ## One-line TL;DR
 
-Two threads: (1) **#64 fixed & pushed** — the timeline waveform no longer hangs on long recordings (root cause was a units bug making FFmpeg pipe ~250 MB to a 50 MB buffer); needs Fega's eyes-on confirm. (2) **Recordings (i) info popover** — designed via 4 HTML prototypes, Fega picked "Spotlight," full plan written to `tasks/todo.md` + issue **#125**; no app code written yet — next session builds it.
+Three things landed: (1) **#125 (i) info popover + Play-in-editor** — built, Fega confirmed working, **closed** (`1d33a9d`). (2) **#126 Recordings sort** — parts were ordered by rename-click time, not part number; now date→game→day#→part# via one shared comparator, **proven 0 violations against the live 114-row DB** (`f2240e2`). (3) **(i) glyph** — dropped the circle (it caused a sub-pixel lean) for a bare italic `i`; it's a system serif-font glyph and renders inconsistently across mockup/preview, so a **vector (SVG) redraw is deferred to #127**.
 
 ## Current State
 
-Healthy on `0.1.6-alpha`. Working tree after this wrap: only `data/clipflow.db` + `data/game_profiles.json` (runtime churn — **DO NOT commit**). The waveform fix is on `master` (`92452f2`). The popover is design + plan only.
+Healthy on `0.1.6-alpha`, schema v4. App is currently **running from source** (`npm start`, background) with the latest build. Two commits pushed this session (`1d33a9d`, `f2240e2`); the **(i)-glyph refinement + this wrap are in the session-end commit**. Working tree also has the usual `data/clipflow.db` + `data/game_profiles.json` runtime churn — **DO NOT commit those**.
 
-## What Was Done This Session
+## What Was Just Built
 
-1. **#64 waveform crash — FIXED (`92452f2`, pushed).** `extractWaveformPeaks` set FFmpeg's output sample rate to `-ar peakCount*10`, and `peakCount` scales with duration → a 30-min source piped ~250 MB of raw PCM to stdout, blowing `execFile`'s `maxBuffer` (`ERR_CHILD_PROCESS_STDIO_MAXBUFFER`) → empty peaks → infinite "Extracting waveform…". Short clips fit under the cap (looked intermittent). Fix: fixed **1000 Hz** rate (output ~3.4 MB at 30 min regardless of length, ~250 samples/peak) + `maxBuffer` 50→128 MB. Proven on a real 1804 s file: 248 MB → 3.4 MB. Only `src/main/ffmpeg.js` changed. **Issue #64 left OPEN** with a fix comment — awaiting Fega's verification.
-2. **#124 filed** (chore/observability): the `[waveform]` diagnostics use raw `console.log`, which reaches the terminal only — never `app.log` — so they're invisible on the installed build. Out of scope for the crash fix; flagged for later.
-3. **Recordings (i) info popover — DESIGNED, NOT BUILT (#125).** Four interactive prototypes in `mockups/recordings-info-*.html`; Fega chose **Spotlight** (`recordings-info-spotlight.html`), hero = "Stats" with **equal-size** Duration/Size values. Full build plan in `tasks/todo.md` and issue **#125**.
+1. **#125 — Recordings (i) info popover + Play-in-editor (CLOSED, `1d33a9d`).**
+   - Hover-revealed `(i)` on each card (left of the green ✓) opens the "Spotlight" popover: filename, Duration+Size stats, **Play in editor**, **Open in Explorer**, clickable **TEST chip**. Closes on outside-click / Esc / scroll.
+   - **Play = watch-only "source-preview" editor mode.** `useEditorStore.initFromContext` has an early branch for `editorContext.sourcePreviewPath` that synthesizes a `{ id:"__source_preview__", sourceFile, name, clips:[], transcription:null }` shell with `clip:null`. The video/timeline/waveform self-fill from `onLoadedMetadata`; Save/Render/Re-transcribe all no-op (guard on `!clip`) → zero disk-write risk. Back returns to Recordings.
+   - TEST moved off the card into the popover chip; hover tooltip gained duration.
+   - Files: `src/renderer/views/UploadView.js`, `src/renderer/App.js` (`handleOpenSourcePreview`, onBack routes source-preview → recordings), `src/renderer/editor/stores/useEditorStore.js`.
+2. **#126 — Recordings sort fixed (shipped `f2240e2`).** All three list-load comparators sorted by `date` then **`renamed_at`** (the moment Rename was clicked) → parts scattered (AR Day19 showed Pt3,2,1,4). Now one shared `compareRecordings(a,b)` = **date → tag → day_number → part_number**, day/part compared **numerically** (Pt2<Pt10, Day4<Day33). Verified by replaying the exact comparator over the live DB (114 rows): **0 part-order violations**; a date holding two day_numbers (2026-01-30 EO Day1+Day4) sorts correctly. The same `renamed_at` tiebreaker still exists in `main.js` SQL `ORDER BY` (~1635) but the renderer re-sorts, so display is correct; left main.js alone (changing it risks other consumers).
+3. **(i) glyph refinement (in this wrap's commit).** Circle dropped → bare italic `i` (no border). Hover brightens to accent. The circle was the only circled element in the row and its even-icon/odd-circle geometry caused a sub-pixel "lean" that shifted card-to-card. **Still a font glyph** (`Georgia, 'Times New Roman', serif` italic). Filed **#127** to redraw as SVG.
 
 ## Key Decisions
 
-- **Waveform fix = fixed 1000 Hz**, not `spawn`/streaming. The root cause was a rate-vs-total units error; bounding the rate fixes it surgically with no architecture change.
-- **(i) info popover design:** hover-revealed `(i)` (hidden until card hover) LEFT of the green ✓; click opens an interactive popover (filename, Duration + Size stat pair, Play, Open in Explorer, TEST chip). The standalone **TEST pill is removed from the card** — TEST is now the popover's clickable chip (yellow = on / grey = off). Tooltip also gains duration.
-- **"Play" = open the raw recording in the REAL editor** (Fega's pick over an OS player / in-app modal). Confirmed ~S effort and **safe** (no project corruption) via a "source-preview" editor mode — see Next Steps.
-- Prototypes delivered by **opening them in Fega's browser via `Start-Process`** — chat attachments didn't open for him (saved as memory).
+- **Source-preview never creates a project/clip** — it's a thin in-memory shell; the editor already tolerates `clip:null` everywhere, so it's safe by construction. Don't "fix" the no-op Save/Render by faking a clip (would risk disk writes).
+- **Sort tiebreaker is tag-alphabetical for cross-game same-day** — there's no sub-day capture time stored (renamed files lost the OBS `HH-MM-SS`), so true cross-game chronological interleaving is impossible without an upstream change (persist capture time at rename). Each game's own parts are always in order, which was the actual complaint. Don't substitute `renamed_at` (reintroduces the bug) or `created_at` (bulk-import timestamps are near-identical → random).
+- **`day_number` tier is load-bearing, not redundant** — verified a real case (2026-01-30 EO with both Day1 and Day4) where dropping it would mis-order. Keep numeric day + numeric part.
+- **(i) glyph = bare italic `i`, no circle** (Fega's pick over circle/drawn/serif variants), font-based for now; SVG redraw deferred (#127). Decision driven by: the circle was the lean's root cause, and a bare letter matches the bare ✓.
+- **Don't over-iterate micro-polish** — burned ~3 mockup rounds on the icon before Fega called it ("we're losing the plot"); lesson captured and distilled to clipflow-ui-debug.
 
-## Next Steps (the #125 build — for next session)
+## Next Steps (prioritized)
 
-All detail is in `tasks/todo.md` + issue #125. Summary:
-1. **`src/renderer/views/UploadView.js`** (primary): add hover-reveal `(i)` (left of ✓), remove the `TestChip` pill from the card render (~:1355), build the Spotlight popover (port CSS/markup from `mockups/recordings-info-spotlight.html`), add duration to the hover tooltip (use `f.duration_seconds` + existing `formatDuration()`; fallback `—` if null), wire actions: Play → `handleOpenSourcePreview`, Open → `window.clipflow.revealInFolder(f.current_path)`, TEST → existing `handleToggleRecordingTest(f.id, next)`.
-2. **`src/renderer/editor/stores/useEditorStore.js`**: add a `sourcePreviewPath` branch at the TOP of `initFromContext` (before the `projectLoad` IPC) that synthesizes `{ id:"__source_preview__", sourceFile: path, name: label, clips: [], transcription: null }`, `clip: null`, `nleSegments: []`. `onLoadedMetadata`'s `initNleSegments(videoDur)` self-fills the timeline + waveform. (~20 lines.)
-3. **`src/renderer/App.js`**: `handleOpenSourcePreview(path,label)` → `setEditorContext({ sourcePreviewPath, label }); setView("editor")`; make `onBack` return to `recordings` when `sourcePreviewPath` is set; thread the handler into the Recordings view.
-4. `EditorLayout` needs **no** changes (save/render/retranscribe/navigator already guard `!clip`).
-5. This also unblocks **#64 verification**: Play any ~30-min recording → the waveform should render (was always blank pre-fix).
-
-Other backlog unchanged: subtitle `words[]`/`text` family (#95/#107/#87/#101/#89/#84), #112/#62 (EPIPE/silent audio), #57 (editor lag), #114/#108/#40, commercial-launch (#20–#23, #50–#56, #73/#74, #85). Also #124 (waveform logs→app.log).
+1. **#126 confirmed in-app & closed** — Fega was viewing the sorted Recordings list during the icon work (no sort complaints), and it's proven at the data layer; closed this session with `status: untested`. If he wants an explicit look: Recordings tab → any multi-part day reads Pt1→Pt2→Pt3→Pt4. Remove the untested label on his confirm.
+2. **#127 (optional polish)** — redraw the `(i)` as SVG using a variant from `mockups/recordings-info-icon-svg.html` (E slab / F calligraphic / G dot+stem). Pick with Fega.
+3. Backlog unchanged: subtitle word/text family (#95/#107/#87/#101/#89/#84), #112/#62 (EPIPE/silent audio), #57 (editor lag), #124 (waveform logs→app.log), #114/#108/#40, commercial-launch (#20–#23, #50–#56, #73/#74, #85). #64 (waveform) is fixed & can now be re-confirmed via the new Play-in-editor on a ~30-min recording.
 
 ## Watch Out For
 
-- **#64 still needs Fega's confirm** before closing. Verify by opening any clip whose SOURCE recording is ~30 min (the editor loads the full source behind a clip), OR — once #125 ships — via the new Play-in-editor. The fix is proven at the FFmpeg layer but not yet eyes-on in the app.
-- **Source-preview waveform cache** keys on `project.id` → with id `"__source_preview__"` it makes one cache folder under projectsRoot. Harmless; optionally pass a stable per-file id.
-- **Source-preview is watch-only** — no clip exists, so the editor's Save/Render/Re-transcribe do nothing (all guard on `!clip`). That's intended; don't "fix" it by faking a clip (would risk disk writes).
-- **`data/clipflow.db` / `data/game_profiles.json`** are runtime churn — never commit. Stage source/docs/mockups explicitly.
-- **Losing mockup variants** (`recordings-info-{menu,contextbar,inline}.html`, and the original `recordings-info-popover.html` baseline) are scratch — safe to delete once #125 ships.
-- **No single-instance lock in `main.js`** — kill any open ClipFlow Electron before `npm run build`/relaunch: `powershell.exe -NoProfile -Command "Get-Process electron | Where-Object Path -Like '*Desktop\ClipFlow*' | Stop-Process -Force"`.
+- **#126 fix lives only in the renderer comparators.** If a NEW Recordings list-load path is added, use `compareRecordings` — don't re-inline a `date`/`renamed_at` sort (that's the bug). `main.js` ORDER BY still uses `renamed_at` but is overridden by the renderer.
+- **(i) glyph is font-dependent.** It renders as serif-italic only where a serif font resolves. In the packaged Electron app (Windows) Georgia resolves; in arbitrary browsers/previews it may fall back to sans. #127 is the durable fix.
+- **Source-preview waveform cache keys on `project.id`** → with id `"__source_preview__"` all source previews share one cache folder under projectsRoot. Harmless; optionally key per-file later.
+- **No single-instance lock in `main.js`** — kill any open ClipFlow Electron before `npm run build`/relaunch: `powershell.exe -NoProfile -Command "Get-Process electron | Where-Object Path -Like '*Desktop\ClipFlow*' | Stop-Process -Force"`. (The `$_`-style filter gets mangled by the Bash tool; use the `Where-Object Path -Like` form.)
+- **`data/clipflow.db` / `data/game_profiles.json`** = runtime churn, never commit. Stage source/docs/mockups explicitly.
+- **Scratch mockups** `recordings-info-icon{,-final,-svg}.html` are this session's icon exploration — keep `-svg.html` (referenced by #127); the others are safe to delete.
 
 ## Logs / Debugging
 
-- **No build/run performed this session** — the waveform fix is main-process JS verified by `node --check src/main/ffmpeg.js` (SYNTAX OK) + a direct FFmpeg repro (old args 248 MB vs new args 3.4 MB on `2025-12-17 17-52-17-vertical.mp4`). Renderer was NOT rebuilt (no renderer change this session).
-- **Prod log:** `%APPDATA%\clipflow\logs\app.log` (electron-log; format `[ts] [level] (scope) [sess_xxx] msg`). NOTE: it only captures the `logger`/electron-log scoped API — **raw `console.log` does NOT land here** (that's #124). The `[waveform]` lines only show in a terminal when running `npm start` from source.
-- **To verify #64 manually next session:** `npm start`, open a clip with a ~30-min source, watch the editor timeline → waveform should fill within a few seconds. Or wire #125's Play and use that.
-- **Build commands:** renderer = `npm run build:renderer` (Vite); `npm start` launches Electron from `build/`. Daily driver = installed exe from `npm run build` + `dist/ClipFlow Setup *.exe`.
-- **Key files for #125:** `src/renderer/views/UploadView.js` (card render ~:1304-1398, TestChip ~:1355, tooltip ~:1463), `src/renderer/editor/stores/useEditorStore.js` (`initFromContext` ~:66-251, autosave guard `:668`, `initNleSegments` ~:275), `src/renderer/App.js` (`handleOpenInEditor` :394, editor render :666), `src/renderer/editor/components/PreviewPanelNew.js` (`videoSrc` :659, `onLoadedMetadata` :855, waveform call :884).
+- **Build/run this session:** `npm run build:renderer` (Vite, ~10s, clean — the >500kB chunk warning is pre-existing/expected for this desktop app, ignore). App launched via `npm start` (loads `build/`); restarted after each renderer rebuild (no HMR in `npm start` mode). All boots clean: `App started … electron 40.9.1`, `Database initialized … (schema v4)`, `File migration already complete`.
+- **DB inspection:** the driver is **`sql.js`** (WASM), not better-sqlite3. To query `data/clipflow.db` from Node, write the script INSIDE the repo (so `require('sql.js')` resolves) — a script in `%TEMP%` fails with MODULE_NOT_FOUND. Pattern: `const SQL = await require('sql.js')(); const db = new SQL.Database(fs.readFileSync('data/clipflow.db'));` then `db.exec("SELECT …")`. (Used to prove the #126 sort; temp scripts deleted.)
+- **#126 proof:** replayed `compareRecordings` over all 114 rows → 0 within-(date,tag,day) part-order violations; AR Day19 → Pt1,2,3,4; EO 2026-01-30 → Day1 Pt1, Day1 Pt2, Day4 Pt1.
+- **Prod log:** `%APPDATA%\clipflow\logs\app.log` (electron-log; `[ts] [level] (scope) msg`). Raw `console.log` only reaches a terminal (not app.log) — that's #124.
+- **Key files:** Recordings = `src/renderer/views/UploadView.js` (`compareRecordings` ~:44, three `rows.sort(compareRecordings)` at ~:237/:278/:790, the `(i)` button + popover render, `<style>` block with `.cf-info-btn`/`.cf-spot-action`). Source-preview = `useEditorStore.js` `initFromContext` early branch; `App.js` `handleOpenSourcePreview` + editor onBack; `PreviewPanelNew.js` `videoSrc`/`onLoadedMetadata` (drives waveform).

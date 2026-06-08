@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClipFlow — Recordings (i) icon treatments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Georgia&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surface-hover:#16171f; --elev:#15161d;
+    --border:rgba(255,255,255,0.06); --border-hover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text-2:rgba(255,255,255,0.55); --text-3:rgba(255,255,255,0.32);
+    --accent:#8b5cf6; --accent-light:#a78bfa; --accent-dim:rgba(139,92,246,0.12); --accent-border:rgba(139,92,246,0.25);
+    --green:#34d399; --tag:#f97316;
+    --font:'DM Sans',-apple-system,sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:radial-gradient(1200px 600px at 20% -10%, rgba(139,92,246,0.06), transparent 60%), var(--bg);
+    color:var(--text); font-family:var(--font); -webkit-font-smoothing:antialiased; padding:36px 24px 80px;}
+  .wrap{max-width:880px;margin:0 auto;}
+  h1{font-size:15px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--text-3);font-size:12px;margin:0 0 18px;line-height:1.5;}
+  .sub code{font-family:var(--mono);color:var(--accent-light);font-size:11px;}
+
+  /* live controls */
+  .toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:12px 14px;margin-bottom:10px;
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;}
+  .ctl{display:flex;align-items:center;gap:9px;}
+  .ctl .lbl{font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;}
+  .seg{display:inline-flex;background:#0c0d13;border:1px solid var(--border);border-radius:8px;padding:2px;}
+  .seg button{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--text-2);
+    font-family:var(--font);font-size:12px;font-weight:600;padding:5px 11px;border-radius:6px;transition:all .12s;}
+  .seg button.active{background:var(--accent-dim);color:var(--accent-light);box-shadow:inset 0 0 0 1px var(--accent-border);}
+  .hint{color:var(--text-3);font-size:11px;margin:0 2px 16px;}
+  .hint b{color:var(--text-2);}
+
+  .group-head{font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.4px;margin:18px 2px 9px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;}
+
+  .card{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface);cursor:pointer;overflow:hidden;
+    transition:border-color .12s,background .12s;}
+  .card:hover{border-color:var(--border-hover);}
+  .card.sel{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 1px var(--accent),0 3px 14px rgba(139,92,246,.22);}
+  .tag{display:inline-flex;padding:2px 5px;border-radius:4px;background:color-mix(in srgb,var(--tag) 9%,transparent);
+    border:1px solid color-mix(in srgb,var(--tag) 27%,transparent);color:var(--tag);font-family:var(--mono);
+    font-size:9px;font-weight:700;letter-spacing:.5px;flex-shrink:0;}
+  .title{color:var(--text);font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;flex:1;min-width:0;}
+  .check{flex-shrink:0;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:0 1px;color:var(--green);}
+
+  /* ============ the (i) button — driven by body data-attrs ============ */
+  .info-btn{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--text-2);cursor:pointer;padding:0;border:0;
+    transition:opacity .14s ease,transform .14s ease,color .12s,border-color .12s,background .12s;}
+  /* reveal-on-hover (matches app); the "show always" toggle overrides */
+  .info-btn{opacity:0;transform:scale(.82);}
+  .card:hover .info-btn{opacity:1;transform:scale(1);}
+  body[data-reveal="always"] .info-btn{opacity:1;transform:scale(1);}
+
+  /* CIRCLE on */
+  body[data-circle="on"] .info-btn{width:19px;height:19px;border-radius:50%;border:1px solid var(--border-hover);}
+  body[data-circle="on"] .info-btn:hover{border-color:var(--accent);color:var(--accent-light);background:var(--accent-dim);}
+  /* CIRCLE off — bare glyph, brightens on hover like the ✓ neighbours */
+  body[data-circle="off"] .info-btn{width:16px;height:19px;}
+  body[data-circle="off"] .info-btn:hover{color:var(--accent-light);}
+
+  /* glyph sizing */
+  .info-btn svg{width:12px;height:12px;display:block;}
+  .info-btn .glyph{font-family:var(--font);font-weight:700;font-size:13px;line-height:1;}
+  body[data-circle="off"] .info-btn .glyph{font-size:14px;}
+  /* italic */
+  body[data-italic="on"] .info-btn .glyph{font-style:italic;font-family:Georgia,'DM Sans',serif;font-weight:600;}
+  body[data-italic="on"] .info-btn svg{transform:skewX(-11deg);}
+
+  /* which glyph shows */
+  .g-drawn,.g-char{display:none;}
+  body[data-glyph="drawn"] .g-drawn{display:block;}
+  body[data-glyph="char"] .g-char{display:inline-block;}
+
+  .legend{margin-top:26px;color:var(--text-3);font-size:11.5px;line-height:1.7;}
+  .legend b{color:var(--text-2);}
+  .legend code{font-family:var(--mono);color:var(--accent-light);}
+</style>
+</head>
+<body data-circle="off" data-italic="off" data-glyph="drawn" data-reveal="always">
+  <div class="wrap">
+    <h1>Recordings — the <span style="color:var(--accent-light)">(i)</span> icon, four knobs</h1>
+    <p class="sub">Flip the switches to compare. The cards mirror the real Recordings grid. The <code>i</code> here is
+      shown on <b>every</b> card so you can compare shape; in the app it stays hover-revealed.</p>
+
+    <div class="toolbar">
+      <div class="ctl"><span class="lbl">Circle</span>
+        <div class="seg" data-knob="circle"><button data-v="off" class="active">No circle</button><button data-v="on">Circle</button></div></div>
+      <div class="ctl"><span class="lbl">Style</span>
+        <div class="seg" data-knob="italic"><button data-v="off" class="active">Upright</button><button data-v="on">Italic</button></div></div>
+      <div class="ctl"><span class="lbl">Glyph</span>
+        <div class="seg" data-knob="glyph"><button data-v="drawn" class="active">Drawn</button><button data-v="char">Text&nbsp;i</button></div></div>
+      <div class="ctl"><span class="lbl">Show</span>
+        <div class="seg" data-knob="reveal"><button data-v="always" class="active">Always</button><button data-v="hover">On hover</button></div></div>
+    </div>
+    <p class="hint"><b>Centring:</b> every variant here is pixel-centred — none should lean. (The app bug came only from the tiny circle box; these are all fixed.)</p>
+
+    <div class="group-head">FEBRUARY 2026</div>
+    <div class="cards" id="cards"></div>
+
+    <div class="legend">
+      <div><b>My recommendation:</b> <code>No circle · Upright · Drawn</code> — lightest, matches the bare green ✓, no centring issue.</div>
+      <div><b>If you want it more obviously "info":</b> <code>Circle · Upright · Drawn</code> (the classic ⓘ feel, now properly centred).</div>
+      <div style="margin-top:6px;">Tell me the four-knob combo you like and I'll ship exactly that.</div>
+    </div>
+  </div>
+
+<script>
+  const DATA = [
+    ["AR","AR Day19 Pt1",false],["AR","AR Day19 Pt2",false],["AR","AR Day19 Pt3",true],["AR","AR Day19 Pt4",false],
+    ["AR","AR Day20 Pt1",false],["AR","AR Day20 Pt2",false],["RL","RL Day1 Pt1",false],["Val","Val Day1 Pt2",false],
+  ];
+  // drawn glyph: dot (filled circle) + rounded stem, both centred at x=8 in a 0 0 16 16 box
+  const DRAWN = '<svg class="g-drawn" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3.6" r="1.15" fill="currentColor"/><rect x="6.9" y="6.4" width="2.2" height="6.2" rx="1.1" fill="currentColor"/></svg>';
+  const CHAR = '<span class="g-char glyph">i</span>';
+  const cards = document.getElementById("cards");
+  DATA.forEach(([tag,title,sel])=>{
+    const c=document.createElement("div");
+    c.className="card"+(sel?" sel":"");
+    c.innerHTML=`<span class="tag">${tag}</span><span class="title">${title}</span>`+
+      `<button class="info-btn" title="Info & actions">${DRAWN}${CHAR}</button>`+
+      `<span class="check">&#10003;</span>`;
+    cards.appendChild(c);
+  });
+  document.querySelectorAll(".seg").forEach(seg=>{
+    seg.addEventListener("click",e=>{
+      const b=e.target.closest("button"); if(!b)return;
+      const knob=seg.dataset.knob;
+      document.body.dataset[knob]=b.dataset.v;
+      seg.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
+    });
+  });
+</script>
+</body>
+</html>

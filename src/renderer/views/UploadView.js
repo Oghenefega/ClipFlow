@@ -1392,9 +1392,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           {shortName(f)}
                         </span>
 
-                        {/* #125: hover-revealed (i) — opens the Spotlight popover (filename,
-                            duration/size, Play in editor, Open in Explorer, TEST chip).
-                            Sits left of the green ✓; TEST moved into the popover. */}
+                        {/* #125/#126: hover-revealed info affordance — bare italic serif "i",
+                            no circle (Fega's pick; a single letter centres cleanly, no sub-pixel
+                            lean). Sits left of the green ✓; opens the Spotlight popover. */}
                         <button
                           className={"cf-info-btn" + (infoPop?.fileId === f.id ? " cf-info-btn-open" : "")}
                           onClick={(e) => openInfoPop(e, f)}
@@ -1402,16 +1402,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                           title="Info & actions"
                           aria-label="Info & actions"
                           style={{
-                            flexShrink: 0, width: 19, height: 19, padding: 0,
+                            flexShrink: 0, width: 14, height: 18, padding: 0,
                             display: "inline-flex", alignItems: "center", justifyContent: "center",
-                            borderRadius: "50%", border: `1px solid ${T.borderHover}`,
-                            background: "transparent", color: T.textSecondary, cursor: "pointer",
+                            background: "transparent", border: 0, color: T.textSecondary, cursor: "pointer",
+                            fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: "italic",
+                            fontWeight: 600, fontSize: 14, lineHeight: 1,
                           }}
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ width: 12, height: 12 }}>
-                            <line x1="12" y1="7" x2="12" y2="7" />
-                            <line x1="12" y1="10.5" x2="12" y2="16.5" />
-                          </svg>
+                          i
                         </button>
 
                         {/* Status badges */}
@@ -1465,11 +1463,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       <style>{`
         @keyframes clipflowClusterUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes clipflowPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        /* #125: (i) info button — hidden until card hover, fades in; stays lit while its popover is open */
-        .cf-info-btn { opacity: 0; transform: scale(0.82); transition: opacity .14s ease, transform .14s ease, border-color .12s, color .12s, background .12s; }
+        /* #125/#126: bare italic "i" — hidden until card hover, fades in; stays lit while its popover is open; brightens to accent on hover (like the green ✓ neighbours, no circle) */
+        .cf-info-btn { opacity: 0; transform: scale(0.82); transition: opacity .14s ease, transform .14s ease, color .12s; }
         .cf-rec-card:hover .cf-info-btn { opacity: 1; transform: scale(1); }
         .cf-info-btn-open { opacity: 1 !important; transform: scale(1) !important; }
-        .cf-info-btn:hover, .cf-info-btn-open { border-color: #8b5cf6 !important; color: #a78bfa !important; background: rgba(139,92,246,0.12) !important; }
+        .cf-info-btn:hover, .cf-info-btn-open { color: #a78bfa !important; }
         /* #125: Spotlight popover action rows */
         .cf-spot-action { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; cursor: pointer; color: #edeef2; font-size: 12.5px; font-weight: 500; padding: 9px 14px; text-align: left; transition: background .1s; }
         .cf-spot-action:hover { background: #16171f; }
