@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClipFlow — Recordings (i) Spotlight popover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---- ClipFlow theme tokens (mirrors src/renderer/styles/theme.js) ---- */
+  :root {
+    --bg: #0a0b10;
+    --surface: #111218;
+    --surface-hover: #16171f;
+    --elev: #15161d;
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2;
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.32);
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --accent-dim: rgba(139,92,246,0.12);
+    --accent-border: rgba(139,92,246,0.25);
+    --green: #34d399;
+    --green-border: rgba(52,211,153,0.22);
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --yellow-dim: rgba(251,191,36,0.10);
+    --yellow-border: rgba(251,191,36,0.22);
+    --tag: #f97316;
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(139,92,246,0.06), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.2px; margin: 0 0 4px; }
+  .sub { color: var(--text-3); font-size: 12px; margin: 0 0 20px; line-height: 1.5; }
+  .sub b { color: var(--text-2); font-weight: 600; }
+  .sub code { font-family: var(--mono); color: var(--accent-light); font-size: 11px; }
+
+  /* ---- prototype toolbar (hero-layout switcher) ---- */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 13px; margin-bottom: 22px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .tool-label { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+  .seg { display: inline-flex; background: #0c0d13; border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+  .seg button {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    color: var(--text-2); font-family: var(--font); font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 6px; transition: all .12s;
+  }
+  .seg button.active { background: var(--accent-dim); color: var(--accent-light); box-shadow: inset 0 0 0 1px var(--accent-border); }
+  .tool-hint { color: var(--text-3); font-size: 11px; margin-left: auto; }
+
+  /* ---- month group ---- */
+  .group-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; color: var(--text-2);
+    letter-spacing: 0.4px; margin: 0 2px 9px;
+  }
+  .group-head .count {
+    font-size: 9px; font-weight: 700; color: var(--text-3);
+    background: rgba(255,255,255,0.04); border-radius: 5px; padding: 2px 6px;
+  }
+
+  /* ---- card grid: narrow pills, multiple per row (mirrors app: minmax(200px,1fr)) ---- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px;
+  }
+
+  .card {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    cursor: pointer; overflow: hidden;
+    transition: border-color .12s, box-shadow .12s, background .12s;
+  }
+  .card:hover { border-color: var(--border-hover); }
+  .card.sel {
+    border-color: var(--accent); background: var(--accent-dim);
+    box-shadow: 0 0 0 1px var(--accent), 0 3px 14px rgba(139,92,246,0.22);
+  }
+
+  .tag {
+    display: inline-flex; padding: 2px 5px; border-radius: 4px;
+    background: color-mix(in srgb, var(--tag) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tag) 27%, transparent);
+    color: var(--tag); font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .title {
+    color: var(--text); font-size: 12.5px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
+  }
+
+  .cluster { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  /* (i) info button — hidden by default, fades in on card hover */
+  .info-btn {
+    flex-shrink: 0; width: 19px; height: 19px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid var(--border-hover);
+    background: transparent; color: var(--text-2); cursor: pointer;
+    opacity: 0; transform: scale(0.82);
+    transition: opacity .14s ease, transform .14s ease, border-color .12s, color .12s, background .12s;
+  }
+  .card:hover .info-btn { opacity: 1; transform: scale(1); }
+  .info-btn.open { opacity: 1; transform: scale(1); }
+  .info-btn:hover, .info-btn.open { border-color: var(--accent); color: var(--accent-light); background: var(--accent-dim); }
+  .info-btn svg { width: 12px; height: 12px; }
+
+  /* done checkmark — ALWAYS visible, to the RIGHT of (i) */
+  .check {
+    flex-shrink: 0; cursor: pointer; font-size: 15px; font-weight: 800;
+    line-height: 1; padding: 0 1px; color: var(--green); transition: color .12s;
+  }
+
+  /* ---- passive hover tooltip ---- */
+  .tooltip {
+    position: fixed; z-index: 900; pointer-events: none; opacity: 0;
+    transform: translate(-50%, 6px); transition: opacity .12s, transform .12s;
+    background: var(--elev); border: 1px solid var(--border-hover);
+    border-radius: 8px; padding: 7px 10px; max-width: 380px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .tooltip.show { opacity: 1; transform: translate(-50%, 0); }
+  .tooltip .t-name { color: var(--text); font-size: 12px; font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  .tooltip .t-meta { color: var(--text-3); font-size: 11px; font-family: var(--mono); margin-top: 3px; }
+
+  /* ================================================================
+     SPOTLIGHT popover
+     ================================================================ */
+  .popover {
+    position: fixed; z-index: 1000; width: 248px;
+    background: var(--elev); border: 1px solid var(--border-hover);
+    border-radius: 13px;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02);
+    opacity: 0; transform: translateY(7px) scale(0.97); transform-origin: top right;
+    transition: opacity .13s ease, transform .13s ease; overflow: hidden;
+  }
+  .popover.show { opacity: 1; transform: translateY(0) scale(1); }
+
+  /* hero — faint accent-tinted strip */
+  .spot-hero {
+    padding: 12px 14px 13px;
+    background: linear-gradient(180deg, var(--accent-dim) 0%, rgba(139,92,246,0.02) 70%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .spot-id { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+  .spot-id .tag { font-size: 9px; }
+  .spot-fname {
+    color: var(--text-2); font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
+  }
+
+  /* shared stat primitives */
+  .eyebrow {
+    color: var(--text-3); font-size: 8.5px; font-weight: 700;
+    letter-spacing: 0.9px; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .eyebrow.accent { color: var(--accent-light); }
+  .val-lg { color: var(--text); font-family: var(--mono); font-weight: 600; font-size: 27px; line-height: 1; letter-spacing: -0.5px; }
+  .val-sm { color: var(--text-2); font-family: var(--mono); font-weight: 500; font-size: 15px; line-height: 1; }
+
+  /* hero mode: STATS — two aligned labelled columns; both values the SAME size */
+  .hero-stats { display: flex; align-items: flex-end; gap: 28px; }
+  .hero-stats .val-lg, .hero-stats .val-sm { font-size: 22px; font-weight: 600; color: var(--text); }
+
+  /* hero mode: INLINE — big duration, size as a quiet inline stat */
+  .hero-inline-row { display: flex; align-items: baseline; gap: 8px; }
+  .hero-inline-row .dot { color: var(--text-3); font-size: 14px; }
+  .hero-inline-row .val-sm { color: var(--text-3); }
+
+  /* hero mode: STACKED — duration only; size drops to a meta row below */
+  .meta-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px;
+  }
+  .meta-row .k { color: var(--text-3); font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  .meta-row .v { color: var(--text); font-family: var(--mono); font-size: 12px; font-weight: 500; }
+
+  /* actions */
+  .spot-actions { padding: 5px 0; }
+  .spot-action {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    color: var(--text); font-family: var(--font); font-size: 12.5px; font-weight: 500;
+    padding: 9px 14px; text-align: left; transition: background .1s;
+  }
+  .spot-action:hover { background: var(--surface-hover); }
+  .spot-action svg { width: 15px; height: 15px; color: var(--text-2); flex-shrink: 0; }
+  .spot-action:hover svg { color: var(--accent-light); }
+
+  .divider { height: 1px; background: var(--border); margin: 0; }
+
+  /* footer — TEST chip */
+  .spot-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 11px; }
+  .spot-footer .f-label { display: flex; flex-direction: column; gap: 1px; }
+  .spot-footer .f-label .k { color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  .spot-footer .f-label .hint { color: var(--text-3); font-size: 9px; font-weight: 500; }
+
+  /* TEST CHIP — clickable, yellow = ON / grey = OFF */
+  .test-chip {
+    appearance: none; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.7px; padding: 4px 9px; border-radius: 5px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-3); transition: all .12s;
+  }
+  .test-chip:hover { border-color: var(--border-hover); }
+  .test-chip.on { color: var(--yellow); background: var(--yellow-dim); border-color: var(--yellow-border); }
+
+  /* toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(10px);
+    background: var(--elev); border: 1px solid var(--green-border);
+    color: var(--green); font-size: 12.5px; font-weight: 600;
+    padding: 9px 15px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 1100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .legend { margin-top: 24px; color: var(--text-3); font-size: 11.5px; line-height: 1.7; }
+  .legend b { color: var(--text-2); font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Recordings card — <span style="color:var(--accent-light)">Spotlight</span> (i) popover</h1>
+    <p class="sub">
+      Cards are now narrow grid pills (like the real tab). <b>Hover</b> a card to reveal the <code>(i)</code>;
+      <b>click it</b> for the popover. Use the switcher to compare three hero layouts.
+    </p>
+
+    <div class="toolbar">
+      <span class="tool-label">Hero layout</span>
+      <div class="seg" id="heroSeg">
+        <button data-hero="stats" class="active">Stats</button>
+        <button data-hero="stacked">Stacked</button>
+        <button data-hero="inline">Inline</button>
+      </div>
+      <span class="tool-hint">switching reopens the open popover</span>
+    </div>
+
+    <div class="group-head">JANUARY 2026 <span class="count">6</span></div>
+    <div class="cards" id="cards"></div>
+
+    <div class="legend">
+      <div><b>Interactive:</b> hover to reveal (i), the popover, the TEST chip (yellow = on / grey = off), Play / Open (demo toast), and the hero-layout switcher above.</div>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+  const RECORDINGS = [
+    { id: "r1", tag: "AR", title: "AR Day7 Pt2",  file: "2026-01-05 AR Day7 Pt2.mp4",  size: "1.8 GB", dur: "30:04", test: true,  sel: false },
+    { id: "r2", tag: "AR", title: "AR Day8 Pt1",  file: "2026-01-08 AR Day8 Pt1.mp4",  size: "2.1 GB", dur: "31:12", test: false, sel: true  },
+    { id: "r3", tag: "AR", title: "AR Day9 Pt2",  file: "2026-01-09 AR Day9 Pt2.mp4",  size: "0.9 GB", dur: "14:38", test: false, sel: false },
+    { id: "r4", tag: "AR", title: "AR Day9 Pt3",  file: "2026-01-09 AR Day9 Pt3.mp4",  size: "1.2 GB", dur: "19:50", test: false, sel: false },
+    { id: "r5", tag: "AR", title: "AR Day10 Pt1", file: "2026-01-11 AR Day10 Pt1.mp4", size: "2.4 GB", dur: "30:00", test: true,  sel: false },
+    { id: "r6", tag: "AR", title: "AR Day10 Pt2", file: "2026-01-11 AR Day10 Pt2.mp4", size: "1.1 GB", dur: "17:22", test: false, sel: false },
+  ];
+
+  const ICON_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="7" x2="12" y2="7"/><line x1="12" y1="10.5" x2="12" y2="16.5"/></svg>';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+
+  let heroMode = "stats";
+  let openId = null;
+
+  const cardsEl = document.getElementById("cards");
+  const tooltipEl = document.getElementById("tooltip");
+  const toastEl = document.getElementById("toast");
+  let tipTimer = null, popover = null;
+
+  function render() {
+    cardsEl.innerHTML = "";
+    RECORDINGS.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "card" + (r.sel ? " sel" : "");
+      card.dataset.id = r.id;
+      const tag = `<span class="tag">${r.tag}</span>`;
+      const title = `<span class="title">${r.title}</span>`;
+      const info = `<button class="info-btn" data-info="${r.id}" title="Info & actions" aria-label="Info">${ICON_INFO}</button>`;
+      const check = `<span class="check" data-check="${r.id}" title="Mark done">&#10003;</span>`;
+      card.innerHTML = tag + title + `<span class="cluster">${info}${check}</span>`;
+      card.addEventListener("mouseenter", (e) => scheduleTip(e, r));
+      card.addEventListener("mouseleave", hideTip);
+      card.addEventListener("click", () => { r.sel = !r.sel; closePopover(); render(); });
+      cardsEl.appendChild(card);
+    });
+    cardsEl.querySelectorAll("[data-info]").forEach((b) => {
+      b.addEventListener("click", (e) => { e.stopPropagation(); hideTip(); togglePopover(b, b.dataset.info); });
+      b.addEventListener("mouseenter", hideTip);
+    });
+    cardsEl.querySelectorAll("[data-check]").forEach((c) => {
+      c.addEventListener("click", (e) => { e.stopPropagation(); toast("Marked done (demo)"); });
+    });
+  }
+
+  function scheduleTip(e, r) {
+    clearTimeout(tipTimer);
+    const card = e.currentTarget;
+    tipTimer = setTimeout(() => {
+      const rect = card.getBoundingClientRect();
+      tooltipEl.innerHTML = `<div class="t-name">${r.file}</div><div class="t-meta">${r.size} &nbsp;·&nbsp; ${r.dur}</div>`;
+      tooltipEl.style.left = (rect.left + rect.width / 2) + "px";
+      tooltipEl.style.top = (rect.bottom + 8) + "px";
+      tooltipEl.classList.add("show");
+    }, 350);
+  }
+  function hideTip() { clearTimeout(tipTimer); tooltipEl.classList.remove("show"); }
+
+  // ---- build the popover inner HTML per hero layout ----
+  function heroBlock(r) {
+    if (heroMode === "stats") {
+      return `
+        <div class="spot-hero">
+          <div class="spot-id"><span class="tag">${r.tag}</span><span class="spot-fname" title="${r.file}">${r.file}</span></div>
+          <div class="hero-stats">
+            <div class="stat-dur"><div class="eyebrow accent">Duration</div><div class="val-lg">${r.dur}</div></div>
+            <div class="stat-size"><div class="eyebrow">Size</div><div class="val-sm">${r.size}</div></div>
+          </div>
+        </div>`;
+    }
+    if (heroMode === "inline") {
+      return `
+        <div class="spot-hero">
+          <div class="spot-id"><span class="tag">${r.tag}</span><span class="spot-fname" title="${r.file}">${r.file}</span></div>
+          <div class="eyebrow accent">Duration</div>
+          <div class="hero-inline-row"><span class="val-lg">${r.dur}</span><span class="dot">·</span><span class="val-sm">${r.size}</span></div>
+        </div>`;
+    }
+    // stacked: duration only in hero; size drops to a meta row below
+    return `
+      <div class="spot-hero">
+        <div class="spot-id"><span class="tag">${r.tag}</span><span class="spot-fname" title="${r.file}">${r.file}</span></div>
+        <div class="eyebrow accent">Duration</div>
+        <div class="val-lg">${r.dur}</div>
+      </div>
+      <div class="meta-row"><span class="k">Size</span><span class="v">${r.size}</span></div>`;
+  }
+
+  function togglePopover(btn, id) {
+    if (openId === id) { closePopover(); return; }
+    closePopover();
+    const r = RECORDINGS.find((x) => x.id === id);
+    openId = id;
+    btn.classList.add("open");
+
+    popover = document.createElement("div");
+    popover.className = "popover";
+    popover.innerHTML =
+      heroBlock(r) +
+      `<div class="spot-actions">
+         <button class="spot-action" data-act="play">${ICON_PLAY} Play in editor</button>
+         <button class="spot-action" data-act="open">${ICON_FOLDER} Open in Explorer</button>
+       </div>
+       <div class="divider"></div>
+       <div class="spot-footer">
+         <span class="f-label"><span class="k">TEST</span><span class="hint">exclude from real runs</span></span>
+         <button class="test-chip ${r.test ? "on" : ""}" data-act="test">TEST</button>
+       </div>`;
+    document.body.appendChild(popover);
+
+    const br = btn.getBoundingClientRect();
+    const pw = 248, ph = popover.offsetHeight;
+    let left = br.right - pw;
+    left = Math.max(10, Math.min(left, window.innerWidth - pw - 10));
+    let top = br.bottom + 8;
+    if (top + ph > window.innerHeight - 10) top = br.top - ph - 8;
+    popover.style.left = left + "px";
+    popover.style.top = top + "px";
+    requestAnimationFrame(() => popover.classList.add("show"));
+
+    popover.querySelector('[data-act="play"]').addEventListener("click", () => { toast("Would play the full recording in the editor"); });
+    popover.querySelector('[data-act="open"]').addEventListener("click", () => { toast("Would reveal the file in File Explorer"); });
+    const chip = popover.querySelector('[data-act="test"]');
+    chip.addEventListener("click", () => {
+      r.test = !r.test;
+      chip.classList.toggle("on", r.test);
+      toast(r.test ? "TEST on" : "TEST off");
+    });
+    popover.addEventListener("click", (e) => e.stopPropagation());
+  }
+
+  function closePopover() {
+    if (popover) { popover.remove(); popover = null; }
+    if (openId) {
+      const b = cardsEl.querySelector(`[data-info="${openId}"]`);
+      if (b) b.classList.remove("open");
+      openId = null;
+    }
+  }
+
+  document.addEventListener("click", closePopover);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePopover(); });
+  window.addEventListener("scroll", closePopover, true);
+
+  let toastTimer = null;
+  function toast(msg) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1700);
+  }
+
+  // hero-layout switcher — reopens the open popover with the new layout
+  document.getElementById("heroSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    heroMode = b.dataset.hero;
+    document.querySelectorAll("#heroSeg button").forEach((x) => x.classList.toggle("active", x === b));
+    const reopen = openId;
+    closePopover();
+    if (reopen) { const ib = cardsEl.querySelector(`[data-info="${reopen}"]`); if (ib) togglePopover(ib, reopen); }
+  });
+
+  render();
+</script>
+</body>
+</html>

@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-06-08 (session 69) — Waveform extraction crash on long sources fixed (#64)
+## [Unreleased] — 2026-06-08 (session 69) — Waveform crash fixed (#64); Recordings (i) info popover designed (#125)
+
+### Added
+- **Recordings card "(i) info popover" — designed & prototyped; build deferred to next session (#125).** Four interactive HTML prototypes in `mockups/recordings-info-*.html`; Fega chose the **"Spotlight"** direction (`recordings-info-spotlight.html`). The design: a hover-revealed `(i)` button (hidden until card hover, left of the green ✓) opens an interactive popover showing the filename, a **Duration + Size** stat pair (equal-size values, accent eyebrow on Duration), **Play**, **Open in Explorer**, and a clickable **TEST chip** (yellow = on / grey = off) that replaces the standalone card TEST pill. The hover tooltip also gains video duration. "Play" will open the raw recording in the real editor via a new lightweight "source-preview" mode (also the path to verify #64 on a 30-min source). Plan + file impact in `tasks/todo.md` and issue #125. No app code changed this session — prototypes only.
 
 ### Fixed
 - **Timeline waveform no longer hangs on "Extracting waveform…" for long recordings (#64).** The audio extractor asked FFmpeg for an output sample rate that grew with the recording's length (`-ar peakCount*10`, and `peakCount` scales with duration). For a 30-minute source that meant FFmpeg piped ~250 MB of raw PCM to stdout, which `execFile` buffers in memory and aborts past its `maxBuffer` cap (`ERR_CHILD_PROCESS_STDIO_MAXBUFFER`) — so extraction returned empty and the timeline spun forever. Short clips happened to fit under the cap, which is why it looked intermittent. Fixed by decoupling the sample rate from `peakCount`: extraction now uses a fixed **1000 Hz** envelope rate, so output is ~3.4 MB for a 30-min source (and stays bounded for any length) while still giving ~250 samples per peak — equal or better waveform detail than before. The `maxBuffer` ceiling was also raised 50 MB → 128 MB as belt-and-suspenders. Verified at the FFmpeg layer against a real 1804s source (248 MB → 3.4 MB). [src/main/ffmpeg.js]

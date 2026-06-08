@@ -1,50 +1,53 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-08 — Session 68 — Built & shipped the Recordings floating action cluster (Option C) + sequential batch-generate, with "Clip N Recordings" wording. Verified visually by Fega, committed `e9a039d`, issue #123 closed._
+_Last updated: 2026-06-08 — Session 69 — Shipped the #64 waveform-extraction crash fix (committed `92452f2`, awaiting Fega's verification). Designed the Recordings card "(i) info popover" (Spotlight chosen) and wrote the full build plan — **build deferred to next session** (#125). Wrapped at ~200k+ tokens by request._
 
 ---
 
 ## One-line TL;DR
 
-Executed last session's active plan. The Recordings tab's Generate / Mark-as-Done buttons (previously stuck inline at the bottom of the scroll list, unreachable on long lists) are now a **floating bottom-right glass cluster** that appears on selection and stays put while scrolling. **Generate now batch-processes ALL selected recordings sequentially** (it used to silently run only the first). Mid-build, Fega caught that "Generate N Clips" misreads (N = source recordings, each yields several clips), so the wording across the page is now **"Clip N Recordings"** / `Clipping recording N of M` / `Clipped N of M`. Shipped in `e9a039d`, #123 closed.
+Two threads: (1) **#64 fixed & pushed** — the timeline waveform no longer hangs on long recordings (root cause was a units bug making FFmpeg pipe ~250 MB to a 50 MB buffer); needs Fega's eyes-on confirm. (2) **Recordings (i) info popover** — designed via 4 HTML prototypes, Fega picked "Spotlight," full plan written to `tasks/todo.md` + issue **#125**; no app code written yet — next session builds it.
 
 ## Current State
 
-Healthy on `0.1.6-alpha`. Feature shipped, pushed, and tracked (#123 closed). Working tree after this wrap should be clean except runtime churn (`data/clipflow.db`, `data/game_profiles.json` — **DO NOT commit**). An Electron instance from this session is likely still open on the prod DB (background shell `b2m2242ud`) — kill it before any `npm run build`.
+Healthy on `0.1.6-alpha`. Working tree after this wrap: only `data/clipflow.db` + `data/game_profiles.json` (runtime churn — **DO NOT commit**). The waveform fix is on `master` (`92452f2`). The popover is design + plan only.
 
-## What Was Just Built
+## What Was Done This Session
 
-All in `src/renderer/views/UploadView.js` (+ `CHANGELOG.md`, `mockups/generate-button-icon.html`):
-1. **Floating action cluster (Option C).** `position:fixed` glass shell (`CLUSTER_SHELL` module const, ~:88), bottom-right (`right:28, bottom:72, zIndex:90`), appears when `selCount > 0 && !generating`. Two buttons: `✓ Mark Done` + `Clip N Recordings`. No "N selected" pill (Fega: redundant with the top bar). No icon. Slide-up via inline `<style>` keyframe (`clipflowClusterUp`), pulse dot via `clipflowPulse` — per the ThumbnailScrubber inline-keyframe convention. Conditional ~96px bottom spacer so the last card row clears the cluster when scrolled.
-2. **Sequential batch generate.** `runOnePipeline(file)` extracted from the old `handleGenerate` — a clean awaitable (NO `if (generating) return` guard, NO setTimeout auto-clear; returns `{ok, clipCount, error, profileUpdateNeeded, gameTag}`). `handleGenerate(file)` is now a thin wrapper kept for the quick-import path (:634). `handleGenerateBatch(files)` loops `await runOnePipeline` per file, drives a `batchState {current,total}` pill (`Clipping recording N of M…`), continues past failures, then refreshes once, clears `generating`/`progress`/`signalHealth`/selection, and shows a transient `batchSummary` toast (`Clipped N of M ✓` / `… — X failed`).
-3. **Deferred play-style queue.** Per-file profile-update prompts no longer interrupt the batch. gameTags needing an update are collected, deduped, and pushed to `profileQueue`; a `useEffect` drains it one modal at a time after the batch (quick-import single path still sets `profileDiff` directly — queue stays empty there).
-4. **Wording fix (page-wide).** `Clip N Recordings` (pluralized), `Clipping recording N of M`, `Clipped N of M`; quick-import confirm button → `Clip Recording` / `Clip N Recordings`, its split preview → "create N recordings".
-5. **`mockups/generate-button-icon.html`** — interactive wording + icon switcher used to settle the copy (kept as a scratch artifact).
+1. **#64 waveform crash — FIXED (`92452f2`, pushed).** `extractWaveformPeaks` set FFmpeg's output sample rate to `-ar peakCount*10`, and `peakCount` scales with duration → a 30-min source piped ~250 MB of raw PCM to stdout, blowing `execFile`'s `maxBuffer` (`ERR_CHILD_PROCESS_STDIO_MAXBUFFER`) → empty peaks → infinite "Extracting waveform…". Short clips fit under the cap (looked intermittent). Fix: fixed **1000 Hz** rate (output ~3.4 MB at 30 min regardless of length, ~250 samples/peak) + `maxBuffer` 50→128 MB. Proven on a real 1804 s file: 248 MB → 3.4 MB. Only `src/main/ffmpeg.js` changed. **Issue #64 left OPEN** with a fix comment — awaiting Fega's verification.
+2. **#124 filed** (chore/observability): the `[waveform]` diagnostics use raw `console.log`, which reaches the terminal only — never `app.log` — so they're invisible on the installed build. Out of scope for the crash fix; flagged for later.
+3. **Recordings (i) info popover — DESIGNED, NOT BUILT (#125).** Four interactive prototypes in `mockups/recordings-info-*.html`; Fega chose **Spotlight** (`recordings-info-spotlight.html`), hero = "Stats" with **equal-size** Duration/Size values. Full build plan in `tasks/todo.md` and issue **#125**.
 
 ## Key Decisions
 
-- **Option C (bottom-right corner cluster)**, no count pill, **no icon** — most consistent with the app's no-emoji-button convention (Fega didn't request one).
-- **Wording = "Clip N Recordings."** Rejected "Generate N Clips" (misreads N as output clips), "Process N Recordings" (flat), "Generate · N Recordings" (faint "generate recordings?" misread). Count names the INPUT (recordings); each yields several clips.
-- **Batch behavior (all confirmed):** continue past mid-batch failures + tally at the end; auto-clear selection on finish; defer all play-style prompts to a post-batch queue. Single-select runs through the same batch path (a batch of one).
-- **Descriptive copy left as-is** ("Generate clips **from** your recordings" subtitle, drop hints) — it already frames clips as the *output of* recordings, so it follows the naming without conflating the two. Fega was offered the swap and didn't take it.
+- **Waveform fix = fixed 1000 Hz**, not `spawn`/streaming. The root cause was a rate-vs-total units error; bounding the rate fixes it surgically with no architecture change.
+- **(i) info popover design:** hover-revealed `(i)` (hidden until card hover) LEFT of the green ✓; click opens an interactive popover (filename, Duration + Size stat pair, Play, Open in Explorer, TEST chip). The standalone **TEST pill is removed from the card** — TEST is now the popover's clickable chip (yellow = on / grey = off). Tooltip also gains duration.
+- **"Play" = open the raw recording in the REAL editor** (Fega's pick over an OS player / in-app modal). Confirmed ~S effort and **safe** (no project corruption) via a "source-preview" editor mode — see Next Steps.
+- Prototypes delivered by **opening them in Fega's browser via `Start-Process`** — chat attachments didn't open for him (saved as memory).
 
-## Next Steps (prioritized)
+## Next Steps (the #125 build — for next session)
 
-1. **Optional bonus regression (no rush, small AI cost):** tick 2 short TEST recordings → `Clip 2 Recordings` → confirm it steps `Clipping recording 1 of 2 → 2 of 2 → Clipped 2 of 2 ✓`, both become projects, selection clears. Visual/wording already confirmed; this just exercises the real sequential run end-to-end.
-2. Backlog unchanged: **larger Recordings redesign** (filters / sort / search / thumbnails — V1 beyond the card); subtitle `words[]`/`text` family (#95, #107, #87, #101, #89, #84); #64 (waveform empty); #112/#62 (EPIPE / silent audio); #57 (editor lag); #114/#108/#40; #121; commercial-launch milestone (#20–#23, #50–#56, #73/#74, #85).
+All detail is in `tasks/todo.md` + issue #125. Summary:
+1. **`src/renderer/views/UploadView.js`** (primary): add hover-reveal `(i)` (left of ✓), remove the `TestChip` pill from the card render (~:1355), build the Spotlight popover (port CSS/markup from `mockups/recordings-info-spotlight.html`), add duration to the hover tooltip (use `f.duration_seconds` + existing `formatDuration()`; fallback `—` if null), wire actions: Play → `handleOpenSourcePreview`, Open → `window.clipflow.revealInFolder(f.current_path)`, TEST → existing `handleToggleRecordingTest(f.id, next)`.
+2. **`src/renderer/editor/stores/useEditorStore.js`**: add a `sourcePreviewPath` branch at the TOP of `initFromContext` (before the `projectLoad` IPC) that synthesizes `{ id:"__source_preview__", sourceFile: path, name: label, clips: [], transcription: null }`, `clip: null`, `nleSegments: []`. `onLoadedMetadata`'s `initNleSegments(videoDur)` self-fills the timeline + waveform. (~20 lines.)
+3. **`src/renderer/App.js`**: `handleOpenSourcePreview(path,label)` → `setEditorContext({ sourcePreviewPath, label }); setView("editor")`; make `onBack` return to `recordings` when `sourcePreviewPath` is set; thread the handler into the Recordings view.
+4. `EditorLayout` needs **no** changes (save/render/retranscribe/navigator already guard `!clip`).
+5. This also unblocks **#64 verification**: Play any ~30-min recording → the waveform should render (was always blank pre-fix).
+
+Other backlog unchanged: subtitle `words[]`/`text` family (#95/#107/#87/#101/#89/#84), #112/#62 (EPIPE/silent audio), #57 (editor lag), #114/#108/#40, commercial-launch (#20–#23, #50–#56, #73/#74, #85). Also #124 (waveform logs→app.log).
 
 ## Watch Out For
 
-- **`runOnePipeline` must stay a clean awaitable** — no `if (generating) return` guard, no setTimeout auto-clear. The guard lives only in the `handleGenerate`/`handleGenerateBatch` entry points (checked once). If you re-add a delayed clear inside `runOnePipeline`, the batch loop will race.
-- **`generating` is load-bearing** — it's set to the *current* file each iteration (lights that card's `%` via `isGenerating = generating === f.current_path`) and hides the action cluster. It's cleared only at the very END of the batch, not per file.
-- **`batchState` vs `generating` vs `batchSummary` render order:** the cluster slot shows `batchState` pill > (selCount cluster) > `batchSummary` toast. A fresh selection preempts a lingering summary — deliberate.
-- **profileQueue drain effect** uses a `cancelled` guard. In `npm run dev` (StrictMode) it could double-invoke `gameProfilesGenerateUpdate`; prod (`npm start` / installed exe, isDev=false) doesn't StrictMode-double, so it's a non-issue for the daily path.
-- **Don't break quick-import auto-generate** (`UploadView.js:634` calls `handleGenerate` with a single synthesized file).
-- **Don't commit `data/clipflow.db` / `data/game_profiles.json`** (runtime churn). Stage source/docs explicitly.
-- **No single-instance lock in `main.js`** — relaunching opens a SECOND window on the prod DB. Kill any open ClipFlow Electron before relaunch, and ALWAYS before `npm run build`: `Get-Process electron | Where-Object Path -Like "*Desktop\ClipFlow*" | Stop-Process -Force` (the Bash tool runs bash, so invoke via `powershell.exe -NoProfile -Command "..."`).
+- **#64 still needs Fega's confirm** before closing. Verify by opening any clip whose SOURCE recording is ~30 min (the editor loads the full source behind a clip), OR — once #125 ships — via the new Play-in-editor. The fix is proven at the FFmpeg layer but not yet eyes-on in the app.
+- **Source-preview waveform cache** keys on `project.id` → with id `"__source_preview__"` it makes one cache folder under projectsRoot. Harmless; optionally pass a stable per-file id.
+- **Source-preview is watch-only** — no clip exists, so the editor's Save/Render/Re-transcribe do nothing (all guard on `!clip`). That's intended; don't "fix" it by faking a clip (would risk disk writes).
+- **`data/clipflow.db` / `data/game_profiles.json`** are runtime churn — never commit. Stage source/docs/mockups explicitly.
+- **Losing mockup variants** (`recordings-info-{menu,contextbar,inline}.html`, and the original `recordings-info-popover.html` baseline) are scratch — safe to delete once #125 ships.
+- **No single-instance lock in `main.js`** — kill any open ClipFlow Electron before `npm run build`/relaunch: `powershell.exe -NoProfile -Command "Get-Process electron | Where-Object Path -Like '*Desktop\ClipFlow*' | Stop-Process -Force"`.
 
 ## Logs / Debugging
 
-- **Build/run this session:** `npm run build:renderer` clean ~9.2s (only the pre-existing #73 chunk-size warning, `index-*.js` ~1.89 MB). `npm start` booted clean both times: `App started … 0.1.6-alpha` (electron 40.9.1), `Database initialized … (schema v4)`, `File migration already complete — skipping`, then per-recording `Generated N preview frames`. No errors. (Background shells: first run was `bztaqo3m8` — killed; current is `b2m2242ud` — likely still open on prod DB.)
-- **Build commands:** renderer = `npm run build:renderer` (Vite — the `clipflow-code-review` skill's `npx react-scripts build` line is STALE post-CRA→Vite migration). `npm start` launches Electron from `build/`.
-- **Recordings code map (`UploadView.js`, approx after this session's edits):** `CLUSTER_SHELL` style const ~:88; new state `batchState`/`batchSummary`/`profileQueue` ~:113–117; `refreshFiles` ~:259; `runOnePipeline` ~:274; `handleGenerate` (single wrapper) ~:309; `handleGenerateBatch` ~:338; profileQueue drain `useEffect` ~:375; `selectedFiles`/`selCount` ~:428–430; quick-import confirm button (`Clip Recording`/`Clip N Recordings`) ~:987; the floating cluster render block (pill / cluster / summary ternary + spacer + `<style>` keyframes) ~:1406–1450.
-- **Per-card progress unchanged:** `isGenerating = generating === f.current_path` (~:1312) still gates the per-card `%`.
+- **No build/run performed this session** — the waveform fix is main-process JS verified by `node --check src/main/ffmpeg.js` (SYNTAX OK) + a direct FFmpeg repro (old args 248 MB vs new args 3.4 MB on `2025-12-17 17-52-17-vertical.mp4`). Renderer was NOT rebuilt (no renderer change this session).
+- **Prod log:** `%APPDATA%\clipflow\logs\app.log` (electron-log; format `[ts] [level] (scope) [sess_xxx] msg`). NOTE: it only captures the `logger`/electron-log scoped API — **raw `console.log` does NOT land here** (that's #124). The `[waveform]` lines only show in a terminal when running `npm start` from source.
+- **To verify #64 manually next session:** `npm start`, open a clip with a ~30-min source, watch the editor timeline → waveform should fill within a few seconds. Or wire #125's Play and use that.
+- **Build commands:** renderer = `npm run build:renderer` (Vite); `npm start` launches Electron from `build/`. Daily driver = installed exe from `npm run build` + `dist/ClipFlow Setup *.exe`.
+- **Key files for #125:** `src/renderer/views/UploadView.js` (card render ~:1304-1398, TestChip ~:1355, tooltip ~:1463), `src/renderer/editor/stores/useEditorStore.js` (`initFromContext` ~:66-251, autosave guard `:668`, `initNleSegments` ~:275), `src/renderer/App.js` (`handleOpenInEditor` :394, editor render :666), `src/renderer/editor/components/PreviewPanelNew.js` (`videoSrc` :659, `onLoadedMetadata` :855, waveform call :884).

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClipFlow — Recordings (i) inline reveal prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---- ClipFlow theme tokens (mirrors src/renderer/styles/theme.js) ---- */
+  :root {
+    --bg: #0a0b10;
+    --surface: #111218;
+    --surface-hover: #16171f;
+    --elev: #15161d;            /* tooltip/popover surface */
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2;
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.32);
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --accent-dim: rgba(139,92,246,0.12);
+    --accent-border: rgba(139,92,246,0.25);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.10);
+    --green-border: rgba(52,211,153,0.22);
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --yellow-dim: rgba(251,191,36,0.10);
+    --yellow-border: rgba(251,191,36,0.22);
+    --tag: #f97316;            /* AR game colour (orange, as in screenshot) */
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(139,92,246,0.06), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.2px; margin: 0 0 4px; }
+  .sub { color: var(--text-3); font-size: 12px; margin: 0 0 22px; line-height: 1.5; }
+  .sub b { color: var(--text-2); font-weight: 600; }
+
+  /* ---- month group ---- */
+  .group-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; color: var(--text-2);
+    letter-spacing: 0.4px; margin: 0 2px 9px;
+  }
+  .group-head .count {
+    font-size: 9px; font-weight: 700; color: var(--text-3);
+    background: rgba(255,255,255,0.04); border-radius: 5px; padding: 2px 6px;
+  }
+
+  .cards { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ---- card (mirrors UploadView card render) — now a disclosure container ---- */
+  .card {
+    border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    overflow: hidden;
+    transition: border-color .14s, box-shadow .14s, background .14s;
+  }
+  .card.sel {
+    border-color: var(--accent); background: var(--accent-dim);
+    box-shadow: 0 0 0 1px var(--accent), 0 3px 14px rgba(139,92,246,0.22);
+  }
+  .card.open { border-color: var(--border-hover); }
+  .card.open.sel { border-color: var(--accent); }
+
+  /* the always-visible summary row (the original card body) */
+  .row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 10px; cursor: pointer;
+    transition: background .12s;
+  }
+  .card:not(.sel) .row:hover { background: var(--surface-hover); }
+
+  .tag {
+    display: inline-flex; padding: 2px 5px; border-radius: 4px;
+    background: color-mix(in srgb, var(--tag) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tag) 27%, transparent);
+    color: var(--tag); font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .title {
+    color: var(--text); font-size: 12.5px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
+  }
+
+  /* (i) info button — hidden until card hover, stays while open */
+  .info-btn {
+    flex-shrink: 0; width: 19px; height: 19px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid var(--border-hover);
+    background: transparent; color: var(--text-2); cursor: pointer;
+    opacity: 0; transform: scale(0.8);
+    transition: opacity .14s ease, transform .14s ease, border-color .12s, color .12s, background .12s;
+  }
+  .row:hover .info-btn,
+  .card.open .info-btn { opacity: 1; transform: scale(1); }
+  .info-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-dim); }
+  .card.open .info-btn { border-color: var(--accent); color: var(--accent-light); background: var(--accent-dim); }
+  .info-btn svg { width: 12px; height: 12px; transition: transform .18s ease; }
+  .card.open .info-btn svg { transform: rotate(180deg); }
+
+  /* done checkmark — always visible, sits to the RIGHT of (i) */
+  .check {
+    flex-shrink: 0; cursor: pointer; font-size: 15px; font-weight: 800;
+    line-height: 1; padding: 0 1px; color: var(--green);
+    transition: color .12s, transform .1s;
+  }
+  .check:hover { transform: scale(1.12); }
+  .check.armed { color: var(--red); }
+
+  /* ---- inline disclosure panel (the variant) ---- */
+  .detail {
+    max-height: 0; opacity: 0;
+    overflow: hidden;
+    transition: max-height .26s cubic-bezier(.4,0,.2,1), opacity .2s ease;
+  }
+  .card.open .detail { max-height: 200px; opacity: 1; }
+
+  .detail-inner {
+    border-top: 1px solid var(--border);
+    padding: 9px 10px 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .card.sel .detail-inner { border-top-color: var(--accent-border); }
+
+  .d-name {
+    color: var(--text); font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .d-meta {
+    color: var(--text-3); font-family: var(--mono); font-size: 11px; font-weight: 500;
+    margin-top: -3px;
+  }
+  .d-meta .dot { margin: 0 6px; opacity: 0.5; }
+
+  /* action + chip row */
+  .d-actions { display: flex; align-items: center; gap: 6px; margin-top: 1px; }
+
+  .d-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    appearance: none; cursor: pointer;
+    border: 1px solid var(--border); background: #0c0d13;
+    color: var(--text); font-family: var(--font); font-size: 11.5px; font-weight: 500;
+    padding: 5px 10px; border-radius: 7px;
+    transition: border-color .12s, background .12s, color .12s;
+  }
+  .d-btn:hover { border-color: var(--border-hover); background: var(--surface-hover); }
+  .d-btn svg { width: 13px; height: 13px; color: var(--text-2); flex-shrink: 0; transition: color .12s; }
+  .d-btn:hover svg { color: var(--accent-light); }
+
+  /* TEST chip — clickable, yellow when ON, greyed when OFF (mirrors old TestChip) */
+  .test-chip {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 5px;
+    appearance: none; cursor: pointer;
+    font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+    padding: 4px 9px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text-3);
+    transition: color .14s, background .14s, border-color .14s;
+  }
+  .test-chip.on {
+    color: var(--yellow);
+    background: var(--yellow-dim);
+    border-color: var(--yellow-border);
+  }
+  .test-chip:hover { border-color: var(--border-hover); }
+  .test-chip.on:hover { border-color: var(--yellow); }
+
+  /* toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(10px);
+    background: var(--elev); border: 1px solid var(--green-border);
+    color: var(--green); font-size: 12.5px; font-weight: 600;
+    padding: 9px 15px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 1100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- passive hover tooltip (#122 + duration) ---- */
+  .tooltip {
+    position: fixed; z-index: 900; pointer-events: none; opacity: 0;
+    transform: translate(-50%, 6px); transition: opacity .12s, transform .12s;
+    background: var(--elev); border: 1px solid var(--border-hover);
+    border-radius: 8px; padding: 7px 10px; max-width: 380px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .tooltip.show { opacity: 1; transform: translate(-50%, 0); }
+  .tooltip .t-name { color: var(--text); font-size: 12px; font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  .tooltip .t-meta { color: var(--text-3); font-size: 11px; font-family: var(--mono); margin-top: 3px; }
+
+  .legend { margin-top: 26px; color: var(--text-3); font-size: 11.5px; line-height: 1.7; }
+  .legend b { color: var(--text-2); font-weight: 600; }
+  .legend code { font-family: var(--mono); color: var(--accent-light); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Recordings card — <span style="color:var(--accent-light)">(i)</span> inline reveal</h1>
+    <p class="sub">
+      <b>Hover</b> a card to reveal the (i). <b>Click it</b> and the card itself expands downward into an attached
+      detail row — filename, duration / size, Play &amp; Open actions, and the TEST chip. No floating layer; it reads as
+      part of the card. One opens at a time; click the (i) again or click away to collapse.
+    </p>
+
+    <div class="group-head">JANUARY 2026 <span class="count">3</span></div>
+    <div class="cards" id="cards"></div>
+
+    <div class="legend">
+      <div><b>What's interactive:</b> hover tooltip, the (i) inline disclosure, the TEST chip (<code style="color:var(--yellow)">yellow = on</code>, grey = off), Play / Open buttons (demo toast), and the green done-check.</div>
+    </div>
+  </div>
+
+  <!-- floating layers -->
+  <div class="tooltip" id="tooltip"></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+  // ---- data (3 cards, like the screenshot) ----
+  const RECORDINGS = [
+    { id: "r1", tag: "AR", title: "AR Day7 Pt2", file: "2026-01-05 AR Day7 Pt2.mp4", size: "1.8 GB", dur: "30:04", test: true,  sel: false },
+    { id: "r2", tag: "AR", title: "AR Day8 Pt1", file: "2026-01-08 AR Day8 Pt1.mp4", size: "2.1 GB", dur: "31:12", test: false, sel: true  },
+    { id: "r3", tag: "AR", title: "AR Day9 Pt2", file: "2026-01-09 AR Day9 Pt2.mp4", size: "0.9 GB", dur: "14:38", test: false, sel: false },
+  ];
+
+  const ICON_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="7" x2="12" y2="7"/><line x1="12" y1="10.5" x2="12" y2="16.5"/></svg>';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+
+  let openId = null;        // currently expanded card id
+
+  const cardsEl = document.getElementById("cards");
+  const tooltipEl = document.getElementById("tooltip");
+  const toastEl = document.getElementById("toast");
+  let tipTimer = null;
+
+  function render() {
+    cardsEl.innerHTML = "";
+    RECORDINGS.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "card" + (r.sel ? " sel" : "") + (openId === r.id ? " open" : "");
+      card.dataset.id = r.id;
+
+      // (i) sits to the LEFT of the always-visible green check
+      card.innerHTML = `
+        <div class="row" data-row="${r.id}">
+          <span class="tag">${r.tag}</span>
+          <span class="title">${r.title}</span>
+          <button class="info-btn" data-info="${r.id}" title="Info & actions" aria-label="Info">${ICON_INFO}</button>
+          <span class="check" data-check="${r.id}" title="Mark done">&#10003;</span>
+        </div>
+        <div class="detail">
+          <div class="detail-inner">
+            <div class="d-name" title="${r.file}">${r.file}</div>
+            <div class="d-meta">${r.dur}<span class="dot">·</span>${r.size}</div>
+            <div class="d-actions">
+              <button class="d-btn" data-act="play">${ICON_PLAY} Play in editor</button>
+              <button class="d-btn" data-act="open">${ICON_FOLDER} Open in Explorer</button>
+              <button class="test-chip ${r.test ? "on" : ""}" data-act="test" title="Toggle TEST">TEST</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // hover tooltip on the summary row (only while collapsed)
+      const row = card.querySelector('[data-row]');
+      row.addEventListener("mouseenter", (e) => { if (openId !== r.id) scheduleTip(card, r); });
+      row.addEventListener("mouseleave", hideTip);
+
+      // clicking the row body (not the icons) selects the card;
+      // also collapse any panel open on a different card (native disclosure feel)
+      row.addEventListener("click", (e) => {
+        if (e.target.closest('[data-info]') || e.target.closest('[data-check]')) return;
+        if (openId && openId !== r.id) openId = null;
+        r.sel = !r.sel; render();
+      });
+
+      cardsEl.appendChild(card);
+    });
+
+    // (i) toggles the inline disclosure
+    cardsEl.querySelectorAll("[data-info]").forEach((b) => {
+      b.addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleDetail(b.dataset.info); });
+      b.addEventListener("mouseenter", hideTip);
+    });
+    // checkmark (demo)
+    cardsEl.querySelectorAll("[data-check]").forEach((c) => {
+      c.addEventListener("click", (e) => { e.stopPropagation(); toast("Marked done (demo)"); });
+    });
+    // wire detail-panel actions for the open card
+    cardsEl.querySelectorAll('.detail [data-act]').forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const act = el.dataset.act;
+        const r = RECORDINGS.find((x) => x.id === el.closest('.card').dataset.id);
+        if (act === "play") toast("Would play the full recording in the editor");
+        else if (act === "open") toast("Would reveal the file in File Explorer");
+        else if (act === "test") {
+          r.test = !r.test;
+          el.classList.toggle("on", r.test);
+          toast(r.test ? "TEST on" : "TEST off");
+        }
+      });
+    });
+  }
+
+  // ---- inline disclosure (one at a time) ----
+  function toggleDetail(id) {
+    openId = (openId === id) ? null : id;
+    hideTip();
+    render();
+  }
+  function closeDetail() {
+    if (openId) { openId = null; render(); }
+  }
+
+  // ---- passive tooltip ----
+  function scheduleTip(card, r) {
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => {
+      if (openId === r.id) return;
+      const rect = card.getBoundingClientRect();
+      tooltipEl.innerHTML = `<div class="t-name">${r.file}</div><div class="t-meta">${r.size} &nbsp;·&nbsp; ${r.dur}</div>`;
+      tooltipEl.style.left = (rect.left + rect.width / 2) + "px";
+      tooltipEl.style.top = (rect.bottom + 8) + "px";
+      tooltipEl.classList.add("show");
+    }, 350);
+  }
+  function hideTip() { clearTimeout(tipTimer); tooltipEl.classList.remove("show"); }
+
+  // close on outside click / Esc
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".card")) closeDetail();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+
+  // ---- toast ----
+  let toastTimer = null;
+  function toast(msg) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1700);
+  }
+
+  render();
+</script>
+</body>
+</html>
