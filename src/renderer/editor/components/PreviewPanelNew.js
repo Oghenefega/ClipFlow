@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import usePlaybackStore from "../stores/usePlaybackStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -34,6 +34,19 @@ const FONT_WEIGHT_OPTIONS = [
   { label: "Bold", value: 700 },
   { label: "Heavy", value: 900 },
 ];
+
+// #134: zoom/pan model — the video floats freely on an open background like a Photoshop
+// layer. Zoom physically resizes the canvas (so text re-renders crisp, not stretched);
+// pan is a CSS translate (no scroll box, no walls). `scaleOf` maps the zoom % state
+// (-1 = fit) to a scale relative to the fit size.
+const scaleOf = (z) => (z === -1 ? 1 : z / 100);
+const clampv = (v, min, max) => Math.max(min, Math.min(max, v));
+// How strongly the focal point drifts toward center as you zoom IN, proportional to the
+// zoom amount (0 = stay exactly under cursor, 1 = full proportional pull). Tunable.
+const CENTER_DRIFT = 1;
+// Min px of the canvas that must stay within the viewport when panning, so the layer
+// can be moved freely in any direction but never lost off-screen (recenter via Fit).
+const KEEP_VISIBLE = 48;
 
 // ── Zoom Menu ──
 function ZoomMenu({ zoom, setZoom, onClose, triggerRef }) {
@@ -582,6 +595,9 @@ export default function PreviewPanelNew() {
   const [zoom, setZoomState] = useState(-1); // -1 = fit
   const zoomRef = useRef(zoom); // mirror latest zoom for the native wheel handler (no stale closure)
   zoomRef.current = zoom;
+  // #134: pan offset (px) of the canvas center from the viewport center. Held in a ref
+  // (not state) and applied imperatively so panning/zooming don't trigger re-renders.
+  const panRef = useRef({ x: 0, y: 0 });
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [selectedOverlay, setSelectedOverlay] = useState(null); // "sub" | "cap" | null
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -596,7 +612,6 @@ export default function PreviewPanelNew() {
   const zoomBtnRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   // Track canvas size for proportional text scaling
   const [canvasWidth, setCanvasWidth] = useState(360);
@@ -635,6 +650,8 @@ export default function PreviewPanelNew() {
     const byWidth = { w: scrollSize.w, h: scrollSize.w / ratio };
     return byHeight.w <= scrollSize.w ? byHeight : byWidth;
   }, [scrollSize.w, scrollSize.h]);
+  const fitSizeRef = useRef(fitSize); // latest fit size for the native wheel/pan handlers
+  fitSizeRef.current = fitSize;
 
   // Register video ref with playback store
   useEffect(() => {
@@ -708,47 +725,80 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Mouse wheel zoom anchored to the cursor (vertical scroll only).
-  // Allow horizontal scroll (e.g. MX Master horizontal wheel) to pass through.
-  // #106: small ±2% step for fine control (was ±10%), and the canvas point under
-  // the cursor stays put without snapping to the left/top wall. The wall-snap
-  // happened because the container used to flip from flex-center (≤100%) to
-  // flex-start (>100%); the canvas is now centered via margin:auto until it
-  // actually overflows, so the scroll nudge below is clamped to 0 on any axis
-  // that still has free space — keeping the preview centered instead of pinned.
+  // #134: apply the current pan (translate only) imperatively, so panning stays smooth
+  // without a re-render. Zoom is the canvas's physical width/height (React-driven), not a
+  // scale here. The -50%,-50% recenters the box on its left/top:50% anchor, then panRef
+  // (px) offsets the canvas center from the viewport center.
+  const applyTransform = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const { x, y } = panRef.current;
+    canvas.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+  }, []);
+
+  // Clamp pan so at least KEEP_VISIBLE px of the canvas stays within the viewport on each
+  // axis — the layer moves freely in every direction at any zoom (even below 100%) but
+  // can't be flung fully off-screen. Mutates panRef in place. Recenter via Fit.
+  const clampPan = useCallback((scale) => {
+    const container = scrollContainerRef.current;
+    const fit = fitSizeRef.current;
+    if (!container || !fit) { panRef.current = { x: 0, y: 0 }; return; }
+    const rect = container.getBoundingClientRect();
+    const cw = fit.w * scale, ch = fit.h * scale;
+    const maxX = Math.max(0, cw / 2 + rect.width / 2 - KEEP_VISIBLE);
+    const maxY = Math.max(0, ch / 2 + rect.height / 2 - KEEP_VISIBLE);
+    panRef.current = {
+      x: clampv(panRef.current.x, -maxX, maxX),
+      y: clampv(panRef.current.y, -maxY, maxY),
+    };
+  }, []);
+
+  // Mouse wheel zoom, anchored to the cursor and floated on the open canvas (#134).
+  // ±2% step for fine control. Horizontal scroll (MX Master tilt wheel) passes through.
   const onWheel = useCallback((e) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     e.preventDefault();
     const oldZoom = zoomRef.current === -1 ? 100 : zoomRef.current;
-    const newZoom = Math.max(10, Math.min(400, oldZoom + (e.deltaY < 0 ? 2 : -2)));
+    const newZoom = clampv(oldZoom + (e.deltaY < 0 ? 2 : -2), 10, 400);
     if (newZoom === oldZoom) return; // clamped — nothing to do
 
     const container = scrollContainerRef.current;
-    const canvas = canvasRef.current;
-    // Capture the cursor position as a fraction of the canvas BEFORE the zoom.
-    let fx = 0.5, fy = 0.5;
-    if (canvas) {
-      const r = canvas.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) {
-        fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-        fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-      }
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const sOld = scaleOf(oldZoom);
+      const sNew = scaleOf(newZoom);
+      const ratio = sNew / sOld;
+      // Cursor offset from the viewport center.
+      const dcx = e.clientX - (rect.left + rect.width / 2);
+      const dcy = e.clientY - (rect.top + rect.height / 2);
+      // Keep the canvas point under the cursor fixed (zoom-to-cursor).
+      let px = dcx - (dcx - panRef.current.x) * ratio;
+      let py = dcy - (dcy - panRef.current.y) * ratio;
+      // Gentle drift toward center, proportional to the zoom-IN amount. The factor is
+      // capped at 1, so zooming OUT leaves the cursor anchor untouched — no cross-screen
+      // jump on a tiny step (the old 164→162 snap).
+      const drift = Math.min(1, Math.pow(sOld / sNew, CENTER_DRIFT));
+      px *= drift; py *= drift;
+      panRef.current = { x: px, y: py };
+      clampPan(sNew);
     }
-    const cx = e.clientX, cy = e.clientY;
-
+    // Keep zoomRef current for rapid-scroll chaining (the next wheel event's oldZoom),
+    // but DON'T apply the transform here — the canvas is still its old physical size at
+    // this point. Applying the new pan now paints a displaced frame (old size + new pan)
+    // that the reconcile effect then corrects, which reads as jitter. Let the reconcile
+    // effect apply size + pan together, atomically, before paint.
+    zoomRef.current = newZoom;
     setZoomState(newZoom);
+  }, [clampPan]);
 
-    // After the new zoom lays out, nudge scroll so the captured canvas point sits
-    // back under the cursor. The browser clamps to the valid scroll range, so an
-    // axis with no overflow stays centered (margin:auto) instead of jumping.
-    if (container && canvas) {
-      requestAnimationFrame(() => {
-        const r = canvas.getBoundingClientRect();
-        container.scrollLeft += (r.left + fx * r.width) - cx;
-        container.scrollTop += (r.top + fy * r.height) - cy;
-      });
-    }
-  }, []);
+  // Reconcile the transform whenever zoom changes through React state (keyboard, the zoom
+  // menu, fit) or the viewport resizes (fitSize). Fit (-1) recenters; otherwise keep the
+  // current pan, re-clamped for the new scale. useLayoutEffect applies it before paint.
+  useLayoutEffect(() => {
+    if (zoom === -1) panRef.current = { x: 0, y: 0 };
+    else clampPan(scaleOf(zoom));
+    applyTransform();
+  }, [zoom, fitSize, applyTransform, clampPan]);
 
   // #106: bind the zoom wheel handler non-passively — React's onWheel is passive, so
   // the preventDefault() above warns and is ignored (the container would scroll while
@@ -760,21 +810,21 @@ export default function PreviewPanelNew() {
     return () => el.removeEventListener("wheel", onWheel);
   }, [onWheel]);
 
-  // Middle-mouse drag to pan zoomed preview
+  // Middle-mouse drag to pan the zoomed preview (#134 — moves the floating canvas).
   const onPanDown = useCallback((e) => {
     if (e.button !== 1) return; // middle mouse only
     e.preventDefault();
     e.stopPropagation();
-    const container = scrollContainerRef.current;
-    if (!container) return;
     setIsPanning(true);
-    panStartRef.current = { x: e.clientX, y: e.clientY, scrollLeft: container.scrollLeft, scrollTop: container.scrollTop };
+    const start = { x: e.clientX, y: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
     const onMove = (ev) => {
       ev.preventDefault();
-      const dx = ev.clientX - panStartRef.current.x;
-      const dy = ev.clientY - panStartRef.current.y;
-      container.scrollLeft = panStartRef.current.scrollLeft - dx;
-      container.scrollTop = panStartRef.current.scrollTop - dy;
+      panRef.current = {
+        x: start.panX + (ev.clientX - start.x),
+        y: start.panY + (ev.clientY - start.y),
+      };
+      clampPan(scaleOf(zoomRef.current));
+      applyTransform();
     };
     const onUp = () => {
       setIsPanning(false);
@@ -783,7 +833,7 @@ export default function PreviewPanelNew() {
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, []);
+  }, [applyTransform, clampPan]);
 
   // Prevent browser auto-scroll on middle-click
   const onAuxClick = useCallback((e) => {
@@ -1032,11 +1082,12 @@ export default function PreviewPanelNew() {
         </div>
       </div>
 
-      {/* Video canvas area — scrollable when zoomed in, middle-click to pan */}
+      {/* Video canvas area — the canvas floats on an open background; zoom/pan are applied
+          as a transform (#134). overflow-hidden clips the overflow; middle-click drags. */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto p-1"
-        style={{ cursor: isPanning ? "grabbing" : "default", display: "flex" }}
+        className="flex-1 overflow-hidden relative"
+        style={{ cursor: isPanning ? "grabbing" : "default" }}
         onPointerDown={onPanDown}
         onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
         onAuxClick={onAuxClick}
@@ -1044,28 +1095,17 @@ export default function PreviewPanelNew() {
       >
         <div
           ref={canvasRef}
-          className="relative rounded-lg shrink-0"
+          className="absolute left-1/2 top-1/2 rounded-lg"
           style={{
-            ...(zoom === -1 && fitSize
-              ? {
-                  // Fit mode: JS-computed exact 9:16 fit within scroll container.
-                  // No aspectRatio CSS — both dims are explicit, so the box can't
-                  // be reconciled to a non-9:16 size by the browser.
-                  width: `${fitSize.w}px`,
-                  height: `${fitSize.h}px`,
-                }
-              : {
-                  // Zoom mode: fixed height based on percentage of container,
-                  // width derived from aspectRatio so the canvas can overflow
-                  // the scroll container and be pannable.
-                  aspectRatio: "9 / 16",
-                  height: zoom === -1 ? "100%" : `${zoom}%`,
-                }),
+            // Zoom = physical size (fit size × scale) so text/borders render crisp at any
+            // zoom. Pan is a translate applied imperatively by applyTransform; its -50%,-50%
+            // recenters the box on its left/top:50% anchor before offsetting by panRef.
+            ...(fitSize
+              ? { width: `${fitSize.w * scaleOf(zoom)}px`, height: `${fitSize.h * scaleOf(zoom)}px` }
+              : { height: "100%", aspectRatio: "9 / 16" }),
             background: "hsl(240 6% 6%)",
             border: "1px solid hsl(240 4% 14% / 0.4)",
-            // Center on both axes when there's free space; collapse to 0 and scroll
-            // when the canvas overflows (#106 — replaces zoom-thresholded flex centering)
-            margin: "auto",
+            willChange: "transform",
           }}
           onClick={onCanvasClick}
           data-canvas-bg="true"

@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-09 (session 76) — Editor preview zoom reworked to an open "floating layer" canvas; #133/#124 verified & closed
+
+### Changed
+- **Editor preview zoom/pan reworked into an open, Photoshop-style floating canvas (#134).** The preview used to enlarge the video *inside a scroll box* whose walls were the video's own edges, so zooming in hit invisible limits and the cursor-anchored scroll snapped near them. The video now floats on an open background: zoom **physically resizes** the canvas (so captions/subtitles re-render crisp instead of being bitmap-stretched), pan is a CSS `translate` with no scroll box, and you can middle-mouse-drag the video freely in any direction at any zoom — a sliver always stays on-screen so it can't be lost, and **Fit** / `Ctrl+0` recenters. Wheel zoom stays anchored under the cursor with a gentle, zoom-proportional drift toward center, and applies the new size + pan in a single pre-paint commit (`useLayoutEffect`) so it scales smoothly without jitter. This supersedes session 75's `margin:auto` scroll-centering approach to the same `#106`/`#134` zoom complaints. [src/renderer/editor/components/PreviewPanelNew.js]
+
+### Notes
+- **#133 (editor panel widths) and #124 (waveform logs) confirmed in-app and closed.** Fega verified side-panel widths persist across reopen and app restart (#133) and that waveform diagnostics reach `app.log` under the `(video-processing)` scope (#124); `status: untested` removed from both. #134 was verified through several feel iterations (cursor anchor → center drift → free pan → crisp text → smooth) and closed.
+- **Filed #135** — caption box **corner handles** to scale the text layer independent of the font-size value (Photoshop-style free-transform). Surfaced during the #134 rework; a distinct caption-overlay feature, deferred to a focused follow-up.
+
 ## [Unreleased] — 2026-06-09 (session 75) — Session-74 verification pass: two real complaints fixed (editor panel widths, zoom feel), #92/#124 re-verified
 
 ### Fixed
