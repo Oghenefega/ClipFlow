@@ -71,3 +71,4 @@ gh issue list --repo Oghenefega/ClipFlow --search 'is:open label:"track: launch-
 - Title: short, specific, lowercase after first word
 - Body uses real markdown (not backtick-n escape sequences — we're running `gh` directly, not generating PowerShell)
 - Never ask permission. Never output PowerShell commands for the user to run. Run `gh` directly and report filed/closed issues at end-of-turn.
+- **One consequential action per command.** Closing/commenting issues is hard-to-reverse and outward-facing — do it one issue at a time so each is individually approvable. Never bundle multiple closes (or file-writes + `rm -rf`) into one opaque script. Stage comment bodies via the editor + `--body-file`, not shell heredocs/escaping.
