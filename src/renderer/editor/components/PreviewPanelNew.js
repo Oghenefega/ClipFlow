@@ -753,6 +753,16 @@ export default function PreviewPanelNew() {
     });
   }, []);
 
+  // #106: bind the zoom wheel handler non-passively — React's onWheel is passive, so
+  // the preventDefault() above warns and is ignored (the container would scroll while
+  // zooming). addEventListener with { passive: false } makes preventDefault stick.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [onWheel]);
+
   // Middle-mouse drag to pan zoomed preview
   const onPanDown = useCallback((e) => {
     if (e.button !== 1) return; // middle mouse only
@@ -1030,7 +1040,6 @@ export default function PreviewPanelNew() {
         ref={scrollContainerRef}
         className="flex-1 overflow-auto p-1"
         style={{ cursor: isPanning ? "grabbing" : "default", display: "flex", alignItems: (zoom === -1 || zoom <= 100) ? "center" : "flex-start", justifyContent: (zoom === -1 || zoom <= 100) ? "center" : "flex-start" }}
-        onWheel={onWheel}
         onPointerDown={onPanDown}
         onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
         onAuxClick={onAuxClick}

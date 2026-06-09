@@ -273,6 +273,7 @@ const useSubtitleStore = create((set, get) => ({
       bgOn: "bgOn", bgOpacity: "bgOpacity", bgColor: "bgColor",
       bgPaddingX: "bgPaddingX", bgPaddingY: "bgPaddingY", bgRadius: "bgRadius",
       highlightColor: "highlightColor",
+      punctuationRemove: "punctuationRemove",
       syncOffset: "syncOffset", subMode: "subMode",
       animateOn: "animateOn", animateScale: "animateScale",
       animateGrowFrom: "animateGrowFrom", animateSpeed: "animateSpeed",

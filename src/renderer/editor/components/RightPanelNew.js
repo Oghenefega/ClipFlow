@@ -349,6 +349,23 @@ function ColorPickerPopover({ color, onChange, children }) {
 const FONT_OPTIONS = ["Latina Essential", "Montserrat", "DM Sans", "Impact", "Arial", "Roboto", "Inter", "Oswald", "Poppins"];
 
 function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fontSize, setFontSize, align, setAlign, bold, setBold, italic, setItalic, underline, setUnderline, color, setColor, lineMode, setLineMode }) {
+  // #106: scroll-to-change font size needs a non-passive wheel listener — React's
+  // onWheel binds passively, so preventDefault() there warns and is silently ignored.
+  const fontSizeInputRef = useRef(null);
+  const fontSizeRef = useRef(fontSize);
+  fontSizeRef.current = fontSize;
+  useEffect(() => {
+    const el = fontSizeInputRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      setFontSize(Math.max(1, Math.min(999, fontSizeRef.current + delta)));
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [setFontSize]);
   return (
     <div className="space-y-2">
       {/* Font + weight + size */}
@@ -380,10 +397,9 @@ function FontToolbar({ fontFamily, setFontFamily, fontWeight, setFontWeight, fon
             className="w-6 h-8 rounded-l-md bg-secondary border border-border border-r-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">
             <Minus className="h-3 w-3" />
           </RepeatButton>
-          <input type="text" value={fontSize}
+          <input type="text" value={fontSize} ref={fontSizeInputRef}
             onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 999) setFontSize(v); }}
             onFocus={(e) => e.target.select()}
-            onWheel={(e) => { e.preventDefault(); setFontSize(Math.max(1, Math.min(999, fontSize + (e.deltaY < 0 ? 1 : -1)))); }}
             className="w-8 h-8 text-xs text-center bg-secondary border-y border-border text-foreground outline-none focus:border-primary/40" />
           <RepeatButton onClick={() => setFontSize(Math.min(999, fontSize + 1))}
             className="w-6 h-8 rounded-r-md bg-secondary border border-border border-l-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors">

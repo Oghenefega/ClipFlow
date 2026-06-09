@@ -232,6 +232,10 @@ const useEditorStore = create((set, get) => ({
         if (clip.captionStyle.yPercent !== undefined) {
           useLayoutStore.getState().setCapYPercent(clip.captionStyle.yPercent);
         }
+        // Restore caption width (#32)
+        if (clip.captionStyle.widthPercent !== undefined) {
+          useLayoutStore.getState().setCapWidthPercent(clip.captionStyle.widthPercent);
+        }
       }
       if (clip?.subtitleStyle?.yPercent !== undefined) {
         useLayoutStore.getState().setSubYPercent(clip.subtitleStyle.yPercent);
@@ -756,6 +760,7 @@ const useEditorStore = create((set, get) => ({
         bgOpacity: capState.captionBgOpacity, bgPaddingX: capState.captionBgPaddingX,
         bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
         yPercent: layState.capYPercent ?? 15,
+        widthPercent: layState.capWidthPercent ?? 90,
       };
       // #84: persist only subtitles that fall within the clip's CURRENT nleSegments
       // source range (covers trims + extends). editSegments also carries source-wide

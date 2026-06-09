@@ -213,6 +213,15 @@ export default function TimelinePanelNew() {
     }
   }, []);
 
+  // #106: bind the wheel handler non-passively — React's onWheel is passive, so the
+  // preventDefault() above warns and is ignored. addEventListener with { passive: false }.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleTimelineWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleTimelineWheel);
+  }, [handleTimelineWheel]);
+
   // Track mouse position for zoom-to-cursor
   const handleMouseMove = useCallback((e) => {
     mouseXRef.current = e.clientX;
@@ -848,7 +857,6 @@ export default function TimelinePanelNew() {
         onPointerDown={handleScrubStart}
         onClick={handleTrackBgClick}
         onMouseMove={handleMouseMove}
-        onWheel={handleTimelineWheel}
         style={{ cursor: scrubbing ? "grabbing" : "default" }}
       >
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
