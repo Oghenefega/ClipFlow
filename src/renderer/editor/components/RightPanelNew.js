@@ -1755,8 +1755,15 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
     }
   };
 
-  // Resizable drawer width
-  const [drawerWidth, setDrawerWidth] = useState(340);
+  // Resizable drawer width — persisted to localStorage so the dragged width
+  // survives closing/reopening a clip (the editor remounts each time) — #32.
+  const [drawerWidth, setDrawerWidth] = useState(() => {
+    const v = parseInt(localStorage.getItem("clipflow-editor-drawer-width"), 10);
+    return Number.isFinite(v) ? Math.max(260, Math.min(600, v)) : 340;
+  });
+  useEffect(() => {
+    localStorage.setItem("clipflow-editor-drawer-width", String(drawerWidth));
+  }, [drawerWidth]);
   const resizing = useRef(false);
 
   const onResizeStart = useCallback((e) => {

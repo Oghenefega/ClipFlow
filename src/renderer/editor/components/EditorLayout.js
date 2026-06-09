@@ -1124,8 +1124,10 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Upper body — takes all space when timeline collapsed */}
         <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
-          {/* Left panel + Center preview: horizontal resizable split */}
-          <ResizablePanelGroup direction="horizontal">
+          {/* Left panel + Center preview: horizontal resizable split.
+              autoSaveId persists the dragged split to localStorage so it survives
+              closing/reopening a clip (the editor remounts each time) — #32. */}
+          <ResizablePanelGroup direction="horizontal" autoSaveId="clipflow-editor-hsplit">
             {/* Left panel */}
             <ResizablePanel defaultSize={50} minSize={28} maxSize={70}>
               <LeftPanelNew />

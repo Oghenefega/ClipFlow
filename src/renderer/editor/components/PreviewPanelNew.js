@@ -580,6 +580,8 @@ export default function PreviewPanelNew() {
 
   // Local state
   const [zoom, setZoomState] = useState(-1); // -1 = fit
+  const zoomRef = useRef(zoom); // mirror latest zoom for the native wheel handler (no stale closure)
+  zoomRef.current = zoom;
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [selectedOverlay, setSelectedOverlay] = useState(null); // "sub" | "cap" | null
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -706,51 +708,46 @@ export default function PreviewPanelNew() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Mouse wheel zoom anchored to cursor position (vertical scroll only)
-  // Allow horizontal scroll (e.g. MX Master horizontal wheel) to pass through
+  // Mouse wheel zoom anchored to the cursor (vertical scroll only).
+  // Allow horizontal scroll (e.g. MX Master horizontal wheel) to pass through.
+  // #106: small ±2% step for fine control (was ±10%), and the canvas point under
+  // the cursor stays put without snapping to the left/top wall. The wall-snap
+  // happened because the container used to flip from flex-center (≤100%) to
+  // flex-start (>100%); the canvas is now centered via margin:auto until it
+  // actually overflows, so the scroll nudge below is clamped to 0 on any axis
+  // that still has free space — keeping the preview centered instead of pinned.
   const onWheel = useCallback((e) => {
-    // Only intercept vertical scroll for zoom — let horizontal scroll pass through
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     e.preventDefault();
+    const oldZoom = zoomRef.current === -1 ? 100 : zoomRef.current;
+    const newZoom = Math.max(10, Math.min(400, oldZoom + (e.deltaY < 0 ? 2 : -2)));
+    if (newZoom === oldZoom) return; // clamped — nothing to do
+
     const container = scrollContainerRef.current;
-    if (!container) {
-      setZoomState((z) => {
-        const current = z === -1 ? 100 : z;
-        const delta = e.deltaY < 0 ? 10 : -10;
-        return Math.max(10, Math.min(400, current + delta));
-      });
-      return;
+    const canvas = canvasRef.current;
+    // Capture the cursor position as a fraction of the canvas BEFORE the zoom.
+    let fx = 0.5, fy = 0.5;
+    if (canvas) {
+      const r = canvas.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      }
     }
+    const cx = e.clientX, cy = e.clientY;
 
-    const rect = container.getBoundingClientRect();
-    // Mouse position relative to container viewport
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    // Mouse position in scrolled content space
-    const contentX = container.scrollLeft + mouseX;
-    const contentY = container.scrollTop + mouseY;
+    setZoomState(newZoom);
 
-    setZoomState((z) => {
-      const oldZoom = z === -1 ? 100 : z;
-      const delta = e.deltaY < 0 ? 10 : -10;
-      const newZoom = Math.max(10, Math.min(400, oldZoom + delta));
-
-      // After React re-renders with new zoom, adjust scroll to keep mouse point fixed
-      const scale = newZoom / oldZoom;
+    // After the new zoom lays out, nudge scroll so the captured canvas point sits
+    // back under the cursor. The browser clamps to the valid scroll range, so an
+    // axis with no overflow stays centered (margin:auto) instead of jumping.
+    if (container && canvas) {
       requestAnimationFrame(() => {
-        if (newZoom <= 100) {
-          // At or below 100%, content is centered — no scroll adjustment needed
-          container.scrollLeft = 0;
-          container.scrollTop = 0;
-        } else {
-          // Scale the content position under the mouse and re-center it
-          container.scrollLeft = contentX * scale - mouseX;
-          container.scrollTop = contentY * scale - mouseY;
-        }
+        const r = canvas.getBoundingClientRect();
+        container.scrollLeft += (r.left + fx * r.width) - cx;
+        container.scrollTop += (r.top + fy * r.height) - cy;
       });
-
-      return newZoom;
-    });
+    }
   }, []);
 
   // #106: bind the zoom wheel handler non-passively — React's onWheel is passive, so
@@ -1039,7 +1036,7 @@ export default function PreviewPanelNew() {
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto p-1"
-        style={{ cursor: isPanning ? "grabbing" : "default", display: "flex", alignItems: (zoom === -1 || zoom <= 100) ? "center" : "flex-start", justifyContent: (zoom === -1 || zoom <= 100) ? "center" : "flex-start" }}
+        style={{ cursor: isPanning ? "grabbing" : "default", display: "flex" }}
         onPointerDown={onPanDown}
         onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
         onAuxClick={onAuxClick}
@@ -1066,6 +1063,9 @@ export default function PreviewPanelNew() {
                 }),
             background: "hsl(240 6% 6%)",
             border: "1px solid hsl(240 4% 14% / 0.4)",
+            // Center on both axes when there's free space; collapse to 0 and scroll
+            // when the canvas overflows (#106 — replaces zoom-thresholded flex centering)
+            margin: "auto",
           }}
           onClick={onCanvasClick}
           data-canvas-bg="true"
