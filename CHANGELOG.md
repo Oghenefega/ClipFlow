@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 73) — Issue triage: launch/ops plumbing parked under a new label, hidden from the default session backlog
+
+### Changed
+- **The start-session issue list now shows only real code work; launch/infra/business-setup issues are parked out of the way.** Twelve open issues that aren't "fix-in-a-coding-session" tasks — Supabase (#20), LemonSqueezy billing (#23), server-side API/OAuth proxies (#22, #21), auto-updates + hosting + code-signing cert (#19, #50, #51), electron-builder upgrade (#54), CF gateway hardening (#56), and the Sentry/analytics observability setup (#24, #25, #43) — were tagged with a new `track: launch-ops` GitHub label. The session-start ritual (documented in `CLAUDE.md` and `.claude/docs/issue-filing.md`) now lists the open backlog with `-label:"track: launch-ops"` so these stop padding the bug count every session, and surfaces them only as a one-line hidden count that can be revealed on request. Nothing was closed or deleted — purely a visibility/organization change. Product code that merely happens to block launch (e.g. AI title/caption overhaul #85, cold-start polish #73) was deliberately left in the normal backlog. [CLAUDE.md, .claude/docs/issue-filing.md]
+
 ## [Unreleased] — 2026-06-08 (session 72) — Editor 30-min lag, Phase D2: subtitle list stops re-rendering every frame (#57 closed); two pre-existing subtitle bugs fixed (#129, #130)
 
 ### Changed

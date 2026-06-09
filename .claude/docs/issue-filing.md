@@ -37,6 +37,8 @@ As much as known at filing time:
 
 **Milestone label:** `milestone: commercial-launch` when blocking v1.0
 
+**Track label:** `track: launch-ops` for launch/infra/business-setup work — Supabase, billing/LemonSqueezy, code-signing certs, CF gateway, auto-updater, server-side proxies, analytics/telemetry/Sentry setup. These are not code-fix-in-a-session tasks, so they're **hidden from the default start-session backlog** (see the trigger section below). Do NOT apply it to product code that merely happens to block launch (e.g. AI title/caption work #85, cold-start polish #73) — that's still session work.
+
 If unsure, run `gh label list --repo Oghenefega/ClipFlow` and pick the closest.
 
 ## Close an issue when the user confirms resolution
@@ -51,7 +53,17 @@ If the match is ambiguous, ask once which issue to close. Don't close on vague a
 
 ## "Start session" trigger (natural language)
 
-Whenever the user says "start session", "let's pick up", "resume", "begin", or any similar phrase meaning "kick off a new session" — run the full session-start ritual without being asked: read HANDOFF.md, `git log --oneline -10`, `tasks/todo.md`. Then **also** run `gh issue list --repo Oghenefega/ClipFlow --state open --limit 50` and group the results by label so forgotten work surfaces at the top of every session.
+Whenever the user says "start session", "let's pick up", "resume", "begin", or any similar phrase meaning "kick off a new session" — run the full session-start ritual without being asked: read HANDOFF.md, `git log --oneline -10`, `tasks/todo.md`. Then **also** list the open **code backlog** — launch/infra/business-setup work is parked under `track: launch-ops` and excluded so it doesn't clutter every session:
+
+```
+gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50
+```
+
+Group the results by label so forgotten work surfaces at the top of every session. Then print a single trailing line with the parked count — e.g. `+12 launch/ops items hidden (track: launch-ops)` — and reveal them only when the user asks (e.g. "show launch backlog"):
+
+```
+gh issue list --repo Oghenefega/ClipFlow --search 'is:open label:"track: launch-ops"' --limit 50
+```
 
 ## Command style
 

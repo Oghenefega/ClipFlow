@@ -123,6 +123,6 @@ Issues are filed and closed autonomously via `gh` — never ask permission, neve
 
 - **File** when something surfaces that's not fixable inline in ≤60 seconds — keep working on the current task and file in parallel.
 - **Close** when the user confirms resolution ("that works", "fixed", "all good") and a filed issue clearly matches the work just completed.
-- **"Start session" trigger:** when the user says "start session", "let's pick up", "resume", "begin" — run the full session-start ritual including `gh issue list --repo Oghenefega/ClipFlow --state open --limit 50` grouped by label.
+- **"Start session" trigger:** when the user says "start session", "let's pick up", "resume", "begin" — run the full session-start ritual including the open **code backlog** (`gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50`) grouped by label. Launch/infra/business-setup work is parked under `track: launch-ops` and excluded by default — surface it only as a one-line hidden count (reveal on request). See the doc for both commands.
 
 **Full procedure** (when to file, body requirements, label list, close trigger details, command style): [`.claude/docs/issue-filing.md`](.claude/docs/issue-filing.md). Read it before filing, closing, or running the start-session issue list.
