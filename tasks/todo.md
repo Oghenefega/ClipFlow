@@ -8,12 +8,14 @@
 
 ## ACTIVE PLAN
 
-_None._ #57 (editor lag on 30-min sources) was closed this session — see SHIPPED below.
-Next session: pick from the open GitHub issues (run the start-session ritual).
+_None._ Session 74 ran the triage's fix-first batch (5 fixes, see SHIPPED). Next: #87
+(segment clamp), the #68→#62 pipeline pair (Part A relocate first), or the karaoke
+fragile zone (`tasks/backlog-triage.md` Section C). Run the start-session ritual.
 
 ---
 
 ## SHIPPED — recent (closed)
+- **Session 74 fix-first batch** (all closed `status: untested`): **#124** waveform/ffmpeg logs → `app.log` (`759e7a2`); **#92** "Applied" badge gated on confirmed save (`1fc5964`); **#101** punctuationRemove restored on reopen, **#32** caption-width restored on reopen, **#106** passive-wheel console warning killed across 3 handlers (`a197bc3`). Parked #68/#62; recorded the `tools/`-bundling scope correction on #68.
 - **#57** Editor 30-min lag (60fps re-render storm) — **CLOSED** (D1 `c74c30e` timeline + D2 `985fa12` subtitle list). Both per-frame storms isolated into tiny memoized children (`TimelinePlayhead`, `SegmentRow`); Fega-confirmed smooth. Phase D3 (row self-subscribes to `currentTime` so the parent can drop its sub) was the conditional fallback — not needed.
 - **#129** ALL-CAPS (AA) no-op on uncased text — fixed (`507347a`, session 72). Surfaced by the D2 fresh-eyes review.
 - **#130** Stale "Long segment" warning after timecode/split/merge — fixed (`507347a`, session 72). Surfaced by the D2 fresh-eyes review.
