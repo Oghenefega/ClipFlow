@@ -136,28 +136,40 @@ const useAIStore = create((set, get) => ({
   regenerate: (anthropicApiKey, gamesDb, kind, idx) =>
     get()._runSingleCard("regenerate", anthropicApiKey, gamesDb, kind, idx),
 
-  acceptTitle: (titleObj, idx) => {
+  acceptTitle: async (titleObj, idx) => {
     const { aiGame } = get();
     const newTitle = titleObj.title || titleObj.text || "";
     useEditorStore.getState().setClipTitle(newTitle);
     useEditorStore.getState().markDirty();
-    set({ acceptedTitleIdx: idx });
     // Persist immediately so the accepted title can't be lost by navigating
-    // away before autosave fires (#8). Fire-and-forget — UI doesn't block.
-    useEditorStore.getState().handleSave().catch((e) => console.error("Auto-save after acceptTitle failed:", e));
+    // away before autosave fires (#8). Only mark "Applied" once the save is
+    // confirmed — a failed save must surface an error, not a false success
+    // badge for a pick that never reached disk (#92).
+    const saved = await useEditorStore.getState().handleSave().catch(() => false);
+    if (!saved) {
+      set({ aiError: "Couldn't save your title pick — please try again." });
+      return;
+    }
+    set({ acceptedTitleIdx: idx, aiError: "" });
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", titleChosen: newTitle, game: aiGame, timestamp: Date.now(),
     });
   },
 
-  acceptCaption: (captionObj, idx) => {
+  acceptCaption: async (captionObj, idx) => {
     const { aiGame } = get();
     const text = captionObj.caption || captionObj.text || "";
     useCaptionStore.getState().setCaptionText(text);
     useEditorStore.getState().markDirty();
-    set({ acceptedCaptionIdx: idx });
-    // Persist immediately — same reasoning as acceptTitle (#8).
-    useEditorStore.getState().handleSave().catch((e) => console.error("Auto-save after acceptCaption failed:", e));
+    // Persist immediately — same reasoning as acceptTitle (#8). Mark "Applied"
+    // only after the save is confirmed; surface an error on failure instead of
+    // showing a false success badge (#92).
+    const saved = await useEditorStore.getState().handleSave().catch(() => false);
+    if (!saved) {
+      set({ aiError: "Couldn't save your caption pick — please try again." });
+      return;
+    }
+    set({ acceptedCaptionIdx: idx, aiError: "" });
     window.clipflow?.anthropicLogHistory?.({
       type: "pick", captionChosen: text, game: aiGame, timestamp: Date.now(),
     });

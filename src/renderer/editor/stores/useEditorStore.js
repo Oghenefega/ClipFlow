@@ -792,7 +792,7 @@ const useEditorStore = create((set, get) => ({
     if (_autosaveTimer) { clearTimeout(_autosaveTimer); _autosaveTimer = null; }
     _savesInFlight++;
     try {
-      await get()._doSilentSave();
+      return await get()._doSilentSave();
     } finally {
       _savesInFlight--;
     }
