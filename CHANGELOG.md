@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 72) — Editor 30-min lag, Phase D2: subtitle list stops re-rendering every frame (#57 closed); two pre-existing subtitle bugs fixed (#129, #130)
+
+### Changed
+- **Editor playback is smoother on long sources — the "Edit subtitles" list no longer rebuilds all its rows 60 times a second (#57, Phase D2).** During playback the left-panel subtitle list re-rendered every one of its 100–200 rows on every video frame, even though the only thing changing is the highlighted word in the line that's currently playing. Each subtitle row is now its own memoized component (`SegmentRow`), so the ~199 rows that didn't change skip the work and only the playing row updates — roughly a 200×→1× drop in per-frame rendering. The highlighting logic was moved across **unchanged** (it now receives its inputs as props instead of reading them directly), so it can't have regressed. `InlineWordEditor` was split into its own shared file so both the transcript and subtitle tabs can use it. Verified: builds clean, boots clean, passed an exhaustive multi-agent code review (27 agents, zero bugs found in the new code), and Fega confirmed in-app that highlighting follows, auto-scroll works, every edit action still works, and the editor feels smooth. [src/renderer/editor/components/leftpanel/SegmentRow.js (new), src/renderer/editor/components/leftpanel/InlineWordEditor.js (new), src/renderer/editor/components/LeftPanelNew.js]
+
+### Fixed
+- **ALL CAPS (AA) button no longer shows "on" for captions with no letters (#129).** For a subtitle made only of digits, punctuation, or emoji (e.g. "123"), the AA toggle rendered in its active state and clicking it did nothing — because such text already equals its own uppercase. Caps detection now requires an actual cased letter, so those captions correctly read as not-all-caps. Pre-existing bug, surfaced during the D2 fresh-eyes review. [src/renderer/editor/components/leftpanel/SegmentRow.js]
+- **"Long segment — consider splitting" warning no longer goes stale after a timing edit (#130).** The hint only reflected a segment's original length; trimming a 12s subtitle down to 4s via the timecode editor (or splitting/merging a long one) left the warning showing on a now-short segment, and extending a short one past 10s never added it. The warning is now recomputed from the new duration in all three places that change a segment's length (timecode edit, split, merge). Pre-existing store bug, surfaced during the D2 review. [src/renderer/editor/stores/useSubtitleStore.js]
+
+### Notes
+- **#57 (editor lag on 30-min sources) is now closed.** D1 (session 71, timeline) + D2 (this session, subtitle list) isolated both 60fps re-render storms into tiny per-frame components. Phase D3 (push active-word derivation into each row so the parent can drop its `currentTime` subscription) was a *conditional* fallback and was not needed — the editor feels smooth as-is.
+- **A user-requested "fresh eyes" bug hunt ran a 27-agent find→verify workflow** over the D2 change. It confirmed the new code introduced **zero** bugs, and surfaced **four pre-existing, low-severity** subtitle bugs (all byte-identical to before D2). Two safe ones were fixed (#129, #130); the two that touch the historically-fragile highlight logic were filed for focused sessions: **#131** (karaoke/word-click desync when a clip trim drops words from a surviving segment, #116 family) and **#132** (clicking a word during playback freezes the karaoke highlight until the next pause/play).
+
 ## [Unreleased] — 2026-06-08 (session 71) — Editor 30-min lag, Phase D1: timeline stops re-rendering every frame (#57)
 
 ### Changed
