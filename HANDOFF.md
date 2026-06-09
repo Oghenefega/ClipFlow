@@ -1,57 +1,58 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-06-09 — Session 75 — **Session-74 verification pass.** Fega tested last session's 5 fixes: #101 confirmed good; #92/#124 he couldn't see (re-verified by trace — correct); #32 and #106 were "fixed" against the literal ticket text but NOT what he meant. Fixed his actual complaints — editor panel-width persistence (#133) and zoom step + left-wall-snap (#134) — and ran a 10-agent adversarial fresh-eyes review (zero confirmed bugs)._
+_Last updated: 2026-06-09 — Session 76 — **Session-75 verification + a full preview-zoom rework.** Fega verified last session's #133 (panel widths) and #124 (waveform logs) → both closed. Then #134 (zoom) went through five feel-iterations and became a ground-up rework: the preview now floats on an open "Photoshop layer" canvas (physical-resize zoom, translate pan, free movement, crisp text, smooth). #134 closed; a new caption feature (#135) was split out._
 
 ---
 
 ## One-line TL;DR
 
-The two things Fega actually meant by "#32" and "#106" are now fixed and pushed; #101 is confirmed; #92/#124 re-verified correct by code trace. New issues #133 (panels) and #134 (zoom) are **open + `status: untested`** — deliberately NOT closed until Fega sees them in-app. App rebuilt, builds clean.
+Preview zoom/pan was rebuilt from "enlarge the video inside a scroll box" to "video floats on an open canvas" — zoom-to-cursor with gentle proportional center-drift, physical resize (crisp text), free middle-mouse pan in all directions at any zoom (keep-visible clamp), Fit/Ctrl+0 recenter, jitter-free. All in `PreviewPanelNew.js`. #133/#124/#134 closed and Fega-verified; #135 filed.
 
 ## Current State
 
-Healthy on `0.1.6-alpha`, schema **v4** — unchanged (no migrations). Renderer rebuilt (`build/` regenerated; gitignored). **3 commits pushed this session:** `bfa2c13` (the #133/#134 fixes + CHANGELOG), `016c768` (lesson capture), + this wrap commit (HANDOFF + distilled skill line). Working tree clean except the usual runtime churn (`data/clipflow.db`, `data/game_profiles.json` — **DO NOT commit**).
+Healthy on `0.1.6-alpha`, schema **v4** — unchanged (no migrations). Renderer rebuilt many times this session (`build/` regenerated; gitignored). **One commit pushed this session:** `52048f5` (the zoom rework + CHANGELOG + lesson). This wrap adds a second commit (HANDOFF + distilled skill update + marker). Working tree otherwise has only runtime churn + unrelated files — see Watch Out For. The app is currently running from source (`npm start`, background) with the new code.
 
-## What Was Built (2 real fixes + verification)
+## What Was Just Built (all in `src/renderer/editor/components/PreviewPanelNew.js`)
 
-1. **#133 — editor side-panel widths persist across clip reopen (`bfa2c13`).** This is what Fega meant by "#32". Root cause: the editor is conditionally rendered (`App.js:673` — `view === "editor" && <EditorView/>`), so it **fully unmounts** on close and remounts on reopen, resetting both panels to in-memory defaults. Fixes:
-   - Left split (`EditorLayout.js:1130`): added `autoSaveId="clipflow-editor-hsplit"` to `<ResizablePanelGroup>`. react-resizable-panels **0.0.55** persists to localStorage key `PanelGroup:sizes:<id>`, keyed on `getSerializationKey` = the panels' `order`/`minSize` signature (stable across remounts — **no panel `id`s needed**, verified in the installed dist).
-   - Right drawer (`RightPanelNew.js:1759`): `drawerWidth` now lazy-inits from / writes to `localStorage["clipflow-editor-drawer-width"]`, clamped 260–600 (matches the resize-handle clamp).
-2. **#134 — zoom step + left-wall snap (`bfa2c13`).** This is what Fega meant by "#106". Two distinct bugs in `PreviewPanelNew.js`:
-   - **Step:** wheel was ±10% → now **±2%** (`onWheel`, ~line 723). Keyboard `Ctrl±` and the zoom-menu buttons keep ±25%.
-   - **Wall-snap:** the scroll container flipped alignment by zoom (`flex center` ≤100% → `flex-start` >100%), pinning the canvas to the corner the instant you crossed 100% even while it was still narrower than the panel. Replaced with `margin:auto` on the canvas (`:1068`) — centers per-axis until real overflow, then scrolls — and the container's conditional `alignItems/justifyContent` was removed (`:1039`, now just `display:flex`). The cursor-anchored scroll was rewritten (`onWheel`) to capture the cursor's fraction-of-canvas before the zoom, then in a rAF nudge `scrollLeft/Top` from the **post-zoom** canvas rect; the browser clamps to valid range, so a free axis stays centered instead of jumping. Added `zoomRef` (mirrors `zoom`) so the now-`[]`-dep callback reads the latest zoom without a stale closure.
-3. **#92 / #124 re-verified by code trace (no change).** #92: `_doSilentSave` returns clean `true/false`, `handleSave` propagates it, `aiError` renders at `RightPanelNew.js:741` — badge correctly gated. #124: `logger.MODULES.videoProcessing` exists, signatures match, `logger` required in both `main.js` + `ffmpeg.js`, no stray `console.*` left in the waveform path.
+The whole change is the preview zoom/pan model. Old model: canvas sized `height:${zoom}%` inside an `overflow:auto` scroll box, centered with `margin:auto`, panned by `scrollLeft/Top`. That box's walls were the video's own edges → zoom hit invisible limits and the cursor-anchor snapped near them. New model:
+
+1. **Floating layer.** Canvas is `position:absolute; left/top:50%`, sized **physically** = `fitSize × scaleOf(zoom)` px (React-driven from `zoom` state). Pan is a CSS `transform: translate(calc(-50% + panX), calc(-50% + panY))` applied **imperatively** (`applyTransform`, reads `panRef` — a ref, no re-render). The `-50%,-50%` recenters the box on its anchor; `panRef` offsets the canvas center from the viewport center.
+2. **Zoom-to-cursor + gentle center drift.** `onWheel` (±2% step) computes `pan' = dc − (dc − pan)·(scaleNew/scaleOld)` where `dc` = cursor offset from viewport center, then multiplies by a **zoom-proportional** drift `min(1, (sOld/sNew)^CENTER_DRIFT)` (CENTER_DRIFT=1) so the focal point eases toward center as you zoom IN, and zoom-OUT leaves the cursor anchor untouched (no snap).
+3. **Free pan, keep-visible.** `clampPan` lets the layer move in every direction at any zoom (even <100%), stopping only when `KEEP_VISIBLE` (48px) of the canvas remains on-screen — can't be lost. **Fit / Ctrl+0** resets pan to {0,0} (recenter; also resets zoom to fit). Middle-mouse `onPanDown` now drags `panRef` (was `scrollLeft/Top`).
+4. **Crisp text.** Because zoom is a physical resize (not `transform: scale()`), the caption/subtitle fonts re-rasterize at the new size instead of being bitmap-stretched → no blur. `scaleFactor = canvasWidth/1080` still drives font size; `canvasWidth` (ResizeObserver, layout box) now grows with the physical resize.
+5. **No jitter.** Size (React) + pan (imperative translate) are reconciled **together** in a `useLayoutEffect` keyed on `[zoom, fitSize]` (runs after the size commit, before paint). The wheel handler no longer pre-applies the transform — doing so painted a displaced "old-size + new-pan" frame that the next commit corrected = the jitter Fega saw.
+
+Removed orphans: `zoomAnchorRef`, `panStartRef`, the old rAF/scroll nudge, `margin:auto`, `overflow:auto`. Added `useLayoutEffect` import + module consts `scaleOf`/`clampv`/`CENTER_DRIFT`/`KEEP_VISIBLE`.
 
 ## Key Decisions
 
-- **localStorage for panel widths, not electron-store.** Panel layout is a global UI preference; `autoSaveId` (the library's intended mechanism) + a single drawer key is the minimal, idiomatic path. Dev (`localhost`) and prod (`file://`) get separate stores — harmless/desirable.
-- **#133/#134 left OPEN + `status: untested`, NOT closed.** Direct response to this session's grievance: last session closed #32/#106 as "fixed" when they weren't. I close them only after Fega confirms in-app.
-- **#32/#106 left CLOSED for their literal scope**, with comments cross-linking to #133/#134, so Fega (who thinks of these by their old numbers) finds the real fix.
-- **Did NOT add clip-id guarding to the async accept handlers.** The fresh-eyes review raised one theoretical race (post-`await` accept-index set during a mid-save clip switch) and dismissed it 0/2 — sub-100ms local-save window onto a card about to be replaced. Guarding it = speculative complexity. Left alone.
+- **Floating-layer (transform/physical-resize) over the scroll-box model.** Fega explicitly approved the rework when the scroll model couldn't deliver "infinite canvas." This supersedes session 75's `margin:auto` scroll-centering for the same #106/#134 complaints.
+- **Physical resize for zoom, transform only for pan.** Pure `transform: scale()` was tried first and **blurred text** — a real regression. Physical resize keeps text crisp; transform is reserved for translate. (Distilled to `clipflow-editor-patterns` → Zoom.)
+- **Center drift is proportional to the zoom delta, capped ≤1.** A fixed per-notch pull (the first attempt) snapped a 2% step across the screen. Proportional drift is smooth and snap-free.
+- **Recenter = Fit for now.** Fega was offered a dedicated "recenter at current zoom" button (keeps zoom); he didn't take it this session. Easy 5-line add if he wants it (set `panRef={0,0}` + `applyTransform()` without touching `zoom`).
+- **Caption corner-resize handles split to #135, not bolted on.** It's a distinct caption-overlay feature (free-transform / scale the text layer independent of font size), filed rather than rushed into the zoom session.
+- **#92 left closed + `status: untested`.** Only observable on a real disk-write save failure; couldn't trigger live, trace-confirmed last session. Not worth a synthetic failure harness right now.
 
 ## Next Steps (prioritized)
 
-1. **Fega's in-app spot-checks** (launch from source — `npm start`; the installed app doesn't have these yet):
-   - **#134 (zoom):** scroll over the preview → moves in small ~2% steps; bump just past 100% → stays centered, no snap to the left wall.
-   - **#133 (panels):** drag the left panel and the right drawer to new widths → back to Projects → reopen the clip → widths exactly where you left them (and survive an app restart).
-   - **#92:** (only visible on a real save failure) — accept an AI title with the disk unwritable → expect a red error, no "Applied" badge.
-   - **#124:** open a clip so its waveform loads → `%APPDATA%\clipflow\logs\app.log` should show `(video-processing) [waveform] …` lines.
-   - Tell me which are good → I close #133/#134 and strip `status: untested` from #92/#124.
-2. **#87** — `createSegmentAtTime` min-duration clamp can overlap the next segment (small subtitle-store fix; the rider grouped with the quick wins).
-3. **#68 → #62** (pipeline pair) — Part A (relocate `energy_scorer.py` → `tools/` + de-hardcode `ai-pipeline.js:161`), then #62 silent-audio tolerance. **Needs a silent screen-recording from Fega.** Part B (installer `tools/` bundling) is a separate infra task — see prior handoff's Watch-Out.
+1. **#135** — caption box **corner handles** to scale the text layer without changing the font-size number (Photoshop free-transform). Touches `DraggableOverlay` in `PreviewPanelNew.js` (currently only left/right edge handles → `widthPercent`); persist a `scale` in `useCaptionStore`; make the **render/export** path honor it, not just preview.
+2. **Optional quick win:** dedicated **recenter-at-current-zoom** control (Fega offered, deferred).
+3. **#87** — `createSegmentAtTime` min-duration clamp can overlap the next segment (small subtitle-store fix).
 4. **Karaoke fragile zone** (`tasks/backlog-triage.md` §C): #89 → #131 (+#132) → #95 → #90+#88 — one-per-commit, verified on a GENERATED clip.
+5. **#68 → #62** (pipeline pair) — Part A (relocate `energy_scorer.py` → `tools/`) then #62 silent-audio tolerance. Needs a silent screen-recording from Fega.
 
 ## Watch Out For
 
-- **#133/#134 are open + untested** — the real fixes for Fega's #32/#106 complaints. The literal #32/#106 stay closed. Don't conflate them again.
-- **Panel persistence is per-localStorage-origin.** Dev (`npm run dev`, localhost) and prod (`npm start` / installed, file://) keep SEPARATE saved widths. First run in each origin starts at defaults (50/50 split, 340px drawer) — that's expected, not a regression.
-- **`margin:auto` is load-bearing for the zoom centering.** It's what avoids the flex-center overflow-clipping bug (where the top/left of an overflowing canvas becomes unreachable by scroll). Don't reintroduce `alignItems/justifyContent: center` on the scroll container at `PreviewPanelNew.js:1039` — that would bring the wall-snap and the clipping back.
-- **`_doSilentSave` still returns `false` (doesn't throw) on failure** — by design; the #92 gate relies on the boolean and autosave `.finally()`/flush don't catch rejections. Don't "fix" it into throwing without updating those call sites (`useEditorStore.js` autosave ~`:830`, flush ~`:852`).
-- **`data/clipflow.db` / `data/game_profiles.json`** = runtime churn. Never commit; stage source explicitly.
+- **Preview zoom centering depends on `position:absolute; left/top:50%` + the translate's `-50%,-50%`.** Don't reintroduce flex `margin:auto` / `overflow:auto` on the container — that's the old scroll-box model the rework removed. The container is now `overflow-hidden relative`.
+- **Never CSS-`transform: scale()` the preview canvas** — it blurs text. Zoom must be a physical width/height resize. (Captured in `clipflow-editor-patterns` → Zoom.)
+- **Apply size + pan atomically.** Size is React-driven (`zoom` state → canvas width/height); pan is imperative (`applyTransform`). They're reconciled in the `useLayoutEffect` keyed on `[zoom, fitSize]`. If you add a new zoom trigger, route it through `setZoomState` so that effect fires — don't set the transform from an event handler before the size commits (jitter).
+- **`zoomRef.current = newZoom` in `onWheel` is load-bearing** for rapid scrolling — it feeds the *next* wheel event's `oldZoom` before React re-renders. Don't remove it.
+- **#92 is closed but `status: untested`** — verify on a real save failure if it ever comes up.
+- **Uncommitted, NOT mine — leave alone:** `data/clipflow.db`, `data/game_profiles.json` (runtime churn — never commit); `tasks/specs/tiktok-content-posting-audit.md` (modified) and `tasks/session-39-tiktok-audit-transcript.md` (untracked) — a separate TikTok-audit workstream, not touched this session.
 
 ## Logs / Debugging
 
 - **Renderer changes need `npm run build:renderer` (vite) before `npm start`** — `npm start` loads from `build/`. The >500 kB chunk warning every build is benign (desktop app, no code-splitting wanted).
-- **Verifying old library APIs:** for `react-resizable-panels@0.0.55` I read the installed `node_modules/.../dist/*.cjs.js` directly to confirm `autoSaveId` persistence behavior (it keys on `minSize`/`order`, not panel id). When relying on a pinned old-version feature you can't GUI-test, read the dist, don't assume current-version docs.
-- **Fresh-eyes review harness:** a Workflow fan-out (8 reviewers, one per changed file/area → adversarial verify with 2 refute-by-default skeptics per finding, keep if ≥2 confirm) is a strong "did I introduce bugs?" gate. This run: 1 finding raised, 0 confirmed. Script saved under the session's `workflows/scripts/`.
-- **Prod log:** `%APPDATA%\clipflow\logs\app.log` (electron-log); waveform diagnostics under scope `(video-processing)` after #124.
-- **Issue hygiene:** `gh issue comment` uses `--body`/`--body-file` (not `-m`). Per-issue `comment && edit --add-label … && close` one-at-a-time; never bundle closes. "Fix #N" in a commit auto-closes on push — avoided here so #133/#134 stay open.
+- **Restarting the running app from here:** `powershell -File C:\Users\IAmAbsolute\AppData\Local\Temp\clipflow-restart.ps1` stops only ClipFlow's `electron.exe` processes (filtered by `CommandLine -like '*ClipFlow*' -and -notlike '*claude*'`), then `npm start` relaunches. The killed background `npm start` reports "exit 127" — expected, not an error. The Chromium `disk_cache: Access is denied` lines on startup are benign GPU-cache noise.
+- **Verifying the zoom by eye is the only real test** — build-pass is necessary but not sufficient for feel. Fega drove the verification: cursor-follow, tiny-step smoothness, free pan all directions, crisp text, no jitter. Overlay (#65) regression risk was specifically checked — subtitles/captions stay pinned and crisp at all zooms.
+- **Prod log:** `%APPDATA%\clipflow\logs\app.log` (electron-log); waveform diagnostics under scope `(video-processing)` (confirmed working this session, #124).
+- **Issue hygiene:** close via `gh issue close --reason completed --comment …` and `gh issue edit --remove-label "status: untested"`; reference issues in commits as `(#N)` (NOT `Fix #N`, which auto-closes on push before verification).

@@ -133,9 +133,13 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 
 ## Zoom
 
-- Preview wheel zoom needs **no Ctrl modifier** (matches CapCut/Vizard).
-- Preview content: `justify/align: center` when zoom ≤100%, `flex-start` only when content overflows (>100%).
-- Timeline/preview zoom **anchors to the playhead** — preserve the playhead's viewport offset across the zoom change (don't let it jump).
+- Preview wheel zoom needs **no Ctrl modifier** (matches CapCut/Vizard); ±2% per notch (keyboard `Ctrl±` / menu keep ±25%).
+- **Preview zoom = a floating layer, not a scroll box (#134).** Zoom by physically resizing the canvas (`width/height = fitSize × scale`, px) so text/overlays re-render crisp — NEVER CSS `transform: scale()` (it bitmap-stretches → blurry text). Use `transform` only for **pan** (`translate`); the canvas is `position:absolute; left/top:50%` and the translate's `-50%,-50%` recenters it.
+- **Apply coupled size + pan in one `useLayoutEffect` keyed on zoom** (after the size commit, before paint). Applying a pan transform in the wheel handler while the DOM is still old-size paints a displaced frame the next commit corrects = jitter.
+- **Cursor-anchored zoom:** use the math `pan' = dc − (dc − pan)·(scaleNew/scaleOld)` (dc = cursor offset from viewport center). Do NOT read the post-zoom rect in a `requestAnimationFrame` after `setState` — it returns the STALE pre-commit rect, so the nudge cancels to ~0 and content grows from the top-left.
+- Any per-step **center drift** must be **proportional to the zoom delta** (`min(1, (sOld/sNew)^k)`, capped ≤1) — a fixed per-notch pull makes a tiny 2% step snap across the screen.
+- **Pan is free in every direction at any zoom** with a keep-visible clamp (a sliver always on-screen); **Fit/`Ctrl+0` recenters**. Don't lock pan to center when the canvas is smaller than the viewport — that blocks moving the layer.
+- **Timeline** zoom (separate from preview) **anchors to the playhead** — preserve its viewport offset across the zoom change.
 
 ## Store Discipline (subtle bugs)
 
