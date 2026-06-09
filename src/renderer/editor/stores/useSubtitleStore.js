@@ -593,6 +593,9 @@ const useSubtitleStore = create((set, get) => ({
           start: _displayFmt(startSec, origin),
           end: _displayFmt(endSec, origin),
           dur: (endSec - startSec).toFixed(1) + "s",
+          // Recompute the long-segment hint for the new duration; spreading ...seg
+          // alone would keep a stale warning after a trim/extend (#130).
+          warning: (endSec - startSec) > 10 ? "Long segment — consider splitting" : null,
           words: updatedWords,
         };
       }),
@@ -705,8 +708,8 @@ const useSubtitleStore = create((set, get) => ({
     const origin = get()._sourceOrigin || 0;
     const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec + 0.01) : [];
     const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec - 0.01) : [];
-    const seg1 = { ...seg, endSec: splitSec, end: _displayFmt(splitSec, origin), dur: (splitSec - seg.startSec).toFixed(1) + "s", text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
-    const seg2 = { ...seg, id: _newSegId(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", text: textWords.slice(splitWordIdx).join(" "), words: words2 };
+    const seg1 = { ...seg, endSec: splitSec, end: _displayFmt(splitSec, origin), dur: (splitSec - seg.startSec).toFixed(1) + "s", warning: (splitSec - seg.startSec) > 10 ? "Long segment — consider splitting" : null, text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
+    const seg2 = { ...seg, id: _newSegId(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", warning: (seg.endSec - splitSec) > 10 ? "Long segment — consider splitting" : null, text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     set({ editSegments: next, selectedWordInfo: null, activeSegId: seg1.id });
@@ -725,7 +728,7 @@ const useSubtitleStore = create((set, get) => ({
     // before it had words) so the merged words[] always covers the full merged text —
     // otherwise the manual word survives in .text but vanishes from the karaoke render.
     const _w = (sg) => (sg.words && sg.words.length > 0) ? sg.words : _wordsFromText(sg.startSec, sg.endSec, sg.text);
-    const merged = { ...seg, endSec: next.endSec, end: _displayFmt(next.endSec, origin), dur: (next.endSec - seg.startSec).toFixed(1) + "s", text: seg.text + " " + next.text, words: [..._w(seg), ..._w(next)] };
+    const merged = { ...seg, endSec: next.endSec, end: _displayFmt(next.endSec, origin), dur: (next.endSec - seg.startSec).toFixed(1) + "s", warning: (next.endSec - seg.startSec) > 10 ? "Long segment — consider splitting" : null, text: seg.text + " " + next.text, words: [..._w(seg), ..._w(next)] };
     const arr = [...editSegments];
     arr.splice(idx, 2, merged);
     set({ editSegments: arr });

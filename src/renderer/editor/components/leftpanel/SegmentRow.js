@@ -289,12 +289,16 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const isAllCaps = seg.text === seg.text.toUpperCase() && seg.text.length > 0;
+                    // Treat as ALL CAPS only when there's a cased letter — a digits/
+                    // punctuation/emoji-only caption (e.g. "123") equals its own
+                    // toUpperCase(), which would falsely show "on" and make the toggle
+                    // a silent no-op (#129).
+                    const isAllCaps = /[a-z]/i.test(seg.text) && seg.text === seg.text.toUpperCase();
                     const newText = isAllCaps ? seg.text.toLowerCase() : seg.text.toUpperCase();
                     useSubtitleStore.getState().updateSegmentText(seg.id, newText);
                   }}
                   className={`h-5 px-1.5 rounded text-[9px] font-bold transition-colors cursor-pointer ${
-                    seg.text === seg.text.toUpperCase() && seg.text.length > 0
+                    /[a-z]/i.test(seg.text) && seg.text === seg.text.toUpperCase()
                       ? "bg-primary/20 text-primary border border-primary/30"
                       : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/40 border border-transparent"
                   }`}
