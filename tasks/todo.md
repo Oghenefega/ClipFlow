@@ -6,77 +6,61 @@
 
 ---
 
-## ACTIVE PLAN — Recordings card (i) info popover ("Spotlight"), session 69
+## ACTIVE PLAN — #57 editor lag on 30min+ source (60fps re-render storm), session 71
 
-**Design LOCKED** via mockup `mockups/recordings-info-spotlight.html` — Spotlight popover, "Stats"
-hero (Duration + Size as two equal-size labelled stats, accent eyebrow on Duration), narrow grid pills.
-Verified visually by Fega. (Losing variants kept as scratch: `recordings-info-{menu,contextbar,inline}.html`.)
+**Root cause (verified in current code):** during playback with the timeline visible,
+three large components re-render ~60×/sec: the whole `TimelinePanelNew` (~1500 lines, twice
+per frame — once from its `currentTime` sub at :36, once from its own `smoothTime` rAF at
+:94/:130), the open left-panel tab (all 100–200 rows, `LeftPanelNew.js:642`/`:390`), and
+`PreviewPanelNew`. On a 30-min source each reconcile is huge → choppy playback, laggy zoom
+slider, out-of-sync highlight. Factors #1/#2 (DevTools gate, DBG logs) already fixed (Phase A);
+factor #4 (waveform stuck) fixed via #64 last session. Remaining = factor #3, the fan-out.
 
-**Scope — all in the Recordings tab (`src/renderer/views/UploadView.js`):**
-1. **Hover-reveal `(i)` button** on each card, to the LEFT of the green ✓. Hidden by default, fades in on
-   card hover; the ✓ stays always-visible. (Keeps the row uncrowded — Fega's "hidden feature".)
-2. **Tooltip + duration** — the existing hover tooltip (filename + size) gains **duration**:
-   `filename` / `size · duration`. Source = `f.duration_seconds` (DB col `duration_seconds`) via the
-   existing `formatDuration()`. Fallback for null (older records): show `—` (or lazy ffprobe — TBD at build).
-3. **`(i)` click → Spotlight popover** (interactive, closes on outside-click/Esc): filename, Duration +
-   Size stat pair, Play, Open in Explorer, TEST chip.
-4. **Remove the standalone `TestChip` pill from the card.** TEST is now the popover chip
-   (bright yellow = on / grey = off), reusing the existing `handleToggleRecordingTest(f.id, next)`.
-5. **Open in Explorer** → `window.clipflow.revealInFolder(f.current_path)` (existing IPC, main.js:717).
-6. **Play → CHOSEN: open the raw recording in the REAL editor (Option C).** Investigation (code-explorer
-   + verified) shows this is **~S effort, not heavy**: the editor already plays the full SOURCE recording
-   (Phase 4) and tolerates a null `clip` everywhere. Autosave no-ops on null clip
-   (`useEditorStore.js:668 — if (!clip||!project) return false`, verified), so **zero disk-write /
-   project-corruption risk**.
+**Strategy:** don't touch highlighting logic (that's what reverted Phase B/C). Instead isolate
+the per-frame part into tiny children so only they re-render at 60fps, not the heavy parents.
+One change per commit; verify between.
 
-**"Source-preview" editor mode (the Play implementation):**
-- New `editorContext` shape `{ sourcePreviewPath, label }` (no projectId/clipId).
-- `useEditorStore.initFromContext` — early branch BEFORE the `projectLoad` IPC: synthesize a thin shell
-  `{ id:"__source_preview__", sourceFile: path, name: label, clips: [], transcription: null }`, `clip: null`,
-  `nleSegments: []`. On `onLoadedMetadata`, `initNleSegments(videoDur)` self-fills a full-span segment →
-  timeline + scrub + waveform all light up. (~20 lines.)
-- `App.js` — `handleOpenSourcePreview(path,label)` sets that context + `setView("editor")`; `onBack` returns
-  to `recordings` when `sourcePreviewPath` is set; pass the handler down to the Recordings view.
-- `EditorLayout` — NO changes; save/render/retranscribe/navigator all already guard on `!clip`.
-- Watch: waveform cache keys on `project.id` → "__source_preview__" makes one cache folder under
-  projectsRoot (fine, or pass a stable per-file id). Topbar shows no clip — fine for a watch-only preview.
-- BONUS: this is exactly the path to verify the #64 waveform fix on a real 30-min source.
+### Phase D1 — Timeline playhead extraction (SAFER, do first) — approved, in progress
+New file `src/renderer/editor/components/timeline/TimelinePlayhead.js` exporting:
+- `<TimelinePlayhead>` — owns `smoothTime` state + rAF loop + paused-sync + auto-scroll +
+  playhead JSX. Subscribes to `playing`/`currentTime` itself; takes `effectiveDuration`,
+  `clipContentWidth`, `scrollRef` as props.
+- `<TimelineTimecode>` — subscribes to `currentTime`, renders the toolbar clock readout.
 
-**File impact:**
-- `src/renderer/views/UploadView.js` — card render ((i) add, TestChip remove), popover component + state,
-  tooltip duration, action wiring (Play → `handleOpenSourcePreview`, Open → `revealInFolder`, TEST → existing
-  `handleToggleRecordingTest`). (primary)
-- `src/renderer/editor/stores/useEditorStore.js` — `initFromContext` source-preview branch (~20 lines).
-- `src/renderer/App.js` — `handleOpenSourcePreview` + `onBack`/editorContext wiring; thread handler to Recordings view.
-- (No main-process change needed; `revealInFolder` already exists.)
+Edits to `TimelinePanelNew.js` (drop all 60fps subs from the parent):
+1. import the two new components
+2. remove `currentTime` sub (:36)
+3. remove `playheadRafRef` + `smoothTime` useState (:93–94)
+4. remove rAF loop + paused-sync effects (:125–152)
+5. remove `playheadTime`/`playheadPx` derivation (:177–178)
+6. zoom-anchor effect: read `getState().currentTime`, drop `currentTime` from deps (:729/:746)
+7. remove auto-scroll effect (:748–762)
+8. timecode span → `<TimelineTimecode/>` (:829)
+9. playhead JSX block → `<TimelinePlayhead .../>` (:896–916)
+10. drop dead `currentTime={currentTime}` prop on WaveformTrack (:1088)
 
-**Verification criteria:**
-- `(i)` hidden until hover, sits left of ✓, ✓ always visible.
-- Tooltip shows duration; popover Duration/Size match and are equal-size.
-- TEST chip toggles yellow↔grey, persists (`is_test`), standalone pill gone, done/generate counts unaffected.
-- Open in Explorer reveals the file. Play opens the recording in the editor: video plays, timeline + waveform
-  render, no clip loaded; Back returns to Recordings; opening/closing the preview creates/modifies NO project on disk.
-- `npm run build:renderer` clean + `npm start`, no regression to select / generate / mark-done flows.
+**Verify (D1):** build:renderer clean → npm start launches → playhead moves during playback,
+scrubbing/seek snap it correctly, auto-scroll-during-playback works, zoom slider still anchors,
+toolbar clock ticks, highlighting untouched. Then Fega: 30-min source feels smoother / no judder.
 
-**On approval:** file a GitHub issue (like #122/#123), then build.
+### Phase D2 — SegmentRow memo extraction in EditSubtitlesTab (RISKIER, do second, separate commit)
+Extract `React.memo`'d `<SegmentRow>` from `LeftPanelNew.js:889–1016`; parent computes
+`isActive` + `activeWordInSeg` and passes as props so 199 inactive rows skip re-render and only
+the playing row updates. Stabilize all row callbacks (`useCallback`). Verify word highlight still
+tracks in BOTH tabs + segment edit ops all work, on a NORMAL clip, before the 30-min feel test.
+
+### Phase D3 — Transcript tab word memo (CONDITIONAL — only if still laggy after D1+D2)
+Same treatment for `TranscriptTab` word rows / visible-range chunking. No speculative work.
+
+**Do NOT touch:** `SubtitleOverlay`/`LiveSubtitleOverlay` (acceptable cost); store-derivation
+refactor (rejected in Phase B — wrong layer).
 
 ---
 
-## SHIPPED — Recordings floating action cluster + batch generate (#123, session 68)
-
-Done and pushed (`e9a039d`), issue #123 closed. Option C bottom-right cluster (`✓ Mark Done` + `Clip N
-Recordings`, no count pill, no icon); Generate now batches ALL selected recordings sequentially
-(`Clipping recording N of M` → `Clipped N of M`, continues past failures, deferred play-style queue);
-wording corrected to "Clip Recordings" page-wide. `runOnePipeline` extracted from `handleGenerate`
-(quick-import path preserved). Verified visually by Fega; only the real-clip sequential run is left as
-an optional bonus regression check. All in `src/renderer/views/UploadView.js`.
-
-### Backlog candidates
-- **Larger Recordings redesign** — filters, sort, search, thumbnails, overall layout (V1 beyond the card).
-- **Subtitle `words[]`/`text` family** (deferred): #95, #107, #87, #101, #89, #84.
-- **#121** (chore) — `originalSegments` "sentence-level" comment clarification; low priority.
-- Backlog: #64 (waveform empty), #112/#62 (EPIPE / silent audio), #57 (editor lag), #114/#108/#40.
-  Commercial-launch: #20–#23, #50–#56, #73/#74, #85.
+## SHIPPED — recent (closed)
+- **#125** Recordings (i) info popover + Play-recording-in-editor — closed (`1d33a9d`, session 70).
+- **#126** Recordings sort by part number, not rename-click time — shipped (`f2240e2`, session 70).
+- **#123** Recordings floating action cluster + sequential batch generate — closed (`e9a039d`, session 68).
 
 ---
 

@@ -18,9 +18,9 @@ import {
 
 // ── Extracted sub-components ──
 import {
-  TRACK_COLORS, PLAYHEAD_COLOR, SNAP_GUIDE_COLOR,
+  TRACK_COLORS, SNAP_GUIDE_COLOR,
   TIMELINE_BG, RULER_BG, TRACK_SEPARATOR,
-  RULER_H, TRACK_H, AUDIO_TRACK_H, LABEL_W, END_PADDING,
+  TRACK_H, AUDIO_TRACK_H, LABEL_W, END_PADDING,
   CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
 import SpeedDropdown from "./timeline/SpeedDropdown";
@@ -28,12 +28,15 @@ import TrackContextMenu from "./timeline/TrackContextMenu";
 import SegmentBlock from "./timeline/SegmentBlock";
 import WaveformTrack from "./timeline/WaveformTrack";
 import Ruler from "./timeline/Ruler";
+import { TimelinePlayhead, TimelineTimecode } from "./timeline/TimelinePlayhead";
 
 // ── Main Timeline Panel ──
 export default function TimelinePanelNew() {
   // ── Store subscriptions ──
   const playing = usePlaybackStore((s) => s.playing);
-  const currentTime = usePlaybackStore((s) => s.currentTime);
+  // currentTime is intentionally NOT subscribed here (#57) — the per-frame
+  // playhead + timecode live in <TimelinePlayhead>/<TimelineTimecode> so this
+  // ~1500-line component no longer re-renders at 60fps during playback.
   const duration = usePlaybackStore((s) => s.duration);
   const clipFileDuration = usePlaybackStore((s) => s.clipFileDuration);
   const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
@@ -90,8 +93,6 @@ export default function TimelinePanelNew() {
   const dragPhantomsRef = useRef([]); // phantom right portions during middle-case drag
   const [dragPhantoms, setDragPhantoms] = useState([]);
   const scrubRafRef = useRef(null);
-  const playheadRafRef = useRef(null);
-  const [smoothTime, setSmoothTime] = useState(0);
 
   // Helper — first selected ID (for backwards compat with single-select APIs)
   const selectedSegId = useMemo(() => {
@@ -122,34 +123,7 @@ export default function TimelinePanelNew() {
     return result.found ? result.sourceTime : timelineTime;
   }, [nleSegments]);
 
-  // ── Smooth 60fps playhead via rAF loop ──
-  // Reads video.currentTime directly instead of relying on Zustand store updates.
-  // IMPORTANT: rAF loop depends ONLY on `playing` — NOT `currentTime`.
-  // If currentTime were a dependency, the 60fps store updates from PreviewPanel
-  // would tear down and rebuild this effect every frame, killing the loop.
-  useEffect(() => {
-    if (!playing) {
-      if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current);
-      return;
-    }
-    const tick = () => {
-      const videoRef = usePlaybackStore.getState().getVideoRef();
-      if (videoRef?.current && !videoRef.current.paused) {
-        // video.currentTime is CLIP-RELATIVE; ruler is in TIMELINE coordinates.
-        // Translate via the playback store's mapSourceTime (handles clipFileOffset + segments).
-        const mapped = usePlaybackStore.getState().mapSourceTime(videoRef.current.currentTime);
-        setSmoothTime(mapped.timelineTime);
-      }
-      playheadRafRef.current = requestAnimationFrame(tick);
-    };
-    playheadRafRef.current = requestAnimationFrame(tick);
-    return () => { if (playheadRafRef.current) cancelAnimationFrame(playheadRafRef.current); };
-  }, [playing]);
-
-  // When paused, sync smoothTime to store's currentTime (for seeking, scrubbing)
-  useEffect(() => {
-    if (!playing) setSmoothTime(currentTime);
-  }, [playing, currentTime]);
+  // The 60fps playhead rAF loop + paused-sync now live in <TimelinePlayhead> (#57).
 
   // ── Layout measurements ──
   const [trackAreaWidth, setTrackAreaWidth] = useState(600);
@@ -174,8 +148,7 @@ export default function TimelinePanelNew() {
   const visibleContentWidth = trackAreaWidth - LABEL_W;
   const clipContentWidth = visibleContentWidth * tlZoom;
   const totalWidth = LABEL_W + clipContentWidth + END_PADDING;
-  const playheadTime = playing ? smoothTime : currentTime;
-  const playheadPx = effectiveDuration > 0 ? LABEL_W + (playheadTime / effectiveDuration) * clipContentWidth : LABEL_W;
+  // playheadTime/playheadPx now derived inside <TimelinePlayhead> (#57).
 
   // ── Scrubbing ──
   const handleScrub = useCallback((e) => {
@@ -725,7 +698,9 @@ export default function TimelinePanelNew() {
     const zoomRatio = tlZoom / prevZoom;
     const viewWidth = container.clientWidth;
 
-    // Playhead position in new content space
+    // Playhead position in new content space. Read currentTime via getState (not a
+    // subscription) so this component doesn't re-render at 60fps just to anchor on zoom (#57).
+    const currentTime = usePlaybackStore.getState().currentTime;
     const playheadFrac = effectiveDuration > 0 ? currentTime / effectiveDuration : 0;
     const newPlayheadX = LABEL_W + playheadFrac * clipContentWidth;
 
@@ -743,23 +718,9 @@ export default function TimelinePanelNew() {
 
     container.scrollLeft = Math.max(0, blendedScroll);
     prevZoomRef.current = tlZoom;
-  }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth, currentTime]);
+  }, [tlZoom, effectiveDuration, clipContentWidth, visibleContentWidth]);
 
-  // ── Smooth auto-scroll during playback ──
-  useEffect(() => {
-    if (!playing || !scrollRef.current || effectiveDuration <= 0) return;
-    const container = scrollRef.current;
-    const viewWidth = container.clientWidth;
-    const phX = LABEL_W + (smoothTime / effectiveDuration) * clipContentWidth;
-
-    if (phX > container.scrollLeft + viewWidth * 0.75) {
-      const target = phX - viewWidth * 0.3;
-      container.scrollLeft += (target - container.scrollLeft) * 0.15;
-    } else if (phX < container.scrollLeft + LABEL_W + 20) {
-      const target = Math.max(0, phX - LABEL_W - 20);
-      container.scrollLeft += (target - container.scrollLeft) * 0.15;
-    }
-  }, [playing, smoothTime, duration, clipContentWidth]);
+  // Smooth auto-scroll during playback now lives in <TimelinePlayhead> (#57).
 
   // ── Apply playback speed ──
   useEffect(() => {
@@ -826,7 +787,7 @@ export default function TimelinePanelNew() {
 
         {/* Center: Play + timecodes */}
         <div className="flex-1 flex items-center justify-center gap-2">
-          <span className="text-[11px] font-mono text-foreground tabular-nums">{fmtTime(currentTime)}</span>
+          <TimelineTimecode />
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -892,28 +853,12 @@ export default function TimelinePanelNew() {
       >
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
 
-          {/* ── PLAYHEAD — red line + triangle, clipped to track area ── */}
-          {playheadPx <= LABEL_W + clipContentWidth && (
-            <div
-              className="absolute z-30 pointer-events-none"
-              style={{
-                left: playheadPx, top: 0,
-                height: RULER_H + TRACK_H + TRACK_H + AUDIO_TRACK_H + TRACK_H,
-                transform: "translateX(-50%)",
-              }}
-            >
-              <div
-                className="absolute -top-0.5 left-1/2 -translate-x-1/2"
-                style={{
-                  width: 0, height: 0,
-                  borderLeft: "5px solid transparent",
-                  borderRight: "5px solid transparent",
-                  borderTop: `6px solid ${PLAYHEAD_COLOR}`,
-                }}
-              />
-              <div style={{ width: 2, height: "100%", background: PLAYHEAD_COLOR, margin: "0 auto" }} />
-            </div>
-          )}
+          {/* ── PLAYHEAD — extracted to isolate 60fps re-renders (#57) ── */}
+          <TimelinePlayhead
+            effectiveDuration={effectiveDuration}
+            clipContentWidth={clipContentWidth}
+            scrollRef={scrollRef}
+          />
 
           {/* End marker removed — timeline ends naturally where content ends */}
 
@@ -1085,7 +1030,7 @@ export default function TimelinePanelNew() {
                       clipFileDuration={sourceDuration || clipFileDuration || duration}
                       clipOrigin={0}
                       sourceDuration={sourceDuration}
-                      timelineWidth={widthPx} currentTime={currentTime}
+                      timelineWidth={widthPx}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "audio"}
                       onSelect={() => handleSegSelect("audio", seg.id)}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, track: "audio", segId: seg.id }); }}
