@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-08 (session 71) — Editor 30-min lag, Phase D1: timeline stops re-rendering every frame (#57)
+
+### Changed
+- **Editor playback is smoother on long sources — the timeline no longer rebuilds itself 60 times a second (#57, Phase D1).** During playback the entire timeline panel (ruler, waveform, every segment block, the playhead) was re-rendering on every video frame, which made playback choppy and the zoom slider laggy on 30-minute+ recordings. The constantly-moving parts — the moving playhead line, the auto-scroll-during-playback, and the toolbar clock — were split out into small dedicated components (`TimelinePlayhead`, `TimelineTimecode`) that update on their own, so the heavy timeline panel now only re-renders when you zoom, edit, or select something. Subtitle highlighting was deliberately left untouched (it lives in a different file and is handled in the next phase), so it can't have regressed. Verified: builds clean, boots clean, passed a 4-lens adversarial code review (zero findings), and Fega confirmed in-app that the playhead/clock/scrub work and playback feels smoother. [src/renderer/editor/components/timeline/TimelinePlayhead.js (new), src/renderer/editor/components/TimelinePanelNew.js]
+
+### Notes
+- This is **Phase D1 of a multi-phase fix** for #57. Phase D2 (still open) tackles the other half — the left-panel subtitle rows also re-render every frame; the plan is to wrap each row in a memoized component so only the currently-playing row updates. It touches the highlighting code (the part that was reverted twice before), so it ships separately and must be tested on a generated clip that has subtitles.
+- Filed **#128** — dragging the playhead on a long source makes the preview skip between frames. Pre-existing HTML5 long-GOP seek limitation, surfaced during D1 testing, not caused by this change.
+
 ## [Unreleased] — 2026-06-08 (session 70) — Recordings (i) info popover built + Play-in-editor (#125)
 
 ### Added
