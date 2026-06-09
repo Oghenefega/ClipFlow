@@ -20,7 +20,7 @@ factor #4 (waveform stuck) fixed via #64 last session. Remaining = factor #3, th
 the per-frame part into tiny children so only they re-render at 60fps, not the heavy parents.
 One change per commit; verify between.
 
-### Phase D1 — Timeline playhead extraction (SAFER, do first) — approved, in progress
+### Phase D1 — Timeline playhead extraction (SAFER) — DONE (`c74c30e`, session 71)
 New file `src/renderer/editor/components/timeline/TimelinePlayhead.js` exporting:
 - `<TimelinePlayhead>` — owns `smoothTime` state + rAF loop + paused-sync + auto-scroll +
   playhead JSX. Subscribes to `playing`/`currentTime` itself; takes `effectiveDuration`,
@@ -43,11 +43,46 @@ Edits to `TimelinePanelNew.js` (drop all 60fps subs from the parent):
 scrubbing/seek snap it correctly, auto-scroll-during-playback works, zoom slider still anchors,
 toolbar clock ticks, highlighting untouched. Then Fega: 30-min source feels smoother / no judder.
 
-### Phase D2 — SegmentRow memo extraction in EditSubtitlesTab (RISKIER, do second, separate commit)
-Extract `React.memo`'d `<SegmentRow>` from `LeftPanelNew.js:889–1016`; parent computes
-`isActive` + `activeWordInSeg` and passes as props so 199 inactive rows skip re-render and only
-the playing row updates. Stabilize all row callbacks (`useCallback`). Verify word highlight still
-tracks in BOTH tabs + segment edit ops all work, on a NORMAL clip, before the 30-min feel test.
+### Phase D2 — SegmentRow memo extraction in EditSubtitlesTab (RISKIER, separate commit) — session 72, PLAN
+**Why it's the storm:** `EditSubtitlesTab` subscribes to `currentTime` (:642) → re-renders ~60×/sec
+during playback. Its `editSegments.map` (:889–1016) re-runs ALL 100–200 rows each frame, each row
+re-splitting text + re-mapping word spans (`renderWords`). But per frame, the only thing that
+actually changes visually is the **active word inside the one playing segment** — every other row is
+static between segment crossings (`getActiveWordInSeg` early-returns −1 outside the seg's bounds;
+`activeSegId` is store state, written by an effect, changes only a few times per clip).
+
+**Fix — extract + memoize, do NOT touch highlight DECISION logic** (that's the Phase B/C revert
+class). New file `src/renderer/editor/components/leftpanel/SegmentRow.js`:
+- `const SegmentRow = React.memo(forwardRef(function SegmentRow(props, ref){…}))`
+- Move the row JSX (current :893–1014) + `renderWords` (:759–804) + the ALL-CAPS handler (:927–931)
+  + delete handlers (:961, :973) **verbatim** into it. The `isHighlighted = isSelected ||
+  isPlaybackActive` rule, the `getActiveWordInSeg` result, and `isActive` stay byte-for-byte; only
+  their *location* changes and the values arrive as props.
+- Event handlers inside the row call store actions via `getState()` (allowed in handlers, not render)
+  and use the `seg` prop for data — so almost nothing needs to be threaded as a callback prop.
+
+**Props (all referentially stable across frames → React.memo bails for inactive rows):**
+`seg` (from the `getTimelineMappedSegments` useMemo — stable per-frame; recomputes only on
+edit/nle change), `isActive` (bool), `activeWordInSeg` (number, parent computes `isActive ?
+getActiveWordInSeg(seg) : -1`), `selectedWordIdx` (this seg's selected word or −1),
+`anySelected` (`!!selectedWordInfo` — preserves the global "explicit selection suppresses playback
+highlight everywhere" rule at :773), `editing` (this row's `editingWord` slice or null — stable obj
+ref), `setEditingWord` (useState setter, stable). Forward `ref` only to the active row so the
+parent's existing auto-scroll effect (:699) keeps working unchanged.
+
+**Parent (`EditSubtitlesTab`) keeps:** `currentTime` sub, `getActiveWordInSeg`, the auto-track
+effect (:687, writes `activeSegId`), the auto-scroll effect (:699), search, toolbar,
+`editingWord` state + the toolbar "Add subtitle at playhead" which sets it (:835). Map body shrinks
+to: compute the per-row primitives above, render `<SegmentRow .../>`. Per-frame cost drops from
+~200 full row reconciles to 1.
+
+**Verify (D2) — on a GENERATED clip with subtitles from Projects (source preview has NO transcript):**
+active-word highlight tracks during playback in Edit Subtitles; segment auto-highlight + auto-scroll
+still follow; ALL edit ops work — single-click-to-edit, double-click select-all, inline word edit,
+delete (both menu items), TimecodePopover apply, ALL CAPS toggle, Add-at-playhead, split, merge,
+segment-mode switch. THEN the 30-min source feel test (left panel no longer judders on playback).
+Me = build + boot clean + 4-lens adversarial review (behavior-preservation / dangling-refs /
+React-internals memo-correctness / completeness). Fega = in-app feel + edit-ops on a real clip.
 
 ### Phase D3 — Transcript tab word memo (CONDITIONAL — only if still laggy after D1+D2)
 Same treatment for `TranscriptTab` word rows / visible-range chunking. No speculative work.
