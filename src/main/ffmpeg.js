@@ -2,6 +2,7 @@ const { execFile } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const logger = require("./logger");
 
 /**
  * Check if ffmpeg/ffprobe are available in PATH.
@@ -343,8 +344,9 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
         const stderrTail = stderr
           ? Buffer.isBuffer(stderr) ? stderr.toString("utf-8").slice(-800) : String(stderr).slice(-800)
           : "";
-        console.error(`[waveform] ffmpeg exit (track ${idx}): code=${err.code ?? "?"} msg=${err.message}`);
-        if (stderrTail) console.error(`[waveform] ffmpeg stderr tail:\n${stderrTail}`);
+        logger.error(logger.MODULES.videoProcessing,
+          `[waveform] ffmpeg exit (track ${idx}): code=${err.code ?? "?"} msg=${err.message}`,
+          stderrTail ? { stderrTail } : undefined);
         return reject(new Error(`Waveform extraction failed (track ${idx}): ${err.code ?? err.message}`));
       }
       if (!stdout || stdout.length < 2) return resolve({ peaks: [] });
