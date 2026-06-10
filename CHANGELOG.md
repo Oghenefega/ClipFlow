@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-06-09 (session 78) — Cut the 0.1.7-alpha installer to promote the session-77 fixes to the daily-driver install
 
+### Added
+- **`clipflow-update-launcher` skill.** Codifies the Stage-1 promotion loop so "update the launcher / prod app / installed app" triggers it automatically: bump `package.json` to the next patch version (keeping `-alpha`), add a changelog entry, run `npm run build`, verify the `dist/` installer, and commit only `package.json` + `CHANGELOG.md` (never the `data/` runtime churn). [.claude/skills/clipflow-update-launcher/SKILL.md]
+
 ### Changed
 - **App version bumped `0.1.6-alpha` → `0.1.7-alpha` and a fresh installer cut.** The installed Start-Menu app was stale on `0.1.6-alpha` while all of session 77's karaoke/subtitle work lived only in the source build; rebuilt the installer (`dist/ClipFlow Setup 0.1.7-alpha.exe`) so the daily driver picks up the 10-issue fragile-zone sweep. The in-app update notifier detects the newer build in `dist/`, and reinstalling preserves real data in `%APPDATA%\clipflow\`. [package.json]
 
