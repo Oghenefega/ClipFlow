@@ -31,7 +31,7 @@ const usePlaybackStore = create((set, get) => ({
   _videoRef: null,
 
   // ── Actions ──
-  initVideoRef: (ref) => { get()._videoRef = ref; },
+  initVideoRef: (ref) => set({ _videoRef: ref }),
   getVideoRef: () => get()._videoRef,
 
   setPlaying: (v) => set({ playing: v }),
