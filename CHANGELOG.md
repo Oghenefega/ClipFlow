@@ -16,6 +16,9 @@ Follow-up to the Round-2 TikTok fixes: Fega flagged the whole Queue clip card as
 ### Fixed
 - **TikTok "LOCKED" interaction toggles now align correctly.** The "(LOCKED)" text was top-aligned and floated above the toggle label; it's now a small lock icon + "LOCKED" sharing the label's vertical midline. [src/renderer/views/QueueView.js]
 
+### Changed (release)
+- **App version bumped `0.1.8-alpha` → `0.1.9-alpha` and a fresh installer cut** to promote the Queue tab polish above (and carry the Round-2 TikTok audit fixes) to the daily-driver install. [package.json]
+
 ## [Unreleased] — 2026-06-09 (session 79) — TikTok Content Posting audit, Round 2 UI fixes (resubmission blocker)
 
 Resubmission fixes for the TikTok Direct Post audit denied 2026-06-03 (UX Guideline Point 5d + panel order). All renderer-only, no schema change.
