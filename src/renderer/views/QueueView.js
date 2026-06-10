@@ -1663,7 +1663,7 @@ export default function QueueView({
                                       <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                                         <span style={{ fontSize: 12 }}>{icon}</span>
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
-                                        <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? (publishProgress?.detail || "Connecting...") : st === "done" ? "Sent" : st}</span>
+                                        <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
                                       </div>
                                     );
                                   })}
