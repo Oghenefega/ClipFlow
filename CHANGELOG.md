@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-09 (session 79) — TikTok Content Posting audit, Round 2 UI fixes (resubmission blocker)
+
+Resubmission fixes for the TikTok Direct Post audit denied 2026-06-03 (UX Guideline Point 5d + panel order). All renderer-only, no schema change.
+
+### Fixed
+- **TikTok "may take a few minutes" processing notice (Point 5d / A9) now shows during processing, not only after it finishes.** The guideline-required notice existed but was gated on the TikTok row reaching `"done"` — which only happens after the status poll completes, so it was invisible during the long "Processing on TikTok…" window the audit reviewer watches. It now appears the moment the post is accepted (status `publishing` or `done`) and is rendered as a prominent info banner instead of a tiny grey italic line, so it's clearly on screen while the post processes. [src/renderer/views/QueueView.js]
+
+### Changed
+- **TikTok options panel reordered to follow the guideline's Point 1→5 order.** The **Music Usage Confirmation** disclosure now renders **above** the Commercial Content Disclosure section (previously after it), matching the order TikTok's reviewer checks against. Pure layout move — no behavior change. [src/renderer/views/QueueView.js]
+
+### Notes
+- **Posting-capacity message (Point 1 / A8) was already implemented and left as-is.** `translateTiktokPublishError` in the main process already maps TikTok's over-limit/rate-limit error family to a friendly "reached its posting limit — try again later" string and the publish path already surfaces it in the results panel, so no renderer change was needed (the Round-2 plan's assumption that this was unbuilt was stale).
+- **Resubmission still needs the non-code steps:** portal Org renamed to match App Name, Video 2 re-shot with the reordered panel, Video 3 re-shot showing the 5d notice, plus a fresh installer to re-record against.
+
 ## [Unreleased] — 2026-06-09 (session 78) — Cut the 0.1.7-alpha installer to promote the session-77 fixes to the daily-driver install
 
 ### Added

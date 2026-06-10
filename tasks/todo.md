@@ -8,9 +8,14 @@
 
 ## ACTIVE PLAN — TikTok Content Posting audit, ROUND 2 UI fixes (resubmission blocker)
 
-**Status:** Plan APPROVED by Fega (session 78). Not yet coded — deferred to next session
-(session 78 hit ~200k tokens). Code from this plan directly; the investigation below is
-already done, don't re-derive it.
+**Status:** CODED in session 79 (commit pending). Item 1 (A9 notice) + Item 2 (panel reorder)
+shipped in `src/renderer/views/QueueView.js`; renderer build passes. **Item 3 (A8 capacity
+message) needed NO code — already implemented** in the main process via
+`translateTiktokPublishError` (`main.js:2510`), which maps TikTok's over-limit/rate-limit error
+family to a friendly "reached its posting limit — try again later" string that the publish
+results panel already surfaces. The plan's assumption that A8 was unbuilt was stale.
+**Remaining:** Fega's in-app visual confirm (panel order + A9 banner during a publish), then cut
+**0.1.8-alpha** for re-recording. Original investigation kept below for reference.
 
 **Why:** First TikTok Direct Post audit DENIED 2026-06-03. Cited **UX Guideline Point 5d**
 (missing "may take a few minutes to process/appear" notice = our A9) + panel rendered out

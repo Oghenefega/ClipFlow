@@ -354,6 +354,38 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
         </div>
       )}
 
+      {/* A4 — Music Usage Confirmation disclosure (with conditional Branded
+          Content Policy variant per A5 rule 4/5). Verbatim wording per the
+          Content Sharing Guidelines; links open in the OS default browser
+          via the openExternal IPC.
+          Renders ABOVE A5 (Commercial Disclosure) so the panel follows the
+          guideline's Point 1→5 order (Round-2 audit fix). */}
+      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10, color: T.textTertiary, fontStyle: "italic", lineHeight: 1.5 }}>
+        By posting, you agree to TikTok&apos;s{" "}
+        {brandedActive && (
+          <>
+            <a
+              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/bc-policy/en");
+              }}
+              style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
+            >Branded Content Policy</a>{" and "}
+          </>
+        )}
+        <a
+          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/music-usage-confirmation/en");
+          }}
+          style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
+        >Music Usage Confirmation</a>.
+      </div>
+
       {/* A5 — Commercial Content Disclosure.
           Master toggle (OFF by default) reveals two sub-options when on.
           Conditional label shows what TikTok will visibly tag the post as.
@@ -406,36 +438,6 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
             )}
           </div>
         )}
-      </div>
-
-      {/* A4 — Music Usage Confirmation disclosure (with conditional Branded
-          Content Policy variant per A5 rule 4/5). Verbatim wording per the
-          Content Sharing Guidelines; links open in the OS default browser
-          via the openExternal IPC. */}
-      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10, color: T.textTertiary, fontStyle: "italic", lineHeight: 1.5 }}>
-        By posting, you agree to TikTok&apos;s{" "}
-        {brandedActive && (
-          <>
-            <a
-              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/bc-policy/en");
-              }}
-              style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
-            >Branded Content Policy</a>{" and "}
-          </>
-        )}
-        <a
-          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.clipflow?.openExternal?.("https://www.tiktok.com/legal/page/global/music-usage-confirmation/en");
-          }}
-          style={{ color: T.accent, textDecoration: "underline", cursor: "pointer" }}
-        >Music Usage Confirmation</a>.
       </div>
     </>
   );
@@ -1615,9 +1617,13 @@ export default function QueueView({
                               the per-platform statuses and the TikTok "processing" notice
                               (A9) stay readable until the user navigates away. */}
                           {(isPublishing || isFailed || isPub) && ps?.platforms && (() => {
-                            const tiktokDone = Object.entries(ps.platforms).some(([k, st]) => {
+                            // A9 / Point 5d: show the "may take a few minutes" notice while the
+                            // TikTok post is in-flight (publishing) OR done — not only after the
+                            // status poll completes. The audit denial cited this notice being
+                            // absent during the long "Processing on TikTok…" window.
+                            const tiktokAccepted = Object.entries(ps.platforms).some(([k, st]) => {
                               const p = activePlat.find((ap) => ap.key === k);
-                              return p?.platform === "TikTok" && st === "done";
+                              return p?.platform === "TikTok" && (st === "publishing" || st === "done");
                             });
                             const borderColor = isPublishing ? T.yellowBorder : isFailed ? T.redBorder : T.greenBorder;
                             const heading = isPublishing ? "Publishing..." : isFailed ? "Publish results" : "Published";
@@ -1640,10 +1646,14 @@ export default function QueueView({
                                   })}
                                 </div>
                                 {isFailed && ps.error && <div style={{ marginTop: 8, color: T.red, fontSize: 11, fontWeight: 600 }}>{ps.error}</div>}
-                                {/* A9 — TikTok processing notice per Content Sharing Guidelines */}
-                                {tiktokDone && (
-                                  <div style={{ marginTop: 10, fontSize: 10, color: T.textTertiary, fontStyle: "italic", borderTop: `1px solid ${T.border}`, paddingTop: 8 }}>
-                                    Your TikTok post may take a few minutes to appear on your profile.
+                                {/* A9 / Point 5d — TikTok processing notice per Content Sharing
+                                    Guidelines. Rendered as a prominent info banner so it's clearly
+                                    visible on screen during processing (audit requirement). */}
+                                {tiktokAccepted && (
+                                  <div style={{ marginTop: 10 }}>
+                                    <InfoBanner color={T.accent} icon={"⏳"}>
+                                      Your TikTok post may take a few minutes to process and appear on your profile.
+                                    </InfoBanner>
                                   </div>
                                 )}
                               </div>
