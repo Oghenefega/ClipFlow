@@ -973,7 +973,6 @@ const useSubtitleStore = create((set, get) => ({
 
     // Identify manually-created segments (user-added, not from transcription).
     // A segment is "manual" if it doesn't overlap with ANY original segment's time range.
-    // Also preserve segments whose text was user-edited (text differs from original words).
     const manualSegs = editSegments.filter((es) => {
       const overlapsOriginal = originalSegments.some((os) =>
         es.startSec < os.endSec && es.endSec > os.startSec
@@ -981,27 +980,32 @@ const useSubtitleStore = create((set, get) => ({
       return !overlapsOriginal;
     });
 
-    // Gather all words from all original segments (already merged during init)
+    // Gather the word stream from the CURRENT edit segments, not originalSegments
+    // (#89) — original words still hold pre-edit text, so rebuilding from them
+    // silently discarded live text edits and resurrected deleted segments/words.
+    // Per segment, text is ground truth for spelling (covers text-only edits like
+    // ALL-CAPS), words[] for timing; on a text/words count mismatch text wins and
+    // timing is re-synthesized. Manual segments are preserved verbatim below, so
+    // their words are excluded from the re-chunk stream.
+    const manualIds = new Set(manualSegs.map((s) => s.id));
     const allWords = [];
-    originalSegments.forEach((seg) => {
-      if (seg.words && seg.words.length > 0) {
-        seg.words.forEach((w) => allWords.push({ ...w, track: seg.track }));
+    editSegments.forEach((seg) => {
+      if (manualIds.has(seg.id)) return;
+      const textWords = seg.text.split(/\s+/).filter(Boolean);
+      if (textWords.length === 0) return; // blank segment — nothing to re-chunk
+      if (seg.words && seg.words.length === textWords.length) {
+        seg.words.forEach((w, i) =>
+          allWords.push({ ...w, word: textWords[i], track: w.track || seg.track })
+        );
       } else {
-        // Fallback: split text evenly
-        const textWords = seg.text.split(/\s+/).filter(Boolean);
-        const dur = seg.endSec - seg.startSec;
-        const perWord = dur / textWords.length;
-        textWords.forEach((tw, i) => {
-          allWords.push({
-            word: tw,
-            start: seg.startSec + i * perWord,
-            end: seg.startSec + (i + 1) * perWord,
-            probability: 1,
-            track: seg.track,
-          });
-        });
+        _wordsFromText(seg.startSec, seg.endSec, seg.text).forEach((w) =>
+          allWords.push({ ...w, track: seg.track })
+        );
       }
     });
+    // User timestamp edits can reorder segment ranges relative to each other —
+    // the chunker assumes a time-ordered word stream.
+    allWords.sort((a, b) => a.start - b.start);
 
     // Deduplicate overlapping words — whisperx can output overlapping segments
     // that contain the same words, causing duplicate subtitle chunks
@@ -1039,7 +1043,9 @@ const useSubtitleStore = create((set, get) => ({
     // Merge manually-created segments back in, sorted by time
     const merged = [...rawSegs, ...manualSegs].sort((a, b) => a.startSec - b.startSec);
 
-    set({ editSegments: merged, segmentMode: mode, activeSegId: merged[0]?.id });
+    // New ids invalidate any prior word selection — clear instead of leaving a
+    // stale {segId, wordIdx} pointing at segments that no longer exist.
+    set({ editSegments: merged, segmentMode: mode, activeSegId: merged[0]?.id, selectedWordInfo: null });
   },
 }));
 
