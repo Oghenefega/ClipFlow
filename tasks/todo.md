@@ -8,13 +8,20 @@
 
 ## ACTIVE PLAN
 
-_None._ Session 74 ran the triage's fix-first batch (5 fixes, see SHIPPED). Next: #87
-(segment clamp), the #68→#62 pipeline pair (Part A relocate first), or the karaoke
-fragile zone (`tasks/backlog-triage.md` Section C). Run the start-session ritual.
+_None._ Session 77 cleared the karaoke fragile zone (9 closes, see SHIPPED) — all
+`status: untested` pending Fega's generated-clip checklist. Next: verify session-77
+fixes in-app, then #135 (caption corner handles), #99 (caption bleed), the #68→#62
+pipeline pair, or #137/#138 (new, filed session 77). Run the start-session ritual.
 
 ---
 
 ## SHIPPED — recent (closed)
+- **Session 77 karaoke fragile-zone sweep** (all closed `status: untested`, one commit each):
+  **#136** word-delete words/text desync (`5befa4c`); **#89** mode-switch edit loss (`0e55482`);
+  **#131** srcWordIdx highlight/seek desync (`af2f15d`); **#132** mid-playback click freeze
+  (`861d9fe`); **#95** split word dup/drop (`afb70f5`); **#87** tight-gap overlap (`16f8ae5`);
+  **#90** stale clip-load playhead (`6c3eb84`); **#88** initVideoRef set() (`af0939f`); **#107**
+  resolved-by #131/#95. Filed **#137** (timeline split time-space) + **#138** (AA toggle vs words[]).
 - **Session 74 fix-first batch** (all closed `status: untested`): **#124** waveform/ffmpeg logs → `app.log` (`759e7a2`); **#92** "Applied" badge gated on confirmed save (`1fc5964`); **#101** punctuationRemove restored on reopen, **#32** caption-width restored on reopen, **#106** passive-wheel console warning killed across 3 handlers (`a197bc3`). Parked #68/#62; recorded the `tools/`-bundling scope correction on #68.
 - **#57** Editor 30-min lag (60fps re-render storm) — **CLOSED** (D1 `c74c30e` timeline + D2 `985fa12` subtitle list). Both per-frame storms isolated into tiny memoized children (`TimelinePlayhead`, `SegmentRow`); Fega-confirmed smooth. Phase D3 (row self-subscribes to `currentTime` so the parent can drop its sub) was the conditional fallback — not needed.
 - **#129** ALL-CAPS (AA) no-op on uncased text — fixed (`507347a`, session 72). Surfaced by the D2 fresh-eyes review.
@@ -26,16 +33,6 @@ fragile zone (`tasks/backlog-triage.md` Section C). Run the start-session ritual
 ---
 
 ## Deferred plans
-
-### Subtitle highlight bugs surfaced by the #57 D2 review (filed, not started)
-Both touch the historically-fragile highlight logic (Phase B/C revert class) — fix in focused
-sessions with full highlight verification on a GENERATED clip:
-- **#131** Karaoke + word-click seek desync when a clip trim drops words from a surviving segment
-  (`words[]` filtered, `text` stays full → two index spaces). Fix: carry each surviving word's
-  original pre-filter index (`srcWordIdx`) through `visibleWords`/`getActiveWordInSeg`/`handleWordClick`.
-- **#132** Clicking a subtitle word during playback freezes the karaoke highlight until the next
-  pause/play (the play-clear effect only fires on the false→true `playing` transition). Fix: also
-  clear the selection once `adjustedTime` advances past the selected word while playing.
 
 ### #85 Chunk B/D — title/caption clip-signal forwarding (was active session 45)
 Plan to forward `energyLevel` + `confidence` into the title/caption prompt
