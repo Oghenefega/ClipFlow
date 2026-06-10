@@ -286,3 +286,22 @@ No data is uploaded to any third-party server. All storage is on the user's loca
 
 If approval: TikTok direct publishing is unblocked, and 0.1.x can ship with TikTok as a flagship integration.
 If rejection: read the specific reason carefully, fix the gap, resubmit. This spec is durable — iterate against it.
+
+---
+
+## ROUND 2 — Denial (2026-06-03) + fix list
+
+First submission (ref `20260516072018`, submitted 2026-05-16) was **DENIED 2026-06-03**. Dev-portal feedback, verbatim:
+
+> "Your application did not follow our UX Guidelines." Cited **Point 5d**: *"API Clients must clearly notify users that after they finish publishing their content, it may take a few minutes for the content to process and be visible on their profile."* Plus: *"Make sure to read from Point 1 - Point 5… It's best to show the UX in order according to the order from the Guideline. App Name & Organization Name should be the same."*
+
+Root cause: A1–A7 shipped in Session 39 and are compliant, but **A9 (the 5d notification) was never built**, the panel renders controls out of guideline order, and the portal App Name (ClipFlow) ≠ Organization Name (Flowve).
+
+**Code fixes — all in `src/renderer/views/QueueView.js`, ~1hr:**
+
+1. **A9 / Point 5d (BLOCKER):** add an explicit post-publish message — *"Your post may take a few minutes to appear on your TikTok profile."* — to the per-platform success state. Must be visible on screen (Video 3 must capture it).
+2. **Panel reorder:** present controls in guideline order Point 1→5. Specifically move **Music Usage Confirmation** up into the Point-2 block (with privacy + interaction toggles), *above* the Commercial Disclosure section. Currently A4 renders after A5.
+3. **A8 / Point 1:** add the posting-capacity check — if `creator_info` indicates the creator can't post now, block publish + show "try again later."
+4. Cut a fresh `0.1.x` build, verify per the 11-step list, then re-record.
+
+**Non-code (Fega, tracked in `Wick/tiktok-reapply-checklist.html`):** rename portal Org → ClipFlow (match App Name); reuse Video 1 (auth unchanged); re-shoot Video 2 (reordered panel) + Video 3 (must show the 5d notice); resubmit. All prior assets recovered (videos in `Desktop\ClipFlow stuff\ClipFlow TikTok Review Videos\`, domain-verification txts, live flowve.app legal pages).
