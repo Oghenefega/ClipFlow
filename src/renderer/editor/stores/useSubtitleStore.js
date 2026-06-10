@@ -812,7 +812,6 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Create a new blank subtitle segment at a given time ──
   createSegmentAtTime: (atTime) => {
-    get()._pushUndo();
     const { editSegments } = get();
     const DEFAULT_DUR = 0.5; // seconds
     let startSec = atTime;
@@ -832,14 +831,21 @@ const useSubtitleStore = create((set, get) => ({
       }
     }
 
-    // Clamp endSec to not overlap the next segment
-    const nextSeg = sorted.find(s => s.startSec > startSec);
+    // Clamp endSec to not overlap the next segment. ">=" so a neighbour
+    // starting exactly at startSec (back-to-back boundary) counts too — ">"
+    // skipped it and the 0.5s default landed on top of it.
+    const nextSeg = sorted.find(s => s.startSec >= startSec);
     if (nextSeg && endSec > nextSeg.startSec) {
       endSec = nextSeg.startSec;
     }
 
-    // Ensure minimum duration
-    if (endSec - startSec < 0.05) endSec = startSec + 0.1;
+    // Ensure minimum duration — but never by pushing back INTO the next
+    // segment (#87): the unconditional bump used to re-create the very overlap
+    // the clamp above had just removed. No room for the minimum → no segment.
+    if (endSec - startSec < 0.05) {
+      endSec = startSec + 0.1;
+      if (nextSeg && endSec > nextSeg.startSec) return null;
+    }
 
     const origin = get()._sourceOrigin || 0;
     const newId = _newSegId();
@@ -857,7 +863,9 @@ const useSubtitleStore = create((set, get) => ({
       words: [],
     };
 
-    // Insert in sorted position
+    // Insert in sorted position. Undo is pushed here, not at the top, so a
+    // rejected insert doesn't leave a no-op entry on the undo stack.
+    get()._pushUndo();
     const next = [...editSegments, newSeg].sort((a, b) => a.startSec - b.startSec);
     set({ editSegments: next, activeSegId: newId });
     return newId;
