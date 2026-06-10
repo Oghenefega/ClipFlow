@@ -848,6 +848,36 @@ const useSubtitleStore = create((set, get) => ({
     set((s) => ({ editSegments: s.editSegments.filter(seg => seg.id !== segId) }));
   },
 
+  // Delete ONE word from a segment, keeping text and words[] in sync (#136).
+  // wordIdx is a text-token index. Splicing only the text (the old path) left the
+  // word alive in words[] — karaoke goes off-by-one after that position and the
+  // preview (which renders from words[] when non-empty, #116) still draws it.
+  // When words[] isn't 1:1 with the pre-delete text (legacy desync), re-synthesize
+  // from the new text so the invariant is restored rather than propagated broken.
+  deleteWordInSegment: (segId, wordIdx) => {
+    const { editSegments } = get();
+    const seg = editSegments.find(s => s.id === segId);
+    if (!seg) return;
+    const textWords = seg.text.split(/\s+/).filter(Boolean);
+    if (wordIdx < 0 || wordIdx >= textWords.length) return;
+    if (textWords.length <= 1) { get().deleteSegment(segId); return; }
+    get()._pushUndo();
+    textWords.splice(wordIdx, 1);
+    const newText = textWords.join(" ");
+    set((s) => ({
+      editSegments: s.editSegments.map(sg => {
+        if (sg.id !== segId) return sg;
+        let words = sg.words || [];
+        if (words.length === textWords.length + 1) {
+          words = words.filter((_, i) => i !== wordIdx);
+        } else if (words.length > 0) {
+          words = _wordsFromText(sg.startSec, sg.endSec, newText);
+        }
+        return { ...sg, text: newText, words };
+      }),
+    }));
+  },
+
   rippleDeleteSegment: (segId) => {
     const { editSegments } = get();
     const seg = editSegments.find(s => s.id === segId);

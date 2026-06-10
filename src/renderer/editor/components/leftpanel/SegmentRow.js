@@ -189,16 +189,9 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
   const handleEditConfirm = (wordIdx, newText) => {
     const sub = useSubtitleStore.getState();
     if (!newText) {
-      // Empty text — delete the word from the segment
-      const textWords = seg.text.split(/\s+/).filter(Boolean);
-      if (textWords.length <= 1) {
-        // Last word in segment — delete the entire segment
-        sub.deleteSegment(seg.id);
-      } else {
-        // Remove just this word
-        textWords.splice(wordIdx, 1);
-        sub.updateSegmentText(seg.id, textWords.join(" "));
-      }
+      // Empty text — delete the word. The store action removes it from text AND
+      // words[] together (#136), and deletes the whole segment on the last word.
+      sub.deleteWordInSegment(seg.id, wordIdx);
     } else {
       sub.updateWordInSegment(seg.id, wordIdx, newText);
     }
