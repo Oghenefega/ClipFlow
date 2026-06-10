@@ -150,7 +150,11 @@ function buildTimelineLayout(segments) {
  *
  * @param {Array} words - [{ word, start, end, probability, ... }] in source time
  * @param {Array} segments - ordered NLE segment list
- * @returns {Array} visible words with added timelineStart / timelineEnd
+ * @returns {Array} visible words with added timelineStart / timelineEnd and
+ *                  srcWordIdx (the word's index in the UNFILTERED input list —
+ *                  consumers compare against full-text token positions, which
+ *                  diverge from positions in this filtered list once a trim
+ *                  drops words, #131)
  */
 function visibleWords(words, segments) {
   if (!words || words.length === 0 || segments.length === 0) return [];
@@ -193,6 +197,7 @@ function visibleWords(words, segments) {
 
     result.push({
       ...word,
+      srcWordIdx: w,
       timelineStart: startMap.timelineTime,
       timelineEnd: endMap.found
         ? endMap.timelineTime

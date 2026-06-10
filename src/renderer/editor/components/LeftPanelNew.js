@@ -532,13 +532,18 @@ function EditSubtitlesTab() {
   // Find active word index within a segment based on playback time
   // Uses "most recent word" approach to bridge gaps between words
   // Respects segment timeline boundaries — no highlighting outside startSec/endSec
+  // Returns a TEXT-space index: seg.words is the trim-FILTERED timeline list but
+  // SegmentRow compares against full-text token positions, so the filtered
+  // position is mapped back through srcWordIdx (#131). Identity fallback covers
+  // unmapped lists (no NLE data), which are 1:1 with the text.
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
     // Must be within segment's timeline boundaries
     if (adjustedTime < seg.startSec || adjustedTime > seg.endSec) return -1;
+    const textIdx = (i) => seg.words[i].srcWordIdx ?? i;
     // Exact match first
     for (let i = seg.words.length - 1; i >= 0; i--) {
-      if (adjustedTime >= seg.words[i].start && adjustedTime <= seg.words[i].end) return i;
+      if (adjustedTime >= seg.words[i].start && adjustedTime <= seg.words[i].end) return textIdx(i);
     }
     // Fallback: most recent word that started (bridges inter-word gaps)
     let best = -1;
@@ -546,7 +551,7 @@ function EditSubtitlesTab() {
       if (adjustedTime >= seg.words[i].start) best = i;
       else break;
     }
-    if (best >= 0 && adjustedTime <= seg.words[best].end + 0.5) return best;
+    if (best >= 0 && adjustedTime <= seg.words[best].end + 0.5) return textIdx(best);
     return -1;
   }, [adjustedTime]);
 

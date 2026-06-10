@@ -181,9 +181,16 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
   const handleWordClick = (wordIdx) => {
     useSubtitleStore.getState().setActiveSegId(seg.id);
     useSubtitleStore.getState().setSelectedWordInfo({ segId: seg.id, wordIdx });
-    if (seg.words && seg.words[wordIdx]) {
-      usePlaybackStore.getState().seekTo(seg.words[wordIdx].start);
-    }
+    // wordIdx is a text-token index; seg.words is the trim-FILTERED timeline
+    // list, so positional indexing seeks the wrong word once a trim has dropped
+    // words from this segment (#131). Find the word by its original index; if
+    // the clicked word itself was trimmed away, seek the nearest surviving one.
+    const words = seg.words || [];
+    const target =
+      words.find((w, j) => (w.srcWordIdx ?? j) === wordIdx) ||
+      words.find((w, j) => (w.srcWordIdx ?? j) > wordIdx) ||
+      words[words.length - 1];
+    if (target) usePlaybackStore.getState().seekTo(target.start);
   };
 
   const handleEditConfirm = (wordIdx, newText) => {
