@@ -8,14 +8,17 @@
 
 ## ACTIVE PLAN — TikTok Content Posting audit, ROUND 2 UI fixes (resubmission blocker)
 
-**Status:** CODED in session 79 (commit pending). Item 1 (A9 notice) + Item 2 (panel reorder)
-shipped in `src/renderer/views/QueueView.js`; renderer build passes. **Item 3 (A8 capacity
-message) needed NO code — already implemented** in the main process via
-`translateTiktokPublishError` (`main.js:2510`), which maps TikTok's over-limit/rate-limit error
-family to a friendly "reached its posting limit — try again later" string that the publish
-results panel already surfaces. The plan's assumption that A8 was unbuilt was stale.
-**Remaining:** Fega's in-app visual confirm (panel order + A9 banner during a publish), then cut
-**0.1.8-alpha** for re-recording. Original investigation kept below for reference.
+**Status:** ✅ SHIPPED in session 79 on **0.1.8-alpha.2**. Item 1 (A9 notice visible during the
+publish window) + Item 2 (Music Usage above Commercial Disclosure) shipped in
+`src/renderer/views/QueueView.js` (`815433a`). **Item 3 (A8 capacity message) needed NO code —
+already implemented** in the main process via `translateTiktokPublishError` (`main.js:2510`),
+which maps TikTok's over-limit/rate-limit family to "reached its posting limit — try again later"
+and the publish results panel already surfaces it (the plan's "A8 unbuilt" assumption was stale).
+A follow-up Queue-card quality pass (`29a83a1`) + publish-status "Processing…" fix (`762fc09`)
+landed on top after Fega reviewed the live card. **Code side of the resubmission is DONE.**
+Remaining = Fega's NON-CODE steps: portal Org rename to match App Name, re-shoot Video 2
+(reordered panel) + Video 3 (must show the 5d notice during processing), resubmit — recorded
+against 0.1.8-alpha.2. Original investigation kept below for reference.
 
 **Why:** First TikTok Direct Post audit DENIED 2026-06-03. Cited **UX Guideline Point 5d**
 (missing "may take a few minutes to process/appear" notice = our A9) + panel rendered out
