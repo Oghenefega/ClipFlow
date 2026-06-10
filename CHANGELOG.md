@@ -13,6 +13,7 @@ Resubmission fixes for the TikTok Direct Post audit denied 2026-06-03 (UX Guidel
 
 ### Changed
 - **TikTok options panel reordered to follow the guideline's Point 1→5 order.** The **Music Usage Confirmation** disclosure now renders **above** the Commercial Content Disclosure section (previously after it), matching the order TikTok's reviewer checks against. Pure layout move — no behavior change. [src/renderer/views/QueueView.js]
+- **App version bumped `0.1.7-alpha` → `0.1.8-alpha` and a fresh installer cut.** Promotes the two Round-2 TikTok audit fixes above to the daily-driver install so Fega can re-record the audit videos against the corrected UI. [package.json]
 
 ### Notes
 - **Posting-capacity message (Point 1 / A8) was already implemented and left as-is.** `translateTiktokPublishError` in the main process already maps TikTok's over-limit/rate-limit error family to a friendly "reached its posting limit — try again later" string and the publish path already surfaces it in the results panel, so no renderer change was needed (the Round-2 plan's assumption that this was unbuilt was stale).
