@@ -213,8 +213,11 @@ const useEditorStore = create((set, get) => ({
       clipFileDuration: sourceDur,
     });
 
-    // Sync NLE segments to playback store for duration and segment-aware playback
-    usePlaybackStore.getState().setNleSegments(nleSegs);
+    // Sync NLE segments to playback store for duration and segment-aware
+    // playback. snapToStart: the <video> still holds the previous clip here
+    // (its src swaps on the next render), so the default element-read snap
+    // would decide from stale time (#90) — a clip open starts at its head.
+    usePlaybackStore.getState().setNleSegments(nleSegs, { snapToStart: true });
 
     // Initialize other stores from clip data
     useCaptionStore.getState().initFromClip(clip);

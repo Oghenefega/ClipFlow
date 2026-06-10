@@ -50,16 +50,32 @@ const usePlaybackStore = create((set, get) => ({
    * Set the NLE segment list and update duration.
    * Called by editor store whenever nleSegments changes.
    */
-  setNleSegments: (segments) => {
+  setNleSegments: (segments, opts) => {
     const duration = getTimelineDuration(segments);
     set({ nleSegments: segments, duration });
+
+    const { clipFileOffset } = get();
+    const ref = get()._videoRef;
+    const vid = ref?.current;
+
+    // Clip-load path (#90): the <video> element still holds the PREVIOUS
+    // clip's position at this point (its src swaps only on the next render),
+    // so deciding the snap from vid.currentTime reads stale state. A clip
+    // open always starts at its head — set that explicitly. Seeking the
+    // element here covers same-recording clip switches (same src → no
+    // loadedmetadata fires); cross-recording switches get reset by the src
+    // swap and re-positioned in PreviewPanel's onLoadedMetadata.
+    if (opts?.snapToStart) {
+      set({ currentTime: 0 });
+      if (vid && segments.length > 0) {
+        vid.currentTime = Math.max(0, segments[0].sourceStart - clipFileOffset);
+      }
+      return;
+    }
 
     // If video's current source position is outside all new segments, snap it
     // into the first segment. Video currentTime is CLIP-RELATIVE; segments are
     // SOURCE-ABSOLUTE — translate via clipFileOffset.
-    const { clipFileOffset } = get();
-    const ref = get()._videoRef;
-    const vid = ref?.current;
     if (vid && segments.length > 0) {
       const srcAbs = vid.currentTime + clipFileOffset;
       // Use epsilon-tolerant check so sub-millisecond FP drift at the segment
