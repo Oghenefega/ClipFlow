@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-10 (session 80) — Re-queued clips start with a clean publish slate
+
+Fega re-queued previously-failed clips from the editor and the Queue cards came up "littered" with old red **Failed** markers and `PUBLISH RESULTS` errors from prior sessions, even though the clips had been freshly re-rendered. Renderer-only, no schema change.
+
+### Fixed
+- **Re-queuing a clip now wipes its saved publish failures.** A clip's per-platform publish outcome is persisted on the clip (`publishState`) so failures survive an app restart and stay retryable. But re-queuing from the editor re-rendered a brand-new file while leaving that old failure record intact, so the Queue tab faithfully redrew the previous session's "Failed" badges and error panel on what was effectively a new clip. The editor's Queue action now clears `publishState` at the same moment it re-renders, so a freshly re-queued clip has a clean publish slate. [src/renderer/editor/components/EditorLayout.js]
+- **The Queue card drops stale failure markers immediately, without an app restart.** The Queue tab stays mounted (display-toggled), so clearing the saved failure alone wouldn't refresh an already-hydrated card. The publish-status hydration now reconciles: when a clip's persisted publish history is cleared it also drops any lingering in-memory "Failed"/results state — guarded so it never disturbs a clip that is actively mid-publish. [src/renderer/views/QueueView.js]
+
+### Changed (release)
+- **App version bumped `0.1.8-alpha.2` → `0.1.8-alpha.3` and a fresh installer cut** to promote the stale-publish-marker fix to the daily-driver install. [package.json]
+
 ## [Unreleased] — 2026-06-10 (session 79) — Queue tab clip card + TikTok panel legibility & affordance polish
 
 Follow-up to the Round-2 TikTok fixes: Fega flagged the whole Queue clip card as hard to read and use once he was staring at it for the audit. All renderer-only.
