@@ -665,10 +665,12 @@ const useSubtitleStore = create((set, get) => ({
 
     const idx = editSegments.findIndex(s => s.id === targetSegId);
     if (idx < 0) return;
-    _pushUndo();
     const seg = editSegments[idx];
     const textWords = seg.text.split(/\s+/).filter(Boolean);
-    if (textWords.length === 0) return;
+    // A 1-word/empty segment can't split — it would just leave an empty half.
+    // Guard BEFORE pushing undo so a no-op doesn't pollute the undo stack.
+    if (textWords.length < 2) return;
+    _pushUndo();
 
     // Determine split time and word boundary
     let splitSec;
@@ -706,9 +708,27 @@ const useSubtitleStore = create((set, get) => ({
       splitSec = (seg.startSec + seg.endSec) / 2;
     }
 
+    // One boundary drives BOTH partitions (#95). Clamp the index into valid
+    // range first (selectedWordInfo can be stale after text edits — an
+    // out-of-range index used to yield a splitSec past endSec and a half with
+    // negative duration), snap the time to the boundary word's start, and clamp
+    // it inside the segment so both halves always keep positive duration.
+    splitWordIdx = Math.max(1, Math.min(splitWordIdx, textWords.length - 1));
+    const segWords = seg.words || [];
+    const oneToOne = segWords.length === textWords.length;
+    if (oneToOne) splitSec = segWords[splitWordIdx].start;
+    const EPS = 0.001;
+    splitSec = Math.max(seg.startSec + EPS, Math.min(seg.endSec - EPS, splitSec));
+
     const origin = get()._sourceOrigin || 0;
-    const words1 = seg.words ? seg.words.filter(w => w.end <= splitSec + 0.01) : [];
-    const words2 = seg.words ? seg.words.filter(w => w.start >= splitSec - 0.01) : [];
+    // 1:1 words/text → slice words at the same token index as the text. On a
+    // legacy count desync, partition by a SINGLE predicate (w.start vs splitSec)
+    // — complementary by construction, so a word straddling the split point can
+    // never land in both halves or in neither (the old pair of tolerance
+    // filters, w.end <= splitSec+0.01 / w.start >= splitSec-0.01, did exactly
+    // that for any word wider than the tolerance).
+    const words1 = oneToOne ? segWords.slice(0, splitWordIdx) : segWords.filter(w => w.start < splitSec);
+    const words2 = oneToOne ? segWords.slice(splitWordIdx) : segWords.filter(w => w.start >= splitSec);
     const seg1 = { ...seg, endSec: splitSec, end: _displayFmt(splitSec, origin), dur: (splitSec - seg.startSec).toFixed(1) + "s", warning: (splitSec - seg.startSec) > 10 ? "Long segment — consider splitting" : null, text: textWords.slice(0, splitWordIdx).join(" "), words: words1 };
     const seg2 = { ...seg, id: _newSegId(), startSec: splitSec, start: _displayFmt(splitSec, origin), dur: (seg.endSec - splitSec).toFixed(1) + "s", warning: (seg.endSec - splitSec) > 10 ? "Long segment — consider splitting" : null, text: textWords.slice(splitWordIdx).join(" "), words: words2 };
     const next = [...editSegments];
