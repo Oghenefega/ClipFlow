@@ -481,6 +481,23 @@ function EditSubtitlesTab() {
     if (playing) setSelectedWordInfo(null);
   }, [playing, setSelectedWordInfo]);
 
+  // ...and while ALREADY playing: the effect above only fires on the pause→play
+  // transition, so a mid-playback word click froze the karaoke highlight for
+  // every segment until the next pause/play (#132). Hand the highlight back once
+  // the VIDEO has reached the clicked word — not before: seekTo writes the store
+  // time synchronously, so without the vid.seeking guard this would clear on the
+  // click's own render and re-expose the highlight flicker the selection masks.
+  // Selections without a clickTime (timecode button, timeline block click) clear
+  // immediately during playback; paused stickiness is unchanged.
+  useEffect(() => {
+    if (!playing || !selectedWordInfo) return;
+    const t = selectedWordInfo.clickTime;
+    const vid = usePlaybackStore.getState().getVideoRef()?.current;
+    if (t == null || (adjustedTime >= t - 0.05 && !(vid && vid.seeking))) {
+      setSelectedWordInfo(null);
+    }
+  }, [playing, adjustedTime, selectedWordInfo, setSelectedWordInfo]);
+
   const matches = useMemo(() => {
     if (!transcriptSearch) return [];
     const q = transcriptSearch.toLowerCase();

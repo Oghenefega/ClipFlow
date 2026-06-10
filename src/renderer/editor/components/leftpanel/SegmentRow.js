@@ -180,7 +180,6 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
 
   const handleWordClick = (wordIdx) => {
     useSubtitleStore.getState().setActiveSegId(seg.id);
-    useSubtitleStore.getState().setSelectedWordInfo({ segId: seg.id, wordIdx });
     // wordIdx is a text-token index; seg.words is the trim-FILTERED timeline
     // list, so positional indexing seeks the wrong word once a trim has dropped
     // words from this segment (#131). Find the word by its original index; if
@@ -190,6 +189,12 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
       words.find((w, j) => (w.srcWordIdx ?? j) === wordIdx) ||
       words.find((w, j) => (w.srcWordIdx ?? j) > wordIdx) ||
       words[words.length - 1];
+    // clickTime lets the panel hand the highlight back to playback once the
+    // video reaches this word — without it, a mid-playback click froze the
+    // karaoke highlight globally until the next pause/play (#132).
+    useSubtitleStore.getState().setSelectedWordInfo({
+      segId: seg.id, wordIdx, clickTime: target ? target.start : null,
+    });
     if (target) usePlaybackStore.getState().seekTo(target.start);
   };
 
