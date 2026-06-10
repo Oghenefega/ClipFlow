@@ -531,8 +531,12 @@ function EditSubtitlesTab() {
   useEffect(() => {
     // Don't override explicit user selection — only auto-track during playback
     if (selectedWordInfo && !playing) return;
+    // Half-open interval [startSec, endSec): adjacent segments share a boundary
+    // (A.endSec === B.startSec), so an inclusive `<= endSec` made find() return
+    // the segment ENDING at that instant (it sorts first) — clicking a row seeks
+    // to its startSec and the active bar jumped up to the previous segment.
     const currentSeg = editSegments.find(
-      (s) => adjustedTime >= s.startSec && adjustedTime <= s.endSec
+      (s) => adjustedTime >= s.startSec && adjustedTime < s.endSec
     );
     if (currentSeg && currentSeg.id !== activeSegId) {
       setActiveSegId(currentSeg.id);
@@ -555,8 +559,10 @@ function EditSubtitlesTab() {
   // unmapped lists (no NLE data), which are 1:1 with the text.
   const getActiveWordInSeg = useCallback((seg) => {
     if (!seg.words || seg.words.length === 0) return -1;
-    // Must be within segment's timeline boundaries
-    if (adjustedTime < seg.startSec || adjustedTime > seg.endSec) return -1;
+    // Must be within segment's timeline boundaries — half-open [startSec, endSec)
+    // so the shared boundary with the next segment belongs to that next segment,
+    // not this one (else both segments' boundary words highlight at once).
+    if (adjustedTime < seg.startSec || adjustedTime >= seg.endSec) return -1;
     const textIdx = (i) => seg.words[i].srcWordIdx ?? i;
     // Exact match first
     for (let i = seg.words.length - 1; i >= 0; i--) {
