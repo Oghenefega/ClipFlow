@@ -268,8 +268,11 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
 
     // Pre-render project update. Only flip status when adding to queue; otherwise
     // just track rendering state so the UI shows the right indicator.
+    // Re-queuing produces a fresh render that has never been published, so wipe any
+    // saved publish failures from a prior attempt — otherwise the Queue card redraws
+    // stale "Failed" markers from a previous session on the brand-new clip.
     await window.clipflow?.projectUpdateClip(project.id, clip.id, {
-      ...(addToQueue ? { status: "approved" } : {}),
+      ...(addToQueue ? { status: "approved", publishState: {} } : {}),
       renderStatus: "rendering",
     });
 

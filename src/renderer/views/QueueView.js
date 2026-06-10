@@ -560,22 +560,38 @@ export default function QueueView({
   // for that clip is in progress.
   const hydratedPublishRef = useRef(new Set());
   useEffect(() => {
-    let updates = null;
-    for (const clip of approved) {
-      if (hydratedPublishRef.current.has(clip.id)) continue;
-      hydratedPublishRef.current.add(clip.id);
-      const ps = clip.publishState;
-      if (!ps || Object.keys(ps).length === 0) continue;
-      const platforms = {};
-      let anyFailed = false;
-      for (const [k, v] of Object.entries(ps)) {
-        if (v === "success") platforms[k] = "done";
-        else if (v && typeof v === "object" && v.error) { platforms[k] = v.error; anyFailed = true; }
+    setPublishStatus((prev) => {
+      let next = prev;
+      const ensureCopy = () => { if (next === prev) next = { ...prev }; };
+      for (const clip of approved) {
+        const live = prev[clip.id];
+        // Never disturb a clip that's mid-publish in this session.
+        if (live && live.state === "publishing") { hydratedPublishRef.current.add(clip.id); continue; }
+        const ps = clip.publishState;
+        const isEmpty = !ps || Object.keys(ps).length === 0;
+        if (isEmpty) {
+          // Persisted publish history was cleared (e.g. the clip was re-queued and
+          // re-rendered). Drop any stale failed/done markers so the card shows a clean
+          // slate, and allow re-hydration if it's published again later.
+          hydratedPublishRef.current.delete(clip.id);
+          if (live) { ensureCopy(); delete next[clip.id]; }
+          continue;
+        }
+        // Non-empty persisted state: hydrate once from disk. Live in-session state wins.
+        if (hydratedPublishRef.current.has(clip.id)) continue;
+        hydratedPublishRef.current.add(clip.id);
+        if (live) continue;
+        const platforms = {};
+        let anyFailed = false;
+        for (const [k, v] of Object.entries(ps)) {
+          if (v === "success") platforms[k] = "done";
+          else if (v && typeof v === "object" && v.error) { platforms[k] = v.error; anyFailed = true; }
+        }
+        ensureCopy();
+        next[clip.id] = { state: anyFailed ? "failed" : "done", platforms };
       }
-      updates = updates || {};
-      updates[clip.id] = { state: anyFailed ? "failed" : "done", platforms };
-    }
-    if (updates) setPublishStatus((prev) => ({ ...updates, ...prev }));
+      return next;
+    });
   }, [approved]);
   // ── Auto-fire scheduler ──
   // Ticks once per minute (plus once on mount) and triggers publishClip for any clip
