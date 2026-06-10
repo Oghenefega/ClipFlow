@@ -291,10 +291,10 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
     <>
       {/* A1 — Posting-as header */}
       <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600 }}>Posting as</span>
-        <span style={{ fontSize: 11, color: T.text, fontWeight: 700 }}>{nickname}</span>
+        <span style={{ fontSize: 11, color: T.labelStrong, fontWeight: 700, letterSpacing: 0.3 }}>Posting as</span>
+        <span style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{nickname}</span>
         {handle && (
-          <span style={{ fontSize: 11, color: T.textSecondary, fontFamily: T.mono }}>@{handle}</span>
+          <span style={{ fontSize: 12.5, color: T.textSecondary, fontFamily: T.mono }}>@{handle}</span>
         )}
       </div>
 
@@ -302,7 +302,7 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
           native <select> because Chromium's default option rendering has poor
           contrast on dark backgrounds (text barely readable until hovered). */}
       <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, minWidth: 50 }}>Privacy</span>
+        <span style={{ fontSize: 11, color: T.labelStrong, fontWeight: 700, minWidth: 50, letterSpacing: 0.3 }}>Privacy</span>
         <Select
           value={clip.tiktokPrivacy || ""}
           onChange={(value) => onSave({ tiktokPrivacy: value || null })}
@@ -322,7 +322,7 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
           If creator_info reports the feature disabled at account level, the toggle
           is locked ON with reduced opacity and not-allowed cursor (A6 force-on). */}
       <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, marginBottom: 6 }}>Interactions</div>
+        <div style={{ fontSize: 11, color: T.labelStrong, fontWeight: 700, marginBottom: 7, letterSpacing: 0.3 }}>Interactions</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <TiktokInteractionToggle
             label="Disable Duet"
@@ -360,7 +360,7 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
           via the openExternal IPC.
           Renders ABOVE A5 (Commercial Disclosure) so the panel follows the
           guideline's Point 1→5 order (Round-2 audit fix). */}
-      <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10, color: T.textTertiary, fontStyle: "italic", lineHeight: 1.5 }}>
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 12, color: T.textSecondary, lineHeight: 1.55 }}>
         By posting, you agree to TikTok&apos;s{" "}
         {brandedActive && (
           <>
@@ -398,7 +398,7 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
           style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
         >
           <Checkbox checked={disclosureOn} size={16} />
-          <span style={{ fontSize: 11, color: T.text, fontWeight: 600 }}>Disclose commercial content</span>
+          <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>Disclose commercial content</span>
         </div>
         {disclosureOn && (
           <div style={{ marginTop: 8, marginLeft: 24, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -408,8 +408,8 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
               style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
             >
               <Checkbox checked={yourBrandOn} size={14} />
-              <span style={{ fontSize: 11, color: T.text }}>Your Brand</span>
-              <span style={{ fontSize: 10, color: T.textTertiary }}>— you&apos;re promoting yourself or your own product</span>
+              <span style={{ fontSize: 12.5, color: T.text, fontWeight: 600 }}>Your Brand</span>
+              <span style={{ fontSize: 11.5, color: T.textSecondary }}>— you&apos;re promoting yourself or your own product</span>
             </div>
             {/* Sub-option: Branded Content */}
             <div
@@ -417,22 +417,22 @@ function TiktokOptionsPanel({ clip, account, onSave, onCreatorInfoLoaded }) {
               style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
             >
               <Checkbox checked={brandedActive} size={14} />
-              <span style={{ fontSize: 11, color: T.text }}>Branded Content</span>
-              <span style={{ fontSize: 10, color: T.textTertiary }}>— paid partnership with a third party</span>
+              <span style={{ fontSize: 12.5, color: T.text, fontWeight: 600 }}>Branded Content</span>
+              <span style={{ fontSize: 11.5, color: T.textSecondary }}>— paid partnership with a third party</span>
             </div>
             {/* Conditional label hint or "Required" prompt */}
             {!subOptionPicked && (
-              <div style={{ marginTop: 4, fontSize: 10, color: T.red, fontWeight: 700 }}>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: T.red, fontWeight: 700 }}>
                 Required — pick at least one sub-option above.
               </div>
             )}
             {brandedActive && (
-              <div style={{ marginTop: 4, fontSize: 10, color: T.textSecondary, fontStyle: "italic" }}>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: T.textSecondary, fontStyle: "italic" }}>
                 Your post will be labeled as &quot;Paid partnership&quot;.
               </div>
             )}
             {yourBrandOn && !brandedActive && (
-              <div style={{ marginTop: 4, fontSize: 10, color: T.textSecondary, fontStyle: "italic" }}>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: T.textSecondary, fontStyle: "italic" }}>
                 Your post will be labeled as &quot;Promotional content&quot;.
               </div>
             )}
@@ -460,18 +460,28 @@ function TiktokInteractionToggle({ label, userOn, forceOn, onToggle }) {
         ? `${label} is enforced by your TikTok account settings — change it in the TikTok app to control it here.`
         : (on ? `Click to allow this interaction on the post.` : `Click to disable this interaction on the post.`)}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px",
+        display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px",
         borderRadius: 20,
         border: `1px solid ${on ? T.green : T.border}`,
         background: on ? "rgba(74,222,128,0.12)" : "transparent",
         color: on ? T.green : T.textSecondary,
-        opacity: locked ? 0.55 : 1,
+        opacity: locked ? 0.6 : 1,
         cursor: locked ? "not-allowed" : "pointer",
-        fontSize: 10, fontWeight: 700, transition: "all 0.15s", fontFamily: T.font,
+        fontSize: 11, fontWeight: 700, lineHeight: 1, transition: "all 0.15s", fontFamily: T.font,
       }}
     >
-      {locked && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>(LOCKED)</span>}
-      {label}
+      {/* A6 lock indicator — icon + LOCKED kept as their own centered flex box so the
+          small text shares the label's midline instead of riding above it. */}
+      {locked && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, lineHeight: 1 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+            <rect x="4" y="11" width="16" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </svg>
+          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.5, lineHeight: 1 }}>LOCKED</span>
+        </span>
+      )}
+      <span style={{ lineHeight: 1 }}>{label}</span>
     </button>
   );
 }
@@ -1385,7 +1395,7 @@ export default function QueueView({
                       <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2 }}>{durationStr}{projName ? ` \u00B7 ${projName}` : ""}</div>
                     </div>
                     {/* Game tag */}
-                    <div>{gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag}</span>}</div>
+                    <div>{gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()}</span>}</div>
                     {/* Platform icons — dimmed if toggled off */}
                     <div style={{ display: "flex", gap: 3 }}>
                       {activePlat.map((p) => {
@@ -1442,24 +1452,24 @@ export default function QueueView({
                               onChange={(e) => setEditTitleValue(e.target.value)}
                               onBlur={() => saveTitle(clip)}
                               onKeyDown={(e) => { if (e.key === "Enter") saveTitle(clip); if (e.key === "Escape") setEditingTitle(null); }}
-                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 15, fontWeight: 700, fontFamily: T.font, outline: "none", marginBottom: 8 }}
+                              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 6, padding: "6px 10px", color: T.text, fontSize: 17, fontWeight: 800, fontFamily: T.font, outline: "none", marginBottom: 8 }}
                             />
                           ) : (
                             <div
                               onDoubleClick={() => { setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
-                              style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 6, cursor: "text", lineHeight: 1.3 }}
+                              style={{ color: T.text, fontSize: 17, fontWeight: 800, marginBottom: 7, cursor: "text", lineHeight: 1.3 }}
                               title="Double-click to edit"
                             >{clip.title}</div>
                           )}
-                          <div style={{ display: "flex", gap: 10, fontSize: 11, color: T.textTertiary, marginBottom: 12, alignItems: "center" }}>
+                          <div style={{ display: "flex", gap: 12, fontSize: 12.5, color: T.textSecondary, marginBottom: 16, alignItems: "center" }}>
                             <span style={{ fontFamily: T.mono }}>{durationStr}</span>
-                            {gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag}</span>}
+                            {gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 800, letterSpacing: 0.6, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.toUpperCase()}</span>}
                             {projName && <span>{projName}</span>}
                           </div>
 
                           {/* Phase 2: Platform toggle pills */}
                           <div style={{ display: "flex", gap: 6, marginBottom: 14, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 10, color: T.textTertiary, marginRight: 2 }}>Platforms:</span>
+                            <span style={{ fontSize: 11.5, color: T.labelStrong, fontWeight: 600, marginRight: 2 }}>Platforms:</span>
                             {activePlat.map((p) => {
                               const pk = accountToPlatformKey(p);
                               if (!pk) return null;
@@ -1509,10 +1519,10 @@ export default function QueueView({
                                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${T.border}` }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                           <PlatformIcon platform={pk} size={16} />
-                                          <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{meta.label}</span>
-                                          {hasOverride && <span style={{ fontSize: 9, fontWeight: 700, color: T.accent, background: T.accentDim, padding: "1px 6px", borderRadius: 4 }}>Custom</span>}
+                                          <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{meta.label}</span>
+                                          {hasOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
                                         </div>
-                                        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: T.mono, color: charCountColor(caption.length, charLimit) }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.mono, color: charCountColor(caption.length, charLimit) }}>
                                           {caption.length}/{charLimit}
                                         </span>
                                       </div>
@@ -1558,6 +1568,53 @@ export default function QueueView({
                                         </div>
                                       )}
 
+                                      {/* Caption body — rendered ABOVE the platform-specific
+                                          options so it sits near the top of the card (close to the
+                                          title), and styled as a clearly editable field. */}
+                                      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase", marginBottom: 6 }}>{isYt ? "Description" : "Caption"}</div>
+                                        {isEditingThis ? (
+                                          <textarea
+                                            autoFocus
+                                            value={editCaptionValue}
+                                            onChange={(e) => setEditCaptionValue(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
+                                            style={{ width: "100%", minHeight: 64, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
+                                          />
+                                        ) : (
+                                          <div
+                                            onClick={(e) => { e.stopPropagation(); setEditingCaption({ clipId: clip.id, platform: pk }); setEditCaptionValue(caption); }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                                            style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(255,255,255,0.045)", padding: "10px 54px 10px 12px", fontSize: 13, color: T.text, lineHeight: 1.55, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflow: "hidden", transition: "border-color 0.15s" }}
+                                            title="Click to edit"
+                                          >
+                                            {caption || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No caption — click to add</span>}
+                                            <span style={{ position: "absolute", top: 8, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                                                <path d="M12 20h9" />
+                                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                              </svg>
+                                              Edit
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* Edit/Save/Reset actions */}
+                                        {isEditingThis && (
+                                          <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                                            <span style={{ fontSize: 11, fontFamily: T.mono, color: charCountColor(editCaptionValue.length, charLimit) }}>{editCaptionValue.length}/{charLimit}</span>
+                                            <div style={{ flex: 1 }} />
+                                            <button onClick={(e) => { e.stopPropagation(); saveCaptionOverride(clip, pk, editCaptionValue); }} style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+                                            <button onClick={(e) => { e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                                          </div>
+                                        )}
+                                        {!isEditingThis && hasOverride && (
+                                          <div style={{ marginTop: 8 }}>
+                                            <button onClick={(e) => { e.stopPropagation(); resetCaptionOverride(clip, pk); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to template</button>
+                                          </div>
+                                        )}
+                                      </div>
+
                                       {/* TikTok: per-clip options panel (Content Posting API audit) */}
                                       {pk === "tiktok" && (() => {
                                         const tiktokAccount = activePlat.find((p) => accountToPlatformKey(p) === "tiktok");
@@ -1571,40 +1628,6 @@ export default function QueueView({
                                           />
                                         );
                                       })()}
-
-                                      {/* Caption body */}
-                                      <div style={{ padding: "8px 12px" }}>
-                                        {isYt && <div style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, marginBottom: 4 }}>Description</div>}
-                                        {isEditingThis ? (
-                                          <textarea
-                                            autoFocus
-                                            value={editCaptionValue}
-                                            onChange={(e) => setEditCaptionValue(e.target.value)}
-                                            onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
-                                            style={{ width: "100%", minHeight: 60, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 4, padding: "6px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.5 }}
-                                          />
-                                        ) : (
-                                          <div
-                                            onClick={(e) => { e.stopPropagation(); setEditingCaption({ clipId: clip.id, platform: pk }); setEditCaptionValue(caption); }}
-                                            style={{ fontSize: 11, color: T.textSecondary, lineHeight: 1.5, cursor: "text", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 80, overflow: "hidden" }}
-                                            title="Click to edit"
-                                          >{caption || <span style={{ color: T.textMuted, fontStyle: "italic" }}>No caption — click to add</span>}</div>
-                                        )}
-                                        {/* Edit/Save/Reset actions */}
-                                        {isEditingThis && (
-                                          <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
-                                            <span style={{ fontSize: 10, fontFamily: T.mono, color: charCountColor(editCaptionValue.length, charLimit) }}>{editCaptionValue.length}/{charLimit}</span>
-                                            <div style={{ flex: 1 }} />
-                                            <button onClick={(e) => { e.stopPropagation(); saveCaptionOverride(clip, pk, editCaptionValue); }} style={{ padding: "3px 10px", borderRadius: 4, border: "none", background: T.accent, color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
-                                            <button onClick={(e) => { e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "3px 10px", borderRadius: 4, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                                          </div>
-                                        )}
-                                        {!isEditingThis && hasOverride && (
-                                          <div style={{ marginTop: 6 }}>
-                                            <button onClick={(e) => { e.stopPropagation(); resetCaptionOverride(clip, pk); }} style={{ padding: "2px 8px", borderRadius: 4, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to template</button>
-                                          </div>
-                                        )}
-                                      </div>
                                     </div>
                                   );
                                 })}
@@ -1775,7 +1798,7 @@ export default function QueueView({
                   <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
                 </div>
                 {/* Game */}
-                <div>{gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag}</span>}</div>
+                <div>{gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()}</span>}</div>
                 {/* Scheduled time */}
                 <div style={{ fontSize: 11, fontWeight: 600, color: T.yellow }}>{formatSchedule(clip.scheduledAt)}</div>
                 {/* Status */}
@@ -1808,7 +1831,7 @@ export default function QueueView({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{clip.title}</div>
                       <div style={{ display: "flex", gap: 10, fontSize: 11, color: T.textTertiary, marginBottom: 8, alignItems: "center" }}>
-                        {gameTag && <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag}</span>}
+                        {gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 800, letterSpacing: 0.6, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.toUpperCase()}</span>}
                         <span style={{ color: T.yellow, fontWeight: 600 }}>{formatSchedule(clip.scheduledAt)}</span>
                       </div>
                       {/* Platform toggles */}

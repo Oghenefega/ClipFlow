@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-10 (session 79) — Queue tab clip card + TikTok panel legibility & affordance polish
+
+Follow-up to the Round-2 TikTok fixes: Fega flagged the whole Queue clip card as hard to read and use once he was staring at it for the audit. All renderer-only.
+
+### Changed
+- **Queue tab widened and every label made legible.** On a fullscreen window the Queue content was pinned to an 860px column with huge dead space — the Queue tab now uses up to 1120px (Queue only; other tabs unchanged). Labels across the clip card and TikTok options panel went from a barely-visible 10px / 0.32-alpha grey to 11–13px at a much brighter tone ("Posting as", "Privacy", "Interactions", "Platforms", the Music-Usage line, the disclosure sub-options, the clip title and meta line). Added a `labelStrong` (0.68-alpha) theme token for section labels. [src/renderer/App.js, src/renderer/views/QueueView.js, src/renderer/styles/theme.js]
+- **Caption is now an obvious editable field, moved up near the title.** It was faint borderless text buried *below* the entire TikTok panel — easy to mistake for a static statement and hard to discover as editable. It now renders as a bordered, tinted field with a visible "✎ Edit" affordance and a CAPTION/DESCRIPTION label, positioned directly under the platform header (above the TikTok options). The existing "Reset to template" action stays (it appears once a custom caption exists) and is more visible. [src/renderer/views/QueueView.js]
+- **Game tag renders uppercase in the Queue tab** (e.g. "RL", not "rl") to match the Rename and Recordings tabs' premium look. Display-only — the stored/compared value stays lowercase. [src/renderer/views/QueueView.js]
+
+### Fixed
+- **TikTok "LOCKED" interaction toggles now align correctly.** The "(LOCKED)" text was top-aligned and floated above the toggle label; it's now a small lock icon + "LOCKED" sharing the label's vertical midline. [src/renderer/views/QueueView.js]
+
 ## [Unreleased] — 2026-06-09 (session 79) — TikTok Content Posting audit, Round 2 UI fixes (resubmission blocker)
 
 Resubmission fixes for the TikTok Direct Post audit denied 2026-06-03 (UX Guideline Point 5d + panel order). All renderer-only, no schema change.

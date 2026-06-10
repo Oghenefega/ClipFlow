@@ -10,6 +10,7 @@ const theme = {
   textSecondary: "rgba(255,255,255,0.55)",
   textTertiary: "rgba(255,255,255,0.32)",
   textMuted: "rgba(255,255,255,0.16)",
+  labelStrong: "rgba(255,255,255,0.68)",
 
   accent: "#8b5cf6",
   accentLight: "#a78bfa",
