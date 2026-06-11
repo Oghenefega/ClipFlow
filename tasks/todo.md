@@ -6,6 +6,34 @@
 
 ---
 
+## NEXT SESSION — Fix Queue nav badge overcount (#139)
+
+**Status:** 📋 PLANNED, deferred to next session (session 80 diagnosed it; Fega asked to plan now, implement next).
+Full root cause + exact patch in GitHub issue **#139** (`type: bug` / `area: queue`).
+
+**Symptom:** Queue bottom-nav badge showed **"10"** while only **1** clip was really queued. The badge counts every
+rendered `approved`/unscheduled clip, but publishing never flips a clip out of `"approved"` — so already-published
+clips keep inflating the badge. The Queue *list* already hides them (via the tracker), the badge doesn't.
+
+**Root cause (traced):**
+- Badge = `totalApproved` at `src/renderer/App.js:451-453` — filters `status approved/ready && !scheduledAt`, NO tracker exclusion.
+- List = `approved` at `src/renderer/views/QueueView.js:525-536` — same status check PLUS `!scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title)` (the tracker-based "already published/scheduled" exclusion, built at `:505-506`).
+- `logPost` (`QueueView.js:1149-1158`) only adds a tracker entry on full publish success; immediate publish leaves `status:"approved"`, `scheduledAt:null`.
+- `trackerData` is already in App.js scope and passed to QueueView (`App.js:564`) — no plumbing needed.
+
+**File impact:** `src/renderer/App.js` only (the `totalApproved` useMemo, ~line 451). No schema change.
+
+**Steps:**
+1. In `totalApproved`, build `trackedIds`/`trackedTitles` Sets from `trackerData` and add `&& !trackedIds.has(c.id) && !trackedTitles.has(c.title)` to the filter (exact snippet in #139). Add `trackerData` to the `useMemo` deps.
+2. `npm run build:renderer` (compile check) → run `clipflow-code-review` self-check.
+3. Cut installer `0.1.8-alpha.4` via `clipflow-update-launcher`; commit `App.js` (fix) + `package.json`/`CHANGELOG.md` (bump). Never stage `data/`.
+
+**Verification (Fega, plain — ~1 min):** Open the Queue tab. The little number on the **Queue** button at the bottom should match how many clips are actually sitting in the list waiting to publish (right now that's **1** — "Water Treatment"). Publish or queue a clip and watch the number go down/up by one. ✅ matches the list / ❌ still inflated.
+
+**Out of scope (noted in #139):** badge won't mirror the list's hashtag/gameTag drop unless `requireHashtagInTitle` filtering is duplicated — revisit only if a hashtag-less off-by-one ever shows up. Longer-term cleaner option: one shared "actionable queue count" instead of two parallel filters.
+
+---
+
 ## ACTIVE PLAN — TikTok Content Posting audit, ROUND 2 UI fixes (resubmission blocker)
 
 **Status:** ✅ SHIPPED in session 79 on **0.1.8-alpha.2**. Item 1 (A9 notice visible during the
