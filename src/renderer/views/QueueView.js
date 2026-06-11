@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, extractGameTag, hasHashtag, toFileUrl } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, extractGameTag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
@@ -491,7 +491,6 @@ export default function QueueView({
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
   platformOptions, setPlatformOptions, gamesDb,
-  requireHashtagInTitle = true,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -529,8 +528,11 @@ export default function QueueView({
         const clipTag = (c.gameTag || "").toLowerCase() || projGameTag || extractGameTag(c.title) || "";
         return { ...c, _projectId: projectId, gameTag: clipTag };
       })
+      // A rendered, approved, unpublished, unscheduled clip ALWAYS shows. The
+      // hashtag check belongs only to the editor's override-able send-to-queue
+      // warning (EditorLayout onSendToQueue) — it must not also hide clips here,
+      // and a title #hashtag is unrelated to a clip's game/"Just Chatting" tag (#139).
       .filter((c) => (c.status === "approved" || c.status === "ready")
-        && (!requireHashtagInTitle || hasHashtag(c.title) || !!c.gameTag)
         && !scheduledClipIds.has(c.id)
         && !scheduledTitles.has(c.title));
   }).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));

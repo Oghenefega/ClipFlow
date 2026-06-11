@@ -583,7 +583,6 @@ export default function App() {
               platformOptions={platformOptions}
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
-              requireHashtagInTitle={requireHashtagInTitle}
             />
           </div>
         </div>

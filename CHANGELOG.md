@@ -4,15 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-06-11 (session 81) — Queue nav badge stops counting already-published clips
+## [Unreleased] — 2026-06-11 (session 81) — Queue list/badge stop hiding clips that are ready to publish
 
-The little number on the **Queue** button at the bottom of the app was inflated — it read "10" while only **1** clip was actually sitting in the Queue list waiting to publish. Renderer-only, no schema change. Fixes #139.
+Two related Queue fixes. The little number on the **Queue** button was inflated (read "10" while only **1** clip was actually waiting to publish), and separately the Queue list was silently hiding clips that had no hashtag in their title — even after the editor had already let them into the queue. Renderer-only, no schema change. Fixes #139.
 
 ### Fixed
 - **Queue nav badge now matches the Queue list.** The badge counted every rendered clip whose status is still `approved`, but publishing a clip never flips its status out of `approved` — so already-published clips kept inflating the badge long after they left the list. The badge now applies the same "already published/scheduled" exclusion the list already uses (clips tracked by id or title in the publish tracker), so the two stay in sync. [src/renderer/App.js]
+- **The Queue list no longer hides clips that have no hashtag in their title.** The list re-applied the "require a hashtag" gate at display time, so a clip the user had deliberately pushed past the editor's override-able hashtag warning would be sent to the queue and then silently dropped from the list. That gate now lives only where it belongs — the editor's send-to-queue warning, which the user can override. A rendered, approved, unpublished, unscheduled clip always appears in the list (and is counted by the badge), regardless of whether its title carries a `#hashtag` (which is unrelated to a clip's game / "Just Chatting" tag). Removing this redundant filter also makes the badge and list exactly identical. [src/renderer/views/QueueView.js, src/renderer/App.js]
 
 ### Changed (release)
-- **App version bumped `0.1.8-alpha.3` → `0.1.8-alpha.4` and a fresh installer cut** to promote the Queue badge fix to the daily-driver install. [package.json]
+- **App version bumped `0.1.8-alpha.3` → `0.1.8-alpha.5` and a fresh installer cut** to promote both Queue fixes to the daily-driver install. (`0.1.8-alpha.4` carried the badge fix only and was superseded before install.) [package.json]
 
 ## [Unreleased] — 2026-06-10 (session 80) — Re-queued clips start with a clean publish slate
 
