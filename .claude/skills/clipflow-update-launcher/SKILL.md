@@ -16,6 +16,15 @@ so the daily driver catches up.**
 This is the interim loop. The full auto-updater (`electron-updater`) + code signing is deferred
 (infra dashboard H4) — do NOT propose `electron-updater` here.
 
+## When NOT to cut one (session 81)
+
+**Do NOT cut an installer as the automatic tail of every fix.** Fega: "don't create a new app
+version until we've made like 10 upgrades to the app — we're not wasting time updating after every
+minor update." Each installer is a ~2-min build + a reinstall on his side; per-fix builds waste both.
+Default after a fix = `build:renderer` compile-check + commit/push source, then STOP. Only run THIS
+skill when ~10 changes have accumulated OR Fega explicitly asks ("cut a build", "ship it", "update
+the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_versions]])
+
 ## Version bump policy (default)
 
 1. Read the current version from `package.json` line 3 (the ONLY place it lives — the renderer

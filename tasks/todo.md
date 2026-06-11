@@ -16,6 +16,46 @@ Full root cause + patch in GitHub issue **#139** (`type: bug` / `area: queue`).
 rendered `approved`/unscheduled clip, but publishing never flips a clip out of `"approved"` — so already-published
 clips keep inflating the badge. The Queue *list* already hides them (via the tracker), the badge doesn't.
 
+---
+
+## NEXT — Cancel/Stop an in-progress clip render (#140)
+
+**Status:** 📋 PLANNED in session 81, awaiting Fega's approval. NOT implemented.
+
+**Request (Fega):** "There is no way for me to stop a queue once it's started. I need there to be a way to do that."
+The screenshot was the editor topbar render button at **34%** (the gold spinner pill) — i.e. he wants to abort the
+render that runs when he hits **Queue** (or **Render**).
+
+**Key finding (traced — the render has TWO cancelable phases, not one):**
+- The progress bar maps **0–40% → subtitle/caption OVERLAY-FRAME render** (offscreen `BrowserWindow`, `subtitle-overlay-renderer.js renderOverlayFrames`, frame loop at `:246`, `win` created `:170`, `win.destroy()` in finally `:281`). **34% is THIS phase — no FFmpeg process exists yet.**
+- **40–99% → FFmpeg** encode (`render.js:314` `const proc = spawn("ffmpeg", args)`; close handler `:332`).
+- Neither resource is reachable from outside: `win` and `proc` are local; there is NO `render:cancel` IPC. (Only existing kill pattern is `signals.js:252` for Python, also local.)
+- Render start path: `EditorLayout.doRender` (`:264`) → `window.clipflow.renderClip` (preload `:113`, `ipcRenderer.invoke("render:clip")`) → `main.js` handler (`:2220`) → `render.renderClip`. Progress streams back on `"render:progress"`; UI state `rendering`/`renderPct` (`:227-228`), progress pill JSX at `EditorLayout.js:882-892`.
+
+**Design:** one cancel that handles BOTH phases and reads as "Canceled," never a red "Failed."
+- `render.js`: module-level `let canceled=false`, track the active overlay `win` + ffmpeg `proc`; export `cancelActiveRender()` that sets the flag, `win.destroy()` if in overlay phase, `proc.kill("SIGTERM")` if in FFmpeg phase. The FFmpeg `close` handler already fires on kill (code≠0) — branch on the `canceled` flag to resolve `{ canceled:true }` instead of rejecting with a "render failed" error. Same for the overlay loop (check flag at top of `:246`, bail with `{ canceled:true }`).
+- `subtitle-overlay-renderer.js`: accept a cancel-check (or expose the active `win`); break the frame loop when canceled; existing `win.destroy()`/`cleanupOverlayFrames` handle teardown.
+- Cleanup on cancel: `cleanupOverlayFrames(tempDir)` (already runs) **+ delete any partial output `.mp4`** so no half-written file is left; do NOT set `renderStatus` (clip stays unrendered/draft — no Queue entry, no red marker).
+- `main.js`: `ipcMain.handle("render:cancel", () => render.cancelActiveRender())`; on a `{ canceled }` result, skip the renderStatus/thumbnail writes.
+- `preload.js`: `cancelRender: () => ipcRenderer.invoke("render:cancel")`.
+- `EditorLayout.js`: add a small **✕** inside the gold progress pill (`:882-892`, shown only while `rendering`) → `window.clipflow.cancelRender()`. Treat the `{ canceled }` result as a clean reset (`rendering=false`, `renderPct=0`, brief "Canceled" flash) — NOT the `renderStatus:"failed"` path.
+
+**File impact (no schema change):** `src/main/render.js`, `src/main/subtitle-overlay-renderer.js`, `src/main/main.js`, `src/main/preload.js`, `src/renderer/editor/components/EditorLayout.js`.
+
+**Steps:**
+1. render.js cancel infra (flag + handles + `cancelActiveRender()` + canceled-vs-failed branching + partial-file delete).
+2. subtitle-overlay-renderer.js: make the frame loop interruptible.
+3. main.js `render:cancel` handler + skip-writes-on-cancel.
+4. preload.js `cancelRender` bridge.
+5. EditorLayout.js ✕ button + clean-reset handling.
+6. `npm run build:renderer` compile check + `clipflow-code-review` self-check. (NO version bump / installer — batching per session-81 rule.)
+
+**Verification (Fega, plain — ~2 min):** Open a clip, hit **Queue**, and while the gold **%** spinner is going, click the new **✕** on it. ✅ the render stops within a second, the buttons go back to **Render / Queue**, and nothing shows up half-done in the Queue tab (no red "Failed" card). Try canceling both early (while it says a low %, ~under 40) and later (higher %) — both should stop cleanly. ❌ it keeps going, throws a "failed" error, or leaves a broken clip.
+
+**Watch out for:** cancel arriving right as a phase finishes (race) → guard `cancelActiveRender()` to no-op when no active win/proc. The offscreen overlay window MUST be destroyed or it leaks. Don't mark the clip failed on a user cancel (that's the #1-confusing outcome).
+
+---
+
 **Root cause (traced):**
 - Badge = `totalApproved` at `src/renderer/App.js:451-453` — filters `status approved/ready && !scheduledAt`, NO tracker exclusion.
 - List = `approved` at `src/renderer/views/QueueView.js:525-536` — same status check PLUS `!scheduledClipIds.has(c.id) && !scheduledTitles.has(c.title)` (the tracker-based "already published/scheduled" exclusion, built at `:505-506`).
