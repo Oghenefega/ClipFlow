@@ -2238,6 +2238,11 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
       },
     });
 
+    // #140: user canceled mid-render — nothing to thumbnail or mark rendered.
+    if (result?.canceled) {
+      return { canceled: true };
+    }
+
     // Extract thumbnail from rendered clip
     let thumbnailPath = null;
     try {
@@ -2266,6 +2271,11 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
     console.error("[render:clip] Render failed:", err.message, err.stack);
     return { error: err.message };
   }
+});
+
+// #140: cancel the in-progress single-clip render (editor topbar ✕).
+ipcMain.handle("render:cancel", () => {
+  return render.cancelActiveRender();
 });
 
 ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, options) => {

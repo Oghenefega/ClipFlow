@@ -97,6 +97,7 @@ async function renderOverlayFrames(params) {
     sourceFile,
     resolutionProbeFile, // separate path for resolution probing (NLE: sourceFile is null but we still need resolution)
     onProgress,
+    shouldCancel, // #140: () => boolean — when true, bail the frame loop cleanly
   } = params;
 
   // Create temp directory for PNGs
@@ -243,7 +244,19 @@ async function renderOverlayFrames(params) {
     // Capture frames at fixed FPS for the full clip duration
     console.log("[OverlayRenderer] Starting frame capture:", totalFrames, "frames");
 
+    // #140: cancel may have landed during init (before the loop) — bail early.
+    if (shouldCancel && shouldCancel()) {
+      console.log("[OverlayRenderer] Canceled before frame capture");
+      return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: 0, width, height, canceled: true };
+    }
+
     for (let i = 0; i < totalFrames; i++) {
+      // #140: stop capturing as soon as a cancel is requested. The finally block
+      // below destroys the offscreen window; render.js cleans up partial frames.
+      if (shouldCancel && shouldCancel()) {
+        console.log("[OverlayRenderer] Canceled at frame", i, "of", totalFrames);
+        return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: i, width, height, canceled: true };
+      }
       const t = i / OVERLAY_FPS; // time relative to clip start (0-based)
 
       // Update the overlay to this timestamp (clip-relative, matching editSegments timing)

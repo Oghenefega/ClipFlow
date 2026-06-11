@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),
   batchRender: (clips, projectData, outputDir, options) =>
     ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
+  cancelRender: () => ipcRenderer.invoke("render:cancel"),
   onRenderProgress: (callback) => {
     ipcRenderer.on("render:progress", (_, data) => callback(data));
   },

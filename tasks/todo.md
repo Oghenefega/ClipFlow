@@ -20,7 +20,8 @@ clips keep inflating the badge. The Queue *list* already hides them (via the tra
 
 ## NEXT — Cancel/Stop an in-progress clip render (#140)
 
-**Status:** 📋 PLANNED in session 81, awaiting Fega's approval. NOT implemented.
+**Status:** ✅ IMPLEMENTED in session 82 (source only — no installer cut, batching rule). Awaiting Fega's in-app verification once it rides the next batched installer. Issue #140 stays OPEN.
+Build clean (`build:renderer` + `node --check` on all 4 main-process files) and the app boots without error. 5 files changed, no schema change — exactly as planned below.
 
 **Request (Fega):** "There is no way for me to stop a queue once it's started. I need there to be a way to do that."
 The screenshot was the editor topbar render button at **34%** (the gold spinner pill) — i.e. he wants to abort the

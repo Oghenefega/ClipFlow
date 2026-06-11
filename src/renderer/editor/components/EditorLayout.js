@@ -226,6 +226,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const [hashtagWarning, setHashtagWarning] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [renderPct, setRenderPct] = useState(0);
+  const [canceling, setCanceling] = useState(false);
   const [renderDetail, setRenderDetail] = useState("");
   const [lastRender, setLastRender] = useState(null); // { path, addedToQueue } — success notification
   const [retranscribing, setRetranscribing] = useState(false);
@@ -263,6 +264,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   // committing to the publish flow.
   const doRender = useCallback(async (addToQueue) => {
     if (!clip || !project || rendering) return;
+    // #140: remember pre-render status so a cancel can restore the clip exactly
+    // (never leave it stuck "rendering" or wrongly "approved" with no output).
+    const prevRenderStatus = clip.renderStatus;
+    const prevStatus = clip.status;
     await handleSave();
     setLastSaved(Date.now());
 
@@ -287,6 +292,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
     };
     window.clipflow?.onRenderProgress?.(onProgress);
 
+    let wasCanceled = false;
     try {
       // Build render-ready clip with current subtitle/caption data from stores
       // (handleSave persists to disk but doesn't update the clip object in Zustand)
@@ -384,7 +390,15 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         captionSegments: capState.captionSegments || [],
       }));
       const result = await window.clipflow.renderClip(safeClip, safeProject, null, safeOptions);
-      if (result?.error) {
+      if (result?.canceled) {
+        // #140: render aborted — restore the clip's prior status (never "failed"),
+        // leave no Queue entry. Don't fire onClipRendered.
+        wasCanceled = true;
+        await window.clipflow?.projectUpdateClip(project.id, clip.id, {
+          renderStatus: prevRenderStatus ?? null,
+          ...(addToQueue ? { status: prevStatus ?? null } : {}),
+        });
+      } else if (result?.error) {
         console.error("[Render] Failed:", result.error);
         await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
       } else {
@@ -400,11 +414,12 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
     } finally {
       window.clipflow?.removeRenderProgressListener?.();
+      setCanceling(false);
       setTimeout(() => {
         setRendering(false);
         setRenderPct(0);
         setRenderDetail("");
-      }, 1500);
+      }, wasCanceled ? 0 : 1500);
     }
   }, [handleSave, clip, project, rendering, onClipRendered]);
 
@@ -436,6 +451,14 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const onRenderOnly = useCallback(() => {
     doRender(false);
   }, [doRender]);
+
+  // #140: abort the in-progress render. The main process halts whichever phase is
+  // live (overlay frames or FFmpeg) and resolves the render as canceled.
+  const onCancelRender = useCallback(async () => {
+    setCanceling(true);
+    setRenderDetail("Canceling…");
+    try { await window.clipflow?.cancelRender?.(); } catch (_) {}
+  }, []);
 
   // Subtitle debug report — logs clip subtitle data for diagnosis
   // Initialize debugStatus from clip's persisted subtitleRating
@@ -880,15 +903,26 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
           {saveFlash ? "Saved!" : "Save"}
         </Button>
         {rendering ? (
-          <div className="h-8 px-4 flex items-center gap-2 rounded-md text-xs font-semibold text-white"
+          <div className="h-8 pl-4 pr-2 flex items-center gap-2 rounded-md text-xs font-semibold text-white"
             style={{ background: "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             <div className="flex flex-col leading-none">
-              <span>{renderPct}%</span>
+              <span>{canceling ? "Canceling…" : `${renderPct}%`}</span>
             </div>
-            <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderPct}%` }} />
-            </div>
+            {!canceling && (
+              <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderPct}%` }} />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onCancelRender}
+              disabled={canceling}
+              title="Cancel render"
+              className="ml-0.5 flex items-center justify-center h-5 w-5 rounded hover:bg-black/30 disabled:opacity-40 disabled:cursor-default"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         ) : (
           <>

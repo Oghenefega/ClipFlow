@@ -96,8 +96,30 @@ function buildNleFilterComplex(nleSegments, hasFrames) {
  * @param {object} options - { subtitleStyle, captionStyle, captionSegments, onProgress }
  * @returns {Promise<{success, path, duration}>}
  */
+// #140: handle to the currently-active single-clip render so a render:cancel IPC
+// can halt whichever phase is live (offscreen overlay frame loop or the FFmpeg
+// encode). Shape: { canceled, proc, tempDir, outputPath }. null when idle.
+let active = null;
+
+/**
+ * Cancel the in-progress single-clip render, if any. Sets the cancel flag (read by
+ * the overlay frame loop via shouldCancel) and, if FFmpeg is already encoding, kills
+ * the process. The render promise then resolves { canceled: true } instead of
+ * rejecting — a user cancel is never a "failed" render.
+ */
+function cancelActiveRender() {
+  if (!active) return { canceled: false, reason: "no active render" };
+  active.canceled = true;
+  if (active.proc) {
+    try { active.proc.kill("SIGTERM"); } catch (_) {}
+  }
+  return { canceled: true };
+}
+
 function renderClip(clipData, projectData, outputPath, options = {}) {
   return new Promise(async (resolve, reject) => {
+    // #140: register this render so an external render:cancel can halt it.
+    active = { canceled: false, proc: null, tempDir: null, outputPath };
     try {
       const { onProgress } = options;
       const nleSegments = clipData.nleSegments || [];
@@ -227,6 +249,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
 
       const tempDir = outputPath.replace(/\.[^.]+$/, "_overlay_tmp");
+      if (active) active.tempDir = tempDir;
       let overlayResult = null;
 
       if (hasOverlay) {
@@ -254,7 +277,17 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
               onProgress({ stage: "subtitles", pct: Math.round(p.pct * 0.4), detail: p.detail });
             }
           },
+          // #140: let the overlay frame loop bail when a cancel is requested.
+          shouldCancel: () => active && active.canceled,
         });
+      }
+
+      // #140: cancel landed during the overlay phase — no FFmpeg process exists yet.
+      // Clean up partial frames and resolve as canceled (never a "failed" render).
+      if (active && active.canceled) {
+        cleanupOverlayFrames(tempDir);
+        active = null;
+        return resolve({ canceled: true });
       }
 
       // Phase 2: FFmpeg render
@@ -312,6 +345,12 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
       // Spawn FFmpeg
       const proc = spawn("ffmpeg", args);
+      if (active) active.proc = proc;
+      // #140: race — a cancel may have landed between the overlay bail-check above
+      // and this spawn, before active.proc was set. Kill immediately if so.
+      if (active && active.canceled) {
+        try { proc.kill("SIGTERM"); } catch (_) {}
+      }
       let stderr = "";
 
       proc.stderr.on("data", (data) => {
@@ -332,6 +371,15 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       proc.on("close", (code) => {
         cleanupOverlayFrames(tempDir);
 
+        // #140: user canceled — the kill fired this close with a non-zero/null code.
+        // Resolve as canceled (not "failed") and delete any partial output file.
+        if (active && active.canceled) {
+          active = null;
+          try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch (_) {}
+          return resolve({ canceled: true });
+        }
+        active = null;
+
         if (code !== 0) {
           console.error("[Render] FFmpeg failed:", stderr.slice(-500));
           return reject(new Error(`ffmpeg render failed (code ${code}): ${stderr.slice(-500)}`));
@@ -341,9 +389,15 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
       proc.on("error", (err) => {
         cleanupOverlayFrames(tempDir);
+        if (active && active.canceled) {
+          active = null;
+          return resolve({ canceled: true });
+        }
+        active = null;
         reject(new Error(`ffmpeg spawn failed: ${err.message}`));
       });
     } catch (err) {
+      active = null;
       reject(err);
     }
   });
@@ -396,4 +450,5 @@ async function batchRender(clips, projectData, outputDir, options = {}) {
 module.exports = {
   renderClip,
   batchRender,
+  cancelActiveRender,
 };

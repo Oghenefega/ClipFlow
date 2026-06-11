@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-11 (session 82) — Cancel an in-progress clip render
+
+You can now stop a render that's already running. Previously, once you hit **Queue** or **Render** in the editor there was no way to abort — you had to wait for it to finish. A ✕ now sits in the gold progress pill; clicking it halts the render and leaves the clip exactly as it was, with no half-written file and no red "Failed" marker. Source-only this session — no installer cut (batching rule). Implements #140.
+
+### Added
+- **✕ cancel button on the editor render progress pill.** Aborts the render mid-flight and shows "Canceling…" until it unwinds. The clip's prior status is restored (a re-render that's canceled keeps its previous good render; a first-time render leaves the clip un-rendered and out of the Queue), so a cancel never produces a "Failed" clip or a phantom Queue entry. [src/renderer/editor/components/EditorLayout.js]
+- **Two-phase render cancellation in the main process.** A clip render has two cancelable stages — the offscreen subtitle/caption overlay-frame pass (the first ~40% of the bar) and the FFmpeg encode (the rest). A new `render:cancel` IPC halts whichever stage is live: it breaks the overlay frame loop (and destroys the offscreen window, so nothing leaks) or kills the FFmpeg process. Either way the render resolves as *canceled* rather than failing, and any partial output `.mp4` is deleted. A race guard covers a cancel landing exactly on the overlay→FFmpeg boundary. [src/main/render.js, src/main/subtitle-overlay-renderer.js, src/main/main.js, src/main/preload.js]
+
 ## [Unreleased] — 2026-06-11 (session 81) — Queue list/badge stop hiding clips that are ready to publish
 
 Two related Queue fixes. The little number on the **Queue** button was inflated (read "10" while only **1** clip was actually waiting to publish), and separately the Queue list was silently hiding clips that had no hashtag in their title — even after the editor had already let them into the queue. Renderer-only, no schema change. Fixes #139.
