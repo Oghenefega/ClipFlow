@@ -6,10 +6,11 @@
 
 ---
 
-## NEXT SESSION — Fix Queue nav badge overcount (#139)
+## Fix Queue nav badge overcount (#139)
 
-**Status:** 📋 PLANNED, deferred to next session (session 80 diagnosed it; Fega asked to plan now, implement next).
-Full root cause + exact patch in GitHub issue **#139** (`type: bug` / `area: queue`).
+**Status:** ✅ SHIPPED in session 81 on **0.1.8-alpha.4** (`47a9d15`) — awaiting Fega's in-app verification (`status: untested`).
+`totalApproved` (App.js:451) now applies the publish-tracker exclusion the Queue list already uses, so the badge matches the list.
+Full root cause + patch in GitHub issue **#139** (`type: bug` / `area: queue`).
 
 **Symptom:** Queue bottom-nav badge showed **"10"** while only **1** clip was really queued. The badge counts every
 rendered `approved`/unscheduled clip, but publishing never flips a clip out of `"approved"` — so already-published
