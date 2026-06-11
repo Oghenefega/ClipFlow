@@ -447,10 +447,21 @@ export default function App() {
     return result;
   }, [localProjects]);
 
-  // Queue badge count: show unscheduled count (needs attention) — Phase 5 badge distinction
+  // Queue badge count: show unscheduled count (needs attention) — Phase 5 badge distinction.
+  // Mirror QueueView's list filter (QueueView.js:505-535): exclude clips already
+  // published/scheduled (tracked in trackerData by clipId or title) so the badge matches
+  // the list (#139). Publishing never flips status out of "approved", so without this the
+  // badge keeps counting already-published clips and inflates past the list count.
   const totalApproved = React.useMemo(() => {
-    return Object.values(allClips).flat().filter((c) => (c.status === "approved" || c.status === "ready") && !c.scheduledAt).length;
-  }, [allClips]);
+    const trackedIds = new Set(trackerData.map((t) => t.clipId).filter(Boolean));
+    const trackedTitles = new Set(trackerData.map((t) => t.title).filter(Boolean));
+    return Object.values(allClips).flat().filter((c) =>
+      (c.status === "approved" || c.status === "ready")
+      && !c.scheduledAt
+      && !trackedIds.has(c.id)
+      && !trackedTitles.has(c.title)
+    ).length;
+  }, [allClips, trackerData]);
 
   const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); } catch (_) {} };
 
