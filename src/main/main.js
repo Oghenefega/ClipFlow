@@ -780,10 +780,10 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
     const mtimeMs = Math.floor(stat.mtimeMs);
     const sizeBytes = stat.size;
 
-    // Scale peak count to duration — ~4 peaks/sec, capped at 8000.
-    // A 30-min source = ~7200 peaks ≈ 40KB JSON.
+    // Scale peak count to duration — ~25 peaks/sec, capped at 100000.
+    // A 30-min source = ~45000 peaks ≈ 360KB JSON.
     const dur = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 60;
-    const peakCount = Math.min(8000, Math.max(400, Math.ceil(dur * 4)));
+    const peakCount = Math.min(100000, Math.max(400, Math.ceil(dur * 25)));
 
     const cacheDir = path.join(projects.getProjectsRoot(watchFolder), projectId, ".waveforms");
     try {

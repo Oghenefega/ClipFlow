@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-12 (session 83) — Timeline waveform actually tracks the audio
+
+The Audio row in the editor timeline drew a smooth decorative ribbon that didn't follow the sound — and after cutting a clip into pieces, each piece's waveform drifted visibly off its audio. The waveform is now extracted at a high enough resolution to show real speech shape (busy where you talk, flat in pauses), and cut segments stay aligned. Source-only — rides the next batched installer. Implements #141.
+
+### Fixed
+- **Timeline waveform resolution raised from ~4 to ~25 peaks per second** (cap lifted 8,000 → 100,000), so the Audio track shows the actual energy of the recording instead of a featureless blob. Existing waveform caches regenerate automatically on next clip open — the resolution is part of the cache key, no migration needed. [src/main/main.js]
+- **Waveform peak normalization no longer risks a crash at high resolution.** The draw path computed the loudest peak with a spread call that would overflow the call stack on long recordings at the new density; it now uses a plain loop. [src/renderer/editor/components/timeline/WaveformTrack.js]
+- **Cut segments slice the waveform against the live video duration** (falling back to the stored project value) instead of the other way around, removing the small per-piece drift after splitting a clip. [src/renderer/editor/components/TimelinePanelNew.js]
+
+### Verified
+- **#139 confirmed in-app and closed** — the Queue nav badge matches the Queue list on `0.1.8-alpha.5`. (#140 cancel-render still awaiting verification.)
+
 ## [Unreleased] — 2026-06-11 (session 82) — Cancel an in-progress clip render
 
 You can now stop a render that's already running. Previously, once you hit **Queue** or **Render** in the editor there was no way to abort — you had to wait for it to finish. A ✕ now sits in the gold progress pill; clicking it halts the render and leaves the clip exactly as it was, with no half-written file and no red "Failed" marker. Source-only this session — no installer cut (batching rule). Implements #140.

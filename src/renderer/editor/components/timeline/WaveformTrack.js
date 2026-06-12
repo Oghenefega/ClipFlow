@@ -92,7 +92,8 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
     const segPeaks = peaks.slice(sliceStart, sliceEnd);
     if (segPeaks.length === 0) return;
 
-    const maxPeak = Math.max(...peaks, 0.01);
+    let maxPeak = 0.01;
+    for (let i = 0; i < peaks.length; i++) { if (peaks[i] > maxPeak) maxPeak = peaks[i]; }
     const centerY = h / 2;
     const maxAmp = h * 0.45;
     const pointCount = Math.min(segPeaks.length, Math.floor(w));

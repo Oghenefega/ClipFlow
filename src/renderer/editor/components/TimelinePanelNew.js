@@ -1035,7 +1035,7 @@ export default function TimelinePanelNew() {
                     <WaveformTrack
                       peaks={waveformPeaks}
                       error={waveformError}
-                      clipFileDuration={sourceDuration || clipFileDuration || duration}
+                      clipFileDuration={clipFileDuration || sourceDuration || duration}
                       clipOrigin={0}
                       sourceDuration={sourceDuration}
                       timelineWidth={widthPx}
