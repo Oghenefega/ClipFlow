@@ -570,6 +570,9 @@ export default function TimelinePanelNew() {
   // ── Unified split ──
   const handleSplit = useCallback(() => {
     const time = usePlaybackStore.getState().currentTime;
+    // Subtitle store times are source-absolute; timeline time only matches on
+    // clips that start at second 0 of the source (#137).
+    const srcTime = toSource(time);
     let track = selectedTrack;
 
     if (!track) {
@@ -579,7 +582,7 @@ export default function TimelinePanelNew() {
         return time >= s.startSec + 0.01 && time <= end - 0.01;
       });
       const subSegsNow = useSubtitleStore.getState().editSegments;
-      const hasSub = subSegsNow.some(s => time >= s.startSec + 0.01 && time <= s.endSec - 0.01);
+      const hasSub = subSegsNow.some(s => srcTime >= s.startSec + 0.01 && srcTime <= s.endSec - 0.01);
       // NLE: check if playhead is within timeline duration
       const hasAudio = nleSegments.length > 0 && time >= 0.01 && time <= getTimelineDuration(nleSegments) - 0.01;
       if (hasSub) track = "sub";
@@ -593,11 +596,11 @@ export default function TimelinePanelNew() {
     } else if (track === "audio") {
       splitAtTimeline(time);
     } else {
-      splitSegment(time);
+      splitSegment(srcTime);
       const newActiveId = useSubtitleStore.getState().activeSegId;
       if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
     }
-  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAtTimeline, nleSegments]);
+  }, [selectedTrack, splitCaptionAtPlayhead, splitSegment, splitAtTimeline, nleSegments, toSource]);
 
   // ── Delete handler (ripple vs gap) ──
   const handleDelete = useCallback((isRipple, track, segId) => {
@@ -1087,7 +1090,7 @@ export default function TimelinePanelNew() {
               const newId = splitCaptionAtPlayhead(time);
               if (newId) { setSelectedTrack("cap"); setSelectedSegIds(new Set([newId])); }
             } else if (contextMenu.track === "sub") {
-              splitSegment(time);
+              splitSegment(toSource(time));
               const newActiveId = useSubtitleStore.getState().activeSegId;
               if (newActiveId) { setSelectedTrack("sub"); setSelectedSegIds(new Set([newActiveId])); }
             } else if (contextMenu.track === "audio") {
