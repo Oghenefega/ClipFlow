@@ -460,9 +460,17 @@ const useSubtitleStore = create((set, get) => ({
         if (seg.id !== segId) return seg;
         // A manually-created segment has words:[]; give it an even-split word-list the
         // moment it gets text so it renders with a karaoke highlight and survives a merge.
-        // Real segments already carry accurate word timings, so leave those untouched.
-        const words = (!seg.words || seg.words.length === 0)
-          ? _wordsFromText(seg.startSec, seg.endSec, text)
+        if (!seg.words || seg.words.length === 0) {
+          return { ...seg, text, words: _wordsFromText(seg.startSec, seg.endSec, text) };
+        }
+        // Whisper segments: text is ground truth for spelling (same rule as the #89
+        // mode-switch re-chunk). Re-sync words[i].word 1:1 when token counts match so
+        // text-only edits like ALL CAPS reach the preview/export, which draw from
+        // words[] when non-empty (#138). On a count mismatch keep the timed words
+        // untouched — timing wins, and the #89 re-chunk reconciles spelling later.
+        const textWords = text.split(/\s+/).filter(Boolean);
+        const words = textWords.length === seg.words.length
+          ? seg.words.map((w, i) => ({ ...w, word: textWords[i] }))
           : seg.words;
         return { ...seg, text, words };
       }),
