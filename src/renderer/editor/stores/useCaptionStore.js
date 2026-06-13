@@ -12,15 +12,10 @@ function _pushCrossUndo() {
 
 let _nextCapId = 1;
 
-const useCaptionStore = create((set, get) => ({
-  // ── Caption segments (array — supports multiple, overlapping captions) ──
-  captionSegments: [],
-  // Which caption segment is currently selected/active in the timeline
-  activeCaptionId: null,
-  // Backwards-compat: derived from first segment (used by legacy consumers)
-  captionText: "",
-
-  // ── Global styling (shared across all caption segments) ──
+// Complete styling baseline — re-applied on every clip open (initFromClip) so no
+// caption style ever bleeds from the previously open clip (#99). Factory (not a
+// shared const) so array values are fresh references per reset.
+const captionStyleDefaults = () => ({
   captionFontFamily: "Latina Essential",
   captionFontWeight: 900,
   captionFontSize: 30,
@@ -57,6 +52,18 @@ const useCaptionStore = create((set, get) => ({
   captionBgPaddingY: 8,
   captionBgRadius: 6,
   captionEffectOrder: ["glow", "stroke", "shadow", "background"],
+});
+
+const useCaptionStore = create((set, get) => ({
+  // ── Caption segments (array — supports multiple, overlapping captions) ──
+  captionSegments: [],
+  // Which caption segment is currently selected/active in the timeline
+  activeCaptionId: null,
+  // Backwards-compat: derived from first segment (used by legacy consumers)
+  captionText: "",
+
+  // ── Global styling (shared across all caption segments) ──
+  ...captionStyleDefaults(),
 
   // ── Segment CRUD ──
   addCaptionSegment: (text, startSec, endSec) => {
@@ -239,11 +246,14 @@ const useCaptionStore = create((set, get) => ({
       bgOn: "captionBgOn", bgColor: "captionBgColor",
       bgOpacity: "captionBgOpacity", bgPaddingX: "captionBgPaddingX",
       bgPaddingY: "captionBgPaddingY", bgRadius: "captionBgRadius",
+      effectOrder: "captionEffectOrder",
     };
     const patch = {};
     for (const [savedKey, storeKey] of Object.entries(mapping)) {
       if (saved[savedKey] !== undefined) patch[storeKey] = saved[savedKey];
     }
+    // Fresh array copy — never share a reference with the saved object
+    if (patch.captionEffectOrder) patch.captionEffectOrder = [...saved.effectOrder];
     if (Object.keys(patch).length > 0) set(patch);
   },
 
@@ -258,6 +268,10 @@ const useCaptionStore = create((set, get) => ({
         return isNaN(n) ? 0 : n;
       })) + 1;
       set({
+        // #99: reset styling to baseline first — template + clip's saved style
+        // re-apply after this (useEditorStore initFromContext), so nothing from
+        // the previously open clip can bleed through undefined gaps.
+        ...captionStyleDefaults(),
         captionSegments: savedSegments,
         captionText: savedSegments[0]?.text || text,
       });
@@ -266,26 +280,13 @@ const useCaptionStore = create((set, get) => ({
       _nextCapId = 1;
       const id = `cap-${_nextCapId++}`;
       set({
+        ...captionStyleDefaults(),
         captionSegments: text ? [{ id, text, startSec: 0, endSec: null }] : [],
         captionText: text,
       });
     }
   },
 
-  reset: () => {
-    _nextCapId = 1;
-    set({
-      captionSegments: [],
-      captionText: "",
-      captionFontFamily: "Latina Essential",
-      captionFontWeight: 900,
-      captionFontSize: 30,
-      captionColor: "#ffffff",
-      captionBold: true,
-      captionItalic: true,
-      captionUnderline: false,
-    });
-  },
 }));
 
 export default useCaptionStore;

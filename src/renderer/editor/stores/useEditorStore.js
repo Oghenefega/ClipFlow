@@ -743,6 +743,8 @@ const useEditorStore = create((set, get) => ({
         animateGrowFrom: subState.animateGrowFrom, animateSpeed: subState.animateSpeed,
         segmentMode: subState.segmentMode,
         syncOffset: subState.syncOffset || 0,
+        highlightMode: subState.highlightMode,
+        effectOrder: subState.effectOrder,
       };
       const captionStyle = {
         fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
@@ -764,6 +766,7 @@ const useEditorStore = create((set, get) => ({
         bgPaddingY: capState.captionBgPaddingY, bgRadius: capState.captionBgRadius,
         yPercent: layState.capYPercent ?? 15,
         widthPercent: layState.capWidthPercent ?? 90,
+        effectOrder: capState.captionEffectOrder,
       };
       // #84: persist only subtitles that fall within the clip's CURRENT nleSegments
       // source range (covers trims + extends). editSegments also carries source-wide

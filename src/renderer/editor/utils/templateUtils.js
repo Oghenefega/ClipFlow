@@ -123,6 +123,7 @@ export function applyTemplate(tpl) {
   _safeSet(cs, "setCaptionBgPaddingX", c.bgPaddingX);
   _safeSet(cs, "setCaptionBgPaddingY", c.bgPaddingY);
   _safeSet(cs, "setCaptionBgRadius", c.bgRadius);
+  _safeSet(cs, "setCaptionEffectOrder", c.effectOrder);
 
   // Subtitle base
   _safeSet(ss, "setSubFontFamily", s.fontFamily);
@@ -163,10 +164,12 @@ export function applyTemplate(tpl) {
   _safeSet(ss, "setBgPaddingX", s.bgPaddingX);
   _safeSet(ss, "setBgPaddingY", s.bgPaddingY);
   _safeSet(ss, "setBgRadius", s.bgRadius);
+  _safeSet(ss, "setEffectOrder", s.effectOrder);
   // Subtitle misc
   _safeSet(ss, "setHighlightColor", s.highlightColor);
   _safeSet(ss, "setLineMode", s.lineMode);
   _safeSet(ss, "setSubMode", s.subMode);
+  _safeSet(ss, "setHighlightMode", s.highlightMode);
   // Animation
   _safeSet(ss, "setAnimateOn", s.animateOn);
   _safeSet(ss, "setAnimateScale", s.animateScale);
@@ -301,6 +304,7 @@ export function snapshotTemplate(name) {
       shadowOpacity: cap.captionShadowOpacity, shadowOffsetX: cap.captionShadowOffsetX, shadowOffsetY: cap.captionShadowOffsetY,
       bgOn: cap.captionBgOn, bgColor: cap.captionBgColor, bgOpacity: cap.captionBgOpacity,
       bgPaddingX: cap.captionBgPaddingX, bgPaddingY: cap.captionBgPaddingY, bgRadius: cap.captionBgRadius,
+      effectOrder: [...cap.captionEffectOrder],
       yPercent: lay.capYPercent, widthPercent: lay.capWidthPercent,
     },
     subtitle: {
@@ -316,7 +320,9 @@ export function snapshotTemplate(name) {
       shadowOpacity: sub.shadowOpacity, shadowOffsetX: sub.shadowOffsetX, shadowOffsetY: sub.shadowOffsetY,
       bgOn: sub.bgOn, bgOpacity: sub.bgOpacity, bgColor: sub.bgColor,
       bgPaddingX: sub.bgPaddingX, bgPaddingY: sub.bgPaddingY, bgRadius: sub.bgRadius,
+      effectOrder: [...sub.effectOrder],
       highlightColor: sub.highlightColor, lineMode: sub.lineMode, subMode: sub.subMode,
+      highlightMode: sub.highlightMode,
       animateOn: sub.animateOn, animateScale: sub.animateScale, animateGrowFrom: sub.animateGrowFrom, animateSpeed: sub.animateSpeed,
       yPercent: lay.subYPercent,
       // Segment mode + punctuation

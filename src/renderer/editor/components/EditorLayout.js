@@ -338,6 +338,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         italic: subState.subItalic, subItalic: subState.subItalic,
         underline: subState.subUnderline, subUnderline: subState.subUnderline,
         subColor: subState.subColor, subMode: subState.subMode,
+        highlightMode: subState.highlightMode,
         highlightColor: subState.highlightColor, showSubs: subState.showSubs,
         segmentMode: subState.segmentMode, syncOffset: subState.syncOffset,
         strokeOn: subState.strokeOn, strokeWidth: subState.strokeWidth,

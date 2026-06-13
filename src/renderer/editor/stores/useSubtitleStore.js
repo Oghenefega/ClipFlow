@@ -168,31 +168,14 @@ function _restoreStyling(snapshot, subSet) {
   }
 }
 
-const useSubtitleStore = create((set, get) => ({
-  // ── Editable segments (source of truth — timestamps are SOURCE-ABSOLUTE) ──
-  editSegments: [],
-  originalSegments: [], // preserved for segment mode switching
-  _skipNextSegmentation: false, // #78: set on editor-saved load so applyTemplate's setSegmentMode doesn't re-chunk away manual edits
-  _sourceOrigin: 0, // clip.startTime — used to convert source-absolute to display time
-
-  // ── Undo/Redo history ──
-  _undoStack: [],
-  _redoStack: [],
-
-  // ── Edit Subtitles panel ──
-  esFilter: "all",
-  activeSegId: null,
-  selectedWordInfo: null, // { segId, wordIdx }
-  editingWordKey: null,   // "segId-wordIdx" for inline transcript editing
-  segmentMode: "3word", // "3word" | "1word"
-
-  // ── Transcript ──
-  transcriptSearch: "",
-  activeRow: 0,
-
-  // ── Subtitle styling ──
+// Complete subtitle styling baseline — re-applied in clearAll on every clip open
+// so no subtitle style bleeds from the previously open clip (#99). Direct state
+// write only (setters push undo and setSegmentMode re-chunks). Factory so
+// array/object values are fresh references per reset.
+const subtitleStyleDefaults = () => ({
+  segmentMode: "3word",
   subMode: "karaoke",
-  highlightMode: "instant", // "instant" (default) or "progressive" (gradient sweep)
+  highlightMode: "instant",
   fontSize: 52,
   strokeWidth: 7,
   strokeColor: "#000000",
@@ -221,7 +204,6 @@ const useSubtitleStore = create((set, get) => ({
   bgPaddingX: 12,
   bgPaddingY: 8,
   bgRadius: 6,
-  // Effect render order (draggable — determines layering in text-shadow)
   effectOrder: ["glow", "stroke", "shadow", "background"],
   highlightColor: "#4cce8a",
   subColor: "#ffffff",
@@ -236,13 +218,35 @@ const useSubtitleStore = create((set, get) => ({
   subUnderline: false,
   lineMode: "1L",
   syncOffset: 0,
-  // Per-punctuation removal config
   punctuationRemove: { period: false, comma: false, question: false, exclamation: false, semicolon: false, colon: false, ellipsis: false },
-  // Animation settings
   animateOn: false,
-  animateScale: 1.2,       // karaoke pop scale (1.0–1.5)
-  animateGrowFrom: 0.8,    // single-word start scale (0.5–1.0)
-  animateSpeed: 0.2,       // transition duration in seconds (0.05–0.5)
+  animateScale: 1.2,
+  animateGrowFrom: 0.8,
+  animateSpeed: 0.2,
+});
+
+const useSubtitleStore = create((set, get) => ({
+  // ── Editable segments (source of truth — timestamps are SOURCE-ABSOLUTE) ──
+  editSegments: [],
+  originalSegments: [], // preserved for segment mode switching
+  _skipNextSegmentation: false, // #78: set on editor-saved load so applyTemplate's setSegmentMode doesn't re-chunk away manual edits
+  _sourceOrigin: 0, // clip.startTime — used to convert source-absolute to display time
+
+  // ── Undo/Redo history ──
+  _undoStack: [],
+  _redoStack: [],
+
+  // ── Edit Subtitles panel ──
+  esFilter: "all",
+  activeSegId: null,
+  selectedWordInfo: null, // { segId, wordIdx }
+  editingWordKey: null,   // "segId-wordIdx" for inline transcript editing
+  // ── Transcript ──
+  transcriptSearch: "",
+  activeRow: 0,
+
+  // ── Subtitle styling ──
+  ...subtitleStyleDefaults(),
 
   // ── Derived getter ──
   getTranscriptRows: () => {
@@ -277,6 +281,8 @@ const useSubtitleStore = create((set, get) => ({
       syncOffset: "syncOffset", subMode: "subMode",
       animateOn: "animateOn", animateScale: "animateScale",
       animateGrowFrom: "animateGrowFrom", animateSpeed: "animateSpeed",
+      highlightMode: "highlightMode",
+      effectOrder: "effectOrder",
       // segmentMode is NOT restored here — openClip merges per-clip saved mode
       // into the template before applyTemplate so editSegments are built once.
     };
@@ -286,12 +292,16 @@ const useSubtitleStore = create((set, get) => ({
     }
     // Deep-copy objects
     if (patch.punctuationRemove) patch.punctuationRemove = { ...saved.punctuationRemove };
+    if (patch.effectOrder) patch.effectOrder = [...saved.effectOrder];
     if (Object.keys(patch).length > 0) set(patch);
   },
 
   // ── Full reset — clears all segments to prevent data leaking between clips ──
   clearAll: () => {
     set({
+      // #99: styling baseline — clearAll runs at every clip open (both
+      // useEditorStore.initFromContext paths), before template + saved style apply.
+      ...subtitleStyleDefaults(),
       editSegments: [],
       originalSegments: [],
       _skipNextSegmentation: false,
