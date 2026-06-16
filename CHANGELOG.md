@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-15 (session 84) — Packaged app can generate clips again; cut 0.1.8-alpha.6
+
+Generating a clip from the installed app failed instantly with "Clipped 0 of 1 — 1 failed" and no error anywhere. The pipeline's scratch folder defaulted to a path inside the app's own read-only package (asar), so its very first step — creating that folder — threw before anything could be logged. It now lives in the normal writable app-data location. This installer also promotes the five editor fixes that have been batched in source since alpha.5.
+
+### Fixed
+- **Installed app can now generate clips (#142).** The AI pipeline's working/scratch directory was unset and fell back to an install-relative path; in the packaged app that resolves *inside* the read-only `app.asar`, so the pipeline's first `mkdirSync` threw and killed generation before the per-video logger even existed — which is why the failure showed no error and wrote no log. It now defaults to `<userData>/processing` (e.g. `%APPDATA%\clipflow\processing`), which is writable and respects the dev/prod profile split. Running from source was unaffected (its default landed in the writable repo folder), which is why the bug only ever bit the installed daily driver. [src/main/ai-pipeline.js]
+
+### Changed
+- **Version bumped to `0.1.8-alpha.6` and a fresh installer cut.** Promotes the source fixes batched since `0.1.8-alpha.5`: the processing-dir fix (#142), in-progress render cancel (#140), timeline waveform resolution (#141), timeline subtitle split mapping (#137), ALL-CAPS per-word sync (#138), and caption/subtitle style-bleed + persistence (#99). [package.json]
+
 ## [Unreleased] — 2026-06-12 (session 83) — Timeline waveform actually tracks the audio
 
 The Audio row in the editor timeline drew a smooth decorative ribbon that didn't follow the sound — and after cutting a clip into pieces, each piece's waveform drifted visibly off its audio. The waveform is now extracted at a high enough resolution to show real speech shape (busy where you talk, flat in pauses), and cut segments stay aligned. Source-only — rides the next batched installer. Implements #141.
