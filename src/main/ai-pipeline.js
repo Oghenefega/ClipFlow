@@ -67,8 +67,19 @@ function applyPendingRenames(fileMetadataId) {
   } catch (e) { /* non-critical */ }
 }
 
-// Default processing directory
-const DEFAULT_PROCESSING_DIR = path.join(__dirname, "..", "..", "processing");
+// Default processing/scratch directory (transcripts, energy, frames, logs, etc).
+// MUST be writable: in the packaged app __dirname is inside the read-only asar,
+// so the old install-relative path ("../../processing") threw on the first mkdir
+// and killed generation before any logging could run (#142). Resolve under the
+// per-profile userData dir instead — this also respects the dev/prod split (#80).
+// The fallback keeps non-Electron requires (tooling/tests) from crashing at load.
+let _DEFAULT_PROCESSING_DIR;
+try {
+  _DEFAULT_PROCESSING_DIR = path.join(require("electron").app.getPath("userData"), "processing");
+} catch (_) {
+  _DEFAULT_PROCESSING_DIR = path.join(__dirname, "..", "..", "processing");
+}
+const DEFAULT_PROCESSING_DIR = _DEFAULT_PROCESSING_DIR;
 
 /**
  * Ensure all processing subdirectories exist.
