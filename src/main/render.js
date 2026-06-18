@@ -4,6 +4,7 @@ const fs = require("fs");
 const { renderOverlayFrames, cleanupOverlayFrames } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments } = require("../renderer/editor/models/timeMapping");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
+const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 
 /**
  * Probe a video file for its FPS using ffprobe.
@@ -160,74 +161,37 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // ── Subtitle segments ──
       // EditorLayout pre-maps subtitles to timeline time for single-clip render
       // (passes subtitles as a plain array). For render-from-disk (batch/queue),
-      // mirror useSubtitleStore.initSegments' priority: clip.transcription is the
-      // accurate per-clip re-transcription and wins over clip.subtitles.sub1,
-      // which can be stale or polluted with the whole-recording transcript.
+      // run the SAME resolver the editor (initSegments) + Projects preview use —
+      // resolveClipSubtitles — so the source-priority chain AND the word-repair
+      // stack (token-merge → validate → timestamp-clean) are applied identically.
+      // #8: render.js previously re-derived raw segments here and skipped that
+      // repair, burning whisper subword-splits/dupes into never-opened clips.
       let subtitleSegments = [];
       let subsAreSourceAbsolute = false;
       if (Array.isArray(clipData.subtitles)) {
+        // EditorLayout already resolved + mapped these to timeline time.
         subtitleSegments = clipData.subtitles;
       } else {
-        const clipOrigin = clipData.startTime || 0;
-        const clipDur = (clipData.endTime || 0) - clipOrigin;
-        const trSegs = clipData.transcription?.segments || [];
-        let transcriptionIsStale = false;
-        if (trSegs.length > 0 && clipDur > 0) {
-          const lastEnd = Math.max(...trSegs.map((s) => s.end || 0));
-          if (lastEnd > clipDur * 1.5) transcriptionIsStale = true;
-        }
-
-        // #78: editor-saved sub1 (_format "source-absolute", written only by the editor)
-        // is the user's authoritative copy and wins over raw clip.transcription — mirror
-        // useSubtitleStore.initSegments' load priority so renders match the editor preview.
-        const hasEditedSubs = clipData.subtitles?._format === "source-absolute"
-          && clipData.subtitles.sub1?.length > 0;
-
-        if (hasEditedSubs) {
-          // Already source-absolute; visibleSubtitleSegments maps to timeline below.
-          subtitleSegments.push(...clipData.subtitles.sub1);
-          if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
+        // resolveClipSubtitles returns SOURCE-ABSOLUTE, repaired segments
+        // {start,end,text,words}. Map start/end → startSec/endSec so the
+        // visibleSubtitleSegments NLE mapping (and the overlay) can consume them.
+        const resolved = resolveClipSubtitles(clipData, projectData, { includeExtras: false });
+        if (resolved.segments.length > 0) {
+          subtitleSegments = resolved.segments.map((s) => ({
+            startSec: s.start,
+            endSec: s.end,
+            text: s.text,
+            words: s.words,
+          }));
           subsAreSourceAbsolute = true;
-          console.log("[Render] Subtitle source: clip.subtitles.sub1 (editor-saved),", subtitleSegments.length, "segments");
-        } else if (trSegs.length > 0 && !transcriptionIsStale) {
-          // clip.transcription is clip-relative (0-based).
-          if (useNle) {
-            // Shift to source-absolute so visibleSubtitleSegments can map it.
-            subtitleSegments = trSegs.map((s) => ({
-              ...s,
-              startSec: (s.start || 0) + clipOrigin,
-              endSec: (s.end || 0) + clipOrigin,
-              words: (s.words || []).map((w) => ({
-                ...w,
-                start: (w.start ?? s.start ?? 0) + clipOrigin,
-                end: (w.end ?? s.end ?? 0) + clipOrigin,
-              })),
-            }));
-            subsAreSourceAbsolute = true;
-          } else {
-            // Legacy pre-cut clip: clip-relative already equals timeline time.
-            subtitleSegments = trSegs.map((s) => ({
-              ...s,
-              startSec: s.start || 0,
-              endSec: s.end || 0,
-            }));
-          }
-          console.log("[Render] Subtitle source: clip.transcription,", subtitleSegments.length, "segments");
-        } else if (clipData.subtitles) {
-          // Pipeline-generated sub1 (no _format): clip-relative.
-          if (clipData.subtitles.sub1) subtitleSegments.push(...clipData.subtitles.sub1);
-          if (clipData.subtitles.sub2) subtitleSegments.push(...clipData.subtitles.sub2);
-          subsAreSourceAbsolute = clipData.subtitles._format === "source-absolute";
-          console.log(
-            "[Render] Subtitle source: clip.subtitles.sub1,", subtitleSegments.length, "segments",
-            transcriptionIsStale ? "(clip.transcription was stale)" : ""
-          );
+          console.log(`[Render] Subtitle source: resolveClipSubtitles (${resolved.source}),`, subtitleSegments.length, "segments");
         }
       }
 
-      // If subtitles are source-absolute and we have NLE segments, map to timeline time.
-      // EditorLayout already does this for single-clip render, but render-from-disk needs it too.
+      // Convert source-absolute resolver output to the overlay's clip-relative
+      // (0-based) time domain.
       if (useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
+        // NLE path: map through the segment list (handles trims/reorders).
         const mapped = visibleSubtitleSegments(subtitleSegments, nleSegments);
         subtitleSegments = mapped.map((seg) => ({
           ...seg,
@@ -240,6 +204,21 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           })),
         }));
         console.log("[Render] Mapped", mapped.length, "subtitles from source-absolute to timeline time");
+      } else if (!useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
+        // Legacy fallback renders the pre-cut clip MP4, which starts at 0 — shift
+        // source-absolute timestamps back to clip-relative by subtracting the origin.
+        const origin = clipData.startTime || 0;
+        subtitleSegments = subtitleSegments.map((seg) => ({
+          ...seg,
+          startSec: (seg.startSec || 0) - origin,
+          endSec: (seg.endSec || 0) - origin,
+          words: (seg.words || []).map((w) => ({
+            ...w,
+            start: (w.start ?? 0) - origin,
+            end: (w.end ?? 0) - origin,
+          })),
+        }));
+        console.log("[Render] Shifted", subtitleSegments.length, "subtitles to clip-relative time (legacy path)");
       }
 
       // Caption segments

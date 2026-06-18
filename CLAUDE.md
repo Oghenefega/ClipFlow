@@ -87,7 +87,7 @@ The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow 
 
 **Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
 
-**Cross-tree requires:** `src/main/render.js` requires from `src/renderer/editor/models/`. Those files are bundled via `package.json` `build.files` — adding new cross-tree imports requires updating that list or the packaged exe will crash at startup.
+**Cross-tree requires:** main-process files require from `src/renderer/editor/` — `render.js` from `editor/models/` (timeMapping, segmentModel) and `editor/utils/` (resolveSubtitles → cleanWordTimestamps, wordRepair); `subtitle-overlay-preload.js` from `editor/utils/` (subtitleStyleEngine, findActiveWord). Both `editor/models/**` and `editor/utils/**` are bundled via `package.json` `build.files` — adding a new cross-tree import into any OTHER renderer folder requires adding that folder to `build.files` or the packaged exe crashes at startup. The shared util files (`resolveSubtitles`, `cleanWordTimestamps`, `wordRepair`, `subtitleStyleEngine`, `findActiveWord`) use CJS `module.exports` so the main process can `require()` them; renderer code imports them as named ESM bindings (Vite handles the interop). Verify what actually shipped with `npx asar list dist/win-unpacked/resources/app.asar`, not `build.files` globs.
 
 ## Coding Conventions
 

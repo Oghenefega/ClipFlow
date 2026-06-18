@@ -352,7 +352,7 @@ function createWindow() {
       // sandbox-aware preload entry — no raw Node modules.
       sandbox: true,
     },
-    icon: path.join(__dirname, "../../public/icon.png"),
+    icon: path.join(__dirname, "../../build/icon.png"),
   });
 
   if (isDev) {

@@ -9,7 +9,7 @@
 // Whisper/whisperx tokenizes at subword level: "raiders" → ["ra","iders"],
 // "Bioscanner" → ["bios","c","anner"], "Reagents" → ["reag","ents"]
 // We use the segment's .text field (which has correct words) to guide merging.
-export function mergeWordTokens(words, segmentText) {
+function mergeWordTokens(words, segmentText) {
   if (!words || words.length === 0) return words;
   if (!segmentText) return words;
 
@@ -61,7 +61,7 @@ export function mergeWordTokens(words, segmentText) {
 // ── Validate and clamp word timestamps to segment boundaries ──
 // Per-clip transcription (WhisperX on short clip audio) produces accurate word
 // timestamps. This function just ensures they stay within segment bounds.
-export function validateWords(words, segStart, segEnd) {
+function validateWords(words, segStart, segEnd) {
   if (!words || words.length === 0) return words;
   return words.map(w => ({
     ...w,
@@ -69,3 +69,8 @@ export function validateWords(words, segStart, segEnd) {
     end: Math.max(segStart, Math.min(segEnd, w.end)),
   }));
 }
+
+// CJS exports — required by the main-process render path (render.js, #8) AND
+// imported as named ESM bindings by renderer code (Vite handles CJS interop,
+// same pattern as subtitleStyleEngine.js / findActiveWord.js).
+module.exports = { mergeWordTokens, validateWords };

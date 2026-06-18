@@ -1,6 +1,6 @@
 {
   "name": "clipflow",
-  "version": "0.1.8-alpha.8",
+  "version": "0.1.8-alpha.9",
   "description": "Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.",
   "main": "src/main/main.js",
   "scripts": {
@@ -23,12 +23,18 @@
       "src/main/**/*",
       "src/renderer/editor/models/**/*",
       "!src/renderer/editor/models/__tests__/**",
+      "src/renderer/editor/utils/**/*",
+      "!src/renderer/editor/utils/**/*.test.js",
       "node_modules/**/*"
     ],
     "extraResources": [
       {
         "from": "tools",
         "to": "tools"
+      },
+      {
+        "from": "src/fonts",
+        "to": "fonts"
       }
     ],
     "win": {

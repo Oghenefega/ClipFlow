@@ -20,8 +20,8 @@
  * keeps its `[initSegments] …` Sentry breadcrumbs while preview cards resolve silently.
  */
 
-import { cleanWordTimestamps } from "./cleanWordTimestamps";
-import { mergeWordTokens, validateWords } from "./wordRepair";
+const { cleanWordTimestamps } = require("./cleanWordTimestamps");
+const { mergeWordTokens, validateWords } = require("./wordRepair");
 
 /**
  * @param {Object} clip - clip object (subtitles, transcription, startTime, endTime, duration)
@@ -33,7 +33,7 @@ import { mergeWordTokens, validateWords } from "./wordRepair";
  *   isPreChunked: boolean, clipOrigin: number, source: string|null }}
  *   `segments` are SOURCE-ABSOLUTE and repaired; `source` is null when no data exists.
  */
-export function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = false } = {}) {
+function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = false } = {}) {
   if (!clip) {
     return { segments: [], isPreChunked: false, clipOrigin: 0, source: null };
   }
@@ -296,3 +296,8 @@ export function resolveClipSubtitles(clip, project, { includeExtras = false, ver
     source: effectiveSource,
   };
 }
+
+// CJS export — required directly by the main-process render path (render.js, #8)
+// so batch/queue renders run the SAME resolver as the editor + preview, and
+// imported as a named ESM binding by renderer code (Vite handles CJS interop).
+module.exports = { resolveClipSubtitles };

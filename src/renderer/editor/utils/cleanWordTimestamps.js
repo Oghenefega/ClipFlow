@@ -190,7 +190,7 @@ function detectAndRedistribute(words, segStart, segEnd) {
  * @param {number} [options.segEnd] — segment end time (anchor for redistribution)
  * @returns {Array<{word: string, start: number, end: number, probability?: number, track?: string}>}
  */
-export function cleanWordTimestamps(words, options = {}) {
+function cleanWordTimestamps(words, options = {}) {
   if (!words || words.length === 0) return [];
 
   const { segStart, segEnd } = options;
@@ -210,8 +210,11 @@ export function cleanWordTimestamps(words, options = {}) {
   return result;
 }
 
-// Export internals for testing
-export {
+// CJS exports — required by the main-process render path via resolveSubtitles (#8)
+// AND imported as named ESM bindings by renderer code (Vite handles CJS interop).
+// Internals are exported for the test suite.
+module.exports = {
+  cleanWordTimestamps,
   enforceMonotonicity,
   enforceMinDuration,
   fillMicroGaps,

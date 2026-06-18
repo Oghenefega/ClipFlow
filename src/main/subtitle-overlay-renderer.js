@@ -10,7 +10,7 @@
  * exactly, because the same Chromium engine + same CSS + same style code is used.
  */
 
-const { BrowserWindow } = require("electron");
+const { BrowserWindow, app } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -149,7 +149,12 @@ async function renderOverlayFrames(params) {
   // Determine overlay page path — Vite publicDir copies public/subtitle-overlay → build/subtitle-overlay
   const overlayHtmlPath = path.join(__dirname, "../../build/subtitle-overlay/index.html");
   const overlayPreloadPath = path.join(__dirname, "subtitle-overlay-preload.js");
-  const fontsPath = path.join(__dirname, "../../src/fonts");
+  // Packaged: fonts ship via electron-builder extraResources → resources/fonts.
+  // Source: read from the repo's src/fonts. file:// into the asar is unreliable,
+  // so the packaged path MUST resolve outside the asar (process.resourcesPath).
+  const fontsPath = app.isPackaged
+    ? path.join(process.resourcesPath, "fonts")
+    : path.join(__dirname, "../../src/fonts");
 
   // Verify paths exist
   if (!fs.existsSync(overlayHtmlPath)) {

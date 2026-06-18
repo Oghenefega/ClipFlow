@@ -81,7 +81,7 @@ function loadFonts() {
       style: fontStyle || "normal",
     });
     return font.load().then((f) => document.fonts.add(f)).catch((e) => {
-      console.warn("[OverlayRenderer] Font load failed:", file, e.message);
+      console.error("[OverlayRenderer] Font load failed:", file, e.message);
     });
   });
 
