@@ -6,6 +6,86 @@
 
 ---
 
+## ACTIVE PLAN — Packaged-app audit remediation (session 85 → next session)
+
+**Status:** APPROVED-IN-PRINCIPLE, NOT STARTED. #144 fix shipped + alpha.8 cut this session;
+then a 26-agent find→verify→synthesize audit (Workflow `wf_b64b15fe-898`) swept the
+packaged-app / fresh-clip / portability failure classes. 15 findings confirmed (each survived
+adversarial refutation), deduped to 9 distinct problems. Fega asked to wrap here (context);
+resume with this plan. **Do NOT install alpha.8** — it would still export blank-subtitle clips
+(Bucket A #1 below). Roll everything into ONE new installer (alpha.9).
+
+### Why this audit ran
+Fega's worry: "app could generate clips before, then 8 things broke, now subtitles — how many more?"
+Reframe (accurate): the installed app had NEVER run clip-gen until session 84 (all prior success was
+source runs). We turned on a whole pathway (packaged generate→edit→export) that was only ever tested
+from source, and are finding everything it touches. Finite + auditable, not random. Two buckets below.
+
+### 🔴 BUCKET A — breaks Fega's INSTALLED app (fix this session, batch into alpha.9)
+1. **[CRITICAL] Exported clips lose ALL subtitles & captions (blank).** `src/main/subtitle-overlay-preload.js:17-32`
+   require()s `subtitleStyleEngine.js` + `findActiveWord.js` from `src/renderer/editor/utils/`, but
+   `package.json` `build.files` ships only `editor/models/**`, NOT `editor/utils/**` → files absent from
+   the asar → preload throws → `overlayAPI` undefined → overlay renders blank frames → export has no text.
+   Confirmed via `npx asar list` on the real artifact. **Fix:** add `"src/renderer/editor/utils/**/*"`
+   (+ test-file exclusions) to `package.json` `build.files`, mirroring the `editor/models/**` entry.
+   Also update CLAUDE.md "Cross-tree requires" note (a SECOND cross-tree dep beyond render.js→models).
+2. **[HIGH] Burned-in subtitle font wrong (fallback, not Latina Essential).** `src/main/subtitle-overlay-renderer.js:152`
+   sets `fontsPath = path.join(__dirname,"../../src/fonts")`; `src/fonts` is not in `build.files`, and
+   `file://` into the asar is unreliable anyway. **Fix:** ship `src/fonts` via electron-builder
+   `extraResources` `{from:"src/fonts",to:"fonts"}` and resolve `fontsPath` via `process.resourcesPath`
+   when `app.isPackaged`, else `__dirname/../../src/fonts` — the #143 pattern. Make the font-load failure
+   loud (it's currently a swallowed `console.warn` at `public/subtitle-overlay/overlay-renderer.js:83-85`).
+   (Only visible after #1 restores the text.)
+8. **[MEDIUM] "Render All" on a never-opened fresh clip burns in Whisper artifacts** (split subword tokens,
+   dupes, mega-segments) the previews already cleaned. `src/main/render.js:170-225` re-derives segments from
+   raw `clip.subtitles.sub1` and skips the repair stack (`resolveSubtitles.js:248-290`) both previews run.
+   Reproduces from SOURCE too (not packaged-only). **Fix:** have render.js call
+   `resolveClipSubtitles(clipData, projectData, {includeExtras:false})` then map to timeline time via the
+   existing `visibleSubtitleSegments` block (render.js:230-243). Needs `editor/utils/**` bundled (same as #1).
+9. **[LOW] Main-window icon falls back to default Electron icon.** `src/main/main.js:355` points at
+   `../../public/icon.png` (not packaged). **Fix:** point at `../../build/icon.png` (Vite already copies it
+   into `build/`, which IS packed). One-line, zero-config.
+
+### 🟡 BUCKET B — only breaks OTHER machines (Fega's PC is fine; FILE as `track: launch-ops`, do NOT fix now)
+- **[crit-for-customers] FFmpeg/FFprobe not bundled** — bare `spawn("ffmpeg")`/`execFile("ffprobe")` PATH
+  lookups across `src/main/ffmpeg.js` (lines 13,33,109,164,214,246,269,335,415,470,531), `render.js:15,347`,
+  `subtitle-overlay-renderer.js:29,54`, `ai-pipeline.js:338`. No `ffmpeg-static` dep, no resolver. Bundle via
+  extraResources + a `getFfmpegPath()/getFfprobePath()` resolver; gate Stage 0 on `checkFfmpeg()`.
+- **[crit-for-customers] Python/Whisper venv not bundled** — `whisperPythonPath` defaults `""` (main.js:183);
+  transcribe rejects "Python not found" (`stable-ts.js:83-86,189-192`). Needs a shipped/installed embeddable
+  Python + stable_whisper + torch, or a setup/onboarding flow. Pre-launch architecture task.
+- **#68 (already tracked) energy_scorer.py hardcoded `D:\whisper\energy_scorer.py`** (`ai-pipeline.js:172`) —
+  script isn't even in the repo `tools/`. Fix under #68: move into `tools/`, resolve via resourcesPath (#143 shape).
+- **[medium] hfHome hardcoded `D:\whisper\hf_cache`** — `stable-ts.js:116,219`, `ai-pipeline.js:480`,
+  `main.js:1249`, `tools/transcribe.py:26-27`. No store default, no UI. Breaks transcription on C:-only machines.
+  Fix: default to `path.join(app.getPath("userData"),"hf_cache")`, centralize, add migration.
+- **[low] whisperPythonPath fallback hardcoded `D:\whisper\...venv\python.exe`** (`ai-pipeline.js:502`) —
+  user-overridable in Settings; fold into the Python-bootstrap work.
+
+### Remediation plan (next session)
+1. Fix Bucket A (#1 build.files, #2 fonts extraResources, #8 render repair, #9 icon). Same proven #143 pattern.
+2. Verify against the artifact: `npx asar list dist/win-unpacked/resources/app.asar` shows `editor/utils/*`,
+   `resources/fonts/*` (or asar src/fonts), then build:renderer compile-check + clipflow-code-review self-check.
+3. Bump to **0.1.8-alpha.9**, CHANGELOG entry, cut ONE installer (clipflow-update-launcher). alpha.8 superseded.
+4. File Bucket B as `track: launch-ops` issues (read `.claude/docs/issue-filing.md` first); comment on #68.
+5. Fega: one reinstall + ONE end-to-end test — generate a clip, open it (subtitles show, #144), EXPORT it,
+   open the exported .mp4 and confirm subtitles are present AND in Latina Essential. Close #144 + new issues.
+
+### Coverage gaps (audit did NOT check — next audit targets)
+- Publish/OAuth flows (YouTube/TikTok/etc.) — likely the next works-on-dev-only source. Entirely unaudited.
+- Packaged smoke-test of `tools/signals/*` (yamnet.tflite / class_map reads) — assumed shipped, not re-run packaged.
+- electron-store schema migration on UPGRADE of a real installed profile (several Bucket B fixes need migrations).
+- Other `__dirname`-relative reads in `src/main` beyond fonts/overlay/icon not exhaustively grepped.
+- Fresh-clip divergence beyond subtitles (captions, AI titles, thumbnails on a never-opened clip).
+
+### ⚠️ Environment gotcha hit this session
+A tool on Fega's machine (JSON formatter-on-save?) SILENTLY stripped `scripts`, `build`, and
+`devDependencies` from `package.json` mid-session (would break every build + `npm install`). Restored from
+HEAD (`git checkout HEAD -- package.json`). If builds mysteriously break, check `package.json` line count
+(should be 99) FIRST. See memory [[project_package_json_strip]].
+
+---
+
 ## Fix Queue nav badge overcount (#139)
 
 **Status:** ✅ SHIPPED in session 81 on **0.1.8-alpha.4** (`47a9d15`) — awaiting Fega's in-app verification (`status: untested`).
