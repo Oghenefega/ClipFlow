@@ -1033,9 +1033,14 @@ const useSubtitleStore = create((set, get) => ({
     // ALL-CAPS), words[] for timing; on a text/words count mismatch text wins and
     // timing is re-synthesized. Manual segments are preserved verbatim below, so
     // their words are excluded from the re-chunk stream.
+    // #144: on a fresh (never-saved) clip, initSegments defers chunking to here but
+    // leaves editSegments empty, so the loop below would yield nothing and the editor
+    // would open with no subtitles. Fall back to originalSegments in that case; when
+    // editSegments is populated (a live mode switch) we still use it, preserving #89.
+    const wordSourceSegs = editSegments.length > 0 ? editSegments : originalSegments;
     const manualIds = new Set(manualSegs.map((s) => s.id));
     const allWords = [];
-    editSegments.forEach((seg) => {
+    wordSourceSegs.forEach((seg) => {
       if (manualIds.has(seg.id)) return;
       const textWords = seg.text.split(/\s+/).filter(Boolean);
       if (textWords.length === 0) return; // blank segment — nothing to re-chunk
