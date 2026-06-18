@@ -190,7 +190,12 @@ function detectSilenceSpike(energyJson, silenceThresholdSec = 1.0, spikeMultipli
 //   "spawn-error"  — child_process.spawn threw or emitted "error"
 // On success, failureReason is null.
 
-const SIGNALS_SCRIPT_DIR = path.join(__dirname, "..", "..", "tools", "signals");
+// Packaged app ships tools/ via extraResources (resources/tools/) so the external
+// Python can read these scripts + the yamnet model; source stays repo-relative (#143).
+const { app } = require("electron");
+const SIGNALS_SCRIPT_DIR = app.isPackaged
+  ? path.join(process.resourcesPath, "tools", "signals")
+  : path.join(__dirname, "..", "..", "tools", "signals");
 
 function runPythonSignal({
   scriptName, cliArgs, pythonPath, outPath,

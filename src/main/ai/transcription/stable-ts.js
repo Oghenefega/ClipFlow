@@ -14,7 +14,16 @@
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const { app } = require("electron");
 const { registerProvider, getStore } = require("../transcription-provider");
+
+// Resolve the bundled transcribe.py. In the packaged app the source tree lives
+// inside the read-only asar and an external python.exe can't read it there, so
+// the script ships via electron-builder extraResources to resources/tools/ (#143).
+// From source it stays repo-relative (src/main/ai/transcription → repo root).
+const TRANSCRIBE_SCRIPT = app.isPackaged
+  ? path.join(process.resourcesPath, "tools", "transcribe.py")
+  : path.join(__dirname, "..", "..", "..", "..", "tools", "transcribe.py");
 
 /**
  * Check if stable-ts is available via the Python venv.
@@ -78,7 +87,7 @@ function transcribe(wavPath, opts = {}) {
 
     // Resolve transcribe.py path — in tools/ relative to project root
     // From src/main/ai/transcription/ we go up four levels to reach project root
-    const scriptPath = path.join(__dirname, "..", "..", "..", "..", "tools", "transcribe.py");
+    const scriptPath = TRANSCRIBE_SCRIPT;
     if (!fs.existsSync(scriptPath)) {
       return reject(new Error(`Transcription script not found at: ${scriptPath}`));
     }
@@ -182,7 +191,7 @@ function transcribeBatch(items, opts = {}) {
       return reject(new Error(`Python not found at: ${pythonPath}`));
     }
 
-    const scriptPath = path.join(__dirname, "..", "..", "..", "..", "tools", "transcribe.py");
+    const scriptPath = TRANSCRIBE_SCRIPT;
     if (!fs.existsSync(scriptPath)) {
       return reject(new Error(`Transcription script not found at: ${scriptPath}`));
     }
