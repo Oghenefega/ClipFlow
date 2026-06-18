@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-15 (session 84) — Packaged Python pipeline scripts now ship outside the asar; cut 0.1.8-alpha.7
+
+The alpha.6 fix got clip generation past its first crash, but it then failed at transcription: the bundled Python engine scripts (transcribe.py and the audio-signal analysers) weren't packaged into the installed app at all, and where the code looked for them was inside the read-only asar — where an external Python process can't read files anyway. So generation stopped at the first Python call and left empty 0-clip projects in the Projects tab. Those scripts now ship alongside the app, in a folder Python can actually open.
+
+### Fixed
+- **Installed app can find its Python pipeline scripts (#143).** `tools/` (transcribe.py plus `tools/signals/` analysers and the bundled yamnet model/data files) now ships via electron-builder `extraResources`, landing in `resources/tools/` outside the asar. The transcription and signal-extraction code resolve their script paths from `process.resourcesPath` when packaged, and keep the existing repo-relative path when run from source. Previously the packaged app failed at the first Python call with "Transcription script not found … app.asar\tools\transcribe.py", so it could never transcribe — all prior successful generation had been from source runs only. [package.json, src/main/ai/transcription/stable-ts.js, src/main/signals.js]
+
+### Changed
+- **Version bumped to `0.1.8-alpha.7` and a fresh installer cut** to carry the #143 packaging fix on top of alpha.6's processing-dir fix (#142). (`energy_scorer.py` is still read from `D:\whisper\` — portability tracked by #68 — which is present on the test machine, so it does not block end-to-end generation there.)
+
 ## [Unreleased] — 2026-06-15 (session 84) — Packaged app can generate clips again; cut 0.1.8-alpha.6
 
 Generating a clip from the installed app failed instantly with "Clipped 0 of 1 — 1 failed" and no error anywhere. The pipeline's scratch folder defaulted to a path inside the app's own read-only package (asar), so its very first step — creating that folder — threw before anything could be logged. It now lives in the normal writable app-data location. This installer also promotes the five editor fixes that have been batched in source since alpha.5.
