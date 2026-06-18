@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-18 (session 85) — Fresh clips open with their subtitles in the editor; cut 0.1.8-alpha.8
+
+Now that the installed app can finally generate clips, opening one revealed a separate bug: a freshly generated, never-saved clip opened in the editor with no subtitles — "No subtitle segments" under Edit Subtitles and an empty subtitle track on the timeline — even though the Transcript tab and the Projects preview showed the subtitles fine. The data was never lost; the editor's subtitle-chunking step was reading from an empty list on first open and producing nothing. Saved clips (opened, edited, and saved once) were unaffected.
+
+### Fixed
+- **Freshly generated clips now show their subtitles in the editor (#144).** On clip open, the editor builds its sentence-level segments but defers splitting them into 1-word/3-word caption chunks to the template-apply step. That step gathered its words from the live edit list — which is still empty on a brand-new clip (it only holds words once you've made an edit or reopened a saved clip), so the chunker had nothing to work with and the editor came up blank. It now falls back to the original transcription segments when the edit list is empty, while still preferring the edit list when you switch caption modes mid-session (so live text edits are preserved, per #89). [src/renderer/editor/stores/useSubtitleStore.js]
+
+### Changed
+- **Version bumped to `0.1.8-alpha.8` and a fresh installer cut** to promote the #144 editor-subtitle fix on top of alpha.7. Justified as a standalone cut despite the batching rule because it blocks editing every freshly generated clip.
+
 ## [Unreleased] — 2026-06-15 (session 84) — Packaged Python pipeline scripts now ship outside the asar; cut 0.1.8-alpha.7
 
 The alpha.6 fix got clip generation past its first crash, but it then failed at transcription: the bundled Python engine scripts (transcribe.py and the audio-signal analysers) weren't packaged into the installed app at all, and where the code looked for them was inside the read-only asar — where an external Python process can't read files anyway. So generation stopped at the first Python call and left empty 0-clip projects in the Projects tab. Those scripts now ship alongside the app, in a folder Python can actually open.
