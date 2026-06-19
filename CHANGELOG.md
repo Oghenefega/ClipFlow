@@ -11,6 +11,9 @@ Generating AI titles and captions for a clip produced suggestions about moments 
 ### Fixed
 - **AI title/caption generation is now scoped to the clip's actual cut window.** `_collectClipParams` built the transcript by joining *all* of the editor's loaded segments, which include source-wide extras for extend coverage — so the AI saw the full recording, not the clip. It now reads from `getTimelineMappedSegments()`, the same clip-window clipping the Transcript panel, preview, and render path already use. One fix covers Generate, Rephrase, and Regenerate (all share this helper). Exposed on fresh never-saved clips by the #144 fix, which newly populates those segments. [src/renderer/editor/stores/useAIStore.js]
 
+### Changed
+- **Version bumped to `0.1.8-alpha.10` and a fresh installer cut** to promote the AI title/caption scope fix above to the installed app. This build also carries the still-unverified fixes already in alpha.9.1 — cancel-render (#140), timeline subtitle split (#137), ALL-CAPS toggle (#138), and caption style-bleed (#99) — for an in-app verification pass. [package.json]
+
 ## [Unreleased] — 2026-06-18 (session 86) — Recordings list no longer flips upside-down after resetting a clip; cut 0.1.8-alpha.9.1
 
 While testing alpha.9, the Recordings list showed in reverse order (newest day at the top instead of the usual oldest-first). Root cause: resetting a "done" recording so it can be re-generated reloaded the list straight from the database (which returns newest-first) without re-applying the chronological sort the other load paths use — so the whole list flipped and stayed flipped until the app was restarted. The recording data itself was never affected.
