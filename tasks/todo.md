@@ -6,14 +6,20 @@
 
 ---
 
-## ACTIVE PLAN — Packaged-app audit remediation (session 85 → next session)
+## ACTIVE PLAN — Packaged-app audit remediation (session 85 → session 86)
 
-**Status:** APPROVED-IN-PRINCIPLE, NOT STARTED. #144 fix shipped + alpha.8 cut this session;
-then a 26-agent find→verify→synthesize audit (Workflow `wf_b64b15fe-898`) swept the
-packaged-app / fresh-clip / portability failure classes. 15 findings confirmed (each survived
-adversarial refutation), deduped to 9 distinct problems. Fega asked to wrap here (context);
-resume with this plan. **Do NOT install alpha.8** — it would still export blank-subtitle clips
-(Bucket A #1 below). Roll everything into ONE new installer (alpha.9).
+**Status:** ✅ BUCKET A SHIPPED in session 86 (`7b122e5`) on **0.1.8-alpha.9** — installer cut
+(`dist/ClipFlow Setup 0.1.8-alpha.9.exe`, 121MB). All 4 Bucket A fixes done + verified against the
+real artifact via `npx asar list` (editor/utils/* IN asar, resources/fonts/* outside it). Bucket B
+filed as launch-ops: #145 (ffmpeg), #146 (python), #147 (hfHome); #68 commented + tagged launch-ops.
+**Awaiting Fega's one reinstall + end-to-end test** (generate → open → EXPORT → confirm subtitles
+present AND in Latina Essential). alpha.8 superseded — install alpha.9. Detail of what shipped:
+- #1 build.files += `editor/utils/**` (excl *.test.js) — overlay preload cross-tree requires resolve.
+- #2 fonts via extraResources + `process.resourcesPath` resolve; loud font-load failure.
+- #8 render.js routes through shared `resolveClipSubtitles` (3 utils → CJS for main-process require).
+- #9 main-window icon → `build/icon.png`.
+
+_Original plan (for reference) below._
 
 ### Why this audit ran
 Fega's worry: "app could generate clips before, then 8 things broke, now subtitles — how many more?"

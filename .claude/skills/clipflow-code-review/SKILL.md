@@ -40,6 +40,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] Did I change imports? Check nothing is unused or missing
 - [ ] Did I remove a component? Check it's not referenced elsewhere
 - [ ] Did I change a store action? Check all call sites still pass correct args
+- [ ] **Load-path invariant:** if a list's sort/filter is enforced at LOAD time (not at render), it's an invariant EVERY path that writes the full list into state must satisfy. When adding/touching any `setX(rows)` from a DB/IPC reload, grep ALL sibling setters and confirm each applies the same sort/filter — the DB's `ORDER BY` is not the UI's order. One missed `setFiles(rows)` (resetFileDone, no `compareRecordings`) flipped the whole Recordings list to newest-first until restart (session 86).
 
 ### 7. Liveness — am I editing code that actually RUNS?
 - [ ] Before editing a function, `Grep` for its callers. **Zero callers = dead code.** Editing it has no user-facing effect (this is how #102/#97 got patched into the dead `commitAudioResize` path).
