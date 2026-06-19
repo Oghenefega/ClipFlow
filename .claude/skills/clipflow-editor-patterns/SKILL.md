@@ -60,6 +60,7 @@ The editor is a modular video editor with 14 components + 6 Zustand stores. Foll
 - Text edits update BOTH (via `updateWordInSegment`)
 - Segment mode switching rebuilds `editSegments` from `originalSegments` words
 - The transcript always shows well-formatted paragraphs with `segBreakAfter` paragraph breaks
+- **`editSegments`/`originalSegments` are SOURCE-WIDE, not clip-scoped.** `resolveClipSubtitles({includeExtras:true})` merges the whole `project.transcription` into them so outward extends already have words loaded. NEVER read raw `editSegments` as "this clip's content." Any consumer that needs the clip's ACTUAL transcript/words (AI title/caption input, export text, a transcript join) MUST clip to the cut window via `getTimelineMappedSegments()` (or `visibleSubtitleSegments` directly) — the same clipping the Transcript panel, preview, and render path use. Skipping it leaks the ENTIRE recording (session 87: `_collectClipParams` joined raw `editSegments` → AI titles referenced other clips' moments; the #144 fix exposed it by newly populating `editSegments` on fresh clips).
 
 ## Word Token Merging
 

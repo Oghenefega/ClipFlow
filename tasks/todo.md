@@ -8,6 +8,8 @@
 
 ## ACTIVE PLAN — Packaged-app audit remediation (session 85 → session 86)
 
+**Session 87 update:** Fega installed alpha.9.1 and confirmed the editor shows subtitles correctly on fresh clips (**#144 CLOSED**) + the Recordings list order is correct. Then he hit a NEW bug — AI titles/captions for a clip referenced moments from *other* parts of the source recording. Root-caused + fixed (`_collectClipParams` joined raw source-wide `editSegments` → now uses clip-window `getTimelineMappedSegments()`), committed (`1b24714`), and cut **0.1.8-alpha.10** (`e6e01e8`) to promote it. Bucket A's EXPORT-with-subtitles check (open the rendered .mp4, confirm Latina Essential) is **still unverified by Fega** — folded into the alpha.10 pass below.
+
 **Status:** ✅ BUCKET A SHIPPED in session 86 (`7b122e5`) on **0.1.8-alpha.9** — installer cut
 (`dist/ClipFlow Setup 0.1.8-alpha.9.exe`, 121MB). All 4 Bucket A fixes done + verified against the
 real artifact via `npx asar list` (editor/utils/* IN asar, resources/fonts/* outside it). Bucket B
