@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-19 (session 87) — AI titles/captions now describe the actual clip, not the whole recording
+
+Generating AI titles and captions for a clip produced suggestions about moments from *elsewhere* in the source recording — e.g. a clip that was only about a bad loadout got titles about a betrayal and a panicked exit that happened in other parts of the same 30-minute video. Root cause: the editor deliberately loads the whole recording's transcript into memory (so a clip can be extended outward without re-fetching words), and everything the user sees filters that down to just the clip's cut. The AI title/caption tool was the one place that skipped that filter — it read the entire recording's transcript instead of only the clip's slice. Source-only fix; rides the next installer.
+
+### Fixed
+- **AI title/caption generation is now scoped to the clip's actual cut window.** `_collectClipParams` built the transcript by joining *all* of the editor's loaded segments, which include source-wide extras for extend coverage — so the AI saw the full recording, not the clip. It now reads from `getTimelineMappedSegments()`, the same clip-window clipping the Transcript panel, preview, and render path already use. One fix covers Generate, Rephrase, and Regenerate (all share this helper). Exposed on fresh never-saved clips by the #144 fix, which newly populates those segments. [src/renderer/editor/stores/useAIStore.js]
+
 ## [Unreleased] — 2026-06-18 (session 86) — Recordings list no longer flips upside-down after resetting a clip; cut 0.1.8-alpha.9.1
 
 While testing alpha.9, the Recordings list showed in reverse order (newest day at the top instead of the usual oldest-first). Root cause: resetting a "done" recording so it can be re-generated reloaded the list straight from the database (which returns newest-first) without re-applying the chronological sort the other load paths use — so the whole list flipped and stayed flipped until the app was restarted. The recording data itself was never affected.

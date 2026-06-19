@@ -25,13 +25,17 @@ const useAIStore = create((set, get) => ({
   setAiContext: (c) => set({ aiContext: c }),
   setAiGame: (g) => set({ aiGame: g }),
 
-  // Gather the per-clip context every title/caption call needs. Uses the
-  // current editor subtitle segments so it reflects trims/edits on the timeline.
+  // Gather the per-clip context every title/caption call needs. Scopes the
+  // transcript to THIS clip's cut window via getTimelineMappedSegments — the
+  // same visibleSubtitleSegments clipping the Transcript panel, preview, and
+  // render path use. Raw editSegments holds source-wide extras (resolveClipSubtitles
+  // includeExtras, for outward extends), so joining it fed the AI the WHOLE
+  // recording's transcript → titles/captions referenced moments from other clips.
   _collectClipParams: (gamesDb) => {
     const { aiGame, aiContext } = get();
     const { project, clip } = useEditorStore.getState();
-    const editSegments = useSubtitleStore.getState().editSegments || [];
-    const transcript = editSegments.map((s) => s.text).join(" ").trim();
+    const mapped = useSubtitleStore.getState().getTimelineMappedSegments();
+    const transcript = mapped.map((s) => s.text).join(" ").trim();
     const activeGame = (gamesDb || []).find((g) => g.name === aiGame);
     return {
       transcript,
