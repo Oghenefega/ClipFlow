@@ -46,7 +46,7 @@ function findProjectForFile(row, localProjects) {
 // renamed_at is deliberately NOT used: it reflects the order Rename was clicked,
 // which scattered parts (Pt3 before Pt1). Cross-game same-day order falls back to
 // tag alphabetical — no sub-day capture time is stored to do true interleaving.
-// Single source of truth for all three list-load paths (initial / refresh / import).
+// Single source of truth for all four list-load paths (initial / refresh / import / reset-done).
 function compareRecordings(a, b) {
   const d = (a.date || "").localeCompare(b.date || "");
   if (d !== 0) return d;
@@ -458,9 +458,10 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const resetFileDone = async (fileId) => {
     if (window.clipflow?.fileMetadataUpdate) {
       await window.clipflow.fileMetadataUpdate(fileId, { status: "renamed" });
-      // Refresh file list from DB
+      // Refresh file list from DB — re-apply the chronological sort (the DB returns
+      // date DESC; without this the whole list flips to newest-first until restart).
       const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-      if (Array.isArray(rows)) setFiles(rows);
+      if (Array.isArray(rows)) { rows.sort(compareRecordings); setFiles(rows); }
     }
   };
 

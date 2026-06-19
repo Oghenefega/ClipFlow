@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-18 (session 86) — Recordings list no longer flips upside-down after resetting a clip; cut 0.1.8-alpha.9.1
+
+While testing alpha.9, the Recordings list showed in reverse order (newest day at the top instead of the usual oldest-first). Root cause: resetting a "done" recording so it can be re-generated reloaded the list straight from the database (which returns newest-first) without re-applying the chronological sort the other load paths use — so the whole list flipped and stayed flipped until the app was restarted. The recording data itself was never affected.
+
+### Fixed
+- **Recordings list stays in chronological (oldest-first) order after un-marking/resetting a recording.** `resetFileDone` now re-applies `compareRecordings` before updating the list, matching the initial-load, refresh-after-generate, and import paths. It was the one load path the #126 "single source of truth" sort missed. [src/renderer/views/UploadView.js]
+
+### Changed
+- **Version bumped to `0.1.8-alpha.9.1`** to ship the Recordings-sort fix on top of alpha.9's packaged-app subtitle/export fixes — one reinstall carries both. [package.json]
+
 ## [Unreleased] — 2026-06-18 (session 86) — Exported clips keep their subtitles & font on the installed app; cut 0.1.8-alpha.9
 
 A packaged-app audit run last session found that alpha.8, as built, would still export clips with **no subtitles or captions at all** — a separate packaging bug from the editor one #144 fixed. The exported video silently came out blank-text because the offscreen renderer that burns subtitles onto the frames couldn't load two helper files that weren't packaged into the installed app. This release fixes that and three related packaged-app problems found in the same audit, all batched into one installer so it's a single reinstall. **alpha.8 should be skipped — install alpha.9.**
