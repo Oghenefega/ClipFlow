@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-19 (session 88) — Ripple-deleting a clip no longer scrambles its subtitles; playhead no longer jumps to the start on play
+
+Two editor bugs surfaced while editing a clip. (1) Ripple-deleting a middle section closed the video gap correctly but scrambled the subtitles — the deleted section's captions got shifted onto the footage that followed instead of vanishing with it. (2) With the playhead parked mid-clip, pressing play snapped it back to the start and played from there. Both are source-only fixes and ride the next installer.
+
+### Fixed
+- **Ripple-deleting (or deleting) a clip on the timeline now re-times its subtitles correctly instead of mashing them.** Subtitles live in source time and are projected onto the timeline through the current cut list, which already drops a deleted section's captions and slides the rest up — exactly how trims behave. The clip-delete handler was *also* manually rewriting subtitle timings on top of that projection, double-shifting them by the wrong amount (by the sum of the deleted captions' own lengths, not the clip's length) and corrupting alignment. It now just removes the segment and lets the projection re-time, matching the trim path. Side benefit: undo is fixed too (the old path corrupted subtitles when undone). [src/renderer/editor/components/TimelinePanelNew.js]
+- **The playhead no longer jumps to the start when you press play from a mid-clip position.** The preview's playback loop treats the `<video>` element as the source of truth and snaps the on-screen playhead to it on the first frame of play; nothing ever pushed the playhead's position *into* the video except an explicit seek, so any drift between the two (e.g. a metadata reload that parks the element at the clip's first segment) yanked the playhead backward on play. Play now re-seeks the video to the playhead first, and the playback loop ignores frames while the element is mid-seek — so play always starts from the visible playhead. [src/renderer/editor/stores/usePlaybackStore.js, src/renderer/editor/components/PreviewPanelNew.js]
+
+### Changed
+- **Version bumped to `0.1.8-alpha.11` and a fresh installer cut** to promote both editor fixes above to the installed app. [package.json]
+
 ## [Unreleased] — 2026-06-19 (session 87) — AI titles/captions now describe the actual clip, not the whole recording
 
 Generating AI titles and captions for a clip produced suggestions about moments from *elsewhere* in the source recording — e.g. a clip that was only about a bad loadout got titles about a betrayal and a panicked exit that happened in other parts of the same 30-minute video. Root cause: the editor deliberately loads the whole recording's transcript into memory (so a clip can be extended outward without re-fetching words), and everything the user sees filters that down to just the clip's cut. The AI title/caption tool was the one place that skipped that filter — it read the entire recording's transcript instead of only the clip's slice. Source-only fix; rides the next installer.
