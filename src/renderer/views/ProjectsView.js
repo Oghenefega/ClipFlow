@@ -82,14 +82,6 @@ const fmtTime = (sec) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-// Format seconds to [MM:SS] timestamp
-const fmtTimestamp = (sec) => {
-  if (!sec || isNaN(sec)) return "[00:00]";
-  const m = Math.floor(sec / 60).toString().padStart(2, "0");
-  const s = Math.floor(sec % 60).toString().padStart(2, "0");
-  return `[${m}:${s}]`;
-};
-
 // Default template fallback (matches BUILTIN_TEMPLATE from templateUtils)
 const FALLBACK_TEMPLATE = {
   subtitle: {
@@ -501,22 +493,15 @@ function ScoreDisplay({ score }) {
 
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-      <span style={{ fontSize: 28, fontWeight: 800, color, fontFamily: T.font, lineHeight: 1 }}>
+      <span style={{ fontSize: 24, fontWeight: 800, color, fontFamily: T.font, lineHeight: 1 }}>
         {displayScore}
       </span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: T.textTertiary }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: T.textTertiary }}>
         /10
       </span>
     </div>
   );
 }
-
-// Energy level badge colors
-const ENERGY_COLORS = {
-  HIGH: { bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.3)", text: "#f87171", label: "HIGH" },
-  MED: { bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.3)", text: "#fbbf24", label: "MED" },
-  LOW: { bg: "rgba(148,163,184,0.12)", border: "rgba(148,163,184,0.3)", text: "#94a3b8", label: "LOW" },
-};
 
 // Format HH:MM:SS from seconds
 const fmtHMS = (sec) => {
@@ -561,23 +546,23 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
       {/* Approve — checkmark */}
       <button
         onClick={() => handleDecision("approved")}
         title={ca ? "Remove approval" : "Approve clip"}
         style={{
-          width: 36, height: 36, borderRadius: T.radius.sm,
+          flex: 1, height: 40, borderRadius: T.radius.md,
           display: "flex", alignItems: "center", justifyContent: "center",
-          border: ca ? `1.5px solid ${T.green}` : `1px solid ${T.border}`,
+          border: ca ? `1px solid ${T.greenBorder}` : `1px solid ${T.border}`,
           cursor: "pointer",
-          background: ca ? T.greenDim : "rgba(255,255,255,0.03)",
+          background: ca ? T.greenDim : T.surfaceHover,
           transition: "all 0.15s ease",
         }}
         onMouseEnter={(e) => { if (!ca) { e.currentTarget.style.borderColor = T.green; e.currentTarget.style.background = T.greenDim; } }}
-        onMouseLeave={(e) => { if (!ca) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+        onMouseLeave={(e) => { if (!ca) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.surfaceHover; } }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ca ? T.green : T.textTertiary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ca ? T.green : T.textSecondary} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </button>
@@ -586,17 +571,17 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
         onClick={() => handleDecision("rejected")}
         title={rej ? "Remove rejection" : "Reject clip"}
         style={{
-          width: 36, height: 36, borderRadius: T.radius.sm,
+          flex: 1, height: 40, borderRadius: T.radius.md,
           display: "flex", alignItems: "center", justifyContent: "center",
-          border: rej ? `1.5px solid ${T.red}` : `1px solid ${T.border}`,
+          border: rej ? `1px solid ${T.red}` : `1px solid ${T.border}`,
           cursor: "pointer",
-          background: rej ? T.redDim : "rgba(255,255,255,0.03)",
+          background: rej ? T.redDim : T.surfaceHover,
           transition: "all 0.15s ease",
         }}
         onMouseEnter={(e) => { if (!rej) { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.background = T.redDim; } }}
-        onMouseLeave={(e) => { if (!rej) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+        onMouseLeave={(e) => { if (!rej) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.surfaceHover; } }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={rej ? T.red : T.textTertiary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={rej ? T.red : T.textSecondary} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -606,43 +591,69 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
 }
 
 // ============ CLIP ROW ============
-function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb, template }) {
+function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb, template }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
-  const transcriptSegs = getClipTranscriptSegments(clip, project);
+
+  // Transcript as flowing prose — join the clip-window segment texts, no [mm:ss] stamps.
+  // Mirrors how the editor's TranscriptTab reads; the per-line timestamps were the
+  // whole problem the redesign set out to fix.
+  const transcriptText = getClipTranscriptSegments(clip, project).map((s) => s.text).filter(Boolean).join(" ");
+
   // Game tag for the badge: prefer clip's first-class field, fall back to the parent
   // project, then to legacy title-hashtag parsing for pre-#71 clips.
   const clipGameTag = (clip.gameTag || project.gameTag || (typeof clip.title === "string" ? (clip.title.match(/#(\w+)/)?.[1] || "") : "") || "").toUpperCase();
   const clipGameColor = project.gameColor || T.accent;
 
+  // Calm metadata line — energy as colored text (amber HIGH so it never reads as a
+  // reject signal), confidence + time as plain dot-separated prose instead of pills.
+  const lvl = clip.energyLevel;
+  const energyColor = lvl === "HIGH" ? "#fb923c" : lvl === "MED" ? T.yellow : T.textTertiary;
+  const energyLabel = lvl ? lvl.charAt(0) + lvl.slice(1).toLowerCase() : "";
+  const metaItems = [];
+  if (energyLabel) metaItems.push(<span style={{ color: energyColor, fontWeight: 600 }}>{energyLabel} energy</span>);
+  if (clip.confidence > 0) metaItems.push(<span style={{ color: T.textSecondary }}>{(clip.confidence * 100).toFixed(0)}% confidence</span>);
+  metaItems.push(<span style={{ color: T.textTertiary }}>{fmtTime(clip.startTime)} → {fmtTime(clip.endTime)}</span>);
+
+  const shadowCard = "0 1px 2px rgba(0,0,0,0.5), 0 14px 34px -16px rgba(0,0,0,0.7)";
+  const shadowLift = `0 2px 4px rgba(0,0,0,0.5), 0 26px 60px -22px rgba(0,0,0,0.85), 0 0 0 1px ${T.accentBorder}`;
+
   return (
     <div
       style={{
-        display: "flex", gap: 16,
-        padding: 16, borderRadius: T.radius.lg,
-        background: T.surface,
-        border: `1px solid ${ca ? T.greenBorder : rej ? T.redBorder : T.border}`,
-        opacity: rej ? 0.45 : 1,
-        transition: "all 0.2s ease",
+        display: "flex", gap: 18, padding: 14,
+        borderRadius: T.radius.xl,
+        background: `linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0)), ${T.surface}`,
+        border: `1px solid ${T.border}`,
+        boxShadow: shadowCard,
+        opacity: rej ? 0.5 : 1,
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = T.borderHover;
+        e.currentTarget.style.boxShadow = shadowLift;
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = T.border;
+        e.currentTarget.style.boxShadow = shadowCard;
+        e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      {/* Left: clip number + approve/reject stacked vertically + video player */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-        <span style={{ color: T.textTertiary, fontSize: 11, fontWeight: 700, fontFamily: T.mono }}>#{index + 1}</span>
+      {/* Left: big watchable preview with approve/reject directly under it */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, width: 220 }}>
+        <ClipPreviewBoundary>
+          <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} />
+        </ClipPreviewBoundary>
         <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} />
       </div>
 
-      {/* Video player — larger */}
-      <ClipPreviewBoundary>
-        <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} />
-      </ClipPreviewBoundary>
-
-      {/* Right: details + transcript */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, minWidth: 0, overflow: "hidden" }}>
-        {/* Title row */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      {/* Right: title + score, calm metadata, flowing transcript, open-in-editor */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Title + score */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {editId === clip.id ? (
               <div style={{ display: "flex", gap: 6 }}>
@@ -657,7 +668,7 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
                   style={{
                     flex: 1, background: "rgba(255,255,255,0.04)",
                     border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.sm,
-                    padding: "6px 10px", color: T.text, fontSize: 14, fontWeight: 600,
+                    padding: "6px 10px", color: T.text, fontSize: 15, fontWeight: 600,
                     fontFamily: T.font, outline: "none",
                   }}
                 />
@@ -669,69 +680,36 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
             ) : (
               <div
                 onClick={() => { setEditId(clip.id); setEditText(clip.title || ""); }}
-                style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 7 }}
               >
                 <span style={{
-                  color: T.text, fontSize: 15, fontWeight: 700, lineHeight: 1.4,
+                  color: T.text, fontSize: 18, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.015em",
                   overflow: "hidden", textOverflow: "ellipsis",
                   display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                 }}>
                   {clip.title || "Untitled Clip"}
                 </span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 5 }}>
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
               </div>
             )}
           </div>
-
-          {/* Score */}
-          <ScoreDisplay score={clip.highlightScore} />
+          <div style={{ flexShrink: 0 }}>
+            <ScoreDisplay score={clip.highlightScore} />
+          </div>
         </div>
 
-        {/* AI metadata + status badges row */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Game tag */}
+        {/* Calm metadata line: game / energy / confidence / time / status chips */}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", fontSize: 12.5 }}>
           {clipGameTag && <GamePill tag={clipGameTag} color={clipGameColor} size="sm" />}
-          {/* Energy level badge */}
-          {clip.energyLevel && ENERGY_COLORS[clip.energyLevel] && (
-            <span
-              title={`Audio Energy: ${clip.energyLevel} — How loud/intense the mic audio is during this clip`}
-              style={{
-                display: "inline-flex", padding: "2px 7px", borderRadius: 4,
-                background: ENERGY_COLORS[clip.energyLevel].bg,
-                border: `1px solid ${ENERGY_COLORS[clip.energyLevel].border}`,
-                fontSize: 10, fontWeight: 700, color: ENERGY_COLORS[clip.energyLevel].text,
-                fontFamily: T.mono, letterSpacing: "0.5px", cursor: "default",
-              }}>
-              {clip.energyLevel === "HIGH" ? "\uD83D\uDD25" : clip.energyLevel === "MED" ? "\u26A1" : "\uD83D\uDCA4"} {clip.energyLevel}
-            </span>
-          )}
-
-          {/* Confidence score */}
-          {clip.confidence > 0 && (
-            <span
-              title={`Claude's Confidence: ${(clip.confidence * 100).toFixed(0)}% — How confident the AI is that this clip will perform well`}
-              style={{
-                display: "inline-flex", padding: "2px 7px", borderRadius: 4,
-                background: "rgba(139,92,246,0.1)", border: `1px solid rgba(139,92,246,0.25)`,
-                fontSize: 10, fontWeight: 700, color: T.accentLight,
-                fontFamily: T.mono, cursor: "default",
-              }}>
-              {(clip.confidence * 100).toFixed(0)}% conf
-            </span>
-          )}
-
-          {/* Timestamp range */}
-          <span style={{
-            display: "inline-flex", padding: "2px 7px", borderRadius: 4,
-            background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`,
-            fontSize: 10, color: T.textTertiary, fontFamily: T.mono,
-          }}>
-            {fmtHMS(clip.startTime)} → {fmtHMS(clip.endTime)}
-          </span>
-
+          {metaItems.map((node, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textTertiary, display: "inline-block", flexShrink: 0 }} />}
+              {node}
+            </React.Fragment>
+          ))}
           {clip.transcriptionFailed && (
             <span
               title={`Retranscription failed: ${clip.transcriptionError || "unknown error"}. Subtitles may be inaccurate. Use Re-transcribe in the editor to retry.`}
@@ -745,66 +723,48 @@ function ClipRow({ clip, project, index, onUpdateClip, onEditClipTitle, onOpenIn
             </span>
           )}
           {ca && <Badge color={T.green}>Approved</Badge>}
+          {rej && <Badge color={T.red}>Rejected</Badge>}
           {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
         </div>
 
-        {/* Transcript inline */}
-        {transcriptSegs.length > 0 && (
-          <div
-            style={{
-              flex: 1, overflow: "hidden", display: "flex", flexDirection: "column",
-            }}
-          >
-            <div
-              style={{
-                overflowY: "auto", maxHeight: 160,
-                padding: "8px 10px", borderRadius: T.radius.sm,
-                background: "rgba(255,255,255,0.02)",
-                border: `1px solid ${T.border}`,
-              }}
-            >
-              {transcriptSegs.map((seg, i) => (
-                <div key={i} style={{ marginBottom: i < transcriptSegs.length - 1 ? 6 : 0 }}>
-                  <span style={{
-                    color: T.accent, fontSize: 11, fontWeight: 600,
-                    fontFamily: T.mono, marginRight: 6,
-                  }}>
-                    {fmtTimestamp(seg.start)}
-                  </span>
-                  <span style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.5 }}>
-                    {seg.text}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Flowing transcript: reads like the editor, no [mm:ss] stamps */}
+        {transcriptText && (
+          <div style={{
+            flex: 1,
+            padding: "12px 14px", borderRadius: T.radius.md,
+            background: "rgba(255,255,255,0.022)",
+            fontSize: 13.5, lineHeight: 1.62, color: T.textSecondary,
+            maxWidth: "68ch",
+            display: "-webkit-box", WebkitLineClamp: 8, WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>
+            {transcriptText}
           </div>
         )}
 
-        {/* Action buttons */}
-        {!rej && (
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {onOpenInEditor && (
-              <button
-                onClick={() => onOpenInEditor(project.id, clip.id)}
-                style={{
-                  padding: "6px 14px", borderRadius: T.radius.sm,
-                  border: `1px solid ${T.accentBorder}`,
-                  background: T.accentDim, color: T.accentLight,
-                  fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-                  display: "flex", alignItems: "center", gap: 5,
-                  transition: "all 0.15s ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(139,92,246,0.2)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = T.accentDim; }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <polygon points="23 7 16 12 23 17 23 7" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </svg>
-                Open in Editor
-              </button>
-            )}
+        {/* Primary action */}
+        {onOpenInEditor && (
+          <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+            <button
+              onClick={() => onOpenInEditor(project.id, clip.id)}
+              style={{
+                padding: "10px 16px", borderRadius: T.radius.md,
+                border: "1px solid transparent",
+                background: T.accent, color: "#fff",
+                fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                display: "flex", alignItems: "center", gap: 8,
+                boxShadow: `0 6px 18px -8px ${T.accent}cc`,
+                transition: "all 0.16s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = T.accentLight; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.transform = "translateY(0)"; }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="23 7 16 12 23 17 23 7" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+              </svg>
+              Open in Editor
+            </button>
           </div>
         )}
       </div>
@@ -1746,13 +1706,12 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
-        {filtered.map((clip, index) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+        {filtered.map((clip) => (
           <ClipRow
             key={clip.id}
             clip={clip}
             project={project}
-            index={clips.indexOf(clip)}
             onUpdateClip={onUpdateClip}
             onEditClipTitle={onEditClipTitle}
             onOpenInEditor={onOpenInEditor}

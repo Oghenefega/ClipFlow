@@ -8,7 +8,7 @@
 
 ## ACTIVE PLAN — Projects tab premium redesign (session 89 design → session 90 build)
 
-**Status:** Design DONE + Fega-approved as a mockup; **implementation NOT started** (no app code touched session 89). Direction locked.
+**Status:** Design DONE + Fega-approved as a mockup. **CARD implemented in session 90** (`ProjectsView.js` `ClipRow` — flowing transcript, ✓/✗ under preview, calm metadata, premium card; builds clean, awaiting Fega's final in-app eyeball). **Still deferred:** the tab-level chrome — premium header + width-capped centered column (cards are currently full-bleed). Direction locked.
 
 **The mockup:** `tasks/mocks/projects-tab-redesign.html` (open via `Start-Process`). Built with the real `theme.js` tokens + DM Sans + realistic ARC Raiders clip data. It has two directions behind a toggle; **Fega chose "Review Rail."** Defaults to the rail on open.
 

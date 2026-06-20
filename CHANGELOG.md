@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-20 (session 90) — Built the Projects tab "Review Rail" redesign into the app
+
+Implemented the premium Projects-tab clip card that was approved as a mockup in session 89. Source-only change to one existing view; no version bump or installer this session. The tab-level header and width-capped column from the mockup are deferred as a quick follow-up.
+
+### Changed
+- **The Projects tab clip cards are rebuilt as the "Review Rail."** The clip transcript now reads as **flowing prose** — the clip's segment texts joined into one paragraph the way the editor shows it — instead of the old line-by-line `[00:00]` timestamp dump. The big 9:16 preview keeps its place on the left, with **approve/reject (✓/✗) moved to a pair of wide buttons directly underneath it** (was a cramped vertical strip in a far-left column). The right side shows the title with the score top-right, one calm metadata line (game · energy · confidence · time · status chips, as quiet text rather than a row of pills), the flowing transcript, and **Open in Editor** as a filled primary button. Cards gained rounded corners, a soft shadow, and a subtle hover-lift. Still the existing inline-theme view, not the editor's component system. [src/renderer/views/ProjectsView.js]
+
+### Removed
+- **Dead `fmtTimestamp` and `ENERGY_COLORS` helpers** in ProjectsView.js, orphaned when the card stopped rendering per-line timestamps and energy pills. [src/renderer/views/ProjectsView.js]
+
 ## [Unreleased] — 2026-06-19 (session 89) — Prototyped a premium redesign of the Projects tab clip cards
 
 Design-only session: explored and locked a premium redesign for the Projects tab (where generated clips are reviewed). No app behavior changed yet — this entry records the design artifact; implementation is planned for the next session.
