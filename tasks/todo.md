@@ -6,6 +6,31 @@
 
 ---
 
+## ACTIVE PLAN — Projects tab premium redesign (session 89 design → session 90 build)
+
+**Status:** Design DONE + Fega-approved as a mockup; **implementation NOT started** (no app code touched session 89). Direction locked.
+
+**The mockup:** `tasks/mocks/projects-tab-redesign.html` (open via `Start-Process`). Built with the real `theme.js` tokens + DM Sans + realistic ARC Raiders clip data. It has two directions behind a toggle; **Fega chose "Review Rail."** Defaults to the rail on open.
+
+**What Fega asked for:** (1) the in-card transcript must read like the **editor** — flowing prose, NO `[00:00]` stamps, no per-line breaks (today the card builds timestamped lines at [ProjectsView.js:767] via `fmtTimestamp`; the editor flows words in `LeftPanelNew.js` `TranscriptTab`). (2) Make the whole Projects tab feel premium ("like YouTube"; current UI "feels 2002").
+
+**Locked "Review Rail" card (left → right):**
+- **Left:** BIG watchable 9:16 preview (hover-to-play; ONLY a duration pill on the video — no score/status overlay). **Approve/reject (✓/✗) sit directly UNDER the preview.**
+- **Right (content):** title + **score top-right** (`8.4/10`, colored: green ≥8, yellow 6–7.9, red <6); one calm metadata line (game · energy · confidence · time · **status chips** Approved/Rendered/Rejected); the **flowing transcript**; **Open in Editor** as the main button.
+- Tab-level: width-capped column (not full-bleed), premium header (title + clip count + filter chips), soft shadows + hover-lift, no flat boxes.
+
+**Rejected along the way — do NOT revive:** Shorts-style grid (he picked the rail); a far-right "verdict column" (bad mouse reach); a tiny preview; score/status overlaid on the video. (See `tasks/lessons.md` session-89 entry + [[feedback_ui_density_aesthetic]].)
+
+**Build steps next session:**
+1. Implement in [ProjectsView.js](src/renderer/views/ProjectsView.js) `ClipRow` using the existing **inline-`T`-theme** style (Projects is an "existing view," NOT the shadcn/Tailwind editor).
+2. Transcript fix: replace the `transcriptSegs.map(... fmtTimestamp ...)` block with the segment **texts joined into flowing prose** (mirror the editor's `TranscriptTab` join). Drop the `fmtTimestamp` per-line rendering on the card.
+3. Keep `ClipVideoPlayer`/`ClipPreviewBoundary` working with the bigger preview; ✓/✗ under it; score/status moved into content.
+4. Build + `npm start`, verify in the running app (not just a build); get Fega's eyes before closing.
+
+_Older plan (Packaged-app audit) below — Bucket A shipped; carry-over verifications still pending (see HANDOFF)._
+
+---
+
 ## ACTIVE PLAN — Packaged-app audit remediation (session 85 → session 86)
 
 **Session 87 update:** Fega installed alpha.9.1 and confirmed the editor shows subtitles correctly on fresh clips (**#144 CLOSED**) + the Recordings list order is correct. Then he hit a NEW bug — AI titles/captions for a clip referenced moments from *other* parts of the source recording. Root-caused + fixed (`_collectClipParams` joined raw source-wide `editSegments` → now uses clip-window `getTimelineMappedSegments()`), committed (`1b24714`), and cut **0.1.8-alpha.10** (`e6e01e8`) to promote it. Bucket A's EXPORT-with-subtitles check (open the rendered .mp4, confirm Latina Essential) is **still unverified by Fega** — folded into the alpha.10 pass below.

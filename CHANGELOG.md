@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-06-19 (session 89) — Prototyped a premium redesign of the Projects tab clip cards
+
+Design-only session: explored and locked a premium redesign for the Projects tab (where generated clips are reviewed). No app behavior changed yet — this entry records the design artifact; implementation is planned for the next session.
+
+### Added
+- **A clickable HTML prototype of the redesigned Projects tab** built with the app's real theme tokens and fonts. It presents two directions; Fega chose the "Review Rail": a big, watchable clip preview with approve/reject directly beneath it, the score by the title and status as chips in a single calm metadata line, and the transcript shown as **flowing prose** (no `[00:00]` timestamps, the way the editor reads it) instead of the current timestamped line-by-line dump. Not yet wired into the app. [tasks/mocks/projects-tab-redesign.html]
+
 ## [Unreleased] — 2026-06-19 (session 88) — Ripple-deleting a clip no longer scrambles its subtitles; playhead no longer jumps to the start on play
 
 Two editor bugs surfaced while editing a clip. (1) Ripple-deleting a middle section closed the video gap correctly but scrambled the subtitles — the deleted section's captions got shifted onto the footage that followed instead of vanishing with it. (2) With the playhead parked mid-clip, pressing play snapped it back to the start and played from there. Both are source-only fixes and ride the next installer.
