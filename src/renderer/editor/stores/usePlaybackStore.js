@@ -37,8 +37,18 @@ const usePlaybackStore = create((set, get) => ({
   setPlaying: (v) => set({ playing: v }),
   togglePlay: () => {
     const { playing, currentTime, duration, seekTo } = get();
-    if (!playing && duration > 0 && currentTime >= duration - 0.1) {
-      seekTo(0);
+    if (!playing) {
+      // Starting playback: re-assert the video position from the playhead. The
+      // rAF loop treats <video>.currentTime as the source of truth and snaps the
+      // playhead to it on the first frame, so any video↔playhead drift (e.g. a
+      // metadata reload that parked the element at the first segment) would yank
+      // the playhead to the wrong spot. Seeking here guarantees play starts from
+      // the visible playhead. If we're at the very end, replay from the start.
+      if (duration > 0 && currentTime >= duration - 0.1) {
+        seekTo(0);
+      } else {
+        seekTo(currentTime);
+      }
     }
     set({ playing: !playing });
   },

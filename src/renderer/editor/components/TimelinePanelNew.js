@@ -611,21 +611,11 @@ export default function TimelinePanelNew() {
     } else if (track === "sub") {
       isRipple ? rippleDeleteSegment(segId) : deleteSegment(segId);
     } else if (track === "audio") {
-      // NLE: delete the NLE segment; also delete overlapping subtitle segments
-      const deletedSeg = nleSegments.find((s) => s.id === segId);
-      if (deletedSeg) {
-        // Find the timeline range of this NLE segment
-        const tlRange = getSegmentTimelineRange(segId, nleSegments);
-        if (tlRange) {
-          const subStore = useSubtitleStore.getState();
-          // Get timeline-mapped subtitles to compare in timeline space
-          const mappedSubs = subStore.getTimelineMappedSegments();
-          const overlapping = mappedSubs.filter(
-            (s) => s.startSec >= tlRange.start && s.endSec <= tlRange.end
-          );
-          overlapping.forEach((s) => isRipple ? subStore.rippleDeleteSegment(s.id) : subStore.deleteSegment(s.id));
-        }
-      }
+      // NLE delete collapses the timeline; subtitles live in source time and
+      // re-project through the new cut list automatically (visibleSubtitleSegments
+      // drops deleted-region subs and re-times the rest — the same path trims use).
+      // Mutating the subtitle store here double-shifts their source times and
+      // corrupts alignment, so we deliberately do NOT touch subtitles.
       deleteNleSegment(segId);
     }
 
@@ -638,7 +628,7 @@ export default function TimelinePanelNew() {
   }, [
     rippleDeleteCaptionSegment, deleteCaptionSegment,
     rippleDeleteSegment, deleteSegment,
-    deleteNleSegment, nleSegments,
+    deleteNleSegment,
   ]);
 
   // ── Batch delete for multi-select ──

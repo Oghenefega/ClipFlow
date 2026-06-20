@@ -866,6 +866,16 @@ export default function PreviewPanelNew() {
         return;
       }
 
+      // While the element is mid-seek its currentTime is unreliable (it can still
+      // read the pre-seek position). Don't map or move the playhead from it — wait
+      // for the seek to land. Prevents a just-issued seek (seekTo on play, or a
+      // scrub right before pressing play) from being clobbered by a stale frame
+      // that would snap the playhead back to the old position.
+      if (video.seeking) {
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
       const sourceTime = video.currentTime;
       const result = mapSourceTime(sourceTime);
 
