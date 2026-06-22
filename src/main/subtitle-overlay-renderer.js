@@ -15,9 +15,11 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 
-// Overlay capture FPS — subtitles change at word boundaries (~200-400ms),
-// so 10fps is plenty for smooth transitions. Keeps capture fast.
-const OVERLAY_FPS = 10;
+// Overlay capture FPS — must be high enough that the per-word pop/karaoke ease
+// (~0.2s) reads smoothly when composited over 60fps video. 10fps looked like
+// stop-motion (#148). 30fps is the smoothness/render-time sweet spot; render.js
+// forwards this as the FFmpeg input framerate (output is conformed to source fps).
+const OVERLAY_FPS = 30;
 
 /**
  * Probe a video file for its resolution using ffprobe.

@@ -165,6 +165,8 @@ function renderSubtitle(timestamp) {
   const isSingleWord = segmentMode === "1word";
   const animateOn = s.animateOn || false;
   const animateScale = s.animateScale || 1.2;
+  const animateGrowFrom = s.animateGrowFrom || 0.8;
+  const animateSpeed = animateOn ? (s.animateSpeed || 0.2) : 0.1;
   const highlightColor = s.highlightColor || "#4cce8a";
   const subColor = s.subColor || "#ffffff";
   const karaokeActive = (s.subMode || "karaoke") === "karaoke";
@@ -174,6 +176,23 @@ function renderSubtitle(timestamp) {
   const textStyle = styleEngine.buildSubtitleStyle(s, getScaleFactor());
   // Build text shadows (normal + active variants)
   const shadows = styleEngine.buildSubtitleShadows(s, getScaleFactor());
+
+  // ── Time-driven pop ease (#148) ──
+  // The editor preview animates the per-word "pop" with CSS (transition + @keyframes
+  // subGrow in PreviewOverlays.js). This offscreen renderer rebuilds the DOM every
+  // frame, so CSS transitions can't carry across frames — compute the scale as a pure
+  // function of time instead, mirroring animateSpeed/animateScale/animateGrowFrom.
+  const easeOutCubic = (x) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
+  let growT = 1;
+  if (animateOn && currentWordIdx >= 0 && words[currentWordIdx]) {
+    growT = easeOutCubic((currentTime - words[currentWordIdx].start) / (animateSpeed || 0.2));
+  }
+  const popScale = (isActive, globalIdx) => {
+    if (isSingleWord) return animateGrowFrom + (1 - animateGrowFrom) * growT; // animateGrowFrom → 1
+    if (isActive) return 1 + (animateScale - 1) * growT;                      // 1 → animateScale
+    if (globalIdx === currentWordIdx - 1) return animateScale - (animateScale - 1) * growT; // handoff: animateScale → 1
+    return 1;
+  };
 
   if (words.length > 0) {
     const chunks = buildCharChunks(words);
@@ -237,7 +256,7 @@ function renderSubtitle(timestamp) {
         wrapper.appendChild(overlay);
 
         if (animateOn && !isSingleWord) {
-          wrapper.style.transform = `scale(${animateScale})`;
+          wrapper.style.transform = `scale(${popScale(true, globalIdx)})`;
         }
 
         textDiv.appendChild(wrapper);
@@ -255,13 +274,7 @@ function renderSubtitle(timestamp) {
         span.style.verticalAlign = "baseline";
 
         if (animateOn) {
-          if (isSingleWord) {
-            span.style.transform = "scale(1)";
-          } else if (isActive) {
-            span.style.transform = `scale(${animateScale})`;
-          } else {
-            span.style.transform = "scale(1)";
-          }
+          span.style.transform = `scale(${popScale(isActive, globalIdx)})`;
         }
 
         span.textContent = wordText;
