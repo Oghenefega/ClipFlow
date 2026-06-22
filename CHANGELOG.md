@@ -12,6 +12,9 @@ Rendered/exported clips played the per-word subtitle "pop"/karaoke animation lik
 - **Exported clips now render the subtitle overlay at 30fps instead of 10fps.** Subtitles are drawn as a separate transparent image layer that FFmpeg stacks onto the video; that layer was only being redrawn 10 times per second while the video ran at its full source frame rate (e.g. 60fps), so each overlay frame was held across ~6 video frames and the word animation looked like stop-motion. The capture rate is now 30fps (FFmpeg still conforms the output to the source frame rate), making the motion read as smooth. [src/main/subtitle-overlay-renderer.js]
 - **The per-word "pop" grow animation is now reproduced in the export, matching the editor preview.** The live preview eases each word in with a CSS transition/keyframe, but the offscreen export renderer rebuilds its DOM on every captured frame (so CSS transitions can't carry across frames) and was applying only a static, un-eased scale — the active word snapped straight to its enlarged size instead of growing in, and single-word mode didn't grow at all. The exporter now computes the pop scale as a function of time (using the same animateSpeed / animateScale / animateGrowFrom values the preview uses), including the shrink-back hand-off on the previous word. [public/subtitle-overlay/overlay-renderer.js]
 
+### Changed
+- **Version bumped to `0.1.8-alpha.12` and a fresh installer cut** to promote the subtitle animation fix above — plus the session-90 Projects tab "Review Rail" clip card — to the installed daily-driver app. [package.json]
+
 ## [Unreleased] — 2026-06-20 (session 90) — Built the Projects tab "Review Rail" redesign into the app
 
 Implemented the premium Projects-tab clip card that was approved as a mockup in session 89. Source-only change to one existing view; no version bump or installer this session. The tab-level header and width-capped column from the mockup are deferred as a quick follow-up.
