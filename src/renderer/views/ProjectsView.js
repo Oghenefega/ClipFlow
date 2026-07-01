@@ -600,7 +600,7 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
   // Transcript as flowing prose — join the clip-window segment texts, no [mm:ss] stamps.
   // Mirrors how the editor's TranscriptTab reads; the per-line timestamps were the
   // whole problem the redesign set out to fix.
-  const transcriptText = getClipTranscriptSegments(clip, project).map((s) => s.text).filter(Boolean).join(" ");
+  const transcriptText = useMemo(() => getClipTranscriptSegments(clip, project).map((s) => s.text).filter(Boolean).join(" "), [clip, project]);
 
   // Game tag for the badge: prefer clip's first-class field, fall back to the parent
   // project, then to legacy title-hashtag parsing for pre-#71 clips.

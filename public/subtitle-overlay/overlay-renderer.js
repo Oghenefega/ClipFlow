@@ -166,7 +166,7 @@ function renderSubtitle(timestamp) {
   const animateOn = s.animateOn || false;
   const animateScale = s.animateScale || 1.2;
   const animateGrowFrom = s.animateGrowFrom || 0.8;
-  const animateSpeed = animateOn ? (s.animateSpeed || 0.2) : 0.1;
+  const animateSpeed = s.animateSpeed || 0.2;
   const highlightColor = s.highlightColor || "#4cce8a";
   const subColor = s.subColor || "#ffffff";
   const karaokeActive = (s.subMode || "karaoke") === "karaoke";
@@ -185,7 +185,7 @@ function renderSubtitle(timestamp) {
   const easeOutCubic = (x) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
   let growT = 1;
   if (animateOn && currentWordIdx >= 0 && words[currentWordIdx]) {
-    growT = easeOutCubic((currentTime - words[currentWordIdx].start) / (animateSpeed || 0.2));
+    growT = easeOutCubic((currentTime - words[currentWordIdx].start) / animateSpeed);
   }
   const popScale = (isActive, globalIdx) => {
     if (isSingleWord) return animateGrowFrom + (1 - animateGrowFrom) * growT; // animateGrowFrom → 1

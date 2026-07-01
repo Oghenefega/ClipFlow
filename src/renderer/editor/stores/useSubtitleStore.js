@@ -230,6 +230,7 @@ const useSubtitleStore = create((set, get) => ({
   editSegments: [],
   originalSegments: [], // preserved for segment mode switching
   _skipNextSegmentation: false, // #78: set on editor-saved load so applyTemplate's setSegmentMode doesn't re-chunk away manual edits
+  _chunkPending: false, // #144 guard: init deferred chunking to setSegmentMode; distinguishes that from the user deleting every segment
   _sourceOrigin: 0, // clip.startTime — used to convert source-absolute to display time
 
   // ── Undo/Redo history ──
@@ -305,6 +306,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: [],
       originalSegments: [],
       _skipNextSegmentation: false,
+      _chunkPending: false,
       activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,
@@ -392,6 +394,7 @@ const useSubtitleStore = create((set, get) => ({
       originalSegments: segs,
       editSegments: isPreChunked ? segs : [],
       _skipNextSegmentation: isPreChunked,
+      _chunkPending: !isPreChunked,
       activeSegId: null,
       activeRow: 0,
       selectedWordInfo: null,
@@ -1002,7 +1005,7 @@ const useSubtitleStore = create((set, get) => ({
 
   // ── Segment mode switching ──
   setSegmentMode: (mode) => {
-    const { originalSegments, editSegments, _skipNextSegmentation } = get();
+    const { originalSegments, editSegments, _skipNextSegmentation, _chunkPending } = get();
     if (_skipNextSegmentation) {
       // #78: editSegments was populated directly from the user's saved edits in
       // initSegments. Re-chunking here would discard manual splits/merges/timestamp
@@ -1037,7 +1040,8 @@ const useSubtitleStore = create((set, get) => ({
     // leaves editSegments empty, so the loop below would yield nothing and the editor
     // would open with no subtitles. Fall back to originalSegments in that case; when
     // editSegments is populated (a live mode switch) we still use it, preserving #89.
-    const wordSourceSegs = editSegments.length > 0 ? editSegments : originalSegments;
+    // _chunkPending separates that deferred-init state from "user deleted every segment" — deleted stays deleted.
+    const wordSourceSegs = editSegments.length > 0 ? editSegments : (_chunkPending ? originalSegments : []);
     const manualIds = new Set(manualSegs.map((s) => s.id));
     const allWords = [];
     wordSourceSegs.forEach((seg) => {
@@ -1096,7 +1100,7 @@ const useSubtitleStore = create((set, get) => ({
 
     // New ids invalidate any prior word selection — clear instead of leaving a
     // stale {segId, wordIdx} pointing at segments that no longer exist.
-    set({ editSegments: merged, segmentMode: mode, activeSegId: merged[0]?.id, selectedWordInfo: null });
+    set({ editSegments: merged, segmentMode: mode, activeSegId: merged[0]?.id ?? null, selectedWordInfo: null, _chunkPending: false });
   },
 }));
 
