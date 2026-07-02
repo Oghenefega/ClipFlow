@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-02 (session 93) — TikTok Direct Post approved
+
+### Changed
+- **TikTok Direct Post publishing is approved and live (clean pass).** The Content Posting audit was resubmitted against `0.1.8-alpha.2` — carrying the ROUND 2 UX fixes shipped in session 79 (the Point 5d "may take a few minutes to appear" processing notice + the reordered compliance panel) — and passed with no reviewer conditions. TikTok posts are no longer forced private by the sandbox; the integration now publishes to real production accounts. Documentation (task tracker, technical summary) updated to reflect the shipped status. No code change this session.
+
 ## [Unreleased] — 2026-07-01 (session 92) — Post-ban code review + whole-app UX audit (11 issues filed)
 
 First session back on Fable 5 (restored today after the June 12 US export-control suspension). Two deliverables: a fresh-eyes review of all code committed during the outage (sessions 83–91 — verdict: solid, three small fixes shipped), and a UX audit of every major screen — a code-level sweep with independently verified findings plus a live screen-control walkthrough of the sandbox dev app. Source-only; rides the next installer.

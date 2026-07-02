@@ -191,7 +191,13 @@ render that runs when he hits **Queue** (or **Render**).
 
 ---
 
-## ACTIVE PLAN — TikTok Content Posting audit, ROUND 2 UI fixes (resubmission blocker)
+## ✅ RESOLVED — TikTok Content Posting audit / Direct Post APPROVED (2026-07-02)
+
+**Outcome:** TikTok Direct Post **approved — clean pass** on the resubmission against **0.1.8-alpha.2**.
+No reviewer conditions. This closes out the whole ROUND 2 resubmission arc: the code fixes shipped
+in session 79 and the only remaining work (Fega's portal rename + re-recorded videos + resubmit) is
+done. TikTok publishing is now live for real (production) accounts — no longer sandbox-forced-private.
+Details of the shipped code fixes retained below for reference.
 
 **Status:** ✅ SHIPPED in session 79 on **0.1.8-alpha.2**. Item 1 (A9 notice visible during the
 publish window) + Item 2 (Music Usage above Commercial Disclosure) shipped in
