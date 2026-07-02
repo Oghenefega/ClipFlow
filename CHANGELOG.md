@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-01 (session 92) — Post-ban code review + whole-app UX audit (11 issues filed)
+
+First session back on Fable 5 (restored today after the June 12 US export-control suspension). Two deliverables: a fresh-eyes review of all code committed during the outage (sessions 83–91 — verdict: solid, three small fixes shipped), and a UX audit of every major screen — a code-level sweep with independently verified findings plus a live screen-control walkthrough of the sandbox dev app. Source-only; rides the next installer.
+
+### Fixed
+- **Deleting every subtitle no longer silently resurrects them all on a word-grouping switch.** The fresh-clip fallback (#144) couldn't tell "never chunked yet" from "user deleted everything" — a new internal flag separates the two, so deleted stays deleted while fresh clips still open with subtitles. [src/renderer/editor/stores/useSubtitleStore.js]
+- **Projects tab cards no longer re-run the full subtitle word-repair pipeline on every list repaint** (e.g. after each approve/reject click) — the flowing transcript is now computed once per clip and reused. [src/renderer/views/ProjectsView.js]
+- **Removed a dead animation-speed branch** in the export subtitle overlay left from the #148 rewrite. [public/subtitle-overlay/overlay-renderer.js]
+
+### Added
+- **Whole-app UX audit report** ([tasks/ux-audit-2026-07-01.md]): all six screens audited against usability heuristics, every headline claim verified against the code (two auditor false-positives caught and killed), then a live walkthrough of the sandbox app confirming the worst findings on screen. Headline criticals: fresh installs show a green "WATCHING" over a hardcoded personal folder that doesn't exist; one-click project delete with no confirmation; rename and render failures that show the user nothing; scheduling a past time silently publishes within a minute.
+- **11 GitHub issues filed:** #149 (dead `sub2` schema field), #150–#157 (audit bugs: silent rename/render failures, unconfirmed project delete, fresh-install watcher, past-time scheduling, Facebook token refresh, single-instance lock, inert Download button), #158 (segment-mode round trip merges subtitles across pauses — reproduced live), #159 (project list shows a stale clip count).
+
 ## [Unreleased] — 2026-06-22 (session 91) — Exported subtitle animation is smooth again (no more stop-motion pop)
 
 Rendered/exported clips played the per-word subtitle "pop"/karaoke animation like stop-motion (~10fps) on top of otherwise-smooth 60fps video. Two stacked causes in the export-only overlay pipeline, both fixed. Source-only; rides the next installer. (#148)

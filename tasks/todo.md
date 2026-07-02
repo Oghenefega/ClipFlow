@@ -10,6 +10,8 @@
 
 **Status:** Design DONE + Fega-approved as a mockup. **CARD implemented in session 90** (`ProjectsView.js` `ClipRow` — flowing transcript, ✓/✗ under preview, calm metadata, premium card; builds clean, awaiting Fega's final in-app eyeball). **Still deferred:** the tab-level chrome — premium header + width-capped centered column (cards are currently full-bleed). Direction locked.
 
+**Live-pass additions (session 92 UX walkthrough):** (a) **hover-to-play was never built** — shipped card is click-to-play; the locked mockup specified hover-to-play, add it in this pass. (b) The project-list **REVIEW pill looks like a button but isn't clickable** (row is the target) — make it clickable or restyle as a status chip.
+
 **The mockup:** `tasks/mocks/projects-tab-redesign.html` (open via `Start-Process`). Built with the real `theme.js` tokens + DM Sans + realistic ARC Raiders clip data. It has two directions behind a toggle; **Fega chose "Review Rail."** Defaults to the rail on open.
 
 **What Fega asked for:** (1) the in-card transcript must read like the **editor** — flowing prose, NO `[00:00]` stamps, no per-line breaks (today the card builds timestamped lines at [ProjectsView.js:767] via `fmtTimestamp`; the editor flows words in `LeftPanelNew.js` `TranscriptTab`). (2) Make the whole Projects tab feel premium ("like YouTube"; current UI "feels 2002").
