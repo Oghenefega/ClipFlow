@@ -6,6 +6,32 @@
 
 ---
 
+## ACTIVE PLAN — Now Playing Tracker rebuild, Phase 1 (spec ready, awaiting Fega's go)
+
+**Status:** Spec written + registered 2026-07-03 by Wick (GM agent). Direction and all product
+decisions are Fega-LOCKED; implementation not started. **Read the full spec first:**
+`tasks/specs/tracker-now-playing.md` — it contains the verified code anchors (all
+adversarially confirmed against this repo), locked decisions, engines, file impact, build
+order, and Fega's plain-English verification script. The visual target is the clickable mock
+at `Desktop\ClipFlow stuff\Tracker Redesign\tracker-now-playing.html` (mock = look;
+spec = behavior; several mock behaviors are explicitly fiction — see spec).
+
+**One-paragraph summary:** Replace TrackerView with the "Now Playing" design: editable weekly
+target (decoupled from the template cell-count that fakes "48" today), pace-colored goal ring,
+permanent only-climbs XP rank (starts at zero), hard-reset streak with stakes line, day-column
+week log, shareable weekly recap rendered to PNG. Keystone data fix at the `logPost` seam
+(QueueView.js:1016): record the platforms that ACTUALLY succeeded + post IDs on each tracker
+entry (today's `platforms` field lists all connected accounts — a lie the recap would inherit).
+Phase 2 (separate spec, design session pending) = the Calendar view; Phase 1 ships the data
+it needs.
+
+**Build order (detail in spec):** 1) logPost data fix + :1115-1118 allSuccess fix + manual
+platform picker, 2) store state + XP/streak/pace pure-logic module, 3) TrackerView rebuild,
+4) popovers + template mini-editor overlay, 5) recap PNG share, 6) build + in-app verify +
+Fega's script.
+
+---
+
 ## ACTIVE PLAN — Projects tab premium redesign (session 89 design → session 90 build)
 
 **Status:** Design DONE + Fega-approved as a mockup. **CARD implemented in session 90** (`ProjectsView.js` `ClipRow` — flowing transcript, ✓/✗ under preview, calm metadata, premium card; builds clean, awaiting Fega's final in-app eyeball). **Still deferred:** the tab-level chrome — premium header + width-capped centered column (cards are currently full-bleed). Direction locked.
