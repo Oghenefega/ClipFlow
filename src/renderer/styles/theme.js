@@ -32,6 +32,14 @@ const theme = {
 
   cyan: "#22d3ee",
 
+  tiers: {
+    Bronze: "#cd7f44",
+    Silver: "#c4cdd6",
+    Gold: "#f5c542",
+    Platinum: "#6fe3d2",
+    Diamond: "#7cc4ff",
+  },
+
   radius: {
     sm: "6px",
     md: "10px",

@@ -6,10 +6,21 @@
 
 ---
 
-## ACTIVE PLAN — Now Playing Tracker rebuild, Phase 1 (spec ready, awaiting Fega's go)
+## ACTIVE PLAN — Now Playing Tracker rebuild, Phase 1 (BUILT — awaiting Fega's in-app verification)
 
-**Status:** Spec written + registered 2026-07-03 by Wick (GM agent). Direction and all product
-decisions are Fega-LOCKED; implementation not started. **Read the full spec first:**
+**Status:** ✅ IMPLEMENTED in session 94 (2026-07-03), same day Fega gave the go. All 5 build
+stages shipped source-only (no installer cut — batch rule): keystone logPost data fix +
+`:1115` allSuccess fix + manual platform picker, settings-store state + pure XP/streak/pace
+engine (`src/renderer/utils/trackerEngine.js`, 41-assertion sanity test passing), full
+TrackerView rebuild to the mock, popovers + compact template mini-editor overlay, recap PNG
+share (hand-drawn canvas, no new deps). Build clean, app boots clean. Two integration fixes
+found in main-session review and applied: local-vs-UTC date alignment (view/engine/logPost —
+evening publishes were dated tomorrow) and a live minute-tick clock (pane stays mounted across
+midnight). Filed #160 for the same UTC flaw in the Queue's *scheduling* keys (out of scope
+here). **Next: Fega runs the spec's plain-English verification script (~10 min), then this
+plan collapses to a SHIPPED line.** Original spec pointer below.
+
+**Read the full spec first:**
 `tasks/specs/tracker-now-playing.md` — it contains the verified code anchors (all
 adversarially confirmed against this repo), locked decisions, engines, file impact, build
 order, and Fega's plain-English verification script. The visual target is the clickable mock

@@ -4,6 +4,23 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-03 (session 94) — Now Playing Tracker Phase 1 built (full Tracker tab rebuild)
+
+Implemented Wick's Fega-approved Phase 1 spec ([tasks/specs/tracker-now-playing.md]): the Tracker tab is now the "Now Playing" motivation screen from the approved mock, and publish success now writes honest per-platform data. Source-only; rides the next batched installer. Awaiting Fega's in-app verification.
+
+### Added
+- **The rebuilt Tracker tab.** Game-themed "NOW PLAYING" banner with a Switch-game popover (it sets the same main game as Settings), an editable weekly target with a pace-colored goal ring and a "by today" tick, a main-vs-variety split bar, a permanent only-climbs XP rank card (Bronze III → Diamond I, 10 XP per logged clip, 100 XP weekly goal bonus, starts at zero for everyone), a streak stakes line with calm behind/safe/streak-over states, a Mon–Sat day-column week log (today highlighted, future days locked), and a shareable weekly recap card. [src/renderer/views/TrackerView.js]
+- **Share recap as a PNG image.** The recap card (clip count, per-platform counts, streak, rank, game, Flowve mark) renders to a real PNG — saved via file dialog and copied to the clipboard — drawn at 2× so it looks as premium as the in-app card. [src/renderer/utils/recapCardImage.js]
+- **Honest per-platform publish records.** Every successful publish now stores exactly which platforms the clip actually went to, with the post IDs the platforms returned (and a clickable "View post" link for YouTube) on the tracker entry — replacing the old display string that just listed every connected account whether or not it was used. Manual log entries gain an optional platform picker so they count in per-platform totals too. Old entries count toward clip totals but not per-platform counts (no fake backfill). [src/renderer/views/QueueView.js]
+- **Weekly rollover engine.** On launch and whenever tracker data changes, completed weeks are evaluated lazily: hit weeks bank the goal bonus (idempotently — nothing is ever double-banked or clawed back), missed weeks hard-reset the streak, and each finished week freezes its target, game, and recap so history stays truthful even after switching games or editing the target. Backdated entries self-heal a missed week into a hit. [src/renderer/utils/trackerEngine.js, src/renderer/App.js]
+
+### Fixed
+- **A latent publish-seam bug that could log a "full success" that didn't happen:** a connected, enabled platform with no publish handler was marked done without failing the run. It now fails loudly and blocks the tracker entry. [src/renderer/views/QueueView.js]
+- **Evening publishes no longer get dated tomorrow.** Tracker entry dates (and the new week bookkeeping) now use the local calendar date instead of UTC, which is 4–5 hours ahead — publishing at 10 PM used to attribute the clip to the next day (and on Sundays, to the next week). The same UTC habit in the Queue's scheduling keys is filed separately as #160.
+
+### Removed
+- **The Tracker's old full-page template edit mode** (drag-to-reorder rows, per-cell Main/Other toggling, undo/redo toolbar) — replaced by a compact "Edit slots" overlay that keeps per-week overrides and saved presets. Week navigation arrows and the (2026-hardcoded) month-jump dropdown are gone; browsing past weeks arrives with the Phase 2 Calendar. The weekly goal is no longer the template's cell count — it's the new editable target, so editing slot times no longer silently changes your goal.
+
 ## [Unreleased] — 2026-07-02 (session 93) — TikTok Direct Post approved
 
 ### Changed

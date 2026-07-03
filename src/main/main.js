@@ -171,6 +171,10 @@ const STORE_DEFAULTS = {
     Saturday: ["main","other","main","other","main","other","main","main"],
   },
   trackerData: [],
+  weeklyTarget: 48,
+  weekMeta: {},
+  xpLedger: [],
+  streakState: { evaluatedThroughMondayISO: null, current: 0, best: 0 },
   captionTemplates: {
     tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
     instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",

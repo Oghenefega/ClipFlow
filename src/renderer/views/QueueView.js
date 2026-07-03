@@ -5,6 +5,7 @@ import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, ex
 import CaptionsView from "./CaptionsView";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
+import { localISO } from "../utils/trackerEngine";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -490,7 +491,7 @@ export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
-  platformOptions, setPlatformOptions, gamesDb,
+  platformOptions, setPlatformOptions, gamesDb, awardXp,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -640,6 +641,10 @@ export default function QueueView({
   }, []);
   const [scheduled, setScheduled] = useState({});
   const publishingRef = useRef(false);
+  // Per-platform publish results captured during this session's publish runs, keyed by
+  // clipId → platformKey → { platform, accountId, postId?, url? }. Read by logPost so
+  // tracker entries record the platforms that actually succeeded (not all connected).
+  const publishResultsRef = useRef({});
   const [publishLogs, setPublishLogs] = useState([]);
   const [showLogs, setShowLogs] = useState(false);
   const [publishProgress, setPublishProgress] = useState(null); // { stage, pct, detail }
@@ -918,6 +923,12 @@ export default function QueueView({
         } else {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
+          const postId = result?.post_id || result?.mediaId || result?.videoId || null;
+          const url = plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null;
+          publishResultsRef.current[clip.id] = {
+            ...(publishResultsRef.current[clip.id] || {}),
+            [pk]: { platform: pk, accountId: plat.key, ...(postId ? { postId } : {}), ...(url ? { url } : {}) },
+          };
         }
       } catch (err) {
         setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: err.message || "Failed" } } }));
@@ -943,7 +954,7 @@ export default function QueueView({
       const everyDone = enabledKeys.every((k) => nextPublishState[k] === "success");
       if (everyDone) {
         const now = new Date();
-        logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+        logPost(clip, localISO(now), FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
       }
     }
   };
@@ -1016,7 +1027,17 @@ export default function QueueView({
   const logPost = (clip, date, day, time, isScheduled) => {
     const gt = (clip.gameTag || extractGameTag(clip.title) || "unknown").toLowerCase();
     const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
-    setTrackerData((p) => [...p, { date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: activePlat.map((p) => p.abbr + "-" + p.name).join(", "), mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const toggles = clip.platformToggles || {};
+    const enabled = activePlat.filter((p) => { const k = accountToPlatformKey(p); return k && toggles[k] !== false; });
+    const captured = publishResultsRef.current[clip.id] || {};
+    const platformResults = enabled.map((p) => {
+      const k = accountToPlatformKey(p);
+      return captured[k] || { platform: k, accountId: p.key };
+    });
+    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: enabled.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    awardXp(`clip:${id}`, 10, "clip", date);
+    delete publishResultsRef.current[clip.id];
   };
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
@@ -1114,7 +1135,10 @@ export default function QueueView({
           });
         } else {
           console.log("Publishing not yet wired for", plat.platform);
-          setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
+          const msg = `${plat.platform} publishing isn't supported yet`;
+          setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: msg } } }));
+          nextPublishState[plat.key] = { error: msg, at: new Date().toISOString() };
+          allSuccess = false;
           continue;
         }
 
@@ -1127,6 +1151,12 @@ export default function QueueView({
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
+          const postId = result?.post_id || result?.mediaId || result?.videoId || null;
+          const url = plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null;
+          publishResultsRef.current[clip.id] = {
+            ...(publishResultsRef.current[clip.id] || {}),
+            [platKey]: { platform: platKey, accountId: plat.key, ...(postId ? { postId } : {}), ...(url ? { url } : {}) },
+          };
         }
       } catch (err) {
         console.error(`[Publish] Error for ${plat.key}:`, err);
@@ -1156,7 +1186,7 @@ export default function QueueView({
         logPost(clip, scheduleOpts.date, d?.dayName || "", tl, true);
       } else {
         const now = new Date();
-        logPost(clip, now.toISOString().split("T")[0], FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
+        logPost(clip, localISO(now), FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
       }
     }
 

@@ -13,6 +13,7 @@ import TrackerView from "./views/TrackerView";
 import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
+import { evaluateRollover } from "./utils/trackerEngine";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
@@ -134,6 +135,10 @@ export default function App() {
   // Queue / Tracker
   const [weeklyTemplate, setWeeklyTemplate] = useState(JSON.parse(JSON.stringify(DEFAULT_TEMPLATE)));
   const [trackerData, setTrackerData] = useState([]);
+  const [weeklyTarget, setWeeklyTarget] = useState(48);
+  const [weekMeta, setWeekMeta] = useState({});
+  const [xpLedger, setXpLedger] = useState([]);
+  const [streakState, setStreakState] = useState({ evaluatedThroughMondayISO: null, current: 0, best: 0 });
   const [weekTemplateOverrides, setWeekTemplateOverrides] = useState({}); // { "2026-03-02": template }
   const [savedTemplates, setSavedTemplates] = useState([]); // [{ name, template }]
   const [mainGameHistory, setMainGameHistory] = useState([]); // [{ date, from, to }]
@@ -212,6 +217,10 @@ export default function App() {
         }
         if (all.weeklyTemplate) setWeeklyTemplate(migrateTemplate(all.weeklyTemplate));
         if (all.trackerData) setTrackerData(all.trackerData);
+        if (all.weeklyTarget !== undefined) setWeeklyTarget(all.weeklyTarget);
+        if (all.weekMeta) setWeekMeta(all.weekMeta);
+        if (all.xpLedger) setXpLedger(all.xpLedger);
+        if (all.streakState) setStreakState(all.streakState);
         if (all.weekTemplateOverrides) {
           // Migrate each override
           const migrated = {};
@@ -309,6 +318,10 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("platforms", platforms); }, [platforms]);
   useEffect(() => { if (!hasLoaded.current) return; persist("weeklyTemplate", weeklyTemplate); }, [weeklyTemplate]);
   useEffect(() => { if (!hasLoaded.current) return; persist("trackerData", trackerData); }, [trackerData]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("weeklyTarget", weeklyTarget); }, [weeklyTarget]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("weekMeta", weekMeta); }, [weekMeta]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("xpLedger", xpLedger); }, [xpLedger]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("streakState", streakState); }, [streakState]);
   useEffect(() => { if (!hasLoaded.current) return; persist("weekTemplateOverrides", weekTemplateOverrides); }, [weekTemplateOverrides]);
   useEffect(() => { if (!hasLoaded.current) return; persist("savedTemplates", savedTemplates); }, [savedTemplates]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainGameHistory", mainGameHistory); }, [mainGameHistory]);
@@ -332,6 +345,29 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
   useEffect(() => { if (!hasLoaded.current) return; persist("requireHashtagInTitle", requireHashtagInTitle); }, [requireHashtagInTitle]);
+
+  // XP ledger append with idempotency — nothing is ever double-banked or removed (rank only climbs).
+  const awardXp = useCallback((key, amount, reason, dateISO) => {
+    setXpLedger((prev) => (prev.some((e) => e.key === key) ? prev : [...prev, { key, amount, reason, dateISO }]));
+  }, []);
+
+  // Lazy week rollover: evaluate completed weeks (goal bonus, streak, frozen recaps) on
+  // launch and whenever tracker data changes. evaluateRollover is pure and returns
+  // changed:false once stable, so this effect terminates.
+  useEffect(() => {
+    if (!loaded) return;
+    const res = evaluateRollover({ trackerData, weekMeta, xpLedger, streakState, weeklyTarget, mainGame, today: new Date() });
+    if (!res.changed) return;
+    setWeekMeta(res.weekMeta);
+    setStreakState(res.streakState);
+    if (res.ledgerAppends.length > 0) {
+      setXpLedger((prev) => {
+        const have = new Set(prev.map((e) => e.key));
+        const fresh = res.ledgerAppends.filter((e) => !have.has(e.key));
+        return fresh.length ? [...prev, ...fresh] : prev;
+      });
+    }
+  }, [loaded, trackerData, weekMeta, xpLedger, streakState, weeklyTarget, mainGame]);
 
   // ============ MAIN GAME SWITCH LOGGING ============
   const prevMainGame = useRef(null);
@@ -583,13 +619,15 @@ export default function App() {
               platformOptions={platformOptions}
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
+              awardXp={awardXp}
             />
           </div>
         </div>
         <div style={tabPaneStyle(view === "tracker")}>
-          <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
+          <div style={{ padding: "32px 40px", maxWidth: 960, margin: "0 auto" }}>
             <TrackerView
               mainGame={mainGame}
+              setMainGame={setMainGame}
               mainGameTag={mainGameTag}
               trackerData={trackerData}
               setTrackerData={setTrackerData}
@@ -600,6 +638,13 @@ export default function App() {
               savedTemplates={savedTemplates}
               setSavedTemplates={setSavedTemplates}
               gamesDb={gamesDb}
+              weeklyTarget={weeklyTarget}
+              setWeeklyTarget={setWeeklyTarget}
+              weekMeta={weekMeta}
+              setWeekMeta={setWeekMeta}
+              xpLedger={xpLedger}
+              awardXp={awardXp}
+              streakState={streakState}
             />
           </div>
         </div>
