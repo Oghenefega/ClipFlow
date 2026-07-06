@@ -48,7 +48,7 @@ const getWeekDates = (refDate) => {
   return DAY_NAMES.map((name, i) => {
     const x = new Date(mon);
     x.setDate(mon.getDate() + i);
-    return { dayName: name, iso: x.toISOString().split("T")[0], label: `${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}` };
+    return { dayName: name, iso: localISO(x), label: `${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}` };
   });
 };
 const getUpcomingDates = () => {
@@ -57,7 +57,7 @@ const getUpcomingDates = () => {
     const x = new Date(n); x.setDate(n.getDate() + i);
     const dn = FULL_DAY_NAMES[x.getDay()];
     if (dn === "Sunday") continue;
-    d.push({ label: `${dn} ${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}`, dayName: dn, iso: x.toISOString().split("T")[0] });
+    d.push({ label: `${dn} ${x.toLocaleString("en-US", { month: "short" })} ${x.getDate()}`, dayName: dn, iso: localISO(x) });
   }
   return d;
 };

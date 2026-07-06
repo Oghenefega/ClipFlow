@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-05 (session 95) — All dates now use Fega's local clock (#160)
+
+### Fixed
+- **Queue scheduling dates no longer shift a day in the evening (#160).** The date keys behind the schedule dropdown and the "next free slot" suggestion were stamped with the UTC calendar date (4–5 hours ahead of Eastern time), so scheduling after ~8 PM could store tomorrow's date while the label said today. They now use the local calendar date, matching the label, the fire time, and the tracker's new local-date convention — this also keeps the Queue and Tracker agreeing on which week's template override applies during evening sessions. Already-scheduled clips are unaffected. [src/renderer/views/QueueView.js]
+- **Main-game switch history dates use the local calendar too** (same UTC habit, one line). A repo-wide sweep confirms no UTC calendar-date extraction remains anywhere in the app. [src/renderer/App.js]
+
 ## [Unreleased] — 2026-07-03 (session 94) — Now Playing Tracker Phase 1 built (full Tracker tab rebuild)
 
 Implemented Wick's Fega-approved Phase 1 spec ([tasks/specs/tracker-now-playing.md]): the Tracker tab is now the "Now Playing" motivation screen from the approved mock, and publish success now writes honest per-platform data. Source-only; rides the next batched installer. Awaiting Fega's in-app verification.

@@ -13,7 +13,7 @@ import TrackerView from "./views/TrackerView";
 import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
-import { evaluateRollover } from "./utils/trackerEngine";
+import { evaluateRollover, localISO } from "./utils/trackerEngine";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
 const INITIAL_GAMES = [
@@ -376,7 +376,7 @@ export default function App() {
     if (prevMainGame.current === null) { prevMainGame.current = mainGame; return; }
     if (mainGame !== prevMainGame.current) {
       setMainGameHistory((prev) => [...prev, {
-        date: new Date().toISOString().split("T")[0],
+        date: localISO(new Date()),
         from: prevMainGame.current,
         to: mainGame,
       }]);
