@@ -1,43 +1,49 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-01 — Session 92 — **Fable restored (post-ban): reviewed all outage-era code (verdict solid, 3 fixes shipped), ran a whole-app UX audit (code sweep + live sandbox walkthrough), filed 11 issues. Clean checkpoint, no installer cut.**_
+_Last updated: 2026-07-05 — Sessions 94–95 — **Now Playing Tracker Phase 1 BUILT (Wick's spec, same-day) + all calendar dates moved to Fega's local clock (#160). Awaiting Fega's in-app verification; installer not yet cut.**_
 
 ---
 
 ## One-line TL;DR
-Fable 5 came back from the June-12 US export-control suspension; this session reviewed everything written while it was dark (26 commits, sessions 83–91 — **no critical bugs found**, 3 surgical fixes shipped in `e0037a3`) and delivered the UX audit Fega asked for: [tasks/ux-audit-2026-07-01.md](tasks/ux-audit-2026-07-01.md) with 5 criticals + live-pass addendum, and issues **#149–#159** filed.
+Fega gave the go on Wick's tracker spec and the whole Phase 1 shipped in one session (`bc973cb`): full TrackerView rebuild to the approved mock, honest per-platform publish data at the logPost seam, XP/rank/streak engines, PNG recap share — then a follow-up (`921f41f`) fixed the UTC-date class everywhere after Fega declared "I always want the time of stuff to be EST" (#160 closed `status: untested`).
 
 ## Current State
-On **0.1.8-alpha.12** installed; source is 5 commits ahead (3 fixes + report + addendum + this wrap) — all source-only, riding the next batched installer per the batch rule. Working tree: usual never-commit `data/` pair + pre-existing `tasks/mocks/` scratch. **No open in-flight task.** Sandbox dev app was used for the walkthrough and has been shut down.
+On **0.1.8-alpha.12** installed; source is now **8 commits ahead** of the installed app (sessions 90–95: Review Rail card, #148 animation fix + prior fixes, tracker rebuild, date fixes) — all riding the next batched installer. Fega asked "what's next" and said Phase 2 must be its own phase; he has NOT yet verified the tracker in-app or asked for the installer. Working tree: usual never-commit `data/` pair + `tasks/mocks/` scratch.
 
 ## What Was Just Built
-- **Post-ban code review (task 1):** full diff read of sessions 83–91 + verification greps. Cleared as sound: resolver unification, #99 style-baseline factories, ripple-delete simplification, packaged-path repairs. Fixes shipped: `_chunkPending` guard (deleted subtitles can't resurrect via mode switch), ClipRow transcript `useMemo`, dead `animateSpeed` branch removal.
-- **UX audit (task 2):** 6 parallel per-view auditors + main-session verification of every headline claim (2 false positives killed: the degrade-ask modal exists at App.js:730; the #139 badge logic is consistent). Then a live computer-use walkthrough of the sandbox app: confirmed C1 contrast, raw publish errors in the Publish Log, button-focus-OK/input-focus-broken nuance, approve/reject snappiness, editor health — and found 2 new bugs live (#158 mode round-trip merge-across-pauses, #159 stale clip count).
-- **Issues filed:** #149 sub2 cleanup; #150 silent rename; #151 silent render failure; #152 project delete no-confirm; #153 fresh-install watcher lies (commercial-launch); #154 past-time scheduling; #155 FB token refresh; #156 single-instance lock (commercial-launch); #157 inert Download button; #158 mode round trip; #159 clip count.
+- **Now Playing Tracker Phase 1** (spec: [tasks/specs/tracker-now-playing.md](tasks/specs/tracker-now-playing.md), all Fega-locked decisions honored):
+  - `src/renderer/views/TrackerView.js` — full rebuild (1,000 lines): NOW PLAYING banner + game switcher (sets `mainGame`), editable weekly target (raise-always / lower-below-posted-blocked), pace ring + by-today tick, rank card, stakes bar (behind/safe/streak-over states), Mon–Sat day columns, log/detail popovers (platform picker; "View post" links via `openExternal`), compact template mini-editor overlay (full-page edit mode retired), recap card + PNG share, CSV keeps a new `PlatformResults` JSON column.
+  - `src/renderer/utils/trackerEngine.js` — pure logic: `rankForXp` (15 rungs × 320 XP), `paceInfo`, `computeRecap`, `localISO`, and `evaluateRollover` (lazy, idempotent: banks `goal-bonus:<mondayISO>` once, hard-resets streak on miss, freezes `weekMeta[monday] = {target, nowPlaying, outcome, recap}`, self-heals backdated missed→hit, syncs current week's `nowPlaying` with `mainGame`). 41-assertion test passed (scratchpad, session-local).
+  - `src/renderer/utils/recapCardImage.js` — recap PNG drawn by hand on canvas at 2× (no html2canvas dep, no font-embedding risk); save via anchor download + clipboard copy.
+  - `src/renderer/views/QueueView.js` — keystone seam fix: `publishResultsRef` captures per-platform postIds/urls in BOTH publish loops; `logPost` writes `id` + `platformResults` + truthful legacy `platforms` string (enabled accounts, was ALL connected) + awards 10 XP (`clip:<id>` idempotency key); the `:1115` unwired-platform hole now fails loudly instead of faking success.
+  - `src/renderer/App.js` + `src/main/main.js` — new persisted state (`weeklyTarget`, `weekMeta`, `xpLedger`, `streakState`) via STORE_DEFAULTS + persist effects; `awardXp` (idempotent append — ledger is never rewound); rollover effect on `[trackerData, weekMeta, …]`; tracker pane 860→960.
+- **Local-date fix (#160 + the class):** every user-facing calendar date now uses `localISO()` (local clock), not `toISOString()` UTC — tracker entry dates, Queue scheduling keys (`getWeekDates`/`getUpcomingDates`), `mainGameHistory`. Repo grep confirms zero UTC calendar-date extractions remain in `src/`.
+- **Wick notified:** build report + Phase 2 handoff written to his vault inbox (`Obsidian Vault/The Lab/Businesses/ClipFlow/Wick/inbox.md`, pending item dated 2026-07-05).
 
 ## Key Decisions
-- **Outage-era code needed no rework** — review found quality consistent with pre-ban sessions; only 3 small findings actioned.
-- **Bugs filed autonomously; design improvements NOT filed** — they sit in the report's Important/Suggestions lists awaiting Fega's triage (avoid backlog spam; he picks what becomes issues).
-- **#158 confirmed pre-existing, NOT caused by this session's `_chunkPending` fix** — the round-trip path re-chunks from populated editSegments (#89 flow, untouched); the fresh-open path the fix gates produced correct grouping live.
-- **Live generate run + schedule-confirm dialog deliberately skipped** — a multi-minute CPU run for marginal signal, and the sandbox queue was empty. Offer stands for a follow-up.
-- **Hover-to-play (locked Review Rail spec) was never implemented** — shipped card is click-to-play. Folded into the Projects-tab finish work, not a separate issue.
+- **Goal bonus banks at ROLLOVER only** (spec authority over the mock's instant-add); UI copy says "locks in at week's end." Rank math reads the ledger ONLY — never recomputed from weekly percent.
+- **No retroactive evaluation:** first run initializes `evaluatedThroughMondayISO` to last Monday, so pre-feature history earns nothing (locked decision 7 — XP starts at zero, streak builds from now).
+- **Recap PNG = hand-drawn canvas**, not html2canvas/html-to-image — zero new deps, fonts guaranteed (document fonts are canvas-usable), works packaged.
+- **Coder's calls on spec-open points:** Calendar pill disabled+"soon" (not hidden); target edit updates both week snapshot AND default; post-link URLs only where derivable (YouTube); others store postId only.
+- **#160 fixed as a follow-up commit, not bundled** — scheduling behavior deserved its own reviewable change; already-scheduled clips unaffected (stored `scheduledAt` strings untouched, parsed as local-naive).
+- **Delegation model worked:** 3 Sonnet subagent chunks against exact contracts, main-session line-by-line review caught 2 real integration bugs (UTC week-key mismatch, frozen mount-time clock) — the review pass is not optional.
 
 ## Next Steps (prioritized)
-1. **Fega triage:** the report's design-improvement lists + 3 product questions (karaoke `subMode` plumbing — unshipped feature or prune; thumbs up/down QA tool in shipped topbar; Download button fate → #157).
-2. **"Silent failures + confirmations" fix batch:** #150/#151/#152 (+#153's status card) are one coherent sweep — a shared error-toast + confirm/undo pattern, then cut an installer so Fega gets the review fixes too.
-3. **Finish the Projects tab** (deferred Review Rail chrome): premium header + width-capped column + hover-to-play + make the REVIEW pill clickable (or restyle as status).
-4. **#158** merge-across-pauses round trip — Fega's most-hated regression class, now with an exact repro.
-5. Older backlog picks: #69 trim toggle, #7 projects search, #128 scrub frame-skip, #114 line-break parity, #135 caption corner handles.
+1. **Fega's tracker verification** (spec §Verification, ~10 min in-app) — needs the installer first since he tests on the daily build: cut on his "update the launcher" (8 commits queued; batch threshold effectively met).
+2. **Phase 2 — Calendar view:** design session FIRST (Wick owns it; no mock/decisions exist yet). Phase 1 ships all data it needs (frozen `weekMeta` snapshots, `platformResults`, `mainGameHistory`, `streakState`). Fega: build it as its own phase.
+3. **Silent-failures batch** #150/#151/#152 (+#153 status card) — shared error-toast + confirm/undo sweep (session-92 plan).
+4. **Projects tab finish:** premium header + width-capped column + hover-to-play + REVIEW pill (session-92 carryover).
+5. **#158** merge-across-pauses round trip (exact repro in session-92 HANDOFF).
 
 ## Watch Out For
-- **Fega tests on the INSTALLED daily build** — reaching him = cut an installer (memory `feedback_test_on_daily_build`). Five source-only commits are queued up for the next cut.
-- **The dev sandbox shares REAL files:** `dev:seed` copies settings, so the dev profile's watch/output folders point at the real `W:\` recordings. The DB is isolated; the files are NOT — never click Rename/delete/render-to-output in the dev app during walkthroughs.
-- **#158 lives in `setSegmentMode`'s word-stream rebuild + `segmentWords` 1-word end-time assignment** — do not confuse with the adjacent new `_chunkPending` guard (verified unrelated).
-- **`package.json` silent-strip gotcha** ([[project_package_json_strip]]) — check `scripts`/`build`/`devDependencies` exist if builds break; restore from HEAD.
-- **`ProjectsView.js` is CRLF** — single-line Edit anchors only (or Node patch script). Worked cleanly this session with a single-line edit.
+- **XP ledger is append-only by design** — never "fix" a wrong award by removing entries; add compensating logic instead. Idempotency keys: `clip:<entryId>`, `goal-bonus:<mondayISO>`.
+- **Old tracker entries have no `id` and no `platformResults`** — removal falls back to date/time/game matching; recap counts them in clip totals only. Don't backfill (decided: no migration, "platforms unknown").
+- **Calendar dates: LOCAL only** (`localISO`), never `toISOString().split` — new memory `user_timezone_est` + clipflow-code-review checklist line. Full ISO instants (e.g. `publishState[].at`) stay as-is.
+- **`evaluateRollover` runs in a useEffect keyed on its own outputs** — it MUST return `changed:false` when stable or App loops. Any engine edit needs the scratchpad test rerun (`engine-test.mjs` — session-local temp; rewrite from the engine's JSDoc if gone).
+- **Tab panes stay mounted** (display-toggled) — the Queue scheduler ticks on any tab; TrackerView now has a 60s clock tick for the same reason.
+- **`package.json` silent-strip gotcha** ([[project_package_json_strip]]) — check 99 lines if builds break.
 
 ## Logs / Debugging
-- **Builds:** `npm run build:renderer` clean twice this session (2741 modules, ~16s, 0 errors; >500 kB chunk warning is the standing ignorable one).
-- **Computer-use on ClipFlow (new knowledge):** request `"ClipFlow"` for the installed exe, `"electron.exe"` for the dev instance. Requesting `"Electron"` is unresolvable and SHORT-CIRCUITS the whole permission request — the dialog never shows and the call times out after 300s (this burned two 5-minute timeouts before diagnosis). Memory updated (`feedback_no_windows_mcp` superseded, new `project_computer_use_app_names`).
-- **Audit method that worked:** parallel Sonnet auditors per view returning file:line claims → main-session verification of every headline claim before reporting. Two false positives caught this way — do not skip the verify pass.
-- **Live repro numbers for #158:** "it" (00:06.4–00:07.1) + "hello" (00:08.1–00:08.9) → merged "it hello" (00:06.4–00:09.7) after 3w→1w→3w; "go home" 0.8s→1.6s. Ctrl+Z ×2 restores.
-- **App log:** `%APPDATA%\clipflow\logs\app.log` (dev profile: `%APPDATA%\clipflow-dev\logs\app.log`).
+- **Builds:** `npm run build:renderer` clean ×3 across the two sessions (~10–14s; standing >500 kB chunk warning). `node --check src/main/main.js` clean. `npm start` boots clean — renderer alive (preview generation ran), no errors in `%APPDATA%\clipflow\logs\app.log`.
+- **GPU-cache "Access is denied" spam on `npm start`** = second instance sharing the prod profile's cache with the installed app — pre-existing noise, not a regression.
+- **Computer-use:** Fega DENIED the request this session (wanted to eyeball it himself) — don't assume the session-92 approval repeats.
+- **Engine test:** 41 assertions covering rank boundaries, Sunday week-attribution, pace thresholds, rollover idempotency, streak reset, backdated self-heal — pattern worth repeating for any pure-logic module.

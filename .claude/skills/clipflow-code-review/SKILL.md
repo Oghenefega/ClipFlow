@@ -82,6 +82,7 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 ## Distilled Lessons (process — write/done time)
 
+- **Calendar dates are LOCAL (Fega is EST), never `toISOString()`.** `toISOString().split("T")[0]` stamps the UTC date — 4–5h ahead, so evening actions get dated *tomorrow* (Sunday nights: *next week*). Any user-facing date written to state (tracker entries, schedule keys, history logs) must use `localISO()` from `src/renderer/utils/trackerEngine.js` or local `getFullYear/getMonth/getDate` formatting. Full ISO *timestamps* stored as instants are fine — the rule is about extracting calendar DATES. Grep `toISOString().split` before shipping date-touching code (#160, sessions 94–95; memory `user_timezone_est`).
 - **"Done means audited."** When a fix is confirmed working, BEFORE pivoting to the next task: re-read the actual shipped diff (not a summary), re-read logs from the successful run (double-fires, new warnings), trace edge cases the test didn't hit, grep for scaffolding left behind, and state the root cause in one plain sentence. File any separate issues found.
 - **Never mark a task DONE until the user confirms.** Mark "awaiting verification" at most. If they go quiet for a couple sessions, proactively ask "did X work?"
 - **Batch related fixes.** Read ALL affected files first, diagnose ALL root causes, implement together, build once — don't fix-one/rebuild/repeat.
