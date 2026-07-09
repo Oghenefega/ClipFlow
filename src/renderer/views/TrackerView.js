@@ -11,6 +11,7 @@ const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const PLATFORM_KEYS = ["tiktok", "youtube", "instagram", "facebook"];
 const PLATFORM_LABELS = { tiktok: "TikTok", youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" };
+const PLATFORM_BRAND_COLORS = { tiktok: "#00f2ea", youtube: "#FF0000", instagram: "#E1306C", facebook: "#1877F2" };
 
 const getWeekDates = (refDate) => {
   const d = new Date(refDate);
@@ -161,6 +162,8 @@ export default function TrackerView({
   // ---------- game switcher popover ----------
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
+  const pickerBtnRef = useRef(null);
+  const [pickerPos, setPickerPos] = useState(null);
   useEffect(() => {
     if (!pickerOpen) return;
     const onClick = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickerOpen(false); };
@@ -168,6 +171,11 @@ export default function TrackerView({
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+  }, [pickerOpen]);
+  useLayoutEffect(() => {
+    if (!pickerOpen || !pickerBtnRef.current) { setPickerPos(null); return; }
+    const r = pickerBtnRef.current.getBoundingClientRect();
+    setPickerPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
   }, [pickerOpen]);
 
   const switchGame = (g) => {
@@ -465,7 +473,7 @@ export default function TrackerView({
         marginBottom: 18, minHeight: 148, display: "flex", alignItems: "center", gap: 22, padding: "26px 28px",
         background: `radial-gradient(120% 140% at 8% 18%, ${gameColor}33 0%, transparent 55%), linear-gradient(105deg, ${gameColor}4d 0%, ${gameColor}0d 42%, rgba(17,18,24,0) 70%), ${T.surface}`,
       }}>
-        <button onClick={() => setPickerOpen((o) => !o)} style={{
+        <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
           position: "absolute", top: 18, right: 18, zIndex: 3, display: "flex", alignItems: "center", gap: 7,
           background: "rgba(10,11,16,0.55)", backdropFilter: "blur(6px)", border: `1px solid ${T.borderHover}`, color: T.text,
           fontFamily: T.font, fontSize: 11, fontWeight: 600, padding: "8px 13px", borderRadius: T.radius.md, cursor: "pointer",
@@ -474,10 +482,10 @@ export default function TrackerView({
           Switch game
         </button>
 
-        {pickerOpen && (
+        {pickerOpen && pickerPos && (
           <div ref={pickerRef} style={{
-            position: "absolute", top: 54, right: 18, zIndex: 20, width: 300, background: "#0d0e15",
-            border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 10, boxShadow: "0 18px 50px rgba(0,0,0,0.6)",
+            position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 20, width: 300, maxHeight: 340, overflowY: "auto",
+            background: "#0d0e15", border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg, padding: 10, boxShadow: "0 18px 50px rgba(0,0,0,0.6)",
           }}>
             <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, padding: "4px 6px 9px" }}>What are you playing this week</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -654,16 +662,29 @@ export default function TrackerView({
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             const isFuture = todayIdx >= 0 ? di > todayIdx : false;
-            const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso).slice().sort((a, b) => {
-              const ta = effectiveTemplate.timeSlots.indexOf(a.time);
-              const tb = effectiveTemplate.timeSlots.indexOf(b.time);
-              const ma = ta >= 0 ? parseTimeToMinutes(effectiveTemplate.timeSlots[ta]) : parseTimeToMinutes(a.time || "12:00 AM");
-              const mb = tb >= 0 ? parseTimeToMinutes(effectiveTemplate.timeSlots[tb]) : parseTimeToMinutes(b.time || "12:00 AM");
-              return (isNaN(ma) ? 0 : ma) - (isNaN(mb) ? 0 : mb);
-            });
-            const usedTimes = new Set(dayEntries.map((e) => (e.time || "").replace(/\s/g, "")));
+            const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso);
+            const norm = (t) => (t || "").replace(/\s/g, "");
+            const safeMinutes = (t) => { const m = parseTimeToMinutes(t || "12:00 AM"); return isNaN(m) ? 0 : m; };
             const templateSlots = effectiveTemplate.timeSlots || [];
-            const openSlots = (isToday || (!isFuture)) ? templateSlots.filter((s) => !usedTimes.has(s.replace(/\s/g, ""))) : [];
+            const sortedSlots = templateSlots.slice().sort((a, b) => safeMinutes(a) - safeMinutes(b));
+            const canLog = isToday || !isFuture;
+            const slotTimesNorm = new Set(sortedSlots.map(norm));
+
+            // Merge template slots (filled by a matching entry, or an open "+" tile) with any
+            // entries whose time doesn't land on a template slot, into one time-ordered list.
+            const dayRows = [];
+            sortedSlots.forEach((slot) => {
+              const matches = dayEntries.filter((e) => norm(e.time) === norm(slot));
+              if (matches.length > 0) {
+                matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
+              } else if (canLog) {
+                dayRows.push({ type: "slot", time: slot, minutes: safeMinutes(slot) });
+              }
+            });
+            dayEntries.filter((e) => !slotTimesNorm.has(norm(e.time))).forEach((entry) => {
+              dayRows.push({ type: "entry", entry, minutes: safeMinutes(entry.time) });
+            });
+            dayRows.sort((a, b) => a.minutes - b.minutes);
 
             return (
               <div key={d.iso} style={{
@@ -678,31 +699,36 @@ export default function TrackerView({
                 {isToday && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.1em", color: T.accent, fontWeight: 700, display: "block", padding: "0 4px 8px" }}>Today</span>}
                 {isFuture && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textTertiary, fontWeight: 600, display: "block", padding: "0 4px 8px" }}>Upcoming</span>}
 
-                {dayEntries.map((entry, i) => {
-                  const gd = resolveGameDisplay(entry.game);
-                  const isAuto = entry.source === "clipflow";
+                {dayRows.map((row, i) => {
+                  if (row.type === "entry") {
+                    const entry = row.entry;
+                    const gd = resolveGameDisplay(entry.game);
+                    const isAuto = entry.source === "clipflow";
+                    return (
+                      <div key={entry.id || `${entry.date}-${entry.time}-${i}`}
+                        onClick={(e) => openDetailPopover(entry, e.currentTarget.getBoundingClientRect())}
+                        style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer" }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.background = T.surfaceHover; ev.currentTarget.style.borderColor = T.borderHover; }}
+                        onMouseLeave={(ev) => { ev.currentTarget.style.background = "rgba(255,255,255,0.03)"; ev.currentTarget.style.borderColor = T.border; }}
+                      >
+                        <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
+                        <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(entry.time)}</span>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: isAuto ? T.cyan : "#fff", boxShadow: isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.35)" }} />
+                      </div>
+                    );
+                  }
                   return (
-                    <div key={entry.id || `${entry.date}-${entry.time}-${i}`}
-                      onClick={(e) => openDetailPopover(entry, e.currentTarget.getBoundingClientRect())}
-                      style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer" }}
-                      onMouseEnter={(ev) => { ev.currentTarget.style.background = T.surfaceHover; ev.currentTarget.style.borderColor = T.borderHover; }}
-                      onMouseLeave={(ev) => { ev.currentTarget.style.background = "rgba(255,255,255,0.03)"; ev.currentTarget.style.borderColor = T.border; }}
+                    <div key={`slot-${row.time}`}
+                      onClick={(e) => openLogPopover(d.iso, d.dayName, row.time, e.currentTarget.getBoundingClientRect())}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer", color: T.textMuted, minHeight: 25 }}
+                      onMouseEnter={(ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; }}
+                      onMouseLeave={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; }}
                     >
-                      <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
-                      <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(entry.time)}</span>
-                      <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: isAuto ? T.cyan : "#fff", boxShadow: isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.35)" }} />
+                      <span style={{ fontSize: 13, lineHeight: 1, color: "inherit" }}>+</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 9, color: "inherit", marginLeft: "auto" }}>{shortSlot(row.time)}</span>
                     </div>
                   );
                 })}
-
-                {openSlots.map((slot) => (
-                  <div key={slot}
-                    onClick={(e) => openLogPopover(d.iso, d.dayName, slot, e.currentTarget.getBoundingClientRect())}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: 5, marginBottom: 5, cursor: "pointer", color: T.textMuted, fontSize: 14, minHeight: 25 }}
-                    onMouseEnter={(ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; }}
-                    onMouseLeave={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; }}
-                  >+</div>
-                ))}
               </div>
             );
           })}
@@ -721,31 +747,32 @@ export default function TrackerView({
 
       {/* Recap card */}
       <div style={{
-        position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden", padding: "26px 28px",
+        position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden", padding: "24px 24px 22px",
+        maxWidth: 340, display: "flex", flexDirection: "column", gap: 16,
         background: `radial-gradient(110% 130% at 92% 100%, ${gameColor}29 0%, transparent 58%), linear-gradient(115deg, ${gameColor}38 0%, ${gameColor}0a 50%, transparent 78%), ${T.surface}`,
       }}>
         {goalReached && (
-          <div style={{ display: "flex", alignItems: "center", gap: 9, background: `linear-gradient(90deg, ${gameColor}1f, transparent)`, border: `1px solid ${gameColor}`, borderRadius: T.radius.md, padding: "9px 14px", marginBottom: 14, fontSize: 12, fontWeight: 600, color: gameColor }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 13l4 4L19 7" /></svg>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, background: `linear-gradient(90deg, ${gameColor}1f, transparent)`, border: `1px solid ${gameColor}`, borderRadius: T.radius.md, padding: "9px 14px", fontSize: 12, fontWeight: 600, color: gameColor }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" style={{ flexShrink: 0 }}><path d="M5 13l4 4L19 7" /></svg>
             Goal reached. Bonus XP banks at week's end. This recap is ready to post.
           </div>
         )}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Weekly recap {"·"} shareable</div>
-            <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15, maxWidth: 480 }}>
-              I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.textSecondary, letterSpacing: "0.02em", flexShrink: 0 }}>
-            <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
-            </span>
-            Flowve
+
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Weekly recap {"·"} shareable</div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+            I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.textSecondary, letterSpacing: "0.02em" }}>
+          <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
+          </span>
+          Flowve
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {PLATFORM_KEYS.map((key) => (
             <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 14px" }}>
               <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
@@ -756,27 +783,26 @@ export default function TrackerView({
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-            <Pill><span style={{ color: T.accent, fontSize: 11 }}>{"▲"}</span>{streakState?.current || 0}-week streak</Pill>
-            <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: T.tiers[rank.tier] }} />{rank.name}</Pill>
-            <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{mainGame}</Pill>
-          </div>
-          <button onClick={handleShare} disabled={shareState === "saving"} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: shareState === "copied" || shareState === "saved" ? T.green : T.text,
-            color: shareState === "copied" || shareState === "saved" ? "#06281b" : "#0a0b10",
-            border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: "11px 18px", borderRadius: T.radius.md,
-            cursor: shareState === "saving" ? "default" : "pointer", transition: "background 0.18s",
-          }}>
-            {shareState === "copied" || shareState === "saved" ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 13l4 4L19 7" /></svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
-            )}
-            {shareState === "copied" ? "Saved — copied to clipboard" : shareState === "saved" ? "Saved" : shareState === "saving" ? "Saving…" : "Share recap"}
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+          <Pill><span style={{ color: T.accent, fontSize: 11 }}>{"▲"}</span>{streakState?.current || 0}-week streak</Pill>
+          <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: T.tiers[rank.tier] }} />{rank.name}</Pill>
+          <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{mainGame}</Pill>
         </div>
+
+        <button onClick={handleShare} disabled={shareState === "saving"} style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
+          background: shareState === "copied" || shareState === "saved" ? T.green : T.text,
+          color: shareState === "copied" || shareState === "saved" ? "#06281b" : "#0a0b10",
+          border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: "11px 18px", borderRadius: T.radius.md,
+          cursor: shareState === "saving" ? "default" : "pointer", transition: "background 0.18s",
+        }}>
+          {shareState === "copied" || shareState === "saved" ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 13l4 4L19 7" /></svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
+          )}
+          {shareState === "copied" ? "Saved — copied to clipboard" : shareState === "saved" ? "Saved" : shareState === "saving" ? "Saving…" : "Share recap"}
+        </button>
       </div>
 
       <div style={{ height: 60 }} />
@@ -806,13 +832,16 @@ export default function TrackerView({
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {PLATFORM_KEYS.map((key) => {
                   const on = logSelectedPlatforms.includes(key);
+                  const brand = PLATFORM_BRAND_COLORS[key];
                   return (
-                    <button key={key} onClick={() => togglePlatform(key)} style={{
-                      display: "flex", alignItems: "center", gap: 5, background: on ? T.accentDim : T.surfaceHover,
-                      border: `1px solid ${on ? T.accentBorder : T.border}`, color: on ? T.accentLight : T.textSecondary,
-                      fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "5px 8px", borderRadius: 999, cursor: "pointer",
+                    <button key={key} onClick={() => togglePlatform(key)} title={PLATFORM_LABELS[key]} style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: on ? `${brand}40` : T.surfaceHover,
+                      border: `1px solid ${on ? brand : T.border}`,
+                      fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "7px 10px", borderRadius: 999, cursor: "pointer",
+                      transition: "background 0.15s, border-color 0.15s",
                     }}>
-                      <PlatformIcon platform={key} size={11} />
+                      <PlatformIcon platform={key} size={14} style={{ opacity: on ? 1 : 0.45 }} />
                     </button>
                   );
                 })}
@@ -834,15 +863,28 @@ export default function TrackerView({
                     </div>
                   </div>
                   {entry.platformResults && entry.platformResults.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 10 }}>
-                      {entry.platformResults.map((row, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: T.textSecondary, fontWeight: 500, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 6 }}><PlatformIcon platform={row.platform} size={12} />{PLATFORM_LABELS[row.platform] || row.platform}</span>
-                          {row.url && (
-                            <span onClick={() => window.clipflow?.openExternal?.(row.url)} style={{ color: T.accentLight, cursor: "pointer", fontSize: 10, fontWeight: 600 }}>View post {"↗"}</span>
-                          )}
-                        </div>
-                      ))}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                      {entry.platformResults.map((row, i) => {
+                        const label = PLATFORM_LABELS[row.platform] || row.platform;
+                        return row.url ? (
+                          <span key={i} onClick={() => window.clipflow?.openExternal?.(row.url)} title={`${label} · view post`} style={{
+                            position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+                            width: 30, height: 30, borderRadius: 8, cursor: "pointer",
+                            background: T.accentDim, border: `1px solid ${T.accentBorder}`,
+                          }}>
+                            <PlatformIcon platform={row.platform} size={16} />
+                            <span style={{ position: "absolute", bottom: -3, right: -3, width: 12, height: 12, borderRadius: "50%", background: "#0d0e15", color: T.accentLight, fontSize: 8, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>{"↗"}</span>
+                          </span>
+                        ) : (
+                          <span key={i} title={label} style={{
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            width: 30, height: 30, borderRadius: 8, opacity: 0.6,
+                            background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
+                          }}>
+                            <PlatformIcon platform={row.platform} size={16} />
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : entry.platforms ? (
                     <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 10 }}>{entry.platforms}</div>
