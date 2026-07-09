@@ -6,48 +6,27 @@
 
 ---
 
-## ACTIVE PLAN — Now Playing Tracker rebuild, Phase 1 (BUILT — awaiting Fega's in-app verification)
+## SHIPPED — Now Playing Tracker rebuild, Phase 1 (VERIFIED by Fega in dev, 2026-07-09)
 
-**Status:** ✅ IMPLEMENTED in session 94 (2026-07-03), same day Fega gave the go. All 5 build
-stages shipped source-only (no installer cut — batch rule): keystone logPost data fix +
-`:1115` allSuccess fix + manual platform picker, settings-store state + pure XP/streak/pace
-engine (`src/renderer/utils/trackerEngine.js`, 41-assertion sanity test passing), full
-TrackerView rebuild to the mock, popovers + compact template mini-editor overlay, recap PNG
-share (hand-drawn canvas, no new deps). Build clean, app boots clean. Two integration fixes
-found in main-session review and applied: local-vs-UTC date alignment (view/engine/logPost —
-evening publishes were dated tomorrow) and a live minute-tick clock (pane stays mounted across
-midnight). Filed #160 for the same UTC flaw in the Queue's *scheduling* keys (out of scope
-here). **Next: Fega runs the spec's plain-English verification script (~10 min), then this
-plan collapses to a SHIPPED line.** Original spec pointer below.
-
-**Read the full spec first:**
-`tasks/specs/tracker-now-playing.md` — it contains the verified code anchors (all
-adversarially confirmed against this repo), locked decisions, engines, file impact, build
-order, and Fega's plain-English verification script. The visual target is the clickable mock
-at `Desktop\ClipFlow stuff\Tracker Redesign\tracker-now-playing.html` (mock = look;
-spec = behavior; several mock behaviors are explicitly fiction — see spec).
-
-**One-paragraph summary:** Replace TrackerView with the "Now Playing" design: editable weekly
-target (decoupled from the template cell-count that fakes "48" today), pace-colored goal ring,
-permanent only-climbs XP rank (starts at zero), hard-reset streak with stakes line, day-column
-week log, shareable weekly recap rendered to PNG. Keystone data fix at the `logPost` seam
-(QueueView.js:1016): record the platforms that ACTUALLY succeeded + post IDs on each tracker
-entry (today's `platforms` field lists all connected accounts — a lie the recap would inherit).
-Phase 2 (separate spec, design session pending) = the Calendar view; Phase 1 ships the data
-it needs.
-
-**Build order (detail in spec):** 1) logPost data fix + :1115-1118 allSuccess fix + manual
-platform picker, 2) store state + XP/streak/pace pure-logic module, 3) TrackerView rebuild,
-4) popovers + template mini-editor overlay, 5) recap PNG share, 6) build + in-app verify +
-Fega's script.
+Built sessions 94–95 (`bc973cb` + `921f41f`, spec `tasks/specs/tracker-now-playing.md`).
+**Session 96 (2026-07-09): Fega ran the verification script in the dev build — 6 of 7 checks
+pass.** His 7 findings were all fixed same-session (`4eafac9` + `6f3b791`): switch-game popover
+un-clipped from the banner (position:fixed + scroll), day columns rebuilt as a real time grid
+with time labels on empty "+" slots, brand-color platform toggles, compact icon row in the
+clip detail popover, portrait recap card + 1080×1920 story-format share PNG, "TODAY" label
+removed, watermark Flowve→ClipFlow (spec override, memory `project_recap_watermark_clipflow`).
+XP stays only-climbs (Fega re-confirmed the locked decision). **Still open: verification
+check 3 — publish a REAL clip through the Queue** (ring +1, +10 XP, live post links from
+`platformResults`) — waits until Fega next has a post ready; fold into that session.
+Source-only, rides the next batched installer.
 
 ---
 
-## QUEUED — Now Playing Tracker, Phase 2: Calendar view (spec READY, design locked 2026-07-09)
+## NEXT — Now Playing Tracker, Phase 2: Calendar view (spec READY, design locked 2026-07-09)
 
-**Gate:** start this build AFTER Fega runs the Phase 1 verification script above (Phase 2 renders
-Phase 1's data; verify the foundation before building the window onto it). If Fega explicitly says
-to build anyway, proceed.
+**Gate: SATISFIED 2026-07-09** — Fega verified Phase 1 in the dev build (6/7 checks; only the
+real-publish check remains, which doesn't block Phase 2 since the Calendar renders data Phase 1
+already writes). Start this build next session on Fega's go.
 
 **Read the full spec first:** `tasks/specs/tracker-calendar.md` — locked decisions, verified code
 anchors (checked against this repo 2026-07-09), behavior details, build order, and Fega's ~5-min

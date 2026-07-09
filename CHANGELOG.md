@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-09 (session 96) — Tracker Phase 1 verified in dev + verification fixes
+
+Fega ran the Phase 1 verification script in the dev build (6 of 7 checks pass — the last one, publishing a real clip through the Queue, waits until he has a post ready). Everything he flagged was fixed same-session. Source-only; rides the next batched installer.
+
+### Fixed
+- **Switch-game popover no longer cut off at two games.** The popover was rendered inside the Now Playing banner, which crops anything past its edge — so only the first row of games survived. It now floats above the banner (and scrolls if the game list ever outgrows it), showing every game. [src/renderer/views/TrackerView.js]
+- **Day columns are now a real top-to-bottom time schedule.** Logged clips used to float to the top of the day regardless of their time, and the empty "+" slots carried no time label — so clicking what looked like the 9:30 PM slot could actually log 1:30 PM. Every empty slot now shows its time, and clips sit in their own time's row. [src/renderer/views/TrackerView.js]
+
+### Changed
+- **Log-a-clip platform toggles are unmistakable.** Selected platforms light up in that platform's own brand color (TikTok teal, YouTube red, Instagram pink, Facebook blue); unselected ones are clearly dimmed. Previously both states were near-identical purple tints. [src/renderer/views/TrackerView.js]
+- **Clip detail popover platforms compacted to an icon row.** The four full-width platform rows are now one row of small icons — icons with a real post link carry a ↗ corner badge and open the post on click. The popover is visibly shorter. [src/renderer/views/TrackerView.js]
+- **Recap card is portrait, and Share saves a 1080×1920 story image.** The on-page card reshaped to an upright column (2×2 platform grid, full-width Share button), and the shared PNG is now the exact shape of a TikTok/Instagram story instead of a wide 880×360 banner — postable as-is. [src/renderer/views/TrackerView.js, src/renderer/utils/recapCardImage.js]
+- **Recap watermark reads "ClipFlow", not "Flowve"** (Fega's call, overriding the Phase 1 spec) on both the on-page card and the shared PNG. The redundant "TODAY" text under today's column header was also removed — it pushed today's slots out of alignment with the other days, and the purple column highlight already marks today. [src/renderer/views/TrackerView.js, src/renderer/utils/recapCardImage.js]
+
 ## [Unreleased] — 2026-07-05 (session 95) — All dates now use Fega's local clock (#160)
 
 ### Fixed
