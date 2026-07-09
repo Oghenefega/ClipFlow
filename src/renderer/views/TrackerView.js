@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
+import TrackerCalendar from "./TrackerCalendar";
 import {
   ledgerTotal, rankForXp, weekEntries, paceInfo, computeRecap, localISO, addDaysISO,
   XP_PER_CLIP,
 } from "../utils/trackerEngine";
 import { renderRecapPng, downloadBlob, copyBlobToClipboard } from "../utils/recapCardImage";
+import { streakByWeek } from "../utils/trackerCalendarModel";
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -60,7 +62,10 @@ export default function TrackerView({
   weekMeta, setWeekMeta,
   xpLedger, awardXp,
   streakState,
+  scheduledClips,
 }) {
+  // Tracker sub-view: Phase 1 "This week" vs Phase 2 read-only "Calendar".
+  const [subView, setSubView] = useState("week");
   // Live clock: the tab pane stays mounted from app launch, so a frozen Date would
   // keep highlighting yesterday after midnight. Tick once a minute.
   const [now, setNow] = useState(() => new Date());
@@ -95,6 +100,11 @@ export default function TrackerView({
   const prevMonday = addDaysISO(monday, -7);
   const prevWeekOutcome = weekMeta?.[prevMonday]?.outcome;
   const streakOverVariant = prevWeekOutcome === "missed" && posted < target;
+  // Context for the calm "streak lost" stakes state (Phase 2 decision 10): how long the
+  // ended streak was, and what last week actually posted against its frozen target.
+  const lostStreakLen = useMemo(() => (streakByWeek(weekMeta)[prevMonday]?.lostStreak || 0), [weekMeta, prevMonday]);
+  const prevWeekPosted = useMemo(() => weekEntries(trackerData, prevMonday).length, [trackerData, prevMonday]);
+  const prevWeekTarget = weekMeta?.[prevMonday]?.target ?? weeklyTarget;
 
   const effectiveTemplate = weekTemplateOverrides?.[monday] || weeklyTemplate;
   const hasOverride = !!(weekTemplateOverrides?.[monday]);
@@ -442,11 +452,8 @@ export default function TrackerView({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 4 }}>
-            <button style={{ background: T.surfaceHover, border: "none", color: T.text, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>This week</button>
-            <button disabled title="Calendar view — coming in Phase 2" style={{ background: "none", border: "none", color: T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "default", display: "flex", alignItems: "center", gap: 6 }}>
-              Calendar
-              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted, background: "rgba(255,255,255,0.05)", padding: "2px 5px", borderRadius: 999 }}>soon</span>
-            </button>
+            <button onClick={() => setSubView("week")} style={{ background: subView === "week" ? T.surfaceHover : "none", border: "none", color: subView === "week" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>This week</button>
+            <button onClick={() => setSubView("calendar")} style={{ background: subView === "calendar" ? T.surfaceHover : "none", border: "none", color: subView === "calendar" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>Calendar</button>
           </div>
           <button onClick={exportCSV} style={ghostBtnStyle}>Export</button>
           <button onClick={() => fileRef.current?.click()} style={ghostBtnStyle}>Import</button>
@@ -454,6 +461,19 @@ export default function TrackerView({
         </div>
       </div>
 
+      {subView === "calendar" && (
+        <TrackerCalendar
+          trackerData={trackerData}
+          weekMeta={weekMeta}
+          streakState={streakState}
+          gamesDb={gamesDb}
+          scheduledClips={scheduledClips}
+          now={now}
+          onOpenThisWeek={() => setSubView("week")}
+        />
+      )}
+
+      {subView === "week" && (<>
       {/* Week strip */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
@@ -646,7 +666,7 @@ export default function TrackerView({
       </div>
 
       {/* Stakes bar */}
-      <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} streakOverVariant={streakOverVariant} gameColor={gameColor} />
+      <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} streakOverVariant={streakOverVariant} lostStreakLen={lostStreakLen} prevWeekPosted={prevWeekPosted} prevWeekTarget={prevWeekTarget} gameColor={gameColor} />
 
       {/* Week log */}
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, marginBottom: 18 }}>
@@ -979,6 +999,7 @@ export default function TrackerView({
           </div>
         </div>
       )}
+      </>)}
 
       {/* ---- Toast ---- */}
       <div style={{
@@ -1011,10 +1032,27 @@ function Pill({ children }) {
   );
 }
 
-function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, gameColor }) {
+function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, lostStreakLen, prevWeekPosted, prevWeekTarget, gameColor }) {
   const remaining = Math.max(0, target - posted);
   const safe = remaining <= 0;
   const weekdayLabel = now.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  // Calm "streak lost" state (locked Phase 2 design): the Monday after a miss. Muted flame,
+  // neutral border, no shame. Rank untouched is the reassurance beat.
+  if (streakOverVariant) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+        border: `1px solid ${T.border}`, background: T.surface,
+      }}>
+        <span style={{ fontSize: 18, lineHeight: 1, color: T.textTertiary, flexShrink: 0 }}>{"▽"}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, lineHeight: 1.35 }}>
+          Streak ended at <b style={{ fontFamily: T.mono, color: T.text }}>{lostStreakLen} week{lostStreakLen === 1 ? "" : "s"}</b>. <span style={{ color: T.accentLight }}>Your rank kept every XP.</span> New streak starts with this week's goal.
+        </span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: T.textTertiary, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>Last week {"·"} {prevWeekPosted} of {prevWeekTarget}</span>
+      </div>
+    );
+  }
 
   if (safe) {
     return (
@@ -1042,7 +1080,6 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, g
     }}>
       <span style={{ fontSize: 18, lineHeight: 1, color: T.accent, flexShrink: 0, animation: "tp-pulse 2.6s ease-in-out infinite" }}>{"▲"}</span>
       <span style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.35 }}>
-        {streakOverVariant ? <>Streak over {"—"} a new one starts now. </> : null}
         {hitMoreLine}
       </span>
       <span style={{ marginLeft: "auto", fontSize: 11, color: T.textTertiary, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>

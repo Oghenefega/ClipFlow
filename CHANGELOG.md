@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-09 (session 97) — Tracker Phase 2: read-only Calendar view
+
+Built the Phase 2 Calendar from the locked P3 "Hybrid" spec ([tasks/specs/tracker-calendar.md]). It is a pure navigation layer over the honest data Phase 1 already collects: it adds zero new saved data and cannot log, edit, or schedule anything. Source-only; rides the next batched installer. Awaiting Fega's in-app verification (~5-min script from the spec).
+
+### Added
+- **Calendar view on the Tracker.** The "This week / Calendar" toggle is now two live states. Calendar shows a month grid (Monday to Saturday, no Sunday column) where each day carries its clip count and an 8-slot segment strip — one segment per clip in that clip's game color, manual clips faded, scheduled clips hollow — so a mixed day shows its true game mix instead of one color winning the day. [src/renderer/views/TrackerCalendar.js, src/renderer/views/TrackerView.js]
+- **Week scoreboard rail + month stats line.** Each week row ends in a chip with its posted/target score, outcome tag (Hit / Missed / Live / Preview), a progress bar (green hit, dim red missed, pace-colored while live, faint preview), and the week's frozen game plus streak count. A slim mono stats line above the grid shows clips this month, weeks hit, current streak, and best day. [src/renderer/views/TrackerCalendar.js]
+- **Day drawer.** Clicking a day slides in a right panel listing that day's real clips with game tag, time, platforms, an auto/manual dot, and a "View ↗" link that opens the live post where ClipFlow has the post URL. Future days with scheduled clips show faint dashed rows and a note that scheduling lives in the Queue. [src/renderer/views/TrackerCalendar.js]
+- **Week drill-in.** Clicking a week chip opens a read-only overlay: the week's frozen target and outcome banner, the week laid out in day columns (nothing mutable), and that week's frozen recap (per-platform counts, ClipFlow mark) so old recaps stay reachable forever. The current week's drill-in links back to the This week view instead of duplicating it. [src/renderer/views/TrackerCalendar.js]
+- **Future preview** reads the Queue's scheduled clips (grouped by local date) to show faint scheduled counts on cells and in the drawer — display only, no way to act. [src/renderer/App.js, src/renderer/views/TrackerCalendar.js]
+- **Pure month-model engine + 16 unit tests** (month grid, group-by-local-date, per-week streak reconstruction from frozen outcomes, week aggregation, month stats, live-week pace color). Run: `node src/renderer/utils/trackerCalendarModel.test.js`. [src/renderer/utils/trackerCalendarModel.js, src/renderer/utils/trackerCalendarModel.test.js]
+
+### Changed
+- **"Streak lost" stakes line reconciled to the locked calm design.** The Monday after a missed week, the This week view now shows a muted, no-shame line — "Streak ended at N weeks. Your rank kept every XP. New streak starts with this week's goal." with last week's real posted/target — instead of the previous yellow "Streak over" prepend. Rank untouched is the reassurance beat. [src/renderer/views/TrackerView.js]
+
 ## [Unreleased] — 2026-07-09 (session 96) — Tracker Phase 1 verified in dev + verification fixes
 
 Fega ran the Phase 1 verification script in the dev build (6 of 7 checks pass — the last one, publishing a real clip through the Queue, waits until he has a post ready). Everything he flagged was fixed same-session. Source-only; rides the next batched installer.

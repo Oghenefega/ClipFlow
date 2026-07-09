@@ -483,6 +483,25 @@ export default function App() {
     return result;
   }, [localProjects]);
 
+  // Scheduled clips for the Tracker Calendar's read-only future preview. scheduledAt is a local
+  // ISO string "YYYY-MM-DDTHH:MM:00", so date/time slice without any UTC conversion.
+  const scheduledClips = React.useMemo(() => {
+    const to12h = (hhmm) => {
+      const [h, m] = hhmm.split(":").map(Number);
+      const ap = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
+    };
+    return Object.values(allClips).flat()
+      .filter((c) => c.scheduledAt)
+      .map((c) => ({
+        date: c.scheduledAt.slice(0, 10),
+        time: to12h(c.scheduledAt.slice(11, 16)),
+        title: c.title,
+        game: c.gameTag || null,
+      }));
+  }, [allClips]);
+
   // Queue badge count: show unscheduled count (needs attention) — Phase 5 badge distinction.
   // Mirror QueueView's list filter (QueueView.js:505-535): exclude clips already
   // published/scheduled (tracked in trackerData by clipId or title) so the badge matches
@@ -645,6 +664,7 @@ export default function App() {
               xpLedger={xpLedger}
               awardXp={awardXp}
               streakState={streakState}
+              scheduledClips={scheduledClips}
             />
           </div>
         </div>
