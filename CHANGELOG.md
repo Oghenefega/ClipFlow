@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.8-alpha.13] — 2026-07-09 (session 97) — Installer cut: the full Tracker arc ships to the daily driver
+
+### Changed
+- **Version bumped to 0.1.8-alpha.13 and a fresh installer cut**, promoting everything since alpha.12 (sessions 91–97) to the installed app: the Now Playing Tracker Phase 1 rebuild with honest per-platform publish data, the app-wide local (EST) calendar-date fix (#160), all seven Phase 1 verification fixes (popover, time-grid day columns, brand-color toggles, compact platform icons, 9:16 story recap PNG, ClipFlow watermark), the new read-only Tracker Calendar (Phase 2) with its same-day review fixes, the calm streak-lost stakes line, and session 92's post-ban review fixes (guarded #144 fallback, memoized Projects transcript).
+
 ## [Unreleased] — 2026-07-09 (session 97) — Tracker Phase 2: read-only Calendar view
 
 Built the Phase 2 Calendar from the locked P3 "Hybrid" spec ([tasks/specs/tracker-calendar.md]). It is a pure navigation layer over the honest data Phase 1 already collects: it adds zero new saved data and cannot log, edit, or schedule anything. Source-only; rides the next batched installer. Awaiting Fega's in-app verification (~5-min script from the spec).
