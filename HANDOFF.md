@@ -1,46 +1,46 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-09 — Session 96 — **Tracker Phase 1 VERIFIED by Fega in the dev build (6/7 checks) + all 7 verification findings fixed same-session. Phase 2 (Calendar) gate is OPEN — build it next session.**_
+_Last updated: 2026-07-09 — Session 97 — **Tracker Phase 2 (Calendar) BUILT + Fega-verified in dev (7/7), fresh-eyes review fixed 4 real bugs, installer 0.1.8-alpha.13 cut (sessions 91–97 promoted to the daily driver).**_
 
 ---
 
 ## One-line TL;DR
-Fega ran the Phase 1 verification script in the dev build (`npm run dev`), flagged 7 things; all were root-caused and fixed same-session (`4eafac9` + `6f3b791`) — popover un-clipped, day columns became a real time grid, brand-color platform toggles, compact detail icons, portrait recap + 1080×1920 story PNG, TODAY label dropped, watermark → ClipFlow. Phase 2 Calendar (spec ready, design locked) starts next session.
+Built the read-only Tracker Calendar from Wick's locked P3 Hybrid spec (`3e156e6`), Fega verified all 7 checks in dev same-session; a "fresh eyes" re-review then caught and fixed 4 real bugs + 5 polish items (`beaa24f`) including a monthStats casing bug my own tests had masked; filed #161 (add Sundays — product decision); cut installer **0.1.8-alpha.13** promoting the whole Tracker arc.
 
 ## Current State
-On **0.1.8-alpha.12** installed; source is now **10 commits ahead** of the installed app (sessions 90–96) — all riding the next batched installer. Tracker Phase 1 is Fega-verified in dev except one check: **publishing a REAL clip through the Queue** (ring +1, +10 XP, live post links) — waits until he next has a post; it exercises Phase 1's Queue seam, so it does NOT block Phase 2. Working tree: usual never-commit `data/` pair + `tasks/mocks/` scratch (untracked, predates this session).
+- **Installed daily driver:** 0.1.8-alpha.13 installer cut this session (was alpha.12, 17 commits behind). Fega installs via the in-app "Install update" banner or `dist\ClipFlow Setup 0.1.8-alpha.13.exe`. Settings → bottom should read v0.1.8-alpha.13 after reinstall.
+- **Tracker Phase 2 is DONE and verified** (dev build, 7/7 checks): month grid + week rail + month stats, day drawer with live post links, week drill-in with frozen recaps, future preview from Queue scheduled clips, streak-lost stakes state reconciled (decision 10). Read-only, zero new persisted state, all local dates.
+- Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch.
 
 ## What Was Just Built
-- **Verification round on Phase 1** (Fega's findings → fixes, all in `TrackerView.js` unless noted):
-  - **Switch-game popover clipped to 2 games** — it lived inside the banner div whose `overflow:hidden` (needed for the bg art) cropped it. Now `position:"fixed"` anchored to the button via `getBoundingClientRect` (captured in a `useLayoutEffect` on open) + `maxHeight:340, overflowY:auto`. Outside-click close unchanged.
-  - **Day columns weren't a time grid** — entries rendered above all open slots (a 9:30p clip floated to the top), and "+" tiles had no time label (Fega clicked 1:30p believing it was 9:30p). Now one merged, time-sorted `dayRows` list: slots filled by matching entries, empty slots show `+ <time>`, non-slot-time entries insert chronologically.
-  - **Platform toggles** (log popover): ON = brand-color fill (`PLATFORM_BRAND_COLORS`, `${brand}40` bg + solid brand border), OFF = dimmed icon (`opacity:0.45`) on neutral.
-  - **Detail popover**: platform rows → one compact row of 30×30 icon chips; linked chips (row.url) get a ↗ corner badge and open via `openExternal`; manual chips muted. Legacy `entry.platforms`-string fallback kept.
-  - **Recap card portrait** (maxWidth 340, 2×2 platform grid, full-width Share) + **share PNG rewritten to 1080×1920 story format** (`recapCardImage.js`, SCALE 1, flow-based cursorY layout so long headlines never collide, pills wrap, mark bottom-center).
-  - **"TODAY" text removed** from today's column (pushed slots out of alignment; purple hue suffices). **Watermark "Flowve" → "ClipFlow"** on card + PNG (Fega override of the spec — memory `project_recap_watermark_clipflow`).
-- **XP only-climbs re-confirmed by Fega** when he questioned it mid-verification (his test XP lives in the dev profile only; prod starts at zero when Phase 1 ships).
+- **`src/renderer/views/TrackerCalendar.js`** (new) — the whole Calendar view: grid, rail, stats, DayDrawer, WeekDrill. Escape closes overlays; drawer z 3000, drill z 3100 (toast 4000 stays on top).
+- **`src/renderer/utils/trackerCalendarModel.js`** (new, pure) + **19-assertion test** (`node src/renderer/utils/trackerCalendarModel.test.js`): monthWeeks (Mon–Sat rows), groupByLocalDate, streakByWeek (rebuilds per-week streaks from frozen outcomes — weekMeta only stores the running streak), weekAggregate, monthStats, liveWeekPaceColor.
+- **TrackerView.js** — `subView` state ("week"/"calendar"), both toggle pills live; switching to Calendar clears popover/picker/template-editor state. StakesBar gained the calm streak-lost branch (only when `lostStreakLen > 0`; back-to-back misses show "start your streak" instead).
+- **App.js** — `scheduledClips` memo (date/time/title/game from `scheduledAt`, local string slicing, gameTag lowercased) passed into TrackerView.
+- **Fresh-eyes fix round (`beaa24f`)** — Fega asked for a meticulous re-review after his ✅; it found: (1) `monthStats` read `row.mondayIso` vs the real `mondayISO` → "weeks hit" was always "0 of 0" (test asserted other fields only — lesson filed); (2) pre-Phase-1 history weeks rendered "Missed · streak reset" → new **"untracked"** state ("N posted · Before goal tracking"); (3) week scores counted Mon–Sat while frozen outcomes count Mon–Sun → 7-day parity; (4) drill-in game tags invisible (missing background). Plus: time-sorted day lists, no "streak ended at 0 weeks", no "NOW PLAYING UNKNOWN", inert no-data cells, sched rows show game tags, plural fix.
 
 ## Key Decisions
-- **Watermark is ClipFlow, never Flowve** — Fega overrode the Phase 1 spec during verification; the spec text still says "Flowve mark," do not regress from it (Phase 2 renders frozen recaps — keep consistent).
-- **Share PNG = 9:16 story (1080×1920)** so recaps are directly postable to TikTok/IG; SCALE dropped 2→1 (already full story resolution).
-- **Popover un-clipping via `position:fixed`**, not moving JSX out of the banner — fixed elements escape ancestor `overflow:hidden` as long as no ancestor sets transform/filter (banner sets none). If a transform is ever added to the banner, this breaks.
-- **Empty slots always show their time** — the misclick Fega hit was an unlabeled-"+" problem as much as an ordering one.
-- **Delegation model again:** 2 parallel Sonnet subagents (TrackerView / recapCardImage — disjoint files), main-session review verified the two build-can't-catch risks (`useLayoutEffect` import present, `PlatformIcon` forwards `style`) before accepting.
+- **"Untracked" week state** (not in Wick's spec): past weeks with entries but no frozen weekMeta get an honest no-judgement chip. Fega's prod DB has months of these; never render them as "Missed".
+- **Week rail scores are Mon–Sun** even though no Sunday column exists — must match the frozen outcome math (`weekEntries`), else a hit week can read "41/42 HIT".
+- **Drill-in recap mark = ClipFlow** (standing override; spec text says Flowve — don't regress).
+- **#161 filed (Fega's product call): add Sundays to schedule + calendars.** Mon–Sat is his personal conviction, not a product rule. `milestone: commercial-launch` — Sunday posters' clips currently count but render nowhere. Body has all code anchors.
+- **Streak-lost copy**: exact locked wording "Streak ended at N weeks. Your rank kept every XP. New streak starts with this week's goal." + "Last week · N of T" sub.
 
 ## Next Steps (prioritized)
-1. **Phase 2 — Calendar view** (fresh session, Fega inclined to go): read `tasks/specs/tracker-calendar.md` FIRST — locked decisions, code anchors, build order, ~5-min verification script. Visual target = **P3 Hybrid** tab of `Desktop\ClipFlow stuff\Tracker Redesign\tracker-calendar-prototypes.html`. Enables the disabled Calendar pill (`TrackerView.js` — line moved by this session's edits, grep `Calendar`), read-only month grid + week scoreboard + day drawer + week drill-in, zero new persisted state, reconcile shipped `streakOverVariant` copy with the locked streak-lost design.
-2. **Phase 1 closeout check** whenever Fega next publishes for real: clip appears in today's column, ring +1, XP +10, detail popover shows actual platforms with working links.
-3. **Installer batch** is well past threshold (10 commits) — cut on Fega's "update the launcher."
-4. **Silent-failures batch** #150/#151/#152 (+#153) — session-92 plan.
-5. **Projects tab finish** (premium header + width-capped column + hover-to-play + REVIEW pill).
+1. **Fega reinstalls alpha.13** and confirms Settings shows v0.1.8-alpha.13; spot-check Tracker (both views) on the installed app with real prod data — note prod has NO weekMeta history yet, so old weeks should read "Before goal tracking" / "No data", not "Missed".
+2. **Phase 1 closeout check** (still pending): first REAL publish through the Queue → today's column +1, ring +1, XP +10, detail popover shows actual platforms with working links.
+3. **Wick's post-verification skim** — inbox updated this session (Phase 2 report + #161 flagged as GM-relevant); his 2026-07-05 item can archive once he skims.
+4. **#161 Sundays (7-day support)** — later session; full anchors in the issue.
+5. **Silent-failures batch** #150/#151/#152 (+#153) — session-92 plan.
+6. **Projects tab finish** (premium header + width-capped column + hover-to-play + REVIEW pill).
 
 ## Watch Out For
-- **PNG rendered pixels never eyeballed** — geometry dry-run only. Fega said the card "looks fine" pre-rewrite; if the 9:16 PNG looks top-heavy (content flows from top, mark anchored bottom → possible mid gap on short headlines), rebalance by vertically centering the content block.
-- **Switch-game popover is `position:fixed`** — it will NOT follow the button if the page scrolls while open (closes on outside-click, so low risk); and any future `transform` on an ancestor re-introduces clipping.
-- **XP ledger append-only; calendar dates LOCAL (`localISO`)** — standing Phase 1 invariants, see session 94–95 handoff notes / memories `user_timezone_est`.
-- **Fega tests in the DEV profile right now** (`npm run dev`, `clipflow-dev` data) — his dev-profile XP/test entries are throwaway; prod is untouched until an installer ships.
-- **`package.json` silent-strip gotcha** ([[project_package_json_strip]]) — check 99 lines if builds break.
+- **Prod first-run of the Calendar**: rollover only freezes weeks from first-launch forward, so ALL prod history pre-alpha.13 renders as "untracked" — that's by design, not a bug.
+- **`monthStats` vs `weekAggregate` casing**: model returns `mondayISO` on rows but `mondayIso` inside aggregates — the exact mismatch that caused the 0-of-0 bug. Grep the boundary if touching either.
+- **Test suite must assert EVERY field** a pure function returns (session 97 lesson — partial assertions passed 16/16 over a broken stat).
+- **XP ledger append-only; calendar dates LOCAL (`localISO`)** — standing invariants.
+- **`package.json` now 105 lines** (was 99) — silent-strip check baseline updated ([[project_package_json_strip]]).
 
 ## Logs / Debugging
-- **Builds:** `npm run build:renderer` clean ×3 this session (~12–13s, standing >500 kB chunk warning only). Dev instance (`npm run dev`, Vite :3000 + Electron, profile `clipflow-dev`, booted 0.1.8-alpha.12) ran clean all session — no renderer errors surfaced during Fega's verification.
-- **Two build-can't-catch traps checked by hand** (worth repeating after subagent UI work): a missing React hook import (`useLayoutEffect`) and a component silently dropping a passed `style` prop both pass Vite build and only fail at runtime.
-- **Commits this session:** `4eafac9` (5 verification fixes), `6f3b791` (TODAY label + ClipFlow watermark), plus this wrap commit.
+- **Builds:** `build:renderer` clean ×3 (12–14s, standing >500 kB warning only); calendar model tests 19/19; installer build (npm run build → NSIS) run in background this session — artifact `dist/ClipFlow Setup 0.1.8-alpha.13.exe`.
+- **Fega's dev verification:** all 7 Phase 2 checks ✅ in `npm run dev` (clipflow-dev profile). No renderer errors reported.
+- **Commits this session:** `3e156e6` (Phase 2 build), `beaa24f` (review fixes), `7c309b3` (lesson), + alpha.13 bump, + this wrap.
