@@ -43,6 +43,29 @@ Fega's script.
 
 ---
 
+## QUEUED — Now Playing Tracker, Phase 2: Calendar view (spec READY, design locked 2026-07-09)
+
+**Gate:** start this build AFTER Fega runs the Phase 1 verification script above (Phase 2 renders
+Phase 1's data; verify the foundation before building the window onto it). If Fega explicitly says
+to build anyway, proceed.
+
+**Read the full spec first:** `tasks/specs/tracker-calendar.md` — locked decisions, verified code
+anchors (checked against this repo 2026-07-09), behavior details, build order, and Fega's ~5-min
+verification script. The visual target is the **P3 Hybrid** tab of the clickable mock at
+`Desktop\ClipFlow stuff\Tracker Redesign\tracker-calendar-prototypes.html` (mock = look; spec =
+behavior; the mock's data and pinned "today" are fiction).
+
+**One-paragraph summary:** Enable the disabled Calendar pill (`TrackerView.js:438`) and ship the
+read-only Calendar view: Mon-to-Sat month grid where each day shows its clip count + a per-clip
+game-colored segment strip (NO full-cell tint), a week scoreboard rail (score, outcome tag, thin
+pace/outcome bar, frozen game + streak), a slim month stats line, a day drawer (real clips, live
+post links from `platformResults`), and a week drill-in (frozen target, outcome banner, read-only
+week log, frozen recap). Future = faint preview with scheduled counts only; no scheduling, logging,
+or editing anywhere (Tracker = motivation, Queue = operations). Zero new persisted state; also
+reconcile the shipped `streakOverVariant` stakes copy with the locked streak-lost design.
+
+---
+
 ## ACTIVE PLAN — Projects tab premium redesign (session 89 design → session 90 build)
 
 **Status:** Design DONE + Fega-approved as a mockup. **CARD implemented in session 90** (`ProjectsView.js` `ClipRow` — flowing transcript, ✓/✗ under preview, calm metadata, premium card; builds clean, awaiting Fega's final in-app eyeball). **Still deferred:** the tab-level chrome — premium header + width-capped centered column (cards are currently full-bleed). Direction locked.
