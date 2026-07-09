@@ -17,7 +17,15 @@ Built the Phase 2 Calendar from the locked P3 "Hybrid" spec ([tasks/specs/tracke
 - **Pure month-model engine + 16 unit tests** (month grid, group-by-local-date, per-week streak reconstruction from frozen outcomes, week aggregation, month stats, live-week pace color). Run: `node src/renderer/utils/trackerCalendarModel.test.js`. [src/renderer/utils/trackerCalendarModel.js, src/renderer/utils/trackerCalendarModel.test.js]
 
 ### Changed
-- **"Streak lost" stakes line reconciled to the locked calm design.** The Monday after a missed week, the This week view now shows a muted, no-shame line — "Streak ended at N weeks. Your rank kept every XP. New streak starts with this week's goal." with last week's real posted/target — instead of the previous yellow "Streak over" prepend. Rank untouched is the reassurance beat. [src/renderer/views/TrackerView.js]
+- **"Streak lost" stakes line reconciled to the locked calm design.** The Monday after a missed week, the This week view now shows a muted, no-shame line — "Streak ended at N weeks. Your rank kept every XP. New streak starts with this week's goal." with last week's real posted/target — instead of the previous yellow "Streak over" prepend. Rank untouched is the reassurance beat. It only appears when a streak actually ended; after back-to-back misses the normal "start your streak" line shows instead. [src/renderer/views/TrackerView.js]
+
+### Fixed (same-session fresh-eyes review)
+- **Month stats "weeks hit" was always "0 of 0"** — a property-name casing slip (`mondayIso` vs `mondayISO`) meant decided weeks never matched their snapshots. Caught by re-review; the test suite now asserts hits/done so it can't regress silently. [src/renderer/utils/trackerCalendarModel.js]
+- **Weeks from before goal tracking existed no longer read "Missed · streak reset".** Historical weeks with logged clips but no frozen target/outcome (all pre-Phase-1 history) now show an honest "N posted · Before goal tracking" chip, and their drill-in explains there was no target or outcome to judge. [src/renderer/utils/trackerCalendarModel.js, src/renderer/views/TrackerCalendar.js]
+- **Sunday-dated posts count toward their week's rail score.** Weekly outcomes were always decided Monday-to-Sunday; the rail summed only the six visible columns, so a Sunday post could make a hit week read "41/42". Rail scores and the month clip total now use the same Monday-to-Sunday math as the frozen outcomes. [src/renderer/utils/trackerCalendarModel.js]
+- **Game tags in the week drill-in were invisible** (dark text with no colored background behind it). [src/renderer/views/TrackerCalendar.js]
+- **Clips now list in time order** in the day drawer, drill-in columns, and day segment strips, even when a manual entry for an earlier slot was logged later. [src/renderer/views/TrackerCalendar.js]
+- **No more "Streak ended at 0 weeks"** in the drill-in banner after consecutive missed weeks. Future and pre-tracking weeks no longer show "NOW PLAYING UNKNOWN" in the drill-in header. Day cells in "No data" weeks are now fully inert per the locked spec. Scheduled rows in the drawer and drill-in now carry their game tag where ClipFlow knows the game. [src/renderer/views/TrackerCalendar.js, src/renderer/App.js]
 
 ## [Unreleased] — 2026-07-09 (session 96) — Tracker Phase 1 verified in dev + verification fixes
 

@@ -18,6 +18,18 @@ const PACE_HEX = { green: T.green, yellow: T.yellow, red: T.red };
 const parseISO = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d, 12); };
 const shortSlot = (s) => (s || "").replace(" PM", "p").replace(" AM", "a").replace(":30", "·30");
 
+// "3:30 PM" → minutes since midnight; tolerates missing AM/PM and malformed times (→ 0).
+const timeMinutes = (s) => {
+  if (!s) return 0;
+  const [t, ap] = s.split(" ");
+  let [h, m] = (t || "").split(":").map(Number);
+  if (isNaN(h)) return 0;
+  if (isNaN(m)) m = 0;
+  if (ap === "PM" && h !== 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + m;
+};
+
 // "Jul 6 to 11" — month prefix on the Saturday only when it crosses a month boundary.
 const weekRangeLabel = (mondayIso) => {
   const mon = parseISO(mondayIso), sat = parseISO(addDaysISO(mondayIso, 5));
@@ -50,13 +62,24 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
     return g ? { name: g.name, color: g.color, tag: g.tag } : { name: name || "Unknown", color: T.textTertiary, tag: (name || "?").slice(0, 2).toUpperCase() };
   }, [gamesDb]);
 
-  const entriesByDate = useMemo(() => groupByLocalDate(trackerData), [trackerData]);
-  const scheduledByDate = useMemo(() => groupByLocalDate(scheduledClips), [scheduledClips]);
+  // Per-day lists sorted by time so segments, drawer, and drill-in read chronologically
+  // (a manual log added later for an earlier slot would otherwise render out of order).
+  // groupByLocalDate builds fresh arrays, so sorting here never mutates trackerData.
+  const entriesByDate = useMemo(() => {
+    const map = groupByLocalDate(trackerData);
+    for (const list of map.values()) list.sort((a, b) => timeMinutes(a.time) - timeMinutes(b.time));
+    return map;
+  }, [trackerData]);
+  const scheduledByDate = useMemo(() => {
+    const map = groupByLocalDate(scheduledClips);
+    for (const list of map.values()) list.sort((a, b) => timeMinutes(a.time) - timeMinutes(b.time));
+    return map;
+  }, [scheduledClips]);
   const streakMap = useMemo(() => streakByWeek(weekMeta), [weekMeta]);
   const rows = useMemo(() => monthWeeks(ym.year, ym.month), [ym]);
   const stats = useMemo(
-    () => monthStats({ rows, weekMeta, entriesByDate, streakState, todayMondayIso }),
-    [rows, weekMeta, entriesByDate, streakState, todayMondayIso]
+    () => monthStats({ year: ym.year, month: ym.month, rows, weekMeta, entriesByDate, streakState, todayMondayIso }),
+    [ym, rows, weekMeta, entriesByDate, streakState, todayMondayIso]
   );
 
   const goPrev = () => setYm(({ year, month }) => (month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }));
@@ -95,15 +118,17 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
     if (!list.length) return "";
     const byGame = {};
     for (const e of list) { const nm = resolveGame(e.game).name; byGame[nm] = (byGame[nm] || 0) + 1; }
-    return `${list.length} clips · ${Object.entries(byGame).map(([k, v]) => `${k} ${v}`).join(" · ")}`;
+    return `${list.length} clip${list.length === 1 ? "" : "s"} · ${Object.entries(byGame).map(([k, v]) => `${k} ${v}`).join(" · ")}`;
   };
 
-  const dayCell = (day) => {
+  const dayCell = (day, rowNoData) => {
     const isToday = day.iso === todayIso;
     const isFuture = day.iso > todayIso;
     const count = isFuture ? 0 : (entriesByDate.get(day.iso)?.length || 0);
     const sched = scheduledByDate.get(day.iso)?.length || 0;
-    const canOpen = (!isFuture) || (isFuture && sched > 0);
+    // Past/today days open the drawer; future days only when they hold scheduled clips;
+    // no-data weeks (before tracking existed) are fully inert per the locked spec.
+    const canOpen = !rowNoData && (!isFuture || sched > 0);
 
     return (
       <div key={day.iso} title={mixTitle(day.iso, isFuture)}
@@ -133,12 +158,29 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
     );
   };
 
-  const weekChip = (mondayIso) => {
-    const agg = aggFor(mondayIso);
+  const weekChip = (agg) => {
+    const { mondayIso } = agg;
     if (agg.state === "noData") {
       return <div style={{ borderLeft: `1px solid ${T.border}`, padding: "9px 12px", display: "flex", flexDirection: "column", justifyContent: "center", cursor: "default" }}>
         <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 500 }}>No data</span>
       </div>;
+    }
+    if (agg.state === "untracked") {
+      // History from before weekly goals existed: entries but no frozen target/outcome.
+      // Show the honest count, no judgement. Still clickable so old clips stay reachable.
+      return (
+        <div onClick={() => setDrillWeek(mondayIso)}
+          style={{ borderLeft: `1px solid ${T.border}`, padding: "9px 12px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "center", gap: 5, transition: "background .15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.text }}>{agg.posted}</span>
+            <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>posted</span>
+          </div>
+          <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500 }}>Before goal tracking</div>
+        </div>
+      );
     }
     const game = agg.game ? resolveGameByName(agg.game) : null;
     let tag, tagColor, score, frac, barColor;
@@ -177,7 +219,7 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
             <span style={{ width: 6, height: 6, borderRadius: 2, background: game.color, flexShrink: 0 }} />
             {game.name}
             {agg.state === "hit" && ` · streak ${agg.streakAfter}`}
-            {agg.state === "missed" && " · streak reset"}
+            {agg.state === "missed" && agg.lostStreak > 0 && " · streak reset"}
           </div>
         )}
       </div>
@@ -216,12 +258,16 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
           {DOW.map((d) => <span key={d} style={dowHead}>{d}</span>)}
           <span style={{ ...dowHead, borderLeft: `1px solid ${T.border}` }}>Week</span>
         </div>
-        {rows.map((row) => (
-          <div key={row.mondayISO} style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: `1px solid ${T.border}` }}>
-            {row.days.map((day) => dayCell(day))}
-            {weekChip(row.mondayISO)}
-          </div>
-        ))}
+        {rows.map((row) => {
+          const agg = aggFor(row.mondayISO);
+          const rowNoData = agg.state === "noData";
+          return (
+            <div key={row.mondayISO} style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: `1px solid ${T.border}` }}>
+              {row.days.map((day) => dayCell(day, rowNoData))}
+              {weekChip(agg)}
+            </div>
+          );
+        })}
       </div>
 
       {/* Day drawer */}
@@ -297,12 +343,16 @@ function DayDrawer({ dayIso, todayIso, entries, scheduled, weekAgg, resolveGame,
         {scheduled.length > 0 && (
           <>
             <div style={secLbl}>Scheduled{isFuture ? "" : " · later today or this week"}</div>
-            {scheduled.map((c, i) => (
-              <div key={i} style={{ ...clipRow, opacity: 0.6, borderStyle: "dashed" }}>
-                <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textTertiary }}>{shortSlot(c.time)}</span>
-                <span style={{ fontSize: 10, color: T.textSecondary, marginLeft: "auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{c.title || "Scheduled clip"}</span>
-              </div>
-            ))}
+            {scheduled.map((c, i) => {
+              const gd = c.game ? resolveGame(c.game) : null;
+              return (
+                <div key={i} style={{ ...clipRow, opacity: 0.6, borderStyle: "dashed" }}>
+                  {gd && <span style={{ ...ctag, background: gd.color }}>{gd.tag}</span>}
+                  <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textTertiary }}>{shortSlot(c.time)}</span>
+                  <span style={{ fontSize: 10, color: T.textSecondary, marginLeft: "auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{c.title || "Scheduled clip"}</span>
+                </div>
+              );
+            })}
           </>
         )}
 
@@ -322,7 +372,8 @@ function DayDrawer({ dayIso, todayIso, entries, scheduled, weekAgg, resolveGame,
 
 // ---------- Week drill-in ----------
 function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, resolveGame, resolveGameByName, onClose, onOpenThisWeek }) {
-  const game = agg.game ? resolveGameByName(agg.game) : { name: "Unknown", color: T.textTertiary, tag: "?" };
+  // Untracked and future weeks have no frozen game; render without a game identity.
+  const game = agg.game ? resolveGameByName(agg.game) : null;
   const recap = agg.recap;
 
   const banner = (() => {
@@ -333,8 +384,13 @@ function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, r
     }
     if (agg.state === "missed") {
       return { cls: "missed", ico: "▽", color: T.textTertiary, border: T.border, bg: "rgba(255,255,255,0.02)",
-        text: <>Target {agg.target}, posted <b style={obB}>{agg.posted}</b>. Streak ended at {agg.lostStreak} week{agg.lostStreak === 1 ? "" : "s"}. Rank kept every XP, the next streak started the following Monday.</>,
+        text: <>Target {agg.target}, posted <b style={obB}>{agg.posted}</b>.{agg.lostStreak > 0 ? <> Streak ended at {agg.lostStreak} week{agg.lostStreak === 1 ? "" : "s"}. Rank kept every XP, the next streak started the following Monday.</> : <> Rank kept every XP.</>}</>,
         sub: `Frozen target · ${agg.target}` };
+    }
+    if (agg.state === "untracked") {
+      return { cls: "untracked", ico: "·", color: T.textTertiary, border: T.border, bg: "rgba(255,255,255,0.02)",
+        text: <>Posted <b style={obB}>{agg.posted}</b>. This week predates weekly goal tracking, so it has no target or outcome.</>,
+        sub: "" };
     }
     if (agg.state === "current") {
       return { cls: "current", ico: "●", color: T.accentLight, border: "rgba(139,92,246,0.3)", bg: "linear-gradient(90deg,rgba(139,92,246,0.12),transparent 70%)",
@@ -355,14 +411,14 @@ function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, r
         {/* head */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, color: "#0a0b10", background: game.color }}>{game.tag}</span>
-            NOW PLAYING {game.name.toUpperCase()} · READ-ONLY
+            {game && <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, color: "#0a0b10", background: game.color }}>{game.tag}</span>}
+            {game ? `NOW PLAYING ${game.name.toUpperCase()} · READ-ONLY` : "READ-ONLY"}
           </div>
-          <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>Week of <b style={{ color: game.color }}>{weekRangeLabel(mondayIso)}</b></h3>
+          <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}>Week of <b style={{ color: game ? game.color : T.text }}>{weekRangeLabel(mondayIso)}</b></h3>
         </div>
 
         {/* outcome banner */}
-        <div style={{ display: "flex", alignItems: "center", gap: 11, borderRadius: T.radius.md, padding: "12px 16px", marginBottom: 16, fontSize: 12.5, fontWeight: 600, lineHeight: 1.4, border: `1px solid ${banner.border}`, background: banner.bg, color: banner.cls === "missed" || banner.cls === "future" ? T.textSecondary : T.text }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, borderRadius: T.radius.md, padding: "12px 16px", marginBottom: 16, fontSize: 12.5, fontWeight: 600, lineHeight: 1.4, border: `1px solid ${banner.border}`, background: banner.bg, color: banner.cls === "hit" || banner.cls === "current" ? T.text : T.textSecondary }}>
           <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, color: banner.color }}>{banner.ico}</span>
           <span>{banner.text}</span>
           {banner.showOpen && <button onClick={onOpenThisWeek} style={{ ...ghostBtn, marginLeft: "auto", flexShrink: 0, color: T.accentLight, borderColor: T.accentBorder }}>Open This week view</button>}
@@ -389,25 +445,29 @@ function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, r
                   const isAuto = c.source === "clipflow";
                   return (
                     <div key={c.id || i} style={drChip}>
-                      <span style={{ ...ctag, fontSize: 8, padding: "1px 4px" }}>{gd.tag}</span>
+                      <span style={{ ...ctag, fontSize: 8, padding: "1px 4px", background: gd.color }}>{gd.tag}</span>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, background: isAuto ? T.cyan : "#fff" }} />
                       <span style={{ fontFamily: T.mono, fontSize: 8, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(c.time)}</span>
                     </div>
                   );
                 })}
                 {clips.length > 5 && <div style={{ fontFamily: T.mono, fontSize: 9, color: T.textMuted, padding: "2px 4px" }}>+{clips.length - 5} more</div>}
-                {sched.slice(0, 3).map((c, i) => (
-                  <div key={`s${i}`} style={{ ...drChip, opacity: 0.5, borderStyle: "dashed" }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 8, color: T.textTertiary }}>{shortSlot(c.time)}</span>
-                  </div>
-                ))}
+                {sched.slice(0, 3).map((c, i) => {
+                  const sgd = c.game ? resolveGame(c.game) : null;
+                  return (
+                    <div key={`s${i}`} style={{ ...drChip, opacity: 0.5, borderStyle: "dashed" }}>
+                      {sgd && <span style={{ ...ctag, fontSize: 8, padding: "1px 4px", background: sgd.color }}>{sgd.tag}</span>}
+                      <span style={{ fontFamily: T.mono, fontSize: 8, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(c.time)}</span>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
         </div>
 
         {/* frozen recap */}
-        {(agg.state === "hit" || agg.state === "missed") && recap ? (
+        {(agg.state === "hit" || agg.state === "missed") && recap && game ? (
           <>
             <div style={{ position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.md, overflow: "hidden", padding: "16px 18px", background: T.surface }}>
               <div style={{ position: "absolute", inset: 0, zIndex: 0, background: `linear-gradient(115deg, ${game.color}29 0%, transparent 60%)` }} />
@@ -434,6 +494,8 @@ function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, r
           </>
         ) : agg.state === "current" ? (
           <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, marginTop: 4, textAlign: "center" }}>The live recap for this week sits on the This week view.</div>
+        ) : agg.state === "untracked" ? (
+          <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, marginTop: 4, textAlign: "center" }}>No frozen recap. This week predates goal tracking.</div>
         ) : (
           <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, marginTop: 4, textAlign: "center" }}>No recap yet. This week has not happened.</div>
         )}

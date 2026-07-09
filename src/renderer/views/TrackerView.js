@@ -453,7 +453,7 @@ export default function TrackerView({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 4 }}>
             <button onClick={() => setSubView("week")} style={{ background: subView === "week" ? T.surfaceHover : "none", border: "none", color: subView === "week" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>This week</button>
-            <button onClick={() => setSubView("calendar")} style={{ background: subView === "calendar" ? T.surfaceHover : "none", border: "none", color: subView === "calendar" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>Calendar</button>
+            <button onClick={() => { setSubView("calendar"); closePopover(); setPickerOpen(false); setShowTemplateEditor(false); }} style={{ background: subView === "calendar" ? T.surfaceHover : "none", border: "none", color: subView === "calendar" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>Calendar</button>
           </div>
           <button onClick={exportCSV} style={ghostBtnStyle}>Export</button>
           <button onClick={() => fileRef.current?.click()} style={ghostBtnStyle}>Import</button>
@@ -1038,8 +1038,10 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   const weekdayLabel = now.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
   // Calm "streak lost" state (locked Phase 2 design): the Monday after a miss. Muted flame,
-  // neutral border, no shame. Rank untouched is the reassurance beat.
-  if (streakOverVariant) {
+  // neutral border, no shame. Rank untouched is the reassurance beat. Only when a streak
+  // actually ended — after back-to-back misses there is nothing to mourn, so the normal
+  // "start your streak" line below reads right.
+  if (streakOverVariant && lostStreakLen > 0) {
     return (
       <div style={{
         display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,

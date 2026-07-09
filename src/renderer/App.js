@@ -498,7 +498,8 @@ export default function App() {
         date: c.scheduledAt.slice(0, 10),
         time: to12h(c.scheduledAt.slice(11, 16)),
         title: c.title,
-        game: c.gameTag || null,
+        // Lowercased to match gamesDb hashtags, same as QueueView's logPost does at publish.
+        game: (c.gameTag || "").toLowerCase() || null,
       }));
   }, [allClips]);
 

@@ -4,7 +4,7 @@
 // outcome history in weekMeta (which stores only a running streakState, never per-week).
 // No React, no Date.now() — every function takes dates/today as arguments. Local dates only.
 
-import { localISO, mondayISO, addDaysISO, weekEntries, computeRecap } from "./trackerEngine";
+import { mondayISO, addDaysISO } from "./trackerEngine";
 
 // Inverse of localISO: parse a YYYY-MM-DD string to a local Date (noon, to sidestep DST edges).
 function parseISO(iso) {
@@ -94,19 +94,21 @@ export function streakByWeek(weekMeta) {
  *   current  → this week's Monday (live, not frozen)
  *   future   → a later week (faint preview, scheduled counts only)
  *   hit/missed → a decided past week (from weekMeta.outcome)
+ *   untracked → a past week with entries but no frozen snapshot (history from before
+ *               weekly goals existed) — no target, no outcome, no judgement
  *   noData   → no snapshot and nothing posted (before tracking existed)
  */
 export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByDate, streakMap, todayMondayIso, streakState }) {
   const meta = weekMeta?.[mondayIso] || null;
 
   let posted = 0;
-  let bestDay = 0;
   let sched = 0;
-  for (let i = 0; i < 6; i++) {
+  // Mon..Sun (7 days): Phase 1's weekEntries counts a Sunday entry into the prior Monday's
+  // week, and frozen outcomes/recaps were decided on that math. The grid shows no Sunday
+  // column, but the rail score must match the frozen outcome, so Sunday still counts here.
+  for (let i = 0; i < 7; i++) {
     const iso = addDaysISO(mondayIso, i);
-    const c = entriesByDate.get(iso)?.length || 0;
-    posted += c;
-    if (c > bestDay) bestDay = c;
+    posted += entriesByDate.get(iso)?.length || 0;
     sched += scheduledByDate?.get(iso)?.length || 0;
   }
 
@@ -118,7 +120,8 @@ export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByD
   let state;
   if (mondayIso === todayMondayIso) state = "current";
   else if (mondayIso > todayMondayIso) state = "future";
-  else state = meta?.outcome === "hit" ? "hit" : "missed";
+  else if (!meta) state = "untracked";
+  else state = meta.outcome === "hit" ? "hit" : "missed";
 
   const target = meta?.target ?? null;
   const game = meta?.nowPlaying ?? null;
@@ -127,7 +130,7 @@ export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByD
   const streakAfter = state === "current" ? (streakState?.current || 0) : streakInfo.streakAfter;
 
   return {
-    mondayIso, state, target, game, posted, sched, bestDay,
+    mondayIso, state, target, game, posted, sched,
     streakAfter, lostStreak: streakInfo.lostStreak,
     recap: meta?.recap || null,
   };
@@ -136,24 +139,23 @@ export function weekAggregate({ mondayIso, weekMeta, entriesByDate, scheduledByD
 /**
  * The slim month-stats line above the grid: clips posted in the displayed month, weeks
  * hit / weeks decided, the current running streak, and the best single day this month.
- * Counts only in-month days so a week spanning two months contributes to each honestly.
+ * Clips/bestDay count every entry dated in the month (including Sundays, which have no
+ * grid column) so the stat agrees with the week chips' Mon..Sun totals.
  */
-export function monthStats({ rows, weekMeta, entriesByDate, streakState, todayMondayIso }) {
+export function monthStats({ year, month, rows, weekMeta, entriesByDate, streakState, todayMondayIso }) {
+  const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
   let clips = 0;
   let bestDay = 0;
-  for (const row of rows) {
-    for (const day of row.days) {
-      if (!day.inMonth) continue;
-      const c = entriesByDate.get(day.iso)?.length || 0;
-      clips += c;
-      if (c > bestDay) bestDay = c;
-    }
+  for (const [iso, list] of entriesByDate) {
+    if (!iso.startsWith(prefix)) continue;
+    clips += list.length;
+    if (list.length > bestDay) bestDay = list.length;
   }
 
   let done = 0;
   let hits = 0;
   for (const row of rows) {
-    const mon = row.mondayIso;
+    const mon = row.mondayISO;
     if (mon >= todayMondayIso) continue; // skip current + future weeks
     const meta = weekMeta?.[mon];
     if (!meta || !meta.outcome) continue;

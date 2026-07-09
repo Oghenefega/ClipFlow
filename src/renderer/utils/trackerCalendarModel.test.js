@@ -146,22 +146,46 @@ test("empty past week with no snapshot is noData", () => {
   const w = weekAggregate({ mondayIso: mon, weekMeta: {}, entriesByDate: new Map(), scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
   eq(w.state, "noData");
 });
+test("past week with entries but no snapshot is untracked (pre-goal history, never 'missed')", () => {
+  const mon = "2026-05-04";
+  const ebd = groupByLocalDate([entry("2026-05-04"), entry("2026-05-05"), entry("2026-05-06")]);
+  const w = weekAggregate({ mondayIso: mon, weekMeta: {}, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
+  eq(w.state, "untracked");
+  eq(w.posted, 3);
+  eq(w.target, null);
+});
+test("a Sunday entry counts toward its week's score (Phase 1 weekEntries parity)", () => {
+  const mon = "2026-06-29";
+  // Jul 5 2026 is the Sunday of the week starting Mon Jun 29.
+  const ebd = groupByLocalDate([entry("2026-06-29"), entry("2026-07-05")]);
+  const meta = { [mon]: { target: 2, nowPlaying: "Arc Raiders", outcome: "hit", recap: { clips: 2 } } };
+  const w = weekAggregate({ mondayIso: mon, weekMeta: meta, entriesByDate: ebd, scheduledByDate: new Map(), streakMap: {}, todayMondayIso: todayMon, streakState: {} });
+  eq(w.posted, 2); // 1 Monday + 1 Sunday — must match the frozen outcome's math
+});
 
 // ── monthStats ──
 console.log("\nmonthStats:");
-test("counts only in-month clips and decided weeks", () => {
+test("counts only in-month clips, and decided weeks register in hits/done", () => {
   const rows = monthWeeks(2026, 6);
   const ebd = groupByLocalDate([
     entry("2026-06-29"), // adjacent (June) — must NOT count toward July
     entry("2026-07-01"), entry("2026-07-01"), entry("2026-07-02"),
   ]);
   const meta = {
-    "2026-06-29": { outcome: "hit" }, // Monday is in June, before July's todayMon window
+    "2026-06-29": { outcome: "hit" }, // Monday in the first displayed row, decided
   };
-  const stats = monthStats({ rows, weekMeta: meta, entriesByDate: ebd, streakState: { current: 5 }, todayMondayIso: "2026-07-06" });
+  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: meta, entriesByDate: ebd, streakState: { current: 5 }, todayMondayIso: "2026-07-06" });
   eq(stats.clips, 3); // Jun 29 excluded, three July clips counted
   eq(stats.bestDay, 2); // Jul 1 had 2
   eq(stats.streak, 5);
+  eq(stats.done, 1, "decided weeks in view must be counted");
+  eq(stats.hits, 1, "hit weeks in view must be counted");
+});
+test("Sunday clips count toward the month total (no Sunday column, still honest)", () => {
+  const rows = monthWeeks(2026, 6);
+  const ebd = groupByLocalDate([entry("2026-07-05")]); // Sunday Jul 5
+  const stats = monthStats({ year: 2026, month: 6, rows, weekMeta: {}, entriesByDate: ebd, streakState: {}, todayMondayIso: "2026-07-06" });
+  eq(stats.clips, 1);
 });
 
 // ── liveWeekPaceColor ──
