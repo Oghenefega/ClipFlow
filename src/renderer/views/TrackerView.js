@@ -696,7 +696,6 @@ export default function TrackerView({
                   <span style={{ fontSize: 11, fontWeight: 600, color: isToday ? T.accentLight : T.text }}>{DAY_SHORT[di]}</span>
                   <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textTertiary }}>{d.label}</span>
                 </div>
-                {isToday && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.1em", color: T.accent, fontWeight: 700, display: "block", padding: "0 4px 8px" }}>Today</span>}
                 {isFuture && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textTertiary, fontWeight: 600, display: "block", padding: "0 4px 8px" }}>Upcoming</span>}
 
                 {dayRows.map((row, i) => {
@@ -769,7 +768,7 @@ export default function TrackerView({
           <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
           </span>
-          Flowve
+          ClipFlow
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

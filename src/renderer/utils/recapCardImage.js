@@ -203,10 +203,10 @@ export async function renderRecapPng({ game, gameColor, clips, platformsUsed, pe
   }
   cursorY = py + pillH + 80;
 
-  // 5. Flowve mark, anchored bottom-center (brand watermark)
+  // 5. ClipFlow mark, anchored bottom-center (brand watermark)
   const markSize = 54;
   ctx.font = "600 30px 'DM Sans', sans-serif";
-  const markLabel = "Flowve";
+  const markLabel = "ClipFlow";
   const markLabelW = ctx.measureText(markLabel).width;
   const markGap = 20;
   const markX = (W - (markSize + markGap + markLabelW)) / 2;
