@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-10 (session 98) — Transcript tab now live-syncs with subtitle edits
+
+### Fixed
+- **Transcript tab no longer shows stale text after a subtitle edit.** The Transcript tab rendered a frozen snapshot of the original transcription, so fixing a wrong word in Edit subtitles (e.g. "we're dead" → "we're there") updated the viewer but the transcript kept the old word forever. It now reads the same live segment list the Edit subtitles tab and preview use, so word edits, splits, merges, and deletions show up immediately. A fallback keeps the transcript populated during the brief clip-open window before segments finish loading. [src/renderer/editor/components/LeftPanelNew.js]
+- **Editing a word directly in the Transcript tab actually works now.** It was silently doing nothing: the transcript passed the frozen snapshot's segment IDs into the edit action, which never matched the live segments after chunking. With both tabs on the same live list the IDs line up, and transcript-side edits propagate to the transcript, the preview overlay, and the timeline (verified in-app). Word indices are also mapped through the trim-filter (same #131 mapping SegmentRow uses) so edits target the right word after a trim. [src/renderer/editor/components/LeftPanelNew.js]
+
 ## [0.1.8-alpha.13] — 2026-07-09 (session 97) — Installer cut: the full Tracker arc ships to the daily driver
 
 ### Changed

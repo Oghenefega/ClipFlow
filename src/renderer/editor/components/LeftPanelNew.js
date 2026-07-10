@@ -208,14 +208,23 @@ function SegmentModeDropdown() {
 //  TRANSCRIPT TAB — continuous paragraph with inline editing
 // ════════════════════════════════════════════════════════════════
 function TranscriptTab() {
-  const rawOriginalSegments = useSubtitleStore((s) => s.originalSegments);
+  const rawEditSegments = useSubtitleStore((s) => s.editSegments);
   const nleSegments = useEditorStore((s) => s.nleSegments);
   // #66/#77: render the clip range in timeline time (not the whole source recording).
-  // Recomputes only when the source segments or NLE layout change.
-  const originalSegments = useMemo(
-    () => useSubtitleStore.getState().getTimelineMappedOriginalSegments(),
-    [rawOriginalSegments, nleSegments]
-  );
+  // Reads the LIVE editSegments — not the frozen originalSegments snapshot — so word
+  // edits/splits/deletes made in Edit subtitles show here, and so the segIds passed
+  // to updateWordInSegment below match live segments (original ids never match after
+  // a re-chunk, which made transcript-side edits silent no-ops). Falls back to the
+  // snapshot only for the brief clip-open window before applyTemplate builds
+  // editSegments (_chunkPending), so a fresh clip doesn't flash "No transcript data".
+  const liveSegments = useMemo(() => {
+    const st = useSubtitleStore.getState();
+    const mapped = st.getTimelineMappedSegments();
+    if (mapped.length === 0 && st._chunkPending) {
+      return st.getTimelineMappedOriginalSegments();
+    }
+    return mapped;
+  }, [rawEditSegments, nleSegments]);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const seekTo = usePlaybackStore((s) => s.seekTo);
   const transcriptSearch = useSubtitleStore((s) => s.transcriptSearch);
@@ -230,15 +239,17 @@ function TranscriptTab() {
 
   // Build flat word list with segment context for editing.
   // Each word carries segId + segWordIdx so a clicked/edited word maps back to its segment.
+  // segWordIdx must be TEXT-space: mapped seg.words is the trim-FILTERED timeline list,
+  // so the filtered position is mapped back through srcWordIdx (#131), same as SegmentRow.
   // No paragraph breaks — the transcript flows as one continuous, naturally-wrapping paragraph.
   const allWords = useMemo(() => {
     const words = [];
-    originalSegments.forEach((seg) => {
+    liveSegments.forEach((seg) => {
       let segWordIdx = 0;
       if (seg.words && seg.words.length > 0) {
-        seg.words.forEach((w) => {
+        seg.words.forEach((w, i) => {
           words.push({
-            ...w, segId: seg.id, segWordIdx: segWordIdx++,
+            ...w, segId: seg.id, segWordIdx: w.srcWordIdx ?? i,
           });
         });
       } else {
@@ -257,7 +268,7 @@ function TranscriptTab() {
       }
     });
     return words;
-  }, [originalSegments]);
+  }, [liveSegments]);
 
   const fullText = useMemo(() => allWords.map((w) => w.word).join(" "), [allWords]);
 
@@ -314,10 +325,9 @@ function TranscriptTab() {
   const handleEditConfirm = (idx, newText) => {
     const w = allWords[idx];
     if (!newText) {
-      // Empty text — delete word from segment
+      // Empty text — delete word from segment (live editSegments; ids match allWords)
       const subStore = useSubtitleStore.getState();
-      const origSegs = subStore.originalSegments;
-      const seg = origSegs.find(s => s.id === w.segId);
+      const seg = subStore.editSegments.find(s => s.id === w.segId);
       if (seg) {
         const textWords = seg.text.split(/\s+/).filter(Boolean);
         if (textWords.length <= 1) {
