@@ -7,7 +7,7 @@ _Last updated: 2026-07-09 — Session 97 — **Tracker Phase 2 (Calendar) BUILT 
 Built the read-only Tracker Calendar from Wick's locked P3 Hybrid spec (`3e156e6`), Fega verified all 7 checks in dev same-session; a "fresh eyes" re-review then caught and fixed 4 real bugs + 5 polish items (`beaa24f`) including a monthStats casing bug my own tests had masked; filed #161 (add Sundays — product decision); cut installer **0.1.8-alpha.13** promoting the whole Tracker arc.
 
 ## Current State
-- **Installed daily driver:** 0.1.8-alpha.13 installer cut this session (was alpha.12, 17 commits behind). Fega installs via the in-app "Install update" banner or `dist\ClipFlow Setup 0.1.8-alpha.13.exe`. Settings → bottom should read v0.1.8-alpha.13 after reinstall.
+- **Installed daily driver: 0.1.8-alpha.13 — INSTALLED AND CONFIRMED** (Fega reinstalled end-of-session, Settings reads v0.1.8-alpha.13). The daily driver now carries the full Tracker arc.
 - **Tracker Phase 2 is DONE and verified** (dev build, 7/7 checks): month grid + week rail + month stats, day drawer with live post links, week drill-in with frozen recaps, future preview from Queue scheduled clips, streak-lost stakes state reconciled (decision 10). Read-only, zero new persisted state, all local dates.
 - Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch.
 
@@ -26,7 +26,7 @@ Built the read-only Tracker Calendar from Wick's locked P3 Hybrid spec (`3e156e6
 - **Streak-lost copy**: exact locked wording "Streak ended at N weeks. Your rank kept every XP. New streak starts with this week's goal." + "Last week · N of T" sub.
 
 ## Next Steps (prioritized)
-1. **Fega reinstalls alpha.13** and confirms Settings shows v0.1.8-alpha.13; spot-check Tracker (both views) on the installed app with real prod data — note prod has NO weekMeta history yet, so old weeks should read "Before goal tracking" / "No data", not "Missed".
+1. ~~Fega reinstalls alpha.13~~ DONE (confirmed v0.1.8-alpha.13). Still worth a casual spot-check of the Tracker Calendar on the installed app with real prod data — prod has NO weekMeta history yet, so old weeks should read "Before goal tracking" / "No data", not "Missed".
 2. **Phase 1 closeout check** (still pending): first REAL publish through the Queue → today's column +1, ring +1, XP +10, detail popover shows actual platforms with working links.
 3. **Wick's post-verification skim** — inbox updated this session (Phase 2 report + #161 flagged as GM-relevant); his 2026-07-05 item can archive once he skims.
 4. **#161 Sundays (7-day support)** — later session; full anchors in the issue.
