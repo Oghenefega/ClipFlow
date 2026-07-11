@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.8-alpha.14] — 2026-07-10 (session 98) — Installer cut: subtitle editing fixes + queue title batch
+
+### Changed
+- **Version bumped to 0.1.8-alpha.14 and a fresh installer cut**, promoting session 98 to the installed app: the Transcript tab live-sync fix (stale text after subtitle edits, broken transcript-side word editing), the split-at-playhead boundary fix with disabled-menu reasons, the new right-click "Add word" on subtitle blocks, and the queue title pencil button with old-title propagation into custom captions.
+
 ## [Unreleased] — 2026-07-10 (session 98) — Transcript tab now live-syncs with subtitle edits
 
 ### Added
