@@ -6,6 +6,46 @@
 
 ---
 
+## DONE — Session 99: Recordings tab "Group by: Month / Game" toggle (VERIFIED in-app)
+
+Built and verified live in the source-run app 2026-07-11: Game mode shows Test on top
+then game-name folders alphabetically with correct counts, expand/collapse and
+chronological order inside folders intact, Month mode unchanged, chosen mode persists
+to electron-store (`recordingsGroupMode`). Rides the next installer for the daily driver.
+
+Approved 2026-07-11 ("toggle only" — no game filter). Recordings tab currently groups
+into collapsible month folders; add a segmented toggle so the same folders can be
+keyed by game instead. Month stays the default.
+
+### File impact
+- `src/renderer/views/UploadView.js` — the only file touched. Grouping logic
+  (~:533-554), folder label helper (`monthLabel` :16), header toggle row (~:1241-1281),
+  settings-load effect (:158-170) for persistence.
+
+### Steps
+1. New state `groupMode` ("month" | "game"), default "month". Load persisted value
+   from electron-store key `recordingsGroupMode` in the existing settings effect;
+   persist via a `changeGroupMode` helper mirroring `changeTagMode` (:195-198).
+2. Grouping: when `groupMode === "game"`, bucket key = `f.is_test === 1 ? "test" :
+   (f.tag || "unknown")`. Folder sort: "test" first, "unknown" ("Other") last,
+   games alphabetical by display name (from gamesDb, fallback tag).
+3. Folder label: generalize `monthLabel` → label by mode; game mode shows game
+   name from gamesDb (fallback raw tag). Header structure, collapse/expand,
+   per-folder Select All, done/selected counts all reused unchanged (they're
+   keyed generically off the bucket key — game tags can't collide with
+   "YYYY-MM"/"test"/"unknown" keys).
+4. Toggle UI: segmented "Group: Month | Game" control next to the existing
+   Tags toggle in the header row, same button style.
+5. Files inside a folder keep the existing #126 chronological sort.
+
+### Verification
+- `npm run build:renderer` clean, `npm start` launches, Recordings tab renders.
+- Toggle to Game → folders become game names, alphabetical, Other last, Test top.
+- Collapse a game folder + Select All in folder work; toggle back to Month →
+  month folders unchanged; relaunch app → chosen mode persisted.
+
+---
+
 ## DONE — Session 98: Split-at-playhead fixes + "Add word" + Queue title propagation (VERIFIED in-app except Queue UI)
 
 Approved and built same-session. Split fix + disabled-menu-reasons + Add word verified live in

@@ -22,6 +22,15 @@ function monthLabel(monthKey) {
   return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 }
 
+// Group-by toggle: folder header label — "month" mode keeps monthLabel's date
+// formatting, "game" mode resolves the bucket key (a game tag) to its display name.
+function folderLabel(key, groupMode, gamesDb) {
+  if (key === "test") return "Test";
+  if (key === "unknown") return "Other";
+  if (groupMode === "game") return findGameByTag(key, gamesDb)?.name || key;
+  return monthLabel(key);
+}
+
 function shortName(row) {
   // Build a display name from metadata fields, stripping the tag prefix
   const name = row.current_filename || "";
@@ -134,6 +143,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [profileQueue, setProfileQueue] = useState([]); // gameTags queued for play-style review
   // #122: Recordings card redesign — tag display mode + per-file two-step un-mark
   const [tagMode, setTagMode] = useState("full"); // "full" = AR pill, "min" = slim colour bar
+  // Group-by toggle: "month" = date folders, "game" = one folder per game
+  const [groupMode, setGroupMode] = useState("month");
   const [armedDone, setArmedDone] = useState({}); // fileId → true when armed (green ✓ → red ✕)
   const [tip, setTip] = useState(null); // #122: custom hover tooltip { name, size, left, top, above }
   const tipTimer = useRef(null); // #122: ~1.5s delay timer for the hover tooltip
@@ -158,14 +169,16 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   useEffect(() => {
     (async () => {
       if (!window.clipflow?.storeGet) return;
-      const [threshold, enabled, savedTagMode] = await Promise.all([
+      const [threshold, enabled, savedTagMode, savedGroupMode] = await Promise.all([
         window.clipflow.storeGet("splitThresholdMinutes"),
         window.clipflow.storeGet("autoSplitEnabled"),
         window.clipflow.storeGet("recordingsTagMode"),
+        window.clipflow.storeGet("recordingsGroupMode"),
       ]);
       if (threshold != null) setSplitThreshold(threshold);
       if (enabled != null) setAutoSplitEnabled(enabled);
       if (savedTagMode === "full" || savedTagMode === "min") setTagMode(savedTagMode);
+      if (savedGroupMode === "month" || savedGroupMode === "game") setGroupMode(savedGroupMode);
     })();
   }, []);
 
@@ -195,6 +208,12 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const changeTagMode = (mode) => {
     setTagMode(mode);
     if (window.clipflow?.storeSet) window.clipflow.storeSet("recordingsTagMode", mode);
+  };
+
+  // Group-by toggle: persist Recordings grouping mode ("month" | "game")
+  const changeGroupMode = (mode) => {
+    setGroupMode(mode);
+    if (window.clipflow?.storeSet) window.clipflow.storeSet("recordingsGroupMode", mode);
   };
 
   // Toggle per-recording test mode — physically moves the file between the
@@ -530,7 +549,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     };
   }, [infoPop]);
 
-  // --- Group files by month (from date column), test files get their own group ---
+  // --- Group files by month or by game (Group-by toggle), test files get their own group ---
   // #60: filter by main-vs-test before grouping
   const visibleFiles = files.filter((f) => {
     if (testFilter === "test") return f.is_test === 1;
@@ -539,17 +558,23 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   });
   const grouped = {};
   visibleFiles.forEach((f) => {
-    const monthKey = f.is_test === 1 ? "test" : (f.date ? f.date.slice(0, 7) : "unknown");
+    const monthKey = f.is_test === 1 ? "test" : (groupMode === "game" ? (f.tag || "unknown") : (f.date ? f.date.slice(0, 7) : "unknown"));
     if (!grouped[monthKey]) grouped[monthKey] = [];
     grouped[monthKey].push(f);
   });
 
-  // Sort oldest month first (ascending), "test" at top, "unknown" last
+  // Sort "test" at top, "unknown" last; month mode sorts key ascending, game mode
+  // sorts alphabetically by the game's display name
   const folderKeys = Object.keys(grouped).sort((a, b) => {
     if (a === "test") return -1;
     if (b === "test") return 1;
     if (a === "unknown") return 1;
     if (b === "unknown") return -1;
+    if (groupMode === "game") {
+      const nameA = findGameByTag(a, gamesDb)?.name || a;
+      const nameB = findGameByTag(b, gamesDb)?.name || b;
+      return nameA.localeCompare(nameB);
+    }
     return a.localeCompare(b);
   });
 
@@ -1245,6 +1270,32 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           {totalDone > 0 ? ` \u00b7 ${totalDone} done` : ""}
         </SectionLabel>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Group-by toggle: group Recordings folders by month or by game */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: T.mono }}>Group</span>
+            <div style={{ display: "inline-flex", border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden", background: T.bg }}>
+              {[
+                { key: "month", label: "Month" },
+                { key: "game", label: "Game" },
+              ].map((opt) => {
+                const act = groupMode === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => changeGroupMode(opt.key)}
+                    title={opt.key === "month" ? "Group recordings by month" : "Group recordings by game"}
+                    style={{
+                      appearance: "none", border: "none", cursor: "pointer",
+                      fontFamily: T.mono, fontWeight: 700, fontSize: 12, padding: "4px 12px", minWidth: 36,
+                      background: act ? T.accentDim : "transparent",
+                      color: act ? T.accentLight : T.textSecondary,
+                      boxShadow: act ? `inset 0 0 0 1px ${T.accentBorder}` : "none",
+                    }}
+                  >{opt.label}</button>
+                );
+              })}
+            </div>
+          </div>
           {/* #122: tag display toggle \u2014 full AR pill vs slim colour bar */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: T.mono }}>Tags</span>
@@ -1307,7 +1358,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                 }}>{"\u25BC"}</span>
                 <span style={{ fontSize: 18 }}>{"\uD83D\uDCC1"}</span>
                 <span style={{ color: T.text, fontSize: 14, fontWeight: 700, flex: 1 }}>
-                  {monthLabel(monthKey)}
+                  {folderLabel(monthKey, groupMode, gamesDb)}
                 </span>
                 <span style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
                   {items.length} file{items.length !== 1 ? "s" : ""}

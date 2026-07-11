@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-11 (session 99) — Recordings can now be grouped by game
+
+### Added
+- **"Group by: Month / Game" toggle on the Recordings tab.** A new segmented control next to the Tags toggle switches the collapsible folders between the existing month grouping (still the default) and one folder per game, sorted alphabetically by game name with untagged files in an "Other" folder at the bottom and test files keeping their own folder at the top. Collapse/expand, per-folder Select All, and the done/selected counts work identically in both modes, files inside a folder keep their chronological order, and the chosen mode persists across app restarts. Verified live in the source-run app. [src/renderer/views/UploadView.js]
+
 ## [0.1.8-alpha.14] — 2026-07-10 (session 98) — Installer cut: subtitle editing fixes + queue title batch
 
 ### Changed
