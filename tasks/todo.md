@@ -95,6 +95,20 @@ reconcile the shipped `streakOverVariant` stakes copy with the locked streak-los
 
 ---
 
+## QUEUED — Commercial-readiness audit (security / publish integrity / reliability)
+
+**Gate:** Fega's last Phase 1 check (real publish through the Queue) + Phase 2 Calendar build
+shipped. Must run BEFORE a beta date is set — it's a commercial-launch gate, not a gate on
+Fega's own posting.
+
+**Read the full spec first:** `tasks/specs/commercial-readiness-audit.md` — priority order
+(secrets/token storage → Electron security → publish idempotency → data integrity → light UX),
+what prior audits already covered (don't re-report Bucket B / #145-147 / #68), report format,
+and output locations. Findings report ONLY — zero code changes; fixes are a separate approved
+session. Routed by Wick 2026-07-11.
+
+---
+
 ## ACTIVE PLAN — Projects tab premium redesign (session 89 design → session 90 build)
 
 **Status:** Design DONE + Fega-approved as a mockup. **CARD implemented in session 90** (`ProjectsView.js` `ClipRow` — flowing transcript, ✓/✗ under preview, calm metadata, premium card; builds clean, awaiting Fega's final in-app eyeball). **Still deferred:** the tab-level chrome — premium header + width-capped centered column (cards are currently full-bleed). Direction locked.
