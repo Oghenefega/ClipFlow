@@ -486,6 +486,17 @@ function EditSubtitlesTab() {
   const [matchIdx, setMatchIdx] = useState(0);
   const [editingWord, setEditingWord] = useState(null); // { segId, wordIdx }
 
+  // One-shot "open inline editor on this word" request from outside the panel
+  // (timeline right-click → Add word). Consume it: activate the segment, open the
+  // editor with the placeholder selected so typing replaces it, then clear the key.
+  const editingWordKey = useSubtitleStore((s) => s.editingWordKey);
+  useEffect(() => {
+    if (!editingWordKey) return;
+    setActiveSegId(editingWordKey.segId);
+    setEditingWord({ segId: editingWordKey.segId, wordIdx: editingWordKey.wordIdx, selectAll: true });
+    useSubtitleStore.getState().setEditingWordKey(null);
+  }, [editingWordKey, setActiveSegId]);
+
   // Clear explicit word selection when playback starts, so playback highlight takes over
   useEffect(() => {
     if (playing) setSelectedWordInfo(null);
@@ -709,6 +720,13 @@ function EditSubtitlesTab() {
 export default function LeftPanelNew() {
   const lpTab = useLayoutStore((s) => s.lpTab);
   const setLpTab = useLayoutStore((s) => s.setLpTab);
+
+  // A pending "open inline editor" request (Add word) needs the Edit subtitles
+  // tab mounted — switch to it; EditSubtitlesTab consumes and clears the key.
+  const editingWordKey = useSubtitleStore((s) => s.editingWordKey);
+  useEffect(() => {
+    if (editingWordKey && lpTab !== "edit-subtitles") setLpTab("edit-subtitles");
+  }, [editingWordKey, lpTab, setLpTab]);
 
   return (
     <div className="flex flex-col h-full bg-card overflow-hidden">

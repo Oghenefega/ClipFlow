@@ -934,7 +934,16 @@ export default function TimelinePanelNew() {
                 const seg = editSegments.find((s) => clickTime >= s.startSec && clickTime <= s.endSec);
                 if (seg) {
                   handleSegSelect("sub", seg.id);
-                  setContextMenu({ x: e.clientX, y: e.clientY, track: "sub", segId: seg.id });
+                  // Split eligibility computed at menu-open so the item can render
+                  // disabled with a reason instead of silently no-opping (1-word
+                  // block, or playhead not inside this block). Mapped seg times and
+                  // currentTime are both timeline coords.
+                  const wordCount = seg.text.split(/\s+/).filter(Boolean).length;
+                  const t = usePlaybackStore.getState().currentTime;
+                  let splitDisabledReason = null;
+                  if (wordCount < 2) splitDisabledReason = "needs 2+ words";
+                  else if (!(t > seg.startSec + 0.001 && t < seg.endSec - 0.001)) splitDisabledReason = "playhead not over this subtitle";
+                  setContextMenu({ x: e.clientX, y: e.clientY, track: "sub", segId: seg.id, splitDisabledReason });
                 }
               }
             }}
@@ -1087,6 +1096,12 @@ export default function TimelinePanelNew() {
               splitAtTimeline(time);
             }
           }}
+          splitDisabledReason={contextMenu.splitDisabledReason}
+          onAddWord={contextMenu.track === "sub" ? () => {
+            // Appends a placeholder word to the block; the Edit subtitles panel
+            // opens an inline editor on it via the store's editingWordKey.
+            useSubtitleStore.getState().addWordToSegment(contextMenu.segId);
+          } : undefined}
           onRippleDelete={() => handleDelete(true, contextMenu.track, contextMenu.segId)}
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
           onDuplicate={() => { /* TODO */ }}

@@ -676,9 +676,31 @@ export default function QueueView({
   const saveTitle = async (clip) => {
     const trimmed = editTitleValue.trim();
     if (!trimmed || trimmed === clip.title || !clip._projectId) { setEditingTitle(null); return; }
+    const updates = { title: trimmed };
+    // Frozen custom captions/YouTube title don't auto-follow title changes — propagate the
+    // old→new title text into them so they don't go stale when the clip is renamed.
+    const oldTitle = (clip.title || "").trim();
+    if (oldTitle) {
+      if (clip.captionOverrides) {
+        let changed = false;
+        const newOverrides = {};
+        for (const [pk, val] of Object.entries(clip.captionOverrides)) {
+          if (typeof val === "string" && val.includes(oldTitle)) {
+            newOverrides[pk] = val.split(oldTitle).join(trimmed);
+            changed = true;
+          } else {
+            newOverrides[pk] = val;
+          }
+        }
+        if (changed) updates.captionOverrides = newOverrides;
+      }
+      if (typeof clip.youtubeTitle === "string" && clip.youtubeTitle && clip.youtubeTitle.includes(oldTitle)) {
+        updates.youtubeTitle = clip.youtubeTitle.split(oldTitle).join(trimmed);
+      }
+    }
     try {
-      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { title: trimmed });
-      if (!r?.error) updateClipInState(clip._projectId, clip.id, { title: trimmed });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, updates);
     } catch (e) { console.error("Title update failed:", e); }
     setEditingTitle(null);
   };
@@ -1505,9 +1527,22 @@ export default function QueueView({
                           ) : (
                             <div
                               onDoubleClick={() => { setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
-                              style={{ color: T.text, fontSize: 17, fontWeight: 800, marginBottom: 7, cursor: "text", lineHeight: 1.3 }}
-                              title="Double-click to edit"
-                            >{clip.title}</div>
+                              style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}
+                            >
+                              <span style={{ color: T.text, fontSize: 17, fontWeight: 800, cursor: "text", lineHeight: 1.3 }} title="Double-click to edit">{clip.title}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingTitle(clip.id); setEditTitleValue(clip.title); }}
+                                onMouseEnter={(e) => { e.currentTarget.style.color = T.text; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; }}
+                                title="Edit title"
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 3, border: "none", background: "transparent", color: T.textTertiary, cursor: "pointer", transition: "color 0.15s" }}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M12 20h9" />
+                                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                              </button>
+                            </div>
                           )}
                           <div style={{ display: "flex", gap: 12, fontSize: 12.5, color: T.textSecondary, marginBottom: 16, alignItems: "center" }}>
                             <span style={{ fontFamily: T.mono }}>{durationStr}</span>

@@ -6,6 +6,56 @@
 
 ---
 
+## DONE — Session 98: Split-at-playhead fixes + "Add word" + Queue title propagation (VERIFIED in-app except Queue UI)
+
+Approved and built same-session. Split fix + disabled-menu-reasons + Add word verified live in
+the source-run app (split with playhead on last word of "This guy's just" now cuts before "just";
+1-word block shows disabled Split with "needs 2+ words"; Add word grew "know," → "know, IT" with
+the inline editor auto-opening; all test edits undone, nothing saved). Queue pencil +
+old-title→new-title propagation into custom captions is code-reviewed and build-verified but NOT
+exercised against a live queued clip (source profile queue is empty — rides the next installer,
+Fega verifies on his real queued clip). Found + filed #162 (undo doesn't restore mode label).
+
+Fega reported (2026-07-10): (1) "Split at playhead" on a subtitle sometimes does nothing;
+(2) on a 3-word block it split between word 1 and 2 instead of at the playhead;
+(3) feature — right-click a subtitle block to add a word to it (a 1-word block can't grow today).
+
+### Bug — Split at playhead (two dead-end paths in `splitSegment`)
+Root causes, both in `src/renderer/editor/stores/useSubtitleStore.js` `splitSegment` +
+the context-menu wiring in `TimelinePanelNew.js`:
+1. **Silent no-op on 1-word blocks** (`useSubtitleStore.js:693` guard) — matches the "FLIP"
+   screenshot. By design, but zero feedback.
+2. **Wrong-boundary fallbacks**: playhead inside the LAST word → `findIndex` returns -1 →
+   falls to `floor(len/2)` = between words 1–2 on a 3-word block (`:705-706`). Playhead in a
+   gap / outside the clicked block → target falls back to `activeSegId` and splits it at its
+   MIDDLE (`:723-730`). Either explains symptom 2.
+
+Fix plan:
+- `splitSegment`: `findIndex` -1 → last boundary; 0 → first boundary (split lands at the word
+  boundary nearest the playhead, never the middle).
+- Timeline context menu: compute `canSplit` when the menu opens (playhead inside THIS block
+  AND block has ≥2 words); render "Split at playhead" disabled with a short reason
+  ("needs 2+ words" / "playhead not over this subtitle") instead of silently no-opping.
+  Files: `TimelinePanelNew.js`, `timeline/TrackContextMenu.js`.
+
+### Feature — "Add word" on a subtitle block
+Right-click a subtitle block on the timeline → new "Add word" item:
+- Appends a placeholder word to THAT block's text + words[] (placeholder takes the tail slice
+  of the block's time; existing word timings untouched). New store action in `useSubtitleStore.js`.
+- Left panel switches to Edit subtitles, scrolls to that row, and opens the inline editor with
+  the placeholder selected so typing replaces it immediately (wire via the store's currently
+  unused `editingWordKey`). Files: `useSubtitleStore.js`, `LeftPanelNew.js`,
+  `leftpanel/SegmentRow.js`, `TimelinePanelNew.js`, `timeline/TrackContextMenu.js`.
+- Assumption confirmed with Fega's wording: this adds a word INSIDE the existing block (1-word
+  block → 2 words), not a new separate block (drag-on-empty-lane + "+" button already cover that).
+
+Verify: build + npm start; split a 3-word block with playhead over each word (boundary lands
+adjacent to playhead), 1-word block shows disabled split with reason, Add word on a 1-word
+block yields a 2-word block, editor opens pre-selected, undo restores, viewer/transcript stay
+in sync (session 98 fix).
+
+---
+
 ## SHIPPED — Now Playing Tracker rebuild, Phase 1 (VERIFIED by Fega in dev, 2026-07-09)
 
 Built sessions 94–95 (`bc973cb` + `921f41f`, spec `tasks/specs/tracker-now-playing.md`).

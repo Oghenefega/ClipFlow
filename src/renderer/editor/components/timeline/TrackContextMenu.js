@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from "react";
-import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film } from "lucide-react";
+import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onDeleteWithAudio }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onDeleteWithAudio, splitDisabledReason, onAddWord }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -19,12 +19,23 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
       style={{ left: x, top: y }}
     >
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+        className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+          splitDisabledReason ? "text-muted-foreground/50 cursor-default" : "text-foreground hover:bg-secondary/60"
+        }`}
+        disabled={!!splitDisabledReason}
         onClick={() => { onSplit(); onClose(); }}
       >
-        <Scissors className="h-3.5 w-3.5 text-blue-400" /> Split at playhead
-        <span className="ml-auto text-muted-foreground text-[10px]">S</span>
+        <Scissors className={`h-3.5 w-3.5 ${splitDisabledReason ? "text-muted-foreground/40" : "text-blue-400"}`} /> Split at playhead
+        <span className="ml-auto text-muted-foreground text-[10px]">{splitDisabledReason || "S"}</span>
       </button>
+      {track === "sub" && onAddWord && (
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+          onClick={() => { onAddWord(); onClose(); }}
+        >
+          <Plus className="h-3.5 w-3.5 text-green-400" /> Add word
+        </button>
+      )}
       <Separator />
       {track === "audio" && (
         <>

@@ -241,7 +241,7 @@ const useSubtitleStore = create((set, get) => ({
   esFilter: "all",
   activeSegId: null,
   selectedWordInfo: null, // { segId, wordIdx }
-  editingWordKey: null,   // "segId-wordIdx" for inline transcript editing
+  editingWordKey: null,   // { segId, wordIdx } — one-shot "open inline editor on this word" request (Add word); EditSubtitlesTab consumes and clears it
   // ── Transcript ──
   transcriptSearch: "",
   activeRow: 0,
@@ -671,6 +671,47 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // Append a placeholder word to a segment (timeline right-click → "Add word").
+  // The placeholder takes the tail of the block's time: the gap after the last
+  // word when there is one, otherwise the back half of the last word's span —
+  // existing word timings are never shifted. Sets editingWordKey so the Edit
+  // subtitles panel opens an inline editor on the new word (LeftPanelNew picks
+  // it up, switches tabs, and clears it).
+  addWordToSegment: (segId) => {
+    const { editSegments } = get();
+    const idx = editSegments.findIndex(s => s.id === segId);
+    if (idx < 0) return;
+    get()._pushUndo();
+    const seg = editSegments[idx];
+    const textWords = seg.text.split(/\s+/).filter(Boolean);
+    const placeholder = "word";
+    const words = (seg.words && seg.words.length > 0)
+      ? seg.words.map(w => ({ ...w }))
+      : _wordsFromText(seg.startSec, seg.endSec, seg.text);
+    const last = words[words.length - 1];
+    let wStart;
+    if (!last) {
+      wStart = seg.startSec;
+    } else {
+      const lastEnd = Math.min(last.end, seg.endSec);
+      if (seg.endSec - lastEnd >= 0.15) {
+        wStart = lastEnd;
+      } else {
+        wStart = (last.start + lastEnd) / 2;
+        words[words.length - 1] = { ...last, end: wStart };
+      }
+    }
+    words.push({ word: placeholder, start: wStart, end: seg.endSec, probability: 1 });
+    const next = [...editSegments];
+    next[idx] = { ...seg, text: [...textWords, placeholder].join(" "), words };
+    set({
+      editSegments: next,
+      activeSegId: segId,
+      selectedWordInfo: null,
+      editingWordKey: { segId, wordIdx: textWords.length },
+    });
+  },
+
   splitSegment: (atTime) => {
     const { activeSegId, editSegments, selectedWordInfo, _pushUndo } = get();
 
@@ -701,9 +742,15 @@ const useSubtitleStore = create((set, get) => ({
       // Split at the given time — find the nearest word boundary
       splitSec = atTime;
       if (seg.words && seg.words.length > 0) {
-        // Find the word index where the split falls
+        // Find the word index where the split falls. findIndex misses two edges:
+        // -1 (playhead inside the LAST word — no word starts after it) and 0
+        // (playhead before the first word starts). Both used to fall back to the
+        // MIDDLE of the segment, so splitting a 3-word block with the playhead on
+        // its last word cut between words 1-2. Snap to the nearest real boundary
+        // instead: the last one (-1) or the first one (0).
         splitWordIdx = seg.words.findIndex(w => w.start >= splitSec);
-        if (splitWordIdx <= 0) splitWordIdx = Math.max(1, Math.floor(seg.words.length / 2));
+        if (splitWordIdx === -1) splitWordIdx = seg.words.length - 1;
+        else if (splitWordIdx === 0) splitWordIdx = 1;
         // Map word index back to text word index
         const textWordIdx = Math.min(splitWordIdx, textWords.length - 1);
         splitWordIdx = Math.max(1, textWordIdx);
