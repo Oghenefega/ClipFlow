@@ -1050,14 +1050,24 @@ export default function QueueView({
     const gt = (clip.gameTag || extractGameTag(clip.title) || "unknown").toLowerCase();
     const snapped = snapToSlot(time, effectiveTemplate.timeSlots);
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const toggles = clip.platformToggles || {};
-    const enabled = activePlat.filter((p) => { const k = accountToPlatformKey(p); return k && toggles[k] !== false; });
     const captured = publishResultsRef.current[clip.id] || {};
-    const platformResults = enabled.map((p) => {
+    // Record the platforms that actually succeeded — captured this session or persisted on
+    // clip.publishState across attempts — NOT the currently-enabled toggles. A retry after
+    // toggling the already-posted platforms off must still credit those earlier successes.
+    const state = clip.publishState || {};
+    let posted = activePlat.filter((p) => {
+      const k = accountToPlatformKey(p);
+      return k && (captured[k] || state[p.key] === "success");
+    });
+    if (posted.length === 0) {
+      const toggles = clip.platformToggles || {};
+      posted = activePlat.filter((p) => { const k = accountToPlatformKey(p); return k && toggles[k] !== false; });
+    }
+    const platformResults = posted.map((p) => {
       const k = accountToPlatformKey(p);
       return captured[k] || { platform: k, accountId: p.key };
     });
-    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: enabled.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
     awardXp(`clip:${id}`, 10, "clip", date);
     delete publishResultsRef.current[clip.id];
   };
