@@ -424,9 +424,20 @@ function DraggableOverlay({
 // editor store, which live-repaints the vertical PiP.
 const CAL_COLORS = { camRect: "#a78bfa", gameRect: "#22d3ee" }; // match the Layout panel swatches
 const CAL_LABELS = { camRect: "WEBCAM", gameRect: "GAME" };
+const SNAP_SCREEN_PX = 8; // #164 polish: fixed screen-px snap threshold so the feel is zoom-independent
+
+// #164 polish: seam treatment between the game band's bottom edge and the bg.
+// "feather" = game footage alpha-fades into the bg (Fega's OBS reference);
+// "shadow" = opaque bands + a dark gradient cast onto the bg below the seam.
+// Render.js implements feather; flip here only for A/B screenshots.
+const SEAM_STYLE = "feather";
+const SEAM_FRAC = 0.10;   // feather/shadow height as fraction of output height (192px at 1920)
+const BG_DARKEN = 0.5;    // black overlay alpha on the blurred bg — must track render.js lutyuv
 
 function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) {
   const dragRef = useRef(null);
+  const [selected, setSelected] = useState(null); // "camRect" | "gameRect" | null — nothing selected until first click
+  const [guides, setGuides] = useState({ v: null, h: null }); // snapped-target source px, per axis, while dragging
 
   // Contain-fit of the source frame inside the (16:9) calibration canvas.
   const scale = Math.min(canvasW / videoDims.w, canvasH / videoDims.h);
@@ -436,6 +447,7 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
   const beginDrag = useCallback((e, key, mode, rect) => {
     e.preventDefault();
     e.stopPropagation();
+    setSelected(key); // select + drag in one gesture, matching industry NLE behavior
     dragRef.current = { key, mode, startX: e.clientX, startY: e.clientY, rect0: { ...rect }, scale };
     e.target.setPointerCapture?.(e.pointerId);
   }, [scale]);
@@ -453,22 +465,92 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
       if (d.mode.includes("w")) { r.x += dx; r.w -= dx; }
       if (d.mode.includes("n")) { r.y += dy; r.h -= dy; }
     }
+
+    // #164 polish: snap to frame edges/centerlines within a fixed screen-px threshold
+    // (t converts to source px so the feel is zoom-independent); Alt bypasses for exact
+    // freehand placement. Move snaps both axes to their nearest candidate; resize only
+    // snaps the edge(s) being dragged. Edge-to-centerline snapping is included
+    // deliberately — it's how you make exact half-splits.
+    let vGuide = null, hGuide = null;
+    if (!e.altKey) {
+      const t = SNAP_SCREEN_PX / d.scale;
+      // Each candidate is [distance-to-target, guide position, resulting rect value];
+      // the nearest candidate within t wins.
+      const pick = (candidates) => {
+        let best = null;
+        for (const c of candidates) if (c[0] <= t && (!best || c[0] < best[0])) best = c;
+        return best;
+      };
+      if (d.mode === "move") {
+        const bestX = pick([
+          [Math.abs(r.x + r.w / 2 - videoDims.w / 2), videoDims.w / 2, videoDims.w / 2 - r.w / 2],
+          [Math.abs(r.x), 0, 0],
+          [Math.abs(r.x + r.w - videoDims.w), videoDims.w, videoDims.w - r.w],
+        ]);
+        if (bestX) { r.x = bestX[2]; vGuide = bestX[1]; }
+        const bestY = pick([
+          [Math.abs(r.y + r.h / 2 - videoDims.h / 2), videoDims.h / 2, videoDims.h / 2 - r.h / 2],
+          [Math.abs(r.y), 0, 0],
+          [Math.abs(r.y + r.h - videoDims.h), videoDims.h, videoDims.h - r.h],
+        ]);
+        if (bestY) { r.y = bestY[2]; hGuide = bestY[1]; }
+      } else {
+        if (d.mode.includes("e")) {
+          const best = pick([
+            [Math.abs(r.x + r.w - videoDims.w), videoDims.w, videoDims.w - r.x],
+            [Math.abs(r.x + r.w - videoDims.w / 2), videoDims.w / 2, videoDims.w / 2 - r.x],
+          ]);
+          if (best) { r.w = best[2]; vGuide = best[1]; }
+        }
+        if (d.mode.includes("w")) {
+          const best = pick([
+            [Math.abs(r.x), 0, 0],
+            [Math.abs(r.x - videoDims.w / 2), videoDims.w / 2, videoDims.w / 2],
+          ]);
+          if (best) { r.w += r.x - best[2]; r.x = best[2]; vGuide = best[1]; }
+        }
+        if (d.mode.includes("s")) {
+          const best = pick([
+            [Math.abs(r.y + r.h - videoDims.h), videoDims.h, videoDims.h - r.y],
+            [Math.abs(r.y + r.h - videoDims.h / 2), videoDims.h / 2, videoDims.h / 2 - r.y],
+          ]);
+          if (best) { r.h = best[2]; hGuide = best[1]; }
+        }
+        if (d.mode.includes("n")) {
+          const best = pick([
+            [Math.abs(r.y), 0, 0],
+            [Math.abs(r.y - videoDims.h / 2), videoDims.h / 2, videoDims.h / 2],
+          ]);
+          if (best) { r.h += r.y - best[2]; r.y = best[2]; hGuide = best[1]; }
+        }
+      }
+    }
+
     const MIN_W = 120, MIN_H = 68; // source px — keeps a box grabbable
     r.w = Math.max(MIN_W, Math.min(r.w, videoDims.w));
     r.h = Math.max(MIN_H, Math.min(r.h, videoDims.h));
     r.x = Math.max(0, Math.min(r.x, videoDims.w - r.w));
     r.y = Math.max(0, Math.min(r.y, videoDims.h - r.h));
     onRectChange(d.key, r);
+    setGuides({ v: vGuide, h: hGuide });
   }, [videoDims.w, videoDims.h, onRectChange]);
 
-  const endDrag = useCallback(() => { dragRef.current = null; }, []);
+  const endDrag = useCallback(() => { dragRef.current = null; setGuides({ v: null, h: null }); }, []);
 
   return (
     <>
+      {/* Deselect on background click. No stopPropagation — middle-click pan and
+          wheel zoom on the ancestor scroll container must keep working. */}
+      <div
+        className="absolute inset-0"
+        style={{ zIndex: 28 }}
+        onPointerDown={(e) => { if (e.button === 0) setSelected(null); }}
+      />
       {["gameRect", "camRect"].map((key) => {
         const r = draft[key];
         if (!r) return null;
         const color = CAL_COLORS[key];
+        const isSelected = selected === key;
         return (
           <div
             key={key}
@@ -478,10 +560,10 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
               top: offY + r.y * scale,
               width: r.w * scale,
               height: r.h * scale,
-              border: `1.5px solid ${color}`,
+              border: `1.5px solid ${isSelected ? color : color + "80"}`,
               boxShadow: "0 0 0 1px rgba(0,0,0,0.55)",
-              cursor: "grab",
-              zIndex: key === "camRect" ? 30 : 29,
+              cursor: isSelected ? "grab" : "pointer",
+              zIndex: isSelected ? 30 : 29,
               touchAction: "none",
             }}
             onPointerDown={(e) => beginDrag(e, key, "move", r)}
@@ -493,13 +575,13 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
               className="absolute pointer-events-none"
               style={{
                 top: -1, left: -1, fontSize: 9, fontWeight: 800, letterSpacing: "0.6px",
-                padding: "1px 6px", background: color, color: "#0a0b10",
+                padding: "1px 6px", background: isSelected ? color : color + "CC", color: "#0a0b10",
                 borderRadius: "2px 0 4px 0", lineHeight: 1.4,
               }}
             >
               {CAL_LABELS[key]}
             </div>
-            {["nw", "ne", "sw", "se"].map((h) => (
+            {isSelected && ["nw", "ne", "sw", "se"].map((h) => (
               <div
                 key={h}
                 onPointerDown={(e) => beginDrag(e, key, h, r)}
@@ -520,6 +602,26 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
           </div>
         );
       })}
+      {guides.v !== null && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: offX + guides.v * scale, top: offY, width: 1, height: videoDims.h * scale,
+            background: "rgba(255,255,255,0.9)", boxShadow: "0 0 4px rgba(0,0,0,0.8)",
+            zIndex: 33,
+          }}
+        />
+      )}
+      {guides.h !== null && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            top: offY + guides.h * scale, left: offX, height: 1, width: videoDims.w * scale,
+            background: "rgba(255,255,255,0.9)", boxShadow: "0 0 4px rgba(0,0,0,0.8)",
+            zIndex: 33,
+          }}
+        />
+      )}
     </>
   );
 }
@@ -554,7 +656,11 @@ export default function PreviewPanelNew() {
   draftRef.current = reframeDraft;
   const calibratingRef = useRef(calibrating);
   calibratingRef.current = calibrating;
-  const pipCanvasRef = useRef(null);
+  // Result canvas now lives in the Layout panel; it registers itself via the
+  // store so this component can keep painting it without owning its DOM node.
+  const reframePipCanvas = useEditorStore((s) => s.reframePipCanvas);
+  const pipElRef = useRef(null);
+  pipElRef.current = reframePipCanvas;
   // Decoded frame dimensions — the coordinate space calibration boxes map into.
   const [videoDims, setVideoDims] = useState(null);
 
@@ -735,6 +841,7 @@ export default function PreviewPanelNew() {
   const scrollContainerRef = useRef(null);
   const compositeCanvasRef = useRef(null); // #164 reframe compositor surface
   const blurScratchRef = useRef(null); // #164 tiny offscreen canvas for the blur band
+  const featherScratchRef = useRef(null); // #164 polish: offscreen canvas for the game band's bottom-edge alpha feather
   const [isPanning, setIsPanning] = useState(false);
 
   // Track canvas size for proportional text scaling
@@ -1179,21 +1286,63 @@ export default function PreviewPanelNew() {
     const coverScale = Math.max(scratch.width / game.w, scratch.height / game.h);
     const sw = game.w * coverScale, sh = game.h * coverScale;
     sctx.drawImage(video, game.x, game.y, game.w, game.h, (scratch.width - sw) / 2, (scratch.height - sh) / 2, sw, sh);
-    ctx.filter = `blur(${Math.max(2, Math.round(W / 90))}px)`;
+    ctx.filter = `blur(${Math.max(4, Math.round(W / 45))}px)`;
     ctx.drawImage(scratch, 0, 0, W, H);
     ctx.filter = "none";
+    // Darken the blurred bg so the sharp bands read as the clear foreground —
+    // must visually track render.js's lutyuv (BG_DARKEN = 0.5 there too).
+    ctx.fillStyle = `rgba(0,0,0,${BG_DARKEN})`;
+    ctx.fillRect(0, 0, W, H);
 
     // Bands stack from the top; overflow past the bottom clips (render parity).
     const camBandH = W * (cam.h / cam.w);
     const gameBandH = W * (game.h / game.w);
+    const bandsBottom = camBandH + gameBandH;
     ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
-    ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
+
+    if (SEAM_STYLE === "feather" && bandsBottom < H - 2) {
+      // Feather the game band's bottom edge into the bg instead of a hard seam
+      // (mirrors render.js's geq alpha ramp on the same-height strip).
+      let fScratch = featherScratchRef.current;
+      const gh = Math.round(gameBandH);
+      if (!fScratch) {
+        fScratch = document.createElement("canvas");
+        featherScratchRef.current = fScratch;
+      }
+      if (fScratch.width !== W || fScratch.height !== gh) {
+        fScratch.width = W;
+        fScratch.height = gh;
+      }
+      const fctx = fScratch.getContext("2d");
+      fctx.clearRect(0, 0, W, gh);
+      fctx.drawImage(video, game.x, game.y, game.w, game.h, 0, 0, W, gh);
+      const F = Math.min(Math.round(H * SEAM_FRAC), Math.floor(gh / 2));
+      fctx.globalCompositeOperation = "destination-out";
+      const fadeGrad = fctx.createLinearGradient(0, gh - F, 0, gh);
+      fadeGrad.addColorStop(0, "rgba(0,0,0,0)");
+      fadeGrad.addColorStop(1, "rgba(0,0,0,1)");
+      fctx.fillStyle = fadeGrad;
+      fctx.fillRect(0, gh - F, W, F);
+      fctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(fScratch, 0, camBandH);
+    } else {
+      ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
+      if (SEAM_STYLE === "shadow" && bandsBottom < H - 2) {
+        // Dark gradient cast onto the bg below the seam; bands stay fully opaque.
+        const shadowH = H * 0.09;
+        const shadowGrad = ctx.createLinearGradient(0, bandsBottom, 0, bandsBottom + shadowH);
+        shadowGrad.addColorStop(0, "rgba(0,0,0,0.55)");
+        shadowGrad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = shadowGrad;
+        ctx.fillRect(0, bandsBottom, W, shadowH);
+      }
+    }
   }, []);
 
   // One painter, two targets: the full-size composite in normal mode, the
   // vertical PiP (painted from the live draft) while calibrating.
   const paintActive = useCallback(() => {
-    if (calibratingRef.current) paintComposite(pipCanvasRef.current, draftRef.current);
+    if (calibratingRef.current) paintComposite(pipElRef.current, draftRef.current);
     else paintComposite(compositeCanvasRef.current, reframeRef.current);
   }, [paintComposite]);
 
@@ -1233,7 +1382,7 @@ export default function PreviewPanelNew() {
   // calibration drags).
   useEffect(() => {
     if (reframeActive || calibrating) paintActive();
-  }, [reframeActive, calibrating, paintActive, canvasWidth, fitSize, zoom, reframe, reframeDraft]);
+  }, [reframeActive, calibrating, paintActive, canvasWidth, fitSize, zoom, reframe, reframeDraft, reframePipCanvas]);
 
   // Deselect overlay when clicking canvas background
   const onCanvasClick = useCallback((e) => {
@@ -1415,8 +1564,8 @@ export default function PreviewPanelNew() {
             />
           )}
 
-          {/* #164 calibration layer — draggable crop boxes over the raw source
-              plus a live vertical result PiP painted from the draft */}
+          {/* #164 calibration layer — draggable crop boxes over the raw source.
+              The live Result preview now renders in the Layout panel (RightPanelNew). */}
           {calibrating && videoDims && fitSize && (
             <>
               <CalibrationBoxes
@@ -1426,25 +1575,6 @@ export default function PreviewPanelNew() {
                 canvasH={fitSize.h * scaleOf(zoom)}
                 onRectChange={updateReframeDraft}
               />
-              <div
-                className="absolute rounded-lg overflow-hidden pointer-events-none"
-                style={{
-                  bottom: 8, right: 8, height: "46%", aspectRatio: "9 / 16",
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.55), 0 0 0 1px hsl(240 4% 26%)",
-                  zIndex: 32, background: "#000",
-                }}
-              >
-                <canvas ref={pipCanvasRef} className="w-full h-full block" />
-                <div
-                  className="absolute pointer-events-none"
-                  style={{
-                    top: 4, left: 6, fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
-                    color: "rgba(255,255,255,0.75)", textShadow: "0 1px 3px rgba(0,0,0,0.8)",
-                  }}
-                >
-                  RESULT
-                </div>
-              </div>
             </>
           )}
 

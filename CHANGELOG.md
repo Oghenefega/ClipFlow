@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-15 (session 104) — Layout editor polish: selection, snapping, panel preview, softer background
+
+### Changed
+- **Calibration boxes are now click-to-select (#164 polish).** Only the box you click shows corner handles and responds to dragging — the other box dims to a faint outline until you click it, so you can't grab the wrong border when the webcam and game edges sit close together. Clicking empty video deselects both. [src/renderer/editor/components/PreviewPanelNew.js]
+- **Boxes snap to the recording's center and edges while you drag or resize**, with a thin white guide line flashing when a snap engages — centering the webcam or game no longer relies on eyeballing. Hold Alt to place freely without snapping. [src/renderer/editor/components/PreviewPanelNew.js]
+- **The live Result preview moved off the video and into the Layout panel**, under the Apply/Cancel buttons where there was dead space — it no longer floats over the video (it used to cover the game box's bottom-right resize handle). [src/renderer/editor/components/RightPanelNew.js, PreviewPanelNew.js, stores/useEditorStore.js]
+- **The blurred background behind the vertical layout is now much blurrier and 50% darker** in both the editor preview and the rendered file, so viewers focus on the clip instead of the backdrop (matches Fega's OBS canvas look). [src/renderer/editor/components/PreviewPanelNew.js, src/main/render.js]
+
+### Added
+- **The game footage now fades out at its very bottom edge into the blurred background** (a ~10%-of-frame feather) instead of ending in a hard line — in both the editor preview and the rendered file. Skipped automatically when the webcam+game bands fill the whole frame. An alternative "soft shadow" seam style exists behind a one-line constant for A/B comparison. [src/renderer/editor/components/PreviewPanelNew.js, src/main/render.js]
+
 ## [0.1.9-alpha.2] — 2026-07-15 (session 103) — Installer cut: Auto-Reframe works with any recording format
 
 ### Fixed

@@ -6,6 +6,94 @@
 
 ---
 
+## DONE (machine-verified, awaiting Fega's look) — #164 Phase A polish batch (session 104)
+
+**Status 2026-07-15:** Fega approved (item 5 corrected to FEATHER, shadow kept
+as a B-option screenshot). Implemented via Sonnet subagent, reviewed line by
+line, then verified: CDP drive of the dev app (selection/snap/guides/Alt/
+deselect/panel-Result all asserted true, zero console exceptions; cam snapped
+to EXACT source center 1280,1440), synthetic 8x9 render + real-footage render
+(Fega's actual RL 2026-07-15.mp4 + his committed rects, via a dev-rig clone
+project — prod untouched), null-reframe filter args byte-identical. A/B
+screenshots (feather vs shadow) on real footage delivered in chat. Blur/
+darkness/feather-height are tunable constants pending his reaction.
+
+Five cleanup items from Fega's first hands-on pass at the Layout editor.
+No data-shape changes → no migration. All render.js changes stay inside the
+reframe branch → null-reframe output stays byte-identical.
+
+**Files touched:** `PreviewPanelNew.js` (calibration boxes, compositor, remove
+floating PiP), `RightPanelNew.js` (Layout panel gets the Result preview),
+`useEditorStore.js` (register the Result canvas element — same pattern as
+`initVideoRef` in the playback store), `render.js` (bg chain: blur/darken/
+gradient).
+
+### 1. Click-to-select calibration boxes
+- Local `selected` state in `CalibrationBoxes` (`camRect | gameRect | null`,
+  starts null). Both boxes always show a thin outline + name tag for context,
+  but only the selected box gets corner handles and responds to drag/resize;
+  the unselected box's editing chrome disappears (outline dims to ~50%).
+  Selected box renders on top. **Decision Fega can override:** keep the faint
+  outline for context vs. fully hide the other box.
+- Pointer-down on an unselected box selects it and starts the move in one
+  gesture. Clicking outside both boxes deselects.
+- Update panel copy: "Click a box to select it, then drag or resize."
+
+### 2. Snapping + alignment guides
+- While moving: box centerline snaps to the video's vertical/horizontal
+  center; box edges snap to the video edges. While resizing: the moving edge
+  snaps to the same targets. Threshold ~8 screen px at any zoom. Hold Alt to
+  bypass. A thin bright guide line shows across the video while snapped.
+
+### 3. Result preview moves into the Layout panel
+- Delete the floating RESULT box from the video area (it currently covers the
+  game box's bottom-right handle — also helps item 1).
+- Layout panel calibrating view: "Result" section under Apply/Cancel — 9:16
+  canvas (~240px wide, centered). LayoutPanel registers the canvas element in
+  useEditorStore; PreviewPanelNew's existing paint loop paints it (repaint
+  effect keyed on the registered element so it paints on mount; drawer closed
+  = no-op).
+
+### 4. Background blur: stronger + darker (BOTH engines — parity invariant)
+- Preview `paintComposite`: blur `W/90` → `~W/45` (min 4px); after the bg
+  draws, fill `rgba(0,0,0,0.45)` before the bands go on.
+- Render `rf_bg` chain: boxblur radius 14 → ~28 (at the 270×480 intermediate)
+  + `lutyuv` black-mix matching the 45% overlay (limited-range correct:
+  `y=16+(val-16)*0.55`, u/v pulled 55% toward 128). Tune the pair
+  side-by-side (CDP screenshot vs. extracted render frame).
+
+### 5. Gradient seam at the clip's bottom edge — FEATHER (Fega corrected)
+- **Fega clarified 2026-07-15:** the game footage itself becomes see-through
+  at the very bottom and fades seamlessly into the bg (matches his OBS
+  vertical canvas reference). Feather is the default; ALSO show him one
+  screenshot of the soft-shadow variant for comparison (preview-only
+  `SEAM_STYLE` constant, flip + rebuild for the B shot).
+- Preview: game band drawn via offscreen canvas, bottom ~10% of output height
+  erased with a `destination-out` linear gradient, then composited. Skip when
+  bands fill the full frame (nothing below to fade into).
+- Render: split `rf_game` into an opaque top part + bottom strip
+  (`FEATHER_PX=192`, even, clamped to half the band); strip →
+  `format=yuva444p` + `geq` alpha ramp (identity lum/cb/cr, `a=255*(1-Y/F)`)
+  → own overlay. geq on a 1080×192 strip is negligible per frame. Skip
+  entirely when `camBand+gameBand` fills 1920.
+- Item 4 darkness bumped to ~50% (his OBS reference bg is near-black).
+
+### Verification (machine, before Fega sees it)
+1. Build + `npm start`; CDP-drive the editor on the dev spike projects.
+2. Screenshots: select webcam → game handles gone; select game → reverse;
+   snap guide flashes at center; Result renders in the panel; bg darker +
+   blurrier; gradient seam visible.
+3. Headless test render → extract frame → side-by-side with preview
+   screenshot (parity).
+4. Null-reframe render args unchanged (deepStrictEqual harness from 103).
+
+### What Fega does
+- Approve this plan → I implement (Sonnet subagent) + post screenshots →
+  he judges the look (blur amount / darkness / gradient are tunable numbers)
+  → when happy, cut **0.1.9-alpha.3** for the daily driver.
+
+---
+
 ## DONE (awaiting Fega verification) — Auto-Reframe Phase A (epic #164, session 103)
 
 Built, machine-verified, and SHIPPED in 0.1.9-alpha.2 (session 103); details

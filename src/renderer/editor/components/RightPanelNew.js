@@ -1746,6 +1746,7 @@ function LayoutPanel() {
   const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
   const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
   const removeReframe = useEditorStore((s) => s.removeReframe);
+  const setReframePipCanvas = useEditorStore((s) => s.setReframePipCanvas);
 
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -1830,7 +1831,7 @@ function LayoutPanel() {
     return (
       <div className="p-3 space-y-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Drag the boxes on the preview — purple is your webcam, cyan is the game. The small vertical preview shows the result live.
+          Click a box on the preview to select it, then drag or resize — purple is your webcam, cyan is the game. The result updates live below.
         </p>
 
         <div className="space-y-2">
@@ -1847,6 +1848,19 @@ function LayoutPanel() {
           <Button variant="outline" size="sm" onClick={cancelReframeDraft} disabled={applying} className="h-8 px-3 text-xs">
             Cancel
           </Button>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-muted-foreground">Result</div>
+          <div
+            className="rounded-lg overflow-hidden mx-auto"
+            style={{ width: "100%", maxWidth: 240, aspectRatio: "9 / 16", background: "#000", boxShadow: "0 0 0 1px hsl(240 4% 20%)" }}
+          >
+            {/* setReframePipCanvas is a stable store action used as a callback ref —
+                React calls it with the element on mount, null on unmount, which is
+                exactly the registration lifecycle the preview compositor needs. */}
+            <canvas ref={setReframePipCanvas} className="w-full h-full block" />
+          </div>
         </div>
       </div>
     );

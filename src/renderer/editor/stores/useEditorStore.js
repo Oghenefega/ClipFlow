@@ -68,6 +68,9 @@ const useEditorStore = create((set, get) => ({
   // from this draft; commitReframeDraft persists it, cancelReframeDraft drops it.
   reframeDraft: null,
 
+  // The Layout panel owns the Result canvas element; the preview compositor paints it.
+  reframePipCanvas: null,
+
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
@@ -513,6 +516,8 @@ const useEditorStore = create((set, get) => ({
       },
     });
   },
+
+  setReframePipCanvas: (el) => set({ reframePipCanvas: el }),
 
   cancelReframeDraft: () => set({ reframeDraft: null }),
 

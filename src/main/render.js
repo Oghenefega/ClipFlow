@@ -136,12 +136,36 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   const geo = computeReframeGeometry(reframe, sourceWidth, sourceHeight);
   if (geo) {
     const { cam, game, camBand, gameBand } = geo;
+
+    // #164 polish: the game band's bottom edge alpha-fades into the bg instead of a
+    // hard seam. floor(gameBand/4)*2 caps featherH at gameBand/2, so gameBand-featherH
+    // can never go negative; the even height also keeps the 4:2:0 crop legal. Skipped
+    // when the bands already fill the whole 1920 frame (nothing below to fade into).
+    const FEATHER_PX = 192;
+    const featherH = camBand + gameBand <= 1920 - 4
+      ? Math.min(FEATHER_PX, Math.floor(gameBand / 4) * 2)
+      : 0;
+
     filters.push(`[base_v]split=3[rf_cam_in][rf_game_in][rf_bg_in]`);
     filters.push(`[rf_cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[rf_cam]`);
     filters.push(`[rf_game_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:${gameBand}[rf_game]`);
-    filters.push(`[rf_bg_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,scale=270:480,boxblur=14:2,scale=1080:1920,setsar=1[rf_bg]`);
+    // Stronger blur + a limited-range darken lut so the bg reads as a soft backdrop
+    // behind the sharp bands (mirrors BG_DARKEN=0.5 in the preview compositor): luma
+    // scales toward 16, chroma toward neutral 128 — the legal-range equivalent of
+    // compositing black at 50% alpha. format=yuv420p guards the 8-bit lut constants
+    // against 10-bit sources.
+    filters.push(`[rf_bg_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,scale=270:480,boxblur=28:2,scale=1080:1920,format=yuv420p,setsar=1,lutyuv=y=16+(val-16)*0.5:u=128+(val-128)*0.5:v=128+(val-128)*0.5[rf_bg]`);
     filters.push(`[rf_bg][rf_cam]overlay=0:0[rf_t1]`);
-    filters.push(`[rf_t1][rf_game]overlay=0:${camBand}[rf_t2]`);
+    if (featherH >= 8) {
+      // geq only runs on the 1080×featherH strip, so per-frame cost is negligible.
+      filters.push(`[rf_game]split[rf_g_top_in][rf_g_btm_in]`);
+      filters.push(`[rf_g_top_in]crop=1080:${gameBand - featherH}:0:0[rf_g_top]`);
+      filters.push(`[rf_g_btm_in]crop=1080:${featherH}:0:${gameBand - featherH},format=yuva444p,geq=lum=lum(X\\,Y):cb=cb(X\\,Y):cr=cr(X\\,Y):a=255*(1-Y/${featherH})[rf_g_btm]`);
+      filters.push(`[rf_t1][rf_g_top]overlay=0:${camBand}[rf_t1b]`);
+      filters.push(`[rf_t1b][rf_g_btm]overlay=0:${camBand + gameBand - featherH}[rf_t2]`);
+    } else {
+      filters.push(`[rf_t1][rf_game]overlay=0:${camBand}[rf_t2]`);
+    }
     filters.push(`[rf_t2]format=yuv420p[base_out]`);
     videoLabel = "base_out";
   }
