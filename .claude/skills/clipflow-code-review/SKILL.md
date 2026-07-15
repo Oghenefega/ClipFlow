@@ -28,6 +28,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] All store subscriptions use selectors: `useStore((s) => s.field)`
 - [ ] No `getState()` in render paths
 - [ ] Hooks reference values declared ABOVE them (no TDZ)
+- [ ] **Mount-only effects see PRE-LOAD state.** App renders every tab pane at launch, BEFORE the async electron-store load — an effect with `[]` deps that captures loaded data (counters, animations, derived UI) freezes at empty/0 forever. Give it real deps and compute/animate from the last shown value. (Frozen weekly-goal ring, session 100.)
 - [ ] **Rename safety:** After renaming ANY variable, function, or export — search ALL 6 categories for the old name: (1) direct calls, (2) type-level references, (3) string literals, (4) dynamic imports, (5) re-exports/barrel files, (6) test files/mocks. Assume grep missed something.
 
 ### 5. CSS/Layout Sanity
@@ -40,6 +41,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] Did I change imports? Check nothing is unused or missing
 - [ ] Did I remove a component? Check it's not referenced elsewhere
 - [ ] Did I change a store action? Check all call sites still pass correct args
+- [ ] **A summary/list IPC must carry every field its consumers read.** When a "lightweight" list feeds more surfaces than the screen it was built for (Queue + auto-publish scheduler read clips from the startup project list), omitting a field silently empties those surfaces until a full load happens. Strip only fields MEASURED heavy, and grep the list's consumers before trimming. (Queue empty at launch, session 100.)
 - [ ] **Load-path invariant:** if a list's sort/filter is enforced at LOAD time (not at render), it's an invariant EVERY path that writes the full list into state must satisfy. When adding/touching any `setX(rows)` from a DB/IPC reload, grep ALL sibling setters and confirm each applies the same sort/filter — the DB's `ORDER BY` is not the UI's order. One missed `setFiles(rows)` (resetFileDone, no `compareRecordings`) flipped the whole Recordings list to newest-first until restart (session 86).
 
 ### 7. Liveness — am I editing code that actually RUNS?

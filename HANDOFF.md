@@ -1,44 +1,44 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-11 — Session 99 — **Recordings tab "Group by: Month / Game" toggle, shipped + verified in-app (`17037ef`), rides the next installer.**_
+_Last updated: 2026-07-14 — Session 100 — **Publish-day debugging arc: YT token, tracker honesty, frozen goal ring, queue-at-launch. Alpha.15 cut, installed, and verified by Fega.**_
 
 ---
 
 ## One-line TL;DR
-Added a "Group: Month | Game" segmented toggle to the Recordings tab (`17037ef`) — folders can now be keyed by game instead of month, alphabetical by game name, mode persisted across restarts. Verified live via computer-use in the source-run app. Single-file change (UploadView.js). Toggle only — Fega explicitly declined a game filter for now.
+Fega's first real publish day in a while surfaced five bugs; all five fixed, verified, and shipped in `0.1.8-alpha.15` (installed + confirmed: ring shows 3 of 48). YouTube OAuth needs a Google Cloud Console action (Testing → Production) or it dies again in ~7 days.
 
 ## Current State
-- **Installed daily driver: 0.1.8-alpha.13; alpha.14 installer still cut and waiting in `dist/`** — Fega hasn't reinstalled yet (carried from session 98). The group-by toggle is NOT in alpha.14; it rides the NEXT installer cut.
-- Group-by toggle fully verified in the source-run app (both modes, expand/collapse, persistence). Store left on "month" (the default) after testing.
-- Session 98's Queue pencil/propagation remains the one unverified alpha.14 piece (needs his real queued clip on the installed app).
+- **Installed daily driver: 0.1.8-alpha.15** — Fega installed it this session and confirmed the Tracker weekly goal now reads 3 of 48 / Rocket League 3. Everything through commit `efb77db` is live.
+- All four session-100 fixes are user-verified or CDP-verified (see below); session 98's queue pencil/propagation verification is now moot-or-easy since he's publishing for real again.
 - Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch.
 
 ## What Was Just Built
-- **"Group by: Month / Game" toggle (`17037ef`)** — all in [src/renderer/views/UploadView.js](src/renderer/views/UploadView.js):
-  - `groupMode` state ("month" | "game", default "month"), persisted to electron-store key `recordingsGroupMode`, loaded in the existing settings effect, saved via `changeGroupMode` (mirrors `changeTagMode`).
-  - Grouping bucket key branches on mode: game mode uses `f.tag || "unknown"`; test files keep their own "test" folder in both modes. Folder sort: "test" first, "unknown" ("Other") last, games alphabetical by display name via `findGameByTag(tag, gamesDb)?.name`.
-  - New top-level `folderLabel(key, groupMode, gamesDb)` helper next to `monthLabel`; header render swapped to it.
-  - Toggle UI copies the #122 Tags segmented-control pattern exactly, placed left of it.
-  - Collapse/expand, per-folder Select All, done/selected counts all reuse the generic folder-key logic untouched — game tags can't collide with "YYYY-MM"/"test"/"unknown" keys.
-- Implementation delegated to a Sonnet subagent (per the Fable delegation pattern); diff reviewed in main session, 56 insertions / 5 deletions, one file.
+- **YouTube publish failure diagnosed (not a code fix):** "Token refresh failed: Bad Request" = Google `invalid_grant` — refresh tokens die after 7 days while the OAuth app is in **Testing** mode. Fega reconnected and posted. Filed **#163**: surface "reconnect in Settings" instead of raw Google errors + flag the account (TikTok path has the same weakness).
+- **Tracker retry credit (`6c9bbf8`)** — `logPost` ([QueueView.js](src/renderer/views/QueueView.js)) now records the union of captured publish results + the clip's persisted `publishState` successes instead of currently-enabled toggles. Retrying with already-posted platforms toggled off no longer logs a "1 platform" entry. Also repaired that day's entry in prod data (backup: `clipflow-settings.json.bak-20260714-133950` in `%APPDATA%\clipflow`).
+- **Weekly goal ring / all-time XP un-frozen (`ed7555a`)** — the count-up effect in [TrackerView.js](src/renderer/views/TrackerView.js) ran once at mount (before store data loaded) → froze at 0 forever. Now re-animates from the last shown value on `[posted, target, totalXp]` changes.
+- **Main game finally counts (`ed7555a`)** — `mainGameTag` ([App.js:84](src/renderer/App.js)) carried the game's *hashtag* ("rocketleague") while clips store the short tag ("rl") — never equal, so every auto-post ever was "Variety" (also silently broke Queue main-game badges). Prop now carries `tag`; manual-log comparison in TrackerView updated to match.
+- **Main-vs-Variety computed live (`ed7555a`)** — the split now compares each entry's game to the *current* Now Playing (matching both short-tag auto entries and hashtag manual entries), so switching games mid-week re-buckets the week. Stored write-time `type` remains for history/CSV export only.
+- **Queue populated at launch (`28c8a46`)** — `listProjects` ([projects.js](src/main/projects.js)) summaries now include `clips` minus the two measured-heavy fields (subtitles, per-clip transcription ≈85% of payload). Fixes the long-standing "queue is empty until I open a project" bug AND its hidden twin: the auto-publish scheduler read the same empty list, which is why a 2:30 PM scheduled post only fired at 3:05 (after a project load made it visible).
+- **Installer `0.1.8-alpha.15` cut (`efb77db`)** — promotes sessions 99–100.
 
 ## Key Decisions
-- **Toggle only, no game filter.** I offered a "filter to one game, keep month folders" alternative; Fega chose the toggle. A filter can layer on later if wanted.
-- **Month stays the default** — no behavior change for existing muscle memory.
-- **Alphabetical by game display name** (not tag) in game mode; files inside folders keep the #126 chronological sort.
-- **Collapse state is shared per-key across modes** (one `recordingsCollapsed` object). Pre-existing game-tag keys in Fega's settings mean some game folders start collapsed on first switch — explained to Fega, accepted, not a bug.
+- **Main/variety is a read-time classification, not write-time** — Fega expects posts of the newly-active game to count immediately and retroactively; `mainGameAtTime` still records history.
+- **Late-fired scheduled posts log at actual post time** (3:30 slot, not the scheduled 2:30) — Fega explicitly OK'd this ("if it went live at 3:05 then that's fine"). No issue filed.
+- **Google OAuth stays in Testing mode for now** — Fega was told to flip the consent screen to "In production" in Google Cloud Console (unverified-app warning is acceptable); full Google verification is a launch-ops item anyway.
+- **Summary-with-stripped-clips over full project loads at startup** — measured on real data (5 projects ≈ 2.1 MB total; subtitles+transcription are the weight). Entering a project still loads full data.
 
 ## Next Steps (prioritized)
-1. **Fega reinstalls alpha.14** (still pending from session 98) → then verifies the queue title pencil/caption propagation on his real queued clip.
-2. **Next installer cut** picks up the group-by toggle for the daily driver (batch rule: ~10 changes or explicit "update the launcher").
-3. **#162** — undo of a segment-mode switch restores segments but not the mode dropdown label (small, cosmetic).
-4. Carried: Tracker Phase 1 closeout check (first REAL publish through the Queue), #161 (Sundays product decision).
+1. **Fega flips the Google consent screen to Production** ([console.cloud.google.com](https://console.cloud.google.com/apis/credentials/consent)) — otherwise YouTube dies again ~Jul 21 and every reconnect only buys a week.
+2. **#163** — actionable "reconnect in Settings" error + account badge on `invalid_grant` (YouTube + TikTok refresh paths).
+3. Carried: **#162** (undo of segment-mode switch doesn't restore the dropdown label), **#161** (Sundays product decision), Tracker Phase 1 closeout is effectively DONE (real publishes flowed through Queue → Tracker this session).
 
 ## Watch Out For
-- **`recordingsGroupMode` store key is live** — only "month"/"game" are accepted on load; anything else falls back to month.
-- **Game-mode "unknown" folder** only appears if a recording has no tag; current data has none, so it's untested visually (logic is the same shared path as month mode's "unknown").
-- Carried from session 98: TranscriptTab depends on live editSegments + `_chunkPending` fallback; `editingWordKey` is live plumbing; split eligibility computed at menu-open; queue propagation rewrites exact old-title matches only.
+- **The old `type` field on tracker entries is now display-dead** (read-time split) but still written and still in CSV export — don't "clean it up" without deciding CSV semantics.
+- **Dev profile (`%APPDATA%\clipflow-dev`) holds a seeded copy of prod data from today** (`npm run dev:seed -- --force` was run) — stale from now on; re-seed before using it for anything data-sensitive.
+- **Computer-use grant quirk:** "electron.exe" no longer resolves for the source-run app; "ClipFlow" resolves to the *installed* exe. Workaround that worked well: launch dev with `--remote-debugging-port=9223` and verify via CDP (`Runtime.evaluate`, `window.clipflow.*` IPC calls from the page). Scripts in this session's scratchpad.
+- Publish-log timestamps are UTC; app.log timestamps are local EST — don't mix them up when reconstructing timelines (bit me once this session).
 
 ## Logs/Debugging
-- No new error patterns this session. Renderer build clean (`npm run build:renderer`, 11.5s); app launched clean on the prod profile (`npm start`, schema v4, no migration).
-- Verification via computer-use on the source-run app ("electron.exe" grant). Only UI state touched during testing was the group toggle (left on "month") and one folder expand (`AR: false` in `recordingsCollapsed`) — both cosmetic, persisted in `%APPDATA%\clipflow\clipflow-settings.json`, no data changes.
-- Reminder: electron-store lives at `%APPDATA%\clipflow\clipflow-settings.json` (NOT `config.json`) — useful for checking persisted UI state.
+- **Publish forensics live in `%APPDATA%\clipflow\clipflow-publish-log.json`** (per-platform status + raw API responses — this is what proved `invalid_grant` and the 3:05 fire time). Tracker entries: `clipflow-settings.json` → `trackerData`.
+- Google `invalid_grant` renders as `error_description: "Bad Request"` — always read the `error` field, not just the description.
+- Sentry query (unresolved issues) returned empty this session — no renderer crashes; org/project `flowve/clipflow`, token at `C:\Users\IAmAbsolute\.claude\sentry_token.txt`.
+- Builds clean: `npm run build:renderer` ×2 (~15s each) + full `npm run build` for the installer (alpha.15, 116 MB NSIS).
