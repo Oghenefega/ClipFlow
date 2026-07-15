@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.8-alpha.15] — 2026-07-14 (session 100) — Installer cut: tracker honesty + queue-at-launch fixes
+
+### Changed
+- **Version bumped to 0.1.8-alpha.15 and a fresh installer cut**, promoting sessions 99–100 to the installed app: the Recordings "Group by Month / Game" toggle, the tracker retry fix (entries credit the platforms that actually posted), the un-frozen weekly goal ring and all-time XP counters, main-game posts finally counting as main (live against the current Now Playing game), and the queue populating from launch so scheduled posts fire on time without opening a project first.
+
 ## [Unreleased] — 2026-07-14 (session 100) — Tracker finally counts what actually posted
 
 ### Fixed
