@@ -6,6 +6,65 @@
 
 ---
 
+## QUEUED — Auto-Reframe: horizontal 1080p recording → vertical shorts (epic, awaiting build approval)
+
+Approved for planning 2026-07-15. Research done (2 agents: competitor landscape +
+local tech feasibility) — full findings in the GitHub epic. Goal: record ONE
+normal 1920x1080 canvas in OBS; ClipFlow reformats it into the vertical layout
+the second OBS canvas produces today (webcam top ~1/3, game middle, blurred game
+fill bottom). Kills the dual-canvas recording load and is table stakes vs
+Opus Clip / StreamLadder / Eklipse for the commercial product.
+
+### Hard scope lines (Fega, 2026-07-15)
+- **NO face tracking. NO auto-zooms.** Static rectangular crops only — the
+  webcam area cropped correctly, game area under it. Research independently
+  confirmed continuous tracking is the most-hated failure mode in this niche
+  (jitter/drift); static crops are a feature, not a shortcut.
+- Detection (Phase B) proposes boxes ONCE per layout; it never moves mid-clip.
+
+### Phase A — calibrated reframe (the foundation)
+1. **Layout calibration UI**: two draggable/resizable boxes over a sample frame
+   of a recording — "webcam area" + "game area". Saved per OBS layout and
+   reused automatically for every future recording (electron-store — schema
+   migration required per pipeline rules).
+2. **FFmpeg vertical composition** (main process): crop webcam → top, crop game
+   → middle, downscale+blur+upscale copy → background fill, single encode pass,
+   NVENC when available, `-r` matching source fps (60fps bug lesson), guard
+   `format=yuv420p` for HDR/10-bit HEVC sources.
+3. **Pipeline integration** — ARCHITECTURE DECISION, pick before building:
+   - **Option 1 (recommended): whole-source reformat at ingest.** New recording
+     lands → reformat once to a vertical "working source" → that file becomes
+     project.sourceFile. Everything downstream (Whisper, clip detection, editor,
+     render, publish) is untouched — it already expects a vertical source.
+     Cost: one GPU encode per recording (~6-10 min for a 30-min source w/ NVENC)
+     + disk for the vertical copy. Re-calibration = re-render that source.
+   - **Option 2: non-destructive layout.** Store crop rects, editor previews the
+     composition live, render bakes it at export. No intermediate file, instant
+     re-calibration — but the editor preview must learn to composite two crops
+     of one video, a large editor arc. The "pro NLE" end-state; not the first step.
+4. Setting to keep/delete the original horizontal file after reformat.
+
+### Phase B — auto-detect proposes the boxes (after A ships)
+- MediaPipe face detection (Apache 2.0, ~230KB model, runs in the renderer —
+  no native modules): sample ~8 frames, find the face cluster that doesn't move,
+  snap rectangle to the webcam border via persistent-edge check, pre-fill the
+  Phase A calibration UI. User confirms once. Detection quality only affects
+  the default, never correctness.
+- Prototype gate: verify small-face recall on real recordings first
+  (facecam ≈ 100-200px in a 1080p frame); fallback model YuNet (MIT) if weak.
+
+### Verification criteria
+- A: Fega records main canvas only; a new recording auto-produces a vertical
+  working source whose layout matches the current vertical canvas; clips cut,
+  subtitle, render, and publish exactly as today. Waveform/subtitle alignment
+  holds (session 102 fix). PC load while recording measurably down.
+- B: fresh recording from an unseen layout → proposed boxes land on the webcam
+  within a small nudge; VTuber/borderless cases fall back to manual cleanly.
+
+GitHub epic: #164 (full research summary lives there).
+
+---
+
 ## DONE — Session 101b: Projects tab hue + sorting + TEST cleanup, Weekly Rundown (VERIFIED in-app)
 
 Approved 2026-07-15: Variant B hue; recap renamed "Weekly Rundown" (modal titled
