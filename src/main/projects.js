@@ -136,7 +136,12 @@ function listProjects(watchFolder) {
 
     try {
       const proj = normalizeProject(JSON.parse(fs.readFileSync(projectPath, "utf-8")));
-      // Return summary (without full transcription to keep it lightweight)
+      // Return summary (without the project transcription to keep it lightweight).
+      // Clips ARE included — minus their two heavy fields (subtitles, per-clip
+      // transcription) — because the Queue tab and the auto-fire scheduler read
+      // clips from this list at startup; omitting them left the queue empty (and
+      // scheduled publishes unfired) until a project was opened. Entering a
+      // project still swaps in the full data via loadProject.
       projects.push({
         id: proj.id,
         name: proj.name,
@@ -151,6 +156,7 @@ function listProjects(watchFolder) {
         clipCount: (proj.clips || []).length,
         approvedCount: (proj.clips || []).filter((c) => c.status === "approved").length,
         renderedCount: (proj.clips || []).filter((c) => c.renderStatus === "rendered").length,
+        clips: (proj.clips || []).map(({ subtitles, transcription, ...rest }) => rest),
         tags: proj.tags || [],
         testMode: proj.testMode === true,
       });
