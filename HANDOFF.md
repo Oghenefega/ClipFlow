@@ -1,44 +1,42 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-14 — Session 100 — **Publish-day debugging arc: YT token, tracker honesty, frozen goal ring, queue-at-launch. Alpha.15 cut, installed, and verified by Fega.**_
+_Last updated: 2026-07-15 — Session 101 — **UI batch: Tracker game colors fixed, 1440p zoom scaling, DM Sans everywhere, Projects game hues + sorting, Weekly Rundown popup. Alpha.16 cut, awaiting Fega's install.**_
 
 ---
 
 ## One-line TL;DR
-Fega's first real publish day in a while surfaced five bugs; all five fixed, verified, and shipped in `0.1.8-alpha.15` (installed + confirmed: ring shows 3 of 48). YouTube OAuth needs a Google Cloud Console action (Testing → Production) or it dies again in ~7 days.
+A full UI-polish day: two Tracker display bugs fixed (grey lowercase "rl"), the app now scales up on wide windows, JetBrains Mono is gone app-wide, the Projects tab got game-hue cards + a sort control + TEST-chip cleanup, and the Tracker recap became a "Weekly Rundown" header button with a preview popup. `0.1.8-alpha.16` installer is built — **Fega has NOT installed it yet.**
 
 ## Current State
-- **Installed daily driver: 0.1.8-alpha.15** — Fega installed it this session and confirmed the Tracker weekly goal now reads 3 of 48 / Rocket League 3. Everything through commit `efb77db` is live.
-- All four session-100 fixes are user-verified or CDP-verified (see below); session 98's queue pencil/propagation verification is now moot-or-easy since he's publishing for real again.
-- Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch.
+- **Installed daily driver: 0.1.8-alpha.15** — alpha.16 is cut (`dist/ClipFlow Setup 0.1.8-alpha.16.exe`, 2026-07-15 02:36) and the in-app "Install update" banner will offer it on next launch. Everything through commit `7947930` is in it.
+- All session-101 changes were verified live in the source-run app via computer-use (screenshots of teal RL chips, maximized-window zoom, hue cards, sort clicks, Rundown modal, and a real PNG save).
+- Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch from an earlier session (bb*.md, diag_sort.js, queue-card-redesign.html — deliberately left uncommitted).
 
 ## What Was Just Built
-- **YouTube publish failure diagnosed (not a code fix):** "Token refresh failed: Bad Request" = Google `invalid_grant` — refresh tokens die after 7 days while the OAuth app is in **Testing** mode. Fega reconnected and posted. Filed **#163**: surface "reconnect in Settings" instead of raw Google errors + flag the account (TikTok path has the same weakness).
-- **Tracker retry credit (`6c9bbf8`)** — `logPost` ([QueueView.js](src/renderer/views/QueueView.js)) now records the union of captured publish results + the clip's persisted `publishState` successes instead of currently-enabled toggles. Retrying with already-posted platforms toggled off no longer logs a "1 platform" entry. Also repaired that day's entry in prod data (backup: `clipflow-settings.json.bak-20260714-133950` in `%APPDATA%\clipflow`).
-- **Weekly goal ring / all-time XP un-frozen (`ed7555a`)** — the count-up effect in [TrackerView.js](src/renderer/views/TrackerView.js) ran once at mount (before store data loaded) → froze at 0 forever. Now re-animates from the last shown value on `[posted, target, totalXp]` changes.
-- **Main game finally counts (`ed7555a`)** — `mainGameTag` ([App.js:84](src/renderer/App.js)) carried the game's *hashtag* ("rocketleague") while clips store the short tag ("rl") — never equal, so every auto-post ever was "Variety" (also silently broke Queue main-game badges). Prop now carries `tag`; manual-log comparison in TrackerView updated to match.
-- **Main-vs-Variety computed live (`ed7555a`)** — the split now compares each entry's game to the *current* Now Playing (matching both short-tag auto entries and hashtag manual entries), so switching games mid-week re-buckets the week. Stored write-time `type` remains for history/CSV export only.
-- **Queue populated at launch (`28c8a46`)** — `listProjects` ([projects.js](src/main/projects.js)) summaries now include `clips` minus the two measured-heavy fields (subtitles, per-clip transcription ≈85% of payload). Fixes the long-standing "queue is empty until I open a project" bug AND its hidden twin: the auto-publish scheduler read the same empty list, which is why a 2:30 PM scheduled post only fired at 3:05 (after a project load made it visible).
-- **Installer `0.1.8-alpha.15` cut (`efb77db`)** — promotes sessions 99–100.
+- **Tracker "rl" grey/lowercase fix:** auto-posted entries store the lowercased short tag ("rl"); both display lookups (TrackerView `resolveGameDisplay`, TrackerCalendar `resolveGame`) now match tag/hashtag/name case-insensitively, so weekly-log chips, calendar segments, and day-drawer chips show teal uppercase RL — retroactive, no data repair.
+- **1440p scaling:** `main.js` applies `setZoomFactor(clamp(width/1920, 1, 1.35))` on resize + did-finish-load. ≤1920px content width = exactly the old look; maximized on Fega's 2560px monitor ≈ 1.33×.
+- **DM Sans everywhere:** `T.mono` (theme.js) and Tailwind `fontFamily.mono` now resolve to DM Sans; hardcoded JetBrains refs swapped in SettingsView (debug pre), editorPrimitives (timecode popover), EditorView (crash screen), recapCardImage (canvas headline); JetBrains dropped from the index.html Google Fonts import. Token names kept so call sites are untouched.
+- **Projects tab:** game-color gradient wash + tinted border per card (mockup Variant B — `tasks/mocks/projects-hue-and-recap.html`); "Sort: Status | Date | Game" segmented control persisted as `projectSortMode`; TEST chip renders only on actual test projects (still clickable there to un-test).
+- **Weekly Rundown:** the always-visible bottom recap card is gone. Header button ("Weekly Rundown", between the view toggle and Export) opens a modal titled "ClipFlow Rundown · <week range>"; PNG generates/downloads only on the Download click (filename now `clipflow-rundown-<week>.png`). Esc / X / click-outside close it.
 
 ## Key Decisions
-- **Main/variety is a read-time classification, not write-time** — Fega expects posts of the newly-active game to count immediately and retroactively; `mainGameAtTime` still records history.
-- **Late-fired scheduled posts log at actual post time** (3:30 slot, not the scheduled 2:30) — Fega explicitly OK'd this ("if it went live at 3:05 then that's fine"). No issue filed.
-- **Google OAuth stays in Testing mode for now** — Fega was told to flip the consent screen to "In production" in Google Cloud Console (unverified-app warning is acceptable); full Google verification is a launch-ops item anyway.
-- **Summary-with-stripped-clips over full project loads at startup** — measured on real data (5 projects ≈ 2.1 MB total; subtitles+transcription are the weight). Entering a project still loads full data.
+- **Zoom over per-view widening** for the 1440p problem: one main-process change scales every tab, the editor, and Radix portals consistently; no font-size surgery. If Projects still feels cramped after Fega sees it, widen that view specifically.
+- **Mono tokens kept, values swapped:** `T.mono`/`font-mono` deliberately render DM Sans now — do NOT "fix" them back (see memory `feedback_dm_sans_only`; enforcement line added to clipflow-ui-debug).
+- **Preview-first Rundown:** Fega explicitly wanted the popup to show BEFORE anything downloads. Don't re-add auto-download on open.
+- **TEST toggle:** test-ness is decided at creation (test watch folder); normal projects show no toggle by design now.
 
-## Next Steps (prioritized)
-1. **Fega flips the Google consent screen to Production** ([console.cloud.google.com](https://console.cloud.google.com/apis/credentials/consent)) — otherwise YouTube dies again ~Jul 21 and every reconnect only buys a week.
-2. **#163** — actionable "reconnect in Settings" error + account badge on `invalid_grant` (YouTube + TikTok refresh paths).
-3. Carried: **#162** (undo of segment-mode switch doesn't restore the dropdown label), **#161** (Sundays product decision), Tracker Phase 1 closeout is effectively DONE (real publishes flowed through Queue → Tracker this session).
+## Next Steps
+1. **Fega installs alpha.16** and eyeballs: maximized-window scaling (biggest visible change), teal RL in Tracker, Projects hues/sort, Weekly Rundown popup.
+2. If the scaling factor feels too strong/weak on his monitor, tune the `width/1920` curve or the 1.35 cap in `main.js` (`applyWindowZoom`).
+3. The "Review Rail" Projects-tab premium redesign (session 89 mockup, memory `project_projects_tab_redesign`) is still the bigger pending direction for the project DETAIL view — today's changes touched only the list.
+4. #163 (YouTube reconnect messaging) still open; Google Cloud consent screen Testing→Production remains the permanent OAuth fix.
 
 ## Watch Out For
-- **The old `type` field on tracker entries is now display-dead** (read-time split) but still written and still in CSV export — don't "clean it up" without deciding CSV semantics.
-- **Dev profile (`%APPDATA%\clipflow-dev`) holds a seeded copy of prod data from today** (`npm run dev:seed -- --force` was run) — stale from now on; re-seed before using it for anything data-sensitive.
-- **Computer-use grant quirk:** "electron.exe" no longer resolves for the source-run app; "ClipFlow" resolves to the *installed* exe. Workaround that worked well: launch dev with `--remote-debugging-port=9223` and verify via CDP (`Runtime.evaluate`, `window.clipflow.*` IPC calls from the page). Scripts in this session's scratchpad.
-- Publish-log timestamps are UTC; app.log timestamps are local EST — don't mix them up when reconstructing timelines (bit me once this session).
+- **Rundown PNG canvas** (`recapCardImage.js`) headline now renders in DM Sans — if the share image ever looks off, that's the line that changed (163).
+- **A leftover verification PNG** (`clipflow-recap-2026-07-13.png`) landed in Fega's Downloads during testing — safe to delete.
+- **Zoom + screenshots:** any future pixel-coordinate automation (computer-use) on a maximized window now operates on zoomed UI; coordinates from old screenshots won't line up.
+- **"Dimmer" overlay app** on Fega's machine intermittently owns the foreground and blocks computer-use clicks — `open_application("Electron")` re-fronts the app and unblocks.
+- The game-hue wash on Projects cards layers UNDER the selected (accentDim) state; error rows keep red borders. Done rows keep the game border by design (mock-approved).
 
 ## Logs/Debugging
-- **Publish forensics live in `%APPDATA%\clipflow\clipflow-publish-log.json`** (per-platform status + raw API responses — this is what proved `invalid_grant` and the 3:05 fire time). Tracker entries: `clipflow-settings.json` → `trackerData`.
-- Google `invalid_grant` renders as `error_description: "Bad Request"` — always read the `error` field, not just the description.
-- Sentry query (unresolved issues) returned empty this session — no renderer crashes; org/project `flowve/clipflow`, token at `C:\Users\IAmAbsolute\.claude\sentry_token.txt`.
-- Builds clean: `npm run build:renderer` ×2 (~15s each) + full `npm run build` for the installer (alpha.15, 116 MB NSIS).
+- No errors this session. Both builds clean (`vite build` ~12s; electron-builder NSIS ~2.5min with the usual benign "author is missed" warnings).
+- Verification was computer-use driven on the source-run app (`npm start`, prod profile). Remember: "electron.exe" is the app name to request; "ClipFlow" for the installed exe.
