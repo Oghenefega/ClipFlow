@@ -8,12 +8,13 @@
 
 ## DONE (awaiting Fega verification) — Auto-Reframe Phase A (epic #164, session 103)
 
-Built + machine-verified end to end in session 103; details in HANDOFF.md and
-the #164 issue comments. Substrate in `11a119a`, calibration UI in the
-session-wrap commit. NOT in an installer yet (batch rule). Fega still needs a
-hands-on pass on a real recording (blur/proportion quality judgment).
-Deferred to a next slice: first-recording auto-offer flow; Projects-tab
-preview still letterboxes horizontal sources (cosmetic); Phase B detection.
+Built, machine-verified, and SHIPPED in 0.1.9-alpha.2 (session 103); details
+in HANDOFF.md + #164 issue comments. Includes the any-format correction:
+Fega's real canvas is 2560×2880 (8:9) — only true 9:16 skips reframing, and
+the Layout panel is always visible. Fega still needs a hands-on pass on a
+real recording (layout/quality/blur judgment). Deferred to next slices:
+first-recording auto-offer flow; Projects-tab preview consistency for reframe
+projects (cosmetic); Phase B detection. 0.2.0 when the epic completes.
 
 ---
 
