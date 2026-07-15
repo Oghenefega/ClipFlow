@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Projects hue + recap button — mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --muted:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --green:#34d399; --font:'DM Sans',-apple-system,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);padding:40px 48px 80px}
+  h1{font-size:22px;margin-bottom:6px}
+  .sub{color:var(--text2);font-size:13px;margin-bottom:36px}
+  h2{font-size:15px;margin:44px 0 4px;color:var(--text)}
+  .note{color:var(--text3);font-size:12px;margin-bottom:14px;max-width:720px;line-height:1.5}
+  .panel{max-width:760px}
+
+  /* sort row */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .seg{display:inline-flex;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
+  .seg span{font-size:12px;font-weight:600;color:var(--text3);padding:5px 12px;border-radius:6px;cursor:pointer}
+  .seg span.on{background:#16171f;color:var(--text)}
+  .seglabel{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-right:8px}
+  .selectall{color:var(--accent);font-size:13px;font-weight:600}
+
+  /* cards */
+  .card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;margin-bottom:8px;cursor:pointer;position:relative;overflow:hidden}
+  .cb{width:18px;height:18px;border:1.5px solid var(--border2);border-radius:5px;flex-shrink:0}
+  .icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .name{font-size:14px;font-weight:600}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:12px;color:var(--text3)}
+  .tag{padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700}
+  .testchip{padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;color:#ffd23f;border:1px solid rgba(255,210,63,0.55);background:rgba(255,210,63,0.12)}
+  .grow{flex:1;overflow:hidden}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:6px;flex-shrink:0}
+  .badge.review{color:#a78bfa;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25)}
+  .badge.done{color:var(--green);background:rgba(52,211,153,0.10);border:1px solid rgba(52,211,153,0.22)}
+  .trash{color:var(--muted);font-size:15px;flex-shrink:0}
+
+  /* Variant A — subtle wash */
+  .vA{border:1px solid var(--border)}
+  /* Variant B — stronger corner glow + tinted border */
+  .vB{border:1px solid var(--border)}
+
+  /* tracker header mock */
+  .thead{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;max-width:760px}
+  .thead .title{font-size:18px;font-weight:700;margin-right:auto}
+  .btn{font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:#16171f;color:var(--text);cursor:pointer;font-family:var(--font)}
+  .btn.primary{background:var(--text);color:#0a0b10;border:none;display:inline-flex;align-items:center;gap:7px}
+  .btn.ghost{background:none;border:none;color:var(--text3)}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:50}
+  .overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:24px;width:400px;box-shadow:0 30px 90px rgba(0,0,0,0.7)}
+  .recap{border:1px solid var(--border);border-radius:14px;overflow:hidden;padding:22px;display:flex;flex-direction:column;gap:14px;
+    background:radial-gradient(110% 130% at 92% 100%, #00b4d829 0%, transparent 58%), linear-gradient(115deg, #00b4d838 0%, #00b4d80a 50%, transparent 78%), var(--surface)}
+  .recap .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--text3);font-weight:600}
+  .recap .head{font-size:20px;font-weight:700;line-height:1.25}
+  .recap .head b{color:#00b4d8}
+  .plats{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .plat{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+  .plat .k{font-size:10px;color:var(--text2);font-weight:600;margin-bottom:5px}
+  .plat .v{font-size:19px;font-weight:700}
+  .modalbtns{display:flex;gap:8px;margin-top:16px}
+  .modalbtns .btn{flex:1;text-align:center;justify-content:center;display:inline-flex}
+</style>
+</head>
+<body>
+  <h1>Projects tab — game hue &amp; sorting + Tracker recap button</h1>
+  <div class="sub">Two hue strengths shown. Sort control sits above the list. TEST chip only appears on actual test projects.</div>
+
+  <h2>Variant A — subtle game wash</h2>
+  <div class="note">Game color as a faint gradient from the left edge (no solid bars), icon block and game chip in game color. Border stays neutral so the list doesn't turn into a rainbow.</div>
+  <div class="panel">
+    <div class="toolbar">
+      <div><span class="seglabel">Sort</span><span class="seg"><span class="on">Status</span><span>Date</span><span>Game</span></span></div>
+      <span class="selectall">Select All</span>
+    </div>
+    <div id="listA"></div>
+  </div>
+
+  <h2>Variant B — hue border + corner glow</h2>
+  <div class="note">Same wash plus a tinted border and a soft glow in the top-right corner. Louder — each row reads instantly as its game.</div>
+  <div class="panel"><div id="listB"></div></div>
+
+  <h2>Tracker — recap becomes a button</h2>
+  <div class="note">The always-visible recap card at the bottom of the Tracker goes away. A "Share recap" button joins the header row next to Export / Import — click it to preview the modal it opens (generated live from this week's numbers, with Copy and Save).</div>
+  <div class="thead">
+    <span class="title">Tracker</span>
+    <button class="btn">This week</button>
+    <button class="btn ghost">Calendar</button>
+    <button class="btn primary" onclick="document.getElementById('ov').classList.add('open')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>
+      Share recap
+    </button>
+    <button class="btn">Export</button>
+    <button class="btn">Import</button>
+  </div>
+
+  <div class="overlay" id="ov" onclick="this.classList.remove('open')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="recap">
+        <div class="eyebrow">Weekly recap · shareable</div>
+        <div class="head">I posted <b>3 clips</b> to <b>4 platforms</b> this week</div>
+        <div class="plats">
+          <div class="plat"><div class="k">TikTok</div><div class="v">3</div></div>
+          <div class="plat"><div class="k">YouTube</div><div class="v">3</div></div>
+          <div class="plat"><div class="k">Instagram</div><div class="v">3</div></div>
+          <div class="plat"><div class="k">Facebook</div><div class="v">3</div></div>
+        </div>
+      </div>
+      <div class="modalbtns">
+        <button class="btn primary">Copy PNG</button>
+        <button class="btn">Save…</button>
+        <button class="btn ghost" onclick="document.getElementById('ov').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const GAMES = { EO:{c:"#ffd23f"}, RL:{c:"#00b4d8"}, AR:{c:"#ff6b35"} };
+const ROWS = [
+  {name:"2026-02-12 EO Day2 Pt1", tag:"EO", clips:12, st:"review", test:false},
+  {name:"2026-02-06 RL Day1 Pt2", tag:"RL", clips:18, st:"review", test:false},
+  {name:"2026-01-23 AR Day16 Pt4", tag:"AR", clips:18, st:"review", test:false},
+  {name:"RL 2026-10-15 Day9 Pt1", tag:"RL", clips:18, st:"review", test:true},
+  {name:"2026-02-06 RL Day1 Pt1", tag:"RL", clips:18, st:"done", test:false},
+];
+function card(r, variant){
+  const c = GAMES[r.tag].c;
+  const washA = `linear-gradient(100deg, ${c}14 0%, ${c}05 34%, rgba(255,255,255,0.02) 60%)`;
+  const washB = `radial-gradient(90% 160% at 100% 0%, ${c}1f 0%, transparent 55%), linear-gradient(100deg, ${c}1a 0%, ${c}06 40%, rgba(255,255,255,0.02) 65%)`;
+  const border = variant==="B" ? `1px solid ${c}3d` : "1px solid var(--border)";
+  const done = r.st==="done";
+  return `<div class="card v${variant}" style="background:${variant==="B"?washB:washA};border:${border}">
+    <div class="cb"></div>
+    <div class="icon" style="background:${done?"rgba(52,211,153,0.10)":c+"22"}">${done?"✅":"🎬"}</div>
+    <div class="grow">
+      <div class="name">${r.name}</div>
+      <div class="meta">
+        <span class="tag" style="color:${c};background:${c}18;border:1px solid ${c}44">${r.tag}</span>
+        ${r.test?'<span class="testchip">TEST</span>':""}
+        <span>${r.clips} clips</span>
+      </div>
+    </div>
+    <span class="badge ${done?"done":"review"}">${done?"DONE":"REVIEW"}</span>
+    <span class="trash">🗑</span>
+  </div>`;
+}
+document.getElementById("listA").innerHTML = ROWS.map(r=>card(r,"A")).join("");
+document.getElementById("listB").innerHTML = ROWS.map(r=>card(r,"B")).join("");
+</script>
+</body>
+</html>

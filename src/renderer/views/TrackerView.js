@@ -428,10 +428,19 @@ export default function TrackerView({
     e.target.value = "";
   };
 
-  // ---------- share recap ----------
+  // ---------- Weekly Rundown (shareable recap) ----------
   const [shareState, setShareState] = useState("idle"); // idle | saving | saved | copied
   const shareTimer = useRef(null);
   useEffect(() => () => clearTimeout(shareTimer.current), []);
+  // Modal preview-first flow: header button opens the Rundown popup; the PNG only
+  // downloads when the user clicks Download inside it.
+  const [showRundown, setShowRundown] = useState(false);
+  useEffect(() => {
+    if (!showRundown) return;
+    const onKey = (e) => { if (e.key === "Escape") setShowRundown(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showRundown]);
 
   const handleShare = async () => {
     setShareState("saving");
@@ -447,7 +456,7 @@ export default function TrackerView({
         rankColor: T.tiers[rank.tier] || T.accent,
         weekLabel: `${wd[0].label} – ${wd[5].label}`,
       });
-      downloadBlob(blob, `clipflow-recap-${monday}.png`);
+      downloadBlob(blob, `clipflow-rundown-${monday}.png`);
       const copied = await copyBlobToClipboard(blob);
       setShareState(copied ? "copied" : "saved");
       toast(copied ? "Recap saved — copied to clipboard" : "Recap saved");
@@ -482,6 +491,13 @@ export default function TrackerView({
             <button onClick={() => setSubView("week")} style={{ background: subView === "week" ? T.surfaceHover : "none", border: "none", color: subView === "week" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>This week</button>
             <button onClick={() => { setSubView("calendar"); closePopover(); setPickerOpen(false); setShowTemplateEditor(false); }} style={{ background: subView === "calendar" ? T.surfaceHover : "none", border: "none", color: subView === "calendar" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>Calendar</button>
           </div>
+          <button onClick={() => setShowRundown(true)} style={{
+            display: "flex", alignItems: "center", gap: 7, background: T.text, color: "#0a0b10", border: "none",
+            fontFamily: T.font, fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: T.radius.md, cursor: "pointer",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
+            Weekly Rundown
+          </button>
           <button onClick={exportCSV} style={ghostBtnStyle}>Export</button>
           <button onClick={() => fileRef.current?.click()} style={ghostBtnStyle}>Import</button>
           <input ref={fileRef} type="file" accept=".csv" onChange={importCSV} style={{ display: "none" }} />
@@ -791,66 +807,6 @@ export default function TrackerView({
         </span>
       </div>
 
-      {/* Recap card */}
-      <div style={{
-        position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden", padding: "24px 24px 22px",
-        maxWidth: 340, display: "flex", flexDirection: "column", gap: 16,
-        background: `radial-gradient(110% 130% at 92% 100%, ${gameColor}29 0%, transparent 58%), linear-gradient(115deg, ${gameColor}38 0%, ${gameColor}0a 50%, transparent 78%), ${T.surface}`,
-      }}>
-        {goalReached && (
-          <div style={{ display: "flex", alignItems: "center", gap: 9, background: `linear-gradient(90deg, ${gameColor}1f, transparent)`, border: `1px solid ${gameColor}`, borderRadius: T.radius.md, padding: "9px 14px", fontSize: 12, fontWeight: 600, color: gameColor }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" style={{ flexShrink: 0 }}><path d="M5 13l4 4L19 7" /></svg>
-            Goal reached. Bonus XP banks at week's end. This recap is ready to post.
-          </div>
-        )}
-
-        <div>
-          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Weekly recap {"·"} shareable</div>
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-            I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.textSecondary, letterSpacing: "0.02em" }}>
-          <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
-          </span>
-          ClipFlow
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {PLATFORM_KEYS.map((key) => (
-            <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
-                <PlatformIcon platform={key} size={14} />{PLATFORM_LABELS[key]}
-              </div>
-              <div style={{ fontFamily: T.mono, fontSize: 21, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{recap.perPlatform[key] || 0}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-          <Pill><span style={{ color: T.accent, fontSize: 11 }}>{"▲"}</span>{streakState?.current || 0}-week streak</Pill>
-          <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: T.tiers[rank.tier] }} />{rank.name}</Pill>
-          <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{mainGame}</Pill>
-        </div>
-
-        <button onClick={handleShare} disabled={shareState === "saving"} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
-          background: shareState === "copied" || shareState === "saved" ? T.green : T.text,
-          color: shareState === "copied" || shareState === "saved" ? "#06281b" : "#0a0b10",
-          border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: "11px 18px", borderRadius: T.radius.md,
-          cursor: shareState === "saving" ? "default" : "pointer", transition: "background 0.18s",
-        }}>
-          {shareState === "copied" || shareState === "saved" ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 13l4 4L19 7" /></svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
-          )}
-          {shareState === "copied" ? "Saved — copied to clipboard" : shareState === "saved" ? "Saved" : shareState === "saving" ? "Saving…" : "Share recap"}
-        </button>
-      </div>
-
       <div style={{ height: 60 }} />
 
       {/* ---- Log / Detail popover ---- */}
@@ -1027,6 +983,78 @@ export default function TrackerView({
         </div>
       )}
       </>)}
+
+      {/* ---- ClipFlow Rundown modal (preview first, download on click) ---- */}
+      {showRundown && (
+        <div onClick={() => setShowRundown(false)} style={{
+          position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.72)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            position: "relative", width: 380, maxWidth: "92vw", border: `1px solid ${T.borderHover}`, borderRadius: T.radius.lg,
+            overflow: "hidden", padding: "24px 24px 22px", display: "flex", flexDirection: "column", gap: 16,
+            background: `radial-gradient(110% 130% at 92% 100%, ${gameColor}29 0%, transparent 58%), linear-gradient(115deg, ${gameColor}38 0%, ${gameColor}0a 50%, transparent 78%), ${T.surface}`,
+            boxShadow: "0 30px 90px rgba(0,0,0,0.7)",
+          }}>
+            <span onClick={() => setShowRundown(false)} title="Close" style={{
+              position: "absolute", top: 12, right: 14, color: T.textTertiary, fontSize: 15, cursor: "pointer", lineHeight: 1, padding: 4,
+            }}>{"✕"}</span>
+
+            {goalReached && (
+              <div style={{ display: "flex", alignItems: "center", gap: 9, background: `linear-gradient(90deg, ${gameColor}1f, transparent)`, border: `1px solid ${gameColor}`, borderRadius: T.radius.md, padding: "9px 14px", fontSize: 12, fontWeight: 600, color: gameColor }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" style={{ flexShrink: 0 }}><path d="M5 13l4 4L19 7" /></svg>
+                Goal reached. Bonus XP banks at week's end. This rundown is ready to post.
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>ClipFlow Rundown {"·"} {wd[0].label} – {wd[5].label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+                I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 600, color: T.textSecondary, letterSpacing: "0.02em" }}>
+              <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
+              </span>
+              ClipFlow
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {PLATFORM_KEYS.map((key) => (
+                <div key={key} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+                    <PlatformIcon platform={key} size={14} />{PLATFORM_LABELS[key]}
+                  </div>
+                  <div style={{ fontSize: 21, fontWeight: 700, color: T.text, letterSpacing: "-0.02em" }}>{recap.perPlatform[key] || 0}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+              <Pill><span style={{ color: T.accent, fontSize: 11 }}>{"▲"}</span>{streakState?.current || 0}-week streak</Pill>
+              <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: T.tiers[rank.tier] }} />{rank.name}</Pill>
+              <Pill><span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{mainGame}</Pill>
+            </div>
+
+            <button onClick={handleShare} disabled={shareState === "saving"} style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%",
+              background: shareState === "copied" || shareState === "saved" ? T.green : T.text,
+              color: shareState === "copied" || shareState === "saved" ? "#06281b" : "#0a0b10",
+              border: "none", fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: "11px 18px", borderRadius: T.radius.md,
+              cursor: shareState === "saving" ? "default" : "pointer", transition: "background 0.18s",
+            }}>
+              {shareState === "copied" || shareState === "saved" ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 13l4 4L19 7" /></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
+              )}
+              {shareState === "copied" ? "Saved — copied to clipboard" : shareState === "saved" ? "Saved" : shareState === "saving" ? "Saving…" : "Download PNG"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ---- Toast ---- */}
       <div style={{

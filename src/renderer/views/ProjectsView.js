@@ -808,6 +808,7 @@ export function ProjectsListView({
   const [selected, setSelected] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [folderSortMode, setFolderSortMode] = useState("created");
+  const [projectSortMode, setProjectSortMode] = useState("status"); // status | date | game
 
   // --- Folder CRUD state (Phase 3) ---
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -822,12 +823,20 @@ export function ProjectsListView({
   const [projectContextMenu, setProjectContextMenu] = useState(null); // { x, y, projectId }
   const [moveFolderDropdown, setMoveFolderDropdown] = useState(false); // floating action bar dropdown
 
-  // Load sort mode from store on mount
+  // Load sort modes from store on mount
   useEffect(() => {
     window.clipflow?.storeGet?.("folderSortMode").then((m) => {
       if (m) setFolderSortMode(m);
     });
+    window.clipflow?.storeGet?.("projectSortMode").then((m) => {
+      if (m) setProjectSortMode(m);
+    });
   }, []);
+
+  const changeProjectSort = async (next) => {
+    setProjectSortMode(next);
+    try { await window.clipflow?.storeSet?.("projectSortMode", next); } catch (e) {}
+  };
 
   // Close context menus on mousedown outside — check if click is inside a menu via data-menu attr
   useEffect(() => {
@@ -848,13 +857,22 @@ export function ProjectsListView({
     ? localProjects.filter((p) => activeFolderObj.projectIds.includes(p.id))
     : localProjects;
 
-  // Sort: processing first, then ready, then done, then error — within same status by date (newest first)
+  // Sort modes: "status" (processing → review → done → error), "date" (newest first),
+  // "game" (grouped alphabetically by game name). Newest-first inside every group.
+  const byDateDesc = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
   const sorted = [...visibleProjects].sort((a, b) => {
+    if (projectSortMode === "date") return byDateDesc(a, b);
+    if (projectSortMode === "game") {
+      const ga = (a.game || a.gameTag || "~").toLowerCase();
+      const gb = (b.game || b.gameTag || "~").toLowerCase();
+      if (ga !== gb) return ga.localeCompare(gb);
+      return byDateDesc(a, b);
+    }
     const order = { processing: 0, ready: 1, done: 2, error: 3 };
     const sa = order[getProjectStatus(a)] ?? 1;
     const sb = order[getProjectStatus(b)] ?? 1;
     if (sa !== sb) return sa - sb;
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    return byDateDesc(a, b);
   });
 
   // --- Selection helpers (operate on visible/filtered projects) ---
@@ -1179,6 +1197,20 @@ export function ProjectsListView({
           {/* Header row: select all */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0 10px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textTertiary, fontWeight: 600 }}>Sort</span>
+              <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3, gap: 2 }}>
+                {[["status", "Status"], ["date", "Date"], ["game", "Game"]].map(([mode, label]) => (
+                  <span
+                    key={mode}
+                    onClick={() => changeProjectSort(mode)}
+                    style={{
+                      fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 6, cursor: "pointer",
+                      color: projectSortMode === mode ? T.text : T.textTertiary,
+                      background: projectSortMode === mode ? T.surfaceHover : "transparent",
+                    }}
+                  >{label}</span>
+                ))}
+              </div>
               {selCount > 0 && (
                 <span style={{ color: T.accent, fontSize: 13, fontWeight: 700 }}>
                   {selCount} selected
@@ -1222,8 +1254,12 @@ export function ProjectsListView({
                       style={{
                         display: "flex", alignItems: "center", gap: 12,
                         padding: "14px 16px", borderRadius: T.radius.md,
-                        background: isSel ? T.accentDim : "rgba(255,255,255,0.02)",
-                        border: `1px solid ${isSel ? T.accentBorder : st === "done" ? T.greenBorder : st === "error" ? T.redBorder : T.border}`,
+                        // Game-hue wash (mockup Variant B): corner glow + left gradient in the
+                        // project's game color, with a matching tinted border.
+                        background: isSel
+                          ? T.accentDim
+                          : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(255,255,255,0.02) 65%)`,
+                        border: `1px solid ${isSel ? T.accentBorder : st === "error" ? T.redBorder : `${pColor}3d`}`,
                         opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
                         cursor: "pointer",
                       }}
@@ -1261,12 +1297,16 @@ export function ProjectsListView({
                                 fontFamily: T.mono,
                               }}>{p.gameTag}</span>
                             )}
-                            <span onClick={(e) => e.stopPropagation()}>
-                              <TestChip
-                                isTest={p.testMode === true || (p.tags || []).includes("test")}
-                                onToggle={(next) => handleToggleTestMode(p.id, next)}
-                              />
-                            </span>
+                            {/* TEST chip only on actual test projects — test-ness comes from the
+                                test watch folder at creation; normal projects get no toggle. */}
+                            {(p.testMode === true || (p.tags || []).includes("test")) && (
+                              <span onClick={(e) => e.stopPropagation()}>
+                                <TestChip
+                                  isTest
+                                  onToggle={(next) => handleToggleTestMode(p.id, next)}
+                                />
+                              </span>
+                            )}
                             <span style={{ color: T.textTertiary, fontSize: 12 }}>
                               {st === "processing" ? (
                                 <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>

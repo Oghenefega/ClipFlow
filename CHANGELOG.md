@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-15 (session 101, later) — Projects tab game hues + sorting, Weekly Rundown button
+
+### Added
+- **Project cards now carry their game's color.** Each card in the Projects list gets a gradient wash and tinted border in its game's color (mockup "Variant B" — corner glow + hue border), so a mixed list reads at a glance: EO yellow, RL teal, AR orange. Selected/error states keep their existing accent/red treatments. [src/renderer/views/ProjectsView.js]
+- **Projects list sorting.** New "Sort: Status | Date | Game" segmented control above the list — Status keeps the old needs-review-first order, Date is newest first, Game groups projects alphabetically by game (newest first inside each group). The chosen mode persists across launches (`projectSortMode`). [src/renderer/views/ProjectsView.js]
+- **"Weekly Rundown" button on the Tracker** replaces the always-visible recap card that sat below the fold. It opens a preview popup (the same shareable card, branded "ClipFlow Rundown" with the week's date range) and only generates/downloads the PNG when you click Download — nothing saves to disk until you ask. PNG filename is now `clipflow-rundown-<week>.png`. Verified in-app end to end, including a real save. [src/renderer/views/TrackerView.js]
+
+### Removed
+- **TEST toggle gone from normal projects.** The TEST chip now appears only on projects that actually are test projects (created from the test watch folder), where it stays clickable to un-test. Regular projects no longer show the toggle since test-ness is decided at creation. [src/renderer/views/ProjectsView.js]
+- **Tracker's bottom recap card** — superseded by the Weekly Rundown button/popup above. [src/renderer/views/TrackerView.js]
+
 ## [Unreleased] — 2026-07-15 (session 101) — Tracker game colors fixed, 1440p scaling, one font everywhere
 
 ### Fixed

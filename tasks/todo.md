@@ -6,6 +6,43 @@
 
 ---
 
+## DONE — Session 101b: Projects tab hue + sorting + TEST cleanup, Weekly Rundown (VERIFIED in-app)
+
+Approved 2026-07-15: Variant B hue; recap renamed "Weekly Rundown" (modal titled
+ClipFlow Rundown), preview-first popup, download only on click. Verified live:
+hue cards per game, Game/Date/Status sort works, TEST chip only on the test
+project, header button opens modal, real PNG save completed. PNG filename now
+clipflow-rundown-<week>.png. Mockup: tasks/mocks/projects-hue-and-recap.html.
+
+### 1. Game hue on project cards — src/renderer/views/ProjectsView.js
+Card row (~:1214-1300): background becomes a game-color gradient wash (Variant
+A or B per Fega), icon block already tinted; done/error states keep their
+green/red treatment layered on top. Color from existing getGameColor (:48-52).
+
+### 2. Sort control — src/renderer/views/ProjectsView.js
+New segmented "Sort: Status | Date | Game" above the list (toolbar row ~:1180).
+Status = current order (processing → review → done → error, newest inside).
+Date = created desc. Game = grouped alphabetically by game, newest inside.
+Persist to electron-store key `projectSortMode` (mirror folderSortMode :825-833).
+
+### 3. TEST chip only on test projects — src/renderer/views/ProjectsView.js
+TestChip render (:1264-1269) becomes conditional: only when testMode/legacy
+"test" tag is true. Still clickable there to un-test. Normal projects show no
+TEST toggle — test-ness now comes from the test watch folder at creation.
+
+### 4. Tracker recap → header button + modal — src/renderer/views/TrackerView.js
+Remove the always-rendered recap card at the bottom (~:794-852). Add "Share
+recap" button; opens a modal with the same recap layout + existing handleShare
+(Copy PNG / Save states). recapCardImage.js PNG generation unchanged.
+
+### Verification
+build + npm start: cards tinted per game (EO yellow, RL teal, AR orange), sort
+modes reorder correctly and persist across restart, TEST chip gone from normal
+projects but present + toggleable on the test project, Tracker bottom recap
+gone, header button opens modal, Copy PNG still lands the image on clipboard.
+
+---
+
 ## DONE — Session 101: Tracker fixes (game tag casing/color) + 1440p scaling + app-wide DM Sans (VERIFIED in-app)
 
 Approved 2026-07-15 ("build all three — but change ALL text to DM Sans. No more
