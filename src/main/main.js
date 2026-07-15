@@ -1523,6 +1523,13 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   } catch (err) { return { error: err.message }; }
 });
 
+ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    return projects.updateReframe(watchFolder, projectId, reframe);
+  } catch (err) { return { error: err.message }; }
+});
+
 // ============ PIPELINE: Generate Clips (AI Pipeline) ============
 // Orchestrates: transcribe → energy analysis → frame extraction → Claude API → cut clips → project
 // Pending ask-degrade requests — keyed by requestId, value = the resolver of

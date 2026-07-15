@@ -417,6 +417,113 @@ function DraggableOverlay({
   );
 }
 
+// ── #164 Calibration overlay ──
+// Two free-form draggable/resizable crop boxes (webcam purple, game cyan)
+// over the raw horizontal source. Coordinates are source pixels mapped
+// through the video's contain-fit rect; every move writes the draft to the
+// editor store, which live-repaints the vertical PiP.
+const CAL_COLORS = { camRect: "#a78bfa", gameRect: "#22d3ee" }; // match the Layout panel swatches
+const CAL_LABELS = { camRect: "WEBCAM", gameRect: "GAME" };
+
+function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) {
+  const dragRef = useRef(null);
+
+  // Contain-fit of the source frame inside the (16:9) calibration canvas.
+  const scale = Math.min(canvasW / videoDims.w, canvasH / videoDims.h);
+  const offX = (canvasW - videoDims.w * scale) / 2;
+  const offY = (canvasH - videoDims.h * scale) / 2;
+
+  const beginDrag = useCallback((e, key, mode, rect) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragRef.current = { key, mode, startX: e.clientX, startY: e.clientY, rect0: { ...rect }, scale };
+    e.target.setPointerCapture?.(e.pointerId);
+  }, [scale]);
+
+  const onMove = useCallback((e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = (e.clientX - d.startX) / d.scale;
+    const dy = (e.clientY - d.startY) / d.scale;
+    const r = { ...d.rect0 };
+    if (d.mode === "move") { r.x += dx; r.y += dy; }
+    else {
+      if (d.mode.includes("e")) r.w += dx;
+      if (d.mode.includes("s")) r.h += dy;
+      if (d.mode.includes("w")) { r.x += dx; r.w -= dx; }
+      if (d.mode.includes("n")) { r.y += dy; r.h -= dy; }
+    }
+    const MIN_W = 120, MIN_H = 68; // source px — keeps a box grabbable
+    r.w = Math.max(MIN_W, Math.min(r.w, videoDims.w));
+    r.h = Math.max(MIN_H, Math.min(r.h, videoDims.h));
+    r.x = Math.max(0, Math.min(r.x, videoDims.w - r.w));
+    r.y = Math.max(0, Math.min(r.y, videoDims.h - r.h));
+    onRectChange(d.key, r);
+  }, [videoDims.w, videoDims.h, onRectChange]);
+
+  const endDrag = useCallback(() => { dragRef.current = null; }, []);
+
+  return (
+    <>
+      {["gameRect", "camRect"].map((key) => {
+        const r = draft[key];
+        if (!r) return null;
+        const color = CAL_COLORS[key];
+        return (
+          <div
+            key={key}
+            className="absolute rounded-sm"
+            style={{
+              left: offX + r.x * scale,
+              top: offY + r.y * scale,
+              width: r.w * scale,
+              height: r.h * scale,
+              border: `1.5px solid ${color}`,
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.55)",
+              cursor: "grab",
+              zIndex: key === "camRect" ? 30 : 29,
+              touchAction: "none",
+            }}
+            onPointerDown={(e) => beginDrag(e, key, "move", r)}
+            onPointerMove={onMove}
+            onPointerUp={endDrag}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                top: -1, left: -1, fontSize: 9, fontWeight: 800, letterSpacing: "0.6px",
+                padding: "1px 6px", background: color, color: "#0a0b10",
+                borderRadius: "2px 0 4px 0", lineHeight: 1.4,
+              }}
+            >
+              {CAL_LABELS[key]}
+            </div>
+            {["nw", "ne", "sw", "se"].map((h) => (
+              <div
+                key={h}
+                onPointerDown={(e) => beginDrag(e, key, h, r)}
+                onPointerMove={onMove}
+                onPointerUp={endDrag}
+                style={{
+                  position: "absolute", width: 10, height: 10,
+                  background: "#0a0b10", border: `1.5px solid ${color}`, borderRadius: 2,
+                  top: h.includes("n") ? -5 : undefined,
+                  bottom: h.includes("s") ? -5 : undefined,
+                  left: h.includes("w") ? -5 : undefined,
+                  right: h.includes("e") ? -5 : undefined,
+                  cursor: h === "nw" || h === "se" ? "nwse-resize" : "nesw-resize",
+                  zIndex: 31, touchAction: "none",
+                }}
+              />
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 // ── Main Preview Panel ──
 export default function PreviewPanelNew() {
   const clip = useEditorStore((s) => s.clip);
@@ -435,6 +542,21 @@ export default function PreviewPanelNew() {
   const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
   const setWaveformError = useEditorStore((s) => s.setWaveformError);
   const initNleSegments = useEditorStore((s) => s.initNleSegments);
+
+  // #164 calibration mode: while the Layout panel holds a draft, the preview
+  // shows the raw horizontal source with draggable crop boxes and a live
+  // vertical picture-in-picture painted from the draft. Declared up here
+  // because fitSize (below) switches the canvas aspect on it.
+  const reframeDraft = useEditorStore((s) => s.reframeDraft);
+  const updateReframeDraft = useEditorStore((s) => s.updateReframeDraft);
+  const calibrating = !!reframeDraft;
+  const draftRef = useRef(reframeDraft);
+  draftRef.current = reframeDraft;
+  const calibratingRef = useRef(calibrating);
+  calibratingRef.current = calibrating;
+  const pipCanvasRef = useRef(null);
+  // Decoded frame dimensions — the coordinate space calibration boxes map into.
+  const [videoDims, setVideoDims] = useState(null);
 
   // Subtitles — raw segments (source-absolute), mapped to timeline below after nleSegments loads
   const rawEditSegments = useSubtitleStore((s) => s.editSegments);
@@ -647,11 +769,13 @@ export default function PreviewPanelNew() {
   }, []);
   const fitSize = useMemo(() => {
     if (scrollSize.w <= 0 || scrollSize.h <= 0) return null;
-    const ratio = 9 / 16;
+    // #164: calibration works on the raw horizontal source, so the canvas
+    // flips to 16:9 while a layout draft is open; normal editing stays 9:16.
+    const ratio = calibrating ? 16 / 9 : 9 / 16;
     const byHeight = { w: scrollSize.h * ratio, h: scrollSize.h };
     const byWidth = { w: scrollSize.w, h: scrollSize.w / ratio };
     return byHeight.w <= scrollSize.w ? byHeight : byWidth;
-  }, [scrollSize.w, scrollSize.h]);
+  }, [scrollSize.w, scrollSize.h, calibrating]);
   const fitSizeRef = useRef(fitSize); // latest fit size for the native wheel/pan handlers
   fitSizeRef.current = fitSize;
 
@@ -929,6 +1053,10 @@ export default function PreviewPanelNew() {
   }, [setCurrentTime, mapSourceTime]);
 
   const onLoadedMetadata = useCallback(() => {
+    // #164: decoded dimensions anchor the calibration boxes' coordinate mapping.
+    if (videoRef.current && videoRef.current.videoWidth > 0) {
+      setVideoDims({ w: videoRef.current.videoWidth, h: videoRef.current.videoHeight });
+    }
     if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
       const videoDur = videoRef.current.duration;
 
@@ -1009,10 +1137,8 @@ export default function PreviewPanelNew() {
   // blurred game covering the whole frame underneath. The single <video>
   // element stays the only decoder/clock — time mapping, seeks, and audio are
   // untouched. Geometry must mirror render.js baking (preview == export).
-  const paintComposite = useCallback(() => {
-    const canvas = compositeCanvasRef.current;
+  const paintComposite = useCallback((canvas, rf) => {
     const video = videoRef.current;
-    const rf = reframeRef.current;
     if (!canvas || !video || !rf || !rf.camRect || !rf.gameRect || video.readyState < 2) return;
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh) return;
@@ -1062,27 +1188,34 @@ export default function PreviewPanelNew() {
     ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
   }, []);
 
+  // One painter, two targets: the full-size composite in normal mode, the
+  // vertical PiP (painted from the live draft) while calibrating.
+  const paintActive = useCallback(() => {
+    if (calibratingRef.current) paintComposite(pipCanvasRef.current, draftRef.current);
+    else paintComposite(compositeCanvasRef.current, reframeRef.current);
+  }, [paintComposite]);
+
   // Paint on every presented video frame. requestVideoFrameCallback fires
   // during playback AND after seeks; rAF is the fallback for environments
   // without it. 'seeked'/'loadeddata' cover paused frame-stepping and the
   // first frame after a src swap.
   useEffect(() => {
-    if (!reframeActive) return;
+    if (!reframeActive && !calibrating) return;
     const video = videoRef.current;
     if (!video) return;
     let disposed = false;
     let handle = null;
     const hasRVFC = typeof video.requestVideoFrameCallback === "function";
     const loop = () => {
-      paintComposite();
+      paintActive();
       if (disposed) return;
       handle = hasRVFC ? video.requestVideoFrameCallback(loop) : requestAnimationFrame(loop);
     };
     handle = hasRVFC ? video.requestVideoFrameCallback(loop) : requestAnimationFrame(loop);
-    const onSeeked = () => paintComposite();
+    const onSeeked = () => paintActive();
     video.addEventListener("seeked", onSeeked);
     video.addEventListener("loadeddata", onSeeked);
-    paintComposite();
+    paintActive();
     return () => {
       disposed = true;
       if (handle !== null) {
@@ -1092,12 +1225,13 @@ export default function PreviewPanelNew() {
       video.removeEventListener("seeked", onSeeked);
       video.removeEventListener("loadeddata", onSeeked);
     };
-  }, [reframeActive, paintComposite]);
+  }, [reframeActive, calibrating, paintActive]);
 
-  // Repaint when geometry changes while paused (zoom, panel resize, rect edits).
+  // Repaint when geometry changes while paused (zoom, panel resize, rect edits,
+  // calibration drags).
   useEffect(() => {
-    if (reframeActive) paintComposite();
-  }, [reframeActive, paintComposite, canvasWidth, fitSize, zoom, reframe]);
+    if (reframeActive || calibrating) paintActive();
+  }, [reframeActive, calibrating, paintActive, canvasWidth, fitSize, zoom, reframe, reframeDraft]);
 
   // Deselect overlay when clicking canvas background
   const onCanvasClick = useCallback((e) => {
@@ -1269,8 +1403,9 @@ export default function PreviewPanelNew() {
           )}
 
           {/* #164 reframe compositor — opaque canvas covers the horizontal video;
-              subtitle/caption overlays render later in the DOM, i.e. above it */}
-          {reframeActive && (
+              subtitle/caption overlays render later in the DOM, i.e. above it.
+              Hidden while calibrating (the raw source + boxes show instead). */}
+          {reframeActive && !calibrating && (
             <canvas
               ref={compositeCanvasRef}
               className="absolute inset-0 w-full h-full rounded-lg"
@@ -1278,8 +1413,42 @@ export default function PreviewPanelNew() {
             />
           )}
 
-          {/* Caption overlay(s) — render all active caption segments at current time */}
-          {captionSegments
+          {/* #164 calibration layer — draggable crop boxes over the raw source
+              plus a live vertical result PiP painted from the draft */}
+          {calibrating && videoDims && fitSize && (
+            <>
+              <CalibrationBoxes
+                videoDims={videoDims}
+                draft={reframeDraft}
+                canvasW={fitSize.w * scaleOf(zoom)}
+                canvasH={fitSize.h * scaleOf(zoom)}
+                onRectChange={updateReframeDraft}
+              />
+              <div
+                className="absolute rounded-lg overflow-hidden pointer-events-none"
+                style={{
+                  bottom: 8, right: 8, height: "46%", aspectRatio: "9 / 16",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.55), 0 0 0 1px hsl(240 4% 26%)",
+                  zIndex: 32, background: "#000",
+                }}
+              >
+                <canvas ref={pipCanvasRef} className="w-full h-full block" />
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: 4, left: 6, fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
+                    color: "rgba(255,255,255,0.75)", textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+                  }}
+                >
+                  RESULT
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Caption overlay(s) — render all active caption segments at current time.
+              Hidden while calibrating (#164) — they belong to the composed space. */}
+          {!calibrating && captionSegments
             .filter((seg) => seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity))
             .map((seg, idx) => (
             <DraggableOverlay
@@ -1349,8 +1518,9 @@ export default function PreviewPanelNew() {
             </DraggableOverlay>
           ))}
 
-          {/* Subtitle overlay — shared renderer (no width resize, just move) */}
-          {showSubs && editSegments.length > 0 && (
+          {/* Subtitle overlay — shared renderer (no width resize, just move).
+              Hidden while calibrating (#164). */}
+          {!calibrating && showSubs && editSegments.length > 0 && (
             <DraggableOverlay
               yPercent={subYPercent}
               onYChange={setSubYPercent}

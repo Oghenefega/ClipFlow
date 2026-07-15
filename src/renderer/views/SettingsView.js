@@ -485,6 +485,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
+      {/* Recording Layout — Auto-Reframe layout library (#164) */}
+      <RecordingLayoutSection />
+
       {/* Pipeline Quality — strict mode + yamnet silence skip (Issue #72 Phases 1 & 3) */}
       <Card style={{ padding: 24, marginBottom: 16 }}>
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Pipeline Quality</div>
@@ -1389,6 +1392,84 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
       {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
     </div>
+  );
+}
+
+// ============ RECORDING LAYOUT (Auto-Reframe layout library, #164) ============
+// Lists layouts saved from the editor's Layout panel ("Save as default layout").
+// The default auto-attaches to new horizontal recordings that match its source dimensions.
+function RecordingLayoutSection() {
+  const [layouts, setLayouts] = useState([]);
+  const [defaultId, setDefaultId] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (window.clipflow?.storeGet) {
+        const saved = await window.clipflow.storeGet("reframeLayouts");
+        if (Array.isArray(saved)) setLayouts(saved);
+        const def = await window.clipflow.storeGet("reframeLayoutDefaultId");
+        if (def) setDefaultId(def);
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const setDefault = async (id) => {
+    setDefaultId(id);
+    await window.clipflow?.storeSet?.("reframeLayoutDefaultId", id);
+  };
+
+  const deleteLayout = async (id) => {
+    const next = layouts.filter((l) => l.id !== id);
+    setLayouts(next);
+    await window.clipflow?.storeSet?.("reframeLayouts", next);
+    if (defaultId === id) {
+      setDefaultId(null);
+      await window.clipflow?.storeSet?.("reframeLayoutDefaultId", null);
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <Card style={{ padding: 24, marginBottom: 16 }}>
+      <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Recording Layout</div>
+      <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 14 }}>
+        Vertical layouts saved from the editor&apos;s Layout panel. The default auto-attaches to new horizontal recordings that match its dimensions.
+      </div>
+
+      {layouts.length === 0 ? (
+        <div style={{ color: T.textTertiary, fontSize: 12, fontStyle: "italic" }}>
+          No saved layouts yet. Open any horizontal recording&apos;s clip in the editor → Layout panel to set one up.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {layouts.map((l) => {
+            const isDefault = l.id === defaultId;
+            return (
+              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: T.radius.md, border: `1px solid ${isDefault ? T.yellowBorder : T.border}`, background: isDefault ? T.yellowDim : "rgba(255,255,255,0.02)" }}>
+                <button
+                  onClick={() => !isDefault && setDefault(l.id)}
+                  disabled={isDefault}
+                  title={isDefault ? "Default layout" : "Set as default"}
+                  style={{ background: "none", border: "none", padding: 0, fontSize: 15, lineHeight: 1, color: isDefault ? T.yellow : T.textMuted, cursor: isDefault ? "default" : "pointer", flexShrink: 0 }}
+                >
+                  {"★"}
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{l.name}</div>
+                  <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{l.sourceWidth}×{l.sourceHeight}</div>
+                </div>
+                <button onClick={() => deleteLayout(l.id)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", padding: "4px 2px" }} title="Delete layout">
+                  Delete
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
   );
 }
 

@@ -6,6 +6,17 @@
 
 ---
 
+## DONE (awaiting Fega verification) — Auto-Reframe Phase A (epic #164, session 103)
+
+Built + machine-verified end to end in session 103; details in HANDOFF.md and
+the #164 issue comments. Substrate in `11a119a`, calibration UI in the
+session-wrap commit. NOT in an installer yet (batch rule). Fega still needs a
+hands-on pass on a real recording (blur/proportion quality judgment).
+Deferred to a next slice: first-recording auto-offer flow; Projects-tab
+preview still letterboxes horizontal sources (cosmetic); Phase B detection.
+
+---
+
 ## APPROVED — Auto-Reframe Phase A: build next session (epic #164)
 
 **Fega approved Phase A 2026-07-15, and LOCKED the architecture: Option 2 —

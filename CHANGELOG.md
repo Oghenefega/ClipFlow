@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-15 (session 103) — Auto-Reframe Phase A: horizontal recordings become vertical shorts
+
+### Added
+- **Auto-Reframe (#164 Phase A): record one normal horizontal 1080p canvas — ClipFlow makes it vertical.** A project can now carry a "reframe layout" (two crop rectangles: webcam area + game area). When set, the editor previews the vertical composition live — webcam band on top, game band below it, blurred game filling the rest — and Render bakes the identical composition into the final 1080×1920 file with subtitles burned in at the right size. Fully non-destructive: no intermediate video file, the layout is just data on the project, and projects without a layout behave exactly as before (render output proven byte-identical). [src/renderer/editor/components/PreviewPanelNew.js, src/main/render.js, src/main/subtitle-overlay-renderer.js]
+- **Layout calibration lives in the editor.** New "Layout" panel in the editor's right rail (only appears for horizontal recordings): drag two free-form boxes (purple webcam, cyan game) directly on the source frame with a live vertical preview in the corner; Apply saves to that project, Cancel discards, Remove drops back to plain horizontal. Fresh setups start with the game box covering the full frame. "Save as default layout" stores it app-wide so future horizontal recordings at the same resolution attach it automatically during clip generation. [src/renderer/editor/components/RightPanelNew.js, src/renderer/editor/stores/useEditorStore.js, src/main/ai-pipeline.js]
+- **Settings → Files & Folders → Recording Layout** lists saved layouts with a default star (click to set default) and delete. [src/renderer/views/SettingsView.js]
+
+### Changed
+- **Projects now remember their recording's resolution and frame rate** (probed at creation, previously discarded), and project list summaries carry the new layout fields so the Queue and Projects surfaces never see a stripped project. [src/main/projects.js, src/main/ai-pipeline.js]
+
 ## [Unreleased] — 2026-07-15 (session 102) — Editor waveform finally aligned with the audio
 
 ### Fixed

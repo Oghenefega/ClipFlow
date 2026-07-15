@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
 import { Separator } from "../../../components/ui/separator";
 import { ScrollArea } from "../../../components/ui/scroll-area";
 import { Button } from "../../../components/ui/button";
@@ -19,7 +19,7 @@ import {
   X, Search, Play, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine,
+  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine, Crop,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -1714,6 +1714,191 @@ function UploadPanel() {
 
 
 // ════════════════════════════════════════════════════════════════
+//  DRAWER 7: LAYOUT (#164 Auto-Reframe Phase A calibration)
+// ════════════════════════════════════════════════════════════════
+
+// One calibration rect row (Webcam or Game): color swatch, live w×h@x,y readout,
+// and a 16:9 snap chip that only changes height (keeps x/y/w).
+function RectRow({ label, color, rect, onSnap169 }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-md border border-border/40 px-2.5 py-2">
+      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium text-foreground">{label}</div>
+        <div className="text-xs text-muted-foreground">{rect.w} × {rect.h} @ {rect.x}, {rect.y}</div>
+      </div>
+      <button
+        onClick={onSnap169}
+        className="text-xs px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30 shrink-0"
+        title="Snap height to 16:9"
+      >
+        16:9
+      </button>
+    </div>
+  );
+}
+
+function LayoutPanel() {
+  const project = useEditorStore((s) => s.project);
+  const reframeDraft = useEditorStore((s) => s.reframeDraft);
+  const beginReframeDraft = useEditorStore((s) => s.beginReframeDraft);
+  const updateReframeDraft = useEditorStore((s) => s.updateReframeDraft);
+  const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
+  const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
+  const removeReframe = useEditorStore((s) => s.removeReframe);
+
+  const [applying, setApplying] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [savingDefault, setSavingDefault] = useState(false);
+  const [savedDefault, setSavedDefault] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleApply = useCallback(async () => {
+    setError("");
+    setApplying(true);
+    const result = await commitReframeDraft();
+    setApplying(false);
+    if (result?.error) setError(result.error);
+  }, [commitReframeDraft]);
+
+  const handleRemove = useCallback(async () => {
+    setError("");
+    setRemoving(true);
+    const result = await removeReframe();
+    setRemoving(false);
+    if (result?.error) setError(result.error);
+  }, [removeReframe]);
+
+  const handleSnap169 = useCallback((key) => {
+    if (!reframeDraft || !project) return;
+    const rect = reframeDraft[key];
+    const maxH = project.sourceHeight - rect.y;
+    const h = Math.max(1, Math.min(Math.round(rect.w * 9 / 16), maxH));
+    updateReframeDraft(key, { x: rect.x, y: rect.y, w: rect.w, h });
+  }, [reframeDraft, project, updateReframeDraft]);
+
+  // Save the active project.reframe into the app-level layout library
+  // (electron-store `reframeLayouts` + `reframeLayoutDefaultId`) so future
+  // horizontal recordings at the same source dimensions can auto-attach it.
+  const handleSaveDefault = useCallback(async () => {
+    if (!project?.reframe || !window.clipflow?.storeGet) return;
+    setError("");
+    setSavingDefault(true);
+    try {
+      const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+      const existingIdx = project.reframe.layoutId
+        ? layouts.findIndex((l) => l.id === project.reframe.layoutId)
+        : -1;
+      const now = new Date().toISOString();
+      let id;
+      if (existingIdx >= 0) {
+        id = layouts[existingIdx].id;
+        layouts[existingIdx] = {
+          ...layouts[existingIdx],
+          camRect: { ...project.reframe.camRect },
+          gameRect: { ...project.reframe.gameRect },
+          updatedAt: now,
+        };
+      } else {
+        id = "layout_" + Date.now();
+        layouts.push({
+          id,
+          name: `${project.sourceWidth}×${project.sourceHeight} layout`,
+          sourceWidth: project.sourceWidth,
+          sourceHeight: project.sourceHeight,
+          camRect: { ...project.reframe.camRect },
+          gameRect: { ...project.reframe.gameRect },
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      await window.clipflow.storeSet("reframeLayouts", layouts);
+      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
+      setSavedDefault(true);
+      setTimeout(() => setSavedDefault(false), 2500);
+    } finally {
+      setSavingDefault(false);
+    }
+  }, [project]);
+
+  if (!project) return null;
+
+  // ── Calibrating ──
+  if (reframeDraft) {
+    return (
+      <div className="p-3 space-y-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Drag the boxes on the preview — purple is your webcam, cyan is the game. The small vertical preview shows the result live.
+        </p>
+
+        <div className="space-y-2">
+          <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
+          <RectRow label="Game" color="#22d3ee" rect={reframeDraft.gameRect} onSnap169={() => handleSnap169("gameRect")} />
+        </div>
+
+        {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
+
+        <div className="flex gap-1.5">
+          <Button size="sm" onClick={handleApply} disabled={applying} className="flex-1 h-8 text-xs">
+            {applying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply layout"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={cancelReframeDraft} disabled={applying} className="h-8 px-3 text-xs">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Layout active, not calibrating ──
+  if (project.reframe) {
+    return (
+      <div className="p-3 space-y-3">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Vertical layout active — preview and renders use it.
+        </p>
+
+        <div className="flex gap-1.5">
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => beginReframeDraft()}>
+            Edit layout
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={handleSaveDefault} disabled={savingDefault}>
+            {savingDefault ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save as default layout"}
+          </Button>
+        </div>
+
+        {savedDefault && (
+          <div className="text-xs text-green-400 bg-green-500/10 rounded-md px-2.5 py-2">
+            Saved as default — new recordings will use this layout.
+          </div>
+        )}
+        {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
+
+        <Button
+          size="sm" variant="ghost" onClick={handleRemove} disabled={removing}
+          className="w-full h-7 text-xs text-muted-foreground hover:text-destructive"
+        >
+          {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove layout"}
+        </Button>
+      </div>
+    );
+  }
+
+  // ── No layout ──
+  return (
+    <div className="p-3 space-y-3">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        This is a horizontal recording. Set up the vertical layout once — webcam on top, game below, blurred fill — and every render becomes a vertical short.
+      </p>
+      <Button size="sm" onClick={() => beginReframeDraft()} className="w-full h-9 text-xs">
+        Set up vertical layout
+      </Button>
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════
 //  ICON RAIL CONFIG
 // ════════════════════════════════════════════════════════════════
 const RAIL_ICONS = [
@@ -1723,10 +1908,12 @@ const RAIL_ICONS = [
   { id: "text", icon: Type, label: "Text", group: 2 },
   { id: "audio", icon: Music, label: "Audio", group: 3 },
   { id: "upload", icon: Upload, label: "Upload", group: 3 },
+  // #164 Phase A: vertical layout calibration — only shown for horizontal sources (see showLayoutTab below).
+  { id: "layout", icon: Crop, label: "Layout", group: 4 },
 ];
 
 const DRAWER_LABELS = {
-  ai: "AI Tools", brand: "Brand Kit", subs: "Subtitles", text: "Text", audio: "Audio", upload: "Upload",
+  ai: "AI Tools", brand: "Brand Kit", subs: "Subtitles", text: "Text", audio: "Audio", upload: "Upload", layout: "Layout",
 };
 
 
@@ -1739,6 +1926,22 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
 
+  // #164 Phase A: Layout tab only makes sense for a horizontal source. Pre-#164
+  // projects have sourceWidth === null, which fails this comparison — tab hidden.
+  const project = useEditorStore((s) => s.project);
+  const showLayoutTab = !!project && project.sourceWidth > project.sourceHeight;
+
+  // If the Layout drawer is open and the source stops qualifying (e.g. a
+  // different project loads without closing the drawer), close it instead of
+  // leaving a stale panel visible. useLayoutEffect avoids a one-frame flash.
+  useLayoutEffect(() => {
+    if (!showLayoutTab && activePanel === "layout" && drawerOpen) {
+      setDrawerOpen(false);
+    }
+  }, [showLayoutTab, activePanel, drawerOpen, setDrawerOpen]);
+
+  const visibleRailIcons = showLayoutTab ? RAIL_ICONS : RAIL_ICONS.filter((item) => item.id !== "layout");
+
   const renderDrawer = () => {
     switch (activePanel) {
       case "ai": return <AIToolsPanel gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />;
@@ -1747,6 +1950,7 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
       case "subs": return <SubtitlesPanel />;
       case "text": return <TextPanel />;
       case "upload": return <UploadPanel />;
+      case "layout": return <LayoutPanel />;
       default: return (
         <div className="p-4 flex items-center justify-center h-[200px] text-muted-foreground">
           <span className="text-xs opacity-60">{DRAWER_LABELS[activePanel] || activePanel} — coming soon</span>
@@ -1816,9 +2020,9 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
       {/* Icon rail (always visible) */}
       <div className="w-16 min-w-[64px] border-l bg-card flex flex-col items-center py-3 gap-1">
         <TooltipProvider delayDuration={300}>
-          {RAIL_ICONS.map((item, i) => {
+          {visibleRailIcons.map((item, i) => {
             const Icon = item.icon;
-            const prevGroup = i > 0 ? RAIL_ICONS[i - 1].group : item.group;
+            const prevGroup = i > 0 ? visibleRailIcons[i - 1].group : item.group;
             const isActive = drawerOpen && activePanel === item.id;
 
             return (

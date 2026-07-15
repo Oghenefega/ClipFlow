@@ -1,39 +1,51 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-15 — Session 102 — **Waveform trust bug found+fixed (7s misalignment, root-caused with real data), Auto-Reframe epic researched/planned/approved (#164) — next session BUILDS Phase A, non-destructive architecture.**_
+_Last updated: 2026-07-15 — Session 103 — **#164 Auto-Reframe Phase A BUILT + VERIFIED end to end: data model, live editor compositor, render baking, in-editor calibration UI. Not yet in an installer.**_
 
 ---
 
 ## One-line TL;DR
-The editor waveform never matched the subtitles because of an integer-truncation bug in peak extraction — proven with cross-correlation on Fega's real recording (7.0s off, fixed to one 40ms bucket) and shipped in `c492be8`. Then the Auto-Reframe epic (horizontal 1080p → vertical shorts) was researched via two agents, planned, filed as **#164**, and **approved: Phase A builds NEXT SESSION with the non-destructive live-layout architecture** (Fega's call — use Fable-class capacity on the hard version while it's here). No installer cut this session.
+Phase A of the Auto-Reframe epic (#164) went from zero to working in one session: a project can carry a non-destructive reframe layout (webcam+game crop rects), the editor previews the vertical composition live (canvas compositor off the single `<video>` via requestVideoFrameCallback), render bakes the identical geometry with subtitles at 1080×1920, and calibration is an in-editor Layout panel (drag boxes on the source + live vertical PiP) per Fega's feedback. Every stage verified in the dev profile — including a real rendered file with karaoke subs burned in — and the non-reframe path is proven byte-identical (zero regression risk). Awaiting Fega's hands-on pass + next installer cut.
 
 ## Current State
-- **Installed daily driver: 0.1.8-alpha.16.** The waveform fix (`c492be8`) is committed/pushed but NOT in any installer yet — it reaches Fega on the next cut (batch rule).
-- Working tree: usual never-commit `data/` pair + the untracked `tasks/mocks/` scratch files (unchanged, deliberate).
-- Wick (GM agent) briefed via his vault inbox: #164 decision + scope, waveform fix, alpha.16 status.
+- **Installed daily driver: 0.1.8-alpha.16.** NOT yet carrying: waveform fix (session 102, `c492be8`) or any of #164. Both ride the next installer cut.
+- Commits this session: `11a119a` (substrate: data model + compositor + render baking) and the session-wrap commit (calibration UI + IPC + Settings + changelog/handoff). All pushed.
+- **Dev-profile test rig** (for future #164 work): synthetic project `proj_spike164_reframe` under `%APPDATA%\clipflow-dev\spike164-watch` (dev profile's watchFolder points there; testWatchFolder → `...\spike164-watch\test-out`). Source = 30s synthetic 1920×1080@60 with a magenta "webcam" box at (28,782,470×270). One saved layout in the dev library. NOTE: dev's previous watchFolder value was overwritten (unknown; dev is disposable/re-seedable).
+- Untracked scratch in `tasks/mocks/` (bb*.md etc.) untouched, still deliberately uncommitted. The #164 mock `reframe-calibration.html` IS committed.
 
-## What Was Just Built
-- **Waveform alignment fix** (`src/main/ffmpeg.js` extractWaveformPeaks): bucket boundaries now computed proportionally per index instead of a floor()'d integer samplesPerPeak. The old math made each peak cover ~39ms but render as 40ms — error grew ~2.6% of the clip's depth into the source (Clip 1 of the EO project, 266s in, displayed audio from 7.0s earlier; displayed-vs-real correlation was -0.06, i.e. none). After fix: correlation 0.86, residual 0.04s. Verified by replicating the exact JS math in Python against the real source file.
-- **Waveform cache key bumped to `.v2`** (`src/main/main.js` waveform:extractCached) so every project regenerates peaks with fixed math on next editor open (first open shows "Extracting waveform…" a few seconds).
-- **Auto-Reframe epic #164**: two research agents (competitor landscape; local-tech feasibility), phased plan in `tasks/todo.md` + full findings in the issue body.
+## What Was Just Built (#164 Phase A, all verified)
+1. **Data model**: `project.reframe = null | {layoutId, camRect, gameRect}` (source px, snapshot — editing a library layout never retroactively changes projects); `project.sourceWidth/Height/Fps` persisted from probe; app-level `reframeLayouts` + `reframeLayoutDefaultId` in electron-store (migration guarded); auto-attach of dimension-matched default layout at ingest (`ai-pipeline.js` Stage 1); summaries carry all new fields.
+2. **Editor live compositor** (`PreviewPanelNew.js`): when `project.reframe` set, an opaque canvas over the (single) video paints cam band top / game band below / blurred game fill (downscale-blur-upscale), driven by rVFC + seeked/loadeddata + geometry effects. Overlays (subs/caption) unchanged on top. Null reframe = everything inert.
+3. **Render baking** (`render.js`): `buildNleFilterComplex` gains a reframe branch — split=3, crop/scale ×2, cover+boxblur bg, two overlays, `format=yuv420p`, subtitle overlay composited LAST at explicit 1080×1920 (`subtitle-overlay-renderer.js` targetWidth/Height override). **Null-reframe args byte-identical to pre-change (deepStrictEqual proof against `git show HEAD` version).** batchRender inherits via renderClip.
+4. **Calibration UI** (Fega's design calls: free-form boxes; fresh game box = FULL frame; lives in the editor): `useEditorStore.reframeDraft` + begin/update/commit/cancel/remove actions (commit re-checks project identity after await); preview flips to 16:9 source view with draggable purple/cyan boxes + live vertical "RESULT" PiP; right-rail **Layout** tab (horizontal sources only) with rect readouts, 16:9 snap chips, Apply/Cancel/Edit/Remove/"Save as default layout"; Settings → Files & Folders → **Recording Layout** library list (star = default, delete). IPC `project:updateReframe` (validated, preload-bridged).
+
+## Verification methods that worked (reuse these)
+- **Headless render through the REAL renderClip**: tiny electron main script (`scratchpad/spike/render-test-main.js` pattern) — no UI needed; output probed 1080×1920@60 yuv420p, frame PNG shows cam/game/blur + karaoke subs with active-word highlight.
+- **CDP driving beats OS computer-use here**: `--remote-debugging-port=9222` + node WebSocket script (`cdp-verify.js` pattern) — DOM clicks, real Input events for drags, Page.captureScreenshot — immune to focus-stealing (textinputhost/Dimmer denied access ~5:30AM; assume auto-deny when Fega's away). Full loop verified: state transitions, drag→readout+PiP update, Apply persistence, Save-as-default library write, Settings list, Remove → horizontal, fresh defaults (game = 1920×1080@0,0), zero console exceptions.
+- App boots clean on prod profile too (migration wrote empty defaults; data-layer agent verified against real prod settings).
 
 ## Key Decisions
-- **#164 architecture LOCKED by Fega: Option 2 — non-destructive live layout in the editor.** Crop rects are stored data; editor previews the vertical composition live; render bakes at export; NO intermediate vertical file, NO whole-source reformat at ingest. Chosen over the (recommended-as-safer) ingest option because Fable is only available a couple more days — spend it on the hard build.
-- **#164 hard scope (memory `project-autoreframe-no-tracking`): NO face tracking, NO auto-zooms.** Static webcam/game crops, calibrated/auto-detected once per OBS layout. Research says tracking jitter is the category's most-hated failure — static is the differentiator.
-- Phase B (MediaPipe box auto-detection) comes only after Phase A ships.
-- Zoom feedback ("a bit too zoomed in" on the 1440p scaling) parked as **#165** — do not tune it ad hoc.
+- **Fega (mock feedback, this session)**: free-form dragging (no forced aspect); default game box covers the FULL frame (users trim sides themselves — that's also how the cam corner leaves the game band); calibration IN THE EDITOR with real-time preview; per-project layout editing required; Settings keeps the management list; first-recording auto-offer approved but DEFERRED to a next slice.
+- Cam box default guess (fresh setup): bottom-left ~26%×28% at (2%,68%) — Phase B detection will replace the guess.
+- Layout tab hidden for pre-#164 projects (sourceWidth null) — accepted Phase A constraint.
+- "Save as default layout" does NOT backfill layoutId onto the project (provenance links only on auto-attach) — accepted.
+- Subagent delegation pattern (per `feedback_fable_delegation`): 4 Sonnet implementation agents (data layer, render baking, panel+persistence) + 3 read-only research maps early; orchestrator kept the risk-center compositor + calibration view + all reviews.
 
 ## Next Steps
-1. **Build #164 Phase A** (fresh session, this is the whole session): suggested order in `tasks/todo.md` — (1) HTML mock of the calibration UI first (house rule), (2) layout data model + electron-store schema migration (pipeline hard rule), (3) editor preview compositing spike — two crops of one source in PreviewPanelNew, (4) render.js baking. Biggest pipeline change since the editor; treat as multi-session.
-2. Next installer cut: includes the waveform fix — Fega should verify Clip 1 of "2026-02-12 EO Day2 Pt1" (the loud burst should sit under "MOVE,").
-3. #165 zoom tuning when UI work next comes up. #163 (YouTube reconnect messaging) still open.
+1. **Fega's hands-on pass** (needs next installer or `npm run dev`): calibrate on a REAL recording, render, publish-quality check. The synthetic rig can't judge visual quality of the blur/band proportions — his eyes can. Then decide Phase A remainder: first-recording auto-offer flow + any polish (#165 zoom feel is separate).
+2. **Next installer cut** batches: session 102 waveform fix + all of #164 Phase A (batch rule — no per-fix installers).
+3. **Phase B (after A ships)**: MediaPipe box auto-detection pre-filling the calibration UI (prototype gate: small-face recall on real footage).
+4. Known small follow-ups: Projects-tab clip preview still plays the raw horizontal source for reframe projects (cosmetic inconsistency — preview letterboxes, editor/render are vertical); auto-offer calibration on first no-layout horizontal recording; old `.waveforms` non-v2 cache cleanup (from 102).
 
 ## Watch Out For
-- **Editor preview compositing (Phase A step 3) is the risk center**: every `<video>` needs unmount cleanup (blink::DOMDataStore crash, memory `feedback_video_cleanup`); two `<video>` elements on one multi-GB source may double decode cost — consider one video + canvas compositing; the imperative-src teardown pattern in PreviewPanelNew:686-704 exists for a reason.
-- **Old waveform caches** (`.clipflow/projects/<id>/.waveforms/*.json` without `.v2`) are orphaned, not auto-deleted — harmless, but a cleanup candidate.
-- **WaveformTrack render math was verified correct** — if waveform looks off after the fix reaches the installed app, suspect the cache or extraction, not the renderer. Diagnosis method that worked: extract ground-truth envelope for the clip range via ffmpeg → cross-correlate against the app's cached peaks slice (script pattern in session 102 transcript).
-- The renderer-side `src/renderer/editor/utils/waveformUtils.js` is DEAD CODE (zero importers) — don't reason from it; flagged for eventual removal, not deleted (surgical-changes rule).
+- **Preview == render parity is now a standing invariant**: `paintComposite` (PreviewPanelNew) and the render.js reframe branch implement the SAME geometry independently (width-fit bands stacked from top, cover-blur fill). Any change to one MUST change the other. Blur recipes differ slightly by construction (canvas blur px vs ffmpeg boxblur at 270×480) — visually close, not bit-identical; if Fega flags the blur, tune BOTH.
+- Band heights: renderer uses exact floats; render uses even-rounded ints (yuv420p) — ≤1px band difference is expected, not a bug.
+- The compositor canvas caps its backing store at 1440px wide — don't "fix" apparent softness at extreme zoom by removing the cap without measuring paint cost.
+- `beginReframeDraft` falls back to project.sourceWidth/Height (1920×1080 final fallback) — projects probed before #164 have nulls; the Layout tab is hidden for them by design.
+- Dimmer/textinputhost focus-stealing makes OS-level computer-use flaky on this machine in early-AM hours — use the CDP pattern for editor UI verification.
+- Sentry userData ordering rule + cross-tree `build.files` rule unchanged (see project CLAUDE.md) — #164 added no new cross-tree imports (render.js changes are main-process local).
 
 ## Logs/Debugging
-- Waveform extraction logs under `[waveform]` tags (main process logger, videoProcessing module) — start/cache-hit/extracted/error lines with timings; ffmpeg stderr tail is captured on failure.
-- No errors this session; `node --check` clean on both edited main-process files; app boot smoke-tested via `npm start` (killed after clean start — the "failed, exit 127" background-task notice was the kill, not a crash).
-- Fega's prod data locations used for diagnosis: settings `%APPDATA%\clipflow\clipflow-settings.json`, projects under `W:\...\Vertical Recordings Onwards\.clipflow\projects\`.
+- Render: `[Render] FFmpeg args:` line logs the FULL command incl. filter_complex (main process console) — first thing to grab on a bad render. Overlay: `[OverlayRenderer]` lines log resolution override ("Using target resolution override: 1080 x 1920"), frame counts, first-frame size.
+- Editor compositor has NO logging by design (60fps path) — diagnose visually via the PiP (draft) vs main canvas (committed), or `project.reframe` in project.json.
+- CDP verification scripts + all stage screenshots (cdp-01…11) live in the session scratchpad `spike/` folder; screenshots show every verified state.
+- `project:updateReframe` validation errors surface inline in the Layout panel (red text) and as `{error}` returns — not thrown.

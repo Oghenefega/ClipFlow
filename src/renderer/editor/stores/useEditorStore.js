@@ -62,10 +62,16 @@ const useEditorStore = create((set, get) => ({
   // Editor shows a "Locate file…" banner and disables preview until user resolves.
   sourceOffline: false,
 
+  // ── #164 Reframe calibration draft ──
+  // Live-edited copy of project.reframe while the Layout panel is open.
+  // null = not calibrating. The preview renders boxes + a live vertical PiP
+  // from this draft; commitReframeDraft persists it, cancelReframeDraft drops it.
+  reframeDraft: null,
+
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
-      set({ project: null, clip: null, clipTitle: "", dirty: false });
+      set({ project: null, clip: null, clipTitle: "", dirty: false, reframeDraft: null });
       return;
     }
 
@@ -198,6 +204,7 @@ const useEditorStore = create((set, get) => ({
       maxExtendLeftSec: sourceStart,
       extending: false,
       sourceOffline,
+      reframeDraft: null, // #164: a clip/project switch drops any in-flight calibration
     });
 
     // Clear any stale playback state from the previous clip BEFORE we populate
@@ -456,6 +463,76 @@ const useEditorStore = create((set, get) => ({
         videoVersion: get().videoVersion + 1,
       });
     }
+  },
+
+  // ── #164 Reframe calibration (Layout panel) ──
+  beginReframeDraft: (sourceW, sourceH) => {
+    const { project, reframeDraft } = get();
+    if (reframeDraft) return; // already calibrating
+    const existing = project?.reframe;
+    if (existing?.camRect && existing?.gameRect) {
+      set({
+        reframeDraft: {
+          layoutId: existing.layoutId ?? null,
+          camRect: { ...existing.camRect },
+          gameRect: { ...existing.gameRect },
+        },
+      });
+      return;
+    }
+    const w = sourceW || project?.sourceWidth || 1920;
+    const h = sourceH || project?.sourceHeight || 1080;
+    // Fresh defaults (Fega, session 103): game covers the FULL frame — users
+    // free-form crop the sides themselves, which is also how the cam corner
+    // gets shaved off the game band. Cam guess sits bottom-left.
+    set({
+      reframeDraft: {
+        layoutId: null,
+        camRect: { x: Math.round(w * 0.02), y: Math.round(h * 0.68), w: Math.round(w * 0.26), h: Math.round(h * 0.28) },
+        gameRect: { x: 0, y: 0, w, h },
+      },
+    });
+  },
+
+  updateReframeDraft: (key, rect) => {
+    const { reframeDraft } = get();
+    if (!reframeDraft || (key !== "camRect" && key !== "gameRect")) return;
+    set({
+      reframeDraft: {
+        ...reframeDraft,
+        [key]: { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h) },
+      },
+    });
+  },
+
+  cancelReframeDraft: () => set({ reframeDraft: null }),
+
+  // Persist the draft as project.reframe. Re-checks project identity after the
+  // IPC await so a rapid clip/project switch can't get a stale write (#97 family).
+  commitReframeDraft: async () => {
+    const { project, reframeDraft } = get();
+    if (!project?.id || !reframeDraft) return { error: "Nothing to apply" };
+    const reframe = {
+      layoutId: reframeDraft.layoutId ?? null,
+      camRect: { ...reframeDraft.camRect },
+      gameRect: { ...reframeDraft.gameRect },
+    };
+    const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    set({ project: { ...get().project, reframe }, reframeDraft: null });
+    return { success: true };
+  },
+
+  // Detach the layout from this project (back to plain horizontal render).
+  removeReframe: async () => {
+    const { project } = get();
+    if (!project?.id) return { error: "No project" };
+    const result = await window.clipflow.projectUpdateReframe(project.id, null);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    set({ project: { ...get().project, reframe: null }, reframeDraft: null });
+    return { success: true };
   },
 
   // ── Legacy Audio segment actions (kept for gradual migration) ──

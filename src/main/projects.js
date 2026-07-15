@@ -236,6 +236,44 @@ function updateClip(watchFolder, projectId, clipId, updates) {
 }
 
 /**
+ * Validate a reframe rect: finite numeric x/y/w/h with positive width/height.
+ */
+function isValidReframeRect(r) {
+  return !!r && typeof r === "object"
+    && Number.isFinite(r.x) && Number.isFinite(r.y)
+    && Number.isFinite(r.w) && Number.isFinite(r.h)
+    && r.w > 0 && r.h > 0;
+}
+
+/**
+ * Update a project's Auto-Reframe calibration (#164 Phase A).
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {object|null} reframe - null to clear, or { layoutId, camRect:{x,y,w,h}, gameRect:{x,y,w,h} } (source pixels)
+ * @returns {{ success: true, project: object }|{ error: string }}
+ */
+function updateReframe(watchFolder, projectId, reframe) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  if (reframe === null) {
+    project.reframe = null;
+  } else {
+    if (!reframe || typeof reframe !== "object" || !isValidReframeRect(reframe.camRect) || !isValidReframeRect(reframe.gameRect)) {
+      return { error: "Invalid reframe: camRect and gameRect must have finite numeric x/y/w/h with w,h > 0" };
+    }
+    project.reframe = {
+      layoutId: reframe.layoutId ?? null,
+      camRect: { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
+      gameRect: { x: reframe.gameRect.x, y: reframe.gameRect.y, w: reframe.gameRect.w, h: reframe.gameRect.h },
+    };
+  }
+
+  saveProject(watchFolder, project);
+  return { success: true, project };
+}
+
+/**
  * Add a clip to a project.
  * @param {string} watchFolder
  * @param {string} projectId
@@ -327,6 +365,7 @@ module.exports = {
   listProjects,
   deleteProject,
   updateClip,
+  updateReframe,
   addClip,
   deleteClip,
   updateProjectField,
