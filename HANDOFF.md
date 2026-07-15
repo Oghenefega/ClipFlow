@@ -1,42 +1,39 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-15 — Session 101 — **UI batch: Tracker game colors fixed, 1440p zoom scaling, DM Sans everywhere, Projects game hues + sorting, Weekly Rundown popup. Alpha.16 cut, awaiting Fega's install.**_
+_Last updated: 2026-07-15 — Session 102 — **Waveform trust bug found+fixed (7s misalignment, root-caused with real data), Auto-Reframe epic researched/planned/approved (#164) — next session BUILDS Phase A, non-destructive architecture.**_
 
 ---
 
 ## One-line TL;DR
-A full UI-polish day: two Tracker display bugs fixed (grey lowercase "rl"), the app now scales up on wide windows, JetBrains Mono is gone app-wide, the Projects tab got game-hue cards + a sort control + TEST-chip cleanup, and the Tracker recap became a "Weekly Rundown" header button with a preview popup. `0.1.8-alpha.16` installer is built — **Fega has NOT installed it yet.**
+The editor waveform never matched the subtitles because of an integer-truncation bug in peak extraction — proven with cross-correlation on Fega's real recording (7.0s off, fixed to one 40ms bucket) and shipped in `c492be8`. Then the Auto-Reframe epic (horizontal 1080p → vertical shorts) was researched via two agents, planned, filed as **#164**, and **approved: Phase A builds NEXT SESSION with the non-destructive live-layout architecture** (Fega's call — use Fable-class capacity on the hard version while it's here). No installer cut this session.
 
 ## Current State
-- **Installed daily driver: 0.1.8-alpha.15** — alpha.16 is cut (`dist/ClipFlow Setup 0.1.8-alpha.16.exe`, 2026-07-15 02:36) and the in-app "Install update" banner will offer it on next launch. Everything through commit `7947930` is in it.
-- All session-101 changes were verified live in the source-run app via computer-use (screenshots of teal RL chips, maximized-window zoom, hue cards, sort clicks, Rundown modal, and a real PNG save).
-- Working tree: usual never-commit `data/` pair + untracked `tasks/mocks/` scratch from an earlier session (bb*.md, diag_sort.js, queue-card-redesign.html — deliberately left uncommitted).
+- **Installed daily driver: 0.1.8-alpha.16.** The waveform fix (`c492be8`) is committed/pushed but NOT in any installer yet — it reaches Fega on the next cut (batch rule).
+- Working tree: usual never-commit `data/` pair + the untracked `tasks/mocks/` scratch files (unchanged, deliberate).
+- Wick (GM agent) briefed via his vault inbox: #164 decision + scope, waveform fix, alpha.16 status.
 
 ## What Was Just Built
-- **Tracker "rl" grey/lowercase fix:** auto-posted entries store the lowercased short tag ("rl"); both display lookups (TrackerView `resolveGameDisplay`, TrackerCalendar `resolveGame`) now match tag/hashtag/name case-insensitively, so weekly-log chips, calendar segments, and day-drawer chips show teal uppercase RL — retroactive, no data repair.
-- **1440p scaling:** `main.js` applies `setZoomFactor(clamp(width/1920, 1, 1.35))` on resize + did-finish-load. ≤1920px content width = exactly the old look; maximized on Fega's 2560px monitor ≈ 1.33×.
-- **DM Sans everywhere:** `T.mono` (theme.js) and Tailwind `fontFamily.mono` now resolve to DM Sans; hardcoded JetBrains refs swapped in SettingsView (debug pre), editorPrimitives (timecode popover), EditorView (crash screen), recapCardImage (canvas headline); JetBrains dropped from the index.html Google Fonts import. Token names kept so call sites are untouched.
-- **Projects tab:** game-color gradient wash + tinted border per card (mockup Variant B — `tasks/mocks/projects-hue-and-recap.html`); "Sort: Status | Date | Game" segmented control persisted as `projectSortMode`; TEST chip renders only on actual test projects (still clickable there to un-test).
-- **Weekly Rundown:** the always-visible bottom recap card is gone. Header button ("Weekly Rundown", between the view toggle and Export) opens a modal titled "ClipFlow Rundown · <week range>"; PNG generates/downloads only on the Download click (filename now `clipflow-rundown-<week>.png`). Esc / X / click-outside close it.
+- **Waveform alignment fix** (`src/main/ffmpeg.js` extractWaveformPeaks): bucket boundaries now computed proportionally per index instead of a floor()'d integer samplesPerPeak. The old math made each peak cover ~39ms but render as 40ms — error grew ~2.6% of the clip's depth into the source (Clip 1 of the EO project, 266s in, displayed audio from 7.0s earlier; displayed-vs-real correlation was -0.06, i.e. none). After fix: correlation 0.86, residual 0.04s. Verified by replicating the exact JS math in Python against the real source file.
+- **Waveform cache key bumped to `.v2`** (`src/main/main.js` waveform:extractCached) so every project regenerates peaks with fixed math on next editor open (first open shows "Extracting waveform…" a few seconds).
+- **Auto-Reframe epic #164**: two research agents (competitor landscape; local-tech feasibility), phased plan in `tasks/todo.md` + full findings in the issue body.
 
 ## Key Decisions
-- **Zoom over per-view widening** for the 1440p problem: one main-process change scales every tab, the editor, and Radix portals consistently; no font-size surgery. If Projects still feels cramped after Fega sees it, widen that view specifically.
-- **Mono tokens kept, values swapped:** `T.mono`/`font-mono` deliberately render DM Sans now — do NOT "fix" them back (see memory `feedback_dm_sans_only`; enforcement line added to clipflow-ui-debug).
-- **Preview-first Rundown:** Fega explicitly wanted the popup to show BEFORE anything downloads. Don't re-add auto-download on open.
-- **TEST toggle:** test-ness is decided at creation (test watch folder); normal projects show no toggle by design now.
+- **#164 architecture LOCKED by Fega: Option 2 — non-destructive live layout in the editor.** Crop rects are stored data; editor previews the vertical composition live; render bakes at export; NO intermediate vertical file, NO whole-source reformat at ingest. Chosen over the (recommended-as-safer) ingest option because Fable is only available a couple more days — spend it on the hard build.
+- **#164 hard scope (memory `project-autoreframe-no-tracking`): NO face tracking, NO auto-zooms.** Static webcam/game crops, calibrated/auto-detected once per OBS layout. Research says tracking jitter is the category's most-hated failure — static is the differentiator.
+- Phase B (MediaPipe box auto-detection) comes only after Phase A ships.
+- Zoom feedback ("a bit too zoomed in" on the 1440p scaling) parked as **#165** — do not tune it ad hoc.
 
 ## Next Steps
-1. **Fega installs alpha.16** and eyeballs: maximized-window scaling (biggest visible change), teal RL in Tracker, Projects hues/sort, Weekly Rundown popup.
-2. If the scaling factor feels too strong/weak on his monitor, tune the `width/1920` curve or the 1.35 cap in `main.js` (`applyWindowZoom`).
-3. The "Review Rail" Projects-tab premium redesign (session 89 mockup, memory `project_projects_tab_redesign`) is still the bigger pending direction for the project DETAIL view — today's changes touched only the list.
-4. #163 (YouTube reconnect messaging) still open; Google Cloud consent screen Testing→Production remains the permanent OAuth fix.
+1. **Build #164 Phase A** (fresh session, this is the whole session): suggested order in `tasks/todo.md` — (1) HTML mock of the calibration UI first (house rule), (2) layout data model + electron-store schema migration (pipeline hard rule), (3) editor preview compositing spike — two crops of one source in PreviewPanelNew, (4) render.js baking. Biggest pipeline change since the editor; treat as multi-session.
+2. Next installer cut: includes the waveform fix — Fega should verify Clip 1 of "2026-02-12 EO Day2 Pt1" (the loud burst should sit under "MOVE,").
+3. #165 zoom tuning when UI work next comes up. #163 (YouTube reconnect messaging) still open.
 
 ## Watch Out For
-- **Rundown PNG canvas** (`recapCardImage.js`) headline now renders in DM Sans — if the share image ever looks off, that's the line that changed (163).
-- **A leftover verification PNG** (`clipflow-recap-2026-07-13.png`) landed in Fega's Downloads during testing — safe to delete.
-- **Zoom + screenshots:** any future pixel-coordinate automation (computer-use) on a maximized window now operates on zoomed UI; coordinates from old screenshots won't line up.
-- **"Dimmer" overlay app** on Fega's machine intermittently owns the foreground and blocks computer-use clicks — `open_application("Electron")` re-fronts the app and unblocks.
-- The game-hue wash on Projects cards layers UNDER the selected (accentDim) state; error rows keep red borders. Done rows keep the game border by design (mock-approved).
+- **Editor preview compositing (Phase A step 3) is the risk center**: every `<video>` needs unmount cleanup (blink::DOMDataStore crash, memory `feedback_video_cleanup`); two `<video>` elements on one multi-GB source may double decode cost — consider one video + canvas compositing; the imperative-src teardown pattern in PreviewPanelNew:686-704 exists for a reason.
+- **Old waveform caches** (`.clipflow/projects/<id>/.waveforms/*.json` without `.v2`) are orphaned, not auto-deleted — harmless, but a cleanup candidate.
+- **WaveformTrack render math was verified correct** — if waveform looks off after the fix reaches the installed app, suspect the cache or extraction, not the renderer. Diagnosis method that worked: extract ground-truth envelope for the clip range via ffmpeg → cross-correlate against the app's cached peaks slice (script pattern in session 102 transcript).
+- The renderer-side `src/renderer/editor/utils/waveformUtils.js` is DEAD CODE (zero importers) — don't reason from it; flagged for eventual removal, not deleted (surgical-changes rule).
 
 ## Logs/Debugging
-- No errors this session. Both builds clean (`vite build` ~12s; electron-builder NSIS ~2.5min with the usual benign "author is missed" warnings).
-- Verification was computer-use driven on the source-run app (`npm start`, prod profile). Remember: "electron.exe" is the app name to request; "ClipFlow" for the installed exe.
+- Waveform extraction logs under `[waveform]` tags (main process logger, videoProcessing module) — start/cache-hit/extracted/error lines with timings; ffmpeg stderr tail is captured on failure.
+- No errors this session; `node --check` clean on both edited main-process files; app boot smoke-tested via `npm start` (killed after clean start — the "failed, exit 127" background-task notice was the kill, not a crash).
+- Fega's prod data locations used for diagnosis: settings `%APPDATA%\clipflow\clipflow-settings.json`, projects under `W:\...\Vertical Recordings Onwards\.clipflow\projects\`.

@@ -6,7 +6,20 @@
 
 ---
 
-## QUEUED — Auto-Reframe: horizontal 1080p recording → vertical shorts (epic, awaiting build approval)
+## APPROVED — Auto-Reframe Phase A: build next session (epic #164)
+
+**Fega approved Phase A 2026-07-15, and LOCKED the architecture: Option 2 —
+non-destructive live layout in the editor** (NOT whole-source reformat at
+ingest). Rationale: Fable is available only a couple more days, so the harder,
+long-term-correct build happens now. Layout (webcam/game crop rects) is stored
+data; the editor previews the vertical composition live; render bakes it at
+export. No intermediate vertical file.
+
+Build order suggestion for next session: (1) HTML mock of the calibration UI
+(house rule for aesthetic-sensitive UI), (2) layout data model + electron-store
+schema migration, (3) editor preview compositing spike — two crops of one
+source in the preview panel (watch the <video> cleanup rule, blink crash), (4)
+render.js baking. Scope lines below still apply — no tracking, no auto-zooms.
 
 Approved for planning 2026-07-15. Research done (2 agents: competitor landscape +
 local tech feasibility) — full findings in the GitHub epic. Goal: record ONE
