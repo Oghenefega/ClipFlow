@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.9-alpha.2] — 2026-07-15 (session 103) — Installer cut: Auto-Reframe works with any recording format
+
+### Fixed
+- **The Layout feature was invisible on Fega's actual recordings.** Phase A gated everything on "horizontal (wider than tall) sources", but the real main OBS canvas is 2560×2880 (8:9, taller than wide) — so the Layout icon never appeared. Reframing now accepts ANY format: the only sources treated as "nothing to reframe" are ones already in proper 9:16 vertical. Auto-attach of the default layout follows the same rule. [src/main/ai-pipeline.js]
+- **The Layout icon is now always visible in the editor** (features don't hide). Clips from already-vertical recordings show a note that a layout is optional there instead of hiding the panel. Calibration also now displays the recording at its own shape rather than forcing a 16:9 window, and works on projects created before this feature (their dimensions are read live from the video). [src/renderer/editor/components/RightPanelNew.js, PreviewPanelNew.js, stores/useEditorStore.js]
+
+### Changed
+- **Version 0.1.9-alpha.2, installer cut** (alpha tick — a fix batch on the new subsystem, per the new sizing policy): promotes the any-format fixes so the Layout feature is actually reachable on real recordings.
+
 ## [0.1.9-alpha.1] — 2026-07-15 (session 103) — Installer cut: Auto-Reframe Phase A + waveform alignment
 
 ### Changed
