@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
+import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Separator } from "../../../components/ui/separator";
 import { ScrollArea } from "../../../components/ui/scroll-area";
 import { Button } from "../../../components/ui/button";
@@ -1770,12 +1770,14 @@ function LayoutPanel() {
   }, [removeReframe]);
 
   const handleSnap169 = useCallback((key) => {
-    if (!reframeDraft || !project) return;
+    if (!reframeDraft) return;
     const rect = reframeDraft[key];
-    const maxH = project.sourceHeight - rect.y;
+    // Draft carries the dims it was seeded from (works for pre-#164 projects
+    // whose probe fields are null).
+    const maxH = (reframeDraft.sourceH || Infinity) - rect.y;
     const h = Math.max(1, Math.min(Math.round(rect.w * 9 / 16), maxH));
     updateReframeDraft(key, { x: rect.x, y: rect.y, w: rect.w, h });
-  }, [reframeDraft, project, updateReframeDraft]);
+  }, [reframeDraft, updateReframeDraft]);
 
   // Save the active project.reframe into the app-level layout library
   // (electron-store `reframeLayouts` + `reframeLayoutDefaultId`) so future
@@ -1885,11 +1887,22 @@ function LayoutPanel() {
   }
 
   // ── No layout ──
+  // Any aspect can calibrate; if the source is already proper 9:16 we say so
+  // instead of hiding the panel (Fega: features stay visible).
+  const alreadyVertical = !!(
+    project.sourceWidth > 0 && project.sourceHeight > 0 &&
+    Math.abs(project.sourceWidth / project.sourceHeight - 9 / 16) < 0.01
+  );
   return (
     <div className="p-3 space-y-3">
       <p className="text-xs text-muted-foreground leading-relaxed">
-        This is a horizontal recording. Set up the vertical layout once — webcam on top, game below, blurred fill — and every render becomes a vertical short.
+        Set up the vertical layout once — webcam on top, game below, blurred fill — and every render becomes a vertical short.
       </p>
+      {alreadyVertical && (
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">
+          This recording is already vertical (9:16), so it renders as-is — a layout is optional here.
+        </p>
+      )}
       <Button size="sm" onClick={() => beginReframeDraft()} className="w-full h-9 text-xs">
         Set up vertical layout
       </Button>
@@ -1908,7 +1921,8 @@ const RAIL_ICONS = [
   { id: "text", icon: Type, label: "Text", group: 2 },
   { id: "audio", icon: Music, label: "Audio", group: 3 },
   { id: "upload", icon: Upload, label: "Upload", group: 3 },
-  // #164 Phase A: vertical layout calibration — only shown for horizontal sources (see showLayoutTab below).
+  // #164: vertical layout calibration — ALWAYS visible (Fega: never hide
+  // features); the panel explains itself when a source is already 9:16.
   { id: "layout", icon: Crop, label: "Layout", group: 4 },
 ];
 
@@ -1925,22 +1939,6 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
   const activePanel = useLayoutStore((s) => s.activePanel);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
-
-  // #164 Phase A: Layout tab only makes sense for a horizontal source. Pre-#164
-  // projects have sourceWidth === null, which fails this comparison — tab hidden.
-  const project = useEditorStore((s) => s.project);
-  const showLayoutTab = !!project && project.sourceWidth > project.sourceHeight;
-
-  // If the Layout drawer is open and the source stops qualifying (e.g. a
-  // different project loads without closing the drawer), close it instead of
-  // leaving a stale panel visible. useLayoutEffect avoids a one-frame flash.
-  useLayoutEffect(() => {
-    if (!showLayoutTab && activePanel === "layout" && drawerOpen) {
-      setDrawerOpen(false);
-    }
-  }, [showLayoutTab, activePanel, drawerOpen, setDrawerOpen]);
-
-  const visibleRailIcons = showLayoutTab ? RAIL_ICONS : RAIL_ICONS.filter((item) => item.id !== "layout");
 
   const renderDrawer = () => {
     switch (activePanel) {
@@ -2020,9 +2018,9 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
       {/* Icon rail (always visible) */}
       <div className="w-16 min-w-[64px] border-l bg-card flex flex-col items-center py-3 gap-1">
         <TooltipProvider delayDuration={300}>
-          {visibleRailIcons.map((item, i) => {
+          {RAIL_ICONS.map((item, i) => {
             const Icon = item.icon;
-            const prevGroup = i > 0 ? visibleRailIcons[i - 1].group : item.group;
+            const prevGroup = i > 0 ? RAIL_ICONS[i - 1].group : item.group;
             const isActive = drawerOpen && activePanel === item.id;
 
             return (

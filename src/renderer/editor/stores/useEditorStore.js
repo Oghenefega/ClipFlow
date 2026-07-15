@@ -469,6 +469,13 @@ const useEditorStore = create((set, get) => ({
   beginReframeDraft: (sourceW, sourceH) => {
     const { project, reframeDraft } = get();
     if (reframeDraft) return; // already calibrating
+    // Dims resolution chain: explicit args → project probe fields → the live
+    // <video> element (covers pre-#164 projects with null probe fields) →
+    // 1920x1080 as the final guess. Works for ANY aspect — Fega's real canvas
+    // is 2560x2880 (8:9), never assume horizontal.
+    const vid = usePlaybackStore.getState()._videoRef?.current;
+    const w = sourceW || project?.sourceWidth || vid?.videoWidth || 1920;
+    const h = sourceH || project?.sourceHeight || vid?.videoHeight || 1080;
     const existing = project?.reframe;
     if (existing?.camRect && existing?.gameRect) {
       set({
@@ -476,12 +483,12 @@ const useEditorStore = create((set, get) => ({
           layoutId: existing.layoutId ?? null,
           camRect: { ...existing.camRect },
           gameRect: { ...existing.gameRect },
+          sourceW: w,
+          sourceH: h,
         },
       });
       return;
     }
-    const w = sourceW || project?.sourceWidth || 1920;
-    const h = sourceH || project?.sourceHeight || 1080;
     // Fresh defaults (Fega, session 103): game covers the FULL frame — users
     // free-form crop the sides themselves, which is also how the cam corner
     // gets shaved off the game band. Cam guess sits bottom-left.
@@ -490,6 +497,8 @@ const useEditorStore = create((set, get) => ({
         layoutId: null,
         camRect: { x: Math.round(w * 0.02), y: Math.round(h * 0.68), w: Math.round(w * 0.26), h: Math.round(h * 0.28) },
         gameRect: { x: 0, y: 0, w, h },
+        sourceW: w,
+        sourceH: h,
       },
     });
   },

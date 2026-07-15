@@ -769,13 +769,15 @@ export default function PreviewPanelNew() {
   }, []);
   const fitSize = useMemo(() => {
     if (scrollSize.w <= 0 || scrollSize.h <= 0) return null;
-    // #164: calibration works on the raw horizontal source, so the canvas
-    // flips to 16:9 while a layout draft is open; normal editing stays 9:16.
-    const ratio = calibrating ? 16 / 9 : 9 / 16;
+    // #164: calibration shows the raw source at its OWN aspect (Fega's canvas
+    // is 2560x2880 — never assume 16:9); normal editing stays 9:16.
+    const ratio = calibrating
+      ? (videoDims ? videoDims.w / videoDims.h : 16 / 9)
+      : 9 / 16;
     const byHeight = { w: scrollSize.h * ratio, h: scrollSize.h };
     const byWidth = { w: scrollSize.w, h: scrollSize.w / ratio };
     return byHeight.w <= scrollSize.w ? byHeight : byWidth;
-  }, [scrollSize.w, scrollSize.h, calibrating]);
+  }, [scrollSize.w, scrollSize.h, calibrating, videoDims]);
   const fitSizeRef = useRef(fitSize); // latest fit size for the native wheel/pan handlers
   fitSizeRef.current = fitSize;
 

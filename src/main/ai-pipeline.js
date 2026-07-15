@@ -385,16 +385,19 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
 }
 
 /**
- * Resolve the app's default reframe layout for auto-attach (#164). Only
- * horizontal sources get a layout; the layout's calibration dimensions must
- * exactly match the probed source or nothing is attached.
+ * Resolve the app's default reframe layout for auto-attach (#164). Any source
+ * that isn't already proper 9:16 vertical is a reframe candidate (Fega records
+ * a 2560x2880 8:9 canvas — never gate on "horizontal"); the layout's
+ * calibration dimensions must exactly match the probed source or nothing is
+ * attached.
  * @param {object} store - electron-store instance
  * @param {number} width - Probed source width
  * @param {number} height - Probed source height
  * @returns {{layoutId: string, camRect: object, gameRect: object}|null}
  */
 function resolveDefaultReframeLayout(store, width, height) {
-  if (!(width > height)) return null;
+  if (!(width > 0) || !(height > 0)) return null;
+  if (Math.abs(width / height - 9 / 16) < 0.01) return null; // already vertical
 
   const layouts = store.get("reframeLayouts") || [];
   const defaultId = store.get("reframeLayoutDefaultId");
