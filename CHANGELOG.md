@@ -4,10 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.8-alpha.17] — 2026-07-15 (session 103) — Installer cut: Auto-Reframe Phase A + waveform alignment
+## [0.1.9-alpha.1] — 2026-07-15 (session 103) — Installer cut: Auto-Reframe Phase A + waveform alignment
 
 ### Changed
-- **Version bumped to 0.1.8-alpha.17 and a fresh installer cut**, promoting sessions 102–103 to the installed app: the full Auto-Reframe Phase A (horizontal recordings become vertical shorts — live editor preview, in-editor layout calibration, vertical render baking, layout library with auto-attach) and the session-102 waveform alignment fix (proportional peak bucketing + `.v2` cache, so the editor waveform finally sits under the speech it belongs to).
+- **Version bumped to 0.1.9-alpha.1 and a fresh installer cut**, promoting sessions 102–103 to the installed app: the full Auto-Reframe Phase A (horizontal recordings become vertical shorts — live editor preview, in-editor layout calibration, vertical render baking, layout library with auto-attach) and the session-102 waveform alignment fix (proportional peak bucketing + `.v2` cache, so the editor waveform finally sits under the speech it belongs to). Minor version bumped (not just the alpha counter) because this build carries a whole new subsystem — versioning now scales with the size of what ships (Fega, session 103); an initial `0.1.8-alpha.17` mislabel of this same build was superseded before install.
 
 ## [Unreleased] — 2026-07-15 (session 103) — Auto-Reframe Phase A: horizontal recordings become vertical shorts
 
