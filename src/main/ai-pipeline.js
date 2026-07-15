@@ -385,6 +385,33 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
 }
 
 /**
+ * Resolve the app's default reframe layout for auto-attach (#164). Only
+ * horizontal sources get a layout; the layout's calibration dimensions must
+ * exactly match the probed source or nothing is attached.
+ * @param {object} store - electron-store instance
+ * @param {number} width - Probed source width
+ * @param {number} height - Probed source height
+ * @returns {{layoutId: string, camRect: object, gameRect: object}|null}
+ */
+function resolveDefaultReframeLayout(store, width, height) {
+  if (!(width > height)) return null;
+
+  const layouts = store.get("reframeLayouts") || [];
+  const defaultId = store.get("reframeLayoutDefaultId");
+  let layout = defaultId ? layouts.find((l) => l.id === defaultId) : null;
+  if (!layout && layouts.length === 1) layout = layouts[0];
+  if (!layout) return null;
+
+  if (layout.sourceWidth !== width || layout.sourceHeight !== height) return null;
+
+  return {
+    layoutId: layout.id,
+    camRect: { ...layout.camRect },
+    gameRect: { ...layout.gameRect },
+  };
+}
+
+/**
  * Main AI pipeline orchestrator.
  *
  * @param {object} opts
@@ -436,6 +463,10 @@ async function runAIPipeline({
       gameColor: gameData.gameColor || "#888",
       fileMetadataId: fileMetadataId,
       sourceDuration: probeResult.duration,
+      sourceWidth: probeResult.width,
+      sourceHeight: probeResult.height,
+      sourceFps: probeResult.fps,
+      reframe: resolveDefaultReframeLayout(store, probeResult.width, probeResult.height), // #164 auto-attach default layout
       tags: [],
       testMode: !!gameData.isTest,
     });

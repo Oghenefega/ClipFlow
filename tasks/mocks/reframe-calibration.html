@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow — Auto-Reframe layout calibration mock (#164 Phase A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32);
+    --labelStrong:rgba(255,255,255,0.68);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.28); --accentGlow:rgba(139,92,246,0.07);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.12); --greenBorder:rgba(52,211,153,0.30);
+    --yellow:#fbbf24; --red:#f87171;
+    --cyan:#22d3ee; --cyanDim:rgba(34,211,238,0.12); --cyanBorder:rgba(34,211,238,0.30);
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:26px 22px 90px}
+  .wrap{max-width:1240px;margin:0 auto}
+  h1{font-size:21px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 18px}
+
+  .legend{border:1px solid var(--accentBorder);background:var(--accentGlow);border-radius:12px;padding:13px 18px;margin-bottom:20px}
+  .legend b{color:var(--accentLight)}
+  .legend ul{margin:7px 0 0;padding-left:18px}
+  .legend li{font-size:12.5px;color:var(--text2);line-height:1.65}
+  .legend li strong{color:var(--text)}
+
+  /* ---------- modal frame ---------- */
+  .modal{border:1px solid var(--borderHover);border-radius:16px;background:var(--surface);overflow:hidden;box-shadow:0 22px 70px rgba(0,0,0,.55)}
+  .mhead{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border)}
+  .mhead .ttl{font-size:15px;font-weight:800;letter-spacing:-.2px}
+  .mhead .hint{font-size:12px;color:var(--text2)}
+  .mhead .x{margin-left:auto;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 8px;border-radius:6px}
+  .mhead .x:hover{background:var(--surfaceHover);color:var(--text)}
+
+  .mbody{display:flex;gap:0}
+  .srcpane{flex:1;min-width:0;padding:18px 18px 14px 20px}
+  .prevpane{flex:0 0 332px;border-left:1px solid var(--border);padding:18px 20px 14px;display:flex;flex-direction:column}
+
+  .panelabel{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--labelStrong);margin-bottom:10px}
+  .panelabel .l2{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;color:var(--text3);font-size:11.5px}
+
+  /* ---------- source stage ---------- */
+  .stage{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;user-select:none;touch-action:none}
+  .stage svg.scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .stage .dim{position:absolute;inset:0;background:rgba(6,7,11,0.52);pointer-events:none}
+
+  .cropbox{position:absolute;border:1.5px solid;border-radius:4px;cursor:grab;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+  .cropbox:active{cursor:grabbing}
+  .cropbox .win{position:absolute;inset:0;overflow:hidden;border-radius:3px}
+  .cropbox .win svg.scene{position:absolute}   /* un-dimmed window onto the scene */
+  .cropbox .tag{position:absolute;top:-1px;left:-1px;font-size:9.5px;font-weight:800;letter-spacing:.6px;padding:2px 8px;border-radius:3px 0 6px 0;color:#0a0b10;line-height:1.3;z-index:3}
+  .cropbox .hdl{position:absolute;width:11px;height:11px;border-radius:3px;background:#0a0b10;border:1.5px solid;z-index:4}
+  .hdl.nw{top:-6px;left:-6px;cursor:nwse-resize}.hdl.ne{top:-6px;right:-6px;cursor:nesw-resize}
+  .hdl.sw{bottom:-6px;left:-6px;cursor:nesw-resize}.hdl.se{bottom:-6px;right:-6px;cursor:nwse-resize}
+
+  .cam{border-color:var(--accent)} .cam .tag{background:var(--accent)} .cam .hdl{border-color:var(--accent)}
+  .game{border-color:var(--cyan)} .game .tag{background:var(--cyan)} .game .hdl{border-color:var(--cyan)}
+
+  /* readout rows */
+  .readouts{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .ro{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:rgba(255,255,255,0.02);border-radius:9px;padding:8px 12px}
+  .ro .sw2{width:10px;height:10px;border-radius:3px;flex:0 0 10px}
+  .ro .nm{font-size:12.5px;font-weight:700;min-width:88px}
+  .ro .dims{font-size:12px;color:var(--text2);font-weight:500;min-width:150px}
+  .ro .ar{font-size:11px;color:var(--text3);min-width:76px}
+  .ro .grow{flex:1}
+  .chipbtn{font-family:var(--font);font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:3px 10px;border-radius:14px;cursor:pointer;border:1px solid var(--borderHover);background:transparent;color:var(--text2)}
+  .chipbtn:hover{border-color:var(--accentBorder);color:var(--accentLight)}
+  .chipbtn.reset{margin-left:6px}
+
+  /* ---------- vertical preview ---------- */
+  .vwrap{position:relative;align-self:center}
+  .vstage{position:relative;width:264px;height:469px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 0 0 1px var(--borderHover)}
+  .band{position:absolute;left:0;width:100%;overflow:hidden}
+  .band svg.scene{position:absolute}
+  .band.blurband svg.scene{filter:blur(14px) brightness(.55) saturate(1.15)}
+  .band .edge{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,0.14);bottom:0}
+  .subpill{position:absolute;left:50%;transform:translateX(-50%);font-size:15px;font-weight:800;letter-spacing:.4px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);z-index:5}
+  .subpill .hi{color:var(--yellow)}
+  .pctlabels{position:absolute;left:calc(100% + 8px);top:0;height:100%;width:44px;pointer-events:none}
+  .pct{position:absolute;display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--text3);transform:translateY(-50%)}
+  .pct i{display:block;width:5px;height:1px;background:var(--text3)}
+
+  .fitline{display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:center}
+  .fitchip{font-size:11px;font-weight:700;padding:3px 11px;border-radius:14px;border:1px solid var(--greenBorder);background:var(--greenDim);color:var(--green)}
+  .fitchip.warn{border-color:rgba(248,113,113,0.35);background:rgba(248,113,113,0.10);color:var(--red)}
+  .fitnote{font-size:11px;color:var(--text3)}
+
+  /* ---------- footer ---------- */
+  .mfoot{display:flex;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid var(--border)}
+  .lname{display:flex;align-items:center;gap:9px}
+  .lname .lb{font-size:11.5px;font-weight:700;color:var(--labelStrong)}
+  .lname input{font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--text);background:rgba(255,255,255,0.045);border:1px solid var(--borderHover);border-radius:7px;padding:7px 11px;width:210px;outline:none}
+  .lname input:focus{border-color:var(--accentBorder)}
+  .spacer{flex:1}
+  .btn{font-family:var(--font);font-size:12.5px;font-weight:700;border-radius:8px;padding:8px 18px;cursor:pointer;border:1px solid var(--border)}
+  .btn.ghost{background:transparent;color:var(--text2)}
+  .btn.ghost:hover{background:var(--surfaceHover);color:var(--text)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accentLight)}
+
+  /* ---------- saved layouts strip ---------- */
+  .stripwrap{margin-top:22px}
+  .striphead{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--labelStrong);margin-bottom:9px}
+  .strip{display:flex;gap:10px;flex-wrap:wrap}
+  .lcard{display:flex;align-items:center;gap:11px;border:1px solid var(--border);background:var(--surface);border-radius:11px;padding:10px 14px;min-width:250px}
+  .lcard.active{border-color:var(--accentBorder);background:var(--accentGlow)}
+  .lthumb{width:26px;height:46px;border-radius:5px;background:#000;position:relative;overflow:hidden;flex:0 0 26px;box-shadow:0 0 0 1px var(--borderHover)}
+  .lthumb i{position:absolute;left:0;width:100%;display:block}
+  .lthumb .c{background:rgba(139,92,246,0.75)} .lthumb .g{background:rgba(34,211,238,0.65)} .lthumb .b{background:rgba(255,255,255,0.13)}
+  .lmeta .n{font-size:12.5px;font-weight:700}
+  .lmeta .d{font-size:11px;color:var(--text3);margin-top:1px}
+  .star{margin-left:auto;color:var(--yellow);font-size:13px}
+  .lcard.ghostcard{border-style:dashed;color:var(--text3);font-size:12.5px;font-weight:600;justify-content:center;cursor:pointer}
+  .lcard.ghostcard:hover{color:var(--accentLight);border-color:var(--accentBorder)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Auto-Reframe — layout calibration <span style="color:var(--accentLight)">mock</span></h1>
+  <p class="sub">#164 Phase A · You record one normal horizontal canvas — this screen teaches ClipFlow, once, where your webcam and game live. Every future recording reuses it automatically.</p>
+
+  <div class="legend">
+    <b>Try it — the mock is live:</b>
+    <ul>
+      <li><strong>Drag the purple (webcam) and cyan (game) boxes</strong> — move them, resize by the corners. The vertical preview on the right updates as you drag.</li>
+      <li>The vertical short is built <strong>top-down</strong>: webcam crop first, game crop under it, and a blurred stretch of the game fills the rest. Subtitles sit on the blur band, same as your current vertical canvas.</li>
+      <li><strong>16:9 chip</strong> under the stage snaps a box back to true 16:9 (your current layout is 16:9 cam over 16:9 game). <strong>Reset</strong> restores the starting boxes.</li>
+      <li>One honest limitation of single-canvas recording: if the game box covers the webcam corner, the little webcam appears inside the game band too. Default game box below avoids your cam corner — but it's your choice, nothing breaks either way.</li>
+      <li>Proposed home: <strong>Settings → Recording layout</strong>, plus ClipFlow offers this screen automatically the first time a recording arrives with no saved layout.</li>
+    </ul>
+  </div>
+
+  <div class="modal">
+    <div class="mhead">
+      <div class="ttl">Calibrate vertical layout</div>
+      <div class="hint">frame from: <span style="color:var(--labelStrong)">2026-02-12 EO Day2 Pt1.mp4</span> · 1920×1080 · 60fps</div>
+      <div class="x">✕</div>
+    </div>
+
+    <div class="mbody">
+      <!-- ============ SOURCE ============ -->
+      <div class="srcpane">
+        <div class="panelabel">Your recording <span class="l2">drag the boxes onto your webcam and game</span></div>
+
+        <div class="stage" id="stage">
+          <!-- full scene (dimmed) -->
+          <div class="sceneslot" data-scene></div>
+          <div class="dim"></div>
+
+          <!-- crop boxes get un-dimmed windows onto the same scene -->
+          <div class="cropbox game" id="box-game">
+            <div class="win"><div class="sceneslot" data-scene></div></div>
+            <div class="tag">GAME</div>
+            <div class="hdl nw" data-h="nw"></div><div class="hdl ne" data-h="ne"></div>
+            <div class="hdl sw" data-h="sw"></div><div class="hdl se" data-h="se"></div>
+          </div>
+          <div class="cropbox cam" id="box-cam">
+            <div class="win"><div class="sceneslot" data-scene></div></div>
+            <div class="tag">WEBCAM</div>
+            <div class="hdl nw" data-h="nw"></div><div class="hdl ne" data-h="ne"></div>
+            <div class="hdl sw" data-h="sw"></div><div class="hdl se" data-h="se"></div>
+          </div>
+        </div>
+
+        <div class="readouts">
+          <div class="ro">
+            <span class="sw2" style="background:var(--accent)"></span>
+            <span class="nm">Webcam</span>
+            <span class="dims" id="ro-cam">—</span>
+            <span class="ar" id="ar-cam">—</span>
+            <span class="grow"></span>
+            <button class="chipbtn" onclick="snap169('cam')">16:9</button>
+          </div>
+          <div class="ro">
+            <span class="sw2" style="background:var(--cyan)"></span>
+            <span class="nm">Game</span>
+            <span class="dims" id="ro-game">—</span>
+            <span class="ar" id="ar-game">—</span>
+            <span class="grow"></span>
+            <button class="chipbtn" onclick="snap169('game')">16:9</button>
+            <button class="chipbtn reset" onclick="resetBoxes()">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PREVIEW ============ -->
+      <div class="prevpane">
+        <div class="panelabel">Your short <span class="l2">1080×1920</span></div>
+        <div class="vwrap">
+          <div class="vstage" id="vstage">
+            <div class="band blurband" id="band-blur"><div class="sceneslot" data-scene></div></div>
+            <div class="band" id="band-cam"><div class="sceneslot" data-scene></div><div class="edge"></div></div>
+            <div class="band" id="band-game"><div class="sceneslot" data-scene></div><div class="edge"></div></div>
+            <div class="subpill" id="subpill">NOT <span class="hi">EVEN</span> CLOSE</div>
+          </div>
+          <div class="pctlabels" id="pcts"></div>
+        </div>
+        <div class="fitline">
+          <span class="fitchip" id="fitchip">Fits — 37% blur band</span>
+        </div>
+        <div class="fitline" style="margin-top:6px">
+          <span class="fitnote">webcam + game stack from the top · blur fills the rest</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mfoot">
+      <div class="lname">
+        <span class="lb">Layout name</span>
+        <input value="Main PC — 1080p" spellcheck="false"/>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn ghost">Cancel</button>
+      <button class="btn primary">Save layout</button>
+    </div>
+  </div>
+
+  <!-- saved layouts, as they'd appear in Settings -->
+  <div class="stripwrap">
+    <div class="striphead">Settings → Recording layout (after saving)</div>
+    <div class="strip">
+      <div class="lcard active">
+        <div class="lthumb"><i class="c" style="top:0;height:32%"></i><i class="g" style="top:32%;height:31%"></i><i class="b" style="top:63%;height:37%"></i></div>
+        <div class="lmeta">
+          <div class="n">Main PC — 1080p</div>
+          <div class="d">1920×1080 · used by 14 recordings</div>
+        </div>
+        <span class="star" title="default">★</span>
+      </div>
+      <div class="lcard ghostcard">+ New layout</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ fake OBS frame (Rocket-League-ish scene w/ facecam bottom-left) ============ -->
+<template id="scene-tpl">
+  <svg class="scene" viewBox="0 0 1920 1080" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1a2440"/><stop offset=".55" stop-color="#16305a"/><stop offset="1" stop-color="#0d1b33"/>
+      </linearGradient>
+      <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#173a5e"/><stop offset="1" stop-color="#0c2038"/>
+      </linearGradient>
+      <radialGradient id="glow" cx=".5" cy=".45" r=".6">
+        <stop offset="0" stop-color="#3d6ea8" stop-opacity=".55"/><stop offset="1" stop-color="#3d6ea8" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="room" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2b2436"/><stop offset="1" stop-color="#171320"/>
+      </linearGradient>
+    </defs>
+
+    <!-- arena -->
+    <rect width="1920" height="640" fill="url(#sky)"/>
+    <rect y="640" width="1920" height="440" fill="url(#floor)"/>
+    <rect width="1920" height="1080" fill="url(#glow)"/>
+    <!-- field lines -->
+    <g stroke="#3f6f9e" stroke-opacity=".5" stroke-width="3" fill="none">
+      <path d="M0 1080 L620 640 M1920 1080 L1300 640 M320 1080 L760 640 M1600 1080 L1160 640"/>
+      <path d="M0 830 H1920 M0 990 H1920" stroke-opacity=".25"/>
+      <circle cx="960" cy="905" r="150" stroke-opacity=".4"/>
+    </g>
+    <!-- goal -->
+    <rect x="760" y="520" width="400" height="120" fill="#0a1526" stroke="#4a7fb5" stroke-opacity=".6" stroke-width="3"/>
+    <g stroke="#4a7fb5" stroke-opacity=".28" stroke-width="2">
+      <path d="M760 550 H1160 M760 580 H1160 M760 610 H1160 M800 520 V640 M850 520 V640 M900 520 V640 M950 520 V640 M1000 520 V640 M1050 520 V640 M1100 520 V640"/>
+    </g>
+    <!-- ball -->
+    <circle cx="1130" cy="700" r="58" fill="#cdd9e8"/>
+    <circle cx="1130" cy="700" r="58" fill="none" stroke="#8fa8c4" stroke-width="3"/>
+    <path d="M1090 670 q40 -22 80 0 M1082 720 q48 26 96 0 M1130 642 v116" stroke="#8fa8c4" stroke-width="3" fill="none"/>
+    <!-- car -->
+    <g transform="translate(700 760) rotate(-6)">
+      <rect x="0" y="26" width="190" height="46" rx="16" fill="#d9762b"/>
+      <path d="M34 30 L74 -2 L150 -2 L178 30 Z" fill="#e8944f"/>
+      <rect x="80" y="2" width="58" height="24" rx="6" fill="#1c2c44"/>
+      <circle cx="46" cy="76" r="24" fill="#141d2c" stroke="#3b4f6d" stroke-width="5"/>
+      <circle cx="150" cy="76" r="24" fill="#141d2c" stroke="#3b4f6d" stroke-width="5"/>
+      <path d="M-36 40 Q-10 30 2 40 L2 62 Q-16 66 -36 56 Z" fill="#f6b23e" opacity=".85"/>
+    </g>
+    <!-- boost trail sparks -->
+    <g fill="#f6b23e" opacity=".7">
+      <circle cx="622" cy="812" r="7"/><circle cx="588" cy="826" r="5"/><circle cx="560" cy="842" r="3.5"/>
+    </g>
+    <!-- HUD: scoreboard -->
+    <g font-family="DM Sans, sans-serif" text-anchor="middle">
+      <rect x="820" y="28" width="280" height="66" rx="10" fill="#0b1220" opacity=".88"/>
+      <rect x="820" y="28" width="90" height="66" rx="10" fill="#2563eb" opacity=".85"/>
+      <rect x="1010" y="28" width="90" height="66" rx="10" fill="#ea580c" opacity=".85"/>
+      <text x="865" y="72" fill="#fff" font-size="34" font-weight="800">2</text>
+      <text x="1055" y="72" fill="#fff" font-size="34" font-weight="800">1</text>
+      <text x="960" y="66" fill="#dbe6f4" font-size="26" font-weight="700">3:47</text>
+    </g>
+    <!-- HUD: boost -->
+    <g>
+      <circle cx="1790" cy="950" r="72" fill="#0b1220" opacity=".85"/>
+      <circle cx="1790" cy="950" r="72" fill="none" stroke="#f6b23e" stroke-width="9" stroke-dasharray="316 452" stroke-linecap="round" transform="rotate(-215 1790 950)"/>
+      <text x="1790" y="966" fill="#f6b23e" font-size="40" font-weight="800" font-family="DM Sans, sans-serif" text-anchor="middle">67</text>
+    </g>
+
+    <!-- facecam bottom-left (the thing the purple box grabs) -->
+    <g>
+      <rect x="28" y="782" width="470" height="270" rx="10" fill="url(#room)"/>
+      <rect x="28" y="782" width="470" height="270" rx="10" fill="none" stroke="#6d5aa8" stroke-opacity=".8" stroke-width="4"/>
+      <!-- LED strip in the room -->
+      <path d="M48 802 H250" stroke="#8b5cf6" stroke-width="5" stroke-linecap="round" opacity=".65"/>
+      <path d="M420 802 H478" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" opacity=".5"/>
+      <!-- person: headset silhouette -->
+      <g transform="translate(263 935)">
+        <ellipse cx="0" cy="118" rx="128" ry="66" fill="#0f0c18"/>
+        <rect x="-86" y="42" width="172" height="88" rx="34" fill="#241d33"/>
+        <circle cx="0" cy="0" r="62" fill="#2e2542"/>
+        <path d="M-64 -8 a64 64 0 0 1 128 0" fill="none" stroke="#8b5cf6" stroke-width="11" stroke-linecap="round"/>
+        <rect x="-74" y="-14" width="17" height="34" rx="8" fill="#8b5cf6"/>
+        <rect x="57" y="-14" width="17" height="34" rx="8" fill="#8b5cf6"/>
+        <path d="M62 12 q26 20 12 42" fill="none" stroke="#8b5cf6" stroke-width="7" stroke-linecap="round"/>
+      </g>
+      <!-- cam label -->
+      <g font-family="DM Sans, sans-serif">
+        <rect x="44" y="1006" width="104" height="30" rx="6" fill="#0b1220" opacity=".8"/>
+        <circle cx="62" cy="1021" r="5" fill="#f87171"/>
+        <text x="76" y="1027" fill="#e5e9f0" font-size="17" font-weight="700">LIVE</text>
+      </g>
+    </g>
+  </svg>
+</template>
+
+<script>
+/* ---------------- state (source coords, 1920x1080) ---------------- */
+const SRC_W = 1920, SRC_H = 1080;
+const OUT_W = 1080, OUT_H = 1920;
+const START = {
+  cam:  { x: 28,  y: 782, w: 470,  h: 270 },   // right on the facecam
+  game: { x: 520, y: 60,  w: 1372, h: 772 },   // action area, clear of the cam corner
+};
+let rects = { cam: {...START.cam}, game: {...START.game} };
+const MIN_W = 220, MIN_H = 124;
+
+/* clone the scene SVG into every [data-scene] slot */
+const tpl = document.getElementById('scene-tpl');
+document.querySelectorAll('[data-scene]').forEach(slot => {
+  slot.replaceWith(tpl.content.firstElementChild.cloneNode(true));
+});
+
+const stage = document.getElementById('stage');
+const vstage = document.getElementById('vstage');
+const boxes = { cam: document.getElementById('box-cam'), game: document.getElementById('box-game') };
+const bands = { cam: document.getElementById('band-cam'), game: document.getElementById('band-game'), blur: document.getElementById('band-blur') };
+
+function stageScale(){ return stage.clientWidth / SRC_W; }
+
+/* place an inner scene svg so that rect (in src coords) fills a window of w×h px */
+function fitScene(container, rect, winW, winH, cover){
+  const svg = container.querySelector('svg.scene');
+  let s = winW / rect.w;
+  if (cover) s = Math.max(winW / rect.w, winH / rect.h);
+  const w = SRC_W * s, h = SRC_H * s;
+  let dx = -rect.x * s, dy = -rect.y * s;
+  if (cover){ dx += (winW - rect.w * s) / 2; dy += (winH - rect.h * s) / 2; }
+  svg.style.width = w + 'px'; svg.style.height = h + 'px';
+  svg.style.left = dx + 'px'; svg.style.top = dy + 'px';
+}
+
+function render(){
+  const s = stageScale();
+  // source boxes + their un-dimmed windows
+  for (const k of ['cam','game']){
+    const r = rects[k], el = boxes[k];
+    el.style.left = r.x*s+'px'; el.style.top = r.y*s+'px';
+    el.style.width = r.w*s+'px'; el.style.height = r.h*s+'px';
+    const win = el.querySelector('.win');
+    fitScene(win, r, r.w*s, r.h*s, false);
+  }
+  // readouts
+  for (const k of ['cam','game']){
+    const r = rects[k];
+    document.getElementById('ro-'+k).textContent =
+      `${Math.round(r.w)} × ${Math.round(r.h)}  @  ${Math.round(r.x)}, ${Math.round(r.y)}`;
+    document.getElementById('ar-'+k).textContent = (r.w/r.h).toFixed(2)+' : 1';
+  }
+  // vertical preview: bands stack top-down, width fixed
+  const pw = vstage.clientWidth, ph = vstage.clientHeight;
+  const camH = Math.min(pw * rects.cam.h / rects.cam.w, ph);
+  const gameH = Math.min(pw * rects.game.h / rects.game.w, ph - camH);
+  bands.cam.style.top = '0px'; bands.cam.style.height = camH+'px';
+  bands.game.style.top = camH+'px'; bands.game.style.height = gameH+'px';
+  bands.blur.style.top = '0px'; bands.blur.style.height = ph+'px';
+  fitScene(bands.cam, rects.cam, pw, camH, false);
+  fitScene(bands.game, rects.game, pw, gameH, false);
+  fitScene(bands.blur, rects.game, pw, ph, true);
+  // subtitle pill centered in the blur gap
+  const gapTop = camH + gameH;
+  document.getElementById('subpill').style.top = Math.min(gapTop + (ph - gapTop)/2 - 10, ph - 34) + 'px';
+  // % labels
+  const pcts = document.getElementById('pcts');
+  const blurPct = Math.max(0, 100 - (camH+gameH)/ph*100);
+  pcts.innerHTML =
+    `<span class="pct" style="top:${camH/2}px"><i></i>${Math.round(camH/ph*100)}%</span>`+
+    `<span class="pct" style="top:${camH+gameH/2}px"><i></i>${Math.round(gameH/ph*100)}%</span>`+
+    `<span class="pct" style="top:${gapTop+(ph-gapTop)/2}px"><i></i>${Math.round(blurPct)}%</span>`;
+  // fit chip
+  const chip = document.getElementById('fitchip');
+  const rawTotal = pw*rects.cam.h/rects.cam.w + pw*rects.game.h/rects.game.w;
+  if (rawTotal > ph){
+    chip.className = 'fitchip warn';
+    chip.textContent = 'Too tall — crops overflow 9:16, shrink a box';
+  } else {
+    chip.className = 'fitchip';
+    chip.textContent = `Fits — ${Math.round(blurPct)}% blur band for subtitles`;
+  }
+}
+
+/* ---------------- drag / resize ---------------- */
+let drag = null;
+function clampRect(r){
+  r.w = Math.max(MIN_W, Math.min(r.w, SRC_W));
+  r.h = Math.max(MIN_H, Math.min(r.h, SRC_H));
+  r.x = Math.max(0, Math.min(r.x, SRC_W - r.w));
+  r.y = Math.max(0, Math.min(r.y, SRC_H - r.h));
+}
+for (const k of ['cam','game']){
+  boxes[k].addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const h = e.target.dataset && e.target.dataset.h;
+    drag = { k, h: h || 'move', sx: e.clientX, sy: e.clientY, r0: {...rects[k]} };
+    boxes[k].setPointerCapture(e.pointerId);
+    // raise active box
+    boxes.cam.style.zIndex = k==='cam' ? 6 : 5;
+    boxes.game.style.zIndex = k==='game' ? 6 : 5;
+  });
+}
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const s = stageScale();
+  const dx = (e.clientX - drag.sx)/s, dy = (e.clientY - drag.sy)/s;
+  const r = {...drag.r0};
+  if (drag.h === 'move'){ r.x += dx; r.y += dy; }
+  else {
+    if (drag.h.includes('e')) r.w += dx;
+    if (drag.h.includes('s')) r.h += dy;
+    if (drag.h.includes('w')){ r.x += dx; r.w -= dx; }
+    if (drag.h.includes('n')){ r.y += dy; r.h -= dy; }
+  }
+  clampRect(r);
+  rects[drag.k] = r;
+  render();
+});
+window.addEventListener('pointerup', () => drag = null);
+
+function snap169(k){
+  const r = rects[k];
+  r.h = r.w * 9/16;
+  clampRect(r); render();
+}
+function resetBoxes(){
+  rects = { cam: {...START.cam}, game: {...START.game} };
+  render();
+}
+window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>

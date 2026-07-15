@@ -35,16 +35,82 @@ function probeFps(filePath) {
 }
 
 /**
+ * Validate a single reframe crop rect — all four fields must be finite
+ * numbers and w/h must be positive (#164).
+ * @param {object} rect - {x, y, w, h}
+ * @returns {boolean}
+ */
+function isValidReframeRect(rect) {
+  return !!rect
+    && Number.isFinite(rect.x) && Number.isFinite(rect.y)
+    && Number.isFinite(rect.w) && Number.isFinite(rect.h)
+    && rect.w > 0 && rect.h > 0;
+}
+
+/**
+ * Reframe is "active" only when both crop rects are present and valid;
+ * anything else (null, partial, corrupt) is treated as no reframe (#164).
+ * @param {object|null|undefined} reframe - { camRect, gameRect }
+ * @returns {boolean}
+ */
+function isReframeActive(reframe) {
+  return !!reframe && isValidReframeRect(reframe.camRect) && isValidReframeRect(reframe.gameRect);
+}
+
+/**
+ * Round a crop rect to integer pixels and clamp it inside the source frame
+ * so a stale/miscalibrated layout can't hand FFmpeg an out-of-range crop
+ * (#164). Falls back to rounding only when source dimensions are unknown.
+ */
+function clampReframeRect(rect, maxW, maxH) {
+  const w = Math.max(2, Math.min(Math.round(rect.w), maxW));
+  const h = Math.max(2, Math.min(Math.round(rect.h), maxH));
+  const x = Math.max(0, Math.min(Math.round(rect.x), maxW - w));
+  const y = Math.max(0, Math.min(Math.round(rect.y), maxH - h));
+  return { x, y, w, h };
+}
+
+/**
+ * Compute clamped integer crop rects + vertical band heights for the
+ * reframe composite (#164). Returns null when reframe is inactive.
+ * @param {object|null|undefined} reframe - { camRect, gameRect } in source pixels
+ * @param {number} sourceWidth - probed source width (clamp bound; Infinity if unknown)
+ * @param {number} sourceHeight - probed source height
+ * @returns {{cam: object, game: object, camBand: number, gameBand: number}|null}
+ */
+function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
+  if (!isReframeActive(reframe)) return null;
+
+  const maxW = sourceWidth > 0 ? sourceWidth : Infinity;
+  const maxH = sourceHeight > 0 ? sourceHeight : Infinity;
+  const cam = clampReframeRect(reframe.camRect, maxW, maxH);
+  const game = clampReframeRect(reframe.gameRect, maxW, maxH);
+
+  // Even-round so scale=1080:<band> keeps aspect ratio + a valid yuv420p height.
+  // Bands overflowing 1920 combined is a calibration-UI bug, not a render error
+  // — overlay clips the overflow naturally, so it isn't guarded here.
+  const camBand = 2 * Math.round((1080 * cam.h / cam.w) / 2);
+  const gameBand = 2 * Math.round((1080 * game.h / game.w) / 2);
+
+  return { cam, game, camBand, gameBand };
+}
+
+/**
  * Build FFmpeg filter_complex for NLE segment assembly.
  *
- * Trims each NLE segment from the source file and concatenates them.
+ * Trims each NLE segment from the source file and concatenates them. When
+ * reframe is active, bakes the vertical composite (webcam band on top, game
+ * band below, blurred game fill underneath) before the overlay step (#164).
  * If overlay frames exist, composites the PNG sequence on top.
  *
  * @param {Array} nleSegments - [{id, sourceStart, sourceEnd}, ...]
  * @param {boolean} hasFrames - Whether overlay PNG frames exist
+ * @param {object|null} [reframe] - { camRect, gameRect } in source pixels, or null (#164)
+ * @param {number} [sourceWidth] - Probed source width, for reframe crop clamping
+ * @param {number} [sourceHeight] - Probed source height, for reframe crop clamping
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
-function buildNleFilterComplex(nleSegments, hasFrames) {
+function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight) {
   const n = nleSegments.length;
   const filters = [];
 
@@ -64,10 +130,26 @@ function buildNleFilterComplex(nleSegments, hasFrames) {
     filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_v][base_a]`);
   }
 
+  // #164: reframe branch. Inactive reframe is a no-op — videoLabel stays
+  // base_v and the filter string is byte-identical to pre-#164 output.
+  let videoLabel = "base_v";
+  const geo = computeReframeGeometry(reframe, sourceWidth, sourceHeight);
+  if (geo) {
+    const { cam, game, camBand, gameBand } = geo;
+    filters.push(`[base_v]split=3[rf_cam_in][rf_game_in][rf_bg_in]`);
+    filters.push(`[rf_cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[rf_cam]`);
+    filters.push(`[rf_game_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:${gameBand}[rf_game]`);
+    filters.push(`[rf_bg_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,scale=270:480,boxblur=14:2,scale=1080:1920,setsar=1[rf_bg]`);
+    filters.push(`[rf_bg][rf_cam]overlay=0:0[rf_t1]`);
+    filters.push(`[rf_t1][rf_game]overlay=0:${camBand}[rf_t2]`);
+    filters.push(`[rf_t2]format=yuv420p[base_out]`);
+    videoLabel = "base_out";
+  }
+
   if (hasFrames) {
     // Composite overlay PNG sequence on top of assembled video
     filters.push("[1:v]format=rgba[sub]");
-    filters.push("[base_v][sub]overlay=0:0:eof_action=pass[out]");
+    filters.push(`[${videoLabel}][sub]overlay=0:0:eof_action=pass[out]`);
     return {
       filterComplex: filters.join(";"),
       mapArgs: ["-map", "[out]", "-map", "[base_a]"],
@@ -76,7 +158,7 @@ function buildNleFilterComplex(nleSegments, hasFrames) {
 
   return {
     filterComplex: filters.join(";"),
-    mapArgs: ["-map", "[base_v]", "-map", "[base_a]"],
+    mapArgs: ["-map", `[${videoLabel}]`, "-map", "[base_a]"],
   };
 }
 
@@ -127,6 +209,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const sourceFile = projectData.sourceFile;
       const sourceOk = sourceFile && fs.existsSync(sourceFile);
       const useNle = nleSegments.length > 0 && sourceOk;
+      const reframeActive = isReframeActive(projectData.reframe); // #164
 
       // Resolve source: prefer NLE (source + segments). Only fall back to a
       // legacy clip MP4 if the source has gone offline. If neither path is
@@ -251,6 +334,9 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           tempDir,
           sourceFile: useNle ? null : srcFile, // NLE: skip duration probe (uses timelineDuration)
           resolutionProbeFile: srcFile, // always pass source for resolution probing
+          // #164: reframe bakes a fixed 1080x1920 canvas — target it directly
+          // so overlay=0:0 lines up; skips the source-resolution probe.
+          ...(reframeActive ? { targetWidth: 1080, targetHeight: 1920 } : {}),
           onProgress: (p) => {
             if (onProgress) {
               onProgress({ stage: "subtitles", pct: Math.round(p.pct * 0.4), detail: p.detail });
@@ -291,8 +377,8 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
       // Build filter_complex
       if (useNle) {
-        // NLE mode: trim/concat segments from source + overlay
-        const { filterComplex, mapArgs } = buildNleFilterComplex(nleSegments, hasFrames);
+        // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
+        const { filterComplex, mapArgs } = buildNleFilterComplex(nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight);
         args.push("-filter_complex", filterComplex);
         args.push(...mapArgs);
       } else if (hasFrames) {
@@ -430,4 +516,5 @@ module.exports = {
   renderClip,
   batchRender,
   cancelActiveRender,
+  buildNleFilterComplex, // #164: exported as a seam for the render-args verification harness
 };

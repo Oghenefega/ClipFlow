@@ -82,6 +82,8 @@ function probeDuration(filePath) {
  * @param {number} params.clipEndTime - Clip end time in source video (seconds)
  * @param {string} params.tempDir - Directory for temporary PNG files
  * @param {string} params.sourceFile - Source video path (for resolution probing)
+ * @param {number} [params.targetWidth] - Explicit overlay canvas width; skips source-res probe when paired with targetHeight (#164 reframe)
+ * @param {number} [params.targetHeight] - Explicit overlay canvas height
  * @param {function} [params.onProgress] - Progress callback
  * @returns {Promise<{frameDir: string, fps: number, totalFrames: number, width: number, height: number}>}
  */
@@ -98,6 +100,8 @@ async function renderOverlayFrames(params) {
     tempDir,
     sourceFile,
     resolutionProbeFile, // separate path for resolution probing (NLE: sourceFile is null but we still need resolution)
+    targetWidth, // #164: explicit override (reframe bakes a fixed 1080x1920 canvas) — skips probeResolution when set with targetHeight
+    targetHeight,
     onProgress,
     shouldCancel, // #140: () => boolean — when true, bail the frame loop cleanly
   } = params;
@@ -131,17 +135,24 @@ async function renderOverlayFrames(params) {
     return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: 0, width: 1080, height: 1920 };
   }
 
-  // Probe source video resolution so overlay matches exactly
+  // Probe source video resolution so overlay matches exactly, unless the
+  // caller already knows the target canvas (#164 reframe bakes 1080x1920).
   let width = 1080, height = 1920;
-  const probeFile = resolutionProbeFile || sourceFile;
-  if (probeFile) {
-    try {
-      const res = await probeResolution(probeFile);
-      width = res.width;
-      height = res.height;
-      console.log("[OverlayRenderer] Source video resolution:", width, "x", height);
-    } catch (e) {
-      console.warn("[OverlayRenderer] ffprobe failed, using default 1080x1920:", e.message);
+  if (targetWidth && targetHeight) {
+    width = targetWidth;
+    height = targetHeight;
+    console.log("[OverlayRenderer] Using target resolution override:", width, "x", height);
+  } else {
+    const probeFile = resolutionProbeFile || sourceFile;
+    if (probeFile) {
+      try {
+        const res = await probeResolution(probeFile);
+        width = res.width;
+        height = res.height;
+        console.log("[OverlayRenderer] Source video resolution:", width, "x", height);
+      } catch (e) {
+        console.warn("[OverlayRenderer] ffprobe failed, using default 1080x1920:", e.message);
+      }
     }
   }
 

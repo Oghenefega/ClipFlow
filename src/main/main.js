@@ -214,6 +214,9 @@ const STORE_DEFAULTS = {
   // Project folders
   projectFolders: [],
   folderSortMode: "created",
+  // Reframe layouts (#164)
+  reframeLayouts: [],
+  reframeLayoutDefaultId: null,
   // Analytics
   deviceId: "",
   analyticsEnabled: true,
@@ -314,6 +317,10 @@ function runStoreMigrations(store) {
   // Number of clips cut concurrently. NVENC on RTX 30-series supports ~5
   // simultaneous sessions; default 3 is conservative. Range clamped 1-5.
   if (!store.has("clipCutConcurrency")) store.set("clipCutConcurrency", 3);
+
+  // ── Migration: reframe layouts library (#164) ──
+  if (!store.has("reframeLayouts")) store.set("reframeLayouts", []);
+  if (!store.has("reframeLayoutDefaultId")) store.set("reframeLayoutDefaultId", null);
 }
 
 let mainWindow;

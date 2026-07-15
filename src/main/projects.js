@@ -38,6 +38,11 @@ function normalizeProject(proj) {
   if (legacyTest) {
     proj.tags = tags.filter((t) => t !== "test");
   }
+  // Default missing reframe/source-probe fields for pre-#164 projects.
+  if (proj.reframe === undefined) proj.reframe = null;
+  if (proj.sourceWidth === undefined) proj.sourceWidth = null;
+  if (proj.sourceHeight === undefined) proj.sourceHeight = null;
+  if (proj.sourceFps === undefined) proj.sourceFps = null;
   return proj;
 }
 
@@ -75,6 +80,11 @@ function createProject(watchFolder, data) {
     testMode,
     transcription: null,
     clips: [],
+    // Source probe dimensions + reframe snapshot (#164) — null is a valid "absent" value, so use ?? not ||.
+    sourceWidth: data.sourceWidth ?? null,
+    sourceHeight: data.sourceHeight ?? null,
+    sourceFps: data.sourceFps ?? null,
+    reframe: data.reframe ?? null,
   };
 
   const projectPath = path.join(projectDir, "project.json");
@@ -159,6 +169,12 @@ function listProjects(watchFolder) {
         clips: (proj.clips || []).map(({ subtitles, transcription, ...rest }) => rest),
         tags: proj.tags || [],
         testMode: proj.testMode === true,
+        // #164: reframe + probe dims are tiny and consumers beyond the editor
+        // (Queue, Projects previews) read from this summary — never strip them.
+        reframe: proj.reframe ?? null,
+        sourceWidth: proj.sourceWidth ?? null,
+        sourceHeight: proj.sourceHeight ?? null,
+        sourceFps: proj.sourceFps ?? null,
       });
     } catch (e) {
       // Skip corrupted project files

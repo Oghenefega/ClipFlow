@@ -611,6 +611,8 @@ export default function PreviewPanelNew() {
   const subOverlayRef = useRef(null);
   const zoomBtnRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const compositeCanvasRef = useRef(null); // #164 reframe compositor surface
+  const blurScratchRef = useRef(null); // #164 tiny offscreen canvas for the blur band
   const [isPanning, setIsPanning] = useState(false);
 
   // Track canvas size for proportional text scaling
@@ -682,6 +684,13 @@ export default function PreviewPanelNew() {
     const cacheBuster = videoVersion > 0 ? `?v=${videoVersion}` : "";
     return `file://${src.replace(/\\/g, "/")}${cacheBuster}`;
   }, [project?.sourceFile, clip?.filePath, videoVersion, sourceOffline]);
+
+  // #164 non-destructive reframe: crop rects stored on the project (null = no
+  // reframe, everything below is inert and the preview behaves exactly as before).
+  const reframe = project?.reframe ?? null;
+  const reframeActive = !!(reframe && reframe.camRect && reframe.gameRect && videoSrc && !sourceOffline);
+  const reframeRef = useRef(reframe);
+  reframeRef.current = reframe;
 
   // Imperative src management — replaces the `src={videoSrc}` JSX prop.
   // Why: with `src` as a React prop, swapping the URL leaves the previous
@@ -994,6 +1003,102 @@ export default function PreviewPanelNew() {
     }
   }, [playing]);
 
+  // ── #164 Reframe compositor ──
+  // When project.reframe is set, this canvas covers the <video> and paints the
+  // vertical composition live: webcam crop on top, game crop directly below,
+  // blurred game covering the whole frame underneath. The single <video>
+  // element stays the only decoder/clock — time mapping, seeks, and audio are
+  // untouched. Geometry must mirror render.js baking (preview == export).
+  const paintComposite = useCallback(() => {
+    const canvas = compositeCanvasRef.current;
+    const video = videoRef.current;
+    const rf = reframeRef.current;
+    if (!canvas || !video || !rf || !rf.camRect || !rf.gameRect || video.readyState < 2) return;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    if (!cssW || !cssH) return;
+    // Backing store tracks CSS size × DPR (crisp at any zoom), capped — band
+    // sources are ≤1080px wide, so a wider backing buys nothing but paint cost.
+    const dpr = window.devicePixelRatio || 1;
+    const W = Math.min(Math.round(cssW * dpr), 1440);
+    const H = Math.round(W * (cssH / cssW));
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+    // Rects were calibrated on the probed source; clamp to the decoded frame
+    // so a stale layout can't throw drawImage out of bounds.
+    const clampRect = (r) => {
+      const x = Math.min(Math.max(0, r.x), vw - 2);
+      const y = Math.min(Math.max(0, r.y), vh - 2);
+      return { x, y, w: Math.max(2, Math.min(r.w, vw - x)), h: Math.max(2, Math.min(r.h, vh - y)) };
+    };
+    const cam = clampRect(rf.camRect);
+    const game = clampRect(rf.gameRect);
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "medium";
+
+    // Blur band: game crop → tiny offscreen (cover) → stretched back up with a
+    // soft blur. Downscale-blur-upscale mirrors the render-side boxblur recipe
+    // at a fraction of the cost of blurring at full resolution.
+    let scratch = blurScratchRef.current;
+    if (!scratch) {
+      scratch = document.createElement("canvas");
+      scratch.width = 108;
+      scratch.height = 192;
+      blurScratchRef.current = scratch;
+    }
+    const sctx = scratch.getContext("2d");
+    const coverScale = Math.max(scratch.width / game.w, scratch.height / game.h);
+    const sw = game.w * coverScale, sh = game.h * coverScale;
+    sctx.drawImage(video, game.x, game.y, game.w, game.h, (scratch.width - sw) / 2, (scratch.height - sh) / 2, sw, sh);
+    ctx.filter = `blur(${Math.max(2, Math.round(W / 90))}px)`;
+    ctx.drawImage(scratch, 0, 0, W, H);
+    ctx.filter = "none";
+
+    // Bands stack from the top; overflow past the bottom clips (render parity).
+    const camBandH = W * (cam.h / cam.w);
+    const gameBandH = W * (game.h / game.w);
+    ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
+    ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
+  }, []);
+
+  // Paint on every presented video frame. requestVideoFrameCallback fires
+  // during playback AND after seeks; rAF is the fallback for environments
+  // without it. 'seeked'/'loadeddata' cover paused frame-stepping and the
+  // first frame after a src swap.
+  useEffect(() => {
+    if (!reframeActive) return;
+    const video = videoRef.current;
+    if (!video) return;
+    let disposed = false;
+    let handle = null;
+    const hasRVFC = typeof video.requestVideoFrameCallback === "function";
+    const loop = () => {
+      paintComposite();
+      if (disposed) return;
+      handle = hasRVFC ? video.requestVideoFrameCallback(loop) : requestAnimationFrame(loop);
+    };
+    handle = hasRVFC ? video.requestVideoFrameCallback(loop) : requestAnimationFrame(loop);
+    const onSeeked = () => paintComposite();
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("loadeddata", onSeeked);
+    paintComposite();
+    return () => {
+      disposed = true;
+      if (handle !== null) {
+        if (hasRVFC && typeof video.cancelVideoFrameCallback === "function") video.cancelVideoFrameCallback(handle);
+        else cancelAnimationFrame(handle);
+      }
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("loadeddata", onSeeked);
+    };
+  }, [reframeActive, paintComposite]);
+
+  // Repaint when geometry changes while paused (zoom, panel resize, rect edits).
+  useEffect(() => {
+    if (reframeActive) paintComposite();
+  }, [reframeActive, paintComposite, canvasWidth, fitSize, zoom, reframe]);
+
   // Deselect overlay when clicking canvas background
   const onCanvasClick = useCallback((e) => {
     if (e.target === canvasRef.current || e.target.dataset.canvasBg) {
@@ -1161,6 +1266,16 @@ export default function PreviewPanelNew() {
               </div>
               <span className="text-xs opacity-40">No video loaded</span>
             </div>
+          )}
+
+          {/* #164 reframe compositor — opaque canvas covers the horizontal video;
+              subtitle/caption overlays render later in the DOM, i.e. above it */}
+          {reframeActive && (
+            <canvas
+              ref={compositeCanvasRef}
+              className="absolute inset-0 w-full h-full rounded-lg"
+              data-canvas-bg="true"
+            />
           )}
 
           {/* Caption overlay(s) — render all active caption segments at current time */}
