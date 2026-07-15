@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-14 (session 100) — Tracker finally counts what actually posted
+
+### Fixed
+- **Weekly goal ring and all-time XP were frozen at 0 forever.** The count-up animation on the Tracker's goal ring (big number + %) and the rank card's "XP earned all-time" ran exactly once at app launch — before saved data finished loading — and never refreshed. They now re-animate from the last shown value whenever the numbers change (data loading in, a new post logged live). Verified via a live dev-profile run on a copy of prod data: ring 3 of 48 / 6%, all-time XP 30. [src/renderer/views/TrackerView.js]
+- **Posts of the main game never counted as "main".** Auto-logged tracker entries were classified main-vs-variety by comparing the clip's short game code ("rl") to the main game's *hashtag* ("rocketleague") — never equal, so every auto-post ever logged counted as Variety. The main-game prop now carries the short tag, which also fixes the silently-broken main-game badges and counts in the Queue tab. [src/renderer/App.js, src/renderer/views/QueueView.js, src/renderer/views/TrackerView.js]
+- **Tracker retry no longer erases already-posted platforms.** Retrying a partially-failed publish after toggling the already-posted platforms off (to avoid double-posting) logged a tracker entry crediting only the retried platform — "1 clip to 1 platform" after a 4-platform post. The entry now records the union of captured publish results and the clip's persisted per-platform successes. Also repaired today's affected entry in prod data (all four platforms restored with real post IDs). [src/renderer/views/QueueView.js]
+
+### Changed
+- **Main vs Variety is now computed live against the current Now Playing game** instead of being stamped permanently at post time. Switching games mid-week re-buckets the whole week — Rocket League posts made while Arc Raiders was active count toward Rocket League the moment it becomes the active game. Manual log entries (which store the hashtag) and auto entries (short tag) both match. [src/renderer/views/TrackerView.js]
+
+### Notes
+- **YouTube publish failed with "Token refresh failed: Bad Request"** — root-caused to Google expiring refresh tokens after 7 days while the OAuth app is in Testing mode; fixed operationally by reconnecting the account, permanent fix is flipping the Google Cloud consent screen to Production. Filed [#163](https://github.com/Oghenefega/ClipFlow/issues/163) to surface an actionable "reconnect in Settings" message (and flag the account) instead of the raw Google error.
+
 ## [Unreleased] — 2026-07-11 (session 99) — Recordings can now be grouped by game
 
 ### Added

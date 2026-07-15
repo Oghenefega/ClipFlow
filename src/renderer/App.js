@@ -81,7 +81,9 @@ export default function App() {
   const [mainGame, setMainGame] = useState("Arc Raiders");
   const [mainPool, setMainPool] = useState(INITIAL_MAIN_POOL);
   const [gamesDb, setGamesDb] = useState(INITIAL_GAMES);
-  const mainGameTag = (gamesDb.find((g) => g.name === mainGame)?.hashtag) || "arcraiders";
+  // Short game tag ("AR", "RL") — clip.gameTag stores the lowercased short tag, so
+  // consumers comparing against clips must use tag, not hashtag (#tracker-main-count).
+  const mainGameTag = (gamesDb.find((g) => g.name === mainGame)?.tag) || "AR";
 
   // Rename state — renameHistory from electron-store
   const [pendingRenames, setPendingRenames] = useState([]);

@@ -88,7 +88,16 @@ export default function TrackerView({
 
   const thisWeekEntries = useMemo(() => weekEntries(trackerData, monday), [trackerData, monday]);
   const posted = thisWeekEntries.length;
-  const mainCount = thisWeekEntries.filter((e) => e.type === "main").length;
+  // Main vs variety is computed live against the current Now Playing game (not the
+  // stored write-time `type`), so switching games mid-week re-buckets the whole week.
+  // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
+  // ("rocketleague") for manual logs — match either.
+  const mainTagLc = (currentGame?.tag || "").toLowerCase();
+  const mainHashtagLc = (currentGame?.hashtag || "").toLowerCase();
+  const mainCount = thisWeekEntries.filter((e) => {
+    const g = (e.game || "").toLowerCase();
+    return g && (g === mainTagLc || g === mainHashtagLc);
+  }).length;
   const varietyCount = posted - mainCount;
 
   const pace = useMemo(() => paceInfo({ posted, target, date: now }), [posted, target, now]);
@@ -145,29 +154,43 @@ export default function TrackerView({
   const [animPct, setAnimPct] = useState(0);
   const [animXp, setAnimXp] = useState(0);
   const [ringReady, setRingReady] = useState(false);
+  // Last values the counters actually displayed — each animation run starts from here,
+  // so the counters re-animate whenever posted/target/totalXp change (data loading in
+  // after mount, a new post logged live) instead of freezing at their mount-time values.
+  const animFromRef = useRef({ posted: 0, pct: 0, xp: 0 });
   useEffect(() => {
     const pct = target > 0 ? Math.round(Math.min(1, posted / target) * 100) : 100;
-    if (document.hidden) {
+    const done = () => {
       setAnimPosted(posted); setAnimPct(pct); setAnimXp(totalXp); setRingReady(true);
+      animFromRef.current = { posted, pct, xp: totalXp };
+    };
+    if (document.hidden) {
+      done();
       return;
     }
+    const from = { ...animFromRef.current };
     let raf;
     const start = performance.now();
     const dur = 900;
     const step = (t) => {
       const p = Math.min(1, (t - start) / dur);
       const e = 1 - Math.pow(1 - p, 3);
-      setAnimPosted(Math.round(posted * e));
-      setAnimPct(Math.round(pct * e));
-      setAnimXp(Math.round(totalXp * e));
+      const shown = {
+        posted: Math.round(from.posted + (posted - from.posted) * e),
+        pct: Math.round(from.pct + (pct - from.pct) * e),
+        xp: Math.round(from.xp + (totalXp - from.xp) * e),
+      };
+      setAnimPosted(shown.posted);
+      setAnimPct(shown.pct);
+      setAnimXp(shown.xp);
+      animFromRef.current = shown;
       if (p < 1) raf = requestAnimationFrame(step);
-      else { setAnimPosted(posted); setAnimPct(pct); setAnimXp(totalXp); setRingReady(true); }
+      else done();
     };
     setRingReady(true); // trigger CSS width/dashoffset transitions immediately
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [posted, target, totalXp]);
 
   // ---------- game switcher popover ----------
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -267,7 +290,7 @@ export default function TrackerView({
       time: popover.slotTime,
       title: "Manual entry",
       game: game.hashtag,
-      type: game.hashtag === mainGameTag ? "main" : "other",
+      type: game.tag === mainGameTag ? "main" : "other",
       platforms: "Manual",
       platformResults: logSelectedPlatforms.map((k) => ({ platform: k, accountId: null })),
       mainGameAtTime: mainGame,
