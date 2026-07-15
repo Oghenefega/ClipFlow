@@ -27,6 +27,7 @@ import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
+import { resolveReframeStyle } from "../utils/reframeStyle";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Color Palette (matches Vizard predefined palette)
@@ -1743,6 +1744,7 @@ function LayoutPanel() {
   const reframeDraft = useEditorStore((s) => s.reframeDraft);
   const beginReframeDraft = useEditorStore((s) => s.beginReframeDraft);
   const updateReframeDraft = useEditorStore((s) => s.updateReframeDraft);
+  const updateReframeStyle = useEditorStore((s) => s.updateReframeStyle);
   const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
   const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
   const removeReframe = useEditorStore((s) => s.removeReframe);
@@ -1800,6 +1802,7 @@ function LayoutPanel() {
           ...layouts[existingIdx],
           camRect: { ...project.reframe.camRect },
           gameRect: { ...project.reframe.gameRect },
+          style: resolveReframeStyle(project.reframe.style),
           updatedAt: now,
         };
       } else {
@@ -1811,6 +1814,7 @@ function LayoutPanel() {
           sourceHeight: project.sourceHeight,
           camRect: { ...project.reframe.camRect },
           gameRect: { ...project.reframe.gameRect },
+          style: resolveReframeStyle(project.reframe.style),
           createdAt: now,
           updatedAt: now,
         });
@@ -1828,6 +1832,7 @@ function LayoutPanel() {
 
   // ── Calibrating ──
   if (reframeDraft) {
+    const style = reframeDraft.style; // seeded by beginReframeDraft — always present
     return (
       <div className="p-3 space-y-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1837,6 +1842,31 @@ function LayoutPanel() {
         <div className="space-y-2">
           <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
           <RectRow label="Game" color="#22d3ee" rect={reframeDraft.gameRect} onSnap169={() => handleSnap169("gameRect")} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-muted-foreground">Background & edge</div>
+          <EffectSlider label="Blur" value={style.blur} onChange={(v) => updateReframeStyle({ blur: v })} min={0} max={100} />
+          <EffectSlider label="Darkness" value={style.darken} onChange={(v) => updateReframeStyle({ darken: v })} min={0} max={100} suffix="%" />
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-muted-foreground w-14">Edge</span>
+            <div className="flex gap-1.5 flex-1">
+              {[{ v: "fade", label: "Fade" }, { v: "shadow", label: "Shadow" }].map(({ v, label }) => (
+                <button
+                  key={v}
+                  onClick={() => updateReframeStyle({ seam: v })}
+                  className={`text-xs px-1.5 py-0.5 rounded border shrink-0 ${
+                    style.seam === v
+                      ? "bg-primary/15 text-primary border-primary/30"
+                      : "bg-secondary/80 text-muted-foreground hover:text-foreground border-border/30"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" />
         </div>
 
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}

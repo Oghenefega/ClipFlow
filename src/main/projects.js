@@ -1,5 +1,8 @@
 const path = require("path");
 const fs = require("fs");
+// Cross-tree require: editor/utils/** is bundled via package.json build.files,
+// so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
+const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
 
 /**
  * Get the projects root directory.
@@ -249,7 +252,7 @@ function isValidReframeRect(r) {
  * Update a project's Auto-Reframe calibration (#164 Phase A).
  * @param {string} watchFolder
  * @param {string} projectId
- * @param {object|null} reframe - null to clear, or { layoutId, camRect:{x,y,w,h}, gameRect:{x,y,w,h} } (source pixels)
+ * @param {object|null} reframe - null to clear, or { layoutId, camRect:{x,y,w,h}, gameRect:{x,y,w,h}, style } (source pixels)
  * @returns {{ success: true, project: object }|{ error: string }}
  */
 function updateReframe(watchFolder, projectId, reframe) {
@@ -266,6 +269,7 @@ function updateReframe(watchFolder, projectId, reframe) {
       layoutId: reframe.layoutId ?? null,
       camRect: { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
       gameRect: { x: reframe.gameRect.x, y: reframe.gameRect.y, w: reframe.gameRect.w, h: reframe.gameRect.h },
+      style: resolveReframeStyle(reframe.style),
     };
   }
 

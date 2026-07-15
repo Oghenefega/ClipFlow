@@ -11,6 +11,9 @@ const database = require("./database");
 const signals = require("./signals");
 const { PipelineLogger } = require("./pipeline-logger");
 const { getProvider } = require("./ai/llm-provider");
+// Cross-tree require: editor/utils/** is bundled via package.json build.files,
+// so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
+const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
 
 /**
  * Update file_metadata status in SQLite.
@@ -393,7 +396,7 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
  * @param {object} store - electron-store instance
  * @param {number} width - Probed source width
  * @param {number} height - Probed source height
- * @returns {{layoutId: string, camRect: object, gameRect: object}|null}
+ * @returns {{layoutId: string, camRect: object, gameRect: object, style: object}|null}
  */
 function resolveDefaultReframeLayout(store, width, height) {
   if (!(width > 0) || !(height > 0)) return null;
@@ -411,6 +414,7 @@ function resolveDefaultReframeLayout(store, width, height) {
     layoutId: layout.id,
     camRect: { ...layout.camRect },
     gameRect: { ...layout.gameRect },
+    style: resolveReframeStyle(layout.style),
   };
 }
 

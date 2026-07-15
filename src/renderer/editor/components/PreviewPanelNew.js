@@ -6,6 +6,7 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
+import { resolveReframeStyle, bgCanvasBlurPx } from "../utils/reframeStyle";
 import {
   Maximize,
   ChevronDown,
@@ -425,14 +426,6 @@ function DraggableOverlay({
 const CAL_COLORS = { camRect: "#a78bfa", gameRect: "#22d3ee" }; // match the Layout panel swatches
 const CAL_LABELS = { camRect: "WEBCAM", gameRect: "GAME" };
 const SNAP_SCREEN_PX = 8; // #164 polish: fixed screen-px snap threshold so the feel is zoom-independent
-
-// #164 polish: seam treatment between the game band's bottom edge and the bg.
-// "feather" = game footage alpha-fades into the bg (Fega's OBS reference);
-// "shadow" = opaque bands + a dark gradient cast onto the bg below the seam.
-// Render.js implements feather; flip here only for A/B screenshots.
-const SEAM_STYLE = "feather";
-const SEAM_FRAC = 0.10;   // feather/shadow height as fraction of output height (192px at 1920)
-const BG_DARKEN = 0.5;    // black overlay alpha on the blurred bg — must track render.js lutyuv
 
 function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) {
   const dragRef = useRef(null);
@@ -1268,6 +1261,7 @@ export default function PreviewPanelNew() {
     };
     const cam = clampRect(rf.camRect);
     const game = clampRect(rf.gameRect);
+    const style = resolveReframeStyle(rf.style);
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "medium";
@@ -1286,13 +1280,20 @@ export default function PreviewPanelNew() {
     const coverScale = Math.max(scratch.width / game.w, scratch.height / game.h);
     const sw = game.w * coverScale, sh = game.h * coverScale;
     sctx.drawImage(video, game.x, game.y, game.w, game.h, (scratch.width - sw) / 2, (scratch.height - sh) / 2, sw, sh);
-    ctx.filter = `blur(${Math.max(4, Math.round(W / 45))}px)`;
-    ctx.drawImage(scratch, 0, 0, W, H);
-    ctx.filter = "none";
+    const blurPx = bgCanvasBlurPx(style.blur, W);
+    if (blurPx >= 1) {
+      ctx.filter = `blur(${blurPx}px)`;
+      ctx.drawImage(scratch, 0, 0, W, H);
+      ctx.filter = "none";
+    } else {
+      ctx.drawImage(scratch, 0, 0, W, H);
+    }
     // Darken the blurred bg so the sharp bands read as the clear foreground —
-    // must visually track render.js's lutyuv (BG_DARKEN = 0.5 there too).
-    ctx.fillStyle = `rgba(0,0,0,${BG_DARKEN})`;
-    ctx.fillRect(0, 0, W, H);
+    // must visually track render.js's lutyuv (style.darken there too).
+    if (style.darken > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${style.darken / 100})`;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // Bands stack from the top; overflow past the bottom clips (render parity).
     const camBandH = W * (cam.h / cam.w);
@@ -1300,11 +1301,12 @@ export default function PreviewPanelNew() {
     const bandsBottom = camBandH + gameBandH;
     ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
 
-    if (SEAM_STYLE === "feather" && bandsBottom < H - 2) {
+    const gh = Math.round(gameBandH);
+    const F = Math.min(Math.round(H * style.seamSize / 100), Math.floor(gh / 2));
+    if (style.seam === "fade" && bandsBottom < H - 2 && F >= 2) {
       // Feather the game band's bottom edge into the bg instead of a hard seam
       // (mirrors render.js's geq alpha ramp on the same-height strip).
       let fScratch = featherScratchRef.current;
-      const gh = Math.round(gameBandH);
       if (!fScratch) {
         fScratch = document.createElement("canvas");
         featherScratchRef.current = fScratch;
@@ -1316,7 +1318,6 @@ export default function PreviewPanelNew() {
       const fctx = fScratch.getContext("2d");
       fctx.clearRect(0, 0, W, gh);
       fctx.drawImage(video, game.x, game.y, game.w, game.h, 0, 0, W, gh);
-      const F = Math.min(Math.round(H * SEAM_FRAC), Math.floor(gh / 2));
       fctx.globalCompositeOperation = "destination-out";
       const fadeGrad = fctx.createLinearGradient(0, gh - F, 0, gh);
       fadeGrad.addColorStop(0, "rgba(0,0,0,0)");
@@ -1327,14 +1328,13 @@ export default function PreviewPanelNew() {
       ctx.drawImage(fScratch, 0, camBandH);
     } else {
       ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
-      if (SEAM_STYLE === "shadow" && bandsBottom < H - 2) {
+      if (style.seam === "shadow" && bandsBottom < H - 2 && F >= 2) {
         // Dark gradient cast onto the bg below the seam; bands stay fully opaque.
-        const shadowH = H * 0.09;
-        const shadowGrad = ctx.createLinearGradient(0, bandsBottom, 0, bandsBottom + shadowH);
+        const shadowGrad = ctx.createLinearGradient(0, bandsBottom, 0, bandsBottom + F);
         shadowGrad.addColorStop(0, "rgba(0,0,0,0.55)");
         shadowGrad.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = shadowGrad;
-        ctx.fillRect(0, bandsBottom, W, shadowH);
+        ctx.fillRect(0, bandsBottom, W, F);
       }
     }
   }, []);

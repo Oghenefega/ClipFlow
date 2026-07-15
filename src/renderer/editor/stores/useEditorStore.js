@@ -10,6 +10,7 @@ import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, getSegmentTimelineRange } from "../models/timeMapping";
 import { splitAtTimeline, deleteSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
+import { resolveReframeStyle } from "../utils/reframeStyle";
 
 // ── Autosave internals (module-closure, NOT in state) ──
 // Kept outside Zustand state to avoid infinite subscribe loops when the timer is (re)set.
@@ -486,6 +487,7 @@ const useEditorStore = create((set, get) => ({
           layoutId: existing.layoutId ?? null,
           camRect: { ...existing.camRect },
           gameRect: { ...existing.gameRect },
+          style: resolveReframeStyle(existing?.style),
           sourceW: w,
           sourceH: h,
         },
@@ -500,6 +502,7 @@ const useEditorStore = create((set, get) => ({
         layoutId: null,
         camRect: { x: Math.round(w * 0.02), y: Math.round(h * 0.68), w: Math.round(w * 0.26), h: Math.round(h * 0.28) },
         gameRect: { x: 0, y: 0, w, h },
+        style: resolveReframeStyle(null),
         sourceW: w,
         sourceH: h,
       },
@@ -517,6 +520,19 @@ const useEditorStore = create((set, get) => ({
     });
   },
 
+  // Merge a style patch into the in-flight draft (Layout panel "Background &
+  // edge" controls); no-op when not calibrating.
+  updateReframeStyle: (patch) => {
+    const { reframeDraft } = get();
+    if (!reframeDraft) return;
+    set({
+      reframeDraft: {
+        ...reframeDraft,
+        style: resolveReframeStyle({ ...reframeDraft.style, ...patch }),
+      },
+    });
+  },
+
   setReframePipCanvas: (el) => set({ reframePipCanvas: el }),
 
   cancelReframeDraft: () => set({ reframeDraft: null }),
@@ -530,6 +546,7 @@ const useEditorStore = create((set, get) => ({
       layoutId: reframeDraft.layoutId ?? null,
       camRect: { ...reframeDraft.camRect },
       gameRect: { ...reframeDraft.gameRect },
+      style: resolveReframeStyle(reframeDraft.style),
     };
     const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
     if (result?.error) return result;

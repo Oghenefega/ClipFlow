@@ -6,6 +6,66 @@
 
 ---
 
+## DONE (machine-verified, awaiting Fega's hands-on) — #164 reframe style controls (session 104b)
+
+Fega (2026-07-15): "make these things part of the layout settings that I can
+control — blur strength, feather height, darkness etc." Approved placement:
+inside "Edit layout" (draft + Apply). Implemented via Sonnet subagent, reviewed
+line by line. Verified: default-style filter string byte-identical to
+pre-controls output (old projects unaffected); CDP drive — sliders seed
+50/50/Fade/10, extremes react live, mix (blur 20 / darkness 80 / fade 15%)
+Applies, persists to project.json, reloads into the sliders; dev library entry
+migrated at boot (style backfilled); real-footage render with the mix shows
+boxblur=11, lut 0.2, feather 288 — preview == render holds. Harness gotcha
+for the record: TaskStop on the bash wrapper ORPHANS electron.exe on Windows
+(port 9222 stays held by the zombie) — kill via taskkill //IM electron.exe.
+
+### Data model
+- `project.reframe.style = { blur: 0-100, darken: 0-100, seam: "fade"|"shadow",
+  seamSize: 0-25 }`. Defaults = today's shipped look (blur 50, darken 50,
+  fade, 10). Missing `style` anywhere → defaults at read time, so every
+  pre-existing project/layout keeps working unchanged.
+- Layout library entries (`reframeLayouts`, electron-store) carry `style` too:
+  migration in main.js fills defaults into existing entries (pipeline hard
+  rule), "Save as default layout" copies it, auto-attach
+  (`resolveDefaultReframeLayout`, ai-pipeline.js:398) copies it.
+
+### Semantic mapping (preview == render parity by construction)
+One shared scale, each engine converts to its own units:
+- darken d → canvas black overlay alpha d/100; render lutyuv factor (1-d/100)
+- blur b → render boxblur radius round(b*0.56) at the 270×480 intermediate
+  (50→28 = today), b=0 skips boxblur; canvas blur px round(W*b/2250) (50→W/45)
+- seamSize s → feather/shadow height even(1920*s/100) (10→192 = today),
+  clamped to half the game band; s=0 = hard edge (no seam treatment)
+- seam "shadow": NEW in render.js (black strip + geq alpha ramp overlaid below
+  the seam — same machinery as the feather strip); preview already has it.
+  SEAM_STYLE/SEAM_FRAC/BG_DARKEN module constants die in favor of per-reframe
+  style.
+
+### UI (Layout panel, calibrating view — RECOMMENDED placement)
+"Background & edge" group between the rect rows and Apply/Cancel:
+Blur slider, Darkness slider, Edge style segmented (Fade / Shadow), Edge size
+slider. Live: writes `reframeDraft.style` → main preview + panel Result
+repaint instantly; commits with Apply like the rects (one commit path, no
+accidental instant writes). Tweak later = "Edit layout" (2 clicks).
+Alternative Fega may prefer: sliders also visible while a layout is active
+(instant-commit semantics, more IPC wiring) — asked in chat.
+
+### Files
+useEditorStore.js (draft seeds style, updateReframeStyle, commit carries it),
+RightPanelNew.js (controls + save-default), PreviewPanelNew.js (paintComposite
+reads rf.style), render.js (style params + shadow branch + blur-0 skip),
+ai-pipeline.js (auto-attach), main.js (store migration).
+
+### Verification
+Build; CDP: each slider at extremes → screenshots, Apply → persisted →
+reopen; render real project with non-default style (darken 80 / blur 20 /
+shadow) → frame vs preview screenshot; legacy layout entry (no style)
+auto-attaches with defaults (node harness); null-reframe args byte-identical
+(harness); slider at 0 renders legal FFmpeg (no boxblur=0 crash).
+
+---
+
 ## DONE (machine-verified, awaiting Fega's look) — #164 Phase A polish batch (session 104)
 
 **Status 2026-07-15:** Fega approved (item 5 corrected to FEATHER, shadow kept

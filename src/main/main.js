@@ -62,6 +62,9 @@ require("./ai/providers/anthropic");
 require("./ai/providers/openai-compat");
 require("./ai/transcription/stable-ts");
 const { uuid } = require("./uuid");
+// Cross-tree require: editor/utils/** is bundled via package.json build.files,
+// so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
+const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
 
 /**
  * Generate a clip title from its transcript segments.
@@ -321,6 +324,20 @@ function runStoreMigrations(store) {
   // ── Migration: reframe layouts library (#164) ──
   if (!store.has("reframeLayouts")) store.set("reframeLayouts", []);
   if (!store.has("reframeLayoutDefaultId")) store.set("reframeLayoutDefaultId", null);
+
+  // ── Migration: reframe style controls (#164 Phase B) ──
+  // Existing library entries predate the style field; backfill resolved defaults
+  // so old layouts keep rendering identically to pre-style-controls output.
+  // No-op on fresh installs (empty array); writes back only if an entry actually
+  // lacked style, so it's idempotent on every subsequent boot.
+  const reframeLayoutsForStyleMigration = store.get("reframeLayouts") || [];
+  let reframeLayoutsStyleChanged = false;
+  const migratedReframeLayouts = reframeLayoutsForStyleMigration.map((entry) => {
+    if (entry && entry.style != null) return entry;
+    reframeLayoutsStyleChanged = true;
+    return { ...entry, style: resolveReframeStyle(entry && entry.style) };
+  });
+  if (reframeLayoutsStyleChanged) store.set("reframeLayouts", migratedReframeLayouts);
 }
 
 let mainWindow;

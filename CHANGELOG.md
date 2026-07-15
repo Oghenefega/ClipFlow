@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-07-15 (session 104) — Layout editor polish: selection, snapping, panel preview, softer background
 
+### Added
+- **The vertical layout's look is now user-tunable (#164).** A "Background & edge" group in the Layout panel (while editing a layout) exposes four controls: Blur (0–100), Darkness (0–100%), Edge style (Fade into background / Soft shadow), and Edge size (0–25% of the frame). Changes preview live and commit with Apply, exactly like the boxes. The values save onto the project, ride along with "Save as default layout", and auto-attach to future recordings with the layout. Today's shipped look is the default of every control, and every pre-existing project/layout keeps rendering identically (proven byte-for-byte) via read-time defaults plus a one-time library migration. Preview and render share one semantic mapping (new `src/renderer/editor/utils/reframeStyle.js`, required cross-tree by the main process). [RightPanelNew.js, PreviewPanelNew.js, useEditorStore.js, render.js, projects.js, ai-pipeline.js, main.js]
+
 ### Changed
 - **Calibration boxes are now click-to-select (#164 polish).** Only the box you click shows corner handles and responds to dragging — the other box dims to a faint outline until you click it, so you can't grab the wrong border when the webcam and game edges sit close together. Clicking empty video deselects both. [src/renderer/editor/components/PreviewPanelNew.js]
 - **Boxes snap to the recording's center and edges while you drag or resize**, with a thin white guide line flashing when a snap engages — centering the webcam or game no longer relies on eyeballing. Hold Alt to place freely without snapping. [src/renderer/editor/components/PreviewPanelNew.js]
