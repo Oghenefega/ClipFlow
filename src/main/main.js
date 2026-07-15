@@ -388,6 +388,19 @@ function createWindow() {
     console.log("[DEBUG] trim-debug.log →", debugLogPath);
   }
 
+  // Scale the whole UI with window width: content is a fixed-max-width centered
+  // column, so a maximized 2560px-wide (1440p) window otherwise renders a tiny
+  // island of 11-13px text in dead space. ≤1920px wide stays exactly 1.0 (the
+  // tuned look); wider zooms proportionally, capped at 1.35. setZoomFactor is
+  // page-wide so tabs, editor, and Radix portals all scale consistently.
+  const applyWindowZoom = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const [w] = mainWindow.getContentSize();
+    mainWindow.webContents.setZoomFactor(Math.min(1.35, Math.max(1, w / 1920)));
+  };
+  mainWindow.on("resize", applyWindowZoom);
+  mainWindow.webContents.on("did-finish-load", applyWindowZoom);
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

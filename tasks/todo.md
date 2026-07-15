@@ -6,6 +6,52 @@
 
 ---
 
+## DONE — Session 101: Tracker fixes (game tag casing/color) + 1440p scaling + app-wide DM Sans (VERIFIED in-app)
+
+Approved 2026-07-15 ("build all three — but change ALL text to DM Sans. No more
+JetBrains Mono"). Item 3 scope widened from Tracker-only to app-wide: T.mono token
+now points at DM Sans, Tailwind font-mono overridden, hardcoded JetBrains refs
+swapped (SettingsView debug pre, editorPrimitives timecode popover, EditorView
+crash screen, recap card canvas headline), JetBrains dropped from the Google Fonts
+import. Verified live in the source-run app: teal uppercase RL in weekly log,
+calendar segments, and day drawer; maximized-window zoom scales the UI; clean
+(undotted) zeros everywhere. Rides the next installer.
+
+### 1. Bug: auto-posted clips show grey lowercase "rl" instead of teal "RL"
+Root cause: auto-logged tracker entries store the game as the lowercased short tag
+("rl"); both Tracker display lookups fail to match it (TrackerView matches hashtag
+only, TrackerCalendar matches case-sensitively) and fall into grey "unknown" fallbacks.
+- `src/renderer/views/TrackerView.js` :311-313 — `resolveGameDisplay`: case-insensitive
+  match against hashtag, tag, AND name; uppercase the fallback tag text.
+- `src/renderer/views/TrackerCalendar.js` :55-57 — `resolveGame`: lowercase both sides
+  of the existing hashtag/name/tag comparison.
+No data migration — stored "rl" entries resolve correctly once lookups are fixed.
+
+### 2. UI too small / dead space on 1440p maximized window
+Cause: every tab is a fixed-max-width centered column (860-1120px) with 12-13px text;
+on a 2560px-wide window ~60% of the screen is empty margin.
+Fix: window-width-driven zoom in the main process — on resize (debounced) set
+`webContents.setZoomFactor(clamp(width / 1920, 1, 1.35))`. ≤1920px wide → exactly
+today's look (factor 1.0); maximized on 1440p → ~1.33× (text ~33% bigger, content
+column ~1280px effective). Applies uniformly to all tabs, editor, and popovers.
+- `src/main/main.js` — resize listener + initial apply after load.
+
+### 3. Tracker tab font — drop the mono (dotted-zero) numbers
+Tracker uses JetBrains Mono (`T.mono`) for numbers/dates/stats; Recordings/Projects
+use DM Sans (`T.font`). Fega dislikes the dotted zero. Swap all `T.mono` usages in
+Tracker to `T.font`.
+- `src/renderer/views/TrackerView.js` — 27 usages
+- `src/renderer/views/TrackerCalendar.js` — 18 usages
+Scope: Tracker tab UI only. Other tabs' mono (filenames, timestamps) untouched;
+recap share-image canvas untouched unless Fega asks.
+
+### Verification
+`npm run build:renderer` + `npm start`: Tracker weekly log + calendar show teal
+uppercase RL on today's 3 clips; resize window across 1920px and watch scale step;
+Tracker numbers render in DM Sans (no dotted zeros); other tabs unchanged.
+
+---
+
 ## DONE — Session 99: Recordings tab "Group by: Month / Game" toggle (VERIFIED in-app)
 
 Built and verified live in the source-run app 2026-07-11: Game mode shows Test on top

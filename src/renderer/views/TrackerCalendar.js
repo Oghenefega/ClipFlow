@@ -52,8 +52,11 @@ export default function TrackerCalendar({ trackerData, weekMeta, streakState, ga
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Case-insensitive: auto-posted entries store the lowercased short tag ("rl"),
+  // which must still resolve against gamesDb's "RL".
   const resolveGame = useCallback((hashtag) => {
-    const g = gamesDb.find((x) => x.hashtag === hashtag || x.name === hashtag || x.tag === hashtag);
+    const key = (hashtag || "").toLowerCase();
+    const g = gamesDb.find((x) => [x.hashtag, x.name, x.tag].some((v) => (v || "").toLowerCase() === key));
     return g ? { name: g.name, color: g.color, tag: g.tag } : { name: hashtag || "Unknown", color: T.textTertiary, tag: (hashtag || "?").slice(0, 3).toUpperCase() };
   }, [gamesDb]);
   // Look up a week's frozen game by its nowPlaying name (weekMeta stores the game NAME).

@@ -155,7 +155,7 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
       <span
         onClick={e => { e.stopPropagation(); setOpen(!open); }}
         style={{
-          fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: open ? "#a78bfa" : T.textSecondary,
+          fontSize: 10, fontFamily: "'DM Sans', -apple-system, sans-serif", color: open ? "#a78bfa" : T.textSecondary,
           padding: "2px 5px", borderRadius: 3, cursor: "pointer",
           background: open ? "rgba(139,92,246,0.1)" : "transparent",
           transition: "background 0.15s",
@@ -178,7 +178,7 @@ export const EditableTC = ({ value, onChange, clipDuration }) => {
               value={val}
               onChange={e => { setVal(e.target.value); setSecVal(parseTime(e.target.value)); }}
               style={{
-                width: 60, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#a78bfa",
+                width: 60, fontSize: 11, fontFamily: "'DM Sans', -apple-system, sans-serif", color: "#a78bfa",
                 background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)",
                 borderRadius: 3, padding: "3px 5px", outline: "none", textAlign: "center",
               }}

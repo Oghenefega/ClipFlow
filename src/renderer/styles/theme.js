@@ -48,7 +48,9 @@ const theme = {
   },
 
   font: "'DM Sans', -apple-system, sans-serif",
-  mono: "'JetBrains Mono', 'SF Mono', monospace",
+  // Fega's call (session 101): one font everywhere — no more JetBrains Mono
+  // (dotted zero). Token kept so existing T.mono call sites need no changes.
+  mono: "'DM Sans', -apple-system, sans-serif",
 };
 
 export default theme;

@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-15 (session 101) — Tracker game colors fixed, 1440p scaling, one font everywhere
+
+### Fixed
+- **Auto-posted clips showed a grey lowercase "rl" chip instead of the teal "RL" everywhere in the Tracker.** Auto-logged entries store the game as the lowercased short tag ("rl"), but the weekly log's game lookup only matched the long hashtag ("rocketleague") and the calendar's lookup matched case-sensitively — both fell into a grey "unknown game" fallback. Both lookups now match tag, hashtag, and name case-insensitively, so the weekly log slots, calendar day segments, and day-detail chips all show the game's real color and uppercase tag — retroactively, no data repair needed. Verified in-app on the 3 affected Rocket League posts. [src/renderer/views/TrackerView.js, src/renderer/views/TrackerCalendar.js]
+
+### Changed
+- **The UI now scales up with window width — no more tiny floating island on a 1440p monitor.** Every tab is a fixed-max-width centered column tuned for a ~1280px window, so a maximized 2560px-wide window rendered small text surrounded by dead space. The window now applies a proportional zoom above 1920px wide (capped at 1.35×, ~1.33× maximized on 1440p); at or below 1920px nothing changes. Applies uniformly to all tabs, the editor, and popovers. Verified in-app maximized. [src/main/main.js]
+- **One font app-wide: DM Sans everywhere, JetBrains Mono removed entirely.** All numbers, dates, timecodes, and stats previously set in JetBrains Mono (with its dotted zero) now render in DM Sans — theme token, editor Tailwind `font-mono` classes, the recap share-image headline, debug/error screens, and the Google Fonts import. [src/renderer/styles/theme.js, tailwind.config.js, index.html, + 5 files]
+
 ## [0.1.8-alpha.15] — 2026-07-14 (session 100) — Installer cut: tracker honesty + queue-at-launch fixes
 
 ### Changed

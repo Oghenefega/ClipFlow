@@ -19,7 +19,7 @@ class EditorErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 32, color: "#ff6b6b", background: "#1a0000", height: "100%", overflow: "auto", fontFamily: "JetBrains Mono, monospace" }}>
+        <div style={{ padding: 32, color: "#ff6b6b", background: "#1a0000", height: "100%", overflow: "auto", fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
           <h2 style={{ marginBottom: 12 }}>Editor Crash</h2>
           <pre style={{ fontSize: 13, whiteSpace: "pre-wrap", marginBottom: 20 }}>{this.state.error.message}</pre>
           <pre style={{ fontSize: 11, whiteSpace: "pre-wrap", color: "#ff9999" }}>{this.state.error.stack}</pre>

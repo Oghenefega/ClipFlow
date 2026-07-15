@@ -308,9 +308,13 @@ export default function TrackerView({
     toast("Clip removed");
   };
 
-  const resolveGameDisplay = (hashtag) => {
-    const g = gamesDb.find((x) => x.hashtag === hashtag);
-    return g ? { name: g.name, color: g.color, tag: g.tag } : { name: hashtag, color: T.textMuted, tag: hashtag };
+  // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
+  // ("rocketleague") for manual logs — match either, case-insensitively, like the
+  // mainCount calculation above. Fallback tag is uppercased for display.
+  const resolveGameDisplay = (raw) => {
+    const key = (raw || "").toLowerCase();
+    const g = gamesDb.find((x) => [x.hashtag, x.tag, x.name].some((v) => (v || "").toLowerCase() === key));
+    return g ? { name: g.name, color: g.color, tag: g.tag } : { name: raw, color: T.textMuted, tag: (raw || "?").toUpperCase() };
   };
 
   // ---------- template mini-editor overlay ----------

@@ -160,7 +160,7 @@ export async function renderRecapPng({ game, gameColor, clips, platformsUsed, pe
     ctx.fillText(PLATFORM_LABEL[key], x + (iconDrawn ? 78 : 32), y + 54);
 
     ctx.fillStyle = "#edeef2";
-    ctx.font = "700 88px 'JetBrains Mono', monospace";
+    ctx.font = "700 88px 'DM Sans', sans-serif";
     ctx.fillText(String(perPlatform[key] || 0), x + 32, y + cellH - 42);
   }
   cursorY = gridTop + cellH * 2 + gridGap + 72;

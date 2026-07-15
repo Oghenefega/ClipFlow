@@ -14,6 +14,11 @@ module.exports = {
       },
     },
     extend: {
+      // One font everywhere (session 101): editor `font-mono` timecodes render
+      // DM Sans too — no JetBrains Mono / system mono anywhere in the app.
+      fontFamily: {
+        mono: ["'DM Sans'", "-apple-system", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

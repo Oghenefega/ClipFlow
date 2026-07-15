@@ -1725,7 +1725,7 @@ function SubtitleDebugSection() {
               <pre style={{
                 background: "#0a0b10", color: "#a78bfa", fontSize: 11, padding: "10px 14px", margin: 0,
                 borderTop: `1px solid ${T.border}`, maxHeight: 300, overflow: "auto",
-                fontFamily: "'JetBrains Mono', monospace", whiteSpace: "pre-wrap", wordBreak: "break-all",
+                fontFamily: "'DM Sans', -apple-system, sans-serif", whiteSpace: "pre-wrap", wordBreak: "break-all",
               }}>
                 {JSON.stringify(entry, null, 2)}
               </pre>
