@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-15 (session 102) — Editor waveform finally aligned with the audio
+
+### Fixed
+- **The editor's audio waveform never lined up with the subtitles/speech — it was drawing audio from the wrong part of the recording.** The waveform extractor split the recording's audio into chunks using rounded-down integer division, so each drawn bar covered slightly less real time than the timeline assumed. The error accumulated with depth into the source recording: a clip starting 4½ minutes in displayed audio from ~7 seconds earlier (measured), and the tail of every recording was silently dropped from the waveform. Chunk boundaries are now computed proportionally so the peaks span the full recording exactly — verified against a real recording, residual misalignment is one 40ms bucket. Waveform caches got a version bump (`.v2`) so every project regenerates its waveform with the fixed math on next editor open. [src/main/ffmpeg.js, src/main/main.js]
+
 ## [0.1.8-alpha.16] — 2026-07-15 (session 101) — Installer cut: session 101 UI batch
 
 ### Changed

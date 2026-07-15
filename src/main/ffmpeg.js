@@ -351,15 +351,20 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
       }
       if (!stdout || stdout.length < 2) return resolve({ peaks: [] });
 
-      // Parse 16-bit samples
+      // Parse 16-bit samples. Bucket boundaries must be computed proportionally
+      // per index — an integer samplesPerPeak (floor once, reuse) silently drops
+      // the fractional remainder on EVERY peak, so peaks stop spanning the full
+      // audio and the renderer (which assumes they do) draws the waveform
+      // progressively earlier the deeper into the source you go (~7s off at
+      // 266s in, measured). The tail of the recording was dropped entirely.
       const sampleCount = Math.floor(stdout.length / 2);
-      const samplesPerPeak = Math.max(1, Math.floor(sampleCount / peakCount));
       const peaks = [];
 
-      for (let i = 0; i < peakCount && i * samplesPerPeak < sampleCount; i++) {
+      for (let i = 0; i < peakCount; i++) {
+        const start = Math.floor((i * sampleCount) / peakCount);
+        if (start >= sampleCount) break;
+        const end = Math.min(sampleCount, Math.max(start + 1, Math.floor(((i + 1) * sampleCount) / peakCount)));
         let max = 0;
-        const start = i * samplesPerPeak;
-        const end = Math.min(start + samplesPerPeak, sampleCount);
         for (let j = start; j < end; j++) {
           const sample = Math.abs(stdout.readInt16LE(j * 2));
           if (sample > max) max = sample;

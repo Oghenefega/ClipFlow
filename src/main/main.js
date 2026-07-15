@@ -810,7 +810,9 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
       // Fall through — we can still extract, just skip caching.
     }
     const baseName = path.basename(sourceFilePath).replace(/[^\w.-]/g, "_");
-    const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.json`;
+    // v2: bucketing fix in extractWaveformPeaks — old caches were computed with
+    // truncated buckets (misaligned waveform) and must not be reused.
+    const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.v2.json`;
     const cachePath = path.join(cacheDir, cacheKey);
 
     if (fs.existsSync(cachePath)) {
