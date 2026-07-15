@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.8-alpha.16] — 2026-07-15 (session 101) — Installer cut: session 101 UI batch
+
+### Changed
+- **Version bumped to 0.1.8-alpha.16 and a fresh installer cut**, promoting session 101 to the installed app: teal/uppercase game tags across the Tracker, window-width zoom for 1440p (UI scales up ~1.33× maximized), DM Sans everywhere (JetBrains Mono removed), Projects cards with game-color hues, the Status/Date/Game sort control, TEST chip only on real test projects, and the Weekly Rundown preview popup replacing the bottom recap card.
+
 ## [Unreleased] — 2026-07-15 (session 101, later) — Projects tab game hues + sorting, Weekly Rundown button
 
 ### Added
