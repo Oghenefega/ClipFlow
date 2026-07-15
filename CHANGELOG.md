@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.9-alpha.3] — 2026-07-15 (session 104) — Installer cut: Layout editor polish + tunable look
+
+### Changed
+- **Version 0.1.9-alpha.3, installer cut** (alpha tick — a polish batch plus one control-surface feature on the existing Auto-Reframe subsystem, per the sizing policy): promotes the session-104 Layout editor cleanup (click-to-select boxes, snap guides, Result preview in the panel, darker/blurrier background, feathered seam) and the new user-tunable "Background & edge" style controls to the installed app.
+
 ## [Unreleased] — 2026-07-15 (session 104) — Layout editor polish: selection, snapping, panel preview, softer background
 
 ### Added
