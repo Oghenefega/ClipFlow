@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-16 (session 107) — B1: layout detection engine shipped in-app (zero UI yet)
+
+### Added
+- **Auto-Reframe detection engine now lives in the app (#164 Phase B, slice B1).** A new IPC call (`reframe:detect`, bridged as `window.clipflow.reframeDetect(projectId)`) samples 8 frames from a project's source video in a dedicated hidden window, finds the facecam with MediaPipe face detection (full-frame pass + overlapping tile grids so ~50px faces still hit), classifies the layout as stacked-canvas vs overlay-cam, and returns a proposed camera box + game box — or refuses cleanly (`none`) / reports no-facecam (`nocam`) rather than ever guessing a wrong box. The algorithm is the gate-proven session-106 prototype ported 1:1 (constants untouched); everything runs locally in pure WASM off ~11.6MB of assets vendored into the app — no network, no native modules, no new runtime dependencies. Verified to reproduce the gate results on all three real gate videos from inside both the dev app and the packaged exe (asar-packed assets confirmed), at ~6s for a 15GB source. No UI yet — the "Detect layout" button arrives in B2. [reframe-detect.js, reframe-detect-preload.js, detect.html, detect-page.js, public/mediapipe/, main.js, preload.js]
+- **New vs the prototype: native-res edge refinement.** After the coarse box, each edge re-searches ±60px at full resolution and snaps to the sharpest quiet→loud temporal step (feather-fade ramps deliberately can't win — only hard content boundaries move an edge, and stacked-band boundaries skip refinement entirely since they gated at 0-2px). On the borderless-overlay gate video this pulled all four edges to within 0-1px of the measured objective boundary, including the right edge the prototype had shaved. Investigation note: the gate's "~54px shave" turned out to be a feathered fade-out tail on that overlay, not a detection miss — the hard content boundary is exactly where detection now lands.
+- `@mediapipe/tasks-vision` 0.10.35 pinned exact as a devDependency (provenance for the vendored assets only — the packaged app never touches it).
+
 ## [Unreleased] — 2026-07-16 (session 106) — Phase B detection gate passed (planning + prototype, no app changes)
 
 ### Added

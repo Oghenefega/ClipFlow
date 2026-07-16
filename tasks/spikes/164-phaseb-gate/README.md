@@ -48,3 +48,19 @@ delivered in the session-106 chat; scorecard also on #164.
   sampling aliases thin borders away — keep the box average).
 - Refusal: component >50% of frame or rect >60% of frame area → no proposal.
 - B1 adds (not in this spike): native-res ±60px edge refinement.
+
+## Session-107 appendix — B1 shipped; refinement rule + the 54px re-measurement
+
+B1 ported this algorithm 1:1 into `public/detect-page.js` (in-app results matched
+this gate on all three videos, dev + packaged). The refinement that shipped:
+per edge, median |Δluma| per line between 2 far-apart frames over ±60px;
+a candidate must pass long-window (12-line) quiet/loud (loud ≥ max(2q, q+8));
+the WINNER is the sharpest 3-line gradient (floor 6). Hard boundaries step
+~17-32/line; feather fades ramp ~1-2/line and must not win (argmax on
+windowed delta alone dragged v3's left edge into the game).
+
+**v3's "worst edge ~54px" was a feather, not a miss:** objective per-column
+8-frame std (edge-probe.js in the session-106 scratchpad, gate PNGs) puts the
+hard content boundary at x≈655 — quiet ≤3 inside, 18-33 damped-game in the
+fade zone 656-712, 43-49 full game beyond. Objective boundaries: L≈29-30,
+T≈431, R≈655, B≈783. B1's refined box {30,430,625,353} is 0-1px on all four.

@@ -69,6 +69,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   fileMoveToTestMode: (fileId, nextIsTest) => ipcRenderer.invoke("file:moveToTestMode", fileId, nextIsTest),
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),
+  reframeDetect: (projectId) => ipcRenderer.invoke("reframe:detect", projectId),
 
   // Pipeline
   generateClips: (sourceFile, gameData) => ipcRenderer.invoke("pipeline:generateClips", sourceFile, gameData),

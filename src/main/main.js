@@ -32,6 +32,7 @@ const { createStore } = require("./store-factory");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
+const reframeDetect = require("./reframe-detect");
 const highlights = require("./highlights");
 const render = require("./render");
 const aiPipeline = require("./ai-pipeline");
@@ -1547,6 +1548,22 @@ ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
   try {
     const watchFolder = store.get("watchFolder");
     return projects.updateReframe(watchFolder, projectId, reframe);
+  } catch (err) { return { error: err.message }; }
+});
+
+// #164 Phase B: auto-detect layout boxes from the project's source video.
+// Runs MediaPipe + the gate algorithm in a dedicated hidden window
+// (reframe-detect.js); returns a rect proposal, never writes the project.
+ipcMain.handle("reframe:detect", async (_, projectId) => {
+  try {
+    const watchFolder = store.get("watchFolder");
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+    if (!project.sourceFile || !fs.existsSync(project.sourceFile)) {
+      return { error: "Source video not found on disk" };
+    }
+    const proposal = await reframeDetect.runDetection(project.sourceFile);
+    return { success: true, proposal };
   } catch (err) { return { error: err.message }; }
 });
 

@@ -1,47 +1,48 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-16 — Session 106 — **#164 Phase B gate PASSED; build plan B1-B4 written and AWAITING FEGA'S GO. Zero src/ changes this session.**_
+_Last updated: 2026-07-16 — Session 107 — **#164 B1 SHIPPED: detection engine in-app, gate-verified in dev + packaged exe. B2 (Detect button) is next.**_
 
 ---
 
 ## One-line TL;DR
-Planning + prototype session: the Phase B (auto-detect layout boxes) plan was revised against shipped Phase A reality and posted to #164, the detection prototype gate ran on Fega's real footage and PASSED decisively (100% recall incl. ~51px faces, boxes within 0-4px on 4/6 sources, clean refusal on the one adversarial case), Fega added a no-webcam requirement (two tweakable presets) mid-session, and the full build plan (B1-B4) is written in tasks/todo.md. **Next session opens by getting the green light on B1 — it was asked but Fega wrapped for token budget instead of answering.**
+B1 built and verified in one session: the gate-proven detection algorithm now runs inside the app behind `window.clipflow.reframeDetect(projectId)` — hidden window, page-scoped CSP, vendored MediaPipe (zero network, zero native modules), reproduces the gate proposals on all three real videos from both dev source and the packaged exe, plus a new native-res edge refinement that landed all four v3 edges within 0-1px of the objective boundary. Zero UI (that's B2).
 
 ## Current State
-- **Daily driver unchanged: 0.1.9-alpha.5** — no app code touched this session.
-- master has: gate results + revised plan + BUILD PLAN in `tasks/todo.md`, gate harness preserved in `tasks/spikes/164-phaseb-gate/` (README = scorecard + final algorithm constants + re-run steps), CHANGELOG session-106 entry.
-- #164 has two new comments: revised Phase B plan (issuecomment-4988743585) and the gate scorecard (issuecomment-4988885503).
-- Approved decisions locked this session: **order flip** (first-recording auto-offer ships LAST, consuming detection) and **no-cam presets** ("Fully zoomed" + "Fit to screen", tweakable starting points, offered when detection finds no facecam).
+- **Daily driver unchanged: 0.1.9-alpha.5.** B1 is engine-only (no user-visible change). `dist/` now holds a same-version installer that INCLUDES B1 (built for packaged verification) — safe to install but pointless until B2; the plan stays one installer after B4.
+- master has B1: `src/main/reframe-detect.js` (window lifecycle + `reframe:detect` IPC), `src/main/reframe-detect-preload.js` (narrow bridge: getJob/readAsset/report), `public/detect.html` (own CSP — main window's CSP untouched), `public/detect-page.js` (algorithm), `public/mediapipe/` (11.6MB vendored assets + provenance README), `main.js` handler, `preload.js` bridge method, pinned devDep `@mediapipe/tasks-vision@0.10.35`.
+- Dev profile has three test projects (`proj_b1v1/v2/v3` in `%APPDATA%\clipflow-dev\spike164-watch\.clipflow\projects\`) pointing at the three W: gate videos — reusable for B2 CDP verification.
+- todo.md: B1 section marked SHIPPED with full results; B2-B4 specs unchanged and current.
 
-## What Was Built (prototype only, session scratchpad + spike copy)
-1. **Headless-Electron detection harness**: hidden window over localhost http, MediaPipe tasks-vision **0.10.35** blaze_face_short_range (~230KB model), full-frame pass + overlapping tile grids [2,4] (+6 on ≤1080p-scale sources) — tiling is load-bearing for small faces (every small-face hit came from tiles).
-2. **snap.js** — the settled algorithm: consensus cluster (≥75% of frames, <2%-diag spread, containment dedupe) → stacked-world check (full-width temporal-variance band, quiet/loud ≥2.5, refined boundary) → overlay region (flood over sharp-in-mean OR abs-quiet mask from face seeds, box-averaged ds2, dilate r1, occupancy trim 0.12) → refusal caps. Constants final — B1 ports 1:1.
-3. **Gate results**: v1 stacked 0/0/0/2px vs Fega's saved layout; v2 old-vertical band visually exact (robustness only, 9:16 skips reframe in-product); v3 borderless rounded overlay worst edge ~54px (~2% width); manufactured m240 2/3/2/4px, m320 2/2/2/2px; m480 (cam abuts RL boost HUD over dark corner) = clean refusal, never a wrong box. Annotated overlays delivered in chat.
+## What Was Built (B1)
+1. **Probe first, build second:** a 4-file standalone Electron probe killed the three architecture unknowns in one run before any app code — file://-page canvas readback of file:// video is NOT tainted in Electron; blob-URL dynamic import of the ESM bundle works under the planned CSP; manual `{wasmLoaderPath, wasmBinaryPath}` blob fileset + `modelAssetBuffer` initializes and detects (131ms init, found Fega's face on the real video). The planned `protocol.handle` fallback was never needed.
+2. **The engine:** detect-page.js ports snap.js 1:1 (consensus cluster with containment dedupe → stacked-band check → overlay flood/trim → refusal caps; minG map dropped — it only fed the superseded snapDir). Sampling = 8 seeks at 10-90% of duration on a hidden `<video>` (torn down in `finally` — DOMDataStore crash memory). Grids [2,4] +6 when min(dim)<1200 (matches gate jobs). Outcomes: `stacked`/`overlay`/`nocam` (strongest cluster ≤1 frame)/`none` (refusal).
+3. **Native-res edge refinement (the one NEW piece):** overlay world only; two far-apart frames re-sampled; per edge, profile median |Δluma| per line over ±60px; long-window (12) quiet/loud qualification, winner = sharpest 3-line gradient (floor 6). Two iterations to get right — argmax-delta alone dragged v3's left edge 5px into the game (feather ramp), a minIn constraint then broke top (deep interior quieter than edge-adjacent interior); sharpness scoring fixed both.
+4. **Verification:** v1 cam IDENTICAL to gate {0,0,2560,1442} (= 0/0/0/2px vs Fega's saved layout); v2 band 704 vs gate 702 (same boundary); v3 refined {30,430,625,353} = 0-1px on all edges vs objective 8-frame std boundaries (L≈29-30/T≈431/R≈655/B≈783). Packaged exe (win-unpacked): identical v1 + v3 results, asar list confirmed all assets shipped, devDep pruned from packaged node_modules. ~6s for the 15GB v3 source.
 
 ## Key Decisions (this session)
-- **Detector settled: MediaPipe only.** YuNet/onnxruntime fallback dropped — gate proved it unnecessary. Pure WASM, offline, ~11.5MB assets, zero native modules.
-- **Refusal posture**: when segmentation runs away, propose NOTHING (manual calibration remains the path). Never ship a confident wrong box.
-- **Two-world game-box rule**: overlay cam → game = full frame; full-width/height cam band → game = complement band. Geometry only, no game-box ML. Taste insets (Fega's 144px) are the user's nudge, not detection's job.
-- **Third detection outcome 'nocam'** (Fega, this session): confident no-facecam → offer two presets — **Fully zoomed** (centered 9:16 crop fills the frame, slideable) and **Fit to screen** (full game centered, blurred bg behind). Presets prefill the normal draft: everything stays tweakable and library-saveable. Requires camRect to become nullable (B3).
-- **Detection runs in a dedicated hidden window** (mirrors subtitle-overlay-renderer.js:189 pattern): own `public/detect.html` with page-scoped CSP (`wasm-unsafe-eval`, blob:) — **main window's CSP (index.html:7) untouched**. Assets vendored to `public/mediapipe/`; loaded via preload-fs → blob URLs + modelAssetBuffer; named fallback if blob dynamic-import fights file://: `protocol.handle('clipflow-detect')`. Infra-dashboard note due when B1 lands (CSP rule in CLAUDE.md).
-- Version: no cut this session (planning/prototype). One installer after B4; sizing at that wrap — 0.2.0 line is the epic-completion candidate.
+- **Bridge naming:** flat `clipflow.reframeDetect(projectId)` (returns `{success, proposal}`/`{error}`) — preload.js has no dotted namespaces; the plan's `clipflow.reframe.detect` shape lost to file idiom. B2 calls this.
+- **Refinement rule:** a hard cam boundary steps quiet→loud in ~2 lines (grad 17-32 on gate footage); feather fades ramp 1-2/line. Qualify with long windows, WIN by short-gradient. Edges with no decisive step keep the coarse position. Stacked worlds never refine.
+- **The gate's "v3 right edge shaved ~54px" was re-measured and reinterpreted:** objective per-column 8-frame std shows the hard content boundary at x≈655 — exactly where B1 lands. The eyeballed truth ~712 is the tail of a feathered/semi-transparent fade (x 656-712 carries damped game motion, std 18-33, between quiet ≤3 and full-game 43-49). Crop-at-hard-step is the shipped posture; feather taste is a user nudge in calibration. **Fega should eyeball the v3 box in B2 calibration and veto if he wants the feather included** — flag this when B2 lands.
+- MediaPipe assets vendored under `public/mediapipe/` (README documents provenance + re-vendor steps + model URL); pinned exact devDep exists only as provenance.
 
 ## Next Steps
-1. **Get Fega's go on B1** (he read the plan summary but wrapped before answering). Plan: `tasks/todo.md` → "BUILD PLAN" section.
-2. B1 detection engine (hidden window + IPC `detect:run` + native-res ±60px edge refinement — the one NEW piece vs the spike) → B2 Detect button (face path) → B3 nullable camRect + presets → B4 auto-offer banner.
-3. Per-slice verification is spelled out in todo.md (CDP drives on the dev sandbox, real renders for B3, packaged-exe offline check for B1).
-4. Carried, unrelated: Projects-tab preview consistency for reframe projects (cosmetic), #165 zoom tuning, #163 YouTube reconnect messaging.
+1. **B2 — "Detect layout" button** in the Layout panel calibrating view (spec in todo.md): button → progress state → prefill draft via existing updateReframeRect on stacked/overlay; 'none' → existing red-box error row; 'nocam' → same manual message until B3. CDP-verify on proj_polish_real AND the proj_b1v* projects.
+2. B3 — nullable camRect + the two no-cam presets (the four both-rects sites listed in todo.md: projects.js:265, render.js:58 area, PreviewPanelNew.js:917/:1244).
+3. B4 — first-recording auto-offer banner.
+4. One installer after B4; version sized at wrap (0.2.0 epic-completion candidate).
+5. Carried, unrelated: Projects-tab preview consistency for reframe projects (cosmetic), #165 zoom tuning, #163 YouTube reconnect messaging.
 
 ## Watch Out For
-- **`projects.js:265` updateReframe rejects a null camRect today** — B3 must relax it deliberately (both-rects assumption also lives at `render.js:58` isReframeActive and `PreviewPanelNew.js:917` + `:1244` guards). This is the session-104 whitelist-writer trap's cousin — handle all four sites together.
-- **Game-only band placement is NEW math**: game band centers vertically (y=(1920−gameBand)/2) when camRect is null; feather/bg skip when gameBand ≥ ~1916 (Fully-zoomed fills the frame). Both engines must stay in lockstep (parity by construction, like bgSourceWindow).
-- **Every hidden `<video>` needs teardown** (Chromium DOMDataStore crash memory) — the B1 frame sampler creates one per run.
-- **Don't re-derive detection constants** — port from `tasks/spikes/164-phaseb-gate/snap.js`; the README lists them. Box-averaged downsample is load-bearing (point sampling aliases thin cam borders away).
-- v2-style old vertical recordings classify as stacked — fine, but in-product true 9:16 sources skip reframe entirely; never wire detection into the 9:16 path.
-- The pinned `@mediapipe/tasks-vision@0.10.35` goes in devDependencies only (assets vendored into public/) — remember the package.json-stripper check (99-line file, restore from HEAD if scripts/build/devDeps vanish).
-- Session-106 scratchpad (id `8d14e408…`) holds the extracted frames + manufactured sets (~97MB) — reusable for B1 verification if still on disk; regenerate via spike README ffmpeg steps if wiped. Gate source videos are Fega-supplied W: paths listed in todo.md.
+- **detect-page.js is a PLAIN static script** (publicDir copy, bypasses Vite). No imports/ESM in it; the MediaPipe bundle arrives via blob dynamic import. Don't "modernize" it into the bundle.
+- **The detect window's CSP lives in public/detect.html only.** Main window CSP (index.html:7) untouched — keep it that way. Infra dashboard note added this session (single-purpose hidden window, sandbox:false + fs-preload like the subtitle overlay).
+- **Detection determinism:** consensus + temporal maps make results reproducible across runs/contexts (dev vs packaged matched exactly), but frames come from video seeks — a source whose 10-90% window lands differently (e.g. trimmed file) shifts numbers by a few px. Compare against the gate with tolerance, not equality.
+- **One run at a time by design** — `runDetection` rejects concurrent calls ("Detection already running"). B2's button should disable while running (its progress state does this naturally).
+- **Don't re-run `npm run build` casually** — it overwrites `dist/ClipFlow Setup 0.1.9-alpha.5.exe` (Fega's promotion artifact). Harmless now (the built exe = alpha.5 + B1 engine), but after B2+ lands mid-epic, a same-version installer with half-shipped UI could confuse a manual reinstall. Bump before cutting anything meant for Fega.
+- The `console-message` handler in reframe-detect.js uses the NEW Electron signature (`(event) => event.message`) — verified working on Electron 40. The overlay renderer still uses the deprecated positional form; if you touch it, same migration applies.
+- Old-scratchpad gate assets (frames, node_modules, model) survived at session id `8d14e408…` and were reused; the vendored copies + spike README now make B1 independent of it.
 
 ## Logs/Debugging
-- **Spike re-run**: `tasks/spikes/164-phaseb-gate/README.md` has the full recipe (npm i pinned dep, model curl URL, ffmpeg frame extraction, `electron main.js v1` → `node snap.js v1`). Harness prints per-frame detections to stdout; `detections-*.json` / `proposal-*.json` are the artifacts.
-- **Gate outputs in repo**: `proposal-*.json` (actual gate results) sit next to the spike. Annotated overlay JPGs were chat-delivered (not committed — frames contain Fega's face and 97MB of extractions stayed in scratchpad).
-- **#164 trail**: plan revision comment 4988743585 → scorecard comment 4988885503. Commits: `6d204f3` (gate results), session-wrap commit (build plan + spike + changelog + handoff).
-- No Sentry/app logs this session — the app never ran.
+- **Detection logs:** every run prints `[ReframeDetect]` lines to the MAIN process stdout (per-frame detections, cluster summary, sharpness/trim, refine decisions, final proposal). Dev run log: `%TEMP%\b1-dev-electron.log`; packaged run log: `%TEMP%\b1-packaged.log` (this session's runs).
+- **CDP driver** for headless verification: session-107 scratchpad `cdp-detect.js` (`node cdp-detect.js <projectId> [port]` against a dev app launched with `CLIPFLOW_PROFILE=dev electron . --remote-debugging-port=9222`). taskkill electron/ClipFlow first — stale-zombie-on-9222 memory applies.
+- **Objective edge measurement** (the tool that settled the 54px question): `edge-probe.js` / `edge-probe4.js` in the OLD session-106 scratchpad gate dir — per-line 8-frame std profiles from the gate PNGs.
+- **Spike re-run recipe** unchanged: `tasks/spikes/164-phaseb-gate/README.md` (+ new session-107 appendix documenting the refinement rule + objective boundaries).
+- #164 trail: gate scorecard comment → B1-shipped comment (this session). Commits: B1 implementation + session wrap.

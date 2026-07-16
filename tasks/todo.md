@@ -45,7 +45,38 @@ Ship order: B1 engine → B2 Detect button (face path) → B3 game-only layouts
 (version sized at wrap). Each slice: build + `npm start` + CDP verify before
 moving on.
 
-### B1 — Detection engine in the app (hidden window, zero UI)
+### B1 — Detection engine in the app (hidden window, zero UI) — ✅ SHIPPED (session 107)
+
+**Built exactly per spec below, verified end-to-end. Deltas + results:**
+- Bridge is `window.clipflow.reframeDetect(projectId)` (flat method — matches
+  preload.js conventions; the plan's dotted `clipflow.reframe.detect` shape
+  didn't fit the file's idiom). Returns `{ success, proposal }` / `{ error }`.
+- Verified in dev source AND the packaged exe (win-unpacked; asar list shows
+  detect.html + detect-page.js + mediapipe/* + both main files; devDep pruned
+  from packaged node_modules as intended). Zero network by construction
+  (page CSP allows only blob:; all assets vendored + preload-fs-read).
+- Gate reproduction: v1 cam {0,0,2560,1442} IDENTICAL to gate (0/0/0/2px vs
+  saved layout); v2 band 704 vs gate 702 (same boundary, video-seek sampling
+  vs ffmpeg frames); v3 coarse {28,428,630,356} ≈ gate {28,428,628,356}.
+- NEW native-res edge refinement: v3 refined to {30,430,625,353} — all four
+  edges within 0-1px of the OBJECTIVE temporal boundary (8-frame native-res
+  std profiles: L≈29-30, T≈431, R≈655, B≈783). Two design iterations landed
+  on: long-window (12px) quiet/loud qualification + winner = sharpest 3-line
+  gradient, floor 6 (hard edges step ~17-32/line; feather ramps ~1-2 and must
+  not win). Stacked worlds skip refinement (band boundaries gated 0-2px).
+- **Gate's "v3 right edge shaved ~54px" reinterpreted:** the objective
+  temporal step sits at x≈655 (exactly where B1 lands). The eyeballed truth
+  ~712 is the tail of a feathered/semi-transparent fade on that borderless
+  overlay — pixels 656-712 carry damped game motion (std 18-33 vs quiet ≤3 /
+  full-game 43-49). A content crop at the hard step is the defensible choice;
+  feather taste = user nudge in calibration. Fega eyeballs this in B2 anyway.
+- Perf: ~6s total for the 15GB 2560×1440 overlay source (8 seeks + ~470
+  detector passes + refinement), similar order for 2560×2880. B2's progress
+  state will be short-lived.
+- Dev-profile test projects proj_b1v1/v2/v3 (in spike164-watch) point at the
+  three gate videos — reusable for B2 CDP verification.
+
+Original B1 spec (implemented 1:1 unless noted above):
 Mirror the subtitle-overlay offscreen pattern (subtitle-overlay-renderer.js:189
 — hidden BrowserWindow, dedicated preload, loadFile of a static html).
 - `public/detect.html` (→ build/detect.html): own CSP meta (`script-src
