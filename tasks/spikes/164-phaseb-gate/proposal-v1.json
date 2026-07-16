@@ -1,0 +1,33 @@
+{
+ "world": "stacked",
+ "axis": "rows",
+ "camRect": {
+  "x": 0,
+  "y": 0,
+  "w": 2560,
+  "h": 1442
+ },
+ "gameRect": {
+  "x": 0,
+  "y": 1442,
+  "w": 2560,
+  "h": 1438
+ },
+ "band": {
+  "axis": "rows",
+  "quietFrom": 0,
+  "quietTo": 721,
+  "quietMean": 7,
+  "loudMean": 26.8
+ },
+ "face": {
+  "x": 898,
+  "y": 790,
+  "w": 502,
+  "h": 502
+ },
+ "frame": {
+  "W": 2560,
+  "H": 2880
+ }
+}

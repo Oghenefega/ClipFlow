@@ -1,0 +1,14 @@
+{
+ "world": "none",
+ "reason": "overlay region segmentation failed (clean no-proposal)",
+ "face": {
+  "x": 1587,
+  "y": 929,
+  "w": 97,
+  "h": 97
+ },
+ "frame": {
+  "W": 1920,
+  "H": 1080
+ }
+}

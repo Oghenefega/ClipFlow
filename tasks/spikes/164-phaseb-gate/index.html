@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head><body>
+<script type="module">
+import { FilesetResolver, FaceDetector } from '/node_modules/@mediapipe/tasks-vision/vision_bundle.mjs';
+
+const jobName = new URLSearchParams(location.search).get('job');
+
+function loadImage(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('img load fail ' + url));
+    img.src = url;
+  });
+}
+
+// Detect on a sub-rectangle of the image drawn at native resolution.
+function detectTile(detector, img, sx, sy, sw, sh, canvas) {
+  canvas.width = sw; canvas.height = sh;
+  const ctx = canvas.getContext('2d', { willReadFrequently: false });
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  const out = detector.detect(canvas);
+  return out.detections.map((d) => ({
+    x: d.boundingBox.originX + sx,
+    y: d.boundingBox.originY + sy,
+    w: d.boundingBox.width,
+    h: d.boundingBox.height,
+    score: d.categories[0] ? d.categories[0].score : 0,
+  }));
+}
+
+function iou(a, b) {
+  const x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  return inter / (a.w * a.h + b.w * b.h - inter);
+}
+
+function dedupe(dets) {
+  dets.sort((a, b) => b.score - a.score);
+  const keep = [];
+  for (const d of dets) if (!keep.some((k) => iou(k, d) > 0.45)) keep.push(d);
+  return keep;
+}
+
+async function main() {
+  const job = await (await fetch(`/job-${jobName}.json`)).json();
+  const vision = await FilesetResolver.forVisionTasks('/node_modules/@mediapipe/tasks-vision/wasm');
+  const detector = await FaceDetector.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: '/blaze_face_short_range.tflite' },
+    runningMode: 'IMAGE',
+    minDetectionConfidence: 0.35,
+  });
+  console.log('detector ready, frames: ' + job.frames.length);
+
+  const canvas = document.createElement('canvas');
+  const results = [];
+  for (const frameUrl of job.frames) {
+    const img = await loadImage(frameUrl);
+    const W = img.naturalWidth, H = img.naturalHeight;
+    let dets = [];
+    // pass 1: full frame
+    dets.push(...detectTile(detector, img, 0, 0, W, H, canvas).map((d) => ({ ...d, pass: 'full' })));
+    // pass 2+: overlapping tile grids (half-tile stride) so small faces survive internal downscale
+    for (const g of job.grids || [2, 4]) {
+      const tw = Math.floor(W / g), th = Math.floor(H / g);
+      for (let ty = 0; ty + th <= H + th / 2; ty += Math.floor(th / 2)) {
+        for (let tx = 0; tx + tw <= W + tw / 2; tx += Math.floor(tw / 2)) {
+          const sx = Math.min(tx, W - tw), sy = Math.min(ty, H - th);
+          dets.push(...detectTile(detector, img, sx, sy, tw, th, canvas).map((d) => ({ ...d, pass: 'g' + g })));
+          if (sx === W - tw) break;
+        }
+        if (Math.min(ty, H - th) === H - th) break;
+      }
+    }
+    const kept = dedupe(dets).map((d) => ({
+      x: Math.round(d.x), y: Math.round(d.y), w: Math.round(d.w), h: Math.round(d.h),
+      score: +d.score.toFixed(3), pass: d.pass,
+    }));
+    results.push({ frame: frameUrl, width: W, height: H, detections: kept });
+    console.log(`${frameUrl}: ${kept.length} face(s) ` + JSON.stringify(kept.slice(0, 4)));
+  }
+  await fetch('/result', { method: 'POST', body: JSON.stringify({ job: jobName, results }, null, 1) });
+}
+
+main().catch((e) => {
+  console.log('FATAL ' + (e.stack || e.message));
+  fetch('/result', { method: 'POST', body: JSON.stringify({ job: jobName, error: String(e) }) });
+});
+</script>
+</body></html>

@@ -34,8 +34,117 @@
 Harness + scorecard + annotated overlays: session scratchpad `gate/`
 (main.js, index.html, snap.js, postprocess.js, proposal-*.json, annot-*.jpg).
 
-Next: build slice (detection module in editor + "Detect" button pre-filling
-calibration draft + dims-mismatch trigger), then auto-offer slice consumes it.
+Next: build slices B1-B4 below.
+
+---
+
+## BUILD PLAN (awaiting Fega's go) — #164 Phase B implementation (session 106+)
+
+Ship order: B1 engine → B2 Detect button (face path) → B3 game-only layouts
++ two presets → B4 first-recording auto-offer. One installer at the end
+(version sized at wrap). Each slice: build + `npm start` + CDP verify before
+moving on.
+
+### B1 — Detection engine in the app (hidden window, zero UI)
+Mirror the subtitle-overlay offscreen pattern (subtitle-overlay-renderer.js:189
+— hidden BrowserWindow, dedicated preload, loadFile of a static html).
+- `public/detect.html` (→ build/detect.html): own CSP meta (`script-src
+  'self' blob: 'wasm-unsafe-eval'; connect-src blob:; media-src file: blob:`)
+  — the MAIN window's CSP (index.html:7) is UNTOUCHED. Main-window security
+  posture unchanged; new single-purpose window noted on the infra dashboard
+  when B1 lands (CSP rule in project CLAUDE.md).
+- `public/mediapipe/`: vision_bundle.mjs + wasm pair + blaze_face_short_range
+  .tflite (~11.5MB, copied from @mediapipe/tasks-vision — pinned 0.10.35 as a
+  devDependency; assets vendored into public/ so the packaged app never
+  touches node_modules). Loading: dedicated preload reads bytes via fs
+  (asar-aware) → blob URLs (+ modelAssetBuffer for the model); page does
+  dynamic import(blobUrl). FALLBACK if blob-import misbehaves under file://:
+  protocol.handle('clipflow-detect') route in main.js (named, not default).
+- `src/main/reframe-detect.js`: `detect:run(sourcePath)` IPC — spawns/reuses
+  the hidden window, passes the source path, 240s timeout, returns proposal
+  JSON; window torn down after each run.
+- Detect page renderer: hidden `<video src=file://source>` seek-sampler (8
+  frames 10-90%, WITH teardown — every <video> gets cleanup, crash memory),
+  canvas tiles → FaceDetector (grids 2/4, +6 when min(dim)<1200), then
+  consensus + world classify + band/region snap ported 1:1 from the gate's
+  snap.js (proven constants: quiet/loud ≥2.5, qTheta abs 6-10, theta
+  max(10,6·med), dilate r1, trim 0.12, refusal caps).
+- NEW vs gate: native-res edge refinement — after the coarse rect, re-search
+  each edge ±60px at full res on 2 sampled frames (fixes v3's 54px shave).
+- Output: `{world: 'stacked'|'overlay'|'nocam'|'none', camRect, gameRect,
+  confidence, faceBox}` — 'nocam' = detector confident no static face
+  (≤1 frame hits after consensus), 'none' = refusal (face found, region
+  failed). Preload bridge: `clipflow.reframe.detect(projectId)`.
+- Verify (B1): dev app console/IPC call on the three real videos reproduces
+  the gate proposals (v1 0-2px vs saved layout); packaged exe (`npm run
+  build` + install) runs detection with network disabled; `npx asar list`
+  shows detect.html + mediapipe assets.
+
+### B2 — "Detect layout" in the Layout panel (face path)
+- RightPanelNew.js calibrating view: [Detect layout] button above the boxes
+  block → "Analyzing 8 frames…" progress state → outcome A (stacked/overlay):
+  prefill draft camRect/gameRect via existing updateReframeRect, status line
+  "Found your webcam — adjust or Apply"; outcome 'none': red-box message
+  "Couldn't detect this layout — place the boxes manually" (existing error
+  row). 'nocam' handled in B3 (until then: same manual message).
+- No store schema changes: detection writes into the existing reframeDraft.
+- Verify (B2): CDP drive on dev sandbox (proj_polish_real, RL Main 2560×2880):
+  Detect → draft rects within nudge of saved entry → Apply → named entry
+  updated, no duplicate; error path renders in the red box (kill the detect
+  window mid-run to prove it).
+
+### B3 — Game-only layouts + the two no-cam presets
+camRect becomes nullable end-to-end ("game-only" layout):
+- `src/main/projects.js:265` updateReframe: accept camRect === null
+  (whitelist copies null; gameRect still required) — the 104 whitelist trap,
+  handled deliberately.
+- `src/main/render.js:58,87-93,154-177` isReframeActive drops the camRect
+  requirement; camBand=0 when null; game band overlays CENTERED
+  (y=(1920-gameBand)/2) instead of below the cam; feather/bg skip when
+  gameBand ≥ 1916 (fully-zoomed fills the frame). Null-reframe parity guard
+  re-run (existing projects byte-identical).
+- `PreviewPanelNew.js:917,1244-1329` compositor mirrors the same math;
+  calibration overlay renders only present boxes (skip cam when null).
+- `reframeStyle.js`: `presetFullyZoomed(srcW,srcH)` (gameRect = centered
+  even-rounded 9:16 crop, camRect null) + `presetFitToScreen(srcW,srcH)`
+  (gameRect = full frame, camRect null). CJS exports like the rest (main +
+  renderer both consume).
+- Panel: preset chips row in the calibrating view when draft is fresh OR
+  detection returned 'nocam' — [Fully zoomed] [Fit to screen] chips (existing
+  chip idiom, no new aesthetic) prefill the draft; everything stays draggable
+  /tunable/saveable (presets are starting points, not modes). Fully-zoomed
+  game box: horizontal pan = drag (box keeps 9:16 W:H lock? NO — keep
+  free-form per editor conventions; preset just places it).
+- Library/store: entries with camRect null save/apply/star normally
+  (dims guard unchanged); useEditorStore draft tolerates null cam.
+- Verify (B3): real renders of both presets from a horizontal source (mode 1
+  fills 1080×1920 edge to edge; mode 2 letterboxed with blurred bg matching
+  preview); CDP: chip → draft → Apply → persists → reload; null-reframe
+  parity; existing cam layouts regress nothing (render v1 project again).
+
+### B4 — First-recording auto-offer (the finale, consumes B1-B3)
+- Trigger: editor opens a project whose source is non-9:16 AND
+  project.reframe == null AND no dims-matching library entry AND dims not in
+  the dismissed list.
+- UX: banner over the preview/right rail: "New recording format — set up a
+  vertical layout?" [Set up] [Not for this format] — Set up switches to the
+  Layout tab, auto-runs detection, lands in calibration prefilled (boxes or
+  preset chips per outcome). "Not for this format" persists the dims to
+  `reframeOfferDismissed` (electron-store, main.js defaults + settings
+  whitelist — new key, migration-safe default []).
+- Verify (B4): CDP: fresh-dims project shows banner once → Set up →
+  prefilled calibration; dismiss persists across relaunch; 9:16 project and
+  dims-matched projects never see it.
+
+### Cross-cutting
+- Renderer detection module is page-scoped (detect.html) — no editor imports
+  of mediapipe, so no build.files additions beyond build/ (already shipped).
+- Version/installer: one cut after B4 + CHANGELOG; sizing decided at wrap
+  (epic-completion candidate for the 0.2.0 line once Fega verifies on his
+  real workflow).
+- Risks watched: CSP scoped to detect.html only; hidden <video> teardown;
+  Vite ESM-only rule untouched (detect page bypasses Vite bundling); dev-mode
+  URL vs loadFile dual-path for detect.html (mirror main-window logic).
 
 ### Original approved plan (for reference)
 

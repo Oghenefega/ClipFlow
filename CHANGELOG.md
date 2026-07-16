@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-16 (session 106) — Phase B detection gate passed (planning + prototype, no app changes)
+
+### Added
+- **Auto-Reframe Phase B prototype gate PASSED (#164).** A standalone harness (no app code touched) proved the box-detection approach on real footage: MediaPipe face detection with overlapping tile scanning found the facecam in 8/8 sampled frames on every test source — including a manufactured worst case with a ~51px face — classified stacked vs overlay layouts correctly 6/6, and proposed camera boxes within 0-4px on four sources (~2% worst case on a borderless rounded cam). The one adversarial failure (cam corner-touching a game HUD) refused cleanly instead of proposing a wrong box. Detector settled: pure WASM, fully offline, no native modules, ~11.5MB of assets; no fallback detector needed. Harness + final algorithm constants preserved in `tasks/spikes/164-phaseb-gate/`. [scorecard on #164]
+- **Phase B build plan written (tasks/todo.md):** B1 detection engine in a hidden window (mirroring the subtitle-overlay pattern, page-scoped CSP) → B2 "Detect layout" button pre-filling calibration → B3 no-webcam layouts with two tweakable presets ("Fully zoomed" edge-cropped fill, "Fit to screen" centered with the blurred background) → B4 first-recording auto-offer banner. Awaiting go.
+
+### Changed
+- **Phase B plan revised against shipped Phase A reality (#164):** detection now proposes into the named-layout library flow (rects only — style untouched); a two-world rule proposes the game box geometrically (overlay → full frame, stacked band → complement band); the first-recording auto-offer moved to the END of Phase B so it ships smart (Fega-approved order flip); no-webcam recordings became a first-class third detection outcome offering the two presets; the fallback detector was corrected from a native module to a WASM path — and then proved unnecessary by the gate.
+
 ## [0.1.9-alpha.5] — 2026-07-16 (session 105) — Installer cut: one-click apply-and-save + visible pan sliders
 
 ### Changed
