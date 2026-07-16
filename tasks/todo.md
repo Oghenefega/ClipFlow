@@ -6,6 +6,44 @@
 
 ---
 
+## DONE (machine-verified, awaiting Fega's hands-on) — #164 polish round 3 (session 105b) — shipped in 0.1.9-alpha.5
+
+Two items from Fega's alpha.4 pass, implemented by Fable directly (no
+subagents — policy reversed this session). CDP v4 pass: 19/19, zero
+exceptions — active view names the layout, Save button gone, pencil rename
+persists, Name prefills from the linked entry, 6 panel sliders load persisted
+values, pan sliders drive + persist (H=100/V=0), Apply renames + updates the
+entry with no duplicates and without touching the default.
+
+**1. Naming folds into Apply — the "Save layout" button dies.**
+- The layout editor (calibrating view) gets a **Name** field, prefilled with the
+  layout's current name (or "Layout N" for a fresh one), sitting right above
+  Apply/Cancel.
+- **Apply layout** now does everything in one click: applies to the clip AND
+  saves/updates the named layout in the library (first-ever still becomes the
+  default; after that ★ controls it). Draft carries `name`; commit runs the
+  existing upsert+link logic (kills the separate save flow).
+- Active view: shows the layout's name in the status line ("'RL Dual Band' is
+  active…"); buttons reduce to [Edit layout] + Remove. Save-row states deleted.
+- Saved layouts list: **pencil icon per row → rename inline** (Enter/blur
+  saves) — rename without touching boxes. Apply-on-click/★/dimmed rows stay.
+- Consequence (intended): re-applying after a tweak keeps the linked library
+  entry current — the layout stays maintained, no duplicates.
+
+**2. Pan gets real controls.**
+- Two sliders under Zoom in "Background & edge": **Horizontal** (left↔right)
+  and **Vertical** (top↔bottom) — they drive the same bgPosX/bgPosY the render
+  reads. Live preview like every other slider.
+- The drag-the-Result gesture stays as a bonus, but sliders are the primary,
+  visible path (drag-only failed the discoverability test on Fega's pass).
+
+Files: RightPanelNew.js (panel UI), useEditorStore.js (draft name +
+commit-with-save merge), reframeStyle.js untouched (bgPosX/Y already exist).
+Verify: build + CDP pass (apply-saves-with-name, sliders persist, rename row)
+→ cut **0.1.9-alpha.5**.
+
+---
+
 ## DONE (machine-verified, awaiting Fega's hands-on) — #164 polish round 2 (session 105)
 
 Fega's four items from his alpha.3 pass, all shipped in **0.1.9-alpha.4**:

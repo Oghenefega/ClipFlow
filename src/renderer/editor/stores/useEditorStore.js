@@ -537,13 +537,25 @@ const useEditorStore = create((set, get) => ({
 
   cancelReframeDraft: () => set({ reframeDraft: null }),
 
-  // Persist the draft as project.reframe. Re-checks project identity after the
-  // IPC await so a rapid clip/project switch can't get a stale write (#97 family).
-  commitReframeDraft: async () => {
+  // Persist the draft as project.reframe AND upsert it into the app-level
+  // layout library (`reframeLayouts`) under layoutName — one Apply both
+  // applies and saves (Fega, session 105: the separate save step was
+  // redundant). Upserts by the draft's layoutId so repeat applies update the
+  // same entry (no duplicates); a fresh layout gets its new id in the SAME
+  // project write. Default is only claimed when no valid default exists.
+  // Re-checks project identity after the IPC await so a rapid clip/project
+  // switch can't get a stale write (#97 family).
+  commitReframeDraft: async (layoutName) => {
     const { project, reframeDraft } = get();
     if (!project?.id || !reframeDraft) return { error: "Nothing to apply" };
+    const name = (layoutName || "").trim() || "Layout";
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const existingIdx = reframeDraft.layoutId
+      ? layouts.findIndex((l) => l.id === reframeDraft.layoutId)
+      : -1;
+    const id = existingIdx >= 0 ? layouts[existingIdx].id : "layout_" + Date.now();
     const reframe = {
-      layoutId: reframeDraft.layoutId ?? null,
+      layoutId: id,
       camRect: { ...reframeDraft.camRect },
       gameRect: { ...reframeDraft.gameRect },
       style: resolveReframeStyle(reframeDraft.style),
@@ -551,6 +563,30 @@ const useEditorStore = create((set, get) => ({
     const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
     if (result?.error) return result;
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    const now = new Date().toISOString();
+    const entryFields = {
+      name,
+      camRect: { ...reframe.camRect },
+      gameRect: { ...reframe.gameRect },
+      style: { ...reframe.style },
+      updatedAt: now,
+    };
+    if (existingIdx >= 0) {
+      layouts[existingIdx] = { ...layouts[existingIdx], ...entryFields };
+    } else {
+      layouts.push({
+        id,
+        sourceWidth: project.sourceWidth,
+        sourceHeight: project.sourceHeight,
+        createdAt: now,
+        ...entryFields,
+      });
+    }
+    await window.clipflow.storeSet("reframeLayouts", layouts);
+    const currentDefaultId = await window.clipflow.storeGet("reframeLayoutDefaultId");
+    if (!(currentDefaultId && layouts.some((l) => l.id === currentDefaultId))) {
+      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
+    }
     set({ project: { ...get().project, reframe }, reframeDraft: null });
     return { success: true };
   },
@@ -564,75 +600,6 @@ const useEditorStore = create((set, get) => ({
     if (get().project?.id !== project.id) return { error: "Project changed during save" };
     set({ project: { ...get().project, reframe: null }, reframeDraft: null });
     return { success: true };
-  },
-
-  // Save (or update) the active project.reframe into the app-level layout
-  // library (electron-store `reframeLayouts` + `reframeLayoutDefaultId`)
-  // under a user-chosen name. Upserts by project.reframe.layoutId so repeat
-  // saves of the same project update in place instead of piling up
-  // duplicates (the old silent-save bug), and links a freshly-created entry
-  // back onto the project so the NEXT save updates too.
-  saveReframeLayout: async (name) => {
-    const { project } = get();
-    if (!project?.id || !project.reframe?.camRect || !project.reframe?.gameRect) {
-      return { error: "No layout to save" };
-    }
-    const trimmed = (name || "").trim();
-    if (!trimmed) return { error: "Name required" };
-
-    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
-    const now = new Date().toISOString();
-    const existingIdx = project.reframe.layoutId
-      ? layouts.findIndex((l) => l.id === project.reframe.layoutId)
-      : -1;
-
-    let id;
-    let isNew = false;
-    if (existingIdx >= 0) {
-      id = layouts[existingIdx].id;
-      layouts[existingIdx] = {
-        ...layouts[existingIdx],
-        name: trimmed,
-        camRect: { ...project.reframe.camRect },
-        gameRect: { ...project.reframe.gameRect },
-        style: resolveReframeStyle(project.reframe.style),
-        updatedAt: now,
-      };
-    } else {
-      isNew = true;
-      id = "layout_" + Date.now();
-      layouts.push({
-        id,
-        name: trimmed,
-        sourceWidth: project.sourceWidth,
-        sourceHeight: project.sourceHeight,
-        camRect: { ...project.reframe.camRect },
-        gameRect: { ...project.reframe.gameRect },
-        style: resolveReframeStyle(project.reframe.style),
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-    await window.clipflow.storeSet("reframeLayouts", layouts);
-
-    // Default only when none exists yet — never steal it from a still-existing entry.
-    const currentDefaultId = await window.clipflow.storeGet("reframeLayoutDefaultId");
-    const defaultStillValid = currentDefaultId && layouts.some((l) => l.id === currentDefaultId);
-    let becameDefault = false;
-    if (!defaultStillValid) {
-      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
-      becameDefault = true;
-    }
-
-    if (isNew) {
-      const reframe = { ...project.reframe, layoutId: id, style: resolveReframeStyle(project.reframe.style) };
-      const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
-      if (result?.error) return result;
-      if (get().project?.id !== project.id) return { error: "Project changed during save" };
-      set({ project: { ...get().project, reframe: { ...project.reframe, layoutId: id } } });
-    }
-
-    return { success: true, id, name: trimmed, becameDefault };
   },
 
   // Attach a saved layout-library entry to the active project (Layout

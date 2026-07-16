@@ -1,15 +1,16 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-16 — Session 105 — **#164 polish round 2 (bg zoom/position + named layouts), SHIPPED in 0.1.9-alpha.4. Awaiting Fega's hands-on.**_
+_Last updated: 2026-07-16 — Session 105 — **#164 polish rounds 2+3 SHIPPED (0.1.9-alpha.5). Sonnet-delegation policy REVERSED. Awaiting Fega's hands-on.**_
 
 ---
 
 ## One-line TL;DR
-Fega's four alpha.3 feedback items, implemented via two Sonnet subagents (reviewed line-by-line), machine-verified end-to-end (node math checks + filter-args + 3-pass CDP drive + real render), cut as **0.1.9-alpha.4**: Shadow edge option removed; blurred background defaults to 2× zoom centered on the game box (fixes "background shows the floor"); new Zoom slider + drag-the-Result-preview to choose what the background shows; layouts are now named with a pickable "Saved layouts" list (★ default, apply-on-click, dimmed on dims mismatch, duplicate-on-resave bug fixed).
+Two ship rounds in one session. Round 2 (alpha.4, via Sonnet subagents): Shadow removed, bg defaults to 2× centered zoom, Zoom slider + Result-drag, named layout library. Fega's hands-on then rejected two UX choices AND the delegation workflow ("let's not use sonnet… use fable instead") — round 3 (alpha.5, Fable direct): the separate "Save layout" button died (Apply now applies AND saves under a Name field in the editor, pencil-rename on list rows), and panning got dedicated Horizontal/Vertical sliders (drag-only was undiscoverable). CDP v4: 19/19, zero exceptions.
 
 ## Current State
-- **Daily driver: 0.1.9-alpha.4 offered** — installer in `dist/`, banner will surface it. Fega still hadn't clicked alpha.2/alpha.3 banners as of session start; alpha.4 supersedes them (all changes cumulative).
-- All work committed + pushed to master. CHANGELOG current through alpha.4.
-- Dev sandbox (`%APPDATA%\clipflow-dev\`): proj_polish_real now carries a TEST style (blur 0 / darken 80 / edge 15 / zoom 100 / pos 36,29) and links to library entry "RL Dual Band v2" (2560×2880). Library also has the old "1920×1080 layout" entry. Default = RL Dual Band v2. All deliberate CDP-test residue — harmless, it's the sandbox.
+- **Daily driver: 0.1.9-alpha.5 offered** — installer in `dist/`, banner will surface it (supersedes alpha.4, which he installed and tested this session).
+- All work committed + pushed to master. CHANGELOG current through alpha.5.
+- **PROCESS POLICY CHANGE: no Sonnet/Haiku implementation subagents** — Fable implements directly in the main session. Memory + lessons.md updated (subagents stay OK for read-only research).
+- Dev sandbox (`%APPDATA%\clipflow-dev\`): proj_polish_real links to entry "RL Main" (2560×2880), test style blur 0 / darken 80 / edge 15 / zoom 100 / pos 100,0; second entry "Old HD Canvas" (1920×1080, dims-mismatch row). Default = RL Main. All deliberate CDP-test residue — harmless, it's the sandbox.
 
 ## What Was Just Built (session 105)
 1. **`bgSourceWindow(gameRect, style, outW, outH)` in reframeStyle.js** — THE new core: integer, even-rounded source-pixel window the blurred bg samples. zoom = 1 + bgZoom/50 (0→1× exact old cover framing, 50→2× default, 100→3×); bgPosX/bgPosY 0-100 pan the leftover range; clamped inside the game rect. Both engines consume the same window: render.js `crop=<win>,scale=270:480,…` (replaced scale-cover+center-crop pair), PreviewPanelNew scratch `drawImage(video, win…)` (replaced coverScale math).
@@ -17,19 +18,26 @@ Fega's four alpha.3 feedback items, implemented via two Sonnet subagents (review
 3. **Result-preview drag** (RightPanelNew LayoutPanel): pointer capture on the Result wrapper, content-follows-pointer (drag right → bgPosX decreases), per-axis skip when no pan range, `e.buttons===0` bail + pointercancel (stuck-drag guards), hint line under the box. Store's `updateReframeStyle` resolver-clamps to ints — fine on a blurred bg.
 4. **Named layout library**: store actions `saveReframeLayout(name)` (upsert by `project.reframe.layoutId`; writes layoutId back onto the project after first save — THE fix for silent duplicate entries; default claimed only when none valid exists) and `applyReframeLayout(entry)` (exact dims guard, commit-style identity re-check). Panel: "Save layout" → inline prefilled name row (Enter saves, Esc closes); `SavedLayoutsList` in both non-calibrating views (★ default toggle w/ stopPropagation, "In use" tag on the linked entry, mismatch rows dimmed + tooltip). SettingsView untouched — its list shows the names automatically.
 
+## Round 3 (105b, after Fega's alpha.4 hands-on)
+- **Apply = apply + save.** `commitReframeDraft(layoutName)` now upserts the library entry (by draft layoutId, else creates with the new id in the SAME project write), claims default only when none valid exists. `saveReframeLayout` DELETED. Panel: Name field (prefilled from linked entry, else "Layout N"; re-seeds until first keystroke — `nameTouchedRef`) above Apply; active view shows the layout's name; pencil-rename on `SavedLayoutsList` rows (blur is the single commit path; Esc cancels via ref flag).
+- **Pan sliders**: Horizontal (bgPosX) + Vertical (bgPosY) EffectSliders between Zoom and Edge size; whole group moved to `labelWidth="w-16"` so "Horizontal" fits. Result-drag kept as an accelerator.
+
 ## Key Decisions (this session)
 - **Default bg framing CHANGED deliberately**: 2× centered (the item-2 fix). Old projects/layouts inherit it via read-time resolve — Zoom 0 restores the exact old framing if ever wanted. Byte-parity with alpha.3 bg was explicitly NOT a goal (the old look was the complaint).
-- **Position control = drag the Result preview** (not sliders) — Fega asked to "play with" the framing; zoom stayed a slider.
-- First saved layout auto-becomes default; afterwards the ★ is the only thing that moves it (saves never steal).
-- Version: alpha tick (4-item polish batch on the existing subsystem), per delegated sizing policy.
+- **Position control**: round 2 shipped drag-the-Result only; Fega couldn't find/use it → round 3 added Horizontal/Vertical sliders as the primary path. Lesson recorded: explicit controls first, gestures as accelerators.
+- **Every Apply updates the linked library entry** (rects+style+name) — the layout stays maintained, no duplicates; renaming the field renames the entry (no forking).
+- First saved layout auto-becomes default; afterwards the ★ is the only thing that moves it (Apply never steals).
+- **No more Sonnet implementation subagents** (Fega, explicit) — too slow for the value; Fable does the edits.
+- Version: two alpha ticks (alpha.4 batch, alpha.5 UX corrections), per delegated sizing policy.
 
 ## Next Steps
-1. **Fega installs alpha.4** → hands-on: calibrate on real footage, feel the Zoom + drag, save a named layout, check the list. If his preferred zoom/pos differs from 2×-centered, consider new REFRAME_STYLE_DEFAULTS (one line).
+1. **Fega installs alpha.5** → hands-on: Zoom + Horizontal/Vertical sliders on real footage, name-in-editor flow (Apply saves), pencil rename. If his preferred zoom/pos differs from 2×-centered, consider new REFRAME_STYLE_DEFAULTS (one line).
 2. Carried: first-recording auto-offer slice (approved), Projects-tab preview consistency for reframe projects (cosmetic), **Phase B** (MediaPipe box detection pre-filling calibration).
 3. **0.2.0** when the Auto-Reframe epic completes and verifies on his real workflow.
 4. Parked: #165 zoom tuning, #163 YouTube reconnect messaging, old non-v2 waveform cache cleanup, session-102 waveform regression check (Clip 1 of "2026-02-12 EO Day2 Pt1", burst under "MOVE,").
 
 ## Watch Out For
+- **`commitReframeDraft(name)` writes the LIBRARY too now** — every Apply upserts `reframeLayouts` and may claim a first default. Any future programmatic caller must pass a sensible name (falls back to "Layout"). `saveReframeLayout` no longer exists.
 - **All bg-window math lives in `bgSourceWindow`** — never re-derive cover/zoom/pan in an engine; both engines consume the returned integer window verbatim (parity by construction). Blur/darken/seamSize mappings unchanged from 104.
 - `resolveReframeStyle` no longer emits `seam` — anything reading `style.seam` is dead code; don't reintroduce it.
 - **projects.updateReframe whitelists reframe fields but passes `style` wholesale through resolveReframeStyle** (projects.js ~272) — new style SUBfields flow automatically; a new TOP-LEVEL reframe field still needs whitelisting (the session-104 trap, re-verified this session).

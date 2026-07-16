@@ -1742,8 +1742,14 @@ function RectRow({ label, color, rect, onSnap169 }) {
 // Rows for the app-level layout library (electron-store `reframeLayouts`).
 // Shared between the active-layout and no-layout LayoutPanel views. Row body
 // applies the entry (only when its calibrated source dims match this
-// project's); the star sets the default independently of applying.
-function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, linkedLayoutId, applying, onApply, onSetDefault }) {
+// project's); the star sets the default and the pencil renames in place —
+// both independent of applying.
+function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight, linkedLayoutId, applying, onApply, onSetDefault, onRename }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  // Enter commits by blurring — blur is the single commit path, so an
+  // Enter-then-blur sequence can't rename twice. Escape flags a cancel first.
+  const renameCancelRef = useRef(false);
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">Saved layouts</div>
@@ -1752,14 +1758,15 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
           const isDefault = l.id === defaultLayoutId;
           const matches = l.sourceWidth === sourceWidth && l.sourceHeight === sourceHeight;
           const inUse = l.id === linkedLayoutId;
+          const editing = editingId === l.id;
           return (
             <div
               key={l.id}
-              onClick={() => matches && onApply(l)}
+              onClick={() => !editing && matches && onApply(l)}
               title={matches ? undefined : `Calibrated for ${l.sourceWidth}×${l.sourceHeight} — this clip is ${sourceWidth}×${sourceHeight}`}
               className={`flex items-center gap-2.5 rounded-md border border-border/40 px-2.5 py-2 ${
-                matches ? "cursor-pointer hover:border-border/70" : "opacity-50 cursor-default"
-              }`}
+                matches && !editing ? "cursor-pointer hover:border-border/70" : ""
+              } ${matches ? "" : "opacity-50 cursor-default"}`}
             >
               <button
                 onClick={(e) => { e.stopPropagation(); if (!isDefault) onSetDefault(l.id); }}
@@ -1769,11 +1776,41 @@ function SavedLayoutsList({ layouts, defaultLayoutId, sourceWidth, sourceHeight,
               >
                 ★
               </button>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-foreground truncate">{l.name}</div>
-                <div className="text-xs text-muted-foreground">{l.sourceWidth}×{l.sourceHeight}</div>
-              </div>
-              {inUse && <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full shrink-0">In use</span>}
+              {editing ? (
+                <input
+                  autoFocus
+                  value={editName}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") { renameCancelRef.current = true; e.currentTarget.blur(); }
+                  }}
+                  onBlur={() => {
+                    const cancelled = renameCancelRef.current;
+                    renameCancelRef.current = false;
+                    setEditingId(null);
+                    const n = editName.trim();
+                    if (!cancelled && n && n !== l.name) onRename(l.id, n);
+                  }}
+                  className="flex-1 min-w-0 h-6 px-1.5 text-xs rounded bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+                />
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-foreground truncate">{l.name}</div>
+                  <div className="text-xs text-muted-foreground">{l.sourceWidth}×{l.sourceHeight}</div>
+                </div>
+              )}
+              {!editing && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditingId(l.id); setEditName(l.name); }}
+                  title="Rename"
+                  className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <PenLine className="h-3 w-3" />
+                </button>
+              )}
+              {inUse && !editing && <span className="text-[10px] text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded-full shrink-0">In use</span>}
             </div>
           );
         })}
@@ -1791,7 +1828,6 @@ function LayoutPanel() {
   const cancelReframeDraft = useEditorStore((s) => s.cancelReframeDraft);
   const commitReframeDraft = useEditorStore((s) => s.commitReframeDraft);
   const removeReframe = useEditorStore((s) => s.removeReframe);
-  const saveReframeLayout = useEditorStore((s) => s.saveReframeLayout);
   const applyReframeLayout = useEditorStore((s) => s.applyReframeLayout);
   const setReframePipCanvas = useEditorStore((s) => s.setReframePipCanvas);
 
@@ -1800,22 +1836,43 @@ function LayoutPanel() {
   const [error, setError] = useState("");
 
   // Saved-layouts library (electron-store `reframeLayouts` + default id) —
-  // loaded once on mount, refreshed after any save/apply/star action.
+  // loaded once on mount, refreshed after any apply/rename/star action.
   const [savedLayouts, setSavedLayouts] = useState([]);
   const [defaultLayoutId, setDefaultLayoutId] = useState(null);
-  const [showSaveRow, setShowSaveRow] = useState(false);
-  const [saveLayoutName, setSaveLayoutName] = useState("");
-  const [savingLayout, setSavingLayout] = useState(false);
-  const [saveConfirmMsg, setSaveConfirmMsg] = useState("");
   const [applyingSavedLayout, setApplyingSavedLayout] = useState(false);
+
+  const reloadLayouts = useCallback(async () => {
+    if (!window.clipflow?.storeGet) return;
+    const [layouts, defId] = await Promise.all([
+      window.clipflow.storeGet("reframeLayouts"),
+      window.clipflow.storeGet("reframeLayoutDefaultId"),
+    ]);
+    setSavedLayouts(Array.isArray(layouts) ? layouts : []);
+    setDefaultLayoutId(defId || null);
+  }, []);
+
+  useEffect(() => { reloadLayouts(); }, [reloadLayouts]);
+
+  // Name field for the calibrating view — Apply saves the layout under this
+  // name. Seeded when calibration opens (and re-seeded if the library loads a
+  // beat later) until the user actually types; touching it stops re-seeds.
+  const [layoutName, setLayoutName] = useState("");
+  const nameTouchedRef = useRef(false);
+  useEffect(() => {
+    if (!reframeDraft) { nameTouchedRef.current = false; return; }
+    if (nameTouchedRef.current) return;
+    const linked = savedLayouts.find((l) => l.id === reframeDraft.layoutId);
+    setLayoutName(linked ? linked.name : `Layout ${savedLayouts.length + 1}`);
+  }, [reframeDraft, savedLayouts]);
 
   const handleApply = useCallback(async () => {
     setError("");
     setApplying(true);
-    const result = await commitReframeDraft();
+    const result = await commitReframeDraft(layoutName);
     setApplying(false);
-    if (result?.error) setError(result.error);
-  }, [commitReframeDraft]);
+    if (result?.error) { setError(result.error); return; }
+    reloadLayouts();
+  }, [commitReframeDraft, layoutName, reloadLayouts]);
 
   const handleRemove = useCallback(async () => {
     setError("");
@@ -1835,43 +1892,16 @@ function LayoutPanel() {
     updateReframeDraft(key, { x: rect.x, y: rect.y, w: rect.w, h });
   }, [reframeDraft, updateReframeDraft]);
 
-  // Saved-layouts library: reload both electron-store keys. Called once on
-  // mount and again after any save/apply/star action so the list + ★ default
-  // stay current.
-  const reloadLayouts = useCallback(async () => {
-    if (!window.clipflow?.storeGet) return;
-    const [layouts, defId] = await Promise.all([
-      window.clipflow.storeGet("reframeLayouts"),
-      window.clipflow.storeGet("reframeLayoutDefaultId"),
-    ]);
-    setSavedLayouts(Array.isArray(layouts) ? layouts : []);
-    setDefaultLayoutId(defId || null);
-  }, []);
-
-  useEffect(() => { reloadLayouts(); }, [reloadLayouts]);
-
-  // Open the inline save row, prefilling the linked entry's name (repeat
-  // save) or the next default "Layout N" (first save).
-  const handleToggleSaveRow = useCallback(() => {
-    if (showSaveRow) { setShowSaveRow(false); return; }
-    const linked = savedLayouts.find((l) => l.id === project?.reframe?.layoutId);
-    setSaveLayoutName(linked ? linked.name : `Layout ${savedLayouts.length + 1}`);
-    setShowSaveRow(true);
-  }, [showSaveRow, savedLayouts, project]);
-
-  const handleConfirmSaveLayout = useCallback(async () => {
-    const name = saveLayoutName.trim();
-    if (!name || savingLayout) return;
-    setError("");
-    setSavingLayout(true);
-    const result = await saveReframeLayout(name);
-    setSavingLayout(false);
-    if (result?.error) { setError(result.error); return; }
-    setShowSaveRow(false);
+  // Rename a library entry in place (pencil on a Saved layouts row) — pure
+  // library metadata, never touches any project's reframe.
+  const handleRenameLayout = useCallback(async (id, name) => {
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const idx = layouts.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    layouts[idx] = { ...layouts[idx], name, updatedAt: new Date().toISOString() };
+    await window.clipflow.storeSet("reframeLayouts", layouts);
     reloadLayouts();
-    setSaveConfirmMsg(`Saved "${result.name}"${result.becameDefault ? " — will auto-attach to new recordings." : ""}`);
-    setTimeout(() => setSaveConfirmMsg(""), 2500);
-  }, [saveLayoutName, savingLayout, saveReframeLayout, reloadLayouts]);
+  }, [reloadLayouts]);
 
   const handleApplySavedLayout = useCallback(async (entry) => {
     if (applyingSavedLayout) return;
@@ -1958,13 +1988,27 @@ function LayoutPanel() {
 
         <div className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">Background & edge</div>
-          <EffectSlider label="Blur" value={style.blur} onChange={(v) => updateReframeStyle({ blur: v })} min={0} max={100} />
-          <EffectSlider label="Darkness" value={style.darken} onChange={(v) => updateReframeStyle({ darken: v })} min={0} max={100} suffix="%" />
-          <EffectSlider label="Zoom" value={style.bgZoom} onChange={(v) => updateReframeStyle({ bgZoom: v })} min={0} max={100} />
-          <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" />
+          <EffectSlider label="Blur" value={style.blur} onChange={(v) => updateReframeStyle({ blur: v })} min={0} max={100} labelWidth="w-16" />
+          <EffectSlider label="Darkness" value={style.darken} onChange={(v) => updateReframeStyle({ darken: v })} min={0} max={100} suffix="%" labelWidth="w-16" />
+          <EffectSlider label="Zoom" value={style.bgZoom} onChange={(v) => updateReframeStyle({ bgZoom: v })} min={0} max={100} labelWidth="w-16" />
+          <EffectSlider label="Horizontal" value={style.bgPosX} onChange={(v) => updateReframeStyle({ bgPosX: v })} min={0} max={100} labelWidth="w-16" />
+          <EffectSlider label="Vertical" value={style.bgPosY} onChange={(v) => updateReframeStyle({ bgPosY: v })} min={0} max={100} labelWidth="w-16" />
+          <EffectSlider label="Edge size" value={style.seamSize} onChange={(v) => updateReframeStyle({ seamSize: v })} min={0} max={25} suffix="%" labelWidth="w-16" />
         </div>
 
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
+
+        {/* Apply both applies to the clip AND saves the layout under this name. */}
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-muted-foreground w-16">Name</span>
+          <input
+            value={layoutName}
+            onChange={(e) => { nameTouchedRef.current = true; setLayoutName(e.target.value); }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
+            placeholder="Layout name..."
+            className="flex-1 min-w-0 h-8 px-2.5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
+          />
+        </div>
 
         <div className="flex gap-1.5">
           <Button size="sm" onClick={handleApply} disabled={applying} className="flex-1 h-8 text-xs">
@@ -2001,45 +2045,17 @@ function LayoutPanel() {
 
   // ── Layout active, not calibrating ──
   if (project.reframe) {
+    const activeName = savedLayouts.find((l) => l.id === project.reframe.layoutId)?.name;
     return (
       <div className="p-3 space-y-3">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Vertical layout active — preview and renders use it.
+          {activeName ? <><span className="text-foreground font-medium">{activeName}</span> is active — preview and renders use it.</> : "Vertical layout active — preview and renders use it."}
         </p>
 
-        <div className="flex gap-1.5">
-          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => beginReframeDraft()}>
-            Edit layout
-          </Button>
-          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={handleToggleSaveRow}>
-            Save layout
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={() => beginReframeDraft()}>
+          Edit layout
+        </Button>
 
-        {showSaveRow && (
-          <div className="flex gap-1.5">
-            <input
-              autoFocus
-              value={saveLayoutName}
-              onChange={(e) => setSaveLayoutName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleConfirmSaveLayout(); if (e.key === "Escape") setShowSaveRow(false); }}
-              placeholder="Layout name..."
-              className="flex-1 h-8 px-2.5 text-xs rounded-md bg-secondary border border-border text-foreground outline-none focus:border-primary/40"
-            />
-            <Button size="sm" className="h-8 px-3 text-xs" onClick={handleConfirmSaveLayout} disabled={savingLayout || !saveLayoutName.trim()}>
-              {savingLayout ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setShowSaveRow(false)}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-
-        {saveConfirmMsg && (
-          <div className="text-xs text-green-400 bg-green-500/10 rounded-md px-2.5 py-2">
-            {saveConfirmMsg}
-          </div>
-        )}
         {error && <div className="text-xs text-red-400 bg-red-500/10 rounded-md px-2.5 py-2">{error}</div>}
 
         {savedLayouts.length > 0 && (
@@ -2052,6 +2068,7 @@ function LayoutPanel() {
             applying={applyingSavedLayout}
             onApply={handleApplySavedLayout}
             onSetDefault={handleSetDefaultLayout}
+            onRename={handleRenameLayout}
           />
         )}
 
@@ -2096,6 +2113,7 @@ function LayoutPanel() {
           applying={applyingSavedLayout}
           onApply={handleApplySavedLayout}
           onSetDefault={handleSetDefaultLayout}
+          onRename={handleRenameLayout}
         />
       )}
     </div>
