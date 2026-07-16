@@ -1,5 +1,5 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-16 — Session 105 — **#164 polish rounds 2+3 SHIPPED (0.1.9-alpha.5). Sonnet-delegation policy REVERSED. Awaiting Fega's hands-on.**_
+_Last updated: 2026-07-16 — Session 105 — **#164 polish rounds 2+3 SHIPPED and FEGA-CONFIRMED on 0.1.9-alpha.5 ("it looks good"). Sonnet-delegation policy REVERSED.**_
 
 ---
 
@@ -7,7 +7,7 @@ _Last updated: 2026-07-16 — Session 105 — **#164 polish rounds 2+3 SHIPPED (
 Two ship rounds in one session. Round 2 (alpha.4, via Sonnet subagents): Shadow removed, bg defaults to 2× centered zoom, Zoom slider + Result-drag, named layout library. Fega's hands-on then rejected two UX choices AND the delegation workflow ("let's not use sonnet… use fable instead") — round 3 (alpha.5, Fable direct): the separate "Save layout" button died (Apply now applies AND saves under a Name field in the editor, pencil-rename on list rows), and panning got dedicated Horizontal/Vertical sliders (drag-only was undiscoverable). CDP v4: 19/19, zero exceptions.
 
 ## Current State
-- **Daily driver: 0.1.9-alpha.5 offered** — installer in `dist/`, banner will surface it (supersedes alpha.4, which he installed and tested this session).
+- **Daily driver: 0.1.9-alpha.5 INSTALLED and confirmed** — Fega tested the naming flow and pan sliders hands-on and signed off ("it looks good"). #164 Phase A polish is settled.
 - All work committed + pushed to master. CHANGELOG current through alpha.5.
 - **PROCESS POLICY CHANGE: no Sonnet/Haiku implementation subagents** — Fable implements directly in the main session. Memory + lessons.md updated (subagents stay OK for read-only research).
 - Dev sandbox (`%APPDATA%\clipflow-dev\`): proj_polish_real links to entry "RL Main" (2560×2880), test style blur 0 / darken 80 / edge 15 / zoom 100 / pos 100,0; second entry "Old HD Canvas" (1920×1080, dims-mismatch row). Default = RL Main. All deliberate CDP-test residue — harmless, it's the sandbox.
@@ -31,8 +31,8 @@ Two ship rounds in one session. Round 2 (alpha.4, via Sonnet subagents): Shadow 
 - Version: two alpha ticks (alpha.4 batch, alpha.5 UX corrections), per delegated sizing policy.
 
 ## Next Steps
-1. **Fega installs alpha.5** → hands-on: Zoom + Horizontal/Vertical sliders on real footage, name-in-editor flow (Apply saves), pencil rename. If his preferred zoom/pos differs from 2×-centered, consider new REFRAME_STYLE_DEFAULTS (one line).
-2. Carried: first-recording auto-offer slice (approved), Projects-tab preview consistency for reframe projects (cosmetic), **Phase B** (MediaPipe box detection pre-filling calibration).
+1. Carried: first-recording auto-offer slice (approved, session 103), Projects-tab preview consistency for reframe projects (cosmetic), **Phase B** (MediaPipe box detection pre-filling calibration).
+2. If Fega's tuned zoom/pos taste settles somewhere other than 2×-centered, update REFRAME_STYLE_DEFAULTS (one line in reframeStyle.js) so new users start there.
 3. **0.2.0** when the Auto-Reframe epic completes and verifies on his real workflow.
 4. Parked: #165 zoom tuning, #163 YouTube reconnect messaging, old non-v2 waveform cache cleanup, session-102 waveform regression check (Clip 1 of "2026-02-12 EO Day2 Pt1", burst under "MOVE,").
 

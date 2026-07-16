@@ -6,7 +6,7 @@
 
 ---
 
-## DONE (machine-verified, awaiting Fega's hands-on) — #164 polish round 3 (session 105b) — shipped in 0.1.9-alpha.5
+## DONE (FEGA-CONFIRMED on installed alpha.5) — #164 polish round 3 (session 105b)
 
 Two items from Fega's alpha.4 pass, implemented by Fable directly (no
 subagents — policy reversed this session). CDP v4 pass: 19/19, zero
@@ -44,7 +44,7 @@ Verify: build + CDP pass (apply-saves-with-name, sliders persist, rename row)
 
 ---
 
-## DONE (machine-verified, awaiting Fega's hands-on) — #164 polish round 2 (session 105)
+## DONE (FEGA-CONFIRMED via alpha.5) — #164 polish round 2 (session 105)
 
 Fega's four items from his alpha.3 pass, all shipped in **0.1.9-alpha.4**:
 1. ✅ Shadow edge option removed (Fade is the only edge treatment; stored
