@@ -6,6 +6,106 @@
 
 ---
 
+## GATE PASSED (2026-07-16, session 106) — #164 Phase B: auto-detect proposes the boxes
+
+**Gate results (prototype harness, zero src/ changes):**
+- Recall 100%: face found in 8/8 sampled frames on all 6 sources (3 real
+  videos + 3 manufactured mini-cam composites, faces down to ~51px). All
+  small-face hits came from the tile passes — tiling is load-bearing.
+- World classification 6/6 correct (stacked vs overlay).
+- Rect accuracy: v1 cam 0/0/0/2px vs Fega's saved layout; v2 band boundary
+  702 (visually exact); v3 borderless rounded cam worst-edge ~54px (~2% of
+  width; L2/T7/B19); m240 2/3/2/4px; m320 2/2/2/2px.
+- m480 (cam corner-abutting RL boost HUD over a dark corner): clean REFUSAL
+  (world:none), never a wrong box — the designed failure posture; manual
+  calibration remains the path.
+- Detector settled: MediaPipe blaze_face_short_range + full-frame pass +
+  overlapping tile grids (2/4, +6 below ~1080p-scale cams), consensus =
+  cluster present in ≥75% of frames with <2%-diag position spread. NO YuNet
+  fallback needed. Runtime = pure WASM (+~11.3MB assets), zero native modules.
+- Algorithm: stacked worlds via temporal-variance band step (quiet/loud
+  ratio ≥2.5); overlay cam rect via flood over (sharp-in-mean OR V<qTheta
+  [abs 6-10]) mask from face seeds, dilate r1, occupancy trim ≥0.12.
+- Build-slice refinements noted: native-res edge refine (±60px search at
+  full res, fixes v3's right-edge shave), asar/file:// WASM serving (harness
+  used localhost http; app loads via loadFile — needs protocol route or
+  asarUnpack), HUD-adjacency hardening for m480-class layouts.
+
+Harness + scorecard + annotated overlays: session scratchpad `gate/`
+(main.js, index.html, snap.js, postprocess.js, proposal-*.json, annot-*.jpg).
+
+Next: build slice (detection module in editor + "Detect" button pre-filling
+calibration draft + dims-mismatch trigger), then auto-offer slice consumes it.
+
+### Original approved plan (for reference)
+
+Order flip APPROVED (auto-offer = final Phase B slice). Gate footage supplied
+by Fega (real, replaces most of the manufactured set):
+1. Stacked 2560×2880 (current): `W:\YouTube Gaming Recordings Onward\Recordings\Arc Raiders\2026-07\2026-07-15 13-30-36.mp4`
+2. Old vertical canvas: `W:\YouTube Gaming Recordings Onward\Vertical Recordings Onwards\2026-03\2026-03-02 RL Day6 Pt2.mp4` (robustness only — true 9:16 skips reframe in-product)
+3. Old horizontal + overlay cam (THE target-customer case, 15GB — frame-extract in place, never copy): `W:\YouTube Gaming Recordings Onward\Recordings\Arc Raiders\2025-12\2025-12-16 AR Day 3.mp4`
+Manufactured small-cam variants still get built from these for the 120–300px sweep.
+
+Revised 2026-07-16 against shipped Phase A reality (named layout library,
+apply-and-save, style system, aspect-agnostic sources). The Phase B text in
+#164 predates all of that. Core unchanged: detect ONCE per layout, static
+boxes only, fully local, manual stays the guaranteed path.
+
+**Reality checks that reshaped the plan**
+- Fega's real layout (prod library = ground truth): source 2560×2880,
+  camRect = full top half (0,0,2560,1440), gameRect = bottom band with taste
+  insets (144,1433,2273,1447). STACKED canvas, giant cam — trivially
+  detectable. The hard case (100–300px overlay cam on 1920×1080) is the
+  target customer, and we own NO such footage — it must be manufactured.
+- No vision deps in package.json yet; renderer is Vite/ESM-only (no
+  require()); MediaPipe WASM + model must bundle locally (no CDN) and load
+  from inside the packaged exe — verify with asar list, not build.files.
+
+**Plan updates vs the original #164 Phase B section**
+1. Two-world proposal rule after cam detection: cam = floating island →
+   game = full frame (overlay world); cam spans a full-width/height band →
+   game = complement band (stacked world, Fega). Geometry only, no game-box
+   ML. Taste insets are the user's nudge, not detection's job.
+2. Integration = the shipped library flow: trigger when source dims match no
+   library entry, plus a manual "Detect" button in the layout editor
+   (calibrating view). Proposal lands as a normal draft; the existing
+   apply-and-save upsert names it ("WxH — Detected"). Detection proposes
+   RECTS ONLY — style (blur/darken/zoom/pan) untouched, comes from
+   defaults/library as today.
+3. Sequencing flip [NEEDS FEGA OK]: detection core ships first; the parked
+   first-recording auto-offer slice (approved session 103) becomes Phase B's
+   FINAL slice and consumes detection (offer opens calibration pre-filled).
+4. Gate ground truth: score proposed rects against Fega's saved rects —
+   cam box scored strictly (edge distance), game box scored on correct
+   world-classification only (his insets are taste). Manufactured 1080p set
+   from his own footage: cam band scaled to ~120/200/300px, composited over
+   the game band at corners; bordered / borderless / rounded variants.
+   Answer keys exact by construction.
+5. Fallback corrected: MediaPipe full-range model + tiled 2× scan for small
+   faces first; if recall still fails → YuNet via onnxruntime-WEB (WASM in
+   renderer). onnxruntime-node (native module = packaging risk) is OFF the
+   table — the original plan named it in error.
+6. Packaging checkpoint moves INTO the gate: the harness is a headless
+   Electron page (session-104/105 pattern, window-all-closed guard) loading
+   @mediapipe/tasks-vision WASM from local files — proves in-app + packaged
+   loading on day one.
+
+**Gate — step 1, zero src/ changes**
+- FFmpeg-extract ~8 frames (spread 10–90% of duration, skipping stream-start
+  scenes) from 2–3 real recordings + the manufactured 1080p set.
+- Harness runs detector → consensus-cluster face hits → snap outward to the
+  cam border via a pixels-that-never-change (temporal variance) edge map →
+  proposed camRect/gameRect per source.
+- Report: found/missed per cam size, mean nudge px, proposal-overlay
+  screenshots. Go/no-go on the fallback detector.
+- Pass criteria: Fega's cam found in ≥7/8 frames with proposed cam edges
+  within ~2% of frame dims vs saved rects; manufactured 200px+ cams found
+  reliably; failures are clean no-proposals, never confident wrong boxes.
+- Outputs live in the session scratchpad; nothing ships until the gate
+  passes and Fega approves the build slice.
+
+---
+
 ## DONE (FEGA-CONFIRMED on installed alpha.5) — #164 polish round 3 (session 105b)
 
 Two items from Fega's alpha.4 pass, implemented by Fable directly (no
