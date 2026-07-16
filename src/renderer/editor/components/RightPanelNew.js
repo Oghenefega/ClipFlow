@@ -27,7 +27,7 @@ import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
-import { bgSourceWindow } from "../utils/reframeStyle";
+import { bgSourceWindow, presetFullyZoomed, presetFitToScreen } from "../utils/reframeStyle";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Color Palette (matches Vizard predefined palette)
@@ -1836,6 +1836,9 @@ function LayoutPanel() {
   const [error, setError] = useState("");
   const [detecting, setDetecting] = useState(false);
   const [detectStatus, setDetectStatus] = useState("");
+  // #164 B3: detection confidently found no webcam → surface the game-only
+  // preset chips even on a non-fresh draft.
+  const [nocamDetected, setNocamDetected] = useState(false);
 
   // Saved-layouts library (electron-store `reframeLayouts` + default id) —
   // loaded once on mount, refreshed after any apply/rename/star action.
@@ -1861,7 +1864,7 @@ function LayoutPanel() {
   const [layoutName, setLayoutName] = useState("");
   const nameTouchedRef = useRef(false);
   useEffect(() => {
-    if (!reframeDraft) { nameTouchedRef.current = false; setDetectStatus(""); return; }
+    if (!reframeDraft) { nameTouchedRef.current = false; setDetectStatus(""); setNocamDetected(false); return; }
     if (nameTouchedRef.current) return;
     const linked = savedLayouts.find((l) => l.id === reframeDraft.layoutId);
     setLayoutName(linked ? linked.name : `Layout ${savedLayouts.length + 1}`);
@@ -1904,6 +1907,7 @@ function LayoutPanel() {
     const projectId = project.id;
     setError("");
     setDetectStatus("");
+    setNocamDetected(false);
     setDetecting(true);
     const result = await window.clipflow.reframeDetect(projectId);
     setDetecting(false);
@@ -1915,11 +1919,28 @@ function LayoutPanel() {
       s.updateReframeDraft("camRect", proposal.camRect);
       s.updateReframeDraft("gameRect", proposal.gameRect);
       setDetectStatus("Found your webcam — adjust or Apply");
+    } else if (proposal?.world === "nocam") {
+      // #164 B3: confidently no webcam → point at the game-only presets.
+      setNocamDetected(true);
+      setDetectStatus("No webcam found — pick a game-only layout below");
     } else {
-      // 'nocam' and 'none' both stay manual until B3 adds the no-cam presets.
+      // 'none' (refusal) stays manual.
       setError("Couldn't detect this layout — place the boxes manually.");
     }
   }, [detecting, project]);
+
+  // #164 B3: game-only starting points — clear the webcam box, place the game
+  // box. Everything stays draggable/tunable after (a preset is not a mode).
+  const handlePreset = useCallback((which) => {
+    const s = useEditorStore.getState();
+    const d = s.reframeDraft;
+    if (!d) return;
+    const p = which === "zoom"
+      ? presetFullyZoomed(d.sourceW, d.sourceH)
+      : presetFitToScreen(d.sourceW, d.sourceH);
+    s.updateReframeDraft("camRect", null);
+    s.updateReframeDraft("gameRect", p.gameRect);
+  }, []);
 
   // Rename a library entry in place (pencil on a Saved layouts row) — pure
   // library metadata, never touches any project's reframe.
@@ -2004,6 +2025,9 @@ function LayoutPanel() {
   // ── Calibrating ──
   if (reframeDraft) {
     const style = reframeDraft.style; // seeded by beginReframeDraft — always present
+    // #164 B3: preset chips on a fresh draft (nothing saved/linked yet), after
+    // a 'nocam' detection, or while editing an already game-only layout.
+    const showPresets = (!reframeDraft.layoutId && !project.reframe) || nocamDetected || reframeDraft.camRect === null;
     return (
       <div className="p-3 space-y-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -2019,10 +2043,32 @@ function LayoutPanel() {
               <Check className="h-3 w-3 shrink-0" /> {detectStatus}
             </div>
           )}
+          {showPresets && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground shrink-0">No webcam?</span>
+              <button
+                onClick={() => handlePreset("zoom")}
+                className="flex-1 text-xs px-2 py-1 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30"
+                title="Largest centered 9:16 crop — fills the vertical frame edge to edge"
+              >
+                Fully zoomed
+              </button>
+              <button
+                onClick={() => handlePreset("fit")}
+                className="flex-1 text-xs px-2 py-1 rounded bg-secondary/80 text-muted-foreground hover:text-foreground border border-border/30"
+                title="Whole recording letterboxed over the blurred background"
+              >
+                Fit to screen
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
+          {/* #164 B3: no Webcam row on a game-only draft (camRect null). */}
+          {reframeDraft.camRect && (
+            <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
+          )}
           <RectRow label="Game" color="#22d3ee" rect={reframeDraft.gameRect} onSnap169={() => handleSnap169("gameRect")} />
         </div>
 

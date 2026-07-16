@@ -481,11 +481,13 @@ const useEditorStore = create((set, get) => ({
     const w = sourceW || project?.sourceWidth || vid?.videoWidth || 1920;
     const h = sourceH || project?.sourceHeight || vid?.videoHeight || 1080;
     const existing = project?.reframe;
-    if (existing?.camRect && existing?.gameRect) {
+    // #164 B3: camRect === null is a real saved value (game-only layout) —
+    // it must route to the "edit existing" path, not fresh defaults.
+    if (existing?.gameRect && (existing.camRect || existing.camRect === null)) {
       set({
         reframeDraft: {
           layoutId: existing.layoutId ?? null,
-          camRect: { ...existing.camRect },
+          camRect: existing.camRect ? { ...existing.camRect } : null,
           gameRect: { ...existing.gameRect },
           style: resolveReframeStyle(existing?.style),
           sourceW: w,
@@ -512,10 +514,14 @@ const useEditorStore = create((set, get) => ({
   updateReframeDraft: (key, rect) => {
     const { reframeDraft } = get();
     if (!reframeDraft || (key !== "camRect" && key !== "gameRect")) return;
+    // #164 B3: camRect may be cleared to null (game-only presets).
+    const next = key === "camRect" && rect === null
+      ? null
+      : { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h) };
     set({
       reframeDraft: {
         ...reframeDraft,
-        [key]: { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h) },
+        [key]: next,
       },
     });
   },
@@ -556,7 +562,8 @@ const useEditorStore = create((set, get) => ({
     const id = existingIdx >= 0 ? layouts[existingIdx].id : "layout_" + Date.now();
     const reframe = {
       layoutId: id,
-      camRect: { ...reframeDraft.camRect },
+      // #164 B3: {...null} would become {} — null camRect must copy as null.
+      camRect: reframeDraft.camRect ? { ...reframeDraft.camRect } : null,
       gameRect: { ...reframeDraft.gameRect },
       style: resolveReframeStyle(reframeDraft.style),
     };
@@ -566,7 +573,7 @@ const useEditorStore = create((set, get) => ({
     const now = new Date().toISOString();
     const entryFields = {
       name,
-      camRect: { ...reframe.camRect },
+      camRect: reframe.camRect ? { ...reframe.camRect } : null,
       gameRect: { ...reframe.gameRect },
       style: { ...reframe.style },
       updatedAt: now,
@@ -613,7 +620,8 @@ const useEditorStore = create((set, get) => ({
     }
     const reframe = {
       layoutId: entry.id,
-      camRect: { ...entry.camRect },
+      // #164 B3: game-only entries carry camRect null — copy it as null.
+      camRect: entry.camRect ? { ...entry.camRect } : null,
       gameRect: { ...entry.gameRect },
       style: resolveReframeStyle(entry.style),
     };

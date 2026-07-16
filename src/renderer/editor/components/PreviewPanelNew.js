@@ -913,8 +913,9 @@ export default function PreviewPanelNew() {
 
   // #164 non-destructive reframe: crop rects stored on the project (null = no
   // reframe, everything below is inert and the preview behaves exactly as before).
+  // camRect === null is a game-only layout (#164 B3) — still active.
   const reframe = project?.reframe ?? null;
-  const reframeActive = !!(reframe && reframe.camRect && reframe.gameRect && videoSrc && !sourceOffline);
+  const reframeActive = !!(reframe && (reframe.camRect || reframe.camRect === null) && reframe.gameRect && videoSrc && !sourceOffline);
   const reframeRef = useRef(reframe);
   reframeRef.current = reframe;
 
@@ -1241,7 +1242,8 @@ export default function PreviewPanelNew() {
   // untouched. Geometry must mirror render.js baking (preview == export).
   const paintComposite = useCallback((canvas, rf) => {
     const video = videoRef.current;
-    if (!canvas || !video || !rf || !rf.camRect || !rf.gameRect || video.readyState < 2) return;
+    // camRect may be null (game-only layout, #164 B3) — only undefined/corrupt bails.
+    if (!canvas || !video || !rf || rf.camRect === undefined || !rf.gameRect || video.readyState < 2) return;
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh) return;
     const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
@@ -1259,12 +1261,28 @@ export default function PreviewPanelNew() {
       const y = Math.min(Math.max(0, r.y), vh - 2);
       return { x, y, w: Math.max(2, Math.min(r.w, vw - x)), h: Math.max(2, Math.min(r.h, vh - y)) };
     };
-    const cam = clampRect(rf.camRect);
+    const cam = rf.camRect ? clampRect(rf.camRect) : null; // #164 B3: null = game-only layout
     const game = clampRect(rf.gameRect);
     const style = resolveReframeStyle(rf.style);
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "medium";
+
+    // #164 B3 fully-zoomed mirror: same 1080-space band + thresholds as
+    // render.js — no cam and the band spans the 1920 frame → the game crop is
+    // drawn alone, no bg/feather work (render bakes a single crop+scale there).
+    const band1080 = 2 * Math.round((1080 * game.h / game.w) / 2);
+    if (!cam && band1080 >= 1916) {
+      if (band1080 <= 1924) {
+        ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, 0, W, H);
+      } else {
+        // Taller than the frame: center it — the canvas clips top/bottom just
+        // like the render side's centered 1920 crop.
+        const tallH = W * (game.h / game.w);
+        ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, (H - tallH) / 2, W, tallH);
+      }
+      return;
+    }
 
     // Blur band: game crop → tiny offscreen (cover) → stretched back up with a
     // soft blur. Downscale-blur-upscale mirrors the render-side boxblur recipe
@@ -1295,10 +1313,14 @@ export default function PreviewPanelNew() {
     }
 
     // Bands stack from the top; overflow past the bottom clips (render parity).
-    const camBandH = W * (cam.h / cam.w);
+    // #164 B3: with no cam the game band centers vertically — gameY === camBandH
+    // for cam layouts, so their paint is unchanged. bandsBottom is the total
+    // band height either way (the feather gate mirrors render's ≤1916 check).
+    const camBandH = cam ? W * (cam.h / cam.w) : 0;
     const gameBandH = W * (game.h / game.w);
     const bandsBottom = camBandH + gameBandH;
-    ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
+    const gameY = cam ? camBandH : (H - gameBandH) / 2;
+    if (cam) ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
 
     const gh = Math.round(gameBandH);
     const F = Math.min(Math.round(H * style.seamSize / 100), Math.floor(gh / 2));
@@ -1324,9 +1346,9 @@ export default function PreviewPanelNew() {
       fctx.fillStyle = fadeGrad;
       fctx.fillRect(0, gh - F, W, F);
       fctx.globalCompositeOperation = "source-over";
-      ctx.drawImage(fScratch, 0, camBandH);
+      ctx.drawImage(fScratch, 0, gameY);
     } else {
-      ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
+      ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, gameY, W, gameBandH);
     }
   }, []);
 

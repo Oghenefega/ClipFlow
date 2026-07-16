@@ -396,7 +396,7 @@ async function callLLMForHighlights(systemPrompt, userContent, logger) {
  * @param {object} store - electron-store instance
  * @param {number} width - Probed source width
  * @param {number} height - Probed source height
- * @returns {{layoutId: string, camRect: object, gameRect: object, style: object}|null}
+ * @returns {{layoutId: string, camRect: object|null, gameRect: object, style: object}|null}
  */
 function resolveDefaultReframeLayout(store, width, height) {
   if (!(width > 0) || !(height > 0)) return null;
@@ -412,7 +412,9 @@ function resolveDefaultReframeLayout(store, width, height) {
 
   return {
     layoutId: layout.id,
-    camRect: { ...layout.camRect },
+    // #164 B3: null camRect (game-only layout) must survive the copy —
+    // {...null} would silently become {} and corrupt the attach.
+    camRect: layout.camRect ? { ...layout.camRect } : null,
     gameRect: { ...layout.gameRect },
     style: resolveReframeStyle(layout.style),
   };

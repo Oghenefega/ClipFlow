@@ -74,10 +74,34 @@ function bgSourceWindow(gameRect, style, outW = 1080, outH = 1920) {
   return { x, y, w: winW, h: winH };
 }
 
+// ── #164 B3: game-only starting points (camRect null end-to-end) ──
+// Both return { camRect: null, gameRect } in source pixels, ready to drop
+// into the calibration draft. Starting points, not modes — the game box
+// stays fully draggable/resizable afterwards.
+
+// Largest centered 9:16 crop. Its band fills the 1080×1920 output edge to
+// edge, so both engines skip the background/feather stages entirely.
+// Even-rounded like bgSourceWindow so the crop stays 4:2:0-legal.
+function presetFullyZoomed(srcW, srcH) {
+  const w = Math.max(2, 2 * Math.floor(Math.min(srcW, srcH * 9 / 16) / 2));
+  const h = Math.max(2, 2 * Math.floor(Math.min(srcH, w * 16 / 9) / 2));
+  return {
+    camRect: null,
+    gameRect: { x: Math.round((srcW - w) / 2), y: Math.round((srcH - h) / 2), w, h },
+  };
+}
+
+// Whole frame letterboxed — the band centers vertically over the blurred bg.
+function presetFitToScreen(srcW, srcH) {
+  return { camRect: null, gameRect: { x: 0, y: 0, w: Math.round(srcW), h: Math.round(srcH) } };
+}
+
 module.exports = {
   REFRAME_STYLE_DEFAULTS,
   resolveReframeStyle,
   bgBoxblurRadius,
   bgCanvasBlurPx,
   bgSourceWindow,
+  presetFullyZoomed,
+  presetFitToScreen,
 };

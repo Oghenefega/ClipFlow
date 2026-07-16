@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-16 (session 109) — B3: no-webcam layouts with two one-click presets
+
+### Added
+- **Layouts without a webcam box (#164 Phase B, slice B3).** A vertical layout can now be "game only": the webcam box is optional end-to-end — saving, applying, starring, auto-attach, live preview, and export all handle a layout that has just a game box. In the export and the preview, a game-only band centers vertically over the blurred background instead of stacking under a cam band, and when the game box is (near-)9:16 the footage simply fills the whole vertical frame with no background work at all. Existing webcam layouts are untouched — their render output is byte-identical to before. [projects.js, render.js, PreviewPanelNew.js, useEditorStore.js, ai-pipeline.js, reframeStyle.js]
+- **Two one-click starting points for no-webcam recordings (#164).** The calibration view now shows a "No webcam?" row with two preset chips — **Fully zoomed** (the largest centered 9:16 crop of the gameplay, fills the vertical frame edge to edge) and **Fit to screen** (the whole recording letterboxed over the blurred background). Clicking one clears the webcam box and places the game box; everything stays draggable and tunable afterwards, and Apply saves it to the layout library like any other layout. The chips appear on a fresh layout, when detection reports there's no facecam, and whenever the layout being edited is already game-only. [RightPanelNew.js, reframeStyle.js]
+- **Detection's "no facecam" outcome now has its own path (#164).** When "Detect layout" confidently finds no webcam in the footage, the panel says "No webcam found — pick a game-only layout below" and surfaces the preset chips, instead of the generic "place the boxes manually" error (which remains for genuine detection refusals). Verified end-to-end that a refusal still shows the manual message — a synthetic test video that confuses the face detector produced a clean refusal and the correct fallback text. [RightPanelNew.js]
+
+### Fixed
+- Filed #166 (found during verification, pre-existing — not fixed in this session): opening a clip via Projects → Open in Editor can leave the preview's size tracking stuck, which keeps the draggable calibration boxes invisible until the window or a panel is resized.
+
 ## [Unreleased] — 2026-07-16 (session 108) — B2: one-click "Detect layout" button in the editor
 
 ### Added

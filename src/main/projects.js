@@ -252,7 +252,7 @@ function isValidReframeRect(r) {
  * Update a project's Auto-Reframe calibration (#164 Phase A).
  * @param {string} watchFolder
  * @param {string} projectId
- * @param {object|null} reframe - null to clear, or { layoutId, camRect:{x,y,w,h}, gameRect:{x,y,w,h}, style } (source pixels)
+ * @param {object|null} reframe - null to clear, or { layoutId, camRect:{x,y,w,h}|null, gameRect:{x,y,w,h}, style } (source pixels; camRect null = game-only layout, #164 B3)
  * @returns {{ success: true, project: object }|{ error: string }}
  */
 function updateReframe(watchFolder, projectId, reframe) {
@@ -262,12 +262,15 @@ function updateReframe(watchFolder, projectId, reframe) {
   if (reframe === null) {
     project.reframe = null;
   } else {
-    if (!reframe || typeof reframe !== "object" || !isValidReframeRect(reframe.camRect) || !isValidReframeRect(reframe.gameRect)) {
-      return { error: "Invalid reframe: camRect and gameRect must have finite numeric x/y/w/h with w,h > 0" };
+    const camOk = reframe && (reframe.camRect === null || isValidReframeRect(reframe.camRect));
+    if (!reframe || typeof reframe !== "object" || !camOk || !isValidReframeRect(reframe.gameRect)) {
+      return { error: "Invalid reframe: gameRect (and camRect unless null) must have finite numeric x/y/w/h with w,h > 0" };
     }
     project.reframe = {
       layoutId: reframe.layoutId ?? null,
-      camRect: { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
+      // #164 B3: null camRect is a real value (game-only layout) — the
+      // whitelist must copy it through, never drop the key (session-104 trap).
+      camRect: reframe.camRect === null ? null : { x: reframe.camRect.x, y: reframe.camRect.y, w: reframe.camRect.w, h: reframe.camRect.h },
       gameRect: { x: reframe.gameRect.x, y: reframe.gameRect.y, w: reframe.gameRect.w, h: reframe.gameRect.h },
       style: resolveReframeStyle(reframe.style),
     };

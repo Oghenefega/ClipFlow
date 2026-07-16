@@ -49,13 +49,16 @@ function isValidReframeRect(rect) {
 }
 
 /**
- * Reframe is "active" only when both crop rects are present and valid;
- * anything else (null, partial, corrupt) is treated as no reframe (#164).
- * @param {object|null|undefined} reframe - { camRect, gameRect }
+ * Reframe is "active" when gameRect is valid and camRect is either valid or
+ * exactly null — null camRect is a game-only layout (#164 B3). Anything else
+ * (no reframe, missing key, corrupt rect) is treated as no reframe (#164).
+ * @param {object|null|undefined} reframe - { camRect|null, gameRect }
  * @returns {boolean}
  */
 function isReframeActive(reframe) {
-  return !!reframe && isValidReframeRect(reframe.camRect) && isValidReframeRect(reframe.gameRect);
+  return !!reframe
+    && (reframe.camRect === null || isValidReframeRect(reframe.camRect))
+    && isValidReframeRect(reframe.gameRect);
 }
 
 /**
@@ -73,24 +76,25 @@ function clampReframeRect(rect, maxW, maxH) {
 
 /**
  * Compute clamped integer crop rects + vertical band heights for the
- * reframe composite (#164). Returns null when reframe is inactive.
- * @param {object|null|undefined} reframe - { camRect, gameRect } in source pixels
+ * reframe composite (#164). Returns null when reframe is inactive. A null
+ * camRect (game-only layout, #164 B3) yields cam:null / camBand:0.
+ * @param {object|null|undefined} reframe - { camRect|null, gameRect } in source pixels
  * @param {number} sourceWidth - probed source width (clamp bound; Infinity if unknown)
  * @param {number} sourceHeight - probed source height
- * @returns {{cam: object, game: object, camBand: number, gameBand: number}|null}
+ * @returns {{cam: object|null, game: object, camBand: number, gameBand: number}|null}
  */
 function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
   if (!isReframeActive(reframe)) return null;
 
   const maxW = sourceWidth > 0 ? sourceWidth : Infinity;
   const maxH = sourceHeight > 0 ? sourceHeight : Infinity;
-  const cam = clampReframeRect(reframe.camRect, maxW, maxH);
+  const cam = reframe.camRect === null ? null : clampReframeRect(reframe.camRect, maxW, maxH);
   const game = clampReframeRect(reframe.gameRect, maxW, maxH);
 
   // Even-round so scale=1080:<band> keeps aspect ratio + a valid yuv420p height.
   // Bands overflowing 1920 combined is a calibration-UI bug, not a render error
   // — overlay clips the overflow naturally, so it isn't guarded here.
-  const camBand = 2 * Math.round((1080 * cam.h / cam.w) / 2);
+  const camBand = cam ? 2 * Math.round((1080 * cam.h / cam.w) / 2) : 0;
   const gameBand = 2 * Math.round((1080 * game.h / game.w) / 2);
 
   return { cam, game, camBand, gameBand };
@@ -102,11 +106,13 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  * Trims each NLE segment from the source file and concatenates them. When
  * reframe is active, bakes the vertical composite (webcam band on top, game
  * band below, blurred game fill underneath) before the overlay step (#164).
+ * Null camRect = game-only layout (#164 B3): the game band centers vertically
+ * (letterboxed over the bg), or fills the frame outright when it spans 1920.
  * If overlay frames exist, composites the PNG sequence on top.
  *
  * @param {Array} nleSegments - [{id, sourceStart, sourceEnd}, ...]
  * @param {boolean} hasFrames - Whether overlay PNG frames exist
- * @param {object|null} [reframe] - { camRect, gameRect } in source pixels, or null (#164)
+ * @param {object|null} [reframe] - { camRect|null, gameRect } in source pixels, or null (#164)
  * @param {number} [sourceWidth] - Probed source width, for reframe crop clamping
  * @param {number} [sourceHeight] - Probed source height, for reframe crop clamping
  * @returns {{ filterComplex: string, mapArgs: string[] }}
@@ -139,6 +145,18 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     const { cam, game, camBand, gameBand } = geo;
     const style = resolveReframeStyle(reframe && reframe.style);
 
+    if (!cam && gameBand >= 1916) {
+      // #164 B3 fully-zoomed: no cam and the game band covers the whole 1920
+      // frame — one crop+scale, no bg/feather stages (nothing behind the band
+      // is visible). Within ±4px of 1920 the forced scale absorbs rounding
+      // slop from near-9:16 rects; taller bands instead crop to the centered
+      // 1920 window (scaling those down would visibly distort).
+      const fill = gameBand <= 1924
+        ? "scale=1080:1920"
+        : `scale=1080:${gameBand},crop=1080:1920:0:${(gameBand - 1920) / 2}`;
+      filters.push(`[base_v]crop=${game.w}:${game.h}:${game.x}:${game.y},${fill},format=yuv420p,setsar=1[base_out]`);
+      videoLabel = "base_out";
+    } else {
     // #164 polish: the game band's bottom edge alpha-fades into the bg instead
     // of a hard seam. floor(gameBand/4)*2 caps featherH at gameBand/2,
     // so gameBand-featherH can never go negative; the even height also keeps the
@@ -150,9 +168,17 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     const featherH = camBand + gameBand <= 1920 - 4
       ? Math.min(seamPx, Math.floor(gameBand / 4) * 2)
       : 0;
+    // #164 B3: with no cam the game band centers vertically in the frame.
+    // camBand is 0 there, so cam layouts keep the exact pre-B3 filter text
+    // (gameY === camBand) — parity by construction.
+    const gameY = cam ? camBand : (1920 - gameBand) / 2;
 
-    filters.push(`[base_v]split=3[rf_cam_in][rf_game_in][rf_bg_in]`);
-    filters.push(`[rf_cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[rf_cam]`);
+    if (cam) {
+      filters.push(`[base_v]split=3[rf_cam_in][rf_game_in][rf_bg_in]`);
+      filters.push(`[rf_cam_in]crop=${cam.w}:${cam.h}:${cam.x}:${cam.y},scale=1080:${camBand}[rf_cam]`);
+    } else {
+      filters.push(`[base_v]split=2[rf_game_in][rf_bg_in]`);
+    }
     filters.push(`[rf_game_in]crop=${game.w}:${game.h}:${game.x}:${game.y},scale=1080:${gameBand}[rf_game]`);
     // Stronger blur + an optional limited-range darken lut so the bg reads as a soft
     // backdrop behind the sharp bands (mirrors style.darken in the preview
@@ -169,19 +195,25 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     bgChain += `scale=1080:1920,format=yuv420p,setsar=1`;
     if (style.darken > 0) bgChain += `,lutyuv=y=16+(val-16)*${darkenK}:u=128+(val-128)*${darkenK}:v=128+(val-128)*${darkenK}`;
     filters.push(`[rf_bg_in]${bgChain}[rf_bg]`);
-    filters.push(`[rf_bg][rf_cam]overlay=0:0[rf_t1]`);
+    // With no cam the game band composites straight onto the bg.
+    let below = "rf_bg";
+    if (cam) {
+      filters.push(`[rf_bg][rf_cam]overlay=0:0[rf_t1]`);
+      below = "rf_t1";
+    }
     if (featherH >= 8) {
       // geq only runs on the 1080×featherH strip, so per-frame cost is negligible.
       filters.push(`[rf_game]split[rf_g_top_in][rf_g_btm_in]`);
       filters.push(`[rf_g_top_in]crop=1080:${gameBand - featherH}:0:0[rf_g_top]`);
       filters.push(`[rf_g_btm_in]crop=1080:${featherH}:0:${gameBand - featherH},format=yuva444p,geq=lum=lum(X\\,Y):cb=cb(X\\,Y):cr=cr(X\\,Y):a=255*(1-Y/${featherH})[rf_g_btm]`);
-      filters.push(`[rf_t1][rf_g_top]overlay=0:${camBand}[rf_t1b]`);
-      filters.push(`[rf_t1b][rf_g_btm]overlay=0:${camBand + gameBand - featherH}[rf_t2]`);
+      filters.push(`[${below}][rf_g_top]overlay=0:${gameY}[rf_t1b]`);
+      filters.push(`[rf_t1b][rf_g_btm]overlay=0:${gameY + gameBand - featherH}[rf_t2]`);
     } else {
-      filters.push(`[rf_t1][rf_game]overlay=0:${camBand}[rf_t2]`);
+      filters.push(`[${below}][rf_game]overlay=0:${gameY}[rf_t2]`);
     }
     filters.push(`[rf_t2]format=yuv420p[base_out]`);
     videoLabel = "base_out";
+    }
   }
 
   if (hasFrames) {

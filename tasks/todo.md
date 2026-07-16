@@ -146,7 +146,51 @@ updateReframeDraft in shipped code):
   row). 'nocam' handled in B3 (until then: same manual message).
 - No store schema changes: detection writes into the existing reframeDraft.
 
-### B3 — Game-only layouts + the two no-cam presets
+### B3 — Game-only layouts + the two no-cam presets — ✅ SHIPPED (session 109)
+
+**Built per spec, verified end-to-end (parity harness + CDP UI drive + two real
+renders). Results:**
+- camRect null end-to-end: projects.js whitelist copies null (104 trap),
+  render.js/PreviewPanelNew center the game band (y=(1920-band)/2) or go
+  full-fill when band ≥1916 (≤1924 → scale absorbs slop; taller → centered
+  1920 crop, no distortion), store copy sites null-guarded ({...null} === {}
+  trap in commit/entry/apply/ai-pipeline — all four fixed), calibration
+  overlay skips the cam box, panel hides the Webcam row.
+- Presets in reframeStyle.js (CJS like the rest): presetFullyZoomed = largest
+  centered even-rounded 9:16 crop (2560×2880 → {470,0,1620,2880} — matches
+  the session-105 cover framing; 1920×1080 → {657,2,606,1076} band 1918);
+  presetFitToScreen = full frame. Chips row ("No webcam?") in the calibrating
+  view when draft is fresh OR detection returned 'nocam' OR draft already
+  game-only (spec-completing addition so saved game-only layouts can switch).
+- handleDetect: 'nocam' split from 'none' — nocam sets a green status
+  ("No webcam found — pick a game-only layout below") + forces chips;
+  'none' keeps the red manual-fallback row.
+- Parity: 8/8 pre-existing filter cases byte-identical (no-reframe, stacked
+  default + styled seam-0, overlay, corrupt/undefined shapes). Cam layouts
+  render through the exact pre-B3 filter text (gameY === camBand).
+- Verified (CDP, dev build): chips fresh/hidden-on-cam-draft/shown-on-null-cam;
+  both presets prefill exact rects; game box drag after preset (470→708 on a
+  40px drag — presets stay starting points); Apply → project.json + library
+  entry persist camRect null; edit-existing routes to null-cam draft with
+  seeded name; RL Main cam layout re-applied cleanly after (regression);
+  composite paints full-bleed / letterbox correctly (pixel probes + shots).
+- Real renders (proj_spike164_reframe, 1920×1080@60): Fit to screen →
+  1080×1920@60, sharp band centered at y=656 over blurred+darkened bg,
+  feathered bottom edge, subtitles composited. Fully zoomed → 1080×1920@60
+  edge-to-edge, no bg/feather stages. Both via the app's Render button.
+- Live-fired the 'none' refusal E2E by accident of footage: the synthetic
+  test pattern triggers ~30 spurious MediaPipe faces/frame → segmentation
+  fails → clean world:'none' → manual message (designed posture). world
+  ='nocam' (zero face hits) remains footage-untested — 3-line reviewed
+  branch; the chips mechanism it triggers is proven via the other two paths.
+- Found + filed #166 while verifying (pre-existing, NOT B3): preview fitSize
+  stays null until the first resize on the Open-in-Editor path — calibration
+  boxes invisible until any panel/window resize. Diff-disjoint from B3.
+- Dev sandbox state after: proj_polish_real back on RL Main; SPIKE project on
+  "Old HD Canvas"; library gained two game-only test entries ("Game Only
+  8x9", "Fit Test HD") — useful for B4 testing.
+
+Original B3 spec (implemented 1:1):
 camRect becomes nullable end-to-end ("game-only" layout):
 - `src/main/projects.js:265` updateReframe: accept camRect === null
   (whitelist copies null; gameRect still required) — the 104 whitelist trap,
