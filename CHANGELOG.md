@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.9-alpha.5] — 2026-07-16 (session 105) — Installer cut: one-click apply-and-save + visible pan sliders
+
+### Changed
+- **Version 0.1.9-alpha.5, installer cut** (alpha tick — two UX corrections from Fega's alpha.4 hands-on pass, implemented directly in-session): promotes the merged apply-and-save flow and the dedicated background pan sliders.
+- **Naming a layout is now part of applying it (#164).** The separate "Save layout" button is gone — the layout editor has a **Name** field (pre-filled with the layout's current name) right above Apply, and **Apply layout** now applies to the clip AND saves/updates the named layout in the library in one click. The Layout panel's status line shows which named layout is active, and every row in the Saved layouts list has a pencil icon for renaming in place (Enter saves, Esc cancels). [RightPanelNew.js, useEditorStore.js]
+- **Background panning got real controls (#164).** Two new sliders under Zoom — **Horizontal** and **Vertical** — pan the blurred background left/right and up/down with live preview, exactly like the other style sliders. The drag-the-Result-preview gesture from alpha.4 still works, but the sliders are now the visible, primary way to pan (drag-only proved undiscoverable in real use). [RightPanelNew.js]
+
 ## [0.1.9-alpha.4] — 2026-07-16 (session 105) — Installer cut: background zoom & position + named layouts
 
 ### Added
