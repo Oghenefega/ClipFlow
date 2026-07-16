@@ -566,6 +566,97 @@ const useEditorStore = create((set, get) => ({
     return { success: true };
   },
 
+  // Save (or update) the active project.reframe into the app-level layout
+  // library (electron-store `reframeLayouts` + `reframeLayoutDefaultId`)
+  // under a user-chosen name. Upserts by project.reframe.layoutId so repeat
+  // saves of the same project update in place instead of piling up
+  // duplicates (the old silent-save bug), and links a freshly-created entry
+  // back onto the project so the NEXT save updates too.
+  saveReframeLayout: async (name) => {
+    const { project } = get();
+    if (!project?.id || !project.reframe?.camRect || !project.reframe?.gameRect) {
+      return { error: "No layout to save" };
+    }
+    const trimmed = (name || "").trim();
+    if (!trimmed) return { error: "Name required" };
+
+    const layouts = (await window.clipflow.storeGet("reframeLayouts")) || [];
+    const now = new Date().toISOString();
+    const existingIdx = project.reframe.layoutId
+      ? layouts.findIndex((l) => l.id === project.reframe.layoutId)
+      : -1;
+
+    let id;
+    let isNew = false;
+    if (existingIdx >= 0) {
+      id = layouts[existingIdx].id;
+      layouts[existingIdx] = {
+        ...layouts[existingIdx],
+        name: trimmed,
+        camRect: { ...project.reframe.camRect },
+        gameRect: { ...project.reframe.gameRect },
+        style: resolveReframeStyle(project.reframe.style),
+        updatedAt: now,
+      };
+    } else {
+      isNew = true;
+      id = "layout_" + Date.now();
+      layouts.push({
+        id,
+        name: trimmed,
+        sourceWidth: project.sourceWidth,
+        sourceHeight: project.sourceHeight,
+        camRect: { ...project.reframe.camRect },
+        gameRect: { ...project.reframe.gameRect },
+        style: resolveReframeStyle(project.reframe.style),
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    await window.clipflow.storeSet("reframeLayouts", layouts);
+
+    // Default only when none exists yet — never steal it from a still-existing entry.
+    const currentDefaultId = await window.clipflow.storeGet("reframeLayoutDefaultId");
+    const defaultStillValid = currentDefaultId && layouts.some((l) => l.id === currentDefaultId);
+    let becameDefault = false;
+    if (!defaultStillValid) {
+      await window.clipflow.storeSet("reframeLayoutDefaultId", id);
+      becameDefault = true;
+    }
+
+    if (isNew) {
+      const reframe = { ...project.reframe, layoutId: id, style: resolveReframeStyle(project.reframe.style) };
+      const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
+      if (result?.error) return result;
+      if (get().project?.id !== project.id) return { error: "Project changed during save" };
+      set({ project: { ...get().project, reframe: { ...project.reframe, layoutId: id } } });
+    }
+
+    return { success: true, id, name: trimmed, becameDefault };
+  },
+
+  // Attach a saved layout-library entry to the active project (Layout
+  // panel's "Saved layouts" list). Requires an exact source-dimension
+  // match — a layout calibrated for a different recording size can't transfer.
+  applyReframeLayout: async (entry) => {
+    const { project } = get();
+    if (!project?.id) return { error: "No project" };
+    if (entry.sourceWidth !== project.sourceWidth || entry.sourceHeight !== project.sourceHeight) {
+      return { error: "Layout was calibrated for a different source size" };
+    }
+    const reframe = {
+      layoutId: entry.id,
+      camRect: { ...entry.camRect },
+      gameRect: { ...entry.gameRect },
+      style: resolveReframeStyle(entry.style),
+    };
+    const result = await window.clipflow.projectUpdateReframe(project.id, reframe);
+    if (result?.error) return result;
+    if (get().project?.id !== project.id) return { error: "Project changed during save" };
+    set({ project: { ...get().project, reframe }, reframeDraft: null });
+    return { success: true };
+  },
+
   // ── Legacy Audio segment actions (kept for gradual migration) ──
   setAudioSegments: (segs) => set({ audioSegments: segs }),
 

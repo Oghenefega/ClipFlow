@@ -326,16 +326,19 @@ function runStoreMigrations(store) {
   if (!store.has("reframeLayoutDefaultId")) store.set("reframeLayoutDefaultId", null);
 
   // ── Migration: reframe style controls (#164 Phase B) ──
-  // Existing library entries predate the style field; backfill resolved defaults
-  // so old layouts keep rendering identically to pre-style-controls output.
-  // No-op on fresh installs (empty array); writes back only if an entry actually
-  // lacked style, so it's idempotent on every subsequent boot.
+  // Backfills entries that predate the style field AND re-resolves entries
+  // with an old-shape style (drops the removed `seam` field, adds
+  // bgZoom/bgPosX/bgPosY) so every layout renders identically after the
+  // style schema changes. Idempotent on every boot; fresh installs (empty
+  // array) are a no-op.
   const reframeLayoutsForStyleMigration = store.get("reframeLayouts") || [];
   let reframeLayoutsStyleChanged = false;
   const migratedReframeLayouts = reframeLayoutsForStyleMigration.map((entry) => {
-    if (entry && entry.style != null) return entry;
+    const currentStyle = entry && entry.style;
+    const resolved = resolveReframeStyle(currentStyle);
+    if (JSON.stringify(resolved) === JSON.stringify(currentStyle)) return entry;
     reframeLayoutsStyleChanged = true;
-    return { ...entry, style: resolveReframeStyle(entry && entry.style) };
+    return { ...entry, style: resolved };
   });
   if (reframeLayoutsStyleChanged) store.set("reframeLayouts", migratedReframeLayouts);
 }

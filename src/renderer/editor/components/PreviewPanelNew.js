@@ -6,7 +6,7 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
-import { resolveReframeStyle, bgCanvasBlurPx } from "../utils/reframeStyle";
+import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow } from "../utils/reframeStyle";
 import {
   Maximize,
   ChevronDown,
@@ -1277,9 +1277,8 @@ export default function PreviewPanelNew() {
       blurScratchRef.current = scratch;
     }
     const sctx = scratch.getContext("2d");
-    const coverScale = Math.max(scratch.width / game.w, scratch.height / game.h);
-    const sw = game.w * coverScale, sh = game.h * coverScale;
-    sctx.drawImage(video, game.x, game.y, game.w, game.h, (scratch.width - sw) / 2, (scratch.height - sh) / 2, sw, sh);
+    const win = bgSourceWindow(game, style);
+    sctx.drawImage(video, win.x, win.y, win.w, win.h, 0, 0, scratch.width, scratch.height);
     const blurPx = bgCanvasBlurPx(style.blur, W);
     if (blurPx >= 1) {
       ctx.filter = `blur(${blurPx}px)`;
@@ -1303,7 +1302,7 @@ export default function PreviewPanelNew() {
 
     const gh = Math.round(gameBandH);
     const F = Math.min(Math.round(H * style.seamSize / 100), Math.floor(gh / 2));
-    if (style.seam === "fade" && bandsBottom < H - 2 && F >= 2) {
+    if (bandsBottom < H - 2 && F >= 2) {
       // Feather the game band's bottom edge into the bg instead of a hard seam
       // (mirrors render.js's geq alpha ramp on the same-height strip).
       let fScratch = featherScratchRef.current;
@@ -1328,14 +1327,6 @@ export default function PreviewPanelNew() {
       ctx.drawImage(fScratch, 0, camBandH);
     } else {
       ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, camBandH, W, gameBandH);
-      if (style.seam === "shadow" && bandsBottom < H - 2 && F >= 2) {
-        // Dark gradient cast onto the bg below the seam; bands stay fully opaque.
-        const shadowGrad = ctx.createLinearGradient(0, bandsBottom, 0, bandsBottom + F);
-        shadowGrad.addColorStop(0, "rgba(0,0,0,0.55)");
-        shadowGrad.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = shadowGrad;
-        ctx.fillRect(0, bandsBottom, W, F);
-      }
     }
   }, []);
 
