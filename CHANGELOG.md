@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-16 (session 108) — B2: one-click "Detect layout" button in the editor
+
+### Added
+- **"Detect layout" button in the Layout panel's calibration view (#164 Phase B, slice B2).** One click runs the B1 detection engine on the project's source video ("Analyzing 8 frames…" progress state, ~6s) and prefills the webcam and game boxes with the detected layout, with a status line confirming "Found your webcam — adjust or Apply" — the boxes stay fully draggable/tunable, and Apply saves to the named layout library exactly as before. When detection can't find a confident layout (or the source has no facecam — presets for that arrive in B3), the panel shows "Couldn't detect this layout — place the boxes manually" in the existing error row and manual calibration continues unchanged. A detection result that lands after calibration was closed or the project was switched is discarded rather than written into the wrong draft. [RightPanelNew.js]
+
 ## [Unreleased] — 2026-07-16 (session 107) — B1: layout detection engine shipped in-app (zero UI yet)
 
 ### Added

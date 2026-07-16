@@ -111,18 +111,40 @@ Mirror the subtitle-overlay offscreen pattern (subtitle-overlay-renderer.js:189
   build` + install) runs detection with network disabled; `npx asar list`
   shows detect.html + mediapipe assets.
 
-### B2 — "Detect layout" in the Layout panel (face path)
+### B2 — "Detect layout" in the Layout panel (face path) — ✅ SHIPPED (session 108)
+
+**Built per spec, CDP-verified end-to-end on the dev sandbox. Results:**
+- [Detect layout] button above the boxes in the calibrating view →
+  "Analyzing 8 frames…" disabled progress state → stacked/overlay proposals
+  prefill the draft via updateReframeDraft (both rects); green status row
+  "Found your webcam — adjust or Apply". world 'none'/'nocam' → existing red
+  error row: "Couldn't detect this layout — place the boxes manually."
+  ('nocam' gets its preset path in B3.) IPC-level errors surface raw in the
+  same red row (panel idiom, same as Apply errors).
+- Post-await staleness guards: result dropped if calibration closed or the
+  project switched mid-run (project-id + draft-null checks via getState());
+  stale status line cleared when calibration closes.
+- Verified (CDP UI drive, dev profile, proj_polish_real RL Main 2560×2880):
+  Detect → cam {0,0,2560,1442} — identical to B1/gate, Δy11/Δh13 vs Fega's
+  taste-nudged saved entry — game = complement band {0,1442,2560,1438};
+  Apply → "RL Main" entry updated IN PLACE (library stayed 2 entries, no
+  duplicate), project.json persisted, panel returned to active view. Error
+  path: killed the detect window mid-run → red row "Detection window closed",
+  button recovered, follow-up run completed clean. Engine log: stacked,
+  confidence 0.943, 8/8 frames.
+- NOT footage-tested: the world='none'/'nocam' message branch (no face-free
+  source on hand) — 3-line reviewed branch; the red-row mechanism itself is
+  proven by the kill test.
+
+Original B2 spec (implemented 1:1 — "updateReframeRect" in the spec text is
+updateReframeDraft in shipped code):
 - RightPanelNew.js calibrating view: [Detect layout] button above the boxes
   block → "Analyzing 8 frames…" progress state → outcome A (stacked/overlay):
-  prefill draft camRect/gameRect via existing updateReframeRect, status line
+  prefill draft camRect/gameRect, status line
   "Found your webcam — adjust or Apply"; outcome 'none': red-box message
   "Couldn't detect this layout — place the boxes manually" (existing error
   row). 'nocam' handled in B3 (until then: same manual message).
 - No store schema changes: detection writes into the existing reframeDraft.
-- Verify (B2): CDP drive on dev sandbox (proj_polish_real, RL Main 2560×2880):
-  Detect → draft rects within nudge of saved entry → Apply → named entry
-  updated, no duplicate; error path renders in the red box (kill the detect
-  window mid-run to prove it).
 
 ### B3 — Game-only layouts + the two no-cam presets
 camRect becomes nullable end-to-end ("game-only" layout):

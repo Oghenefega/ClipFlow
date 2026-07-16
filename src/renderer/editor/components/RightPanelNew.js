@@ -1834,6 +1834,8 @@ function LayoutPanel() {
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [detectStatus, setDetectStatus] = useState("");
 
   // Saved-layouts library (electron-store `reframeLayouts` + default id) —
   // loaded once on mount, refreshed after any apply/rename/star action.
@@ -1859,7 +1861,7 @@ function LayoutPanel() {
   const [layoutName, setLayoutName] = useState("");
   const nameTouchedRef = useRef(false);
   useEffect(() => {
-    if (!reframeDraft) { nameTouchedRef.current = false; return; }
+    if (!reframeDraft) { nameTouchedRef.current = false; setDetectStatus(""); return; }
     if (nameTouchedRef.current) return;
     const linked = savedLayouts.find((l) => l.id === reframeDraft.layoutId);
     setLayoutName(linked ? linked.name : `Layout ${savedLayouts.length + 1}`);
@@ -1891,6 +1893,33 @@ function LayoutPanel() {
     const h = Math.max(1, Math.min(Math.round(rect.w * 9 / 16), maxH));
     updateReframeDraft(key, { x: rect.x, y: rect.y, w: rect.w, h });
   }, [reframeDraft, updateReframeDraft]);
+
+  // #164 B2: auto-detect the layout from the source video (B1 hidden-window
+  // engine, ~6s). Prefills the draft boxes on success; detection failure or
+  // refusal falls back to the manual-calibration message in the error row.
+  // Post-await guards drop a stale result if the user closed calibration or
+  // switched projects while the run was in flight.
+  const handleDetect = useCallback(async () => {
+    if (detecting || !project?.id || !window.clipflow?.reframeDetect) return;
+    const projectId = project.id;
+    setError("");
+    setDetectStatus("");
+    setDetecting(true);
+    const result = await window.clipflow.reframeDetect(projectId);
+    setDetecting(false);
+    const s = useEditorStore.getState();
+    if (s.project?.id !== projectId || !s.reframeDraft) return;
+    if (result?.error) { setError(result.error); return; }
+    const proposal = result?.proposal;
+    if (proposal?.world === "stacked" || proposal?.world === "overlay") {
+      s.updateReframeDraft("camRect", proposal.camRect);
+      s.updateReframeDraft("gameRect", proposal.gameRect);
+      setDetectStatus("Found your webcam — adjust or Apply");
+    } else {
+      // 'nocam' and 'none' both stay manual until B3 adds the no-cam presets.
+      setError("Couldn't detect this layout — place the boxes manually.");
+    }
+  }, [detecting, project]);
 
   // Rename a library entry in place (pencil on a Saved layouts row) — pure
   // library metadata, never touches any project's reframe.
@@ -1980,6 +2009,17 @@ function LayoutPanel() {
         <p className="text-xs text-muted-foreground leading-relaxed">
           Click a box on the preview to select it, then drag or resize — purple is your webcam, cyan is the game. The result updates live below.
         </p>
+
+        <div className="space-y-2">
+          <Button size="sm" variant="outline" onClick={handleDetect} disabled={detecting} className="w-full h-8 text-xs gap-1.5">
+            {detecting ? (<><Loader2 className="h-3 w-3 animate-spin" /> Analyzing 8 frames…</>) : "Detect layout"}
+          </Button>
+          {detectStatus && (
+            <div className="flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 rounded-md px-2.5 py-2">
+              <Check className="h-3 w-3 shrink-0" /> {detectStatus}
+            </div>
+          )}
+        </div>
 
         <div className="space-y-2">
           <RectRow label="Webcam" color="#a78bfa" rect={reframeDraft.camRect} onSnap169={() => handleSnap169("camRect")} />
