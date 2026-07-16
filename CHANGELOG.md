@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.9-alpha.4] — 2026-07-16 (session 105) — Installer cut: background zoom & position + named layouts
+
+### Added
+- **Choose what the blurred background shows (#164).** Two new controls while editing a layout: a **Zoom** slider (from "background just fills the frame" up to 3× zoomed in) and **drag-the-Result-preview** to pick exactly which part of the gameplay the background shows — grab the small Result preview in the Layout panel and slide it around; it updates live and commits with Apply, and both values render identically in the exported file (one shared window computation feeds the editor preview and FFmpeg). [reframeStyle.js, PreviewPanelNew.js, render.js, RightPanelNew.js]
+- **Layouts now have names (#164).** "Save as default layout" is replaced by **Save layout**, which opens a small name field (pre-filled, editable) before saving. A **Saved layouts** list in the Layout panel shows every saved layout with its name and calibrated size — click one to apply it to the open project, and the ★ marks which layout auto-attaches to new recordings (first save still becomes the default automatically; after that the star moves only when you click it). Saving the same project again updates its existing layout in place — previously every save silently created a duplicate library entry. Layouts calibrated for a different recording size appear dimmed with an explanation instead of being clickable. [RightPanelNew.js, useEditorStore.js, SettingsView unchanged — its list picks up the names automatically]
+
+### Changed
+- **Version 0.1.9-alpha.4, installer cut** (alpha tick — a four-item polish batch on the existing Auto-Reframe subsystem, per the sizing policy): promotes the session-105 background zoom/position controls, the centered default framing, named layouts, and the Shadow removal to the installed app.
+- **The blurred background now defaults to a 2× zoom centered on the game area (#164).** Previously the background always squeezed the full game height in, so the visible strip under the webcam/game bands inevitably showed the bottom of the gameplay — the floor. With the centered zoom the strip lands on mid-action instead. Existing projects and saved layouts pick the new default up automatically; set Zoom to 0 to get the exact old framing back. [reframeStyle.js]
+
+### Removed
+- **The Shadow edge option (#164).** It never produced the wanted look — Fade is now the only edge treatment, so the Fade/Shadow chooser is gone (the Edge size slider stays). Anything previously saved with Shadow quietly renders as Fade; a one-time migration also cleans the saved-layout library entries. [reframeStyle.js, render.js, PreviewPanelNew.js, RightPanelNew.js, main.js]
+
 ## [0.1.9-alpha.3] — 2026-07-15 (session 104) — Installer cut: Layout editor polish + tunable look
 
 ### Changed
