@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-17 (session 111) — #166: calibration boxes no longer invisible until a resize
+## [Unreleased] — 2026-07-17 (session 111) — 0.2.0-alpha.1 installer: Auto-Reframe Phase B ships to the daily driver
+
+### Changed
+- **Version bumped 0.1.9-alpha.5 → 0.2.0-alpha.1 and a fresh installer cut.** Sizing call: completing the Auto-Reframe #164 epic's Phase B is a flagship-feature milestone, so this opens the 0.2.0 line rather than ticking the alpha counter. The installer promotes everything since alpha.5: the full Phase B (B1 in-app layout detection engine, B2 one-click "Detect layout", B3 game-only layouts with the two no-webcam presets, B4 first-recording auto-offer banner) plus the #166 calibration-boxes fix below — the first time any of Phase B reaches the installed daily driver.
 
 ### Fixed
 - **Preview size tracking no longer starts blind (#166).** Opening a clip via Projects → Open in Editor could leave the editor preview's size tracking stuck at zero — the canvas silently kept a fallback 9:16 shape and, worse, the draggable WEBCAM/GAME calibration boxes never appeared when starting a layout calibration (the exact screen the new "Set up" banner drops users into). Any window or panel-divider resize would snap everything into place, which is why it was easy to miss. The preview now measures its container directly the moment it mounts (plus one follow-up measurement a frame later), instead of depending on the browser's resize observer delivering a first report — so the canvas takes its correct size immediately and calibration boxes show up every time. Verified live on the dev build along the exact Open-in-Editor → Layout → Edit layout path with zero resizes: canvas correct at mount, both boxes present during calibration, normal preview and PiP composite unaffected after cancel. The same hardening was applied to the preview's text-scaling width measurement, which had the identical blind spot. [PreviewPanelNew.js]
