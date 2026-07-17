@@ -1830,6 +1830,7 @@ function LayoutPanel() {
   const removeReframe = useEditorStore((s) => s.removeReframe);
   const applyReframeLayout = useEditorStore((s) => s.applyReframeLayout);
   const setReframePipCanvas = useEditorStore((s) => s.setReframePipCanvas);
+  const reframeAutoDetectPending = useEditorStore((s) => s.reframeAutoDetectPending);
 
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -1928,6 +1929,16 @@ function LayoutPanel() {
       setError("Couldn't detect this layout — place the boxes manually.");
     }
   }, [detecting, project]);
+
+  // #164 B4: the preview's auto-offer banner ([Set up]) begins a draft, opens
+  // this panel, and raises the one-shot flag — consume it and run the same
+  // Detect the button fires. Clear BEFORE detecting so a re-render can't
+  // double-fire (handleDetect's `detecting` guard is the second belt).
+  useEffect(() => {
+    if (!reframeAutoDetectPending || !reframeDraft) return;
+    useEditorStore.getState().clearReframeAutoDetect();
+    handleDetect();
+  }, [reframeAutoDetectPending, reframeDraft, handleDetect]);
 
   // #164 B3: game-only starting points — clear the webcam box, place the game
   // box. Everything stays draggable/tunable after (a preset is not a mode).

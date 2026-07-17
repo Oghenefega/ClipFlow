@@ -221,6 +221,9 @@ const STORE_DEFAULTS = {
   // Reframe layouts (#164)
   reframeLayouts: [],
   reframeLayoutDefaultId: null,
+  // #164 B4: "WxH" strings the user answered "Not for this format" to —
+  // the editor's first-recording auto-offer never re-shows for these dims.
+  reframeOfferDismissed: [],
   // Analytics
   deviceId: "",
   analyticsEnabled: true,
@@ -325,6 +328,10 @@ function runStoreMigrations(store) {
   // ── Migration: reframe layouts library (#164) ──
   if (!store.has("reframeLayouts")) store.set("reframeLayouts", []);
   if (!store.has("reframeLayoutDefaultId")) store.set("reframeLayoutDefaultId", null);
+
+  // ── Migration: reframe auto-offer dismissed formats (#164 B4) ──
+  // Existing installs predate the key; empty list = no format dismissed yet.
+  if (!store.has("reframeOfferDismissed")) store.set("reframeOfferDismissed", []);
 
   // ── Migration: reframe style controls (#164 Phase B) ──
   // Backfills entries that predate the style field AND re-resolves entries

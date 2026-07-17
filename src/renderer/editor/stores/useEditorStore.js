@@ -72,10 +72,15 @@ const useEditorStore = create((set, get) => ({
   // The Layout panel owns the Result canvas element; the preview compositor paints it.
   reframePipCanvas: null,
 
+  // #164 B4: one-shot flag raised by the preview's auto-offer banner ([Set up]).
+  // The Layout panel consumes it once the calibration draft exists and fires
+  // the same Detect the button runs. Cleared on consume, cancel, and clip load.
+  reframeAutoDetectPending: false,
+
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
-      set({ project: null, clip: null, clipTitle: "", dirty: false, reframeDraft: null });
+      set({ project: null, clip: null, clipTitle: "", dirty: false, reframeDraft: null, reframeAutoDetectPending: false });
       return;
     }
 
@@ -209,6 +214,7 @@ const useEditorStore = create((set, get) => ({
       extending: false,
       sourceOffline,
       reframeDraft: null, // #164: a clip/project switch drops any in-flight calibration
+      reframeAutoDetectPending: false,
     });
 
     // Clear any stale playback state from the previous clip BEFORE we populate
@@ -541,7 +547,11 @@ const useEditorStore = create((set, get) => ({
 
   setReframePipCanvas: (el) => set({ reframePipCanvas: el }),
 
-  cancelReframeDraft: () => set({ reframeDraft: null }),
+  cancelReframeDraft: () => set({ reframeDraft: null, reframeAutoDetectPending: false }),
+
+  // #164 B4: banner → Layout panel handshake for the auto-run Detect.
+  requestReframeAutoDetect: () => set({ reframeAutoDetectPending: true }),
+  clearReframeAutoDetect: () => set({ reframeAutoDetectPending: false }),
 
   // Persist the draft as project.reframe AND upsert it into the app-level
   // layout library (`reframeLayouts`) under layoutName — one Apply both

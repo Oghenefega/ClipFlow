@@ -96,6 +96,27 @@ function presetFitToScreen(srcW, srcH) {
   return { camRect: null, gameRect: { x: 0, y: 0, w: Math.round(srcW), h: Math.round(srcH) } };
 }
 
+// ── #164 B4: first-recording auto-offer trigger ──
+// Pure decision for "offer a vertical-layout setup when this project opens?"
+// True only when the dims are decidable and non-9:16, the project has no
+// layout attached, no library entry already fits these exact dims, and the
+// user hasn't dismissed this format. Undecidable dims (null probe fields and
+// no loaded <video> yet) return false — the caller re-evaluates when the
+// video's metadata arrives.
+function shouldOfferReframe({ sourceWidth, sourceHeight, reframe, layouts, dismissed }) {
+  const w = Number(sourceWidth);
+  const h = Number(sourceHeight);
+  if (!(w > 0) || !(h > 0)) return false;
+  if (reframe) return false;
+  // True 9:16 renders as-is — same tolerance as the Layout panel's notice.
+  if (Math.abs(w / h - 9 / 16) < 0.01) return false;
+  const lib = Array.isArray(layouts) ? layouts : [];
+  if (lib.some((l) => l && l.sourceWidth === w && l.sourceHeight === h)) return false;
+  const dis = Array.isArray(dismissed) ? dismissed : [];
+  if (dis.includes(`${w}x${h}`)) return false;
+  return true;
+}
+
 module.exports = {
   REFRAME_STYLE_DEFAULTS,
   resolveReframeStyle,
@@ -104,4 +125,5 @@ module.exports = {
   bgSourceWindow,
   presetFullyZoomed,
   presetFitToScreen,
+  shouldOfferReframe,
 };

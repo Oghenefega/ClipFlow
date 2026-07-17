@@ -6,12 +6,13 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
-import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow } from "../utils/reframeStyle";
+import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import {
   Maximize,
   ChevronDown,
   Minus,
   Plus,
+  Crop,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -939,6 +940,72 @@ export default function PreviewPanelNew() {
     }
   }, [videoSrc]);
 
+  // ── #164 B4: first-recording auto-offer ──
+  // Offer a vertical-layout setup once per project open when the source is
+  // non-9:16, no layout is attached, no library entry fits these dims, and
+  // the format isn't dismissed. Dims resolve probe-fields-first, then the
+  // loaded <video> (pre-#164 projects carry null probe fields); undecidable
+  // dims skip the latch so the videoDims dep re-evaluates on metadata. The
+  // latch also absorbs later condition flips (e.g. removing a layout must
+  // not resurface the banner mid-session).
+  const [reframeOffer, setReframeOffer] = useState(null); // { w, h } | null
+  const reframeOfferDoneRef = useRef(new Set()); // project ids decided this mount
+  useEffect(() => {
+    const p = project;
+    if (!p?.id || p.id === "__source_preview__" || sourceOffline) return;
+    if (reframeOfferDoneRef.current.has(p.id)) return;
+    // Already calibrating = the user found the Layout panel themselves.
+    if (calibrating) { reframeOfferDoneRef.current.add(p.id); return; }
+    // readyState guard: after a src swap the element reports 0×0 until the
+    // CURRENT video's metadata arrives — never trust leftover dimensions.
+    const vid = videoRef.current;
+    const elemW = vid && vid.readyState >= 1 ? vid.videoWidth : 0;
+    const elemH = vid && vid.readyState >= 1 ? vid.videoHeight : 0;
+    const w = p.sourceWidth || elemW;
+    const h = p.sourceHeight || elemH;
+    if (!(w > 0 && h > 0)) return; // undecidable — retry when metadata lands
+    let stale = false;
+    (async () => {
+      const [layouts, dismissed] = await Promise.all([
+        window.clipflow?.storeGet?.("reframeLayouts"),
+        window.clipflow?.storeGet?.("reframeOfferDismissed"),
+      ]);
+      if (stale || useEditorStore.getState().project?.id !== p.id) return;
+      reframeOfferDoneRef.current.add(p.id);
+      if (shouldOfferReframe({ sourceWidth: w, sourceHeight: h, reframe: p.reframe, layouts, dismissed })) {
+        setReframeOffer({ w, h });
+      }
+    })();
+    return () => { stale = true; };
+  }, [project, sourceOffline, calibrating, videoDims]);
+
+  // The offer is moot the moment calibration starts (banner button or the
+  // Layout panel itself) — and must NOT return when a draft cancels.
+  useEffect(() => {
+    if (calibrating) setReframeOffer(null);
+  }, [calibrating]);
+
+  const handleReframeSetUp = useCallback(() => {
+    setReframeOffer(null);
+    const s = useEditorStore.getState();
+    if (!s.reframeDraft) s.beginReframeDraft();
+    s.requestReframeAutoDetect();
+    const ls = useLayoutStore.getState();
+    ls.setActivePanel("layout");
+    ls.setDrawerOpen(true);
+  }, []);
+
+  const handleReframeOfferDismiss = useCallback(async () => {
+    const offer = reframeOffer;
+    setReframeOffer(null);
+    if (!offer || !window.clipflow?.storeGet) return;
+    const key = `${offer.w}x${offer.h}`;
+    const list = (await window.clipflow.storeGet("reframeOfferDismissed")) || [];
+    if (!list.includes(key)) {
+      await window.clipflow.storeSet("reframeOfferDismissed", [...list, key]);
+    }
+  }, [reframeOffer]);
+
   // Compute display zoom
   const displayZoom = zoom === -1 ? "Fit" : `${zoom}%`;
   const zoomScale = zoom === -1 ? 1 : zoom / 100;
@@ -1705,6 +1772,22 @@ export default function PreviewPanelNew() {
           )}
 
         </div>
+
+        {/* #164 B4: first-recording auto-offer — floats over the preview beside
+            the rail that hosts the Layout panel it opens. Shown once per open;
+            "Not for this format" persists the dims so this format never asks again. */}
+        {reframeOffer && !calibrating && !project?.reframe && (
+          <div className="absolute top-3 right-3 z-40 flex flex-wrap items-center justify-end gap-2 max-w-[calc(100%-1.5rem)] rounded-lg border bg-card/95 backdrop-blur-sm shadow-lg pl-3 pr-1.5 py-1.5">
+            <Crop className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-xs text-foreground">New recording format — set up a vertical layout?</span>
+            <div className="flex items-center gap-1.5">
+              <Button size="sm" className="h-7 text-xs px-2.5" onClick={handleReframeSetUp}>Set up</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={handleReframeOfferDismiss}>
+                Not for this format
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Toolbar spacer — toolbar is now inside canvas overlays */}
