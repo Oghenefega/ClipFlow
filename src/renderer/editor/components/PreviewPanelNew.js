@@ -841,13 +841,15 @@ export default function PreviewPanelNew() {
   // Track canvas size for proportional text scaling
   const [canvasWidth, setCanvasWidth] = useState(360);
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setCanvasWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(canvasRef.current);
+    const el = canvasRef.current;
+    if (!el) return;
+    // #166: measure synchronously — same starvation class as scrollSize below;
+    // don't depend on the observer's initial delivery. clientWidth ≈ the old
+    // contentRect (the canvas div has a 1px border that gBCR would include).
+    const measure = () => setCanvasWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
@@ -859,14 +861,27 @@ export default function PreviewPanelNew() {
   // guarantees the canvas exactly fills available space at the right aspect.
   const [scrollSize, setScrollSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
-    if (!scrollContainerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setScrollSize({ w: entry.contentRect.width, h: entry.contentRect.height });
-      }
-    });
-    observer.observe(scrollContainerRef.current);
-    return () => observer.disconnect();
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setScrollSize((prev) =>
+        prev.w === rect.width && prev.h === rect.height ? prev : { w: rect.width, h: rect.height }
+      );
+    };
+    // #166: the observer's INITIAL delivery can starve on the Open-in-Editor
+    // path (fitSize stays null → fallback 9:16 canvas, calibration boxes never
+    // mount, until a real resize). Measure synchronously so first paint never
+    // depends on observer timing; the rAF re-measure catches a panel that gets
+    // its flex width a frame after mount. The observer handles ongoing resizes.
+    measure();
+    const rafId = requestAnimationFrame(measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, []);
   const fitSize = useMemo(() => {
     if (scrollSize.w <= 0 || scrollSize.h <= 0) return null;

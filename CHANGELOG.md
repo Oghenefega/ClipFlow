@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-17 (session 111) — #166: calibration boxes no longer invisible until a resize
+
+### Fixed
+- **Preview size tracking no longer starts blind (#166).** Opening a clip via Projects → Open in Editor could leave the editor preview's size tracking stuck at zero — the canvas silently kept a fallback 9:16 shape and, worse, the draggable WEBCAM/GAME calibration boxes never appeared when starting a layout calibration (the exact screen the new "Set up" banner drops users into). Any window or panel-divider resize would snap everything into place, which is why it was easy to miss. The preview now measures its container directly the moment it mounts (plus one follow-up measurement a frame later), instead of depending on the browser's resize observer delivering a first report — so the canvas takes its correct size immediately and calibration boxes show up every time. Verified live on the dev build along the exact Open-in-Editor → Layout → Edit layout path with zero resizes: canvas correct at mount, both boxes present during calibration, normal preview and PiP composite unaffected after cancel. The same hardening was applied to the preview's text-scaling width measurement, which had the identical blind spot. [PreviewPanelNew.js]
+
 ## [Unreleased] — 2026-07-17 (session 110) — B4: first-recording auto-offer (Phase B complete)
 
 ### Added
