@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-17 (session 110) — B4: first-recording auto-offer (Phase B complete)
+
+### Added
+- **First-recording auto-offer (#164 Phase B, slice B4 — the Phase B finale).** When a clip opens in the editor and its recording could become a vertical short but has no layout yet — the source isn't 9:16, the project has no layout attached, no saved layout matches these recording dimensions, and this format hasn't been declined before — a compact banner floats over the preview: "New recording format — set up a vertical layout?" **Set up** opens the Layout panel straight into calibration and runs detection automatically; verified live on real footage that the single banner click produced the detected webcam/game boxes and the green "Found your webcam" status, identical to pressing Detect by hand. **Not for this format** remembers the recording dimensions in a new `reframeOfferDismissed` setting (migration added for existing installs) so that format never asks again — verified to survive an app relaunch. The banner shows at most once per editor open: starting calibration any other way, or cancelling out of it, keeps it away for the rest of that open, and only the explicit "Not for this format" suppresses it permanently. Projects that are already 9:16, already have a layout, or match a saved layout's dimensions never see the offer — all four suppressions driven live in the dev app, and the decision rule also carries a 17-case standalone test (including "an 8:9 canvas taller than wide must still be offered"). [PreviewPanelNew.js, RightPanelNew.js, useEditorStore.js, reframeStyle.js, main.js]
+
 ## [Unreleased] — 2026-07-16 (session 109) — B3: no-webcam layouts with two one-click presets
 
 ### Added

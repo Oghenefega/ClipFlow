@@ -219,7 +219,44 @@ camRect becomes nullable end-to-end ("game-only" layout):
   preview); CDP: chip → draft → Apply → persists → reload; null-reframe
   parity; existing cam layouts regress nothing (render v1 project again).
 
-### B4 — First-recording auto-offer (the finale, consumes B1-B3)
+### B4 — First-recording auto-offer — ✅ SHIPPED (session 110). PHASE B COMPLETE.
+
+**Built per spec below, verified end-to-end. Deltas + results:**
+- Decision rule extracted as pure CJS `shouldOfferReframe({sourceWidth,
+  sourceHeight, reframe, layouts, dismissed})` in `reframeStyle.js` —
+  17-case node matrix passes (8:9-must-offer, 9:16 ±1% skips, entry-match,
+  dismissed, undecidable/garbage dims → false, non-array tolerance).
+- Banner lives in `PreviewPanelNew.js`: floats top-right over the preview
+  (spec's "over the preview/right rail"), Crop icon + spec copy + [Set up]
+  [Not for this format]. Evaluated once per project open; latch absorbs
+  later condition flips (removing a layout mid-session does NOT resurface
+  it). Extra suppressions beyond spec: source-preview shells
+  (`__source_preview__`) and Media Offline. Dims resolve probe-fields-first
+  then the live `<video>` (readyState-guarded — a src swap reports 0×0, so
+  stale element dims can never latch a wrong decision; pre-#164 projects
+  with null probe fields re-evaluate when metadata lands).
+- [Set up] = `beginReframeDraft()` + one-shot `reframeAutoDetectPending`
+  store flag + open Layout drawer; LayoutPanel consumes the flag on mount
+  and fires the SAME `handleDetect` as the B2 button (cleared before the
+  call; `detecting` guard is the second belt; flag also cleared on cancel
+  and clip load). Zero duplicated detection logic.
+- "Not for this format" appends `"WxH"` to `reframeOfferDismissed` —
+  main.js defaults + migration (the spec's "settings whitelist" doesn't
+  exist; `store:set` is generic, so defaults + migration is the whole job).
+- Verified (CDP drive, dev build, real footage): banner on proj_polish_real
+  with reframe detached + 2560×2880 entries stashed → [Set up] opened the
+  drawer mid-"Analyzing 8 frames…" → auto-detect returned the EXACT gate
+  rect (cam {0,0,2560,1442}, world stacked, conf 0.943, log-confirmed) with
+  green status + chips; Cancel → banner stays away (once-per-open); fresh
+  reopen → banner → [Not for this format] → gone + store `["2560x2880"]`;
+  reopen → suppressed; app relaunch → still suppressed; dismissed cleared +
+  entries restored → entry-match suppresses; RL Main reframe restored →
+  reframe-attached suppresses + composite paints (regression clean); LIVE
+  9:16 skip on proj_spike164_916 (banner absent). Zero renderer exceptions
+  both runs. Dev sandbox fully restored (RL Main re-applied, 4 library
+  entries, dismissed []).
+
+Original B4 spec (implemented 1:1 modulo deltas above):
 - Trigger: editor opens a project whose source is non-9:16 AND
   project.reframe == null AND no dims-matching library entry AND dims not in
   the dismissed list.
