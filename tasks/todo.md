@@ -569,27 +569,30 @@ Fega's four items from his alpha.3 pass, all shipped in **0.1.9-alpha.4**:
    dayCount 9 / lastDayDate 2026-10-15), #171 (month-folder nesting).
 
 ### Plan (approved: reconcile fix; folder design follows Fega's answers)
-- [ ] 1. Library/watch split: `projectsRoot` store key + idempotent pin-once
+- [x] 1. Library/watch split: `projectsRoot` store key + idempotent pin-once
        migration; `libraryRoot()` helper; swap project-storage call sites in
        main.js (projects.*, waveform cache, transcripts, pollution migration,
        pipeline, test-project root). Settings shows read-only library line.
-- [ ] 2. Watcher depth 0→2 (sees `<Game>\<YYYY-MM>\` raws). Rename in place
+- [x] 2. Watcher depth 0→2 (sees `<Game>\<YYYY-MM>\` raws). Rename in place
        when source dir is already a `YYYY-MM` folder (#171). Surface
        `fileMetadataCreate` failure in RenameView instead of swallowing.
-- [ ] 3. Reconcile on Recordings load + refresh (`metadata:reconcile`):
+- [x] 3. Reconcile on Recordings load + refresh (`metadata:reconcile`):
        flag rows whose file is gone (skip when drive root unreachable);
        adopt untracked renamed files (legacy + tag-first formats, known tags
        only, skip test folders); UI hides missing + "Clean up" button
        (`metadata:removeMissing` — first-ever row delete, confirm-gated).
        Reconcile also repairs impossible day counters (lastDayDate in the
        future → recompute from non-test rows; runs after adoption) (#170).
-- [ ] 4. Test-mode renames stop advancing real day counters (#170).
-- [ ] 5. Verify in sandboxed dev profile (backup dev DB/settings, scratch
+- [x] 4. Test-mode renames stop advancing real day counters (#170).
+- [x] 5. Verify in sandboxed dev profile (backup dev DB/settings, scratch
        watch folder with ghost row + untracked file + nested raw; restore
        after). Build renderer, CDP-check Recordings tab.
-- [ ] 6. CHANGELOG, commit/push, cut 0.2.2-alpha.1 (includes pending #169
+- [x] 6. CHANGELOG, commit/push, cut 0.2.2-alpha.1 (includes pending #169
        wizard). Fega installs, sets watch folder to
        `W:\YouTube Gaming Recordings Onward\Recordings`, verifies.
+
+### Outcome (session close)
+All six steps DONE and sandbox-verified (commits e0d191d, 3431161, 9d8de89; installer 0.2.2-alpha.1 cut). Remaining: Fega installs, sets watch folder to the Recordings root, confirms — then close #170/#171 (+ #169 wizard pass).
 
 ### Success criteria
 - Ghost cards hidden immediately; Clean up removes their rows; unplugged
