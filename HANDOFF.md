@@ -1,10 +1,10 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-17 — Session 111 — **#166 FIXED + 0.2.0-alpha.1 installer cut (Phase B's first promotion to the daily driver). Next: Fega reinstalls + his Phase B hands-on pass.**_
+_Last updated: 2026-07-18 — Session 111 CLOSED — **#166 fixed+confirmed, 0.2.0-alpha.1 installed on the daily driver, #164 EPIC DONE (completion comment posted; was already closed on GitHub since 07-15), fresh-test arc yielded #167 (renderer slice FIXED on master) + #168 then torn down. Next session: #167 proper fix is the top candidate.**_
 
 ---
 
 ## One-line TL;DR
-Fixed #166 (calibration boxes invisible until a resize on the Open-in-Editor path) with a sync-measure-at-mount hardening in PreviewPanelNew, CDP-verified on the exact repro path with zero resizes, then cut the 0.2.0-alpha.1 installer promoting ALL of Phase B (B1–B4) + this fix to the daily driver — the "fix #166 first, then one cut" option Fega chose.
+Fixed #166 (sync-measure-at-mount in PreviewPanelNew; Fega-confirmed on the installed build), cut + shipped 0.2.0-alpha.1 (all of Phase B on the daily driver, #164 epic complete per Fega), then a three-attempt "fresh user" sandbox arc uncovered #167 (personal data baked into defaults — renderer slice fixed as ff0a6d7) and #168 (one-boot settings anomaly) before Fega called teardown; his machine is fully restored.
 
 ## Current State
 - **Fega INSTALLED 0.2.0-alpha.1 and confirmed #166 in-app** ("boxes show up now") — `status: untested` removed; #166 fully done.
@@ -29,10 +29,12 @@ Fixed #166 (calibration boxes invisible until a resize on the Open-in-Editor pat
 - **0.2.0 line opened** (0.2.0-alpha.1, `-alpha` kept pre-launch): Phase B epic completion = flagship milestone per the session-110 plan and the delegated version-sizing judgment.
 - **#166 closed by explicit `gh issue close` + `status: untested`**, not a commit keyword — keeps the label ritual intact.
 
-## Next Steps
-1. **Fega: install 0.2.0-alpha.1** (in-app "Install update" banner, or run `dist\ClipFlow Setup 0.2.0-alpha.1.exe`; data preserved). Confirm Settings shows v0.2.0-alpha.1.
-2. **Fega's Phase B hands-on pass** — gates closing #164 and clearing #166's `untested`. The one #166-specific check, in plain terms: open a clip from Projects → Open in Editor, open Layout, hit Edit layout — the purple WEBCAM and cyan GAME boxes should be there immediately, without touching the window or any divider.
-3. Carried, unrelated: Projects-tab preview consistency for reframe projects (cosmetic), #165 zoom tuning, #163 YouTube reconnect messaging.
+## Next Steps (session 112 candidates)
+1. **#167 proper fix (top candidate, pre-launch critical):** neutralize STORE_DEFAULTS (watchFolder, gamesDb, mainGame/mainPool, weeklyTemplate, `#fega` captionTemplates — full sweep list on the issue), move folder+games setup into the existing first-run wizard, build the no-folder empty states. This also unblocks first-run testing forever (the whole session-111 sandbox saga becomes a two-minute non-event) and would resolve whatever "still didn't work" was in Fega's final attempt (never diagnosed — outcome unresolved, don't assume).
+2. **#168** (settings store booted from pure defaults for one session, writes persisted with no on-disk trace) — full forensics on the issue; needs electron-store/conf source reading + overlap repro. Consider `requestSingleInstanceLock` per profile.
+3. Next installer (whenever the batch justifies): carries ff0a6d7 (#167 renderer slice). Don't cut for it alone.
+4. Carried: #165 zoom tuning, #163 YouTube reconnect messaging, Projects-tab preview consistency (cosmetic).
+5. Housekeeping for Fega (optional): delete `%APPDATA%\clipflow-dev.trash-freshtest` + `...-attempt1` (~350MB inert).
 
 ## Watch Out For
 - **The #166 divider-nudge workaround note in project_cdp_verification_gotchas memory is now OBSOLETE on ≥0.2.0-alpha.1 builds** — don't re-add nudge steps to future CDP drives (and if boxes ever fail to appear again on a fixed build, that's a NEW bug, file it, don't nudge past it).
