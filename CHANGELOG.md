@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-18 (session 113) — 0.2.2-alpha.1 installer: disk reconcile + watch-folder split ship to the daily driver
+
+### Changed
+- **Version bumped 0.2.1-alpha.1 → 0.2.2-alpha.1 and a fresh installer cut.** Sizing call: the disk-reconcile pass plus the library/watch-folder split is another substantial subsystem batch, so it takes a minor bump with the counter reset. Note that 0.2.1-alpha.1 (the audio calibration wizard) was cut last session but never installed — this build carries both it and everything in the session-113 entry below, so one install catches the daily driver up on both.
+
 ## [Unreleased] — 2026-07-18 (session 113) — Recordings stops trusting a stale library: deleted files clean up, invisible files come back, watch folder can follow OBS
 
 ### Added
