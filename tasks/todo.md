@@ -545,3 +545,58 @@ Fega's four items from his alpha.3 pass, all shipped in **0.1.9-alpha.4**:
   preview consistency, Phase B (MediaPipe pre-fill), #165 zoom tuning,
   #163 YouTube reconnect messaging, old waveform cache cleanup, session-102
   waveform regression check.
+
+---
+
+## Session 113 — Recordings/disk reconcile + watch-folder split (Fega's 3 issues)
+
+### Findings (all verified read-only against prod DB/store)
+1. **Ghost cards:** Recordings tab renders `file_metadata` rows verbatim
+   (`allRenamed`, main.js:1834); nothing in the app ever deletes a row, no
+   disk-existence check anywhere. 4 ghosts in prod (RL 2026-03-04,
+   JC 2026-03-23, JC 2026-03-23 Day1 Pt1, RL 2026-07-15).
+2. **Invisible Day7:** `RL 2026-03-04 Day7 Pt1-4.mp4` exist on disk, zero DB
+   rows (prod/dev/repo all checked). Mechanism: RenameView.js:612 ignores
+   `fileMetadataCreate` failure after the disk rename already succeeded
+   (historical trigger unconfirmable). One-time migration regex only matches
+   legacy date-first names, never re-runs.
+3. **Watch folder:** OBS now pre-buckets `Recordings\<Game>\<YYYY-MM>\`
+   (OBS creates month folders; one folder per game). Watcher is depth:0
+   (main.js:736); rename dest = `<fileDir>\<month>` → nesting (#171);
+   projects tree lives under `<watchFolder>\.clipflow` → changing the
+   setting orphans all projects/queue (clip paths absolute, projects.js:308).
+4. Side bugs filed: #170 (test renames advance real day counters — RL at
+   dayCount 9 / lastDayDate 2026-10-15), #171 (month-folder nesting).
+
+### Plan (approved: reconcile fix; folder design follows Fega's answers)
+- [ ] 1. Library/watch split: `projectsRoot` store key + idempotent pin-once
+       migration; `libraryRoot()` helper; swap project-storage call sites in
+       main.js (projects.*, waveform cache, transcripts, pollution migration,
+       pipeline, test-project root). Settings shows read-only library line.
+- [ ] 2. Watcher depth 0→2 (sees `<Game>\<YYYY-MM>\` raws). Rename in place
+       when source dir is already a `YYYY-MM` folder (#171). Surface
+       `fileMetadataCreate` failure in RenameView instead of swallowing.
+- [ ] 3. Reconcile on Recordings load + refresh (`metadata:reconcile`):
+       flag rows whose file is gone (skip when drive root unreachable);
+       adopt untracked renamed files (legacy + tag-first formats, known tags
+       only, skip test folders); UI hides missing + "Clean up" button
+       (`metadata:removeMissing` — first-ever row delete, confirm-gated).
+       Reconcile also repairs impossible day counters (lastDayDate in the
+       future → recompute from non-test rows; runs after adoption) (#170).
+- [ ] 4. Test-mode renames stop advancing real day counters (#170).
+- [ ] 5. Verify in sandboxed dev profile (backup dev DB/settings, scratch
+       watch folder with ghost row + untracked file + nested raw; restore
+       after). Build renderer, CDP-check Recordings tab.
+- [ ] 6. CHANGELOG, commit/push, cut 0.2.2-alpha.1 (includes pending #169
+       wizard). Fega installs, sets watch folder to
+       `W:\YouTube Gaming Recordings Onward\Recordings`, verifies.
+
+### Success criteria
+- Ghost cards hidden immediately; Clean up removes their rows; unplugged
+  drive flags nothing.
+- Day7 Pt1-4 appear under March 2026 without manual DB surgery.
+- Raw files in `Recordings\Arc Raiders\2026-07\` reach the Rename tab; a
+  rename there does NOT create `2026-07\2026-07\`.
+- Existing projects/queue unchanged after watch-folder switch (library
+  pinned to vertical folder).
+- Next real RL rename would be Day8 (counter repaired 9→7).

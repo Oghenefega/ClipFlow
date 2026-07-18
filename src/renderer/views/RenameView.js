@@ -563,6 +563,17 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // ============ RENAME HANDLERS (DB-backed) ============
 
+  // Where a renamed file lands. Renamed files go into a monthly subfolder —
+  // unless the recording already sits in one (OBS can bucket recordings into
+  // <Game>\<YYYY-MM>\ itself; appending another month folder would nest, #171).
+  const resolveTargetDir = (r) => {
+    const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
+    const monthFolder = r.fileName.slice(0, 7);
+    const testRoot = r.isTest ? (testWatchFolder || `${watchFolder}\\Test`) : null;
+    if (testRoot) return `${testRoot}\\${monthFolder}`;
+    return /[\\/]\d{4}-\d{2}$/.test(dir) ? dir : `${dir}\\${monthFolder}`;
+  };
+
   // Helper: rename a single file (no split) — extracted for reuse
   const renameSingleFile = async (r, preset, fileDate) => {
     const meta = {
@@ -600,16 +611,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
 
     if (isElectron && r.filePath) {
-      const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
-      const monthFolder = r.fileName.slice(0, 7);
-      const testRoot = r.isTest ? (testWatchFolder || `${watchFolder}\\Test`) : null;
-      const targetDir = testRoot ? `${testRoot}\\${monthFolder}` : `${dir}\\${monthFolder}`;
+      const targetDir = resolveTargetDir(r);
       const newPath = `${targetDir}\\${newName}`;
       const result = await window.clipflow.renameFile(r.filePath, newPath);
       if (result.error) { console.error("Rename failed:", result.error); return null; }
 
       const game = gamesDb.find((g) => g.tag === r.tag);
-      await window.clipflow.fileMetadataCreate({
+      const metaResult = await window.clipflow.fileMetadataCreate({
         originalFilename: r.fileName,
         currentFilename: newName,
         originalPath: r.filePath,
@@ -624,6 +632,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         status: "renamed",
         isTest: r.isTest || false,
       });
+      // The disk rename already happened — a failed library write must be
+      // loud, or the file silently never appears in Recordings.
+      if (metaResult?.error) {
+        console.error("fileMetadataCreate failed:", metaResult.error);
+        setRetroNotification(`"${newName}" was renamed, but saving it to the library failed (${metaResult.error}). It will be re-detected the next time Recordings loads.`);
+        setTimeout(() => setRetroNotification(null), 10000);
+      }
 
       if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
         await window.clipflow.labelRecord(r.tag, r.customLabel);
@@ -642,10 +657,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const game = gamesDb.find((g) => g.tag === r.tag);
 
     // First, create a parent file_metadata record so split:execute can find it
-    const dir = r.filePath.substring(0, r.filePath.lastIndexOf("\\"));
-    const monthFolder = r.fileName.slice(0, 7);
-    const testRoot = r.isTest ? (testWatchFolder || `${watchFolder}\\Test`) : null;
-    const targetDir = testRoot ? `${testRoot}\\${monthFolder}` : `${dir}\\${monthFolder}`;
+    const targetDir = resolveTargetDir(r);
 
     // Rename source to monthly subfolder first
     const tempName = r.fileName; // keep original name for now
@@ -1012,8 +1024,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     setSplitInfo((prev) => { const n = { ...prev }; delete n[id]; return n; });
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
 
-    // Persist the game's dayCount and lastDayDate
-    if (onGameDayUpdate) {
+    // Persist the game's dayCount and lastDayDate.
+    // #170: test-mode renames must not advance the real counter — fake-dated
+    // test footage would permanently corrupt day numbering for the game.
+    if (onGameDayUpdate && !r.isTest) {
       const game = gamesDb.find((g) => g.tag === r.tag);
       const newDayCount = Math.max(r.day, game?.dayCount || 0);
       const newLastDate = !game?.lastDayDate || fileDate >= game.lastDayDate ? fileDate : game.lastDayDate;
@@ -1060,7 +1074,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             corrected.push({
               id: `h-${Date.now()}-${r.id}-${c.tag}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
               game: c.game || r.game, tag: c.tag || r.tag, color: c.color || r.color, day: r.day,
-              part: c.partNumber, time, undone: false,
+              part: c.partNumber, time, undone: false, isTest: !!r.isTest,
             });
           }
         }
@@ -1072,7 +1086,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             corrected.push({
               id: `h-${Date.now()}-${r.id}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
               game: r.game, tag: r.tag, color: r.color, day: r.day,
-              part: c.partNumber, time, undone: false,
+              part: c.partNumber, time, undone: false, isTest: !!r.isTest,
             });
           }
         }
@@ -1085,15 +1099,17 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           game: r.game, tag: r.tag, color: r.color, day: r.day,
           part: result.partNumber || r.part,
           time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-          undone: false,
+          undone: false, isTest: !!r.isTest,
         });
       }
     }
 
     // Persist dayCount/lastDayDate for all affected games
+    // #170: test-mode renames excluded — they must not advance real counters.
     if (onGameDayUpdate) {
       const gameUpdates = {};
       for (const h of corrected) {
+        if (h.isTest) continue;
         const fileDate = h.oldName.slice(0, 10);
         if (!gameUpdates[h.tag]) {
           const game = gamesDb.find((g) => g.tag === h.tag);

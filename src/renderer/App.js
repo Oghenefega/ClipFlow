@@ -348,6 +348,16 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("mainGame", mainGame); }, [mainGame]);
   useEffect(() => { if (!hasLoaded.current) return; persist("mainPool", mainPool); }, [mainPool]);
   useEffect(() => { if (!hasLoaded.current) return; persist("gamesDb", gamesDb); }, [gamesDb]);
+  // Day-counter repair (#170) happens in the main process during reconcile —
+  // sync it into renderer state, or the next rename would compute from (and
+  // persist back) the stale counter this component loaded at boot.
+  useEffect(() => {
+    if (!window.clipflow?.onGamesDbChanged) return;
+    window.clipflow.onGamesDbChanged((games) => {
+      if (Array.isArray(games) && games.length > 0) setGamesDb(games);
+    });
+    return () => { window.clipflow?.removeGamesDbChangedListener?.(); };
+  }, []);
   useEffect(() => { if (!hasLoaded.current) return; persist("ignoredProcesses", ignoredProcesses); }, [ignoredProcesses]);
   useEffect(() => { if (!hasLoaded.current) return; persist("platforms", platforms); }, [platforms]);
   useEffect(() => { if (!hasLoaded.current) return; persist("weeklyTemplate", weeklyTemplate); }, [weeklyTemplate]);

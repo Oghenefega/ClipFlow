@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-18 (session 113) — Recordings stops trusting a stale library: deleted files clean up, invisible files come back, watch folder can follow OBS
+
+### Added
+- **The Recordings tab now checks the disk every time it loads.** Files deleted outside ClipFlow (e.g. in Windows Explorer) no longer linger as ghost cards — they're hidden immediately and a notice offers a one-click "Clean up" that removes them from the library for good. Safety guard: if a file's whole drive is unreachable (unplugged/offline), nothing is flagged, so a disconnected drive can't wipe the library list. In the other direction, correctly-named renamed videos that exist on disk but were never registered — like the four "RL 2026-03-04 Day7" files ClipFlow renamed in April but lost track of — are automatically re-adopted and simply appear in the list. [reconcile.js (new), main.js, preload.js, UploadView.js]
+- **Project library location split from the watch folder.** Projects, generated clips, and the queue live in a hidden `.clipflow` folder that used to sit under the watch folder — changing the watch folder would have silently orphaned every existing project and queued clip. The library location is now its own setting, pinned automatically to the current watch folder on first launch after this update; the watch folder can then point anywhere (e.g. the OBS Recordings tree) without touching existing projects. The Settings watch-folder card states where the library lives whenever the two differ. [main.js, SettingsView.js]
+
+### Changed
+- **The folder watcher now sees two levels deep.** OBS setups that bucket recordings into per-game/per-month folders (`Recordings\Arc Raiders\2026-07\...`) are supported: point the watch folder at the tree's root and new recordings are picked up wherever OBS drops them, including next month's folder — no monthly re-pointing. Test folders are explicitly excluded from the main watcher so test footage can't surface as normal recordings. [main.js]
+- **Renaming a file that already sits in a month folder keeps it there (#171).** The rename step used to always create a month subfolder next to the file, which would produce nested paths like `2026-07\2026-07\` under the new OBS layout (one real `2026-04\2026-03\` artifact already existed). Verified live: a raw recording in `Arc Raiders\2026-07\` renamed in place, no nesting. [RenameView.js]
+
+### Fixed
+- **Test-mode renames no longer advance the real day counter, and corrupted counters self-repair (#170).** A fake-dated test rename had pushed Rocket League's counter to Day 9 with a "last played" date of October 2026 — the next real RL rename would have been labeled Day10. Test renames now leave real counters alone, and any counter in an impossible state (last-played date in the future) is recomputed from the actual library during reconcile. Verified: RL repaired 9 → 7 and the next rename proposed Day8, including the renderer-side sync that stops the stale in-memory copy from clobbering the repair. [RenameView.js, reconcile.js, App.js, main.js, preload.js]
+- **A rename can no longer silently vanish from the app.** The rename flow renames the file on disk first, then registers it in the library — and a failed registration was silently swallowed, leaving the file renamed but invisible in Recordings (this is exactly how the Day7 files went missing). Failures now surface as a visible warning, and the reconcile pass re-adopts the file on the next Recordings load either way. [RenameView.js]
+
 ## [Unreleased] — 2026-07-18 (session 112) — 0.2.1-alpha.1 installer: audio track calibration ships to the daily driver
 
 ### Changed

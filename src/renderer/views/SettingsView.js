@@ -21,6 +21,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [showAddMain, setShowAddMain] = useState(false);
   const [selGameLib, setSelGameLib] = useState(null);
   const [namingPreset, setNamingPreset] = useState("tag-date-day-part");
+  const [projectsRoot, setProjectsRoot] = useState("");
   const [copiedField, setCopiedField] = useState(null);
   // API Credentials — pill bar
   const [activeApi, setActiveApi] = useState(null); // "anthropic" | "youtube" | "meta" | "tiktok" | null
@@ -107,6 +108,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         if (wm) setWhisperModel(wm);
         const np = await window.clipflow.storeGet("namingPreset");
         if (np) setNamingPreset(np);
+        const pr = await window.clipflow.storeGet("projectsRoot");
+        if (pr) setProjectsRoot(pr);
         // Load audio track setting
         const at = await window.clipflow.storeGet("transcriptionAudioTrack");
         if (at !== undefined && at !== null) setAudioTrack(at);
@@ -375,6 +378,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <input value={folderVal} onChange={(e) => setFolderVal(e.target.value)} style={{ ...inputStyle, border: `1px solid ${T.accentBorder}`, padding: "12px 16px" }} />
         ) : (
           <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>{watchFolder}</p>
+        )}
+        {projectsRoot && projectsRoot !== watchFolder && (
+          <p style={{ color: T.textMuted, fontSize: 11, margin: "8px 0 0 0" }}>
+            Projects &amp; clips stay in <span style={{ fontFamily: T.mono }}>{projectsRoot}</span> — changing the watch folder only changes where new recordings are picked up from.
+          </p>
         )}
       </Card>
 

@@ -158,6 +158,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
 
   // #60: transient error surface for failed test-mode moves (locked file, etc.)
   const [moveError, setMoveError] = useState(null);
+  const [missingFiles, setMissingFiles] = useState([]); // rows whose file is gone from disk — hidden from the grid, cleaned up via notice
+  const [reconcileNotice, setReconcileNotice] = useState(null); // transient "Added N recordings found on disk"
   // #60: Recordings filter — "all" | "main" | "test"
   const [testFilter, setTestFilter] = useState("all");
 
@@ -250,25 +252,41 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
   }, [files, localProjects, onProjectCreated]);
 
+  // Reconcile the library with the disk, then load rows from SQLite.
+  // Rows whose file was deleted outside ClipFlow are held out of `files` and
+  // surfaced in a cleanup notice; renamed files on disk with no row get
+  // adopted by the main process and simply appear in the result.
+  const loadAndReconcile = useCallback(async () => {
+    try {
+      const rec = await window.clipflow.metadataReconcile?.();
+      const missingIds = new Set(rec?.missingIds || []);
+      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
+      if (Array.isArray(rows)) {
+        const present = rows.filter((r) => !missingIds.has(r.id));
+        // #126: chronological order (date → game → day# → part#), oldest first
+        present.sort(compareRecordings);
+        setFiles(present);
+        setMissingFiles(rows.filter((r) => missingIds.has(r.id)));
+      }
+      if (rec?.adopted > 0) {
+        setReconcileNotice(`Added ${rec.adopted} recording${rec.adopted === 1 ? "" : "s"} found on disk`);
+        setTimeout(() => setReconcileNotice(null), 6000);
+      }
+    } catch (e) {
+      console.error("Failed to load file metadata:", e);
+    }
+  }, []);
+
   // Load files from SQLite file_metadata table
   useEffect(() => {
     async function loadFiles() {
       if (!window.clipflow?.fileMetadataSearch) { setLoading(false); return; }
       setLoading(true);
-      try {
-        const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-        if (Array.isArray(rows)) {
-          // #126: chronological order (date → game → day# → part#), oldest first
-          rows.sort(compareRecordings);
-          setFiles(rows);
-        }
-      } catch (e) {
-        console.error("Failed to load file metadata:", e);
-      }
+      await loadAndReconcile();
       setLoading(false);
     }
     loadFiles();
-  }, []);
+  }, [loadAndReconcile]);
 
   // Pipeline progress events
   useEffect(() => {
@@ -298,13 +316,27 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   // Refresh the recordings list from SQLite (oldest first), used after a generate.
   const refreshFiles = useCallback(async () => {
     try {
-      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-      if (Array.isArray(rows)) {
-        rows.sort(compareRecordings); // #126: chronological order (see compareRecordings)
-        setFiles(rows);
-      }
+      await loadAndReconcile();
     } catch (_) {}
-  }, []);
+  }, [loadAndReconcile]);
+
+  // Remove library entries for files deleted outside ClipFlow. The main
+  // process re-verifies each file is really gone (and its drive reachable)
+  // before deleting the row.
+  const cleanupMissing = useCallback(async () => {
+    try {
+      const ids = missingFiles.map((f) => f.id);
+      const result = await window.clipflow.metadataRemoveMissing?.(ids);
+      setMissingFiles([]);
+      if (result?.removed > 0) {
+        setReconcileNotice(`Removed ${result.removed} deleted recording${result.removed === 1 ? "" : "s"} from the library`);
+        setTimeout(() => setReconcileNotice(null), 6000);
+      }
+    } catch (e) {
+      setMoveError(e.message || "Cleanup failed");
+      setTimeout(() => setMoveError(null), 5000);
+    }
+  }, [missingFiles]);
 
   // Core single-file pipeline — awaitable, no `generating` guard, no delayed
   // clear. The caller owns cleanup/refresh/selection so this can be looped over
@@ -491,10 +523,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const resetFileDone = async (fileId) => {
     if (window.clipflow?.fileMetadataUpdate) {
       await window.clipflow.fileMetadataUpdate(fileId, { status: "renamed" });
-      // Refresh file list from DB — re-apply the chronological sort (the DB returns
-      // date DESC; without this the whole list flips to newest-first until restart).
-      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-      if (Array.isArray(rows)) { rows.sort(compareRecordings); setFiles(rows); }
+      // Full reload via the shared path — keeps the chronological sort AND the
+      // missing-file filter (a raw search here would resurrect ghost rows).
+      await loadAndReconcile();
     }
   };
 
@@ -823,13 +854,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
     setQuickImport(null);
 
-    // Refresh file list
+    // Refresh file list via the shared path (sort + missing-file filter)
     try {
-      const rows = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
-      if (Array.isArray(rows)) {
-        rows.sort(compareRecordings); // #126: chronological order (see compareRecordings)
-        setFiles(rows);
-      }
+      await loadAndReconcile();
     } catch (_) {}
   };
 
@@ -851,6 +878,35 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
     }
     return options;
   };
+
+  // Disk-reconcile notices: deleted-outside-ClipFlow cleanup + adoption toast.
+  // Rendered in both the normal list and the empty state (deleting every file
+  // outside the app must still surface the cleanup path).
+  const reconcileNotices = (
+    <>
+      {missingFiles.length > 0 && (
+        <div
+          title={missingFiles.map((f) => f.current_filename).join("\n")}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", marginBottom: 10, background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 8 }}
+        >
+          <span style={{ color: T.textSecondary, fontSize: 12 }}>
+            {missingFiles.length} recording{missingFiles.length === 1 ? " is" : "s are"} no longer on disk (deleted outside ClipFlow)
+          </span>
+          <button
+            onClick={cleanupMissing}
+            style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)", color: T.yellow }}
+          >
+            Clean up
+          </button>
+        </div>
+      )}
+      {reconcileNotice && (
+        <div style={{ padding: "8px 14px", marginBottom: 10, background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 8, color: T.green, fontSize: 12 }}>
+          {reconcileNotice}
+        </div>
+      )}
+    </>
+  );
 
   if (loading) {
     return (
@@ -887,6 +943,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           </div>
         )}
         <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
+        {reconcileNotices}
         <Card style={{ padding: 40, textAlign: "center", marginTop: 16 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>{"\uD83C\uDFAC"}</div>
           <div style={{ color: T.textSecondary, fontSize: 15, fontWeight: 600 }}>
@@ -1119,6 +1176,8 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       )}
 
       <PageHeader title="Recordings" subtitle="Generate clips from your recordings" />
+
+      {reconcileNotices}
 
       {/* #60: move-failure toast */}
       {moveError && (

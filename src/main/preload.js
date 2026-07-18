@@ -163,6 +163,14 @@ contextBridge.exposeInMainWorld("clipflow", {
   fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
   fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),
   fileMetadataSearch: (filters) => ipcRenderer.invoke("metadata:search", filters),
+  metadataReconcile: () => ipcRenderer.invoke("metadata:reconcile"),
+  metadataRemoveMissing: (ids) => ipcRenderer.invoke("metadata:removeMissing", ids),
+  onGamesDbChanged: (callback) => {
+    ipcRenderer.on("gamesDb:changed", (_, games) => callback(games));
+  },
+  removeGamesDbChangedListener: () => {
+    ipcRenderer.removeAllListeners("gamesDb:changed");
+  },
   labelSuggest: (tag, prefix) => ipcRenderer.invoke("labels:suggest", tag, prefix),
   labelRecord: (tag, label) => ipcRenderer.invoke("labels:record", tag, label),
   renameHistoryRecent: (limit) => ipcRenderer.invoke("renameHistory:recent", limit),

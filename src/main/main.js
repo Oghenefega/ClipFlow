@@ -41,6 +41,7 @@ const database = require("./database");
 const feedbackDb = require("./feedback");
 const namingPresets = require("./naming-presets");
 const fileMigration = require("./file-migration");
+const reconcile = require("./reconcile");
 const subtitlePollutionMigration = require("./subtitle-pollution-migration");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
@@ -151,8 +152,19 @@ function generateClipTitle(clipSubtitles, highlight) {
 // which is after whenReady completes and `store` is assigned.
 let store;
 
+// Root of the project library (`.clipflow` tree). Decoupled from watchFolder
+// so the watch folder can follow OBS's recording tree without orphaning
+// projects. Falls back to watchFolder for stores from before the split.
+function libraryRoot() {
+  return store.get("projectsRoot") || store.get("watchFolder");
+}
+
 const STORE_DEFAULTS = {
   watchFolder: "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards",
+  // Project library home (the `.clipflow` tree: projects, clips, waveform
+  // caches). Pinned to the watch folder's value on first launch after the
+  // split so changing the watch folder never orphans existing projects.
+  projectsRoot: "",
   testWatchFolder: "",
   mainGame: "Arc Raiders",
   mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
@@ -242,6 +254,17 @@ const STORE_DEFAULTS = {
 };
 
 function runStoreMigrations(store) {
+  // ── Migration: pin the project library to the current watch folder ──
+  // The `.clipflow` projects tree historically lived under watchFolder. Now
+  // that the watch folder can point at OBS's own recording tree, the library
+  // location is captured once here and stops following watchFolder changes.
+  // Idempotent by condition: only sets when unset (fresh installs stay ""
+  // until a watch folder exists, then get pinned on the next launch).
+  if (!store.get("projectsRoot") && store.get("watchFolder")) {
+    store.set("projectsRoot", store.get("watchFolder"));
+    logger.info(logger.MODULES.system, `Pinned projectsRoot to ${store.get("watchFolder")}`);
+  }
+
   // ── Migration: analytics deviceId (generate once, persist forever) ──
   if (!store.get("deviceId")) {
     store.set("deviceId", uuid());
@@ -581,7 +604,7 @@ app.whenReady().then(async () => {
     // #84: one-time repair of polluted clip.subtitles.sub1 (whole-recording spans).
     // Synchronous + fast (file reads only, no probes), gated by its own store flag.
     try {
-      const subResult = subtitlePollutionMigration.runSubtitlePollutionMigration(watchFolder, store, projects);
+      const subResult = subtitlePollutionMigration.runSubtitlePollutionMigration(libraryRoot(), store, projects);
       if (subResult.clipsFixed > 0) {
         logger.info(logger.MODULES.system, `Subtitle pollution repair: ${subResult.clipsFixed} clip(s) across ${subResult.repaired} project(s)`);
       }
@@ -728,12 +751,20 @@ async function handleWatcherFileAdded(filePath, addEvent) {
 }
 
 /** Create a chokidar watcher on the given folder that emits on raw-recording file add/remove */
-function createRecordingFolderWatcher(folderPath, addEvent, removeEvent) {
+function createRecordingFolderWatcher(folderPath, addEvent, removeEvent, ignoredRoots = []) {
+  const normIgnored = ignoredRoots.filter(Boolean).map((p) => p.toLowerCase());
   const w = chokidar.watch(folderPath, {
-    ignored: /(^|[\/\\])\../, // ignore dotfiles
+    ignored: (fp) => {
+      if (/(^|[\/\\])\./.test(fp)) return true; // dotfiles/dirs (.clipflow)
+      const low = fp.toLowerCase();
+      return normIgnored.some((r) => low === r || low.startsWith(r + path.sep));
+    },
     persistent: true,
     ignoreInitial: false,
-    depth: 0, // root folder only — do not recurse into monthly subfolders
+    // OBS can bucket recordings into <Game>\<YYYY-MM>\ subfolders, so watch two
+    // levels deep. Renamed files never match RAW_RECORDING_PATTERN, so the
+    // watcher stays quiet about ClipFlow's own monthly output folders.
+    depth: 2,
     // NOTE: no awaitWriteFinish — we run our own stability check in handleWatcherFileAdded
     // so chokidar-version bumps cannot silently regress this behavior.
   });
@@ -754,7 +785,13 @@ function createRecordingFolderWatcher(folderPath, addEvent, removeEvent) {
 // Main watcher: start
 ipcMain.handle("watcher:start", async (_, folderPath) => {
   if (watcher) watcher.close();
-  watcher = createRecordingFolderWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved");
+  // Test folders must never leak into the main watcher now that it recurses —
+  // a raw test file surfacing as a normal recording would rename as non-test.
+  watcher = createRecordingFolderWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved", [
+    store.get("testWatchFolder"),
+    path.join(folderPath, "Test"),
+    path.join(folderPath, "Test Footage"),
+  ]);
   return { success: true };
 });
 
@@ -931,7 +968,7 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
   const t0 = Date.now();
   logger.info(logger.MODULES.videoProcessing, `[waveform] start projectId=${projectId} file=${sourceFilePath} dur=${durationSec}`);
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     if (!watchFolder) {
       logger.warn(logger.MODULES.videoProcessing, `[waveform] failed: watch folder not set`);
       return { error: "Watch folder not set", peaks: [] };
@@ -1000,7 +1037,7 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
 // editor shows "Media Offline" and this IPC lets the user point to the new path.
 ipcMain.handle("project:locateSource", async (_, projectId) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     if (!watchFolder) return { error: "Watch folder not set" };
 
     const project = projects.loadProject(watchFolder, projectId);
@@ -1327,7 +1364,7 @@ ipcMain.handle("whisper:checkInstalled", async (_, pythonPath) => {
 // ============ CONCAT RE-CUT (lazy: replace nleSegments) ============
 ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     if (!watchFolder) return { error: "Watch folder not set" };
 
     const project = projects.loadProject(watchFolder, projectId);
@@ -1379,7 +1416,7 @@ ipcMain.handle("clip:concatRecut", async (_, projectId, clipId, segments) => {
 // ============ RE-TRANSCRIBE CLIP (lazy-cut: extract audio from source range) ============
 ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const project = projects.loadProject(watchFolder, projectId);
     if (!project) return { error: "Project not found" };
 
@@ -1443,7 +1480,7 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
 // ============ PROJECTS ============
 ipcMain.handle("project:load", async (_, projectId) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const project = projects.loadProject(watchFolder, projectId);
     if (!project) return { error: "Project not found" };
     return { success: true, project };
@@ -1452,7 +1489,7 @@ ipcMain.handle("project:load", async (_, projectId) => {
 
 ipcMain.handle("project:updateTestMode", async (_, projectId, testMode) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     return projects.updateProjectField(watchFolder, projectId, { testMode: testMode === true });
   } catch (err) { return { error: err.message }; }
 });
@@ -1532,10 +1569,10 @@ ipcMain.handle("file:moveToTestMode", async (_, fileId, nextIsTest) => {
     // the editor / render pipeline resolves the right path next open.
     try {
       const baseName = (row.current_filename || "").replace(/\.(mp4|mkv)$/i, "");
-      const projList = projects.listProjects(watchFolder);
+      const projList = projects.listProjects(libraryRoot());
       const matching = (projList.projects || []).find((p) => p.name === baseName || p.sourceFile === oldPath);
       if (matching) {
-        projects.updateProjectField(watchFolder, matching.id, {
+        projects.updateProjectField(libraryRoot(), matching.id, {
           sourceFile: newPath,
           testMode: !!nextIsTest,
         });
@@ -1551,7 +1588,7 @@ ipcMain.handle("file:moveToTestMode", async (_, fileId, nextIsTest) => {
 
 ipcMain.handle("project:list", async () => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const result = projects.listProjects(watchFolder);
 
     // Reconciliation: reset orphaned "done" files whose projects no longer exist.
@@ -1590,7 +1627,7 @@ ipcMain.handle("project:list", async () => {
 
 ipcMain.handle("project:delete", async (_, projectId) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const result = projects.deleteProject(watchFolder, projectId);
     // Reset recording file status so it can be re-generated
     // Two paths: (A) via fileMetadataId if stored, (B) via project name as fallback
@@ -1661,14 +1698,14 @@ ipcMain.handle("project:delete", async (_, projectId) => {
 
 ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     return projects.updateClip(watchFolder, projectId, clipId, updates);
   } catch (err) { return { error: err.message }; }
 });
 
 ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     return projects.updateReframe(watchFolder, projectId, reframe);
   } catch (err) { return { error: err.message }; }
 });
@@ -1678,7 +1715,7 @@ ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
 // (reframe-detect.js); returns a rect proposal, never writes the project.
 ipcMain.handle("reframe:detect", async (_, projectId) => {
   try {
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const project = projects.loadProject(watchFolder, projectId);
     if (!project) return { error: "Project not found" };
     if (!project.sourceFile || !fs.existsSync(project.sourceFile)) {
@@ -1712,7 +1749,7 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
     return { error: "Audio track setup was not completed — generation cancelled. Generate again to retry." };
   }
 
-  const watchFolder = store.get("watchFolder");
+  const watchFolder = libraryRoot(); // pipeline writes projects into the library
   const sendProgress = (stage, pct, detail, extra) => {
     mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail, ...(extra || {}) });
   };
@@ -1846,6 +1883,35 @@ ipcMain.handle("metadata:search", async (_, filters) => {
     const result = db.exec(sql, params);
     return database.toRows(result);
   } catch (err) { return []; }
+});
+
+// Recordings ↔ disk reconciliation (session 113): flag rows whose file was
+// deleted outside the app, adopt renamed files that have no row. Runs every
+// time the Recordings tab loads.
+ipcMain.handle("metadata:reconcile", async () => {
+  try {
+    const result = await reconcile.run({
+      store,
+      roots: [libraryRoot(), store.get("watchFolder")],
+      ffmpegProbe: async (fp) => {
+        try { return await ffmpeg.probe(fp); } catch (e) { return null; }
+      },
+    });
+    // Day-counter repair changed the store — push the fresh array to the
+    // renderer, whose own gamesDb copy would otherwise persist stale counters
+    // back on the next rename.
+    if (result.repairedGames) {
+      mainWindow?.webContents.send("gamesDb:changed", result.repairedGames);
+    }
+    return result;
+  } catch (err) {
+    return { missingIds: [], adopted: 0, errors: [err.message] };
+  }
+});
+
+ipcMain.handle("metadata:removeMissing", async (_, ids) => {
+  try { return reconcile.removeMissing(ids); }
+  catch (err) { return { error: err.message, removed: 0 }; }
 });
 
 ipcMain.handle("labels:suggest", async (_, tag, prefix) => {
@@ -2016,7 +2082,7 @@ ipcMain.handle("gameProfiles:generateUpdate", async (_, gameTag) => {
   const profile = gameProfiles.getProfile(gameTag);
   if (!profile) return { error: `No profile found for ${gameTag}` };
 
-  const watchFolder = store.get("watchFolder");
+  const watchFolder = libraryRoot(); // transcripts are read from library projects
   if (!watchFolder) return { error: "Watch folder not set." };
 
   const transcripts = gameProfiles.getRecentTranscripts(watchFolder, gameTag, 10);
@@ -2393,7 +2459,7 @@ let activeRenderProc = null;
  * in-memory record can't leak test output into real folders.
  */
 function resolveTestAwareOutputFolder(projectData) {
-  const watchFolder = store.get("watchFolder");
+  const watchFolder = store.get("watchFolder"); // test-output fallback root only
   let testMode = projectData?.testMode === true;
   // Legacy fallback: older projects may still carry tags:["test"] if an upgrade
   // path hasn't been hit yet. Treat that as authoritative too.
@@ -2404,7 +2470,7 @@ function resolveTestAwareOutputFolder(projectData) {
   // from disk so the render can't be tricked by a stale renderer-side object.
   if (!testMode && projectData?.id && typeof projectData.testMode === "undefined") {
     try {
-      const fresh = projects.loadProject(watchFolder, projectData.id);
+      const fresh = projects.loadProject(libraryRoot(), projectData.id);
       if (fresh?.testMode === true) testMode = true;
     } catch (_) { /* non-critical */ }
   }
@@ -2455,7 +2521,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 
     // Update clip renderStatus in project JSON
     if (projectData?.id && clipData?.id) {
-      const watchFolder = store.get("watchFolder");
+      const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
       try {
         projects.updateClip(watchFolder, projectData.id, clipData.id, {
           renderStatus: "rendered",
@@ -2494,7 +2560,7 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
     });
 
     // Update render status + extract thumbnails for each successful clip
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     for (const r of results) {
       if (r.success && projectData?.id && r.clipId) {
         let thumbnailPath = null;
@@ -3192,7 +3258,7 @@ function reconcileFolders(folders, existingProjectIds) {
 ipcMain.handle("folder:list", async () => {
   try {
     const folders = store.get("projectFolders") || [];
-    const watchFolder = store.get("watchFolder");
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     const result = projects.listProjects(watchFolder);
     const existingIds = (result.projects || []).map((p) => p.id);
     const reconciled = reconcileFolders(folders, existingIds);
