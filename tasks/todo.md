@@ -63,6 +63,16 @@ with "skip the rest" once voice is labeled — voice is the only required answer
 5. **Settings UI:** replace hardcoded 4-button labels with learned labels
    from `audioSetup` + Recalibrate button. Manual override stays.
 
+**Render-path dependency (discovered session 112):** final clip audio = the
+source's FIRST audio stream — NLE filter graph uses `[0:a]` labels
+(render.js:128, :134); legacy path maps `0:a?` (render.js:460), players
+default to the first stream. So Track 1 is the audio bed of every published
+clip. A no-mix OBS layout (mic on T1) ships voice-only clips with silent
+gameplay. Recommended OBS shape: mix on T1 (render bed) + isolated stems
+after (mic T2 → transcription). Future slice: render-audio selection by
+wizard label ("mix" labeled track as bed, or amix stems); v1 renders
+unchanged.
+
 **Stretch (separate slice, not v1):** auto-suggest voice track by running
 whisper on a 30-60s sample per track (proven manually this session).
 
