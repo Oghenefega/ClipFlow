@@ -123,7 +123,9 @@ export default function App() {
 
   // Settings
   const [ignoredProcesses, setIgnoredProcesses] = useState(INITIAL_IGNORED);
-  const [watchFolder, setWatchFolder] = useState("W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards");
+  // #167: no hardcoded folder — pre-settings-load state must be empty or the
+  // Rename watcher races the async load and scans a folder the user never chose.
+  const [watchFolder, setWatchFolder] = useState("");
   const [testWatchFolder, setTestWatchFolder] = useState("");
   const [platforms, setPlatforms] = useState(PUBLISH_ORDER_INIT);
   const [outputFolder, setOutputFolder] = useState("");

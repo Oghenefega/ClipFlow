@@ -207,7 +207,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // File watcher integration
   useEffect(() => {
-    if (!isElectron) return;
+    if (!isElectron || !watchFolder) return; // #167: no folder yet (pre-load) — don't scan
     window.clipflow.startWatching(watchFolder);
     window.clipflow.onFileAdded((file) => {
       setPendingRenames((prev) => {
