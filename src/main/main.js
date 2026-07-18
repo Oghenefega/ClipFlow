@@ -960,7 +960,10 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
     const baseName = path.basename(sourceFilePath).replace(/[^\w.-]/g, "_");
     // v2: bucketing fix in extractWaveformPeaks — old caches were computed with
     // truncated buckets (misaligned waveform) and must not be reused.
-    const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.v2.json`;
+    // #169: key includes the audio track — recalibrating must not serve peaks
+    // extracted from the previously-configured track.
+    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
+    const cacheKey = `${baseName}.${mtimeMs}.${sizeBytes}.${peakCount}.t${audioTrack}.v2.json`;
     const cachePath = path.join(cacheDir, cacheKey);
 
     if (fs.existsSync(cachePath)) {
@@ -973,7 +976,6 @@ ipcMain.handle("waveform:extractCached", async (_, projectId, sourceFilePath, du
       } catch (_) { /* fall through — re-extract on parse failure */ }
     }
 
-    const audioTrack = store.get("transcriptionAudioTrack") ?? 0;
     logger.info(logger.MODULES.videoProcessing, `[waveform] extracting peakCount=${peakCount} track=${audioTrack}`);
     const result = await ffmpeg.extractWaveformPeaks(sourceFilePath, peakCount, audioTrack);
     if (result?.peaks?.length > 0) {
