@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-18 (session 112) — 0.2.1-alpha.1 installer: audio track calibration ships to the daily driver
+
+### Changed
+- **Version bumped 0.2.0-alpha.1 → 0.2.1-alpha.1 and a fresh installer cut.** Sizing call: the audio track calibration wizard is a substantial new subsystem (probe, generation gate, wizard, sanity check, migrations), so this takes a minor bump with the alpha counter reset rather than an alpha tick. The installer promotes everything in the session-112 entry below — cut now because Fega is about to edit clips from multi-track recordings, exactly the footage the wizard exists for.
+
+### Fixed
+- **Editor waveforms refresh when the transcription track changes (#169).** The source-waveform disk cache was keyed only by file identity, so after recalibrating (e.g. mix → mic), the editor would keep serving the waveform extracted from the previously configured track forever. The audio track index is now part of the cache key — first open after a track change re-extracts, and switching back reuses the old cache. [main.js]
+
 ## [Unreleased] — 2026-07-18 (session 112) — Audio track calibration wizard: ClipFlow stops guessing which track is the mic
 
 ### Added
