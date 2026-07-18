@@ -12,9 +12,26 @@
 `transcriptionAudioTrack` (default 0) drives transcription (ai-pipeline.js:493,
 :817), retranscription (main.js:1291), and waveforms (main.js:807, :863). The
 Settings picker (SettingsView.js:991-1012) shows hardcoded guessed labels
-("Track 1 (Mic)", "Track 2 (Game)"). Fega's new OBS setup proves the guess
-wrong: probed 2026-07-17 recording = 4 tracks — T1 full mix, **T2 mic**
-(whisper-verified on two sample windows), T3 game audio, T4 digitally empty.
+("Track 1 (Mic)", "Track 2 (Game)").
+
+**Fega's three setups (session 112, verified via probes + OBS screenshots):**
+1. *Vertical-canvas era* (months of processed footage): T1 mix, **T2 mic**,
+   T4 empty — whisper-verified on 2 files. ClipFlow read T1 = the mix; on
+   sessions with vocal music playing, lyrics transcribe into T1 (demonstrated
+   on processed project source RL 2026-07-15).
+2. *Yesterday's interim setup* (OBS screenshot): T1 mix, T2 Mic, T3 Desktop,
+   T4 Chrome, T5 Comms+Music, T6 Music — file only contains T1-T4 (OBS output
+   records 4 tracks). Matches probe of 2026-07-17 recording (RL gameplay,
+   despite Arc Raiders folder name).
+3. *NEW going-forward setup* (OBS screenshot, no recordings yet): **no mix
+   track**. T1 **Mic**, T2 Desktop, T3 Chrome, T4 Comms, T5 Music. Current
+   setting (0) is CORRECT for this setup — earlier "switch to Track 2" advice
+   retracted.
+
+**Trigger-design hole this exposes:** track-COUNT mismatch cannot catch a
+setup change that keeps the same count (old era = 4 tracks; new era likely
+also 4-5). Count check stays (cheap, catches some cases) but is insufficient
+alone → sanity-check trigger added below.
 
 **Design (Fega-approved shape):** listen-and-identify wizard. Full labelling,
 with "skip the rest" once voice is labeled — voice is the only required answer.
@@ -32,9 +49,17 @@ with "skip the rest" once voice is labeled — voice is the only required answer
    remaining tracks" appears once a track is labeled voice.
 4. **Triggers:** (a) first multi-track video entering clip generation with no
    `audioSetup` → wizard before transcription; (b) new video's audio track
-   count ≠ `audioSetup.trackCount` → re-prompt (catches OBS setup changes
-   automatically); (c) single-track video → never prompt, use track 0;
-   (d) Settings "Recalibrate" button → wizard on a picked recording.
+   count ≠ `audioSetup.trackCount` → re-prompt (catches some OBS setup
+   changes); (c) single-track video → never prompt, use track 0;
+   (d) Settings "Recalibrate" button → wizard on a picked recording;
+   (e) **voice-track sanity check** — after transcription completes, if the
+   transcript is near-empty for a long source (voice track probably moved),
+   surface "your voice track may have changed — recalibrate?". Uses the
+   transcription that already ran; zero extra compute. NOTE: (e) still misses
+   the worst case — a swap where another track ALSO contains speech (e.g. old
+   era's T2-mic → new era's T2-Desktop with mix-like content). The full fix is
+   the stretch auto-detect (whisper sample per track), which also makes
+   mixed-era reprocessing seamless; v1 relies on (b)+(e)+manual recalibrate.
 5. **Settings UI:** replace hardcoded 4-button labels with learned labels
    from `audioSetup` + Recalibrate button. Manual override stays.
 
