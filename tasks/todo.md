@@ -6,6 +6,47 @@
 
 ---
 
+## PLAN (awaiting Fega's go) — Audio track calibration wizard (session 112)
+
+**Problem:** ClipFlow guesses which audio track is the mic. One global setting
+`transcriptionAudioTrack` (default 0) drives transcription (ai-pipeline.js:493,
+:817), retranscription (main.js:1291), and waveforms (main.js:807, :863). The
+Settings picker (SettingsView.js:991-1012) shows hardcoded guessed labels
+("Track 1 (Mic)", "Track 2 (Game)"). Fega's new OBS setup proves the guess
+wrong: probed 2026-07-17 recording = 4 tracks — T1 full mix, **T2 mic**
+(whisper-verified on two sample windows), T3 game audio, T4 digitally empty.
+
+**Design (Fega-approved shape):** listen-and-identify wizard. Full labelling,
+with "skip the rest" once voice is labeled — voice is the only required answer.
+
+1. **Probe helper** (ffmpeg.js): `probeAudioTracks(videoPath)` → ffprobe count
+   + per-stream info. Cheap, run at calibration/trigger time.
+2. **Data model** (electron-store): new `audioSetup` = `{ trackCount,
+   tracks: [{index, label}], calibratedAt }`. Labels: voice / game / music /
+   mix / other / empty. Wizard ALSO writes `transcriptionAudioTrack` = the
+   voice track index — all existing consumers stay untouched (zero pipeline
+   changes).
+3. **Wizard UI** (renderer, modal): per track — extract short sample via
+   existing `extractAudioRange`, play it (muted video preview + `<audio>`;
+   MUST have unmount cleanup), user picks label from dropdown. "Skip
+   remaining tracks" appears once a track is labeled voice.
+4. **Triggers:** (a) first multi-track video entering clip generation with no
+   `audioSetup` → wizard before transcription; (b) new video's audio track
+   count ≠ `audioSetup.trackCount` → re-prompt (catches OBS setup changes
+   automatically); (c) single-track video → never prompt, use track 0;
+   (d) Settings "Recalibrate" button → wizard on a picked recording.
+5. **Settings UI:** replace hardcoded 4-button labels with learned labels
+   from `audioSetup` + Recalibrate button. Manual override stays.
+
+**Stretch (separate slice, not v1):** auto-suggest voice track by running
+whisper on a 30-60s sample per track (proven manually this session).
+
+**Verify:** wizard on the 4-track recording labels all tracks & sets
+transcription to T2; subtitles + waveform read T2; track-count change
+re-prompts; single-track video never prompts; skip-the-rest works.
+
+---
+
 ## GATE PASSED (2026-07-16, session 106) — #164 Phase B: auto-detect proposes the boxes
 
 **Gate results (prototype harness, zero src/ changes):**
