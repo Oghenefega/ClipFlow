@@ -531,6 +531,20 @@ async function runAIPipeline({
     projects.saveProject(watchFolder, project);
     logger.endStep("Transcription", `${(transcription.segments || []).length} segments`);
 
+    // #169 voice-track sanity check: a long recording with almost no words
+    // usually means the configured audio track is not the mic anymore (OBS
+    // setup changed without a track-count change). Don't abort — flag it in
+    // the result so the renderer can offer recalibration.
+    const transcriptWordCount = (transcription.segments || []).reduce(
+      (n, s) => n + (s.text || "").trim().split(/\s+/).filter(Boolean).length, 0
+    );
+    const transcriptSparse = probeResult.duration >= 300 && transcriptWordCount < 20
+      ? { wordCount: transcriptWordCount, durationSec: probeResult.duration }
+      : null;
+    if (transcriptSparse) {
+      logger.info(`SPARSE TRANSCRIPT: ${transcriptWordCount} words in ${Math.round(probeResult.duration)}s — voice track may be miscalibrated (#169)`);
+    }
+
     // Write SRT for energy_scorer.py
     const srtPath = path.join(processingDir, "transcripts", `${videoName}.srt`);
     writeSrt(transcription, srtPath);
@@ -921,6 +935,7 @@ async function runAIPipeline({
       apiCost: logger.apiCost,
       signalSummary,
       failedSignals: failedAtComplete,
+      transcriptSparse, // #169: non-null when the voice track looks miscalibrated
     };
   } catch (err) {
     // Revert status back to renamed on failure

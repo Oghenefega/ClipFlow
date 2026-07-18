@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, GamePill, PageHeader, SectionLabel, Badge, Select, formatDuration } from "../components/shared";
 import { ProfileDiffModal } from "../components/modals";
+import AudioCalibrationModal from "../components/AudioCalibrationModal";
 import TestChip from "../components/TestChip";
 
 function formatSize(bytes) {
@@ -136,6 +137,11 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
   const [selected, setSelected] = useState({});
   const [doneFiles, setDoneFiles] = useState({});
   const [profileDiff, setProfileDiff] = useState(null);
+  // #169: sparse-transcript warning — { filePath, fileName, wordCount } after a
+  // pipeline run found almost no speech on the configured voice track.
+  const [sparseWarn, setSparseWarn] = useState(null);
+  // #169: recalibration launched from the sparse warning — { path, trackCount }
+  const [sparseCal, setSparseCal] = useState(null);
   // #123: sequential batch-generate — progress, end-of-run summary, and the
   // play-style review queue drained once the whole batch finishes (no per-file modal spam).
   const [batchState, setBatchState] = useState(null); // { current, total } while a batch runs
@@ -328,6 +334,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
       posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
       if (result.projectId) onProjectCreated?.(result.projectId);
+      // #169: almost no words on a long recording → voice track likely wrong
+      if (result.transcriptSparse) {
+        setSparseWarn({
+          filePath: file.current_path,
+          fileName: file.current_filename,
+          wordCount: result.transcriptSparse.wordCount,
+        });
+      }
       return { ok: true, clipCount: result.clipCount, profileUpdateNeeded: result.profileUpdateNeeded, gameTag: result.gameTag };
     } catch (e) {
       setProgress({ stage: "failed", pct: 0, detail: e.message });
@@ -1572,6 +1586,50 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           newProfile={profileDiff.newProfile}
           onAccept={() => setProfileDiff(null)}
           onDismiss={() => setProfileDiff(null)}
+        />
+      )}
+
+      {/* #169: sparse-transcript warning — the configured voice track had almost no speech */}
+      {sparseWarn && !sparseCal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius?.md || 10, padding: 24, maxWidth: 500, width: "90%", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+            <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🎙 Almost no speech found</div>
+            <div style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>
+              Only {sparseWarn.wordCount} word{sparseWarn.wordCount === 1 ? "" : "s"} were transcribed from <span style={{ color: T.text }}>{sparseWarn.fileName}</span>.
+              If you talk in your videos, the audio track ClipFlow listens to is probably no longer your mic — this happens after changing your OBS audio setup.
+              Recalibrating fixes future videos; for this one, delete its project and generate it again afterwards.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setSparseWarn(null)}
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>
+                It's fine — I don't talk much
+              </button>
+              <button onClick={async () => {
+                const info = await window.clipflow.audioProbeTracks(sparseWarn.filePath);
+                if (info?.success && info.trackCount > 1) {
+                  setSparseCal({ path: sparseWarn.filePath, trackCount: info.trackCount });
+                } else {
+                  setSparseWarn(null);
+                }
+              }}
+                style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
+                Recalibrate audio tracks
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {sparseCal && (
+        <AudioCalibrationModal
+          filePath={sparseCal.path}
+          trackCount={sparseCal.trackCount}
+          hasExisting={true}
+          onCancel={() => { setSparseCal(null); setSparseWarn(null); }}
+          onComplete={async (setup) => {
+            await window.clipflow.audioSaveCalibration(setup);
+            setSparseCal(null);
+            setSparseWarn(null);
+          }}
         />
       )}
 

@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-18 (session 112) — Audio track calibration wizard: ClipFlow stops guessing which track is the mic
+
+### Added
+- **Audio track calibration wizard (#169).** When a multi-track recording enters clip generation and no verified track layout is saved — or the recording's track count doesn't match the saved layout (the "I changed my OBS setup" case) — a wizard opens before anything is transcribed: it plays each audio track in isolation (muted video preview alongside, "Try another part" jumps to a different sample window) and asks what you heard (My voice / Game / Music / Voice chat / Everything mixed / Other / Empty). Exactly one track must be labeled as your voice — that track then drives transcription, retranscription, and editor waveforms automatically. Once your voice is found you can skip labelling the rest. The answer is saved once and inherited by every future recording; single-track recordings never prompt. Cancelling blocks that generation run with a clear message (and holds off re-asking for 60s so backing out of a batch doesn't nag per file). Verified end-to-end in the dev app on a real 4-track OBS recording: wizard → labels → save → pipeline transcribed the isolated mic track. [AudioCalibrationModal.js, App.js, main.js, preload.js, ffmpeg.js]
+- **Settings shows your verified track layout (#169).** The "Audio Track to Transcribe" picker now displays learned labels from the wizard ("Track 2 — My voice", "Track 1 — Everything mixed") instead of hardcoded guesses like "Track 1 (Mic)" that could be wrong for any given OBS setup, plus a calibration date line and a "Recalibrate…" button that runs the wizard on any recording you pick. Manual track override still works. [SettingsView.js]
+- **Voice-track sanity check after transcription (#169).** If a 5+ minute recording transcribes to almost no words, ClipFlow now warns that the audio track it listens to is probably no longer your mic and offers to recalibrate on the spot — catching OBS setup changes that keep the same track count, which the automatic count check can't see. [ai-pipeline.js, UploadView.js]
+
+### Fixed
+- **A deliberate "Track 2" choice no longer silently reverts to Track 1 on the next launch (#169).** An old one-time migration ("fix default audio track from game to mic") only recorded that it had run when it actually flipped the value — so on installs where the value was already 0 it stayed armed forever, and the moment anything legitimately set track 2 (the new wizard, or a manual Settings click), the next app start would quietly undo it. The migration now disarms itself on first run regardless. Caught live in verification when the wizard's saved calibration came back wrong after a relaunch. [main.js]
+- **Settings no longer shows stale audio-track state after calibrating (#169).** Every tab pane mounts at app launch, so Settings loaded its audio-track state once and never saw a calibration saved later from the wizard; the tab now re-reads those settings each time it becomes the active view. [SettingsView.js, App.js]
+
 ## [Unreleased] — 2026-07-17 (session 111) — 0.2.0-alpha.1 installer: Auto-Reframe Phase B ships to the daily driver
 
 ### Changed

@@ -6,7 +6,32 @@
 
 ---
 
-## PLAN (awaiting Fega's go) — Audio track calibration wizard (session 112)
+## ✅ BUILT (session 112, awaiting Fega verification) — Audio track calibration wizard (#169)
+
+Shipped per the plan below. CDP-verified in the dev app (sealed sandbox watch
+folder, real 4-track recording): gate fires → wizard renders → per-track
+samples extract & play → labels + auto-advance + skip-after-voice → save
+writes audioSetup + transcriptionAudioTrack=1 → pipeline proceeded and
+whisper transcribed the isolated mic track (7 segments; run then stopped at
+the dev profile's missing Anthropic key — unrelated, pre-existing). Cancel
+blocks generation with a clear message; 60s decline cooldown stops per-file
+re-prompts; 2-track file vs saved 4-track setup re-prompts with the
+"setup changed" copy; Settings shows learned labels + Recalibrate + date.
+
+Two bugs found & fixed during verification:
+1. `_migrated_audioTrack_v2` migration only set its flag when it flipped
+   1→0, so it stayed armed on 0-value stores and silently reverted any
+   deliberate track-2 choice on next launch. Now disarms on first run.
+2. Settings' mount-time load went stale after a wizard save (all panes mount
+   at launch) — now re-reads audio settings on tab activation (isActive prop).
+
+Not live-verified (by construction): sparse-transcript warning UI (threshold
+logic only; note: doesn't surface on strict-abort runs since the result never
+returns), Recalibrate's native file dialog (undriveable via CDP; post-pick
+path identical to verified wizard flow). NOT yet in an installer — Fega tests
+on the daily driver, cut one on request.
+
+## Original plan (approved) — Audio track calibration wizard (session 112)
 
 **Problem:** ClipFlow guesses which audio track is the mic. One global setting
 `transcriptionAudioTrack` (default 0) drives transcription (ai-pipeline.js:493,

@@ -4,6 +4,7 @@ import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import UpdateBanner from "./components/UpdateBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
+import AudioCalibrationModal from "./components/AudioCalibrationModal";
 import RenameView from "./views/RenameView";
 import RecordingsView from "./views/UploadView";
 import { ProjectsListView, ClipBrowser } from "./views/ProjectsView";
@@ -120,6 +121,35 @@ export default function App() {
       try { await window.clipflow.pipelineDegradeAnswer(id, answer ? "yes" : "no"); } catch (_) {}
     }
   }, [degradeAsk]);
+
+  // Audio track calibration wizard (#169) — main fires the event when a
+  // multi-track file hits the pipeline without a matching saved setup.
+  // Mounted at App level (same reason as the degrade modal).
+  // Shape: { requestId, filePath, trackCount, hasExisting } or null.
+  const [audioCalAsk, setAudioCalAsk] = useState(null);
+
+  useEffect(() => {
+    if (!window.clipflow?.onAudioCalibrationNeeded) return;
+    window.clipflow.onAudioCalibrationNeeded((data) => setAudioCalAsk(data));
+    return () => { window.clipflow?.removeAudioCalibrationListener?.(); };
+  }, []);
+
+  const respondAudioCal = useCallback(async (setup) => {
+    const id = audioCalAsk?.requestId;
+    setAudioCalAsk(null);
+    if (!id) return;
+    try {
+      if (setup) {
+        // Save FIRST — main re-checks the store after the answer resolves.
+        const saved = await window.clipflow.audioSaveCalibration(setup);
+        await window.clipflow.audioCalibrationAnswer(id, !!saved?.success);
+      } else {
+        await window.clipflow.audioCalibrationAnswer(id, false);
+      }
+    } catch (_) {
+      try { await window.clipflow.audioCalibrationAnswer(id, false); } catch (_) {}
+    }
+  }, [audioCalAsk]);
 
   // Settings
   const [ignoredProcesses, setIgnoredProcesses] = useState(INITIAL_IGNORED);
@@ -722,6 +752,7 @@ export default function App() {
               setRequireHashtagInTitle={setRequireHashtagInTitle}
               collapsedGroups={settingsCollapsed}
               setCollapsedGroups={setSettingsCollapsed}
+              isActive={view === "settings"}
             />
           </div>
         </div>
@@ -795,6 +826,15 @@ export default function App() {
           onConfirm={handleNewGame}
           onDismiss={() => { setNewGameExe(null); setShowAddGame(null); }}
           onIgnore={newGameExe ? (exe) => { setIgnoredProcesses((p) => [...p, exe]); setNewGameExe(null); } : null}
+        />
+      )}
+      {audioCalAsk && (
+        <AudioCalibrationModal
+          filePath={audioCalAsk.filePath}
+          trackCount={audioCalAsk.trackCount}
+          hasExisting={audioCalAsk.hasExisting}
+          onComplete={(setup) => respondAudioCal(setup)}
+          onCancel={() => respondAudioCal(null)}
         />
       )}
       {degradeAsk && (

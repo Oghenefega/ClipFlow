@@ -27,6 +27,7 @@ process.on("uncaughtException", (err) => {
 });
 
 const { BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const os = require("os");
 const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
 const ffmpeg = require("./ffmpeg");
@@ -215,6 +216,10 @@ const STORE_DEFAULTS = {
   splitSourceRetention: "keep",
   // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
   transcriptionAudioTrack: 0,
+  // #169: user-verified audio track layout from the calibration wizard.
+  // null = never calibrated. Shape: { trackCount, tracks: [{ index, label }], calibratedAt }
+  // Labels: voice | game | music | comms | mix | other | empty | unknown
+  audioSetup: null,
   // Project folders
   projectFolders: [],
   folderSortMode: "created",
@@ -258,9 +263,14 @@ function runStoreMigrations(store) {
 
   // ── Migration: add transcription audio track setting ──
   if (!store.has("transcriptionAudioTrack")) store.set("transcriptionAudioTrack", 0);
+  // ── Migration: add audio calibration setup (#169) ──
+  if (!store.has("audioSetup")) store.set("audioSetup", null);
   // ── Migration: fix default audio track from game (1) to mic (0) — one-time ──
-  if (!store.has("_migrated_audioTrack_v2") && store.get("transcriptionAudioTrack") === 1) {
-    store.set("transcriptionAudioTrack", 0);
+  // #169: the flag must be set even when no flip happens, otherwise the
+  // migration stays armed and silently reverts a deliberate track-2 choice
+  // (e.g. from the calibration wizard) on the next launch.
+  if (!store.has("_migrated_audioTrack_v2")) {
+    if (store.get("transcriptionAudioTrack") === 1) store.set("transcriptionAudioTrack", 0);
     store.set("_migrated_audioTrack_v2", true);
   }
 
@@ -809,6 +819,109 @@ ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => 
   }
   catch (err) { return { error: err.message, peaks: [] }; }
 });
+
+// ============ AUDIO TRACK CALIBRATION (#169) ============
+// The wizard verifies which audio track is which by ear instead of guessing.
+// Samples are extracted to a temp dir and played in the renderer via file://.
+
+const AUDIO_CAL_SAMPLE_DIR = path.join(os.tmpdir(), "clipflow-audiocal");
+const AUDIO_CAL_LABELS = ["voice", "game", "music", "comms", "mix", "other", "empty", "unknown"];
+
+ipcMain.handle("audio:probeTracks", async (_, filePath) => {
+  try {
+    const info = await ffmpeg.probeAudioTracks(filePath);
+    return { success: true, ...info };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("audio:extractTrackSample", async (_, filePath, trackIndex, offsetFraction) => {
+  try {
+    const idx = Number.isInteger(trackIndex) && trackIndex >= 0 ? trackIndex : 0;
+    const frac = [0.25, 0.5, 0.75].includes(offsetFraction) ? offsetFraction : 0.25;
+    const info = await ffmpeg.probeAudioTracks(filePath);
+    if (idx >= info.trackCount) return { error: `File has ${info.trackCount} audio tracks — track ${idx + 1} does not exist` };
+    const sampleDuration = Math.min(20, Math.max(1, info.duration));
+    const sampleStart = Math.max(0, Math.min(info.duration * frac, info.duration - sampleDuration));
+    const fileKey = require("crypto").createHash("md5").update(filePath).digest("hex").slice(0, 10);
+    const wavPath = path.join(AUDIO_CAL_SAMPLE_DIR, `${fileKey}-t${idx}-${Math.round(frac * 100)}.wav`);
+    if (!fs.existsSync(wavPath)) {
+      await ffmpeg.extractTrackSample(filePath, wavPath, idx, sampleStart, sampleDuration);
+    }
+    return { success: true, samplePath: wavPath, sampleStart, sampleDuration };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("audio:saveCalibration", async (_, setup) => {
+  try {
+    if (!setup || !Number.isInteger(setup.trackCount) || !Array.isArray(setup.tracks)) {
+      return { error: "Invalid calibration data" };
+    }
+    const tracks = setup.tracks
+      .filter((t) => Number.isInteger(t?.index) && AUDIO_CAL_LABELS.includes(t?.label))
+      .map((t) => ({ index: t.index, label: t.label }));
+    const voice = tracks.find((t) => t.label === "voice");
+    if (!voice) return { error: "No track was labeled as your voice" };
+    store.set("audioSetup", { trackCount: setup.trackCount, tracks, calibratedAt: new Date().toISOString() });
+    store.set("transcriptionAudioTrack", voice.index);
+    logger.info(logger.MODULES.system, `[audiocal] calibration saved: ${setup.trackCount} tracks, voice=track ${voice.index + 1}`);
+    return { success: true, transcriptionAudioTrack: voice.index };
+  } catch (err) { return { error: err.message }; }
+});
+
+ipcMain.handle("audio:cleanupSamples", async () => {
+  try { fs.rmSync(AUDIO_CAL_SAMPLE_DIR, { recursive: true, force: true }); } catch (_) {}
+  return { success: true };
+});
+
+// Calibration gate state — mirrors the askDegrade pattern. Single-flight so
+// concurrent generateClips calls (batch / split children) share one wizard.
+// A cancel suppresses re-asks for 60s so backing out of a batch doesn't
+// re-prompt on every remaining file.
+const pendingCalibrationAsks = new Map();
+let calibrationAskInFlight = null;
+let calibrationDeclinedAt = 0;
+
+ipcMain.handle("audio:calibrationAnswer", async (_, requestId, completed) => {
+  const resolve = pendingCalibrationAsks.get(requestId);
+  if (resolve) {
+    pendingCalibrationAsks.delete(requestId);
+    if (!completed) calibrationDeclinedAt = Date.now();
+    resolve({ completed: !!completed });
+  }
+  return { success: true };
+});
+
+/**
+ * Gate a pipeline run on audio calibration (#169). Prompts the wizard when the
+ * file is multi-track and no saved setup matches its track count. Returns
+ * { ok: true } to proceed or { cancelled: true } when the user backed out.
+ * Probe failures never block generation — the pipeline surfaces its own error.
+ */
+async function ensureAudioCalibrated(sourceFile) {
+  let info;
+  try { info = await ffmpeg.probeAudioTracks(sourceFile); } catch (_) { return { ok: true }; }
+  if (info.trackCount <= 1) return { ok: true };
+  const setup = store.get("audioSetup");
+  if (setup && setup.trackCount === info.trackCount) return { ok: true };
+  if (Date.now() - calibrationDeclinedAt < 60000) return { cancelled: true };
+
+  if (!calibrationAskInFlight) {
+    calibrationAskInFlight = new Promise((resolve) => {
+      const requestId = `audiocal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      pendingCalibrationAsks.set(requestId, resolve);
+      mainWindow?.webContents.send("audio:calibrationNeeded", {
+        requestId, filePath: sourceFile, trackCount: info.trackCount, hasExisting: !!setup,
+      });
+    }).finally(() => { calibrationAskInFlight = null; });
+  }
+  const answer = await calibrationAskInFlight;
+  if (!answer?.completed) return { cancelled: true };
+
+  // Re-check: the wizard may have calibrated a different file's layout.
+  const after = store.get("audioSetup");
+  if (after && after.trackCount === info.trackCount) return { ok: true };
+  return { cancelled: true };
+}
 
 // ============ WAVEFORM CACHE (source-file preview) ============
 // Phase 4: the editor reads waveform peaks from the full source recording.
@@ -1590,6 +1703,13 @@ ipcMain.handle("pipeline:degradeAnswer", async (_, requestId, answer) => {
 });
 
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
+  // #169: multi-track files must have a verified track layout before we
+  // transcribe — otherwise subtitles may come from game audio or music.
+  const calGate = await ensureAudioCalibrated(sourceFile);
+  if (calGate.cancelled) {
+    return { error: "Audio track setup was not completed — generation cancelled. Generate again to retry." };
+  }
+
   const watchFolder = store.get("watchFolder");
   const sendProgress = (stage, pct, detail, extra) => {
     mainWindow?.webContents.send("pipeline:progress", { stage, pct, detail, ...(extra || {}) });

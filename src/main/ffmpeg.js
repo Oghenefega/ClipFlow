@@ -138,6 +138,73 @@ function probe(filePath) {
 }
 
 /**
+ * Probe only the audio streams of a media file (#169 audio calibration).
+ * Returns { trackCount, duration, tracks: [{ index, codec, channels }] }
+ * where `index` is the 0-based AUDIO stream index (matches `-map 0:a:N`),
+ * not the container-wide stream index.
+ */
+function probeAudioTracks(filePath) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-v", "quiet",
+      "-print_format", "json",
+      "-show_format",
+      "-select_streams", "a",
+      "-show_streams",
+      filePath,
+    ];
+    execFile("ffprobe", args, { timeout: 30000 }, (err, stdout) => {
+      if (err) return reject(new Error(`ffprobe failed: ${err.message}`));
+      try {
+        const data = JSON.parse(stdout);
+        const streams = data.streams || [];
+        resolve({
+          trackCount: streams.length,
+          duration: parseFloat(data.format?.duration || "0"),
+          tracks: streams.map((s, i) => ({
+            index: i,
+            codec: s.codec_name || null,
+            channels: s.channels || 0,
+          })),
+        });
+      } catch (e) {
+        reject(new Error(`Failed to parse ffprobe output: ${e.message}`));
+      }
+    });
+  });
+}
+
+/**
+ * Extract a short sample of ONE specific audio track for the calibration
+ * wizard (#169). Unlike extractAudioRange there is deliberately NO fallback
+ * to track 0 — the wizard must play exactly the requested track or fail,
+ * otherwise the user would label the wrong audio.
+ */
+function extractTrackSample(videoPath, wavPath, trackIndex, startSec, durSec) {
+  const dir = path.dirname(wavPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-ss", String(startSec),
+      "-i", videoPath,
+      "-t", String(durSec),
+      "-map", `0:a:${trackIndex}`,
+      "-vn",
+      "-acodec", "pcm_s16le",
+      "-ar", "16000",
+      "-ac", "1",
+      "-y",
+      wavPath,
+    ];
+    execFile("ffmpeg", args, { timeout: 120000 }, (err) => {
+      if (err) return reject(new Error(`Track sample extraction failed (track ${trackIndex}): ${err.message}`));
+      resolve({ success: true, path: wavPath });
+    });
+  });
+}
+
+/**
  * Extract audio from a video file as WAV (16kHz mono — optimal for Whisper).
  * @param {string} videoPath - Source video
  * @param {string} wavPath - Output WAV path
@@ -560,6 +627,8 @@ module.exports = {
   resolveEncoder,
   buildEncoderArgs,
   probe,
+  probeAudioTracks,
+  extractTrackSample,
   extractAudio,
   extractAudioRange,
   generateThumbnail,

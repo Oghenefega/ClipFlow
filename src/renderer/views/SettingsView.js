@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot } from "../components/shared";
 import { GameEditModal } from "../components/modals";
+import AudioCalibrationModal from "../components/AudioCalibrationModal";
 
 // Shared button styles used across all settings sections
 const BTN = { padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: T.font };
@@ -11,7 +12,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -73,6 +74,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [whisperModel, setWhisperModel] = useState("large-v3-turbo");
   // Audio track selection
   const [audioTrack, setAudioTrack] = useState(0);
+  // #169: verified track layout from the calibration wizard (null = never calibrated)
+  const [audioSetup, setAudioSetup] = useState(null);
+  // #169: recalibration in progress — { path, trackCount } opens the wizard
+  const [calFile, setCalFile] = useState(null);
+  const [calNotice, setCalNotice] = useState(null);
   // Video splitting settings
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitThreshold, setSplitThreshold] = useState(30);
@@ -104,6 +110,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         // Load audio track setting
         const at = await window.clipflow.storeGet("transcriptionAudioTrack");
         if (at !== undefined && at !== null) setAudioTrack(at);
+        // #169: load verified track layout
+        const aset = await window.clipflow.storeGet("audioSetup");
+        if (aset) setAudioSetup(aset);
+        // NOTE: audioTrack/audioSetup also refresh on tab activation below —
+        // the wizard can save a calibration long after this pane mounted.
         // Load video splitting settings
         const ase = await window.clipflow.storeGet("autoSplitEnabled");
         if (ase !== undefined && ase !== null) setAutoSplitEnabled(ase);
@@ -132,6 +143,19 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       }
     })();
   }, []);
+
+  // #169: every pane mounts at launch, so the mount-time load above goes stale
+  // when the calibration wizard saves later (from generation or Recordings).
+  // Re-fetch the audio settings each time this tab becomes the active view.
+  useEffect(() => {
+    if (!isActive || !window.clipflow?.storeGet) return;
+    (async () => {
+      const at = await window.clipflow.storeGet("transcriptionAudioTrack");
+      if (at !== undefined && at !== null) setAudioTrack(at);
+      const aset = await window.clipflow.storeGet("audioSetup");
+      setAudioSetup(aset || null);
+    })();
+  }, [isActive]);
 
   const copyToClipboard = (value, fieldName) => {
     if (!value) return;
@@ -991,9 +1015,12 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ marginTop: 14 }}>
           <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Audio Track to Transcribe</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[0, 1, 2, 3].map((idx) => {
+            {Array.from({ length: Math.max(audioSetup?.trackCount || 0, 4) }, (_, idx) => {
               const isActive = audioTrack === idx;
-              const labels = ["Track 1 (Mic)", "Track 2 (Game)", "Track 3", "Track 4"];
+              // #169: show verified labels from the calibration wizard when available
+              const LABEL_TEXT = { voice: "My voice", game: "Game / desktop", music: "Music", comms: "Voice chat", mix: "Everything mixed", other: "Other", empty: "Empty", unknown: "?" };
+              const learned = audioSetup?.tracks?.find((t) => t.index === idx)?.label;
+              const label = learned ? `Track ${idx + 1} — ${LABEL_TEXT[learned] || learned}` : `Track ${idx + 1}`;
               return (
                 <button key={idx} onClick={async () => {
                   setAudioTrack(idx);
@@ -1004,12 +1031,51 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                     border: isActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
                     background: isActive ? T.accentDim : "rgba(255,255,255,0.03)",
                     color: isActive ? T.accentLight : T.textSecondary,
-                  }}>{labels[idx]}</button>
+                  }}>{label}</button>
               );
             })}
           </div>
-          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>Select which audio track from your OBS recording to use for transcription. Most multi-track setups have mic on Track 1 and game audio on Track 2.</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+            <button onClick={async () => {
+              setCalNotice(null);
+              const picked = await window.clipflow.openFileDialog({ filters: [{ name: "Videos", extensions: ["mp4", "mkv"] }] });
+              if (!picked) return;
+              const info = await window.clipflow.audioProbeTracks(picked);
+              if (info?.error) { setCalNotice(`Could not read that file: ${info.error}`); return; }
+              if (info.trackCount <= 1) { setCalNotice("That recording has only one audio track — nothing to calibrate. ClipFlow uses it automatically."); return; }
+              setCalFile({ path: picked, trackCount: info.trackCount });
+            }} style={{ padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer", border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text }}>
+              🎧 Recalibrate…
+            </button>
+            <span style={{ color: T.textTertiary, fontSize: 11 }}>
+              {audioSetup?.calibratedAt
+                ? `Calibrated ${new Date(audioSetup.calibratedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} (${audioSetup.trackCount} tracks)`
+                : "Not calibrated yet — pick a recent recording to identify your tracks by ear."}
+            </span>
+          </div>
+          {calNotice && <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>{calNotice}</div>}
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>Subtitles and waveforms are built from this track. Changed your OBS audio setup? Recalibrate with a new recording.</div>
         </div>
+        {calFile && (
+          <AudioCalibrationModal
+            filePath={calFile.path}
+            trackCount={calFile.trackCount}
+            hasExisting={!!audioSetup}
+            onCancel={() => setCalFile(null)}
+            onComplete={async (setup) => {
+              setCalFile(null);
+              const saved = await window.clipflow.audioSaveCalibration(setup);
+              if (saved?.success) {
+                setAudioTrack(saved.transcriptionAudioTrack);
+                const aset = await window.clipflow.storeGet("audioSetup");
+                if (aset) setAudioSetup(aset);
+                setCalNotice(`Saved — transcription now uses Track ${saved.transcriptionAudioTrack + 1} (your voice).`);
+              } else {
+                setCalNotice(saved?.error || "Could not save the calibration.");
+              }
+            }}
+          />
+        )}
       </Card>
 
       {/* API Credentials — Pill Bar */}

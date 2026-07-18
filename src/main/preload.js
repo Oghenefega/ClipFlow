@@ -58,6 +58,21 @@ contextBridge.exposeInMainWorld("clipflow", {
   waveformExtractCached: (projectId, sourceFilePath, durationSec) => ipcRenderer.invoke("waveform:extractCached", projectId, sourceFilePath, durationSec),
   projectLocateSource: (projectId) => ipcRenderer.invoke("project:locateSource", projectId),
 
+  // Audio track calibration (#169)
+  audioProbeTracks: (filePath) => ipcRenderer.invoke("audio:probeTracks", filePath),
+  audioExtractTrackSample: (filePath, trackIndex, offsetFraction) =>
+    ipcRenderer.invoke("audio:extractTrackSample", filePath, trackIndex, offsetFraction),
+  audioSaveCalibration: (setup) => ipcRenderer.invoke("audio:saveCalibration", setup),
+  audioCleanupSamples: () => ipcRenderer.invoke("audio:cleanupSamples"),
+  audioCalibrationAnswer: (requestId, completed) =>
+    ipcRenderer.invoke("audio:calibrationAnswer", requestId, completed),
+  onAudioCalibrationNeeded: (callback) => {
+    ipcRenderer.on("audio:calibrationNeeded", (_, data) => callback(data));
+  },
+  removeAudioCalibrationListener: () => {
+    ipcRenderer.removeAllListeners("audio:calibrationNeeded");
+  },
+
   // Whisper
   whisperCheck: (binaryPath) => ipcRenderer.invoke("whisper:checkInstalled", binaryPath),
 
