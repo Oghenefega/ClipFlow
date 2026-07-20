@@ -800,3 +800,8 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 **What almost went wrong (self-caught in review, not a user correction):** The day-counter repair (#170) wrote fixed `dayCount`/`lastDayDate` values into the store from the main process during reconcile. But App.js loads `gamesDb` into React state once at boot and persists the entire array back on every change — so the renderer's stale pre-repair copy would have overwritten the repair on Fega's very next rename (proposing Day10 again).
 
 **Rule:** Store keys owned by renderer state (loaded at boot + whole-value persisted on change) effectively have two writers. A main-process write to one of them MUST be pushed to the renderer via an IPC event (`gamesDb:changed` → setGamesDb) or it is silently reverted. Routed to clipflow-electron-ipc (Distilled Lessons).
+
+## 2026-07-20 (session 115) — Session names: plain, not clever
+- **What went wrong:** Suggested "One folder to rule them all — recording tree unified, date-first naming restored" as a session name; Fega: "what kind of name is that fam?"
+- **Why:** Went for a joke/movie-reference title instead of a functional label.
+- **Rule:** Session names read like commit subjects — a few plain words about the work ("Unified recordings + naming fix"). No puns, references, or subtitle constructions.
