@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-20 (session 115) — 0.2.2-alpha.2 installer: renamed files put the date first again
+
+### Changed
+- **Version bumped 0.2.2-alpha.1 → 0.2.2-alpha.2 and a fresh installer cut.** Sizing call: a single naming-convention bug fix, so this is an alpha tick. Cut immediately (rather than batched) because the fix must be installed before the next rename session — any rename on the old build produces the wrong-order names again.
+
+### Fixed
+- **Renamed files now lead with the date again (`2026-03-04 RL Day7 Pt1.mp4`), not the game tag.** The preset naming engine had drifted to tag-first output (`RL 2026-03-04 Day7 Pt1.mp4`), which clashed with the app-wide date-first convention: the Recordings tab couldn't strip the date for compact card labels (cards showed the full ugly filename), and the rename history's same-day part check never matched. All rename paths (single, split, game-switch split) and the preset preview/labels in Rename and Settings now emit and describe date-first names for the date-using presets; tag-only presets (e.g. "AR Day30 Pt1") are unchanged. The reconcile adoption pass treats date-first as current (including date+tag names without Day/Pt) and still recognizes the tag-first strays as legacy. [naming-presets.js, RenameView.js, SettingsView.js, reconcile.js]
+- **The four existing tag-first "RL 2026-03-04 Day7" files were repaired in place** (disk rename + library record sync, with a DB backup taken first) — they now display as "RL Day7 Pt1–4" in Recordings like their siblings. This was a one-time data fix on the real library, not shipped code.
+
 ## [Unreleased] — 2026-07-18 (session 113) — 0.2.2-alpha.1 installer: disk reconcile + watch-folder split ship to the daily driver
 
 ### Changed

@@ -748,11 +748,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 14 }}>Controls how renamed files are named. Can be overridden per-file in the Rename tab.</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {[
-            { id: "tag-date-day-part", label: "Tag + Date + Day + Part", example: "AR 2026-03-15 Day30 Pt1" },
+            { id: "tag-date-day-part", label: "Date + Tag + Day + Part", example: "2026-03-15 AR Day30 Pt1" },
             { id: "tag-day-part", label: "Tag + Day + Part", example: "AR Day30 Pt1" },
-            { id: "tag-date", label: "Tag + Date", example: "AR 2026-03-15" },
+            { id: "tag-date", label: "Date + Tag", example: "2026-03-15 AR" },
             { id: "tag-label", label: "Tag + Custom Label", example: "AR ranked-grind" },
-            { id: "tag-date-label", label: "Tag + Date + Label", example: "AR 2026-03-15 ranked-grind" },
+            { id: "tag-date-label", label: "Date + Tag + Label", example: "2026-03-15 AR ranked-grind" },
             { id: "original-tag", label: "Tag + Original", example: "AR 2026-03-15 14-30-22" },
           ].map((p) => {
             const isSel = namingPreset === p.id;

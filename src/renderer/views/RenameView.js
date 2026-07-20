@@ -6,11 +6,11 @@ import TestChip from "../components/TestChip";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
 const PRESET_LIST = [
-  { id: "tag-date-day-part", label: "Tag + Date + Day + Part", example: "AR 2026-03-15 Day30 Pt1" },
+  { id: "tag-date-day-part", label: "Date + Tag + Day + Part", example: "2026-03-15 AR Day30 Pt1" },
   { id: "tag-day-part", label: "Tag + Day + Part", example: "AR Day30 Pt1" },
-  { id: "tag-date", label: "Tag + Date", example: "AR 2026-03-15" },
+  { id: "tag-date", label: "Date + Tag", example: "2026-03-15 AR" },
   { id: "tag-label", label: "Tag + Custom Label", example: "AR ranked-grind" },
-  { id: "tag-date-label", label: "Tag + Date + Custom Label", example: "AR 2026-03-15 ranked-grind" },
+  { id: "tag-date-label", label: "Date + Tag + Custom Label", example: "2026-03-15 AR ranked-grind" },
   { id: "original-tag", label: "Tag + Original", example: "AR 2026-03-15 14-30-22" },
 ];
 
@@ -486,11 +486,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // ============ LIVE FILENAME PREVIEW (preset-aware) ============
   const getProposed = (r) => {
     const preset = r.preset || defaultPreset;
-    const parts = [r.tag];
+    // Date leads for date-using presets — must mirror formatFilename() in
+    // naming-presets.js ("2026-03-04 RL Day7 Pt1"), which does the real rename.
+    const parts = [];
 
     // Date (from OBS filename)
     const usesDate = ["tag-date-day-part", "tag-date", "tag-date-label"].includes(preset);
     if (usesDate) parts.push(r.fileName.slice(0, 10));
+
+    parts.push(r.tag);
 
     // Original filename
     if (preset === "original-tag") {

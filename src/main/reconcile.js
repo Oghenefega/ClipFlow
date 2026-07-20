@@ -28,21 +28,25 @@ const log = require("electron-log/main").scope("reconcile");
 const database = require("./database");
 const { uuid } = require("./uuid");
 
-// Legacy pre-redesign name: "2026-03-02 RL Day6 Pt1.mp4"
-const LEGACY_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)\.(mp4|mkv)$/i;
-// Current tag-first shapes: "RL 2026-03-04 Day7 Pt1.mp4", "RL 2026-03-04.mp4",
-// "RL 2026-03-04 Pt2.mp4" (collision part)
+// Current date-first shapes: "2026-03-02 RL Day6 Pt1.mp4", "2026-03-15 AR.mp4",
+// "2026-03-15 AR Pt2.mp4" (collision part). This is the app-wide convention
+// (restored session 115 — the preset engine briefly emitted tag-first).
+const DATE_FIRST_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w{1,8})(?:\s+Day(\d+))?(?:\s+Pt(\d+))?\.(mp4|mkv)$/i;
+// Legacy tag-first shapes from the 0.2.x drift era: "RL 2026-03-04 Day7 Pt1.mp4",
+// "RL 2026-03-04.mp4", "RL 2026-03-04 Pt2.mp4"
 const TAG_FIRST_PATTERN = /^(\w{1,8})\s+(\d{4}-\d{2}-\d{2})(?:\s+Day(\d+))?(?:\s+Pt(\d+))?\.(mp4|mkv)$/i;
 
 const MONTH_DIR = /^\d{4}-\d{2}$/;
 
 /** Parse a filename into metadata fields, or null if it isn't a renamed clip. */
 function parseRenamedFilename(fileName) {
-  let m = fileName.match(LEGACY_PATTERN);
+  let m = fileName.match(DATE_FIRST_PATTERN);
   if (m) {
+    const dayNumber = m[3] != null ? parseInt(m[3], 10) : null;
+    const partNumber = m[4] != null ? parseInt(m[4], 10) : null;
     return {
-      date: m[1], tag: m[2], dayNumber: parseInt(m[3], 10), partNumber: parseInt(m[4], 10),
-      namingPreset: "tag-date-day-part",
+      date: m[1], tag: m[2], dayNumber, partNumber,
+      namingPreset: dayNumber != null ? "tag-date-day-part" : "tag-date",
     };
   }
   m = fileName.match(TAG_FIRST_PATTERN);

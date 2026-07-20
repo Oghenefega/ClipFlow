@@ -9,9 +9,9 @@ const { uuid } = require("./uuid");
 const PRESETS = {
   "tag-date-day-part": {
     id: "tag-date-day-part",
-    displayName: "Tag + Date + Day + Part",
-    format: "{tag} {date} Day{N} Pt{N}",
-    example: "AR 2026-03-15 Day30 Pt1",
+    displayName: "Date + Tag + Day + Part",
+    format: "{date} {tag} Day{N} Pt{N}",
+    example: "2026-03-15 AR Day30 Pt1",
     alwaysShowParts: true,
     usesDayNumber: true,
     usesDate: true,
@@ -31,9 +31,9 @@ const PRESETS = {
   },
   "tag-date": {
     id: "tag-date",
-    displayName: "Tag + Date",
-    format: "{tag} {date}",
-    example: "AR 2026-03-15",
+    displayName: "Date + Tag",
+    format: "{date} {tag}",
+    example: "2026-03-15 AR",
     alwaysShowParts: false,
     usesDayNumber: false,
     usesDate: true,
@@ -53,9 +53,9 @@ const PRESETS = {
   },
   "tag-date-label": {
     id: "tag-date-label",
-    displayName: "Tag + Date + Custom Label",
-    format: "{tag} {date} {label}",
-    example: "AR 2026-03-15 ranked-grind",
+    displayName: "Date + Tag + Custom Label",
+    format: "{date} {tag} {label}",
+    example: "2026-03-15 AR ranked-grind",
     alwaysShowParts: false,
     usesDayNumber: false,
     usesDate: true,
@@ -91,11 +91,16 @@ function formatFilename(meta, presetId) {
   const preset = PRESETS[presetId];
   if (!preset) throw new Error(`Unknown preset: ${presetId}`);
 
-  const parts = [meta.tag];
+  // Date leads for date-using presets ("2026-03-04 RL Day7 Pt1") — the app-wide
+  // convention that Recordings display stripping and rename-history date checks
+  // rely on. Tag-first output was a drift that broke both (session 115).
+  const parts = [];
 
   if (preset.usesDate && meta.date) {
     parts.push(meta.date);
   }
+
+  parts.push(meta.tag);
 
   if (preset.usesOriginal && meta.originalFilename) {
     // Strip extension from original filename
