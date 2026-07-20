@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow · Rename tab redesign mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --textMuted:rgba(255,255,255,0.16);
+    --labelStrong:rgba(255,255,255,0.68);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.25); --accentGlow:rgba(139,92,246,0.06);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+    --yellow:#fbbf24; --yellowDim:rgba(251,191,36,0.10); --yellowBorder:rgba(251,191,36,0.22);
+    --red:#f87171; --redDim:rgba(248,113,113,0.08);
+    --rl:#3b82f6; --val:#fb7185;
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:30px 24px 140px}
+  .wrap{max-width:1060px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 20px}
+
+  /* legend: complaint → fix */
+  .legend{border:1px solid var(--accentBorder);background:var(--accentGlow);border-radius:12px;padding:14px 18px;margin-bottom:30px}
+  .legend b{color:var(--accentLight);font-size:12px;letter-spacing:.4px;text-transform:uppercase}
+  .legend table{border-collapse:collapse;margin-top:8px;width:100%}
+  .legend td{font-size:12.5px;color:var(--text2);line-height:1.6;padding:3px 0;vertical-align:top}
+  .legend td:first-child{color:var(--text);font-weight:600;width:280px;padding-right:18px}
+  .mk{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:9.5px;font-weight:800;vertical-align:middle;flex:none}
+  td .mk{margin-right:6px}
+
+  .vhead{display:flex;align-items:baseline;gap:12px;margin:38px 0 6px}
+  .vhead h2{font-size:16px;font-weight:800;letter-spacing:-.2px;margin:0}
+  .vhead .tag{font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--accent);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:2px 9px}
+  .vnote{color:var(--text2);font-size:12.5px;margin:0 0 14px;line-height:1.6;max-width:72ch}
+
+  /* ── slim page header (replaces stat cards + watching banner) ── */
+  .pagehead{display:flex;align-items:center;gap:14px;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:10px 16px;margin-bottom:14px}
+  .pagehead .ttl{font-size:16px;font-weight:800;letter-spacing:-.2px}
+  .pagehead .watch{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text2);min-width:0}
+  .pagehead .watch .pdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex:none}
+  .pagehead .watch span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pagehead .stats{margin-left:auto;display:flex;gap:6px;flex:none}
+  .stat{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
+  .stat b{color:var(--text);font-weight:700;font-size:12px}
+
+  /* ── session group (Variant A) ── */
+  .session{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;margin-bottom:14px}
+  .shead{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border)}
+  .shead .sdate{font-size:13.5px;font-weight:800;letter-spacing:-.1px}
+  .shead .smeta{margin-left:auto;font-size:11.5px;color:var(--text3);flex:none}
+
+  .cb{width:16px;height:16px;border-radius:5px;border:1px solid var(--borderHover);background:transparent;cursor:pointer;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;transition:background .12s,border-color .12s}
+  .cb.on{background:var(--accent);border-color:var(--accent)}
+  .cb.half{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight)}
+
+  .gamechip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--borderHover);background:rgba(255,255,255,0.045);border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .gamechip .gp{font-size:9.5px;font-weight:800;letter-spacing:.4px;border-radius:4px;padding:1px 5px}
+  .gamechip .car{color:var(--text3);font-size:9px;margin-left:2px}
+  .gp.rl{color:var(--rl);background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.3)}
+  .gp.val{color:var(--val);background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.3)}
+
+  .step{display:inline-flex;align-items:center;border:1px solid var(--borderHover);border-radius:8px;overflow:hidden;flex:none}
+  .step .lb{font-size:11px;font-weight:600;color:var(--text2);padding:4px 8px;background:rgba(255,255,255,0.03)}
+  .step .vl{font-size:12.5px;font-weight:700;padding:4px 9px;min-width:26px;text-align:center}
+  .step .bt{font-size:10px;color:var(--text3);padding:4px 6px;cursor:pointer;user-select:none;border-left:1px solid var(--border)}
+  .step .bt:hover{color:var(--text);background:var(--surfaceHover)}
+
+  .presetchip{font-size:11px;color:var(--text2);border:1px dashed var(--borderHover);border-radius:8px;padding:4px 10px;cursor:pointer;flex:none}
+  .presetchip:hover{color:var(--text);border-color:var(--accentBorder)}
+
+  .iconbt{width:26px;height:26px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--text3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+  .iconbt:hover{color:var(--text);background:var(--surfaceHover);border-color:var(--border)}
+  .iconbt svg{width:14px;height:14px;display:block}
+
+  /* rows */
+  .row{display:flex;align-items:center;gap:12px;padding:7px 14px;border-top:1px solid var(--border);transition:background .12s}
+  .row:first-child{border-top:none}
+  .row:hover{background:var(--surfaceHover)}
+  .row.sel{background:var(--accentGlow)}
+  .row .thumb{height:46px;width:41px;border-radius:6px;flex:none;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer}
+  .row .thumb .tick{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)}
+  .row .thumb .tick i{display:block;height:100%;width:25%;background:var(--accentLight);transition:transform .05s linear}
+  .names{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px}
+  .names .old{font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:170px}
+  .names .arr{color:var(--textMuted);font-size:11px;flex:none}
+  .names .new{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px dashed transparent;cursor:pointer}
+  .names .new.rl{color:var(--rl);border-color:rgba(59,130,246,.35)}
+  .names .new.val{color:var(--val);border-color:rgba(251,113,133,.35)}
+  .testchip{font-size:8.5px;font-weight:800;letter-spacing:.5px;color:var(--yellow);border:1px solid var(--yellowBorder);background:var(--yellowDim);border-radius:4px;padding:1px 5px;flex:none}
+  .ptchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:11.5px;color:var(--text2);flex:none}
+  .ptchip b{color:var(--text);font-weight:700;font-size:12px}
+  .ptchip .bt{color:var(--text3);font-size:9px;cursor:pointer;padding:0 1px;display:none}
+  .row:hover .ptchip .bt{display:inline}
+  .dur{font-size:11.5px;color:var(--text3);width:44px;text-align:right;flex:none}
+  .acts{display:flex;gap:2px;flex:none;opacity:0;transition:opacity .12s;width:88px;justify-content:flex-end}
+  .row:hover .acts,.row.sel .acts{opacity:1}
+  .splitnote{font-size:10.5px;color:var(--accentLight);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:5px;padding:1px 7px;flex:none;font-weight:600}
+
+  /* ── Variant B compact cards ── */
+  .ccard{display:flex;align-items:center;gap:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:10px 14px;margin-bottom:8px;position:relative;transition:background .12s}
+  .ccard:hover{background:var(--surfaceHover)}
+  .ccard.sel{background:var(--accentGlow);border-color:var(--accentBorder)}
+  .ccard .cb{opacity:0;transition:opacity .12s}
+  .ccard:hover .cb,.ccard.sel .cb,.ccard .cb.on{opacity:1}
+  .ccard .thumb{height:56px;width:50px;border-radius:7px;flex:none;overflow:hidden;position:relative;background:#0d0e14;cursor:pointer}
+  .ccard .thumb .tick{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)}
+  .ccard .thumb .tick i{display:block;height:100%;width:25%;background:var(--accentLight)}
+  .cbody{flex:1;min-width:0}
+  .cline1{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;min-width:0}
+  .cline2{display:flex;align-items:center;gap:8px}
+  .cbtn{font-family:var(--font);font-size:10.5px;font-weight:800;letter-spacing:.3px;border-radius:6px;padding:5px 11px;cursor:pointer;border:none}
+  .cbtn.go{background:var(--greenDim);color:var(--green);border:1px solid var(--greenBorder)}
+  .cbtn.go:hover{background:rgba(52,211,153,0.18)}
+  .cacts{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto}
+  .cacts .iconbt{opacity:0}
+  .ccard:hover .cacts .iconbt{opacity:1}
+
+  /* ── thumbnail strip ── */
+  .tstrip{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap}
+  .topt{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px;width:236px;display:flex;flex-direction:column;gap:10px}
+  .topt.bad{border-color:rgba(248,113,113,.25)}
+  .topt.good{border-color:var(--greenBorder)}
+  .topt .cap{font-size:12px;font-weight:700}
+  .topt .cap .b{font-size:9px;font-weight:800;letter-spacing:.5px;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .topt.bad .cap .b{color:var(--red);background:var(--redDim);border:1px solid rgba(248,113,113,.25)}
+  .topt.good .cap .b{color:var(--green);background:var(--greenDim);border:1px solid var(--greenBorder)}
+  .topt .why{font-size:11px;color:var(--text2);line-height:1.55;margin-top:auto}
+  .tdemo{display:flex;align-items:center;justify-content:center;height:104px;background:rgba(255,255,255,0.02);border-radius:8px}
+
+  .batchbar{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:50;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:rgba(22,23,31,0.94);border:1px solid var(--borderHover);box-shadow:0 10px 32px rgba(0,0,0,0.55)}
+  .batchbar .cnt{font-size:12.5px;color:var(--text2)}
+  .batchbar .cnt b{color:var(--text)}
+  .bbtn{font-family:var(--font);font-size:12px;font-weight:700;border-radius:9px;padding:8px 16px;cursor:pointer;border:none}
+  .bbtn.primary{background:var(--accent);color:#fff}
+  .bbtn.primary:hover{background:#9d74f8}
+  .bbtn.ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}
+  .bbtn.warn{background:transparent;border:1px solid var(--border);color:var(--text2)}
+  .bbtn.warn:hover{color:var(--red);border-color:rgba(248,113,113,.3)}
+
+  .footnote{margin-top:34px;border-top:1px solid var(--border);padding-top:16px;font-size:12px;color:var(--text3);line-height:1.7;max-width:78ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Rename tab · redesign directions</h1>
+  <p class="sub">Two layout prototypes plus a thumbnail comparison. Everything uses the real theme tokens, DM Sans only.</p>
+
+  <div class="legend">
+    <b>Your four complaints, mapped</b>
+    <table>
+      <tr><td><span class="mk">1</span>No file-explorer access</td><td>Folder icon on every row (hover) and on each session header. The IPC already exists in main.js, so this is wiring, not new plumbing.</td></tr>
+      <tr><td><span class="mk">2</span>All-or-one renaming</td><td>Checkboxes per row and per session, plus a floating action bar that switches between "Rename All" and "Rename N Selected". Same pattern as the Recordings batch cluster.</td></tr>
+      <tr><td><span class="mk">3</span>Bloated horizontal pills</td><td>The real fix is structural: files from one OBS session share game, day, date and preset, so those controls are hoisted to a session header and stated once. Rows shrink from ~130px to ~60px.</td></tr>
+      <tr><td><span class="mk">4</span>16:9 thumbnail crops your footage</td><td>Your canvas is 2560×2880 (taller than wide). The current 160×90 box center-crops half the frame away. Thumbs become native-aspect, sized per file from the ffprobe data we already fetch, with hover-scrub instead of a timed slideshow.</td></tr>
+    </table>
+  </div>
+
+  <!-- ═════════ VARIANT A ═════════ -->
+  <div class="vhead"><h2>Variant A · Session ledger</h2><span class="tag">RECOMMENDED</span></div>
+  <p class="vnote">Pending files group by recording session (date + game). The header owns everything the parts share: game, day, naming preset, and a session checkbox. Rows only carry what actually varies per file: part number, duration, the name preview, and hover actions (open folder, split, hide). The stat cards and watching banner compress into one slim strip so pending files start ~200px higher.</p>
+
+  <!-- slim page header -->
+  <div class="pagehead">
+    <span class="ttl">Rename</span>
+    <span class="watch"><span class="pdot"></span><span>W:\YouTube Gaming Recordings Onward\Recordings\2026-07</span></span>
+    <span class="stats">
+      <span class="stat"><b>124</b> total</span>
+      <span class="stat"><b>10</b> pending</span>
+      <span class="stat"><b>9</b> games</span>
+    </span>
+  </div>
+
+  <!-- session 1 -->
+  <div class="session" data-group="a1">
+    <div class="shead">
+      <span class="cb" data-master="a1" onclick="toggleGroup('a1')"></span>
+      <span class="sdate">Thu, Jul 17</span>
+      <span class="gamechip"><span class="gp rl">RL</span>Rocket League<span class="car">▾</span></span>
+      <span class="step"><span class="lb">Day</span><span class="vl">8</span><span class="bt">−</span><span class="bt">+</span></span>
+      <span class="presetchip">Date + Tag + Day + Pt ▾</span>
+      <span class="smeta">8 parts · 3h 58m</span>
+      <button class="iconbt" title="Open month folder in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+    </div>
+    <div class="rows">
+      <!-- 8 rows -->
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 19-47-02.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt1.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>1</b><span class="bt">+</span></span>
+        <span class="dur">29:52</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 20-17-09.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt2.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>2</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 20-47-09.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt3.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>3</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 21-17-08.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt4.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>4</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 21-47-08.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt5.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>5</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 22-17-08.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt6.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>6</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 22-47-08.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt7.mp4</span><span class="splitnote">1:04:12 · splits into 2</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>7</b><span class="bt">+</span></span>
+        <span class="dur">1:04:12</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a1">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-17 23-17-08.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt8.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>8</b><span class="bt">+</span></span>
+        <span class="dur">24:41</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- session 2: different game, shows grouping value -->
+  <div class="session" data-group="a2">
+    <div class="shead">
+      <span class="cb" data-master="a2" onclick="toggleGroup('a2')"></span>
+      <span class="sdate">Wed, Jul 16</span>
+      <span class="gamechip"><span class="gp val">VAL</span>Valorant<span class="car">▾</span></span>
+      <span class="step"><span class="lb">Day</span><span class="vl">12</span><span class="bt">−</span><span class="bt">+</span></span>
+      <span class="presetchip">Date + Tag + Day + Pt ▾</span>
+      <span class="smeta">2 parts · 58m</span>
+      <button class="iconbt" title="Open month folder in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+    </div>
+    <div class="rows">
+      <div class="row" data-g="a2">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-16 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt1.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>1</b><span class="bt">+</span></span>
+        <span class="dur">30:00</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+      <div class="row" data-g="a2">
+        <span class="cb" onclick="toggleRow(this)"></span>
+        <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
+        <div class="names"><span class="old">2026-07-16 18-32-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt2.mp4</span></div>
+        <span class="ptchip"><span class="bt">−</span>Pt <b>2</b><span class="bt">+</span></span>
+        <span class="dur">28:14</span>
+        <span class="acts">
+          <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+          <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+          <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════ VARIANT B ═════════ -->
+  <div class="vhead"><h2>Variant B · Compact cards</h2><span class="tag">SAFE EVOLUTION</span></div>
+  <p class="vnote">Keeps today's one-card-per-file model (no grouping) but cuts each card from ~130px to ~78px: names and controls share two tight lines, actions collapse to hover icons plus one Rename button, and selection appears on hover. Less of a rethink, works identically when the pending list is a mixed bag of games.</p>
+
+  <div class="ccard" data-g="b">
+    <span class="cb" onclick="toggleRow(this)"></span>
+    <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+    <div class="cbody">
+      <div class="cline1"><span class="old">2026-07-17 19-47-02.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt1.mp4</span></div>
+      <div class="cline2">
+        <span class="gamechip" style="padding:3px 8px;font-size:11.5px"><span class="gp rl">RL</span>Rocket League<span class="car">▾</span></span>
+        <span class="step"><span class="lb">Day</span><span class="vl">8</span><span class="bt">−</span><span class="bt">+</span></span>
+        <span class="ptchip" style="display:inline-flex"><span class="bt" style="display:inline">−</span>Pt <b>1</b><span class="bt" style="display:inline">+</span></span>
+        <span class="dur" style="width:auto">29:52</span>
+      </div>
+    </div>
+    <div class="cacts">
+      <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+      <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+      <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+      <button class="cbtn go">RENAME</button>
+    </div>
+  </div>
+
+  <div class="ccard" data-g="b">
+    <span class="cb" onclick="toggleRow(this)"></span>
+    <div class="thumb" data-scrub><div class="tick"><i></i></div></div>
+    <div class="cbody">
+      <div class="cline1"><span class="old">2026-07-17 20-17-09.mp4</span><span class="testchip">TEST</span><span class="arr">→</span><span class="new rl">2026-07-17 RL Day8 Pt2.mp4</span><span class="splitnote">1:04:12 · splits into 2</span></div>
+      <div class="cline2">
+        <span class="gamechip" style="padding:3px 8px;font-size:11.5px"><span class="gp rl">RL</span>Rocket League<span class="car">▾</span></span>
+        <span class="step"><span class="lb">Day</span><span class="vl">8</span><span class="bt">−</span><span class="bt">+</span></span>
+        <span class="ptchip" style="display:inline-flex"><span class="bt" style="display:inline">−</span>Pt <b>2</b><span class="bt" style="display:inline">+</span></span>
+        <span class="dur" style="width:auto">1:04:12</span>
+      </div>
+    </div>
+    <div class="cacts">
+      <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+      <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+      <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+      <button class="cbtn go">SPLIT & RENAME</button>
+    </div>
+  </div>
+
+  <div class="ccard" data-g="b">
+    <span class="cb" onclick="toggleRow(this)"></span>
+    <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
+    <div class="cbody">
+      <div class="cline1"><span class="old">2026-07-16 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt1.mp4</span></div>
+      <div class="cline2">
+        <span class="gamechip" style="padding:3px 8px;font-size:11.5px"><span class="gp val">VAL</span>Valorant<span class="car">▾</span></span>
+        <span class="step"><span class="lb">Day</span><span class="vl">12</span><span class="bt">−</span><span class="bt">+</span></span>
+        <span class="ptchip" style="display:inline-flex"><span class="bt" style="display:inline">−</span>Pt <b>1</b><span class="bt" style="display:inline">+</span></span>
+        <span class="dur" style="width:auto">30:00</span>
+      </div>
+    </div>
+    <div class="cacts">
+      <button class="iconbt" title="Show in Explorer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z"/></svg></button>
+      <button class="iconbt" title="Split video"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.7 5.6 14 12M5.7 10.4 14 4"/></svg></button>
+      <button class="iconbt" title="Hide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><path d="M3 13 13 3"/></svg></button>
+      <button class="cbtn go">RENAME</button>
+    </div>
+  </div>
+
+  <!-- ═════════ THUMBNAILS ═════════ -->
+  <div class="vhead"><h2>Thumbnail treatments</h2></div>
+  <p class="vnote">Your recordings are 2560×2880, taller than wide. Containers below are drawn to scale. Move your mouse across the two scrub tiles above (any row thumbnail) to feel the hover-scrub. Thumb width comes from each file's real aspect ratio, so a 16:9 user gets a wide thumb and you get a narrow one; nothing is hardcoded.</p>
+  <div class="tstrip">
+    <div class="topt bad">
+      <span class="cap">Today: 16:9 box, cover-crop<span class="b">CURRENT</span></span>
+      <div class="tdemo"><div style="width:160px;height:90px;border-radius:6px;overflow:hidden;position:relative;background:linear-gradient(160deg,#3a2a55,#1a2740 60%,#10202e)">
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:80px;height:180px;background:linear-gradient(180deg,#7c5cb8 0%,#2b3f6e 45%,#173049 100%);opacity:.9"></div>
+        <div style="position:absolute;inset:0;border:1px dashed rgba(248,113,113,.6);border-left:none;border-right:none;top:0;bottom:0"></div>
+      </div></div>
+      <span class="why">The 8:9 frame is scaled to fill a 16:9 box, so half of every frame is cropped away. This is the squish you're seeing.</span>
+    </div>
+    <div class="topt good">
+      <span class="cap">Native aspect, fixed height<span class="b">VARIANT A + B</span></span>
+      <div class="tdemo"><div style="width:50px;height:56px;border-radius:6px;background:linear-gradient(180deg,#7c5cb8 0%,#2b3f6e 45%,#173049 100%)"></div></div>
+      <span class="why">Whole frame visible, tiny footprint. Height is fixed per row; width follows the file's real aspect from the probe data.</span>
+    </div>
+    <div class="topt">
+      <span class="cap">Filmstrip</span>
+      <div class="tdemo"><div style="display:flex;gap:3px">
+        <div style="width:34px;height:38px;border-radius:4px;background:linear-gradient(180deg,#7c5cb8,#173049)"></div>
+        <div style="width:34px;height:38px;border-radius:4px;background:linear-gradient(180deg,#5c7cb8,#173049)"></div>
+        <div style="width:34px;height:38px;border-radius:4px;background:linear-gradient(180deg,#b85c8e,#173049)"></div>
+        <div style="width:34px;height:38px;border-radius:4px;background:linear-gradient(180deg,#5cb887,#173049)"></div>
+      </div></div>
+      <span class="why">Shows the whole video at a glance with no hover needed, but eats ~150px of row width. Better fit for a detail or peek view than the list.</span>
+    </div>
+    <div class="topt good">
+      <span class="cap">Hover-scrub<span class="b">RECOMMENDED</span></span>
+      <div class="tdemo"><div class="thumb" data-scrub style="height:56px;width:50px;border-radius:6px;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer"><div class="tick" style="position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)"><i style="display:block;height:100%;width:25%;background:var(--accentLight)"></i></div></div></div>
+      <span class="why">Mouse position picks the frame, like YouTube previews. Replaces the timed crossfade: you control where you look. Uses the same frames we already extract.</span>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Selection is live in this mock: click checkboxes (rows or a session header) and the bottom bar switches from "Rename All" to selected-count mode. Shift-click range select and Ctrl+A would come along in the real build. The History and Manage sub-tabs are untouched by this redesign; the slim header strip replaces the four stat cards and the watching banner. Rename All ignores hidden files exactly as today.
+  </div>
+</div>
+
+<!-- floating batch bar -->
+<div class="batchbar" id="bar">
+  <span class="cnt" id="barText">No selection</span>
+  <button class="bbtn warn" id="hideBtn" style="display:none">Hide Selected</button>
+  <button class="bbtn ghost" id="clearBtn" style="display:none" onclick="clearSel()">Clear</button>
+  <button class="bbtn primary" id="goBtn">Rename All 10 Files</button>
+</div>
+
+<script>
+  // ── selection model ──
+  function rowsOf(g){ return Array.from(document.querySelectorAll('[data-g="'+g+'"]')); }
+  function allRows(){ return Array.from(document.querySelectorAll('[data-g]')); }
+
+  function toggleRow(cb){
+    const row = cb.closest('[data-g]');
+    row.classList.toggle('sel');
+    cb.classList.toggle('on');
+    cb.textContent = cb.classList.contains('on') ? '✓' : '';
+    syncMaster(row.dataset.g);
+    refreshBar();
+  }
+  function toggleGroup(g){
+    const master = document.querySelector('[data-master="'+g+'"]');
+    const turnOn = !master.classList.contains('on');
+    rowsOf(g).forEach(r=>{
+      r.classList.toggle('sel', turnOn);
+      const cb = r.querySelector('.cb');
+      cb.classList.toggle('on', turnOn);
+      cb.textContent = turnOn ? '✓' : '';
+    });
+    syncMaster(g); refreshBar();
+  }
+  function syncMaster(g){
+    const master = document.querySelector('[data-master="'+g+'"]');
+    if(!master) return;
+    const rows = rowsOf(g);
+    const on = rows.filter(r=>r.classList.contains('sel')).length;
+    master.classList.toggle('on', on===rows.length && on>0);
+    master.classList.toggle('half', on>0 && on<rows.length);
+    master.textContent = on===rows.length && on>0 ? '✓' : (on>0 ? '–' : '');
+  }
+  function clearSel(){
+    allRows().forEach(r=>{
+      r.classList.remove('sel');
+      const cb=r.querySelector('.cb'); cb.classList.remove('on'); cb.textContent='';
+    });
+    document.querySelectorAll('[data-master]').forEach(m=>{m.classList.remove('on','half');m.textContent='';});
+    refreshBar();
+  }
+  function refreshBar(){
+    const n = allRows().filter(r=>r.classList.contains('sel')).length;
+    const txt=document.getElementById('barText'), go=document.getElementById('goBtn'),
+          cl=document.getElementById('clearBtn'), hd=document.getElementById('hideBtn');
+    if(n===0){ txt.textContent='No selection'; go.textContent='Rename All 10 Files'; cl.style.display='none'; hd.style.display='none'; }
+    else{ txt.innerHTML='<b>'+n+'</b> selected'; go.textContent='Rename '+n+' Selected'; cl.style.display='inline-block'; hd.style.display='inline-block'; }
+  }
+
+  // ── hover-scrub demo: 4 fake "frames" per thumb ──
+  const FRAMES = {
+    rl:  ['linear-gradient(180deg,#7c5cb8 0%,#2b3f6e 45%,#173049 100%)',
+          'linear-gradient(180deg,#5c7cb8 0%,#26496e 45%,#14293e 100%)',
+          'linear-gradient(180deg,#4a90c2 0%,#1f3d5c 45%,#122436 100%)',
+          'linear-gradient(180deg,#8e6cc9 0%,#31356e 45%,#181d40 100%)'],
+    val: ['linear-gradient(180deg,#c25c7a 0%,#6e2b3f 45%,#491723 100%)',
+          'linear-gradient(180deg,#b8745c 0%,#6e3f2b 45%,#3e2114 100%)',
+          'linear-gradient(180deg,#c94a6c 0%,#5c1f3d 45%,#361222 100%)',
+          'linear-gradient(180deg,#a85c9e 0%,#5e2b6e 45%,#321749 100%)']
+  };
+  document.querySelectorAll('[data-scrub]').forEach(t=>{
+    const set = FRAMES[t.dataset.hue||'rl'];
+    t.style.background = set[0];
+    const tick = t.querySelector('.tick i');
+    t.addEventListener('mousemove',e=>{
+      const r=t.getBoundingClientRect();
+      const f=Math.max(0,Math.min(.999,(e.clientX-r.left)/r.width));
+      t.style.background=set[Math.floor(f*set.length)];
+      if(tick) tick.style.transform='translateX('+(f*300)+'%)';
+    });
+    t.addEventListener('mouseleave',()=>{ t.style.background=set[0]; if(tick) tick.style.transform='translateX(0)'; });
+  });
+</script>
+</body>
+</html>
