@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-21 (session 118) — 0.3.0-alpha.3 installer: fake-undo History cleanup (#175 aftermath) + Rename header restyle (#177)
+
+### Changed
+- **Version bumped 0.3.0-alpha.2 → 0.3.0-alpha.3 and a fresh installer cut.** Sizing call: a data-cleanup fix plus a header restyle — an alpha tick. Cut now rather than batched because the alpha.2 undo fix cannot be verified on the daily driver until its History cleanup ships alongside it.
+- **The Rename header is a two-deck strip now (#177, Fega's pick from three mockups).** Top row: the Rename title, then the three counts as proper stat blocks (number over a small label, separated by hairlines — the bordered oval pills are gone), then Refresh and Add Game. Below it, a slim WATCHING strip with a round pulsing status dot and the full watch-folder path, which no longer gets squeezed into an ellipsis next to everything else. The dead gap between the Pending/History/Manage tab row and the content below was also tightened. [RenameView.js]
+
+### Fixed
+- **History no longer lies about the old fake undos (#175 aftermath).** Investigation of "the undo fix didn't work": both of Fega's undo test rounds ran minutes BEFORE the fixed alpha.2 was installed, so they exercised the old cosmetic undo — the real undo has never fired yet, and every existing History entry predates its record-keeping (which is why nothing showed an UNDO button — that read as "still broken"). The app now reconciles those leftover entries against the disk at startup: entries struck out as UNDONE whose renamed file still exists get un-crossed (the rename actually stands — Fega's six Jul-20 recordings), and ghost entries whose file never existed under either name are removed (the phantom Pt7–Pt12 batch). Old entries that genuinely can't be undone show a quiet "NO UNDO" hint with an explanation on hover instead of nothing, and the UNDONE label explains itself on hover too. Verified by dry-running the reconciliation against the real production data before shipping. [App.js, RenameView.js]
+
 ## [Unreleased] — 2026-07-21 (session 117b) — 0.3.0-alpha.2 installer: rename UNDO becomes real (#175) + overwrite guard (#173)
 
 ### Changed
