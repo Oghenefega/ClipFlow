@@ -268,6 +268,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
+  const [undoBusy, setUndoBusy] = useState(null); // history entry id mid-undo (#175)
   const [refreshing, setRefreshing] = useState(false);
   const [manageFolder, setManageFolder] = useState("2026-03");
   const [manageSelected, setManageSelected] = useState(new Set());
@@ -816,11 +817,18 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       newName = getProposed(r);
     }
 
+    let historyId = null;
     if (isElectron && r.filePath) {
       const targetDir = resolveTargetDir(r);
       const newPath = `${targetDir}\\${newName}`;
       const result = await window.clipflow.renameFile(r.filePath, newPath);
-      if (result.error) { console.error("Rename failed:", result.error); return null; }
+      if (result.error) {
+        // #173: collisions now refuse instead of overwriting — say so.
+        console.error("Rename failed:", result.error);
+        setRetroNotification(`Couldn't rename "${r.fileName}": ${result.error}`);
+        setTimeout(() => setRetroNotification(null), 8000);
+        return null;
+      }
 
       const game = gamesDb.find((g) => g.tag === r.tag);
       const metaResult = await window.clipflow.fileMetadataCreate({
@@ -845,13 +853,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         setRetroNotification(`"${newName}" was renamed, but saving it to the library failed (${metaResult.error}). It will be re-detected the next time Recordings loads.`);
         setTimeout(() => setRetroNotification(null), 10000);
       }
+      // #175: the DB history row is what makes this rename undoable.
+      historyId = metaResult?.historyId || null;
 
       if (PRESETS_USING_LABEL.has(preset) && r.customLabel) {
         await window.clipflow.labelRecord(r.tag, r.customLabel);
       }
     }
 
-    return { newName, partNumber: meta.partNumber };
+    return { newName, partNumber: meta.partNumber, historyId };
   };
 
   // Helper: split a file then rename all children
@@ -1277,7 +1287,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           game: r.game, tag: r.tag, color: r.color, day: r.day,
           part: result.partNumber || r.part,
           time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-          undone: false, isTest: !!r.isTest,
+          undone: false, isTest: !!r.isTest, historyId: result.historyId || null,
         });
       }
     }
@@ -1325,18 +1335,43 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
   };
 
-  // ============ UNDO (hybrid: local + SQLite) ============
-  const toggleUndo = (h) => {
-    if (!h.undone) {
-      setPendingRenames((prev) => [...prev, {
-        id: `r-undo-${h.id}`, fileName: h.oldName, game: h.game, tag: h.tag,
-        color: h.color, day: h.day || 1, part: h.part || 1,
-        preset: defaultPreset, customLabel: "", detectedExe: "",
-      }]);
+  // ============ UNDO ============
+  // #175: real one-way undo. The DB handler renames the file back to its
+  // original path and deletes its library row; the watcher then re-detects
+  // the restored raw file, so it returns to Pending as a REAL row (thumb,
+  // probe, same part proposal). No ghost rows, no REDO. Entries without a
+  // historyId (renamed before this shipped, or split children) can't be
+  // undone and render without a button.
+  const undoLocalEntry = async (h) => {
+    if (!isElectron || !h.historyId || h.undone || undoBusy) return;
+    setUndoBusy(h.id);
+    const result = await window.clipflow.renameHistoryUndo(h.historyId);
+    setUndoBusy(null);
+    if (result?.success) {
+      setRenameHistory((prev) => prev.map((x) => (x.id === h.id ? { ...x, undone: true } : x)));
+      // Put the file straight back into Pending in its ORIGINAL slot (same
+      // game/day/part) — deterministic, instead of waiting for the watcher,
+      // whose re-detection would propose max+1 numbering. The watcher's own
+      // add event a few seconds later dedupes on filePath.
+      if (result.restoredPath) {
+        setPendingRenames((prev) => {
+          if (prev.find((p) => p.filePath === result.restoredPath)) return prev;
+          return [...prev, {
+            id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            fileName: h.oldName, filePath: result.restoredPath,
+            game: h.game, tag: h.tag, color: h.color,
+            day: h.day || 1, part: h.part || 1,
+            preset: defaultPreset, customLabel: "",
+            createdAt: new Date().toISOString(),
+            isTest: !!h.isTest,
+          }];
+        });
+      }
     } else {
-      setPendingRenames((prev) => prev.filter((r) => r.id !== `r-undo-${h.id}`));
+      console.error("Undo failed:", result?.error);
+      setRetroNotification(`Undo failed: ${result?.error || "unknown error"}`);
+      setTimeout(() => setRetroNotification(null), 8000);
     }
-    setRenameHistory((prev) => prev.map((x) => (x.id === h.id ? { ...x, undone: !x.undone } : x)));
   };
 
   // SQLite history undo
@@ -1502,6 +1537,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // Computed stats
   const totalRenamed = dbManagedFiles.length + renameHistory.filter((h) => !h.undone).length;
+
+  // #175: local entries carry their DB history id — hide those rows from the
+  // "Previous Sessions" list so a current-session rename doesn't show twice.
+  const dbHistoryVisible = dbHistory.filter((dh) => !renameHistory.some((l) => l.historyId === dh.id));
 
   const gameOptions = getGroupedGameOptions();
 
@@ -1793,17 +1832,21 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                         <div style={{ color: T.textTertiary, fontSize: 12, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.oldName}</div>
                         <div style={{ color: h.undone ? T.red : T.green, fontSize: 14, fontWeight: 600, fontFamily: T.mono, marginTop: 2, textDecoration: h.undone ? "line-through" : "none" }}>{h.newName}</div>
                       </div>
-                      <button onClick={() => toggleUndo(h)} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${h.undone ? T.greenBorder : T.yellowBorder}`, background: h.undone ? T.greenDim : T.yellowDim, color: h.undone ? T.green : T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>{h.undone ? "REDO" : "UNDO"}</button>
+                      {h.undone ? (
+                        <span style={{ color: T.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", flexShrink: 0 }}>UNDONE</span>
+                      ) : h.historyId ? (
+                        <button onClick={() => undoLocalEntry(h)} disabled={undoBusy === h.id} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: undoBusy === h.id ? "default" : "pointer", fontFamily: T.font, opacity: undoBusy === h.id ? 0.5 : 1 }}>{undoBusy === h.id ? "UNDOING…" : "UNDO"}</button>
+                      ) : null}
                       <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono, flexShrink: 0 }}>{h.time}</span>
                     </div>
                   </Card>
                 ))}
 
                 {/* SQLite history entries (past sessions) */}
-                {dbHistory.length > 0 && renameHistory.length > 0 && (
+                {dbHistoryVisible.length > 0 && renameHistory.length > 0 && (
                   <div style={{ color: T.textMuted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", padding: "12px 0 4px", borderTop: `1px solid ${T.border}`, marginTop: 4 }}>Previous Sessions</div>
                 )}
-                {dbHistory.map((h) => {
+                {dbHistoryVisible.map((h) => {
                   const game = gamesDb.find((g) => g.tag === h.tag) || gamesDb.find((g) => {
                     // Try to match by looking at filenames
                     return h.new_filename?.includes(g.tag);

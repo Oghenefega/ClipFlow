@@ -1,12 +1,20 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-20 — Session 117 CLOSED — **Rename tab redesign (#172) BUILT and shipped in 0.3.0-alpha.1. Awaiting Fega's install + hands-on pass.**_
+_Last updated: 2026-07-21 — Session 117 CLOSED — **Rename redesign (#172) shipped in 0.3.0-alpha.1; Fega's first pass surfaced the fake-undo bug (#175), fixed + shipped same session in 0.3.0-alpha.2 with the #173 overwrite guard. Awaiting his pass on alpha.2.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega approved the session-116 plan; the Rename tab's Pending view was rebuilt as the session ledger (grouped sessions + multi-select batch bar + Set Game re-grouping + native-aspect hover-scrub thumbnails with peek pop-out), CDP-verified end-to-end on a sealed dev-profile sandbox, and cut as installer **0.3.0-alpha.1** (feature → minor bump). Two pre-existing bugs found during verification and filed (#173 data-loss on split collision, #174 split parent re-enters Pending).
+Two installers this session. **alpha.1:** the Rename tab redesign (session ledger + multi-select batch bar + Set Game re-grouping + native-aspect hover-scrub thumbnails with peek), CDP-verified on a sealed dev sandbox. **alpha.2 (current):** Fega's install-and-test caught that History UNDO had never actually undone anything (pre-existing, cosmetic-only — also the cause of his "blank thumbnails": ghost rows with no file behind them). Undo is now real: DB-logged per rename, renames the file back on disk, drops the library row, returns the file to Pending in its original Day/Pt slot with a working thumbnail; plus the #173 no-silent-overwrite guard on all renames and on undo itself. Verified end-to-end incl. rename→undo→re-rename producing the identical filename.
+
+## Session 117b delta (the alpha.2 fix — #175 + #173 guard)
+
+- `metadata:create` (main.js) now also writes a `rename_history` row (action `'rename'`) for every real move (identical-path parent records for splits are skipped) and returns `historyId`; local History entries carry it (persisted, so undo works across restarts).
+- `_undoRenameHistory` handles `'rename'`: strict existence checks both ways (file must still be at its renamed path; nothing may sit at the original path), renames back, DELETEs the `file_metadata` row, returns `restoredPath`. The renderer re-adds the pending row itself with the entry's original game/day/part (deterministic slot — the watcher's re-detect would propose max+1; its add event dedupes on filePath).
+- UNDO button only renders on entries with a `historyId`; undone entries show an UNDONE label (no REDO — one-way now); legacy/split-child entries show no button. "Previous Sessions" list hides rows whose id a local entry already carries (no duplicates).
+- `fs:renameFile` refuses to overwrite an existing target (same-path no-ops tolerated for in-place month moves); rename failures now surface via the notification banner instead of console-only. #173's second half (split child numbering) is still open.
+- Verified (trusted-input CDP, sealed `undo175-watch` sandbox): rename→undo→re-rename = byte-identical filename; undo across restart; collision + undo-overwrite guards both loud; no History duplicates; thumbnails on restored rows load. Dev profile settings + DB restored from `.bak-s117` after. Found + filed #176 (Day+1 proposal for same-day files after a rename — pre-existing).
 
 ## Current State
 
@@ -31,8 +39,8 @@ Fega approved the session-116 plan; the Rename tab's Pending view was rebuilt as
 
 ## Next Steps (priority order)
 
-1. **Fega installs 0.3.0-alpha.1 and does the hands-on pass** (checklist below). Then close #172 (`status: untested` until confirmed).
-2. **#173** — split-collision data loss (exists-guard in fs:renameFile + real part numbering for split children). Should go out in the next installer.
+1. **Fega installs 0.3.0-alpha.2 and re-does the pass** — redesign checklist below PLUS: rename something, UNDO it in History, confirm the file is back in Pending with its old name/thumbnail and renames again to the same name.
+2. **#173 second half** — split children still hardcode Pt1..N (now a loud failure instead of silent overwrite; proper fix = day-accounted child numbering). **#174** split-parent ghost row, **#176** Day+1 same-day proposals — all small rename-area fixes that could batch into one alpha.
 3. **#169 hands-on pass** — audio calibration wizard on a real multi-track recording (standing since session 112).
 4. **#167/#153 proper fix** (neutral STORE_DEFAULTS + wizard-owned folder setup).
 

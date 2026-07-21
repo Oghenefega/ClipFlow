@@ -652,6 +652,11 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
     // Ensure target directory exists
     const dir = path.dirname(newPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    // #173: fs.renameSync replaces an existing target silently on Windows —
+    // refuse instead. Same-path calls (in-place month-folder no-ops) pass.
+    if (path.resolve(oldPath).toLowerCase() !== path.resolve(newPath).toLowerCase() && fs.existsSync(newPath)) {
+      return { error: `A file named "${path.basename(newPath)}" already exists in the destination` };
+    }
     fs.renameSync(oldPath, newPath);
     return { success: true };
   } catch (err) {
@@ -1812,8 +1817,21 @@ ipcMain.handle("metadata:create", async (_, data) => {
         data.isTest ? 1 : 0,
       ]
     );
+    // #175: log plain renames to rename_history so UNDO can actually revert
+    // them. Split/game-switch PARENT records pass identical paths (no move
+    // happened) — those get no history row; undoing one would delete a
+    // file_metadata row that split:execute still needs.
+    let historyId = null;
+    if (data.originalPath && data.currentPath && data.originalPath !== data.currentPath) {
+      historyId = uuid();
+      db.run(
+        `INSERT INTO rename_history (id, file_metadata_id, action, previous_filename, previous_path, new_filename, new_path, metadata_snapshot)
+         VALUES (?, ?, 'rename', ?, ?, ?, ?, NULL)`,
+        [historyId, id, data.originalFilename, data.originalPath, data.currentFilename, data.currentPath]
+      );
+    }
     database.save();
-    return { success: true, id };
+    return { success: true, id, historyId };
   } catch (err) { return { error: err.message }; }
 });
 
@@ -1992,6 +2010,25 @@ function _undoRenameHistory(historyId) {
 
   const entry = entries[0];
   if (entry.undone) return { error: "Already undone" };
+
+  // #175: plain renames undo by moving the file back to its original path
+  // and dropping its library row — the watcher then re-detects the restored
+  // raw file, so it returns to Pending as a real row. Strict about the file
+  // actually being where the record says (no silent partial undo), and never
+  // overwrites (#173).
+  if (entry.action === "rename") {
+    if (!fs.existsSync(entry.new_path)) {
+      return { error: `"${entry.new_filename}" is no longer at its renamed location — it may have been moved or deleted` };
+    }
+    if (fs.existsSync(entry.previous_path)) {
+      return { error: `A file named "${entry.previous_filename}" already exists at the original location — undo would overwrite it` };
+    }
+    fs.renameSync(entry.new_path, entry.previous_path);
+    db.run("DELETE FROM file_metadata WHERE id = ?", [entry.file_metadata_id]);
+    db.run("UPDATE rename_history SET undone = 1 WHERE id = ?", [historyId]);
+    database.save();
+    return { success: true, restoredPath: entry.previous_path };
+  }
 
   // Restore metadata from snapshot
   const snapshot = entry.metadata_snapshot ? JSON.parse(entry.metadata_snapshot) : null;
