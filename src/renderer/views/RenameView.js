@@ -1609,24 +1609,28 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         </div>
       )}
 
-      {/* #172: slim header strip — replaces the old page header, WATCHING
-          banner and 4 stat cards so pending files start ~200px higher */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${T.border}`, background: T.surface, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14 }}>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.2px", color: T.text, flexShrink: 0 }}>Rename</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, flex: 1 }} title={`Watching ${watchFolder}`}>
-          <PulseDot size={7} />
-          <span style={{ color: T.textSecondary, fontSize: 11.5, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
+      {/* #177: two-deck header (Fega picked mock A with C's stat blocks) —
+          title/stats/actions row + slim WATCHING strip with the full path */}
+      <div style={{ border: `1px solid ${T.border}`, background: T.surface, borderRadius: T.radius.lg, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "11px 16px" }}>
+          <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px", color: T.text, marginRight: "auto", flexShrink: 0 }}>Rename</span>
+          <div style={{ display: "flex", flexShrink: 0 }}>
+            {[[totalRenamed, "total"], [pendingRenames.length, "pending"], [gamesDb.length, "games"]].map(([v, l], i) => (
+              <div key={l} style={{ textAlign: "center", padding: "0 16px", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.1, color: T.text }}>{v}</div>
+                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", color: T.textTertiary, textTransform: "uppercase" }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
+            <button onClick={onAddGame} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          {[[totalRenamed, "total"], [pendingRenames.length, "pending"], [gamesDb.length, "games"]].map(([v, l]) => (
-            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.textSecondary, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap" }}>
-              <b style={{ color: T.text, fontWeight: 700, fontSize: 12 }}>{v}</b> {l}
-            </span>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
-          <button onClick={onAddGame} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={`Watching ${watchFolder}`}>
+          <PulseDot size={8} />
+          <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: T.green, flexShrink: 0 }}>WATCHING</span>
+          <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
         </div>
       </div>
 
@@ -1642,8 +1646,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         </div>
       )}
 
-      {/* Content */}
-      <div style={{ marginTop: 16 }}>
+      {/* Content — tightened from 16 with the #177 header (dead band under the tabs) */}
+      <div style={{ marginTop: 10 }}>
         {/* PENDING TAB — #172 session ledger */}
         {subTab === "pending" && (
           <>
