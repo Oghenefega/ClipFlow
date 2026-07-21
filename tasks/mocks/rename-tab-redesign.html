@@ -145,6 +145,13 @@
   .bbtn.warn:hover{color:var(--red);border-color:rgba(248,113,113,.3)}
 
   .footnote{margin-top:34px;border-top:1px solid var(--border);padding-top:16px;font-size:12px;color:var(--text3);line-height:1.7;max-width:78ch}
+
+  /* set-game menu (opens above the batch bar) */
+  .gmenu{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:60;background:rgba(22,23,31,0.97);border:1px solid var(--borderHover);border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,0.55);padding:5px;min-width:230px}
+  .gitem{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--text)}
+  .gitem:hover{background:var(--surfaceHover)}
+  .gitem.dim{color:var(--text3);font-size:11px;font-weight:500;cursor:default;border-top:1px solid var(--border);border-radius:0;margin-top:3px;padding-top:9px}
+  .gitem.dim:hover{background:transparent}
 </style>
 </head>
 <body>
@@ -166,6 +173,7 @@
   <!-- ═════════ VARIANT A ═════════ -->
   <div class="vhead"><h2>Variant A · Session ledger</h2><span class="tag">RECOMMENDED</span></div>
   <p class="vnote">Pending files group by recording session (date + game). The header owns everything the parts share: game, day, naming preset, and a session checkbox. Rows only carry what actually varies per file: part number, duration, the name preview, and hover actions (open folder, split, hide). The stat cards and watching banner compress into one slim strip so pending files start ~200px higher.</p>
+  <p class="vnote"><b style="color:var(--accentLight)">Mixed-game days, live in this mock:</b> groups are just a view of each file's current game, not locked folders. Select any rows below, hit <b>Set Game</b> in the bottom bar, and they re-group under their own header on the same date, with day and part numbers recomputed per game (each game keeps its own Day counter, which is why RL shows Day 8 and Valorant shows Day 12 on the same date). Three games in one day is simply three headers. Try it: tick Pt7 and Pt8, then Set Game → Valorant.</p>
 
   <!-- slim page header -->
   <div class="pagehead">
@@ -179,7 +187,7 @@
   </div>
 
   <!-- session 1 -->
-  <div class="session" data-group="a1">
+  <div class="session" data-group="a1" data-tag="RL" data-day="8" data-color="rl">
     <div class="shead">
       <span class="cb" data-master="a1" onclick="toggleGroup('a1')"></span>
       <span class="sdate">Thu, Jul 17</span>
@@ -291,10 +299,10 @@
   </div>
 
   <!-- session 2: different game, shows grouping value -->
-  <div class="session" data-group="a2">
+  <div class="session" data-group="a2" data-tag="VAL" data-day="12" data-color="val">
     <div class="shead">
       <span class="cb" data-master="a2" onclick="toggleGroup('a2')"></span>
-      <span class="sdate">Wed, Jul 16</span>
+      <span class="sdate">Thu, Jul 17</span>
       <span class="gamechip"><span class="gp val">VAL</span>Valorant<span class="car">▾</span></span>
       <span class="step"><span class="lb">Day</span><span class="vl">12</span><span class="bt">−</span><span class="bt">+</span></span>
       <span class="presetchip">Date + Tag + Day + Pt ▾</span>
@@ -305,7 +313,7 @@
       <div class="row" data-g="a2">
         <span class="cb" onclick="toggleRow(this)"></span>
         <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
-        <div class="names"><span class="old">2026-07-16 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt1.mp4</span></div>
+        <div class="names"><span class="old">2026-07-17 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-17 VAL Day12 Pt1.mp4</span></div>
         <span class="ptchip"><span class="bt">−</span>Pt <b>1</b><span class="bt">+</span></span>
         <span class="dur">30:00</span>
         <span class="acts">
@@ -317,7 +325,7 @@
       <div class="row" data-g="a2">
         <span class="cb" onclick="toggleRow(this)"></span>
         <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
-        <div class="names"><span class="old">2026-07-16 18-32-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt2.mp4</span></div>
+        <div class="names"><span class="old">2026-07-17 18-32-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-17 VAL Day12 Pt2.mp4</span></div>
         <span class="ptchip"><span class="bt">−</span>Pt <b>2</b><span class="bt">+</span></span>
         <span class="dur">28:14</span>
         <span class="acts">
@@ -377,7 +385,7 @@
     <span class="cb" onclick="toggleRow(this)"></span>
     <div class="thumb" data-scrub data-hue="val"><div class="tick"><i></i></div></div>
     <div class="cbody">
-      <div class="cline1"><span class="old">2026-07-16 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-16 VAL Day12 Pt1.mp4</span></div>
+      <div class="cline1"><span class="old">2026-07-17 18-02-11.mp4</span><span class="arr">→</span><span class="new val">2026-07-17 VAL Day12 Pt1.mp4</span></div>
       <div class="cline2">
         <span class="gamechip" style="padding:3px 8px;font-size:11.5px"><span class="gp val">VAL</span>Valorant<span class="car">▾</span></span>
         <span class="step"><span class="lb">Day</span><span class="vl">12</span><span class="bt">−</span><span class="bt">+</span></span>
@@ -421,23 +429,30 @@
       <span class="why">Shows the whole video at a glance with no hover needed, but eats ~150px of row width. Better fit for a detail or peek view than the list.</span>
     </div>
     <div class="topt good">
-      <span class="cap">Hover-scrub<span class="b">RECOMMENDED</span></span>
+      <span class="cap">Hover-scrub<span class="b">CHOSEN</span></span>
       <div class="tdemo"><div class="thumb" data-scrub style="height:56px;width:50px;border-radius:6px;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer"><div class="tick" style="position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)"><i style="display:block;height:100%;width:25%;background:var(--accentLight)"></i></div></div></div>
       <span class="why">Mouse position picks the frame, like YouTube previews. Replaces the timed crossfade: you control where you look. Uses the same frames we already extract.</span>
     </div>
   </div>
 
   <div class="footnote">
-    Selection is live in this mock: click checkboxes (rows or a session header) and the bottom bar switches from "Rename All" to selected-count mode. Shift-click range select and Ctrl+A would come along in the real build. The History and Manage sub-tabs are untouched by this redesign; the slim header strip replaces the four stat cards and the watching banner. Rename All ignores hidden files exactly as today.
+    Selection is live in this mock: click checkboxes (rows or a session header) and the bottom bar switches from "Rename All" to selected-count mode. Set Game is live too: select rows, pick a game, and they re-group with parts renumbered on both sides. Shift-click range select and Ctrl+A would come along in the real build. The History and Manage sub-tabs are untouched by this redesign; the slim header strip replaces the four stat cards and the watching banner. Rename All ignores hidden files exactly as today.
   </div>
 </div>
 
 <!-- floating batch bar -->
 <div class="batchbar" id="bar">
   <span class="cnt" id="barText">No selection</span>
+  <button class="bbtn ghost" id="setGameBtn" style="display:none" onclick="toggleGameMenu(event)">Set Game ▾</button>
   <button class="bbtn warn" id="hideBtn" style="display:none">Hide Selected</button>
   <button class="bbtn ghost" id="clearBtn" style="display:none" onclick="clearSel()">Clear</button>
   <button class="bbtn primary" id="goBtn">Rename All 10 Files</button>
+</div>
+
+<div class="gmenu" id="gmenu" style="display:none">
+  <div class="gitem" onclick="moveSelected('RL')"><span class="gp rl">RL</span>Rocket League</div>
+  <div class="gitem" onclick="moveSelected('VAL')"><span class="gp val">VAL</span>Valorant</div>
+  <div class="gitem dim">Any other game gets its own new session group</div>
 </div>
 
 <script>
@@ -484,9 +499,50 @@
   function refreshBar(){
     const n = allRows().filter(r=>r.classList.contains('sel')).length;
     const txt=document.getElementById('barText'), go=document.getElementById('goBtn'),
-          cl=document.getElementById('clearBtn'), hd=document.getElementById('hideBtn');
-    if(n===0){ txt.textContent='No selection'; go.textContent='Rename All 10 Files'; cl.style.display='none'; hd.style.display='none'; }
-    else{ txt.innerHTML='<b>'+n+'</b> selected'; go.textContent='Rename '+n+' Selected'; cl.style.display='inline-block'; hd.style.display='inline-block'; }
+          cl=document.getElementById('clearBtn'), hd=document.getElementById('hideBtn'),
+          sg=document.getElementById('setGameBtn');
+    if(n===0){ txt.textContent='No selection'; go.textContent='Rename All 10 Files'; cl.style.display='none'; hd.style.display='none'; sg.style.display='none'; document.getElementById('gmenu').style.display='none'; }
+    else{ txt.innerHTML='<b>'+n+'</b> selected'; go.textContent='Rename '+n+' Selected'; cl.style.display='inline-block'; hd.style.display='inline-block'; sg.style.display='inline-block'; }
+  }
+
+  // ── mixed-game days: move selected rows to another game's session group ──
+  function toggleGameMenu(e){
+    e.stopPropagation();
+    const m=document.getElementById('gmenu');
+    m.style.display = m.style.display==='none' ? 'block' : 'none';
+  }
+  document.addEventListener('click',()=>{ document.getElementById('gmenu').style.display='none'; });
+
+  function moveSelected(tag){
+    const target=document.querySelector('.session[data-tag="'+tag+'"] .rows');
+    if(!target) return;
+    // only ledger rows move; Variant B cards are a separate demo
+    allRows().filter(r=>r.classList.contains('sel') && r.dataset.g.startsWith('a')).forEach(r=>target.appendChild(r));
+    clearSel();
+    renumber();
+  }
+
+  // Re-derive every group: chronological order, part numbers, proposed names,
+  // name color, and the header part count. Mirrors what the real app would do
+  // from its per-game day counters.
+  function renumber(){
+    document.querySelectorAll('.session').forEach(s=>{
+      const tag=s.dataset.tag, day=s.dataset.day, color=s.dataset.color, g=s.dataset.group;
+      const cont=s.querySelector('.rows');
+      const rows=Array.from(cont.querySelectorAll('.row'));
+      rows.sort((x,y)=>x.querySelector('.old').textContent.localeCompare(y.querySelector('.old').textContent));
+      rows.forEach((r,i)=>{
+        cont.appendChild(r);
+        r.dataset.g=g;
+        r.querySelector('.ptchip b').textContent=i+1;
+        const date=r.querySelector('.old').textContent.slice(0,10);
+        const nw=r.querySelector('.new');
+        nw.textContent=date+' '+tag+' Day'+day+' Pt'+(i+1)+'.mp4';
+        nw.className='new '+color;
+      });
+      s.querySelector('.smeta').textContent=rows.length+(rows.length===1?' part':' parts');
+      syncMaster(g);
+    });
   }
 
   // ── hover-scrub demo: 4 fake "frames" per thumb ──
