@@ -84,7 +84,7 @@
   .row:first-child{border-top:none}
   .row:hover{background:var(--surfaceHover)}
   .row.sel{background:var(--accentGlow)}
-  .row .thumb{height:46px;width:41px;border-radius:6px;flex:none;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer}
+  .row .thumb{height:56px;width:50px;border-radius:6px;flex:none;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer}
   .row .thumb .tick{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)}
   .row .thumb .tick i{display:block;height:100%;width:25%;background:var(--accentLight);transition:transform .05s linear}
   .names{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px}
@@ -152,6 +152,12 @@
   .gitem:hover{background:var(--surfaceHover)}
   .gitem.dim{color:var(--text3);font-size:11px;font-weight:500;cursor:default;border-top:1px solid var(--border);border-radius:0;margin-top:3px;padding-top:9px}
   .gitem.dim:hover{background:transparent}
+
+  /* hover peek: full-size scrub preview that follows any thumbnail hover */
+  .peek{position:fixed;z-index:80;width:240px;height:270px;border-radius:12px;border:1px solid var(--borderHover);box-shadow:0 14px 44px rgba(0,0,0,0.65);overflow:hidden;pointer-events:none;display:none;background:#0d0e14}
+  .peek .ptime{position:absolute;right:8px;top:8px;font-size:10.5px;font-weight:700;background:rgba(0,0,0,0.55);border-radius:5px;padding:2px 7px;color:#fff}
+  .peek .ptick{position:absolute;left:10px;right:10px;bottom:8px;height:3px;border-radius:2px;background:rgba(255,255,255,0.18)}
+  .peek .ptick i{display:block;height:100%;width:25%;border-radius:2px;background:var(--accentLight)}
 </style>
 </head>
 <body>
@@ -165,8 +171,8 @@
     <table>
       <tr><td><span class="mk">1</span>No file-explorer access</td><td>Folder icon on every row (hover) and on each session header. The IPC already exists in main.js, so this is wiring, not new plumbing.</td></tr>
       <tr><td><span class="mk">2</span>All-or-one renaming</td><td>Checkboxes per row and per session, plus a floating action bar that switches between "Rename All" and "Rename N Selected". Same pattern as the Recordings batch cluster.</td></tr>
-      <tr><td><span class="mk">3</span>Bloated horizontal pills</td><td>The real fix is structural: files from one OBS session share game, day, date and preset, so those controls are hoisted to a session header and stated once. Rows shrink from ~130px to ~60px.</td></tr>
-      <tr><td><span class="mk">4</span>16:9 thumbnail crops your footage</td><td>Your canvas is 2560×2880 (taller than wide). The current 160×90 box center-crops half the frame away. Thumbs become native-aspect, sized per file from the ffprobe data we already fetch, with hover-scrub instead of a timed slideshow.</td></tr>
+      <tr><td><span class="mk">3</span>Bloated horizontal pills</td><td>The real fix is structural: files from one OBS session share game, day, date and preset, so those controls are hoisted to a session header and stated once. Rows shrink from ~130px to ~70px.</td></tr>
+      <tr><td><span class="mk">4</span>16:9 thumbnail crops your footage</td><td>Your canvas is 2560×2880 (taller than wide). The current 160×90 box center-crops half the frame away. Thumbs become native-aspect, sized per file from the ffprobe data we already fetch, with hover-scrub instead of a timed slideshow. Hovering also pops out a full-size preview beside the row, so the small thumb is just the handle, not the view.</td></tr>
     </table>
   </div>
 
@@ -431,7 +437,7 @@
     <div class="topt good">
       <span class="cap">Hover-scrub<span class="b">CHOSEN</span></span>
       <div class="tdemo"><div class="thumb" data-scrub style="height:56px;width:50px;border-radius:6px;position:relative;overflow:hidden;background:#0d0e14;cursor:pointer"><div class="tick" style="position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,0.12)"><i style="display:block;height:100%;width:25%;background:var(--accentLight)"></i></div></div></div>
-      <span class="why">Mouse position picks the frame, like YouTube previews. Replaces the timed crossfade: you control where you look. Uses the same frames we already extract.</span>
+      <span class="why">Mouse position picks the frame, like YouTube previews, and a full-size floating preview with a timestamp opens beside the thumb while you scrub. Small at rest, big the moment you care. Uses the same frames we already extract.</span>
     </div>
   </div>
 
@@ -448,6 +454,8 @@
   <button class="bbtn ghost" id="clearBtn" style="display:none" onclick="clearSel()">Clear</button>
   <button class="bbtn primary" id="goBtn">Rename All 10 Files</button>
 </div>
+
+<div class="peek" id="peek"><span class="ptime" id="peekTime">0:00</span><div class="ptick"><i id="peekTick"></i></div></div>
 
 <div class="gmenu" id="gmenu" style="display:none">
   <div class="gitem" onclick="moveSelected('RL')"><span class="gp rl">RL</span>Rocket League</div>
@@ -556,17 +564,39 @@
           'linear-gradient(180deg,#c94a6c 0%,#5c1f3d 45%,#361222 100%)',
           'linear-gradient(180deg,#a85c9e 0%,#5e2b6e 45%,#321749 100%)']
   };
+  const peek=document.getElementById('peek'), peekTime=document.getElementById('peekTime'), peekTick=document.getElementById('peekTick');
+  function parseDur(txt){
+    if(!txt) return 1800;
+    const p=txt.trim().split(':').map(Number);
+    return p.length===3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+p[1];
+  }
+  function fmt(s){
+    s=Math.floor(s);
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=String(s%60).padStart(2,'0');
+    return h>0 ? h+':'+String(m).padStart(2,'0')+':'+ss : m+':'+ss;
+  }
   document.querySelectorAll('[data-scrub]').forEach(t=>{
     const set = FRAMES[t.dataset.hue||'rl'];
     t.style.background = set[0];
     const tick = t.querySelector('.tick i');
+    const durTxt = t.closest('.row,.ccard')?.querySelector('.dur')?.textContent;
+    const dur = parseDur(durTxt);
     t.addEventListener('mousemove',e=>{
       const r=t.getBoundingClientRect();
       const f=Math.max(0,Math.min(.999,(e.clientX-r.left)/r.width));
-      t.style.background=set[Math.floor(f*set.length)];
+      const frame=set[Math.floor(f*set.length)];
+      t.style.background=frame;
       if(tick) tick.style.transform='translateX('+(f*300)+'%)';
+      // full-size floating preview, right of the thumb (flips left near the edge)
+      peek.style.display='block';
+      peek.style.background=frame;
+      const px = r.right+14+240 < window.innerWidth ? r.right+14 : r.left-254;
+      const py = Math.max(10, Math.min(r.top + r.height/2 - 135, window.innerHeight-280));
+      peek.style.left=px+'px'; peek.style.top=py+'px';
+      peekTime.textContent=fmt(f*dur);
+      peekTick.style.transform='translateX('+(f*300)+'%)';
     });
-    t.addEventListener('mouseleave',()=>{ t.style.background=set[0]; if(tick) tick.style.transform='translateX(0)'; });
+    t.addEventListener('mouseleave',()=>{ t.style.background=set[0]; if(tick) tick.style.transform='translateX(0)'; peek.style.display='none'; });
   });
 </script>
 </body>
