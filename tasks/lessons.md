@@ -805,3 +805,9 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 - **What went wrong:** Suggested "One folder to rule them all — recording tree unified, date-first naming restored" as a session name; Fega: "what kind of name is that fam?"
 - **Why:** Went for a joke/movie-reference title instead of a functional label.
 - **Rule:** Session names read like commit subjects — a few plain words about the work ("Unified recordings + naming fix"). No puns, references, or subtitle constructions.
+
+## Session 117 — Ref read inside a setState updater saw the post-handler value (self-caught via trusted-input CDP, not a user correction)
+
+**What went wrong:** Shift-click range select silently degraded to plain toggle. `toggleRow` read the range anchor (`lastClickedRef.current`) INSIDE the `setSelectedIds` updater, and assigned the ref on the line after the `setState` call. React 18 runs updater functions when it processes the update — after the handler body finishes — so the updater always saw the ref already overwritten with the just-clicked row (`anchor === id` → range branch never taken). A synthetic-DOM test caught the symptom; a trusted-input CDP replay (`Input.dispatchMouseEvent` with the Shift modifier) confirmed it was a real-user bug, not a test artifact.
+
+**Rule:** Never read a mutable ref (or any value you mutate later in the same handler) inside a setState updater — capture it into a local const at the top of the handler and close over that. And when a UI behavior test fails, reproduce it with trusted CDP input events before touching the code: synthetic `dispatchEvent` clicks pass through React differently enough (no mousedown, untrusted) that they can both mask real bugs and fake phantom ones.

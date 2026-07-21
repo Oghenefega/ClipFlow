@@ -6,7 +6,45 @@
 
 ---
 
-## ACTIVE PLAN (session 116, awaiting Fega approval) — Rename tab redesign
+## ✅ BUILT (session 117, shipped in 0.3.0-alpha.1, awaiting Fega verification) — Rename tab redesign (#172)
+
+Fega approved the plan at session start ("go ahead with the rename redesign");
+built per the plan below in one pass, CDP-verified on a sealed dev-profile
+sandbox (scratch watch folder, 7 seeded FFmpeg test recordings across 3 dates
++ a 33-min file, real trusted-input drives):
+- Sessions group by date+game with header controls (game picker, Day stepper,
+  preset chip, folder icon, parts+duration meta); rows slim with native-aspect
+  hover-scrub thumbs (50×56 for 8:9 source, 100×56 for 16:9) and 240px peek
+  with exact timestamp (24:45 at 75% of 33:00), flip + clamp + leave-hide.
+- Selection: row/session checkboxes (full/half states), shift-click range
+  (fixed a real bug: anchor ref was read inside the setState updater — see
+  lessons.md), Ctrl+A (gated to visible pane + not-in-input), floating batch
+  bar with Rename All / N selected modes.
+- Set Game on a subset re-groups under the same date and renumbers parts on
+  both sides (AR Pt1-3 + Val Pt1-2 from one 5-file day); day counters per
+  game.
+- Rename 2 Selected renamed exactly those 2 into `2026-07\` (disk verified),
+  History recorded, remaining 5 intact; Rename All ran the 33-min auto-split;
+  TEST row routed to `Test\2026-07\` and did NOT advance day counters (#170
+  intact: AR ended Day3/2026-07-19, Val untouched by the test rename).
+- Undo re-enters pending with placeholder thumb (no filePath) and redo
+  removes it; per-row preset picker + header "Mixed formats" divergence +
+  header Day stepper all verified; zero console errors in instrumented runs.
+
+**Found while verifying (pre-existing, filed, NOT fixed here):**
+- #173 — auto-split children renumber from Pt1 and `fs:renameFile` silently
+  overwrites an existing target (real data loss in the sandbox repro).
+- #174 — the split parent file re-enters Pending via the depth-2 watcher.
+
+**Unresolved wrinkle (watch for it):** ONE blank-page event occurred during
+verification right after a header game change on Val-tagged rows; three
+instrumented replays of the same and harsher sequences (divergent presets,
+select-all, runaway MiniSpinbox hold + mid-hold group unmount) all ran clean
+with zero exceptions, and a render-path audit found no throwable. Repro
+scripts preserved in the session scratchpad (`cdp-repro*.js`). If Fega ever
+sees a blank Rename tab, that's the thread to pull.
+
+## Original plan (approved session 116, executed session 117) — Rename tab redesign
 
 **Approved direction (mock):** `tasks/mocks/rename-tab-redesign.html` — Variant A
 "session ledger" + Set Game re-grouping + hover-scrub thumbnails with pop-out peek.

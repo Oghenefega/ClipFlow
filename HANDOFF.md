@@ -1,43 +1,58 @@
 # ClipFlow — Session Handoff
-_Last updated: 2026-07-20 — Session 116 CLOSED — **Rename tab redesign: direction locked via mock, plan written (#172), ZERO app code changed. Build starts next session.**_
+
+_Last updated: 2026-07-20 — Session 117 CLOSED — **Rename tab redesign (#172) BUILT and shipped in 0.3.0-alpha.1. Awaiting Fega's install + hands-on pass.**_
 
 ---
 
 ## One-line TL;DR
-Design + planning session only: brainstormed the Rename tab overhaul with Fega, iterated an interactive mockup three times (layout variants → Set Game re-grouping → hover peek preview), locked the direction (Variant A session ledger + multi-select + hover-scrub thumbnails), wrote the implementation plan to `tasks/todo.md`, and filed epic #172. No source files touched.
+
+Fega approved the session-116 plan; the Rename tab's Pending view was rebuilt as the session ledger (grouped sessions + multi-select batch bar + Set Game re-grouping + native-aspect hover-scrub thumbnails with peek pop-out), CDP-verified end-to-end on a sealed dev-profile sandbox, and cut as installer **0.3.0-alpha.1** (feature → minor bump). Two pre-existing bugs found during verification and filed (#173 data-loss on split collision, #174 split parent re-enters Pending).
 
 ## Current State
-- **App unchanged from session 115.** Fega remains on 0.2.2-alpha.2 (installed, confirmed). Watch folder `W:\YouTube Gaming Recordings Onward\Recordings`, flat `<YYYY-MM>` tree, date-first naming working.
-- **Rename tab redesign is fully specified and awaiting Fega's "go" to build.** Direction was approved interactively; the plan itself (`tasks/todo.md`, ACTIVE PLAN section) still needs his explicit approval at next session start per the plan-first rule.
-- Mock lives at `tasks/mocks/rename-tab-redesign.html` (committed, unlike the older untracked mocks) — open it in a browser to re-see the agreed design; selection, Set Game re-grouping, and the hover peek are all live in it.
 
-## What Was Built (commits d7a88f1, a5c1607, b9d12ef, 40d6540)
-- **Interactive mock, 3 iterations driven by Fega's feedback:**
-  1. Two layout variants (A: session ledger grouping by date+game with shared controls hoisted to a header; B: compact per-file cards) + thumbnail treatment comparison + slim page-header strip replacing the 4 stat cards & watching banner.
-  2. His mixed-game-day concern → live **Set Game** demo: select rows → pick game → rows re-group under their own same-date header, parts renumbered chronologically on both sides (per-game Day counters shown: RL Day8 + VAL Day12 on one date).
-  3. His thumbnail-size concern → **hover peek**: 240×270 floating preview beside the row with a timestamp badge, scrubbed by mouse X; row thumbs bumped 46→56px. Verified via CDP-driven synthetic events.
-- **Plan** written to `tasks/todo.md` (build order, file impact, verification, risks) and **epic #172** filed (`type: improvement`, `area: rename`) with full context + acceptance criteria.
+- **Source + installer carry the redesign; Fega has NOT installed or verified yet.** Daily driver is still 0.2.2-alpha.2 until he runs `dist\ClipFlow Setup 0.3.0-alpha.1.exe` (or clicks the in-app "Install update" banner). #172 stays open until his pass.
+- Renderer-only change, exactly per plan: `src/renderer/views/RenameView.js` rewritten (pending sub-tab + new components at module level). History/Manage sub-tabs, all rename machinery (presets, collisions, auto-split, game-switch scrubber, #170 test-mode rules), main process, preload, and build.files untouched.
+- `renameAll` → `renameFiles(list)`; per-row RENAME/HIDE buttons replaced by the floating batch bar (Rename All / Rename N Selected / Set Game / Hide Selected / Clear). **Behavior change baked in: only successfully renamed rows leave pending** (failures used to be silently wiped with the batch — noted in CHANGELOG as a fix).
+- Dev-profile sandbox fully restored after verification (settings + DB from `.bak-s117` copies; watchFolder back to the real vertical folder). Scratch watch folder with test footage remains in the session scratchpad — disposable.
 
-## Key Decisions
-- **Session ledger (Variant A) over compact cards** — the pending list is almost always one OBS session (same game/day, parts 1–N); repeating game/day controls per card was the root bloat. Structure now matches the data.
-- **Groups are views, not folders** — game is per-file state; Set Game on a selection re-derives grouping. Handles 2-3 games per day with no extra UI modes.
-- **Thumbnails: small native-aspect handle + big on intent** — 56px row thumb (width from the frame's own naturalWidth/naturalHeight, aspect-agnostic for future 16:9 users), mouse-X scrub, 240px pop-out peek with timestamp (frames already carry `timestampSeconds`). No FFmpeg/backend changes; static `<img>` frames only, no `<video>` (crash rule).
-- **Renderer-only build** — `revealInFolder` IPC already exists (preload.js:39); `renameAll` becomes `renameFiles(list)` so Rename Selected reuses the identical pipeline (splits, collisions, #170 test-mode exclusion).
-- **Ships as ONE unit** — the ledger removes per-row game dropdowns, so it can't ship without Set Game.
+## What Was Built (see tasks/todo.md ✅ BUILT section for the full verification log)
+
+1. **Session ledger** — pending rows grouped by (date + game tag); header owns shared controls (checkbox, date, game GroupedSelect, Day MiniSpinbox, preset chip w/ "Mixed formats" divergence state, parts+duration, Explorer icon); slim rows (~70px) with only per-file state. Slim header strip replaced the 4 stat cards + WATCHING banner.
+2. **Selection + batch bar** — row/session checkboxes with half states, shift-click range, Ctrl+A (visible-pane + not-in-input gated), glass bottom bar (#123 shell), Set Game menu that re-groups + renumbers via detectForGame.
+3. **Thumbnails** — native-aspect (width from frame naturalWidth/naturalHeight, 32–100px clamp), mouse-X hover-scrub over the already-extracted preview frames, 240px fixed-position peek with timestamp badge (frame timestampSeconds), edge flip + vertical clamp. Static `<img>` only, zero timers, no `<video>`.
+
+## Key Decisions / Findings
+
+- **Feature → minor bump: 0.3.0-alpha.1** (biggest UI overhaul since the editor; counter reset per policy).
+- **Shift-click bug caught by trusted-input CDP:** reading the anchor ref inside the setState updater always saw the post-handler value (React 18 runs updaters after the handler). Fixed by capturing the anchor before setState. Lesson recorded in tasks/lessons.md.
+- **#173 (filed):** auto-split children hardcode Pt1..PtN and `fs:renameFile` (main.js:650) is a bare `fs.renameSync` that silently overwrites on Windows — the sandbox repro destroyed an already-renamed same-day file. Pre-existing (identical loop in the old renameAll), NOT a #172 regression, but it's real data loss — top fix candidate.
+- **#174 (filed):** after an auto-split, the parent file (kept on disk under its raw name) re-enters Pending via the depth-2 watcher.
+- **Drag-drop import and game-switch-marker renames were NOT live-tested** (unchanged code paths: handleDrop untouched; marker pipeline byte-identical in renameFiles). Scrubber open/close and the split icon were verified.
 
 ## Next Steps (priority order)
-1. **Get Fega's go on the plan, then build the Rename redesign** (`tasks/todo.md` ACTIVE PLAN + #172). Verify per plan (CDP on dev profile with seeded pending files), then cut installer — feature → minor bump (0.3.0) per version policy.
-2. **#169 hands-on pass** — audio calibration wizard on a real multi-track recording (standing since session 112).
-3. **#167/#153 proper fix** (neutral STORE_DEFAULTS + wizard-owned folder setup) — top substrate candidate.
-4. Backlog grooming: open code issues, oldest from 2026-07-01 (#149–#157 cluster).
+
+1. **Fega installs 0.3.0-alpha.1 and does the hands-on pass** (checklist below). Then close #172 (`status: untested` until confirmed).
+2. **#173** — split-collision data loss (exists-guard in fs:renameFile + real part numbering for split children). Should go out in the next installer.
+3. **#169 hands-on pass** — audio calibration wizard on a real multi-track recording (standing since session 112).
+4. **#167/#153 proper fix** (neutral STORE_DEFAULTS + wizard-owned folder setup).
+
+### What Fega checks (plain, ~5 min, on the new install)
+
+- Open Rename with a real OBS session pending: it should be ONE box per day/game with slim rows, not big cards. Hover a thumbnail — the big preview should pop out beside it and scrub as you move the mouse.
+- Tick a couple of rows → the bottom bar should say "Rename 2 Selected" — click it and check only those two files renamed (History tab + the files in Explorer via the folder icon).
+- If a day had two games: tick the rows that are the other game → Set Game → pick it → they should slide into their own group with correct Day/Pt numbers.
+- Anything off: screenshot it.
 
 ## Watch Out For
-- **Plan risks (also in todo.md):** `renameAll` currently wipes ALL pending state at the end (`setPendingRenames([])`) — the subset version must clear only renamed rows + their splitInfo/scrubber state; undo-created pending rows have **no filePath** (no thumb/probe/explorer); selection must exclude rows mid-rename.
-- **RenameView.js is 1766 lines** — pending-tab JSX rewrite is large; read before editing (rename machinery in the middle of the file must survive untouched).
-- Carried from 115: `Archived Recordings\` stays out of any watch path (intentional); Test Footage tag-first strays are deliberate — don't clean up without asking; preset IDs (`tag-date-day-part`) intentionally don't match date-first output (no store migration); old prod DB twin at `<repo>\data\clipflow.db` stale/harmless — never `git add -A`.
-- Remaining `tasks/mocks/*` untracked files (queue-card-redesign.html, bb*.md, diag_sort.js) stay untracked — leave them.
+
+- **One unexplained blank-page event** during verification (right after a header game change on Val-tagged rows). Not reproducible in three instrumented replays incl. abuse cases; zero exceptions captured; render-path audit clean. Repro scripts live in the session-117 scratchpad (`cdp-repro.js`, `cdp-repro2.js`). If a blank Rename tab ever shows up on the daily driver, start there (Sentry should catch it on prod).
+- `renameFiles` relies on the selection-prune effect (not explicit cleanup) to drop renamed ids from selection — fine today, but don't remove that effect without re-adding explicit cleanup.
+- Split-parent ghost rows (#174) will show up for Fega the first time a >30-min recording auto-splits — expected, Hide clears it; don't mistake it for a #172 regression.
+- Carried: `Archived Recordings\` stays out of watch paths; `tasks/mocks/*` untracked strays stay untracked; old prod DB twin at `<repo>\data\clipflow.db` — never `git add -A`.
 
 ## Logs / Debugging
-- **Mock verification was DOM/JS-driven, not screenshots:** the Browser-pane `computer screenshot` tool timed out repeatedly (30s, tool-side — page had zero console errors). Verified instead via `javascript_tool`: selection/batch-bar state machine, session-checkbox half-state, Set Game re-group + renumber (Pt7/Pt8 → VAL Pt3/Pt4), peek geometry/timestamp (75% into a 1:04:12 file → ~47:30, flip-left near edge). If pane screenshots are needed next session, expect the same flakiness and fall back to DOM assertions.
-- Mock delivery to Fega: `Start-Process` on the html file (per feedback_open_mockups_in_browser), done after each iteration.
-- No app logs touched this session — nothing ran but the mock.
+
+- **Verification was trusted-input CDP on the dev profile** (`CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, built renderer, sealed scratch watch folder seeded with FFmpeg testsrc2 files — 5× 8:9 Jul-18, 1× 16:9 + 1× 33-min Jul-19, later Jul-20/21 files). Driver scripts in the session scratchpad: `cdp.js` (evaluate), `cdp-shift.js` (trusted shift-click), `cdp-hover.js` (peek geometry), `cdp-final.js` (Ctrl+A + console capture), `cdp-repro*.js` (blank-page hunts).
+- **Synthetic `dispatchEvent` clicks are NOT equivalent to trusted input** — they skip mousedown (GroupedSelect/menus fine, but MiniSpinbox needs mousedown/up pairs, and an unpaired mousedown leaves its hold-repeat interval running). Use `Input.dispatchMouseEvent`/`dispatchKeyEvent` with modifiers for anything behavioral.
+- Electron logs from the runs: scratchpad `electron-dev*.log` (clean — only preview-frame generation lines). Zero renderer console errors/warnings across instrumented runs.
+- Kill dev electron with `taskkill //F //IM electron.exe` (never TaskStop) before relaunching CDP on 9222.

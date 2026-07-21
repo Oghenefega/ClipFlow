@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import T from "../styles/theme";
-import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, PageHeader, PrimaryButton, TabBar, Select, MiniSpinbox, PillSpinbox, Checkbox, formatDuration } from "../components/shared";
+import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, TabBar, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl } from "../components/shared";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
 import TestChip from "../components/TestChip";
 
@@ -18,60 +18,193 @@ const PRESETS_USING_DAY = new Set(["tag-date-day-part", "tag-day-part"]);
 const PRESETS_USING_LABEL = new Set(["tag-label", "tag-date-label"]);
 const PRESETS_ALWAYS_PARTS = new Set(["tag-date-day-part", "tag-day-part"]);
 
-function PreviewThumbnail({ frames, loading }) {
-  const [topIndex, setTopIndex] = useState(0);
-  const [botIndex, setBotIndex] = useState(0);
-  const [topVisible, setTopVisible] = useState(true);
-  const intervalRef = useRef(null);
-  const showingTop = useRef(true);
+// ── #172 session-ledger helpers ──
 
-  const startCycle = useCallback(() => {
-    if (!frames || frames.length <= 1) return;
-    let current = 0;
-    intervalRef.current = setInterval(() => {
-      const next = (current + 1) % frames.length;
-      if (showingTop.current) {
-        // Next image goes on bottom, then fade top out to reveal it
-        setBotIndex(next);
-        setTimeout(() => setTopVisible(false), 20); // small delay so bottom renders first
-      } else {
-        // Next image goes on top, then fade top in to cover bottom
-        setTopIndex(next);
-        setTimeout(() => setTopVisible(true), 20);
-      }
-      showingTop.current = !showingTop.current;
-      current = next;
-    }, 1050);
-  }, [frames]);
+// Seconds → clock string ("29:52", "1:04:12")
+const fmtClock = (s) => {
+  if (s == null || isNaN(s)) return "—";
+  const t = Math.max(0, Math.floor(s));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = String(t % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+};
 
-  const stopCycle = useCallback(() => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    setTopIndex(0); setBotIndex(0); setTopVisible(true); showingTop.current = true;
-  }, []);
+// "2026-07-17" → "Fri, Jul 17". Built from local date parts, never toISOString.
+const fmtSessionDate = (dateStr) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || "");
+  if (!m) return dateStr || "Unknown date";
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+};
 
-  useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
+const IcFolder = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z" /></svg>;
+const IcSplit = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="4" cy="4.5" r="2" /><circle cx="4" cy="11.5" r="2" /><path d="M5.7 5.6 14 12M5.7 10.4 14 4" /></svg>;
+const IcHide = <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 8s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z" /><path d="M3 13 13 3" /></svg>;
+
+const THUMB_H = 56;
+const PEEK_W = 240;
+
+// Floating batch bar shell — same glass treatment as the Recordings action
+// cluster (#123), bottom-centered. bottom:72 clears the 56px bottom nav.
+const BAR_SHELL = {
+  position: "fixed", left: "50%", bottom: 72, zIndex: 90,
+  transform: "translateX(-50%)",
+  display: "flex", alignItems: "center", gap: 10,
+  padding: "9px 12px", borderRadius: T.radius.lg,
+  background: "rgba(22,23,31,0.92)", backdropFilter: "blur(14px)",
+  border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
+  animation: "cfrBarUp 0.18s ease-out",
+};
+const BAR_BTN = { fontFamily: T.font, fontSize: 12, fontWeight: 700, borderRadius: 9, padding: "8px 16px", cursor: "pointer", border: "1px solid transparent", whiteSpace: "nowrap" };
+
+// Compact visual checkbox with a half-selected state. Single click handler on
+// the element itself (no nested toggles).
+function LedgerCheck({ state, onClick, title }) {
+  return (
+    <span
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 16, height: 16, borderRadius: 5, flexShrink: 0, cursor: "pointer",
+        border: `1px solid ${state === "on" ? T.accent : state === "half" ? T.accentBorder : T.borderHover}`,
+        background: state === "on" ? T.accent : state === "half" ? T.accentDim : "transparent",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        color: state === "half" ? T.accentLight : "#fff", fontSize: 10, fontWeight: 800,
+        lineHeight: 1, userSelect: "none",
+        transition: "background 0.12s, border-color 0.12s",
+      }}
+    >{state === "on" ? "✓" : state === "half" ? "–" : ""}</span>
+  );
+}
+
+// Hover-scrub thumbnail: small native-aspect handle in the row, full-size
+// fixed-position peek with a timestamp badge while scrubbing. Static <img>
+// frames only — no <video>, no timers.
+function HoverScrubThumb({ frames, loading, durationSeconds }) {
+  const [idx, setIdx] = useState(0);
+  const [frac, setFrac] = useState(0);
+  const [hover, setHover] = useState(false);
+  const [aspect, setAspect] = useState(null); // naturalWidth / naturalHeight of the frames
+  const [peekPos, setPeekPos] = useState(null);
+  const ref = useRef(null);
+
+  const width = aspect ? Math.max(32, Math.min(100, Math.round(THUMB_H * aspect))) : 50;
+  const peekH = aspect ? Math.max(96, Math.min(270, Math.round(PEEK_W / aspect))) : 270;
 
   const containerStyle = {
-    width: 160, height: 90, borderRadius: T.radius.md, overflow: "hidden",
-    background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`,
-    flexShrink: 0, position: "relative",
+    width, height: THUMB_H, borderRadius: 6, overflow: "hidden",
+    background: "#0d0e14", border: `1px solid ${T.border}`,
+    flexShrink: 0, position: "relative", cursor: "pointer",
   };
 
   if (loading) {
-    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 11 }}>Loading...</span></div>;
+    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 9 }}>…</span></div>;
   }
   if (!frames || frames.length === 0) {
-    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: T.textMuted, fontSize: 18, opacity: 0.3 }}>🎬</span></div>;
+    return <div style={{ ...containerStyle, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, opacity: 0.3 }}>🎬</span></div>;
   }
 
-  const imgStyle = { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" };
-  const topSrc = `file://${frames[topIndex].path.replace(/\\/g, "/")}`;
-  const botSrc = `file://${frames[botIndex].path.replace(/\\/g, "/")}`;
+  const onMove = (e) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    const f = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
+    setFrac(f);
+    setIdx(Math.min(frames.length - 1, Math.floor(f * frames.length)));
+    const fitsRight = rect.right + 14 + PEEK_W < window.innerWidth;
+    const left = fitsRight ? rect.right + 14 : rect.left - PEEK_W - 14;
+    const top = Math.max(10, Math.min(rect.top + rect.height / 2 - peekH / 2, window.innerHeight - peekH - 10));
+    setPeekPos({ left, top });
+  };
+
+  const ts = frames[idx]?.timestampSeconds != null ? frames[idx].timestampSeconds : frac * (durationSeconds || 0);
 
   return (
-    <div style={containerStyle} onMouseEnter={startCycle} onMouseLeave={stopCycle}>
-      <img src={botSrc} alt="" draggable={false} style={imgStyle} />
-      <img src={topSrc} alt="" draggable={false} style={{ ...imgStyle, opacity: topVisible ? 1 : 0, transition: "opacity 0.35s ease" }} />
+    <div
+      ref={ref}
+      style={containerStyle}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setIdx(0); setFrac(0); setPeekPos(null); }}
+      onMouseMove={onMove}
+    >
+      {/* all frames stay mounted (decoded) so scrubbing never flickers */}
+      {frames.map((fr, i) => (
+        <img
+          key={fr.path}
+          src={toFileUrl(fr.path)}
+          alt=""
+          draggable={false}
+          onLoad={i === 0 ? (e) => { const el = e.currentTarget; if (el.naturalWidth && el.naturalHeight) setAspect((prev) => prev || el.naturalWidth / el.naturalHeight); } : undefined}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: i === idx ? 1 : 0 }}
+        />
+      ))}
+      {/* position tick */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 2, background: "rgba(255,255,255,0.12)" }}>
+        <div style={{ height: "100%", width: "25%", background: T.accentLight, transform: `translateX(${frac * 300}%)`, transition: "transform 0.05s linear" }} />
+      </div>
+      {/* full-size peek pop-out (flips left near the screen edge) */}
+      {hover && peekPos && (
+        <div style={{ position: "fixed", left: peekPos.left, top: peekPos.top, width: PEEK_W, height: peekH, zIndex: 95, borderRadius: 12, border: `1px solid ${T.borderHover}`, boxShadow: "0 14px 44px rgba(0,0,0,0.65)", overflow: "hidden", pointerEvents: "none", background: "#0d0e14" }}>
+          <img src={toFileUrl(frames[idx].path)} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <span style={{ position: "absolute", right: 8, top: 8, fontSize: 10.5, fontWeight: 700, background: "rgba(0,0,0,0.55)", borderRadius: 5, padding: "2px 7px", color: "#fff" }}>{fmtClock(ts)}</span>
+          <div style={{ position: "absolute", left: 10, right: 10, bottom: 8, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.18)" }}>
+            <div style={{ height: "100%", width: "25%", borderRadius: 2, background: T.accentLight, transform: `translateX(${frac * 300}%)` }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Session-header naming preset chip: shows the preset shared by the session's
+// rows ("Mixed formats" when they diverge); picking one applies it to all rows.
+function SessionPresetPicker({ presetId, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const current = PRESET_LIST.find((p) => p.id === presetId);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+      <span
+        onClick={() => setOpen(!open)}
+        title="Naming format for every file in this session"
+        style={{ fontSize: 11, color: T.textSecondary, border: `1px dashed ${T.borderHover}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+      >{current ? current.label : "Mixed formats"} ▾</span>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 999, width: "max-content",
+          background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 280, overflowY: "auto",
+        }}>
+          {PRESET_LIST.map((p) => {
+            const isActive = presetId === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() => { onChange(p.id); setOpen(false); }}
+                style={{
+                  padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                  borderLeft: isActive ? `3px solid ${T.accent}` : "3px solid transparent",
+                  marginBottom: 2,
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ color: isActive ? T.accentLight : T.text, fontSize: 13, fontWeight: 600 }}>{p.label}</div>
+                <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2, fontFamily: T.mono }}>{p.example}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -179,6 +312,13 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   // Preview frames state: { [fileId]: { frames: [{path, timestampSeconds}], loading: bool } }
   const [previewFrames, setPreviewFrames] = useState({});
   const previewRequested = useRef(new Set());
+
+  // #172: session-ledger selection state
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [gameMenuOpen, setGameMenuOpen] = useState(false);
+  const lastClickedRef = useRef(null); // anchor for shift-click range select
+  const gameMenuRef = useRef(null);
+  const rootRef = useRef(null);
 
   // Remember last renamed game for auto-selecting on new files
   const lastRenamedGame = useRef(null);
@@ -315,6 +455,45 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       });
     }
   }, [pendingRenames, isElectron]);
+
+  // #172: drop selection entries for rows that left the pending list
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const ids = new Set(pendingRenames.map((r) => r.id));
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (ids.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [pendingRenames]);
+
+  // #172: Ctrl+A selects every pending file (only while this view is visible
+  // and focus isn't in a text field — the view stays mounted on other tabs)
+  useEffect(() => {
+    if (subTab !== "pending") return;
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "a") return;
+      if (!rootRef.current || rootRef.current.offsetParent === null) return; // hidden tab pane
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (pendingRenames.length === 0) return;
+      e.preventDefault();
+      setSelectedIds(new Set(pendingRenames.map((r) => r.id)));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [subTab, pendingRenames]);
+
+  // #172: close the Set Game menu on outside click
+  useEffect(() => {
+    if (!gameMenuOpen) return;
+    const handler = (e) => { if (gameMenuRef.current && !gameMenuRef.current.contains(e.target)) setGameMenuOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [gameMenuOpen]);
 
   // Recalculate split counts when threshold changes
   useEffect(() => {
@@ -521,24 +700,47 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return parts.join(" ") + ".mp4";
   };
 
-  // Smart update — when game changes, recompute day and part
+  // Per-row field update (game changes go through setGameForRows, which
+  // re-derives day/part for every affected game)
   const updatePending = (id, field, value) => {
-    setPendingRenames((prev) => prev.map((r) => {
-      if (r.id !== id) return r;
-      const u = { ...r, [field]: value };
-      if (field === "game") {
-        const g = gamesDb.find((x) => x.name === value);
-        if (g) {
-          u.tag = g.tag;
-          u.color = g.color;
-          const otherPending = prev.filter((p) => p.id !== id);
-          const detected = detectForGame(g, r.fileName, otherPending);
-          u.day = detected.day;
-          u.part = detected.part;
-        }
+    setPendingRenames((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  };
+
+  // #172: assign a game to a set of rows (session header picker or the batch
+  // bar's Set Game), then re-derive day/part chronologically for every row of
+  // the affected games — rows leaving a game free up parts, rows joining take
+  // the next ones. Untouched games keep any manual tweaks.
+  const setGameForRows = (ids, gameName) => {
+    const g = gamesDb.find((x) => x.name === gameName);
+    if (!g) return;
+    const idSet = new Set(ids);
+    setPendingRenames((prev) => {
+      const affectedTags = new Set([g.tag]);
+      prev.forEach((r) => { if (idSet.has(r.id)) affectedTags.add(r.tag); });
+      const assigned = prev.map((r) => (idSet.has(r.id) ? { ...r, game: g.name, tag: g.tag, color: g.color } : r));
+      const sorted = [...assigned].sort((a, b) => a.fileName.localeCompare(b.fileName));
+      const done = [];
+      const byId = {};
+      for (const r of sorted) {
+        const game = affectedTags.has(r.tag) ? gamesDb.find((x) => x.tag === r.tag) : null;
+        if (!game) { done.push(r); continue; }
+        const det = detectForGame(game, r.fileName, done);
+        const nr = { ...r, day: det.day, part: det.part };
+        byId[r.id] = nr;
+        done.push(nr);
       }
-      return u;
-    }));
+      return assigned.map((r) => byId[r.id] || r);
+    });
+  };
+
+  const setDayForRows = (ids, day) => {
+    const idSet = new Set(ids);
+    setPendingRenames((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, day } : r)));
+  };
+
+  const setPresetForRows = (ids, presetId) => {
+    const idSet = new Set(ids);
+    setPendingRenames((prev) => prev.map((r) => (idSet.has(r.id) ? { ...r, preset: presetId } : r)));
   };
 
   // ============ LABEL AUTOCOMPLETE ============
@@ -952,93 +1154,6 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return renamedChildren;
   };
 
-  const renameOne = async (id) => {
-    const r = pendingRenames.find((x) => x.id === id);
-    if (!r) return;
-
-    const preset = r.preset || defaultPreset;
-    const fileDate = r.fileName.slice(0, 10);
-
-    // Validate label if preset uses labels
-    if (PRESETS_USING_LABEL.has(preset)) {
-      if (!r.customLabel || r.customLabel.trim().length === 0) {
-        console.error("Label is required for this preset"); return;
-      }
-      if (isElectron) {
-        const validation = await window.clipflow.presetValidateLabel(r.customLabel);
-        if (!validation.valid) { console.error("Invalid label:", validation.error); return; }
-      }
-    }
-
-    // Check if this file needs game-switch splitting (scrubber markers)
-    const hasGameSwitch = isElectron && scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
-
-    // Check if this file needs auto-splitting
-    const info = splitInfo[r.id];
-    const needsSplit = isElectron && info && info.splitCount > 0 && !info.skipSplit;
-
-    if (hasGameSwitch) {
-      // Game-switch split (may also compound with auto-split)
-      setRenaming(true);
-      const children = await gameSwitchSplitAndRename(r, preset, fileDate);
-      setRenaming(false);
-
-      if (!children || children.length === 0) return;
-
-      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      const historyEntries = children.map((c) => ({
-        id: `h-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        oldName: r.fileName, newName: c.newName, game: c.game || r.game,
-        tag: c.tag || r.tag, color: c.color || r.color, day: r.day, part: c.partNumber,
-        time, undone: false,
-      }));
-      setRenameHistory((prev) => [...historyEntries, ...prev]);
-    } else if (needsSplit) {
-      setRenaming(true);
-      const children = await splitAndRename(r, preset, fileDate);
-      setRenaming(false);
-
-      if (!children || children.length === 0) return;
-
-      // Add all children to history
-      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      const historyEntries = children.map((c) => ({
-        id: `h-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        oldName: r.fileName, newName: c.newName, game: r.game,
-        tag: r.tag, color: r.color, day: r.day, part: c.partNumber,
-        time, undone: false,
-      }));
-      setRenameHistory((prev) => [...historyEntries, ...prev]);
-    } else {
-      const result = await renameSingleFile(r, preset, fileDate);
-      if (!result) return;
-
-      setRenameHistory((prev) => [{
-        id: `h-${Date.now()}`, oldName: r.fileName, newName: result.newName, game: r.game,
-        tag: r.tag, color: r.color, day: r.day, part: result.partNumber || r.part,
-        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-        undone: false,
-      }, ...prev]);
-    }
-
-    // Remember this game for auto-selecting on future files
-    lastRenamedGame.current = r.game;
-
-    // Clean up split info and remove from pending
-    setSplitInfo((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    setPendingRenames((prev) => prev.filter((x) => x.id !== id));
-
-    // Persist the game's dayCount and lastDayDate.
-    // #170: test-mode renames must not advance the real counter — fake-dated
-    // test footage would permanently corrupt day numbering for the game.
-    if (onGameDayUpdate && !r.isTest) {
-      const game = gamesDb.find((g) => g.tag === r.tag);
-      const newDayCount = Math.max(r.day, game?.dayCount || 0);
-      const newLastDate = !game?.lastDayDate || fileDate >= game.lastDayDate ? fileDate : game.lastDayDate;
-      onGameDayUpdate(r.tag, newDayCount, newLastDate);
-    }
-  };
-
   const hideOne = (id) => {
     // Clean up scrubber if open
     const r = pendingRenames.find((x) => x.id === id);
@@ -1051,11 +1166,67 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     setPendingRenames((prev) => prev.filter((x) => x.id !== id));
   };
 
-  const renameAll = async () => {
+  // ============ #172 SELECTION ============
+  const toggleRow = (id, e) => {
+    // Read the anchor BEFORE setState — the updater runs after this handler
+    // finishes, by which point the ref already holds the clicked row.
+    const anchor = lastClickedRef.current;
+    const useRange = !!(e?.shiftKey && anchor && anchor !== id && displayIds.includes(anchor) && displayIds.includes(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (useRange) {
+        // Shift-click: apply the clicked row's NEW state to the whole range
+        const a = displayIds.indexOf(anchor);
+        const b = displayIds.indexOf(id);
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        const turnOn = !prev.has(id);
+        for (let i = lo; i <= hi; i++) {
+          if (turnOn) next.add(displayIds[i]);
+          else next.delete(displayIds[i]);
+        }
+      } else if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    lastClickedRef.current = id;
+  };
+
+  const toggleGroup = (grp) => {
+    const ids = grp.rows.map((r) => r.id);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allOn = ids.every((id) => prev.has(id));
+      ids.forEach((id) => (allOn ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setGameMenuOpen(false);
+    lastClickedRef.current = null;
+  };
+
+  const hideSelected = () => {
+    [...selectedIds].forEach((id) => hideOne(id));
+    clearSelection();
+  };
+
+  // #172: rename a specific list of pending rows — the whole list for
+  // "Rename All", a subset for "Rename N Selected". Same per-file pipeline
+  // as ever (game-switch markers, auto-split, collisions, history, #170
+  // test-mode exclusion). Only successfully renamed rows leave the pending
+  // list; failed or label-missing rows stay visible.
+  const renameFiles = async (list) => {
+    if (renaming || !list || list.length === 0) return;
     setRenaming(true);
-    const sorted = [...pendingRenames].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    const sorted = [...list].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
     const corrected = [];
+    const renamedIds = new Set();
     for (const r of sorted) {
       const preset = r.preset || defaultPreset;
       const fileDate = r.fileName.slice(0, 10);
@@ -1073,6 +1244,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       if (hasGameSwitch) {
         const children = await gameSwitchSplitAndRename(r, preset, fileDate);
         if (children && children.length > 0) {
+          renamedIds.add(r.id);
           const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
           for (const c of children) {
             corrected.push({
@@ -1085,6 +1257,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       } else if (needsSplit) {
         const children = await splitAndRename(r, preset, fileDate);
         if (children && children.length > 0) {
+          renamedIds.add(r.id);
           const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
           for (const c of children) {
             corrected.push({
@@ -1098,6 +1271,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         const result = await renameSingleFile(r, preset, fileDate);
         if (!result) continue;
 
+        renamedIds.add(r.id);
         corrected.push({
           id: `h-${Date.now()}-${r.id}`, oldName: r.fileName, newName: result.newName,
           game: r.game, tag: r.tag, color: r.color, day: r.day,
@@ -1128,16 +1302,27 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
 
     setRenameHistory((prev) => [...corrected, ...prev]);
-    setSplitInfo({});
-    // Clean up all scrubber state
-    setScrubberOpen({});
-    setScrubberMarkers({});
-    setScrubberThumbs({});
-    setScrubberLoading({});
-    setPendingRenames([]);
+
+    // Clear ONLY the renamed rows' state — un-renamed rows (failures,
+    // missing labels, unselected files) keep their split/scrubber state.
+    const drop = (obj) => { const n = { ...obj }; renamedIds.forEach((id) => delete n[id]); return n; };
+    setSplitInfo((prev) => drop(prev));
+    setScrubberOpen((prev) => drop(prev));
+    setScrubberMarkers((prev) => drop(prev));
+    setScrubberThumbs((prev) => drop(prev));
+    setScrubberLoading((prev) => drop(prev));
+    setPendingRenames((prev) => prev.filter((x) => !renamedIds.has(x.id)));
+
+    // Remember the last renamed game for auto-selecting on future files
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (renamedIds.has(sorted[i].id)) { lastRenamedGame.current = sorted[i].game; break; }
+    }
+
     setRenaming(false);
-    setRenameDone(true);
-    setTimeout(() => setRenameDone(false), 3000);
+    if (renamedIds.size > 0 && pendingRenames.every((x) => renamedIds.has(x.id))) {
+      setRenameDone(true);
+      setTimeout(() => setRenameDone(false), 3000);
+    }
   };
 
   // ============ UNDO (hybrid: local + SQLite) ============
@@ -1316,22 +1501,48 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   };
 
   // Computed stats
-  const mainGameObj = gamesDb.find((g) => g.name === mainGameName) || gamesDb[0];
   const totalRenamed = dbManagedFiles.length + renameHistory.filter((h) => !h.undone).length;
-  let mainDayCount = mainGameObj?.dayCount || 0;
-  pendingRenames.forEach((p) => {
-    if (p.tag === mainGameObj?.tag && p.day > mainDayCount) mainDayCount = p.day;
-  });
 
   const gameOptions = getGroupedGameOptions();
 
+  // #172: session-ledger grouping — pending files grouped by (date + game
+  // tag). Groups are a VIEW of each row's current game, not folders: change a
+  // row's game and it re-groups automatically. Sessions sort chronologically,
+  // rows inside by original filename (OBS names sort by recording time).
+  const sessionGroups = (() => {
+    const map = new Map();
+    for (const r of pendingRenames) {
+      const date = r.fileName.slice(0, 10);
+      const key = `${date}|${r.tag}`;
+      if (!map.has(key)) map.set(key, { key, date, tag: r.tag, rows: [] });
+      map.get(key).rows.push(r);
+    }
+    const groups = [...map.values()];
+    groups.forEach((g) => g.rows.sort((a, b) => a.fileName.localeCompare(b.fileName)));
+    groups.sort((a, b) => a.date.localeCompare(b.date) || a.rows[0].fileName.localeCompare(b.rows[0].fileName));
+    return groups;
+  })();
+  const displayIds = sessionGroups.flatMap((g) => g.rows.map((r) => r.id));
+
   return (
     <div
+      ref={rootRef}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       style={{ position: "relative" }}
     >
+      {/* #172: ledger row hover/selection states + batch bar entrance */}
+      <style>{`
+        @keyframes cfrBarUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .cfr-row:hover { background: ${T.surfaceHover}; }
+        .cfr-row.rowsel { background: ${T.accentGlow}; }
+        .cfr-row .cfr-acts { opacity: 0; transition: opacity 0.12s; }
+        .cfr-row:hover .cfr-acts, .cfr-row.rowsel .cfr-acts { opacity: 1; }
+        .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: rgba(255,255,255,0.32); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
+        .cfr-iconbt:hover { color: ${T.text}; background: ${T.surfaceHover}; border-color: ${T.border}; }
+        .cfr-iconbt:disabled { opacity: 0.35; cursor: default; }
+      `}</style>
       {/* Drop zone overlay */}
       {dragOver && (
         <div style={{
@@ -1359,35 +1570,25 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         </div>
       )}
 
-      <PageHeader title="Rename" subtitle="Recordings → structured names">
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={refresh} disabled={refreshing} style={{ padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
-          <button onClick={onAddGame} style={{ padding: "8px 14px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+      {/* #172: slim header strip — replaces the old page header, WATCHING
+          banner and 4 stat cards so pending files start ~200px higher */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${T.border}`, background: T.surface, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14 }}>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.2px", color: T.text, flexShrink: 0 }}>Rename</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, flex: 1 }} title={`Watching ${watchFolder}`}>
+          <PulseDot size={7} />
+          <span style={{ color: T.textSecondary, fontSize: 11.5, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
         </div>
-      </PageHeader>
-
-      {/* Watch status */}
-      <Card style={{ padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <PulseDot />
-          <span style={{ color: T.green, fontSize: 13, fontWeight: 600 }}>WATCHING</span>
-          <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          {[[totalRenamed, "total"], [pendingRenames.length, "pending"], [gamesDb.length, "games"]].map(([v, l]) => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.textSecondary, border: `1px solid ${T.border}`, borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap" }}>
+              <b style={{ color: T.text, fontWeight: 700, fontSize: 12 }}>{v}</b> {l}
+            </span>
+          ))}
         </div>
-      </Card>
-
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
-        {[
-          { l: "Total", v: String(totalRenamed), c: T.text },
-          { l: "Today", v: String(pendingRenames.length), c: T.green },
-          { l: "Games", v: String(gamesDb.length), c: T.accent },
-          { l: "Day", v: String(mainDayCount), c: T.yellow },
-        ].map((s) => (
-          <Card key={s.l} style={{ padding: 14, textAlign: "center" }}>
-            <div style={{ color: s.c, fontSize: 24, fontWeight: 800, fontFamily: T.mono }}>{s.v}</div>
-            <div style={{ color: T.textTertiary, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 4 }}>{s.l}</div>
-          </Card>
-        ))}
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
+          <button onClick={onAddGame} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1404,201 +1605,168 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
       {/* Content */}
       <div style={{ marginTop: 16 }}>
-        {/* PENDING TAB */}
+        {/* PENDING TAB — #172 session ledger */}
         {subTab === "pending" && (
           <>
             {pendingRenames.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {pendingRenames.map((r) => {
-                  const preset = r.preset || defaultPreset;
-                  const showDay = PRESETS_USING_DAY.has(preset);
-                  const showLabel = PRESETS_USING_LABEL.has(preset);
-                  const showPart = PRESETS_ALWAYS_PARTS.has(preset);
-                  const info = splitInfo[r.id];
-                  const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
-                  const hasGameSwitch = scrubberMarkers[r.id] && scrubberMarkers[r.id].length > 0;
-                  const splitPreview = getSplitPreview(r);
-
-                  const preview = previewFrames[r.id];
-
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 90 }}>
+                {sessionGroups.map((grp) => {
+                  const rowIds = grp.rows.map((r) => r.id);
+                  const selCount = grp.rows.filter((r) => selectedIds.has(r.id)).length;
+                  const headState = selCount === grp.rows.length ? "on" : selCount > 0 ? "half" : "off";
+                  const samePreset = grp.rows.every((r) => (r.preset || defaultPreset) === (grp.rows[0].preset || defaultPreset));
+                  const headPreset = samePreset ? (grp.rows[0].preset || defaultPreset) : null;
+                  const firstWithPath = grp.rows.find((r) => r.filePath);
+                  const knownDur = grp.rows.reduce((s, r) => s + (splitInfo[r.id]?.durationSeconds || 0), 0);
                   return (
-                    <Card key={r.id} style={{ padding: "18px 20px", display: "flex", gap: 16 }} borderColor={`${r.color}44`}>
-                      {/* Preview thumbnail */}
-                      <PreviewThumbnail frames={preview?.frames || []} loading={preview?.loading} />
-                      {/* Card content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Original filename → live rename preview (single line) */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: hasSplit ? 8 : 10, flexWrap: "wrap" }}>
-                        <span style={{ color: T.textSecondary, fontSize: 13, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "40%" }}>{r.fileName}</span>
-                        <TestChip
-                          isTest={!!r.isTest}
-                          onToggle={(next) => updatePending(r.id, "isTest", next)}
+                    <div key={grp.key} style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.lg, background: T.surface, overflow: "hidden" }}>
+                      {/* session header — owns everything the parts share */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                        <LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" />
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: T.text, whiteSpace: "nowrap" }}>{fmtSessionDate(grp.date)}</span>
+                        <GroupedSelect
+                          value={grp.rows[0].game}
+                          onChange={(v) => setGameForRows(rowIds, v)}
+                          options={gameOptions}
+                          renderSelected={(o) => <><GamePill tag={o.tag || grp.tag} color={o.color || grp.rows[0].color} size="sm" />{o.label}</>}
+                          renderOption={(o) => <><GamePill tag={o.tag} color={o.color} size="sm" />{o.label}</>}
+                          style={{ minWidth: 150 }}
+                          borderColor={`${grp.rows[0].color}44`}
                         />
-                        <span style={{ color: T.textMuted, fontSize: 12 }}>→</span>
-                        <PresetNamePicker
-                          rename={r}
-                          presets={PRESET_LIST}
-                          currentPreset={preset}
-                          getProposed={getProposed}
-                          onPresetChange={(v) => updatePending(r.id, "preset", v)}
-                          color={r.color}
-                        />
-                      </div>
-
-                      {/* Auto-split indicator */}
-                      {info && info.probing && (
-                        <div style={{ color: T.textMuted, fontSize: 11, marginBottom: 10 }}>Checking duration...</div>
-                      )}
-                      {hasSplit && (
-                        <div style={{ marginBottom: 14 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                            <span style={{ padding: "3px 8px", borderRadius: 6, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 700 }}>
-                              {formatDuration(info.durationSeconds)} — will split into {info.splitCount} parts
-                            </span>
-                            <button onClick={() => toggleSkipSplit(r.id)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", fontFamily: T.font, textDecoration: "underline" }}>Don't split</button>
-                          </div>
-                          {/* Split preview */}
-                          <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "8px 12px", fontSize: 11 }}>
-                            {splitPreview && splitPreview.map((p, i) => {
-                              const startM = Math.floor(p.start / 60);
-                              const startS = Math.floor(p.start % 60);
-                              const endM = Math.floor(p.end / 60);
-                              const endS = Math.floor(p.end % 60);
-                              return (
-                                <div key={i} style={{ display: "flex", gap: 8, padding: "2px 0", color: T.textSecondary }}>
-                                  <span style={{ color: T.accent, fontFamily: T.mono, minWidth: 30 }}>Pt{p.partNumber}</span>
-                                  <span style={{ fontFamily: T.mono }}>{startM}:{String(startS).padStart(2, "0")} – {endM}:{String(endS).padStart(2, "0")}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {info && info.skipSplit && info.splitCount > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 6, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 11, fontWeight: 700 }}>
-                            {formatDuration(info.durationSeconds)} — splitting skipped
-                          </span>
-                          <button onClick={() => toggleSkipSplit(r.id)} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 11, cursor: "pointer", fontFamily: T.font, textDecoration: "underline" }}>Enable split</button>
-                        </div>
-                      )}
-
-                      {/* Game-switch scrubber (expanded below card controls) */}
-                      {scrubberOpen[r.id] && r.filePath && (
-                        <div style={{ marginBottom: 14, padding: "12px 0", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                            <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600 }}>Mark where games change in this recording</span>
-                            <button
-                              onClick={() => toggleScrubber(r.id, r.filePath)}
-                              style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", padding: "2px 6px", fontFamily: T.font }}
-                            >✕</button>
-                          </div>
-                          <ThumbnailScrubber
-                            thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
-                            duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
-                            games={gamesDb}
-                            markers={scrubberMarkers[r.id] || []}
-                            onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
-                            loading={!!scrubberLoading[r.id]}
-                            defaultGameTag={r.tag}
-                          />
-                        </div>
-                      )}
-
-                      {/* Controls row — fixed min-height so cards don't shrink when controls change */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
-                        {/* Game dropdown (grouped) */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <GroupedSelect
-                            value={r.game}
-                            onChange={(v) => updatePending(r.id, "game", v)}
-                            options={gameOptions}
-                            renderSelected={(o) => <><GamePill tag={o.tag || r.tag} color={o.color || r.color} size="sm" />{o.label}</>}
-                            renderOption={(o) => <><GamePill tag={o.tag} color={o.color} size="sm" />{o.label}</>}
-                            style={{ minWidth: 150 }}
-                            borderColor={`${r.color}44`}
-                          />
-                        </div>
-
-                        {/* Day pill (presets 1-2) */}
-                        {showDay && <PillSpinbox label="Day" value={r.day} onChange={(v) => updatePending(r.id, "day", v)} color={r.color} />}
-
-                        {/* Part pill (presets 1-2) */}
-                        {showPart && <PillSpinbox label="Pt" value={r.part} onChange={(v) => updatePending(r.id, "part", v)} color={r.color} />}
-
-                        {/* Custom label input (presets 4-5) */}
-                        {showLabel && (
-                          <div style={{ position: "relative", flex: "1 1 160px", minWidth: 140 }}>
-                            <input
-                              value={r.customLabel || ""}
-                              onChange={(e) => updateLabel(r.id, e.target.value)}
-                              onFocus={() => { setActiveLabelFileId(r.id); fetchLabelSuggestions(r.tag, r.customLabel || ""); }}
-                              onBlur={() => setTimeout(() => setActiveLabelFileId(null), 200)}
-                              placeholder="custom-label"
-                              style={{
-                                width: "100%", background: "rgba(255,255,255,0.04)",
-                                border: `1px solid ${r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel) ? T.red : T.border}`,
-                                borderRadius: T.radius.md, padding: "8px 12px",
-                                color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none",
-                              }}
-                            />
-                            {r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel) && (
-                              <div style={{ color: T.red, fontSize: 11, marginTop: 4 }}>Labels can't contain special characters</div>
-                            )}
-                            {/* Autocomplete dropdown */}
-                            {activeLabelFileId === r.id && labelSuggestions.length > 0 && (
-                              <div style={{
-                                position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                                background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-                                boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 999, padding: 4,
-                                maxHeight: 180, overflowY: "auto",
-                              }}>
-                                {labelSuggestions.map((s) => (
-                                  <div
-                                    key={s.label}
-                                    onMouseDown={() => selectLabelSuggestion(r.id, s.label)}
-                                    style={{
-                                      padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                                      color: T.text, fontSize: 13, fontFamily: T.mono,
-                                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                                  >
-                                    <span>{s.label}</span>
-                                    <span style={{ color: T.textMuted, fontSize: 11 }}>×{s.use_count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                        <MiniSpinbox compact label="Day" value={grp.rows[0].day} onChange={(v) => setDayForRows(rowIds, v)} />
+                        <SessionPresetPicker presetId={headPreset} onChange={(v) => setPresetForRows(rowIds, v)} />
+                        <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.textTertiary, flexShrink: 0 }}>
+                          {grp.rows.length} part{grp.rows.length === 1 ? "" : "s"}{knownDur > 0 ? ` · ${formatDuration(knownDur)}` : ""}
+                        </span>
+                        {firstWithPath && (
+                          <button className="cfr-iconbt" title="Show session in Explorer" onClick={() => window.clipflow?.revealInFolder(firstWithPath.filePath)}>{IcFolder}</button>
                         )}
-
-                        {/* Action buttons */}
-                        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-                          {/* Split video — visible when file has been probed */}
-                          {r.filePath && !scrubberOpen[r.id] && splitInfo[r.id]?.durationSeconds > 0 && (
-                            <button
-                              onClick={() => toggleScrubber(r.id, r.filePath)}
-                              disabled={renaming}
-                              style={{ background: "none", border: "none", color: T.textSecondary, fontSize: 11, cursor: renaming ? "default" : "pointer", fontFamily: T.font, padding: "6px 6px", opacity: renaming ? 0.4 : 0.8, textDecoration: "underline", textUnderlineOffset: 2 }}
-                              title="Split this recording at specific points"
-                            >split video</button>
-                          )}
-                          <button onClick={() => renameOne(r.id)} disabled={(showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: T.greenDim, color: T.green, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (showLabel && (!r.customLabel || /[\\/:*?"<>|]/.test(r.customLabel))) || renaming ? 0.4 : 1 }}>{hasGameSwitch || hasSplit ? "SPLIT & RENAME" : "RENAME"}</button>
-                          <button onClick={() => hideOne(r.id)} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>HIDE</button>
-                        </div>
                       </div>
-                      </div>{/* end card content wrapper */}
-                    </Card>
+                      {/* rows — only what varies per file */}
+                      <div>
+                        {grp.rows.map((r, ri) => {
+                          const preset = r.preset || defaultPreset;
+                          const showLabel = PRESETS_USING_LABEL.has(preset);
+                          const showPart = PRESETS_ALWAYS_PARTS.has(preset);
+                          const info = splitInfo[r.id];
+                          const hasSplit = info && info.splitCount > 0 && !info.skipSplit;
+                          const splitSkipped = info && info.splitCount > 0 && info.skipSplit;
+                          const preview = previewFrames[r.id];
+                          const isSel = selectedIds.has(r.id);
+                          const labelInvalid = showLabel && r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel);
+                          const splitParts = hasSplit ? getSplitPreview(r) : null;
+                          const splitTitle = splitParts ? `Splits into ${splitParts.map((p) => `Pt${p.partNumber} ${fmtClock(p.start)}–${fmtClock(p.end)}`).join(", ")}. Click to keep as one file.` : "";
+                          return (
+                            <React.Fragment key={r.id}>
+                              <div className={`cfr-row${isSel ? " rowsel" : ""}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 14px", borderTop: ri === 0 ? "none" : `1px solid ${T.border}` }}>
+                                <LedgerCheck state={isSel ? "on" : "off"} onClick={(e) => toggleRow(r.id, e)} />
+                                <HoverScrubThumb frames={preview?.frames || []} loading={!!preview?.loading} durationSeconds={info?.durationSeconds} />
+                                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ fontSize: 11.5, color: T.textTertiary, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 1, maxWidth: 170 }} title={r.fileName}>{r.fileName}</span>
+                                  <TestChip isTest={!!r.isTest} onToggle={(next) => updatePending(r.id, "isTest", next)} />
+                                  <span style={{ color: T.textMuted, fontSize: 11, flexShrink: 0 }}>→</span>
+                                  <PresetNamePicker
+                                    rename={r}
+                                    presets={PRESET_LIST}
+                                    currentPreset={preset}
+                                    getProposed={getProposed}
+                                    onPresetChange={(v) => updatePending(r.id, "preset", v)}
+                                    color={r.color}
+                                  />
+                                  {info && info.probing && <span style={{ fontSize: 10.5, color: T.textMuted, flexShrink: 0 }}>probing…</span>}
+                                  {hasSplit && (
+                                    <span onClick={() => toggleSkipSplit(r.id)} title={splitTitle} style={{ fontSize: 10.5, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}`, borderRadius: 5, padding: "1px 7px", flexShrink: 0, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                      {fmtClock(info.durationSeconds)} · splits into {info.splitCount}
+                                    </span>
+                                  )}
+                                  {splitSkipped && (
+                                    <span onClick={() => toggleSkipSplit(r.id)} title="Auto-split is off for this file — click to split it again" style={{ fontSize: 10.5, color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, borderRadius: 5, padding: "1px 7px", flexShrink: 0, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                      split off
+                                    </span>
+                                  )}
+                                </div>
+                                {showLabel && (
+                                  <div style={{ position: "relative", flexShrink: 0, width: 150 }}>
+                                    <input
+                                      value={r.customLabel || ""}
+                                      onChange={(e) => updateLabel(r.id, e.target.value)}
+                                      onFocus={() => { setActiveLabelFileId(r.id); fetchLabelSuggestions(r.tag, r.customLabel || ""); }}
+                                      onBlur={() => setTimeout(() => setActiveLabelFileId(null), 200)}
+                                      placeholder="custom-label"
+                                      title={labelInvalid ? "Labels can't contain special characters" : undefined}
+                                      style={{
+                                        width: "100%", background: "rgba(255,255,255,0.04)",
+                                        border: `1px solid ${labelInvalid ? T.red : T.border}`,
+                                        borderRadius: 7, padding: "5px 9px",
+                                        color: T.text, fontSize: 12, fontFamily: T.mono, outline: "none",
+                                      }}
+                                    />
+                                    {/* Autocomplete dropdown */}
+                                    {activeLabelFileId === r.id && labelSuggestions.length > 0 && (
+                                      <div style={{
+                                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                                        background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+                                        boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 999, padding: 4,
+                                        maxHeight: 180, overflowY: "auto",
+                                      }}>
+                                        {labelSuggestions.map((s) => (
+                                          <div
+                                            key={s.label}
+                                            onMouseDown={() => selectLabelSuggestion(r.id, s.label)}
+                                            style={{
+                                              padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+                                              color: T.text, fontSize: 13, fontFamily: T.mono,
+                                              display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                          >
+                                            <span>{s.label}</span>
+                                            <span style={{ color: T.textMuted, fontSize: 11 }}>×{s.use_count}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {showPart && <MiniSpinbox compact label="Pt" value={r.part} onChange={(v) => updatePending(r.id, "part", v)} />}
+                                <span style={{ fontSize: 11.5, color: T.textTertiary, width: 48, textAlign: "right", flexShrink: 0, fontFamily: T.mono }}>{info?.probing ? "…" : info?.durationSeconds ? fmtClock(info.durationSeconds) : "—"}</span>
+                                <span className="cfr-acts" style={{ display: "flex", gap: 2, flexShrink: 0, justifyContent: "flex-end" }}>
+                                  {r.filePath && <button className="cfr-iconbt" title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder(r.filePath)}>{IcFolder}</button>}
+                                  {r.filePath && info?.durationSeconds > 0 && (
+                                    <button className="cfr-iconbt" title={scrubberOpen[r.id] ? "Close the split view" : "Split this recording at specific points"} disabled={renaming} onClick={() => toggleScrubber(r.id, r.filePath)} style={scrubberOpen[r.id] ? { color: T.accentLight } : undefined}>{IcSplit}</button>
+                                  )}
+                                  <button className="cfr-iconbt" title="Hide from pending" onClick={() => hideOne(r.id)}>{IcHide}</button>
+                                </span>
+                              </div>
+                              {/* game-switch scrubber still expands full-width under its row */}
+                              {scrubberOpen[r.id] && r.filePath && (
+                                <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 14px", background: "rgba(255,255,255,0.015)" }}>
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                                    <span style={{ color: T.accentLight, fontSize: 12, fontWeight: 600 }}>Mark where games change in this recording</span>
+                                    <button
+                                      onClick={() => toggleScrubber(r.id, r.filePath)}
+                                      style={{ background: "none", border: "none", color: T.textMuted, fontSize: 14, cursor: "pointer", padding: "2px 6px", fontFamily: T.font }}
+                                    >✕</button>
+                                  </div>
+                                  <ThumbnailScrubber
+                                    thumbnails={scrubberThumbs[r.id]?.thumbnails || []}
+                                    duration={scrubberThumbs[r.id]?.duration || splitInfo[r.id]?.durationSeconds || 0}
+                                    games={gamesDb}
+                                    markers={scrubberMarkers[r.id] || []}
+                                    onMarkersChange={(m) => updateScrubberMarkers(r.id, m)}
+                                    loading={!!scrubberLoading[r.id]}
+                                    defaultGameTag={r.tag}
+                                  />
+                                </div>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
-                {splitProgress && (
-                  <div style={{ padding: "10px 16px", borderRadius: T.radius.md, background: T.accentDim, border: `1px solid ${T.accentBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: T.accentLight, fontSize: 13, fontWeight: 600 }}>Splitting file... ({splitProgress.current} of {splitProgress.total} parts done)</span>
-                  </div>
-                )}
-                <PrimaryButton onClick={renameAll} disabled={renaming}>{renaming ? (splitProgress ? `Splitting... (${splitProgress.current}/${splitProgress.total})` : "Renaming...") : `Rename All ${pendingRenames.length} Files`}</PrimaryButton>
               </div>
             ) : (
               <Card style={{ padding: "40px 20px", textAlign: "center" }}>
@@ -1716,6 +1884,51 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           </div>
         )}
       </div>
+
+      {/* #172: floating batch bar — "Rename All" with no selection, selection
+          tools once rows are ticked. Same glass shell as Recordings (#123). */}
+      {subTab === "pending" && pendingRenames.length > 0 && (
+        <div style={BAR_SHELL}>
+          {selectedIds.size === 0 ? (
+            <button
+              onClick={() => renameFiles(pendingRenames)}
+              disabled={renaming}
+              style={{ ...BAR_BTN, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
+            >{renaming ? (splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
+          ) : (
+            <>
+              <span style={{ fontSize: 12.5, color: T.textSecondary, padding: "0 4px", whiteSpace: "nowrap", fontFamily: T.font }}><b style={{ color: T.text }}>{selectedIds.size}</b> selected</span>
+              <div ref={gameMenuRef} style={{ position: "relative" }}>
+                <button onClick={() => setGameMenuOpen((v) => !v)} disabled={renaming} style={{ ...BAR_BTN, background: gameMenuOpen ? T.surfaceHover : "transparent", borderColor: T.border, color: T.textSecondary }}>Set Game ▾</button>
+                {gameMenuOpen && (
+                  <div style={{ position: "absolute", bottom: "calc(100% + 10px)", left: "50%", transform: "translateX(-50%)", background: "rgba(22,23,31,0.97)", border: `1px solid ${T.borderHover}`, borderRadius: 12, boxShadow: "0 10px 32px rgba(0,0,0,0.55)", padding: 5, minWidth: 210, maxHeight: 320, overflowY: "auto" }}>
+                    {gameOptions.map((o) => o.isHeader ? (
+                      <div key={o.value} style={{ padding: "7px 12px 3px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{o.label}</div>
+                    ) : (
+                      <div
+                        key={o.value}
+                        onClick={() => { setGameForRows(selectedIds, o.value); setGameMenuOpen(false); clearSelection(); }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: T.text, whiteSpace: "nowrap", fontFamily: T.font }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = T.surfaceHover}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <GamePill tag={o.tag} color={o.color} size="sm" />{o.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={hideSelected} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Hide Selected</button>
+              <button onClick={clearSelection} disabled={renaming} style={{ ...BAR_BTN, background: "transparent", borderColor: T.border, color: T.textSecondary }}>Clear</button>
+              <button
+                onClick={() => renameFiles(pendingRenames.filter((r) => selectedIds.has(r.id)))}
+                disabled={renaming}
+                style={{ ...BAR_BTN, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
+              >{renaming ? (splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename ${selectedIds.size} Selected`}</button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
