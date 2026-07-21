@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rename header restyle — pick a direction (#177)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surface2:#16171f;
+    --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --muted:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accentL:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBr:rgba(139,92,246,0.25);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBr:rgba(52,211,153,0.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;padding:36px 20px 80px}
+  .wrap{max-width:840px;margin:0 auto}
+  h1{font-size:20px;font-weight:800;letter-spacing:-0.3px}
+  .sub{color:var(--text2);font-size:13px;margin:6px 0 34px;line-height:1.55;max-width:700px}
+  .optlabel{display:flex;align-items:center;gap:10px;margin:44px 0 6px}
+  .optlabel .chip{background:var(--accentDim);border:1px solid var(--accentBr);color:var(--accentL);font-size:12px;font-weight:800;padding:3px 10px;border-radius:8px}
+  .optlabel b{font-size:14.5px;font-weight:700}
+  .optnote{color:var(--text2);font-size:12.5px;margin:0 0 14px;line-height:1.5;max-width:700px}
+  .frame{border:1px dashed rgba(255,255,255,0.10);border-radius:18px;padding:18px}
+
+  /* shared app bits */
+  .card{border:1px solid var(--border);background:var(--surface);border-radius:14px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .btn{border-radius:10px;font-size:12px;font-weight:700;font-family:inherit;padding:6px 12px;cursor:pointer;height:30px;display:inline-flex;align-items:center;gap:6px}
+  .btn.ghost{border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text2)}
+  .btn.accent{border:1px solid var(--accentBr);background:var(--accentDim);color:var(--accentL)}
+  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:5px;margin-top:10px}
+  .tab{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:8px}
+  .tab.active{background:rgba(255,255,255,0.06);color:var(--text)}
+  .tab .n{font-size:11px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(255,255,255,0.06);color:var(--text3)}
+  .tab.active .n{background:var(--accentDim);color:var(--accentL)}
+  .hcard{margin-top:10px;padding:14px 18px;display:flex;align-items:center;gap:10px}
+  .pill{width:30px;height:22px;border-radius:6px;background:rgba(34,211,238,0.14);border:1px solid rgba(34,211,238,0.3);color:#22d3ee;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .hold{color:var(--text3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hnew{color:var(--green);font-size:14px;font-weight:600;margin-top:2px}
+  .htime{color:var(--muted);font-size:11px;margin-left:auto;flex-shrink:0}
+
+  /* ── current (reference) ── */
+  .cur-strip{display:flex;align-items:center;gap:12px;padding:10px 16px}
+  .cur-title{font-size:16px;font-weight:800;letter-spacing:-0.2px}
+  .cur-watch{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+  .cur-dotblob{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+  .cur-path{color:var(--text2);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cur-stat{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .cur-stat b{color:var(--text);font-weight:700;font-size:12px}
+
+  /* ── option A: two-deck ── */
+  .a-top{display:flex;align-items:center;gap:16px;padding:11px 16px}
+  .a-title{font-size:17px;font-weight:800;letter-spacing:-0.3px;margin-right:auto}
+  .a-stats{display:flex;align-items:center}
+  .a-stat{display:flex;align-items:baseline;gap:6px;padding:0 14px;border-left:1px solid var(--border)}
+  .a-stat:first-child{border-left:none}
+  .a-stat b{font-size:15px;font-weight:800}
+  .a-stat span{font-size:11px;color:var(--text3);font-weight:600}
+  .a-watch{display:flex;align-items:center;gap:9px;padding:8px 16px;border-top:1px solid var(--border);background:rgba(255,255,255,0.015);border-radius:0 0 14px 14px}
+  .a-watchlabel{font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:var(--green)}
+  .a-path{color:var(--text2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── option B: refined single line ── */
+  .b-strip{display:flex;align-items:center;gap:14px;padding:12px 16px}
+  .b-title{font-size:17px;font-weight:800;letter-spacing:-0.3px;flex-shrink:0}
+  .b-div{width:1px;height:18px;background:var(--border2);flex-shrink:0}
+  .b-watch{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+  .b-path{color:var(--text2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .b-stats{display:flex;align-items:baseline;gap:5px;flex-shrink:0;color:var(--text3);font-size:11.5px;font-weight:600}
+  .b-stats b{color:var(--text);font-size:13px;font-weight:800}
+  .b-sep{color:var(--muted);padding:0 4px}
+
+  /* ── option C: title block ── */
+  .c-strip{display:flex;align-items:center;gap:16px;padding:12px 16px}
+  .c-lockup{min-width:0;flex:1}
+  .c-titlerow{display:flex;align-items:center;gap:9px}
+  .c-title{font-size:19px;font-weight:800;letter-spacing:-0.4px}
+  .c-path{color:var(--text3);font-size:11.5px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .c-stats{display:flex;flex-shrink:0}
+  .c-stat{text-align:center;padding:0 16px;border-left:1px solid var(--border)}
+  .c-stat:first-child{border-left:none}
+  .c-stat b{display:block;font-size:16px;font-weight:800;line-height:1.1}
+  .c-stat span{font-size:9.5px;font-weight:700;letter-spacing:0.8px;color:var(--text3);text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Rename header — pick a direction</h1>
+  <p class="sub">Three replacements for the current cramped strip (#177). All three kill the egg-shaped
+  stat pills, give the watch folder a proper round dot, and tighten the dead gap between the tab row and
+  the content (shown with a sample History card under each). Reply with <b>A</b>, <b>B</b> or <b>C</b> —
+  or mix ("B but with C's stats").</p>
+
+  <!-- CURRENT -->
+  <div class="optlabel"><span class="chip" style="background:rgba(248,113,113,0.10);border-color:rgba(248,113,113,0.25);color:#f87171">TODAY</span><b>Current strip (for reference)</b></div>
+  <p class="optnote">Everything on one line at one size — title, squeezed folder path, three bordered egg pills, two buttons.</p>
+  <div class="frame">
+    <div class="card cur-strip">
+      <span class="cur-title">Rename</span>
+      <div class="cur-watch"><span class="cur-dotblob"></span><span class="cur-path">W:\YouTube Gaming Recordings Onwa…</span></div>
+      <span class="cur-stat"><b>145</b> total</span>
+      <span class="cur-stat"><b>0</b> pending</span>
+      <span class="cur-stat"><b>9</b> games</span>
+      <button class="btn ghost">🔄 Refresh</button>
+      <button class="btn accent">+ Add Game</button>
+    </div>
+  </div>
+
+  <!-- OPTION A -->
+  <div class="optlabel"><span class="chip">A</span><b>Two-deck — title row + slim watching strip</b></div>
+  <p class="optnote">Top row: title, clean divider-separated stats, buttons. Attached below: a slim version of the
+  old WATCHING banner — round pulsing dot, WATCHING label, and the full folder path finally has room to breathe.</p>
+  <div class="frame">
+    <div class="card">
+      <div class="a-top">
+        <span class="a-title">Rename</span>
+        <div class="a-stats">
+          <div class="a-stat"><b>145</b><span>total</span></div>
+          <div class="a-stat"><b>0</b><span>pending</span></div>
+          <div class="a-stat"><b>9</b><span>games</span></div>
+        </div>
+        <button class="btn ghost">🔄 Refresh</button>
+        <button class="btn accent">+ Add Game</button>
+      </div>
+      <div class="a-watch">
+        <span class="dot"></span>
+        <span class="a-watchlabel">WATCHING</span>
+        <span class="a-path">W:\YouTube Gaming Recordings Onward\Recordings\2026-07</span>
+      </div>
+    </div>
+    <div class="tabs"><span class="tab">Pending <span class="n">0</span></span><span class="tab active">History <span class="n">26</span></span><span class="tab">Manage</span></div>
+    <div class="card hcard"><span class="pill">RL</span><div style="min-width:0;flex:1"><div class="hold">2026-07-20 19-17-49.mp4</div><div class="hnew">2026-07-20 RL Day9 Pt1.mp4</div></div><span class="htime">11:08 PM</span></div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="optlabel"><span class="chip">B</span><b>Single line, done right</b></div>
+  <p class="optnote">Keeps the one-line height but with real hierarchy: title, divider, dot + path taking the
+  free space, then plain bold-number stats with dot separators — no bordered pills anywhere.</p>
+  <div class="frame">
+    <div class="card b-strip">
+      <span class="b-title">Rename</span>
+      <span class="b-div"></span>
+      <div class="b-watch"><span class="dot"></span><span class="b-path">W:\YouTube Gaming Recordings Onward\Recordings\2026-07</span></div>
+      <div class="b-stats"><b>145</b> total <span class="b-sep">·</span> <b>0</b> pending <span class="b-sep">·</span> <b>9</b> games</div>
+      <button class="btn ghost">🔄 Refresh</button>
+      <button class="btn accent">+ Add Game</button>
+    </div>
+    <div class="tabs"><span class="tab">Pending <span class="n">0</span></span><span class="tab active">History <span class="n">26</span></span><span class="tab">Manage</span></div>
+    <div class="card hcard"><span class="pill">RL</span><div style="min-width:0;flex:1"><div class="hold">2026-07-20 19-17-49.mp4</div><div class="hnew">2026-07-20 RL Day9 Pt1.mp4</div></div><span class="htime">11:08 PM</span></div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="optlabel"><span class="chip">C</span><b>Title block — dot by the title, path as subtitle</b></div>
+  <p class="optnote">Boldest hierarchy: big title with the status dot beside it, folder path as a quiet subtitle
+  underneath, and proper mini stat blocks (number over label) before the buttons.</p>
+  <div class="frame">
+    <div class="card c-strip">
+      <div class="c-lockup">
+        <div class="c-titlerow"><span class="c-title">Rename</span><span class="dot"></span></div>
+        <div class="c-path">Watching W:\YouTube Gaming Recordings Onward\Recordings\2026-07</div>
+      </div>
+      <div class="c-stats">
+        <div class="c-stat"><b>145</b><span>total</span></div>
+        <div class="c-stat"><b>0</b><span>pending</span></div>
+        <div class="c-stat"><b>9</b><span>games</span></div>
+      </div>
+      <button class="btn ghost">🔄 Refresh</button>
+      <button class="btn accent">+ Add Game</button>
+    </div>
+    <div class="tabs"><span class="tab">Pending <span class="n">0</span></span><span class="tab active">History <span class="n">26</span></span><span class="tab">Manage</span></div>
+    <div class="card hcard"><span class="pill">RL</span><div style="min-width:0;flex:1"><div class="hold">2026-07-20 19-17-49.mp4</div><div class="hnew">2026-07-20 RL Day9 Pt1.mp4</div></div><span class="htime">11:08 PM</span></div>
+  </div>
+</div>
+</body>
+</html>

@@ -68,6 +68,34 @@ const persist = (key, value) => {
   if (window.clipflow?.storeSet) window.clipflow.storeSet(key, value);
 };
 
+// #175 aftermath: the pre-alpha.2 fake undo left History entries claiming
+// renames were undone when the files were never touched, plus "renames" of
+// ghost rows whose files never existed on disk. One pass at load reconciles
+// legacy undone entries (no historyId — DB-backed entries are authoritative)
+// against the watch tree: file still at its renamed name → the rename stands,
+// un-mark; gone under both names → ghost, drop; back at its raw name →
+// genuinely undone, keep.
+const reconcileRenameHistory = async (entries, watchFolder, testWatchFolder) => {
+  if (!watchFolder || !window.clipflow?.fileExists) return entries;
+  const onDisk = async (name, isTest) => {
+    if (!name) return false;
+    const root = isTest ? (testWatchFolder || `${watchFolder}\\Test`) : watchFolder;
+    const month = (name.match(/\d{4}-\d{2}-\d{2}/) || [])[0]?.slice(0, 7);
+    const candidates = month ? [`${root}\\${month}\\${name}`, `${root}\\${name}`] : [`${root}\\${name}`];
+    for (const p of candidates) {
+      if (await window.clipflow.fileExists(p)) return true;
+    }
+    return false;
+  };
+  const out = [];
+  for (const h of entries) {
+    if (!h.undone || h.historyId) { out.push(h); continue; }
+    if (await onDisk(h.newName, h.isTest)) out.push({ ...h, undone: false });
+    else if (await onDisk(h.oldName, h.isTest)) out.push(h);
+  }
+  return out;
+};
+
 export default function App() {
   // Navigation
   const [view, setView] = useState("rename");
@@ -283,7 +311,15 @@ export default function App() {
         }
         if (all.outputFolder) setOutputFolder(all.outputFolder);
         if (all.sfxFolder) setSfxFolder(all.sfxFolder);
-        if (all.renameHistory) setRenameHistory(all.renameHistory);
+        if (all.renameHistory) {
+          const reconciled = await reconcileRenameHistory(all.renameHistory, all.watchFolder, all.testWatchFolder);
+          // Persist immediately when the pass corrected anything — the auto-save
+          // effect only fires on later changes, and the cleanup should stick.
+          if (reconciled.length !== all.renameHistory.length || reconciled.some((h, i) => h !== all.renameHistory[i])) {
+            persist("renameHistory", reconciled);
+          }
+          setRenameHistory(reconciled);
+        }
         if (all.anthropicApiKey) setAnthropicApiKey(all.anthropicApiKey);
         if (all.gatewayUrl) setGatewayUrl(all.gatewayUrl);
         if (all.gatewayAuthToken) setGatewayAuthToken(all.gatewayAuthToken);

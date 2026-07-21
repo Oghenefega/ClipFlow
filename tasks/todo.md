@@ -6,6 +6,65 @@
 
 ---
 
+## 📋 PLAN (session 118, awaiting Fega approval) — Undo aftermath cleanup (#175) + Rename header restyle
+
+### Diagnosis recap (verified against installed exe, prod DB, and disk)
+
+- Fega's two undo test rounds ran at 11:08 PM and 12:04 AM — **both on pre-fix
+  builds** (0.2.2-alpha.2, then 0.3.0-alpha.1). The fixed 0.3.0-alpha.2 was
+  built 12:27 AM and installed ~12:27–12:32 AM. The real undo has NEVER run:
+  prod `rename_history` has 0 rows.
+- Disk is healthy: the six Jul-20 recordings are correctly named
+  `RL Day9 Pt1–Pt6` in `Recordings\2026-07`, and file_metadata rows match.
+- History is lying two ways (old fake-undo leftovers): Pt1–Pt6 are crossed
+  out UNDONE though the renames stand on disk; Pt7–Pt12 entries describe
+  renames that never happened (ghost-row renames — no files exist under
+  either name).
+- On alpha.2, ALL current entries are legacy (no historyId) → no UNDO button
+  by design; the UNDONE strikethrough is a non-clickable label. Together this
+  reads as "grayed-out broken button" — Fega's exact report.
+
+### Part A — make History truthful + testable (completes #175)
+
+1. **Load-time reconciliation of legacy `undone` entries** — App.js, where
+   `all.renameHistory` loads (~line 286). Only entries with `undone: true`
+   AND no `historyId` (DB-backed entries are authoritative — skip). Per
+   entry, via `window.clipflow.fileExists`:
+   - renamed file (`newName`) still on disk → un-mark `undone` (rename
+     stands; fixes the false Pt1–Pt6 strikethroughs)
+   - neither `newName` nor `oldName` on disk → drop entry (ghost; removes
+     Pt7–Pt12 + the Jan-30 AR Day33 phantom)
+   - `oldName` on disk → genuinely undone, keep.
+   Candidate paths: `<watchFolder>\YYYY-MM\<name>`, `<watchFolder>\<name>`
+   (+ `Test\YYYY-MM` for isTest entries); date extracted from the filename.
+2. **Legacy entries stop looking broken** — RenameView.js history row
+   (~1836): entries with no historyId get a muted hover hint ("renamed
+   before undo history existed — can't be undone"); UNDONE label gets a
+   title explaining the file went back to Pending.
+3. **Verification (Fega, ~1 min, after reinstall):** History shows Jul-20
+   Pt1–Pt6 as normal green entries (no strikethrough), Pt7–Pt12 gone. Then
+   rename ONE new file → UNDO button appears on its entry → click → file
+   name reverts in Explorer and the file returns to Pending. That is the
+   first-ever real test of the alpha.2 undo.
+
+### Part B — Rename header restyle (mock first, no code until Fega picks)
+
+Complaints: one cramped line (title + folder + 3 stat pills + 2 buttons),
+"egg-shaped" green watch-folder blob, bland, dead whitespace under the
+Pending/History/Manage tab row.
+
+1. Build an HTML mock (tasks/mocks/rename-header-restyle.html) with 2–3
+   header directions — e.g. (A) two-line: title+actions up top, watch folder
+   as its own slim strip with a proper round dot; (B) refined single line:
+   stats as number+label pairs with dividers instead of bordered pills,
+   folder muted right; (C) one bolder option. Open in browser via
+   Start-Process for Fega to pick.
+2. Implement the picked direction (RenameView.js ~1612–1634), including
+   tightening the tab-bar → content gap.
+3. Cut ONE installer after both parts land; Fega verifies on the daily driver.
+
+---
+
 ## ✅ BUILT (session 117, shipped in 0.3.0-alpha.1, awaiting Fega verification) — Rename tab redesign (#172)
 
 Fega approved the plan at session start ("go ahead with the rename redesign");
