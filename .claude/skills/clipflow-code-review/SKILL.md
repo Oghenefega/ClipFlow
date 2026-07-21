@@ -30,6 +30,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] Hooks reference values declared ABOVE them (no TDZ)
 - [ ] **Mount-only effects see PRE-LOAD state.** App renders every tab pane at launch, BEFORE the async electron-store load — an effect with `[]` deps that captures loaded data (counters, animations, derived UI) freezes at empty/0 forever. Give it real deps and compute/animate from the last shown value. (Frozen weekly-goal ring, session 100.)
 - [ ] **Rename safety:** After renaming ANY variable, function, or export — search ALL 6 categories for the old name: (1) direct calls, (2) type-level references, (3) string literals, (4) dynamic imports, (5) re-exports/barrel files, (6) test files/mocks. Assume grep missed something.
+- [ ] **Refs inside setState updaters:** never read a mutable ref (or anything the handler mutates later) inside an updater function — React 18 runs updaters AFTER the handler body, so the ref already holds the new value. Capture it into a local const at the top of the handler (session 117: shift-click range anchor always equaled the clicked row).
 
 ### 5. CSS/Layout Sanity
 - [ ] ResizablePanel `defaultSize` values sum to exactly 100%

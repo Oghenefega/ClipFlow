@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-21 — Session 117 CLOSED — **Rename redesign (#172) shipped in 0.3.0-alpha.1; Fega's first pass surfaced the fake-undo bug (#175), fixed + shipped same session in 0.3.0-alpha.2 with the #173 overwrite guard. Awaiting his pass on alpha.2.**_
+_Last updated: 2026-07-21 — Session 117 CLOSED — **Rename redesign (#172) shipped in 0.3.0-alpha.1; the fake-undo bug (#175) was fixed + shipped in 0.3.0-alpha.2 — but Fega reports the undo fix "didn't work" on his machine. NEXT SESSION STARTS WITH THAT DIAGNOSIS.**_
 
 ---
 
@@ -37,9 +37,20 @@ Two installers this session. **alpha.1:** the Rename tab redesign (session ledge
 - **#174 (filed):** after an auto-split, the parent file (kept on disk under its raw name) re-enters Pending via the depth-2 watcher.
 - **Drag-drop import and game-switch-marker renames were NOT live-tested** (unchanged code paths: handleDrop untouched; marker pipeline byte-identical in renameFiles). Scrubber open/close and the split icon were verified.
 
+## ⚠️ OPEN FAILURE — undo fix "didn't work" for Fega (session end, no details yet)
+
+Fega tried the alpha.2 undo fix and reported only "it didn't work" before wrapping. My CDP verification on the dev sandbox passed everything (rename→undo→re-rename identical name, guards loud, cross-restart) — so the gap is environment, install, or a click path I didn't cover. **Diagnosis checklist for next session, in order:**
+
+1. **Confirm what's installed:** Settings → bottom must read v0.3.0-alpha.2. If it still says alpha.1, the update banner may not have been clicked / installer not run — that alone explains everything.
+2. **Get the exact repro from him:** which entry he clicked UNDO on. If it was one of the OLD (pre-alpha.2) History entries — those have no undo record by design and now show NO button; "didn't work" might mean "no button appeared" (fair UX complaint, different fix: hide legacy entries or explain them).
+3. **Was his test rename an auto-split?** Split children carry no historyId (no per-child undo yet) → no UNDO button. His real ~30-min recordings can trigger splits.
+4. **Check his prod DB:** `%APPDATA%\clipflow\data\clipflow.db` → `SELECT * FROM rename_history WHERE action='rename' ORDER BY created_at DESC` — rows exist? undone flags? Then check disk vs `previous_path`/`new_path`.
+5. **Error banner path:** if undo returned an error (e.g. "already exists at the original location"), the banner shows for 8s — he may have missed it. Ask if anything flashed.
+6. Repro scripts for the working flow: scratchpad `undo175-watch` sandbox + `cdp.js` drivers (see Logs section).
+
 ## Next Steps (priority order)
 
-1. **Fega installs 0.3.0-alpha.2 and re-does the pass** — redesign checklist below PLUS: rename something, UNDO it in History, confirm the file is back in Pending with its old name/thumbnail and renames again to the same name.
+1. **Diagnose the undo failure** (checklist above) — #175 stays open with a comment logging his report.
 2. **#173 second half** — split children still hardcode Pt1..N (now a loud failure instead of silent overwrite; proper fix = day-accounted child numbering). **#174** split-parent ghost row, **#176** Day+1 same-day proposals — all small rename-area fixes that could batch into one alpha.
 3. **#169 hands-on pass** — audio calibration wizard on a real multi-track recording (standing since session 112).
 4. **#167/#153 proper fix** (neutral STORE_DEFAULTS + wizard-owned folder setup).
