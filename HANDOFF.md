@@ -13,7 +13,7 @@ Session 117's "undo fix didn't work" report turned out to be a timeline artifact
 - **Daily driver: 0.3.0-alpha.3 installed and visually confirmed** (his screenshots: cleanup correct, new header live, tooltip works). Total count went 145 → 151 = the six un-crossed entries counting as renamed again — expected.
 - **#175 stays OPEN:** the forward path (rename → UNDO button → file reverts + returns to Pending) has still never run in prod. Pending was 0 all session; the test happens naturally at his next OBS session. Everything shipped is logged on the issue.
 - **#177 CLOSED** (header restyle confirmed on daily driver). #173 second half, #174, #176 still open.
-- ⚠️ **Watch folder rollover risk (told Fega, unconfirmed):** prod `watchFolder` = `W:\YouTube Gaming Recordings Onward\Recordings\2026-07` (the month folder). On Aug 1 OBS creates `2026-08` and the app would detect nothing. He was told to re-point Settings → watch folder at `...\Recordings` (root; watcher is depth-2, handles it). **Check this early in any session on/after Aug 1.**
+- ✅ **Watch folder rollover risk RESOLVED at session end:** prod `watchFolder` had been the month folder (`Recordings\2026-07`), which would have gone silent at the Aug 1 rollover. Fega re-pointed it to the `Recordings` root (confirmed in chat, 2026-07-21).
 
 ## What Was Built (commits b49563d, d243278, 3e96f30)
 
@@ -31,10 +31,9 @@ Session 117's "undo fix didn't work" report turned out to be a timeline artifact
 ## Next Steps (priority order)
 
 1. **Fega's forward undo test at next recording session** — rename one file → UNDO appears → click → file reverts + returns to Pending. Then #175 finally closes (remove `status: untested` if applied).
-2. **Confirm he re-pointed the watch folder to `Recordings` root** (see rollover risk above).
-3. **#173 second half** (split-child day-accounted numbering), **#174** (split-parent ghost row), **#176** (Day+1 proposal after undo) — small rename-area batch.
-4. **#169** audio calibration wizard hands-on pass (standing since session 112).
-5. **#167/#153** neutral STORE_DEFAULTS + wizard-owned folder setup.
+2. **#173 second half** (split-child day-accounted numbering), **#174** (split-parent ghost row), **#176** (Day+1 proposal after undo) — small rename-area batch.
+3. **#169** audio calibration wizard hands-on pass (standing since session 112).
+4. **#167/#153** neutral STORE_DEFAULTS + wizard-owned folder setup.
 
 ## Watch Out For
 
