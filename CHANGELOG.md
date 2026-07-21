@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-20 (session 117) — 0.3.0-alpha.1 installer: the Rename tab redesign ships (#172)
+
+### Changed
+- **Version bumped 0.2.2-alpha.2 → 0.3.0-alpha.1 and a fresh installer cut.** Sizing call: the Rename tab's Pending view is a full structural redesign (session ledger + multi-select + new thumbnail system), the biggest UI overhaul since the editor — that's a minor bump with the counter reset, per the version policy.
+- **Pending files now group into one card per recording session (date + game) instead of one bloated card per file.** The session header holds everything the parts share — a checkbox for the whole session, the date, the game picker, the Day stepper, the naming-format chip, part count + total duration, and an open-in-Explorer button. Rows underneath are slim (~70px) and carry only what varies per file: checkbox, thumbnail, original name, TEST chip, the proposed name (still click-to-change per file), the Pt stepper, duration, and hover actions (Explorer / split / hide). Groups are views, not folders — changing a row's game re-groups it automatically. [RenameView.js]
+- **Renaming is no longer all-or-one.** Row and session checkboxes (with shift-click range select and Ctrl+A) drive a floating bottom bar: with nothing selected it's the familiar "Rename All N Files"; with a selection it becomes "N selected · Set Game · Hide Selected · Clear · Rename N Selected". Set Game reassigns the selected rows to another game and recomputes day/part numbering on both sides — a mixed-game day simply becomes two (or three) session groups on the same date. Only successfully renamed files leave the list now; a failed rename stays visible instead of being silently dropped with the batch.
+- **Thumbnails show the whole frame and scrub under the mouse.** The old 160×90 box center-cropped half of every 8:9 frame; thumbs are now native-aspect (width follows each file's real shape), and moving the mouse across one scrubs through the preview frames like a YouTube preview. While hovering, a large pop-out preview (~240px, also native-aspect) floats beside the row with a timestamp badge, flipping sides near the screen edge. Static images only — no video elements.
+- **The four stat cards and the WATCHING banner collapsed into one slim header strip** (title, watch-folder pulse, total/pending/games chips, Refresh, Add Game), so pending files start ~200px higher. History and Manage sub-tabs and all rename machinery (presets, collisions, auto-split, game-switch scrubber, test-mode rules) are unchanged.
+
+### Fixed
+- **Rename All no longer wipes files it failed to rename.** Previously the pending list was cleared wholesale at the end of a batch, so a file whose rename failed (locked file, missing label) vanished from the list without being renamed. The batch now removes exactly the rows that renamed successfully.
+
 ## [Unreleased] — 2026-07-20 (session 116) — Rename tab redesign: direction locked and planned (no app code changed)
 
 ### Added

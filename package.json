@@ -1,6 +1,6 @@
 {
   "name": "clipflow",
-  "version": "0.2.2-alpha.2",
+  "version": "0.3.0-alpha.1",
   "description": "Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.",
   "main": "src/main/main.js",
   "scripts": {
