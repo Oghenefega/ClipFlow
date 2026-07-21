@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-21 (session 117b) — 0.3.0-alpha.2 installer: rename UNDO becomes real (#175) + overwrite guard (#173)
+
+### Changed
+- **Version bumped 0.3.0-alpha.1 → 0.3.0-alpha.2 and a fresh installer cut.** Sizing call: a bug-fix pair on top of the redesign, so an alpha tick. Cut immediately rather than batched because Fega is actively testing the redesign and hit the undo bug within hours of installing.
+
+### Fixed
+- **Undoing a rename now actually undoes it (#175, reported by Fega on alpha.1).** Previously the History UNDO button only struck out the entry cosmetically: the file kept its new name, and a ghost row with no file behind it was placed in Pending — which is also why "undone" files showed blank thumbnails with nothing to hover, and why re-renaming those ghosts produced phantom history entries with inflated part numbers. Every rename is now logged to the database's undo history; clicking UNDO renames the file back to its original OBS name on disk, removes it from the library, and returns it to Pending as a real row — same game, day, and part it had, working thumbnail, ready to rename again to the identical name. Undo is one-way now (the fake REDO toggle is gone) and works across app restarts; entries from before this build have no undo record, so they show no button instead of pretending. [main.js, RenameView.js]
+- **Renames can no longer silently overwrite an existing file (#173, first half).** The file-rename call used to replace an existing target without a word — the mechanism behind the split-collision data loss found in session-117 verification. It now refuses with a visible error ("A file named … already exists"), the failed file stays in the Pending list, and the same guard protects undo (restoring a file will not overwrite something that reappeared at its old location). The second half of #173 (split children taking already-used part numbers) remains open.
+
 ## [Unreleased] — 2026-07-20 (session 117) — 0.3.0-alpha.1 installer: the Rename tab redesign ships (#172)
 
 ### Changed
