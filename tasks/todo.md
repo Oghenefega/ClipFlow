@@ -6,6 +6,102 @@
 
 ---
 
+## ACTIVE PLAN (session 116, awaiting Fega approval) — Rename tab redesign
+
+**Approved direction (mock):** `tasks/mocks/rename-tab-redesign.html` — Variant A
+"session ledger" + Set Game re-grouping + hover-scrub thumbnails with pop-out peek.
+Fega confirmed hover-scrub, the mixed-game-day flow, and the peek preview size fix.
+
+**Scope:** the Pending sub-tab of the Rename tab only. History and Manage sub-tabs,
+and ALL rename machinery (presets, collision handling, auto-split, game-switch
+scrubber, day/part detection, test-mode rules #170) stay exactly as they are.
+Renderer-only change: no main-process edits, no new IPC, no build.files impact.
+
+**File impact:**
+- `src/renderer/views/RenameView.js` — pending-tab render rewritten (session
+  groups + dense rows + batch bar + peek); selection state added; `renameAll`
+  refactored to `renameFiles(list)` so it can run on a subset; header strip
+  replaces stat cards + watching banner. All handlers (renameOne, splitAndRename,
+  gameSwitchSplitAndRename, hideOne, detectForGame, day-counter updates) reused.
+- Possibly one new component file for the ledger pieces if RenameView.js gets
+  unwieldy — decided during the build, nothing else imports it either way.
+
+### Build order (ships as ONE unit — the ledger needs Set Game to change a row's game)
+
+**1. Session ledger layout**
+- Group pending files by (date + game tag), sessions sorted by date, rows by
+  original filename (chronological).
+- Session header: checkbox, "Thu, Jul 17" date, game picker (existing
+  GroupedSelect), Day stepper, naming-preset chip (moves up from per-row; the
+  per-row name stays clickable as today), "N parts · total duration", folder icon.
+- Rows (~70px): checkbox, native-aspect thumb, original name, TEST chip,
+  → proposed name (game color, clickable preset picker), Pt stepper, duration,
+  hover actions: folder / split video / hide. Split badge inline; the
+  game-switch scrubber still expands full-width under its row.
+- Slim header strip replaces the 4 stat cards + WATCHING banner: title, pulse
+  dot + watch path, stat chips (total / pending / games), Refresh + Add Game.
+- Explorer access: `window.clipflow.revealInFolder(filePath)` (preload.js:39,
+  already used by Recordings) on every row; session-header icon reveals the
+  first file of the group.
+- Drag-drop import, import progress banner, retro notifications: untouched.
+
+**2. Selection + floating batch bar**
+- Row checkboxes; session checkbox with full/partial states; shift-click range.
+- Floating bottom-center glass bar (same shell style as the Recordings batch
+  cluster, #123): no selection → "Rename All N Files"; with selection →
+  "N selected · Set Game ▾ · Hide Selected · Clear · Rename N Selected".
+- Set Game: reassigns game on the selected rows and recomputes day/part via the
+  existing detectForGame; groups and proposed names re-derive automatically
+  (three games in one day = three headers). Per-game Day counters unchanged.
+- Rename Selected / Rename All: same per-file pipeline as today via
+  renameFiles(list) — splits, collisions, labels, history entries, and the
+  #170 test-mode day-counter exclusion all behave identically.
+- Hide Selected: existing hideOne per row.
+
+**3. Thumbnails**
+- Native aspect: read the preview frame's own naturalWidth/naturalHeight
+  (frames already extracted per file) — container height 56px, width follows
+  the real aspect, capped for ultrawide. Zero FFmpeg changes.
+- Hover-scrub replaces the timed crossfade in PreviewThumbnail: mouse X picks
+  the frame; thin position tick at the bottom.
+- Peek pop-out: while hovering, a fixed-position ~240px-wide preview appears
+  beside the row showing the current frame full-size with a timestamp badge
+  (frames already carry timestampSeconds). Flips to the left near the screen
+  edge, disappears on mouse-leave. Every <video>/img cleanup rule respected
+  (no <video> used — static frames only).
+
+### Verification
+
+**What I do before handing over:**
+1. `npm run build:renderer` clean, `npm run dev` (dev profile) launches.
+2. CDP-verify in the dev app with seeded pending files: sessions group
+   correctly; select 2 of 8 → "Rename 2 Selected" renames only those and
+   History records them; Set Game on a subset re-groups + renumbers both
+   sides; Rename All still handles auto-split and game-switch markers;
+   folder icon opens Explorer with the file selected; hover shows peek with
+   correct timestamp; TEST rows still don't advance day counters (#170).
+3. Regression pass: drag-drop import, undo from History re-enters pending,
+   preset switching per row, label presets validate.
+4. `npm run build` for the installer when Fega wants it on the daily driver
+   (feature → minor version bump per version policy).
+
+**What Fega checks on the daily driver:**
+- His real 8-part RL day shows as one clean session group.
+- Pick a few files → Rename Selected; a mixed day → Set Game flow.
+- Hover a thumb: peek is big enough to actually see the gameplay.
+- Folder icons land in the right Explorer location.
+
+**Risks / watch out for:**
+- renameAll today wipes ALL pending state at the end (setPendingRenames([]));
+  the subset version must remove only the renamed rows and their splitInfo /
+  scrubber state.
+- Undo-created pending rows have no filePath — placeholder thumb, no probe,
+  no explorer icon (existing behavior, keep it).
+- Selection must exclude rows mid-rename (renaming flag) so double-fires
+  can't happen.
+
+---
+
 ## ✅ BUILT (session 112, awaiting Fega verification) — Audio track calibration wizard (#169)
 
 Shipped per the plan below. CDP-verified in the dev app (sealed sandbox watch
