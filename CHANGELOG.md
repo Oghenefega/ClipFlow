@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-20 (session 116) — Rename tab redesign: direction locked and planned (no app code changed)
+
+### Added
+- **Rename tab redesign direction, approved via interactive mockup** (`tasks/mocks/rename-tab-redesign.html`). Pending files will group into one header per recording session (date + game) holding the shared controls, with slim ~70px rows per file; checkboxes plus a floating bar allow renaming any subset ("Rename 3 Selected") instead of today's all-or-one; a Set Game action re-groups selected rows for days where multiple games were recorded; thumbnails become native-aspect (no more 16:9 crop that cuts half of Fega's 8:9 frames) with mouse-position scrubbing and a large hover pop-out preview; and every row gets an open-in-Explorer button. The mock is interactive — selection, re-grouping, and the hover peek all work in-browser.
+- **Implementation plan written and tracked.** Full build order, file impact (renderer-only, `RenameView.js`), and verification steps in `tasks/todo.md`; epic filed as #172. Implementation starts next session on Fega's go.
+
 ## [Unreleased] — 2026-07-20 (session 115) — 0.2.2-alpha.2 installer: renamed files put the date first again
 
 ### Changed
