@@ -1,51 +1,48 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-21 — Session 119 — **Silent-editor mystery solved: OBS was recording ALAC audio, which Chromium can't decode. OBS flipped to FLAC, all 14 recordings converted in place, sound confirmed back. Zero app code changed.**_
+_Last updated: 2026-07-21 — Session 120 — **Projects tab rebuilt as a launch-pad list (folders retired) + three Rename-tab fixes. Cut 0.3.0-alpha.4; Fega installed it.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega reported the editor lost ALL sound (mic + game) on new recordings while subtitles stayed perfect. Root cause: his new OBS profile (Hybrid MP4 / NVENC HEVC / 6 audio tracks) had **Audio Encoder = FFmpeg ALAC (24-bit)** — the editor plays the raw source file in Chromium ([PreviewPanelNew.js:922](src/renderer/editor/components/PreviewPanelNew.js) `videoSrc = file://project.sourceFile`), and Chromium has no ALAC decoder (video plays, audio silently absent), while every FFmpeg path (whisper extract on the calibrated track, waveforms, renders) decodes ALAC fine — hence the exact symptom split. Fix: OBS audio encoder → **FLAC (16-bit)** (Chromium decodes FLAC-in-MP4; verified by ear in the editor), and all 14 ALAC recordings (Day8 ×8, Day9 ×6, ~17-20 GB each) converted in place — video stream copied untouched, audio ALAC→FLAC — each passing duration + stream-layout + loudness-fingerprint verification before replacement. 13/13 batch conversions passed; originals deleted at Fega's explicit choice (W: too full for 220 GB of backups).
+Fega asked for four things and approved an HTML mockup for the big one: the Rename game-dropdown was clipped by its card (fixed with a React portal), always-visible selection checkboxes on Rename + Projects (now hover-reveal), the per-row TEST toggle removed from Rename, and a full redesign of the **outer** Projects list — now a "launch pad" with game-hue poster rows, a per-clip pip progress strip, status + game filter chips and a sort dropdown, with the folder sidebar retired. Built, renderer compiles clean, installer 0.3.0-alpha.4 cut + pushed (commit `0159181`) + installed.
 
 ## Current State
 
-- **App unchanged:** still 0.3.0-alpha.3 installed; no code, no build, no installer this session.
-- **Recordings library healthy:** all 14 files in `Recordings\2026-07` are HEVC + FLAC; editor sound confirmed by Fega on Day9 Pt3 ("I can hear both mic and game sound"). W: has 232 GB free.
-- **OBS going forward:** Hybrid MP4, NVENC HEVC, **FLAC (16-bit)**, 6 tracks, 30-min auto-split — Fega confirmed the setting is updated. Tonight's recordings need no conversion.
-- **[#178](https://github.com/Oghenefega/ClipFlow/issues/178) filed (open):** product-level guard — ClipFlow should detect Chromium-unplayable codecs at ingest/project-open and warn (or offer auto-remux) instead of a silently mute preview. Same class: HEVC video on machines without hardware HEVC decode.
+- **0.3.0-alpha.4 installed** (Fega confirmed "installed it"). Renderer build clean (2748 modules). **Not yet visually verified by Fega in real use** — awaiting his read on the live Projects/Rename look.
+- Four changes shipped (below). Dead folder code left inert in ProjectsView.js — cleanup ticket **#179** open.
 
-## What Was Done (no commits — file surgery + issue only)
+## What Was Just Built
 
-1. **Diagnosis** (trace-verify style): editor plays raw source → probed real files with ffprobe → all-ALAC audio; extraction/waveform/render paths all map tracks through FFmpeg → unaffected. Track layout verified live: T1=mix, T2=voice (matches `transcriptionAudioTrack=1`), T3=game, T4-6 silent. July 20+ recordings carry **6** tracks vs the 4-track layout the #169 wizard calibrated.
-2. **Proof conversion:** Day9 Pt3 ALAC→FLAC (video copied, `-c:a flac -strict -2` for FLAC-in-MP4), swapped in under same filename; Fega listened — both mic and game audio present.
-3. **Batch:** remaining 13 files via scripted loop — per-file gates (ffmpeg exit 0, duration Δ<0.1s, hevc+N×flac stream check, a:0 mean-volume Δ<0.3 dB) before `mv -f` replacement; any failure keeps the original. Result: 13 converted, 0 failed; every loudness fingerprint matched exactly.
-4. **Routed the lesson:** clipflow-ffmpeg-media skill (Distilled Lessons) + memory `project_obs_recording_layout` (recording-format note) + lessons.md marker advanced.
+- **Rename — game dropdown portal fix.** `GroupedSelect` (RenameView.js) renders its menu via `createPortal` to `document.body` (position:fixed from getBoundingClientRect), escaping the session card's `overflow:hidden` clip + the z-index race with the naming pill. Closes on outside-click / scroll. Removed the old wrapper-only outside-click effect (would've closed the portaled menu before a selection registered).
+- **Hover-reveal checkboxes — Rename + Projects.** Hidden (width/opacity 0) until row hover, or shown for all rows when a selection is active ("select mode"). Rename: `.cfr-check` wrappers + `.cfr-selecting`/`.cfr-shead` rules in the injected `<style>`. Projects: `.pl-chk` + `.pl-list.selecting` in a new injected `<style>`.
+- **Rename — TEST toggle removed.** Deleted the `<TestChip>` render (~RenameView.js:1709) + its import. TestChip.js untouched (still used by Projects/Queue/Upload). `isTest` still auto-set by the test watcher.
+- **Projects OUTER list — launch-pad redesign.** Rebuilt ProjectsListView header/list: game-hue poster + per-clip pip strip (green approved / red rejected / dim to-review) + "N of M left · X rendered" + Review/Open + hover trash. Folder sidebar + Status/Date/Game sort bar removed; replaced by status chips + game filter chips + a Sort dropdown (recent/oldest/most-to-review/name). Move-to-Folder bulk action removed. Pips come from real `p.clips[].status`/`renderStatus` (already in the listProjects summary). Folder store data left untouched.
 
-## Key Decisions / Findings
+## Key Decisions
 
-- **FLAC over AAC (Fega's pick):** lossless master + Chromium-decodable. The "FLAC doesn't work in MP4" advice he'd read elsewhere doesn't apply to OBS **Hybrid MP4**, which exists to hold lossless audio (OBS only lists encoders valid for the selected container).
-- **No backups (Fega's explicit pick from a 4-option ask):** W: had 213 GB free vs ~220 GB of originals; he chose verify-then-delete over parking backups on S:/F:/V:.
-- **Renders were never at risk:** render.js maps `[0:a]` (first stream = mix) → AAC; FFmpeg reads ALAC/FLAC equally.
-- Filenames/paths unchanged throughout → projects, waveform cache, subtitles, DB rows all untouched.
+- **Rich rows over Tight** (Fega's pick from the mockup). Kept the game-hue wash (corner glow, not a left-edge bar — his rule) + hover-lift.
+- **Portal over dropping overflow:hidden** for the dropdown fix (robust, industry-standard).
+- **Folders retired, data left in storage** (Fega: "leave the folder data"). Dead folder UI/handlers left inert to keep the build green; excision → #179 rather than risk a ~400-line delete in the same pass.
+- **Version = 0.3.0-alpha.4** (alpha tick, not a minor): the whole 0.3.0-alpha line is the pre-beta iteration track (the Rename redesign itself was alpha.1), so consistency beat a 0.4.0 jump.
+- **No projects.js change** — pips derive from clips already in the summary.
 
-## Next Steps (priority order)
+## Next Steps
 
-1. **Fega's forward undo test at next recording session** (#175 — carried from session 118): rename → UNDO → file reverts + returns to Pending. Tonight's session is the natural moment.
-2. **Re-run the #169 calibration wizard** — OBS now emits 6 tracks, `audioSetup` was calibrated on 4. Transcription track still correct (voice=index 1), but labels/count are stale.
-3. **#173 second half, #174, #176** — small rename-area batch.
-4. **#178** — unplayable-codec ingest guard (new this session; cheap warning version first).
-5. **#167/#153** neutral STORE_DEFAULTS + wizard-owned folder setup.
+1. **Fega verifies the live look** on the daily driver with real projects. Watch: pip colors correct, game-filter narrows to one game, sort order, hover-reveal feel, nothing misaligned. Fix on report.
+2. **#179 — excise the dead folder code** (sidebar handlers, folder + project context menus, delete-folder dialog, undo toast, orphaned state) and drop the now-unused props from the App.js call site. Own focused pass + rebuild.
+3. Optional: decide whether to purge the folder store data (left for now).
 
 ## Watch Out For
 
-- **Do NOT re-convert or re-download anything into `Recordings\2026-07` from old copies** — the 14 files there are the canonical (FLAC) versions now; ALAC originals no longer exist.
-- If Recordings/waveforms ever look odd for the July files (the app was open during in-place swaps), a ClipFlow restart + lazy waveform regen resolves it — audio content is bit-identical, so no visible change is expected.
-- The session-117 blank-page event remains unreproduced (repro scripts in session-117 scratchpad).
-- `tasks/mocks/*` + `.agents/` `.codex/` `AGENTS.md` untracked strays stay untracked; never `git add -A`.
+- **ProjectsView.js is CRLF + has emoji escapes.** Large edits fail exact Edit-match — use a Node patch script with ASCII-only `indexOf` anchors + slice (this session: `scratchpad/pv-splice.js`). Single-line ASCII edits via Edit are fine.
+- **Inert folder machinery still in ProjectsView.js.** Rows no longer wire `onContextMenu` and the sidebar is gone, so `contextMenu`/`projectContextMenu`/`deletingFolder`/`moveFolderDropdown` never set → those menus/dialogs/toast render nothing; handlers (`handleMoveProjects` etc.) are dead but still defined. #179 removes them.
+- **Not driven live this session.** Verified compile + structure only (Fega's app was running; no CDP client installed — no `ws`/`chrome-remote-interface`). Any rendering glitch surfaces on his real-data pass.
+- **Sort default changed to "recent";** old stored `status`/`date`/`game` values are ignored on load (guarded), falling back to recent.
 
 ## Logs / Debugging
 
-- **Key diagnostic commands** (reusable for any future "no sound/video in editor"): `ffprobe -show_entries stream=codec_type,codec_name <source.mp4>` (codec check — Chromium plays AAC/MP3/Opus/Vorbis/FLAC/PCM only); `ffmpeg -ss N -t 30 -i <src> -map 0:a:i -af volumedetect -f null -` (per-track loudness; −91 dB = digital silence). Fega's tracks: a:0 mix, a:1 voice, a:2 game.
-- **Batch script** preserved at session-119 scratchpad `convert-flac.sh` (`C:\Users\IAMABS~1\AppData\Local\Temp\claude\C--Users-IAmAbsolute-Desktop-ClipFlow\a5853890-7380-4485-b740-741746b42121\scratchpad\`) with full per-file log in `tasks\b5vjxob22.output` (same temp root) — pattern is reusable for any future in-place media migration (convert→verify→atomic replace).
-- Conversion throughput on W: ≈ 17 GB / 18 min (disk-bound, video stream copy dominates).
+- `npm run build:renderer` → clean (2748 modules, ~17.6s). `npm run build` → `dist/ClipFlow Setup 0.3.0-alpha.4.exe` (124 MB, exit 0). Benign warnings only (chunk >500 kB; "author is missed"; @electron/rebuild).
+- No console/runtime driving performed. If a runtime error appears, likely spots: the new injected `<style>` blocks, the sort dropdown's outside-click (shares the existing `[data-menu]` mousedown handler + `setSortOpen`), or a project with no `clips` array (guarded via `p.clips || []` + `clipCount` fallback).
+- No CDP tooling present. To drive next time: launch a dev-profile instance from `build/` with `--remote-debugging-port=9222` + install a CDP client, OR use computer-use on "electron.exe" (per memory `project_computer_use_app_names`).

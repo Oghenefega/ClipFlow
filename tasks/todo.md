@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 PLAN (session 120, awaiting Fega approval) — Rename fixes + Projects list redesign
+## ✅ SHIPPED (session 120, 0.3.0-alpha.4 — Fega installed; awaiting his live-look confirmation) — Rename fixes + Projects list redesign
 
 Design approved via mockup `tasks/mocks/projects-list-redesign.html`:
 **Rich rows · portal dropdown · folders removed · game + date filtering.**
