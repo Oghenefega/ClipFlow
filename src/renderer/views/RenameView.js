@@ -160,15 +160,65 @@ function HoverScrubThumb({ frames, loading, durationSeconds }) {
 function SessionPresetPicker({ presetId, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const [rect, setRect] = useState(null);
 
+  // Portal the menu to <body> so it escapes the session card's overflow:hidden
+  // clip. Same pattern as GroupedSelect: rect positions it (right-aligned to the
+  // chip), outside-click checks both trigger and menu, page scroll closes it but
+  // scrolling inside the menu does not.
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    if (ref.current) setRect(ref.current.getBoundingClientRect());
+    const onDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onScroll = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [open]);
 
   const current = PRESET_LIST.find((p) => p.id === presetId);
+
+  const menu = open && rect ? createPortal(
+    <div ref={menuRef} style={{
+      position: "fixed", top: rect.bottom + 6, right: window.innerWidth - rect.right, zIndex: 1000, width: "max-content",
+      background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 300, overflowY: "auto",
+    }}>
+      {PRESET_LIST.map((p) => {
+        const isActive = presetId === p.id;
+        return (
+          <div
+            key={p.id}
+            onClick={() => { onChange(p.id); setOpen(false); }}
+            style={{
+              padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+              background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+              marginBottom: 2,
+            }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+          >
+            <div style={{ color: isActive ? T.accentLight : T.text, fontSize: 13, fontWeight: 600 }}>{p.label}</div>
+            <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2, fontFamily: T.mono }}>{p.example}</div>
+          </div>
+        );
+      })}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
@@ -177,34 +227,7 @@ function SessionPresetPicker({ presetId, onChange }) {
         title="Naming format for every file in this session"
         style={{ fontSize: 11, color: T.textSecondary, border: `1px dashed ${T.borderHover}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
       >{current ? current.label : "Mixed formats"} ▾</span>
-      {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 999, width: "max-content",
-          background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 280, overflowY: "auto",
-        }}>
-          {PRESET_LIST.map((p) => {
-            const isActive = presetId === p.id;
-            return (
-              <div
-                key={p.id}
-                onClick={() => { onChange(p.id); setOpen(false); }}
-                style={{
-                  padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-                  borderLeft: isActive ? `3px solid ${T.accent}` : "3px solid transparent",
-                  marginBottom: 2,
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-              >
-                <div style={{ color: isActive ? T.accentLight : T.text, fontSize: 13, fontWeight: 600 }}>{p.label}</div>
-                <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2, fontFamily: T.mono }}>{p.example}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }
@@ -212,16 +235,66 @@ function SessionPresetPicker({ presetId, onChange }) {
 function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPresetChange, color }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const [rect, setRect] = useState(null);
   const c = color || T.yellow;
 
+  // Portal to <body> so the menu escapes the session card's overflow:hidden clip
+  // (left-aligned to the name). Page scroll closes it; scrolling inside does not.
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    if (ref.current) setRect(ref.current.getBoundingClientRect());
+    const onDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onScroll = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [open]);
 
   const currentName = getProposed(rename);
+
+  const menu = open && rect ? createPortal(
+    <div ref={menuRef} style={{
+      position: "fixed", top: rect.bottom + 6, left: rect.left, zIndex: 1000, width: "max-content",
+      background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 300, overflowY: "auto",
+    }}>
+      {presets.map((p) => {
+        const previewR = { ...rename, preset: p.id };
+        const previewName = getProposed(previewR);
+        const isActive = currentPreset === p.id;
+        return (
+          <div
+            key={p.id}
+            onClick={() => { onPresetChange(p.id); setOpen(false); }}
+            style={{
+              padding: "8px 12px", borderRadius: 6, cursor: "pointer",
+              background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+              marginBottom: 2,
+            }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+          >
+            <div style={{ color: isActive ? c : T.text, fontSize: 13, fontWeight: 600, fontFamily: T.mono }}>{previewName}</div>
+            <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2 }}>{p.label}</div>
+          </div>
+        );
+      })}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
@@ -230,36 +303,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
         style={{ color: c, fontSize: 14, fontWeight: 700, fontFamily: T.mono, whiteSpace: "nowrap", cursor: "pointer", borderBottom: `1px dashed ${c}55`, paddingBottom: 1 }}
         title="Click to change naming format"
       >{currentName}</span>
-      {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 999, width: "max-content",
-          background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 4, maxHeight: 280, overflowY: "auto",
-        }}>
-          {presets.map((p) => {
-            const previewR = { ...rename, preset: p.id };
-            const previewName = getProposed(previewR);
-            const isActive = currentPreset === p.id;
-            return (
-              <div
-                key={p.id}
-                onClick={() => { onPresetChange(p.id); setOpen(false); }}
-                style={{
-                  padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-                  borderLeft: isActive ? `3px solid ${c}` : "3px solid transparent",
-                  marginBottom: 2,
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-              >
-                <div style={{ color: isActive ? c : T.text, fontSize: 13, fontWeight: 600, fontFamily: T.mono }}>{previewName}</div>
-                <div style={{ color: T.textMuted, fontSize: 11, marginTop: 2 }}>{p.label}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }
@@ -2004,7 +2048,12 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
       if (menuRef.current && menuRef.current.contains(e.target)) return;
       setOpen(false);
     };
-    const onScroll = () => setOpen(false);
+    // Close on page scroll (fixed menu detaches from trigger), but NOT when
+    // scrolling inside the menu itself — else middle-mouse/wheel scroll closes it.
+    const onScroll = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener("mousedown", onDown);
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onScroll);

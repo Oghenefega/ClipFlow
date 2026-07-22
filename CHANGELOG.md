@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-21 (session 121) — 0.3.0-alpha.5 installer: three more Rename-tab dropdown fixes
+
+### Changed
+- **Version bumped 0.3.0-alpha.4 → 0.3.0-alpha.5 and a fresh installer cut.** Sizing call: three small Rename-tab dropdown fixes — an alpha tick, staying on the 0.3.0 pre-beta line.
+- **The highlighted row in the naming-format menus no longer has a coloured left-edge bar.** Both format pickers — the session-header "Date + Tag + Day + Part" chip and the per-file proposed-name — used to draw a purple/game-hue vertical accent down the left of the selected item. That bar is gone (per the no-left-edge-colour-bars rule); the selected row still reads clearly via its background tint and coloured text. [RenameView.js]
+
+### Fixed
+- **The naming-format pickers on the Rename tab are no longer clipped or hidden.** Clicking the session-header "Date + Tag + Day + Part" chip (or the clickable proposed-name on any file row) opened a menu that got cut off by the session-card edge — the same problem the game picker had. Both now render in a portal above everything, so the full list is always visible. [RenameView.js]
+- **Middle-mouse (and wheel) scrolling inside the game picker no longer closes it.** The alpha.4 portal fix set the menu to close whenever anything scrolled, but that fired when scrolling inside the menu itself — so middle-click auto-scroll snapped it shut. The menu now closes only when the page behind it scrolls; scrolling the menu's own list keeps it open. The same correct behaviour applies to the two newly-portaled format pickers. [RenameView.js]
+
 ## [Unreleased] — 2026-07-21 (session 120) — 0.3.0-alpha.4 installer: Projects tab launch-pad redesign + three Rename-tab fixes
 
 ### Changed
