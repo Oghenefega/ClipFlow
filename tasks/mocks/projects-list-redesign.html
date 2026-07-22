@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClipFlow · Projects list redesign v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surface2:#16171f; --surface3:#1b1d27;
+    --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.58); --text3:rgba(255,255,255,0.34); --muted:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accentL:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBr:rgba(139,92,246,0.28);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.12); --greenBr:rgba(52,211,153,0.24);
+    --yellow:#fbbf24; --cyan:#22d3ee; --red:#f87171; --redDim:rgba(248,113,113,0.12);
+    --r-sm:8px; --r-md:11px; --r-lg:15px; --r-xl:20px;
+    --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 24px 56px -22px rgba(0,0,0,.85);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(120% 90% at 88% -10%, rgba(139,92,246,.10), transparent 55%),
+      radial-gradient(90% 70% at 0% 0%, rgba(34,211,238,.04), transparent 50%),
+      var(--bg);
+    color:var(--text); font-family:'DM Sans',-apple-system,sans-serif; -webkit-font-smoothing:antialiased;
+    min-height:100vh; font-variant-numeric:tabular-nums; padding:26px 22px 90px;
+  }
+  .wrap{max-width:900px;margin:0 auto}
+
+  /* prototype meta bar (not part of the app) */
+  .meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 15px;margin-bottom:24px;
+    border:1px dashed var(--border2);border-radius:var(--r-md);background:rgba(255,255,255,.015)}
+  .meta .tag{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accentL);
+    background:var(--accentDim);border:1px solid var(--accentBr);padding:3px 8px;border-radius:6px}
+  .meta p{font-size:12.5px;color:var(--text2);line-height:1.5}
+  .meta p b{color:var(--text)}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;margin-left:auto}
+  .seg button{font:inherit;font-size:12px;font-weight:700;color:var(--text2);background:transparent;border:0;padding:6px 13px;border-radius:7px;cursor:pointer;transition:all .16s var(--ease)}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{color:#fff;background:var(--accent);box-shadow:0 4px 14px -4px rgba(139,92,246,.7)}
+
+  /* ---------- redesigned header ---------- */
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:16px;flex-wrap:wrap}
+  .head h1{font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+  .head .subline{margin-top:6px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:8px}
+  .head .subline b{color:var(--text);font-weight:600}
+  .dotsep{width:3px;height:3px;border-radius:50%;background:var(--text3);display:inline-block}
+
+  /* sort dropdown */
+  .sortwrap{position:relative}
+  .sortbtn{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text2);
+    background:var(--surface);border:1px solid var(--border);padding:8px 12px;border-radius:9px;cursor:pointer;transition:all .16s var(--ease)}
+  .sortbtn:hover{color:var(--text);border-color:var(--border2)}
+  .sortbtn .lbl{color:var(--text)}
+  .sortbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+  .sortmenu{position:absolute;top:calc(100% + 6px);right:0;min-width:190px;background:var(--surface);
+    border:1px solid var(--border2);border-radius:var(--r-md);box-shadow:0 8px 32px rgba(0,0,0,.5);padding:5px;z-index:20;display:none}
+  .sortmenu.open{display:block}
+  .sortmenu .opt{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);font-size:12.5px;color:var(--text2);cursor:pointer}
+  .sortmenu .opt:hover{background:var(--surface2);color:var(--text)}
+  .sortmenu .opt.on{color:var(--text);font-weight:600}
+  .sortmenu .opt .tick{margin-left:auto;width:13px;height:13px;stroke:var(--accentL);fill:none;stroke-width:2.6;opacity:0}
+  .sortmenu .opt.on .tick{opacity:1}
+
+  /* filter chip row */
+  .chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{font-size:12.5px;font-weight:600;color:var(--text2);background:var(--surface);border:1px solid var(--border);
+    padding:7px 13px;border-radius:999px;cursor:pointer;transition:all .16s var(--ease);display:inline-flex;align-items:center;gap:7px}
+  .chip:hover{color:var(--text);border-color:var(--border2);background:var(--surface2)}
+  .chip.active{color:var(--text);background:var(--accentDim);border-color:var(--accentBr)}
+  .chip .c{color:var(--text3);font-weight:700;font-size:11px}
+  .chip.active .c{color:var(--accentL)}
+  .chip .gdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .vrule{width:1px;height:20px;background:var(--border);margin:0 3px}
+
+  .list{display:flex;flex-direction:column;gap:10px}
+  .empty{padding:60px 20px;text-align:center;color:var(--text3);font-size:13px}
+
+  /* game-hue helpers */
+  .tile{flex-shrink:0;display:grid;place-items:center;font-weight:800;letter-spacing:.02em;color:#fff;position:relative;overflow:hidden}
+  .tile .g{position:absolute;inset:0;opacity:.9}
+  .tile span{position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+  /* ROW shell */
+  .row{position:relative;display:flex;align-items:center;gap:14px;border-radius:var(--r-lg);
+    border:1px solid var(--border);cursor:pointer;overflow:hidden;padding:13px;
+    transition:border-color .18s var(--ease),box-shadow .18s var(--ease),transform .18s var(--ease)}
+  .row .wash{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5}
+  .row>*{position:relative;z-index:1}
+  .row:hover{border-color:var(--border2);box-shadow:var(--shadow-lift);transform:translateY(-1px)}
+  .row.sel{border-color:var(--accentBr);box-shadow:0 0 0 1px var(--accentBr)}
+  .row.done{opacity:.86}
+
+  /* hover-reveal checkbox */
+  .chk{flex-shrink:0;height:18px;border-radius:5px;border:2px solid var(--muted);background:transparent;
+    display:grid;place-items:center;cursor:pointer;opacity:0;width:0;margin-left:-6px;
+    transition:opacity .14s var(--ease),width .14s var(--ease),margin .14s var(--ease)}
+  .row:hover .chk,.list.selecting .chk,.row.sel .chk{opacity:1;width:18px;margin-left:0}
+  .chk.on{background:var(--accent);border-color:var(--accent);opacity:1;width:18px;margin-left:0}
+  .chk svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:3;opacity:0}
+  .chk.on svg{opacity:1}
+
+  .poster{flex-shrink:0;width:46px;height:62px;border-radius:9px;position:relative;overflow:hidden;display:grid;place-items:center}
+  .poster .g{position:absolute;inset:0}
+  .poster .vig{position:absolute;inset:0;z-index:1;background:radial-gradient(120% 90% at 50% 20%,transparent 40%,rgba(0,0,0,.5))}
+  .poster .tagbadge{position:relative;z-index:2;font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .poster .play{position:absolute;inset:0;display:grid;place-items:center;z-index:3;opacity:0;transition:opacity .18s;background:rgba(8,9,13,.35)}
+  .row:hover .poster .play{opacity:1}
+  .poster .play svg{width:16px;height:16px;fill:#fff}
+
+  .main{flex:1;min-width:0}
+  .title{font-weight:600;letter-spacing:-.01em;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .metaline{margin-top:4px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .metaline .test{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--yellow);
+    background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.28);padding:1px 6px;border-radius:5px}
+  .pips{margin-top:9px;display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+  .pip{width:14px;height:6px;border-radius:2px;background:rgba(255,255,255,.09)}
+  .pip.ap{background:var(--green)}
+  .pip.rj{background:rgba(248,113,113,.5)}
+  .pipnote{margin-left:8px;font-size:11px;color:var(--text2);font-weight:600}
+  .pipnote b{color:var(--text)}
+
+  .rrail{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  .statuspill{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    padding:5px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
+  .statuspill.review{color:var(--accentL);background:var(--accentDim);border:1px solid var(--accentBr)}
+  .statuspill.done{color:var(--green);background:var(--greenDim);border:1px solid var(--greenBr)}
+  .statuspill svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.4}
+  .openbtn{font:inherit;font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);border:0;border-radius:9px;
+    padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:0 6px 16px -8px rgba(139,92,246,.8);
+    transition:all .15s var(--ease);opacity:0;transform:translateX(4px)}
+  .row:hover .openbtn{opacity:1;transform:translateX(0)}
+  .openbtn:hover{background:var(--accentL)}
+  .openbtn svg{width:13px;height:13px;fill:currentColor}
+  .openbtn.ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border);box-shadow:none}
+  .openbtn.ghost:hover{color:var(--text);border-color:var(--border2);background:var(--surface3)}
+  .trash{position:absolute;top:11px;right:11px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+    cursor:pointer;color:var(--text3);opacity:0;transition:all .15s var(--ease);z-index:2}
+  .row:hover .trash{opacity:1}
+  .trash:hover{color:var(--red);background:var(--redDim)}
+  .trash svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+
+  /* TIGHT overrides */
+  .list.tight .row{padding:11px 13px}
+  .list.tight .poster{width:34px;height:34px;border-radius:9px}
+  .list.tight .poster .play,.list.tight .poster .vig{display:none}
+  .list.tight .title{font-size:14px}
+  .list.tight .pips{display:none}
+  .list.tight .tightprog{margin-top:5px;display:flex;align-items:center;gap:9px}
+  .list.tight .bar{width:130px;height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
+  .list.tight .bar i{height:100%}
+  .list.tight .bar .ap{background:var(--green)}
+  .list.tight .bar .rj{background:rgba(248,113,113,.55)}
+  .list:not(.tight) .tightprog{display:none}
+
+  .foot{font-size:12px;color:var(--text3);margin-top:26px;padding-top:16px;border-top:1px solid var(--border);line-height:1.7}
+  .foot b{color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta">
+    <span class="tag">Prototype v2</span>
+    <p id="explain"></p>
+    <div class="seg">
+      <button id="t-rich" class="on" onclick="setView('rich')">Rich</button>
+      <button id="t-tight" onclick="setView('tight')">Tight</button>
+    </div>
+  </div>
+
+  <!-- header -->
+  <div class="head">
+    <div>
+      <h1>Projects</h1>
+      <div class="subline" id="subline"></div>
+    </div>
+    <div class="sortwrap">
+      <button class="sortbtn" onclick="toggleSort(event)">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        Sort: <span class="lbl" id="sortlbl">Most recent</span>
+        <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sortmenu" id="sortmenu"></div>
+    </div>
+  </div>
+
+  <!-- filters: status (left) + game (right of rule) -->
+  <div class="chips" id="chips"></div>
+
+  <div class="list" id="list"></div>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const ICONS={
+  check:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+};
+
+const projects=[
+  {name:"2026-01-23 AR Day16 Pt4", tag:"AR", color:"#fb8a3c", iso:"2026-01-23", date:"Jan 23", clips:10, ap:3, rj:1, rendered:2, status:"review"},
+  {name:"2026-01-23 AR Day16 Pt3", tag:"AR", color:"#fb8a3c", iso:"2026-01-23", date:"Jan 23", clips:15, ap:6, rj:3, rendered:4, status:"review"},
+  {name:"2026-02-12 EO Day2 Pt1",  tag:"EO", color:"#f5c542", iso:"2026-02-12", date:"Feb 12", clips:12, ap:0, rj:0, rendered:0, status:"review"},
+  {name:"2026-07-17 RL Day8 Pt1",  tag:"RL", color:"#4aa8ff", iso:"2026-07-17", date:"Jul 17", clips:18, ap:8, rj:3, rendered:5, status:"review"},
+  {name:"2026-02-06 RL Day1 Pt2",  tag:"RL", color:"#4aa8ff", iso:"2026-02-06", date:"Feb 6",  clips:10, ap:7, rj:3, rendered:7, status:"done"},
+  {name:"2026-02-06 RL Day1 Pt1",  tag:"RL", color:"#4aa8ff", iso:"2026-02-06", date:"Feb 6",  clips:18, ap:12,rj:6, rendered:12,status:"done"},
+  {name:"RL 2026-10-15 Day9 Pt1",  tag:"RL", color:"#4aa8ff", iso:"2026-10-15", date:"Oct 15", clips:18, ap:2, rj:0, rendered:0, status:"review", test:true},
+];
+
+const SORTS=[
+  {id:"recent", label:"Most recent",   fn:(a,b)=>b.iso.localeCompare(a.iso)},
+  {id:"oldest", label:"Oldest first",  fn:(a,b)=>a.iso.localeCompare(b.iso)},
+  {id:"todo",   label:"Most to review",fn:(a,b)=>left(b)-left(a)},
+  {id:"name",   label:"Name (A–Z)",    fn:(a,b)=>a.name.localeCompare(b.name)},
+];
+
+const left=p=>p.clips-(p.ap+p.rj);
+const hue=c=>`linear-gradient(150deg, ${c}, ${c}55 65%, ${c}22)`;
+const wash=c=>`radial-gradient(120% 130% at 100% 0%, ${c}22, transparent 42%), linear-gradient(100deg, ${c}0f, transparent 30%)`;
+
+const state={view:"rich", status:"all", game:"all", sort:"recent"};
+
+function games(){
+  const m={};
+  projects.forEach(p=>{m[p.tag]=(m[p.tag]||0)+ (0); }); // ensure key order
+  projects.forEach(p=>{m[p.tag]=(m[p.tag]||0)+1;});
+  // undo double count
+  Object.keys(m).forEach(k=>m[k]=projects.filter(p=>p.tag===k).length);
+  return m;
+}
+function filtered(){
+  let r=projects.filter(p=>{
+    if(state.status==="review" && p.status!=="review") return false;
+    if(state.status==="done" && p.status!=="done") return false;
+    if(state.game!=="all" && p.tag!==state.game) return false;
+    return true;
+  });
+  r.sort(SORTS.find(s=>s.id===state.sort).fn);
+  return r;
+}
+
+function statusPill(s){
+  return s==="done"
+    ? `<span class="statuspill done">${ICONS.check} Done</span>`
+    : `<span class="statuspill review">Review</span>`;
+}
+
+function rowHTML(p){
+  const l=left(p);
+  let pips="";
+  for(let i=0;i<p.clips;i++){ pips+=`<span class="pip ${i<p.ap?'ap':i<p.ap+p.rj?'rj':''}"></span>`; }
+  const note = l>0 ? `<b>${l}</b> of ${p.clips} left${p.rendered?` · ${p.rendered} rendered`:''}`
+                   : `all reviewed${p.rendered?` · <b>${p.rendered}</b> rendered`:''}`;
+  const apW=(p.ap/p.clips*100).toFixed(1), rjW=(p.rj/p.clips*100).toFixed(1);
+  return `
+  <div class="row ${p.status}">
+    <div class="wash" style="background:${wash(p.color)}"></div>
+    <div class="chk" onclick="event.stopPropagation();this.classList.toggle('on');this.closest('.row').classList.toggle('sel')">${ICONS.check}</div>
+    <div class="poster"><div class="g" style="background:${hue(p.color)}"></div><div class="vig"></div><span class="tagbadge">${p.tag}</span><div class="play">${ICONS.play}</div></div>
+    <div class="main">
+      <div class="title">${p.name}</div>
+      <div class="metaline">${p.test?'<span class="test">TEST</span>':''}${p.date} · ${p.clips} clips</div>
+      <div class="pips">${pips}<span class="pipnote">${note}</span></div>
+      <div class="tightprog"><div class="bar"><i class="ap" style="width:${apW}%"></i><i class="rj" style="width:${rjW}%"></i></div><span class="pipnote">${note}</span></div>
+    </div>
+    <div class="rrail">
+      ${statusPill(p.status)}
+      <button class="openbtn ${p.status==='done'?'ghost':''}">${p.status==='done'?'Open':'Review'}</button>
+    </div>
+    <div class="trash">${ICONS.trash}</div>
+  </div>`;
+}
+
+function renderChips(){
+  const gm=games();
+  const total=projects.length, review=projects.filter(p=>p.status==="review").length, done=projects.filter(p=>p.status==="done").length;
+  let html=`
+    <span class="chip ${state.status==='all'?'active':''}" onclick="setStatus('all')">All <span class="c">${total}</span></span>
+    <span class="chip ${state.status==='review'?'active':''}" onclick="setStatus('review')">To review <span class="c">${review}</span></span>
+    <span class="chip ${state.status==='done'?'active':''}" onclick="setStatus('done')">Done <span class="c">${done}</span></span>
+    <span class="vrule"></span>
+    <span class="chip ${state.game==='all'?'active':''}" onclick="setGame('all')">All games <span class="c">${total}</span></span>`;
+  Object.keys(gm).forEach(g=>{
+    const col=projects.find(p=>p.tag===g).color;
+    html+=`<span class="chip ${state.game===g?'active':''}" onclick="setGame('${g}')"><span class="gdot" style="background:${col}"></span>${g} <span class="c">${gm[g]}</span></span>`;
+  });
+  document.getElementById('chips').innerHTML=html;
+}
+function renderSortMenu(){
+  document.getElementById('sortmenu').innerHTML=SORTS.map(s=>`
+    <div class="opt ${state.sort===s.id?'on':''}" onclick="setSort('${s.id}')">${s.label}
+      <svg class="tick" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>`).join('');
+  document.getElementById('sortlbl').textContent=SORTS.find(s=>s.id===state.sort).label;
+}
+function render(){
+  const rows=filtered();
+  const list=document.getElementById('list');
+  list.classList.toggle('tight',state.view==='tight');
+  list.innerHTML = rows.length ? rows.map(rowHTML).join('') : `<div class="empty">No projects match this filter.</div>`;
+  const total=projects.length, review=projects.filter(p=>p.status==="review").length, done=projects.filter(p=>p.status==="done").length;
+  document.getElementById('subline').innerHTML=`<b>${total} projects</b><span class="dotsep"></span><span style="color:var(--accentL)">${review} to review</span><span class="dotsep"></span>${done} done`;
+  renderChips(); renderSortMenu();
+}
+
+function setView(v){ state.view=v;
+  document.getElementById('t-rich').classList.toggle('on',v==='rich');
+  document.getElementById('t-tight').classList.toggle('on',v==='tight');
+  document.getElementById('explain').innerHTML=EXPLAIN[v];
+  document.getElementById('foot').innerHTML=FOOT; render();
+}
+function setStatus(s){ state.status=s; render(); }
+function setGame(g){ state.game=g; render(); }
+function setSort(s){ state.sort=s; document.getElementById('sortmenu').classList.remove('open'); render(); }
+function toggleSort(e){ e.stopPropagation(); document.getElementById('sortmenu').classList.toggle('open'); }
+document.addEventListener('click',()=>document.getElementById('sortmenu').classList.remove('open'));
+
+const EXPLAIN={
+  rich:"<b>Rich rows.</b> Watchable poster + one pip per clip (green approved · red rejected · dim still-to-review). Filter by game or status, sort by the button top-right. Hover a row for its checkbox / Review / delete.",
+  tight:"<b>Tight rows.</b> Same data, pips swapped for a slim progress bar — denser if the pips feel busy.",
+};
+const FOOT="Folders are gone — the whole left rail is replaced by <b>game filter chips</b> (click RL to see only Rocket League) and a <b>Sort</b> dropdown (recent · oldest · most to review · name). Status chips (All / To review / Done) sit alongside. All values shown are real per-project data. Checkbox is hover-reveal; Review + trash live on the row, revealed on hover.";
+
+setView('rich');
+</script>
+</body>
+</html>

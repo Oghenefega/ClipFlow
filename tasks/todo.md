@@ -6,62 +6,52 @@
 
 ---
 
-## 📋 PLAN (session 118, awaiting Fega approval) — Undo aftermath cleanup (#175) + Rename header restyle
+## 📋 PLAN (session 120, awaiting Fega approval) — Rename fixes + Projects list redesign
 
-### Diagnosis recap (verified against installed exe, prod DB, and disk)
+Design approved via mockup `tasks/mocks/projects-list-redesign.html`:
+**Rich rows · portal dropdown · folders removed · game + date filtering.**
 
-- Fega's two undo test rounds ran at 11:08 PM and 12:04 AM — **both on pre-fix
-  builds** (0.2.2-alpha.2, then 0.3.0-alpha.1). The fixed 0.3.0-alpha.2 was
-  built 12:27 AM and installed ~12:27–12:32 AM. The real undo has NEVER run:
-  prod `rename_history` has 0 rows.
-- Disk is healthy: the six Jul-20 recordings are correctly named
-  `RL Day9 Pt1–Pt6` in `Recordings\2026-07`, and file_metadata rows match.
-- History is lying two ways (old fake-undo leftovers): Pt1–Pt6 are crossed
-  out UNDONE though the renames stand on disk; Pt7–Pt12 entries describe
-  renames that never happened (ghost-row renames — no files exist under
-  either name).
-- On alpha.2, ALL current entries are legacy (no historyId) → no UNDO button
-  by design; the UNDONE strikethrough is a non-clickable label. Together this
-  reads as "grayed-out broken button" — Fega's exact report.
+### 1. Rename — game dropdown clipped by the card (bug)
+Root cause: session-group card `RenameView.js:1665` uses `overflow:hidden`
+(rounds corners) and clips the dropdown when it opens downward; sibling
+`SessionPresetPicker` also shares `zIndex:999` and out-paints it.
+Fix: render the `GroupedSelect` menu (`RenameView.js:2008`) in a React
+**portal** to `document.body`, positioned from the trigger's
+`getBoundingClientRect()`; close on outside-click / scroll.
+Verify: dropdown fully visible over the naming pill + rows, nothing clipped;
+select still works.
 
-### Part A — make History truthful + testable (completes #175)
+### 2. Hover-reveal checkboxes — Rename + Projects (change)
+Now always rendered (Rename `LedgerCheck` 1668/1705; Projects `Checkbox`
+1267–1270). Hide by default; reveal on row-hover, and show all in "select
+mode" (any selection active). Reuse the `.cfr-acts` hover idiom in RenameView.
+Files: `RenameView.js`, `ProjectsView.js`.
 
-1. **Load-time reconciliation of legacy `undone` entries** — App.js, where
-   `all.renameHistory` loads (~line 286). Only entries with `undone: true`
-   AND no `historyId` (DB-backed entries are authoritative — skip). Per
-   entry, via `window.clipflow.fileExists`:
-   - renamed file (`newName`) still on disk → un-mark `undone` (rename
-     stands; fixes the false Pt1–Pt6 strikethroughs)
-   - neither `newName` nor `oldName` on disk → drop entry (ghost; removes
-     Pt7–Pt12 + the Jan-30 AR Day33 phantom)
-   - `oldName` on disk → genuinely undone, keep.
-   Candidate paths: `<watchFolder>\YYYY-MM\<name>`, `<watchFolder>\<name>`
-   (+ `Test\YYYY-MM` for isTest entries); date extracted from the filename.
-2. **Legacy entries stop looking broken** — RenameView.js history row
-   (~1836): entries with no historyId get a muted hover hint ("renamed
-   before undo history existed — can't be undone"); UNDONE label gets a
-   title explaining the file went back to Pending.
-3. **Verification (Fega, ~1 min, after reinstall):** History shows Jul-20
-   Pt1–Pt6 as normal green entries (no strikethrough), Pt7–Pt12 gone. Then
-   rename ONE new file → UNDO button appears on its entry → click → file
-   name reverts in Explorer and the file returns to Pending. That is the
-   first-ever real test of the alpha.2 undo.
+### 3. Rename — remove the TEST toggle (change)
+Delete `<TestChip>` at `RenameView.js:1709` (+ unused import line 5). Keep
+`TestChip.js` (used by Projects/Queue/Upload). `isTest` still auto-set by the
+test watcher — only the manual per-row toggle goes.
 
-### Part B — Rename header restyle (mock first, no code until Fega picks)
+### 4. Projects list redesign — "launch pad" (feature)
+Rows (Rich): game-hue poster (tag + hover play) · title · quiet meta
+(`date · N clips`) · per-clip **pip strip** (green approved / red rejected /
+dim to-review) + count summary · status pill · Review/Open + trash on hover.
+Keep a Tight density variant (pips → slim bar).
+Chrome: premium header + subline; **status chips** (All / To review / Done);
+**game filter chips** (All games + one per game, counts + color dot);
+**Sort dropdown** (Most recent · Oldest · Most to review · Name).
+Remove: folder sidebar + "Move to Folder" bulk action (folder store data left
+untouched for now). Delete bulk action stays.
+Data: real — `clipCount`/`approvedCount`/`renderedCount`/derived status; add
+`reviewedCount` (approved+rejected) to `listProjects` for the pip/bar fill.
+Files: `ProjectsView.js` (ProjectsListView 790–1652; card 1246–1340; sidebar
+1046–1186; sort bar 1197–1226; action bar), `projects.js` (listProjects).
+Note: ProjectsView.js is CRLF + emoji escapes → Node patch script for big edits.
+Verify in `npm start`: hue poster + pips render; game chip narrows to one game;
+sort reorders; status chips filter; hover reveals checkbox/Review/trash;
+opening a project still enters the clip Review Rail; no sidebar; delete works.
 
-Complaints: one cramped line (title + folder + 3 stat pills + 2 buttons),
-"egg-shaped" green watch-folder blob, bland, dead whitespace under the
-Pending/History/Manage tab row.
-
-1. Build an HTML mock (tasks/mocks/rename-header-restyle.html) with 2–3
-   header directions — e.g. (A) two-line: title+actions up top, watch folder
-   as its own slim strip with a proper round dot; (B) refined single line:
-   stats as number+label pairs with dividers instead of bordered pills,
-   folder muted right; (C) one bolder option. Open in browser via
-   Start-Process for Fega to pick.
-2. Implement the picked direction (RenameView.js ~1612–1634), including
-   tightening the tab-bar → content gap.
-3. Cut ONE installer after both parts land; Fega verifies on the daily driver.
+Open decision: purge folder store data on next launch, or leave it. Leaning leave.
 
 ---
 

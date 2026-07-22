@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-21 (session 120) — 0.3.0-alpha.4 installer: Projects tab launch-pad redesign + three Rename-tab fixes
+
+### Changed
+- **Version bumped 0.3.0-alpha.3 → 0.3.0-alpha.4 and a fresh installer cut.** Sizing call: a substantial Projects-tab redesign plus three Rename-tab fixes — kept as an alpha tick to stay consistent with the 0.3.0 pre-beta iteration line (the Rename redesign itself shipped as alpha.1), not a minor bump.
+- **The Projects tab is now a "launch pad" instead of a flat inventory.** Each project row shows a game-hue poster, the recording date and clip count, and a per-clip progress strip — one pip per clip (green = approved, red = rejected, dim = still to review) — with a plain-language summary ("6 of 18 left · 5 rendered"), so you can read how far along a project is without opening it. The approved/rejected/rendered counts are real per-clip data the app already tracked. Rows keep the game-hue wash, hover-lift, and a Review/Open button; opening a project still drops into the clip Review Rail. [ProjectsView.js]
+- **Folders are gone from the Projects tab; browsing is filter-driven now.** The left folder sidebar and the Status/Date/Game sort bar were replaced by status chips (All / To review / Done), game filter chips (click "RL" to see only Rocket League projects), and a Sort dropdown (Most recent / Oldest / Most to review / Name). The "Move to Folder" bulk action was removed with them; saved folder data is left untouched in storage. [ProjectsView.js]
+- **Selection checkboxes only appear when you're selecting.** On both the Rename and Projects tabs the checkboxes are hidden until you hover a row — or, once anything is selected, they all show so you can multi-select. No more always-visible checkbox cluttering every row. [RenameView.js, ProjectsView.js]
+
+### Fixed
+- **The game dropdown on the Rename tab is no longer clipped or blocked.** Picking a different game for a session used to open a menu that got cut off by the session-card edge and painted behind the naming-format pill beside it. The menu now renders in a portal above everything, so the full game list is always visible; it closes on an outside click or scroll. [RenameView.js]
+
+### Removed
+- **The "TEST" toggle button is gone from the Rename tab rows.** Files dropped via the test-watch folder are still flagged as test automatically — only the manual per-row toggle was removed here. The TEST tag still shows where it's informative (Projects and Queue tabs). [RenameView.js]
+
 ## [Unreleased] — 2026-07-21 (session 118) — 0.3.0-alpha.3 installer: fake-undo History cleanup (#175 aftermath) + Rename header restyle (#177)
 
 ### Changed

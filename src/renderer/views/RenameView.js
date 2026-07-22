@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import T from "../styles/theme";
 import { PulseDot, GamePill, Card, SectionLabel, InfoBanner, TabBar, Select, MiniSpinbox, Checkbox, formatDuration, toFileUrl } from "../components/shared";
 import ThumbnailScrubber from "../components/ThumbnailScrubber";
-import TestChip from "../components/TestChip";
 
 // ── Preset metadata (mirrored from naming-presets.js for UI rendering) ──
 const PRESET_LIST = [
@@ -1578,6 +1578,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         .cfr-row.rowsel { background: ${T.accentGlow}; }
         .cfr-row .cfr-acts { opacity: 0; transition: opacity 0.12s; }
         .cfr-row:hover .cfr-acts, .cfr-row.rowsel .cfr-acts { opacity: 1; }
+        .cfr-check { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity 0.13s ease, width 0.13s ease, margin 0.13s ease; }
+        .cfr-row:hover .cfr-check, .cfr-shead:hover .cfr-check, .cfr-selecting .cfr-check { width: 16px; opacity: 1; margin-left: 0; }
         .cfr-iconbt { width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: rgba(255,255,255,0.32); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
         .cfr-iconbt:hover { color: ${T.text}; background: ${T.surfaceHover}; border-color: ${T.border}; }
         .cfr-iconbt:disabled { opacity: 0.35; cursor: default; }
@@ -1652,7 +1654,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         {subTab === "pending" && (
           <>
             {pendingRenames.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 90 }}>
+              <div className={selectedIds.size > 0 ? "cfr-selecting" : ""} style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 90 }}>
                 {sessionGroups.map((grp) => {
                   const rowIds = grp.rows.map((r) => r.id);
                   const selCount = grp.rows.filter((r) => selectedIds.has(r.id)).length;
@@ -1664,8 +1666,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                   return (
                     <div key={grp.key} style={{ border: `1px solid ${T.border}`, borderRadius: T.radius.lg, background: T.surface, overflow: "hidden" }}>
                       {/* session header — owns everything the parts share */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
-                        <LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" />
+                      <div className="cfr-shead" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${T.border}` }}>
+                        <span className="cfr-check"><LedgerCheck state={headState} onClick={() => toggleGroup(grp)} title="Select every file in this session" /></span>
                         <span style={{ fontSize: 13.5, fontWeight: 800, color: T.text, whiteSpace: "nowrap" }}>{fmtSessionDate(grp.date)}</span>
                         <GroupedSelect
                           value={grp.rows[0].game}
@@ -1702,11 +1704,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                           return (
                             <React.Fragment key={r.id}>
                               <div className={`cfr-row${isSel ? " rowsel" : ""}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 14px", borderTop: ri === 0 ? "none" : `1px solid ${T.border}` }}>
-                                <LedgerCheck state={isSel ? "on" : "off"} onClick={(e) => toggleRow(r.id, e)} />
+                                <span className="cfr-check"><LedgerCheck state={isSel ? "on" : "off"} onClick={(e) => toggleRow(r.id, e)} /></span>
                                 <HoverScrubThumb frames={preview?.frames || []} loading={!!preview?.loading} durationSeconds={info?.durationSeconds} />
                                 <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
                                   <span style={{ fontSize: 11.5, color: T.textTertiary, fontFamily: T.mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 1, maxWidth: 170 }} title={r.fileName}>{r.fileName}</span>
-                                  <TestChip isTest={!!r.isTest} onToggle={(next) => updatePending(r.id, "isTest", next)} />
                                   <span style={{ color: T.textMuted, fontSize: 11, flexShrink: 0 }}>→</span>
                                   <PresetNamePicker
                                     rename={r}
@@ -1988,14 +1989,53 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
   const [hovIdx, setHovIdx] = useState(-1);
   const ref = useRef(null);
 
+  // Portal the menu to <body> so it escapes the session card's overflow:hidden
+  // clip (it opens downward past the header). getBoundingClientRect positions it;
+  // outside-click checks BOTH trigger and menu since the menu is no longer a
+  // descendant of the wrapper; any scroll/resize closes it (fixed pos detaches).
+  const [rect, setRect] = useState(null);
+  const menuRef = useRef(null);
+
   useEffect(() => {
     if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    if (ref.current) setRect(ref.current.getBoundingClientRect());
+    const onDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onScroll = () => setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [open]);
 
   const selected = options.find((o) => o.value === value && !o.isHeader);
+
+  const menu = open && rect ? createPortal(
+    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, maxHeight: 300, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 1000, padding: 4 }}>
+      {options.map((o, i) => {
+        if (o.isHeader) {
+          return (
+            <div key={o.value} style={{ padding: "8px 12px 4px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px", borderTop: i > 0 ? `1px solid ${T.border}` : "none", marginTop: i > 0 ? 4 : 0 }}>
+              {o.label}
+            </div>
+          );
+        }
+        return (
+          <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
+            {renderOption ? renderOption(o) : o.label}
+          </div>
+        );
+      })}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-block", ...x }}>
@@ -2005,24 +2045,7 @@ function GroupedSelect({ value, onChange, options, style: x, renderOption, rende
         </span>
         <span style={{ color: T.textMuted, fontSize: 10, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>{"\u25BC"}</span>
       </button>
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxHeight: 300, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 999, padding: 4 }}>
-          {options.map((o, i) => {
-            if (o.isHeader) {
-              return (
-                <div key={o.value} style={{ padding: "8px 12px 4px", fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.5px", borderTop: i > 0 ? `1px solid ${T.border}` : "none", marginTop: i > 0 ? 4 : 0 }}>
-                  {o.label}
-                </div>
-              );
-            }
-            return (
-              <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
-                {renderOption ? renderOption(o) : o.label}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }

@@ -62,6 +62,49 @@ const getProjectStatus = (p) => {
   return "ready";
 };
 
+// --- Launch-pad helpers (Projects list redesign) ---
+// Clips still awaiting a review decision (status "none") — drives "N to review",
+// the pip strip, and the "Most to review" sort.
+const clipsPending = (p) => (p.clips || []).filter((c) => !c.status || c.status === "none").length;
+
+// Recording date parsed from the project name ("2026-01-23 ..."); falls back to
+// createdAt. Local parts only — never toISOString.
+const projectDateKey = (p) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(p.name || "");
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return p.createdAt ? String(p.createdAt) : "";
+};
+const fmtProjectDate = (p) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(p.name || "");
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : (p.createdAt ? new Date(p.createdAt) : null);
+  if (!d || isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const PROJECT_SORTS = [
+  { id: "recent", label: "Most recent" },
+  { id: "oldest", label: "Oldest first" },
+  { id: "review", label: "Most to review" },
+  { id: "name", label: "Name (A-Z)" },
+];
+
+// Pill used by the status + game filter rows.
+function FilterChip({ active, onClick, dot, count, children }) {
+  return (
+    <span onClick={onClick} style={{
+      display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600,
+      color: active ? T.text : T.textSecondary,
+      background: active ? T.accentDim : T.surface,
+      border: `1px solid ${active ? T.accentBorder : T.border}`,
+      padding: "6px 12px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap",
+    }}>
+      {dot && <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot, flexShrink: 0 }} />}
+      {children}
+      {count != null && <span style={{ color: active ? T.accentLight : T.textTertiary, fontWeight: 700, fontSize: 11 }}>{count}</span>}
+    </span>
+  );
+}
+
 // Pure helper — extract transcript segments for a clip from project transcription
 const getClipTranscriptSegments = (clip, project) => {
   if (!project?.transcription?.segments) return [];
@@ -808,7 +851,10 @@ export function ProjectsListView({
   const [selected, setSelected] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [folderSortMode, setFolderSortMode] = useState("created");
-  const [projectSortMode, setProjectSortMode] = useState("status"); // status | date | game
+  const [projectSortMode, setProjectSortMode] = useState("recent"); // recent | oldest | review | name
+  const [statusFilter, setStatusFilter] = useState("all"); // all | review | done
+  const [gameFilter, setGameFilter] = useState("all"); // all | <gameTag>
+  const [sortOpen, setSortOpen] = useState(false);
 
   // --- Folder CRUD state (Phase 3) ---
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -829,7 +875,7 @@ export function ProjectsListView({
       if (m) setFolderSortMode(m);
     });
     window.clipflow?.storeGet?.("projectSortMode").then((m) => {
-      if (m) setProjectSortMode(m);
+      if (m && PROJECT_SORTS.some((s) => s.id === m)) setProjectSortMode(m);
     });
   }, []);
 
@@ -846,33 +892,37 @@ export function ProjectsListView({
       setColorPickerFolderId(null);
       setProjectContextMenu(null);
       setMoveFolderDropdown(false);
+      setSortOpen(false);
     };
     window.addEventListener("mousedown", handler);
     return () => window.removeEventListener("mousedown", handler);
   }, []);
 
-  // --- Filter projects by active folder ---
-  const activeFolderObj = activeFolder ? projectFolders.find((f) => f.id === activeFolder) : null;
-  const visibleProjects = activeFolder && activeFolderObj
-    ? localProjects.filter((p) => activeFolderObj.projectIds.includes(p.id))
-    : localProjects;
+  // --- Games present (for the game filter chips) ---
+  const games = [];
+  const gameSeen = {};
+  localProjects.forEach((p) => {
+    const tag = p.gameTag;
+    if (!tag || tag === "?") return;
+    if (!gameSeen[tag]) { gameSeen[tag] = { tag, color: getGameColor(p, gamesDb), count: 0 }; games.push(gameSeen[tag]); }
+    gameSeen[tag].count += 1;
+  });
+
+  // --- Filter projects by status + game (folders retired) ---
+  const visibleProjects = localProjects.filter((p) => {
+    if (statusFilter === "review" && getProjectStatus(p) !== "ready") return false;
+    if (statusFilter === "done" && getProjectStatus(p) !== "done") return false;
+    if (gameFilter !== "all" && p.gameTag !== gameFilter) return false;
+    return true;
+  });
 
   // Sort modes: "status" (processing → review → done → error), "date" (newest first),
   // "game" (grouped alphabetically by game name). Newest-first inside every group.
-  const byDateDesc = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
   const sorted = [...visibleProjects].sort((a, b) => {
-    if (projectSortMode === "date") return byDateDesc(a, b);
-    if (projectSortMode === "game") {
-      const ga = (a.game || a.gameTag || "~").toLowerCase();
-      const gb = (b.game || b.gameTag || "~").toLowerCase();
-      if (ga !== gb) return ga.localeCompare(gb);
-      return byDateDesc(a, b);
-    }
-    const order = { processing: 0, ready: 1, done: 2, error: 3 };
-    const sa = order[getProjectStatus(a)] ?? 1;
-    const sb = order[getProjectStatus(b)] ?? 1;
-    if (sa !== sb) return sa - sb;
-    return byDateDesc(a, b);
+    if (projectSortMode === "oldest") return projectDateKey(a).localeCompare(projectDateKey(b));
+    if (projectSortMode === "review") return clipsPending(b) - clipsPending(a);
+    if (projectSortMode === "name") return (a.name || "").localeCompare(b.name || "");
+    return projectDateKey(b).localeCompare(projectDateKey(a)); // recent (default)
   });
 
   // --- Selection helpers (operate on visible/filtered projects) ---
@@ -892,8 +942,9 @@ export function ProjectsListView({
   };
 
   const selCount = Object.values(selected).filter(Boolean).length;
-  const processingCount = visibleProjects.filter((p) => p.status === "processing").length;
-  const readyCount = visibleProjects.filter((p) => getProjectStatus(p) === "ready").length;
+  const processingCount = localProjects.filter((p) => p.status === "processing").length;
+  const readyCount = localProjects.filter((p) => getProjectStatus(p) === "ready").length;
+  const doneCount = localProjects.filter((p) => getProjectStatus(p) === "done").length;
 
   const handleDelete = () => {
     if (!confirmDelete) {
@@ -1037,313 +1088,181 @@ export function ProjectsListView({
 
   return (
     <div>
+      <style>{`
+        .pl-row { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+        .pl-row.openable:hover { border-color: ${T.borderHover} !important; box-shadow: 0 2px 4px rgba(0,0,0,.5), 0 24px 56px -22px rgba(0,0,0,.85); transform: translateY(-1px); }
+        .pl-chk { display: inline-flex; align-items: center; overflow: hidden; width: 0; opacity: 0; margin-left: -6px; transition: opacity .13s ease, width .13s ease, margin .13s ease; }
+        .pl-row:hover .pl-chk, .pl-list.selecting .pl-chk, .pl-row.sel .pl-chk { width: 18px; opacity: 1; margin-left: 0; }
+        .pl-open, .pl-trash { opacity: 0; transition: opacity .15s ease; }
+        .pl-row:hover .pl-open, .pl-row:hover .pl-trash { opacity: 1; }
+      `}</style>
+
       <PageHeader
         title="Projects"
-        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` · ${processingCount} processing` : ""}${readyCount > 0 ? ` · ${readyCount} to review` : ""}`}
-      />
-
-      <div style={{ display: "flex", gap: 0, marginTop: 16 }}>
-        {/* ── Sidebar: Folder Panel ── */}
-        <div style={{
-          width: 160, flexShrink: 0, background: "rgba(8,9,14,0.6)",
-          borderRadius: `${T.radius.md} 0 0 ${T.radius.md}`,
-          border: `1px solid ${T.border}`, borderRight: "none",
-          display: "flex", flexDirection: "column", overflow: "hidden",
-        }}>
-          {/* Sidebar header */}
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 12px 8px", borderBottom: `1px solid ${T.border}`,
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: T.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em" }}>Folders</span>
-            <button
-              onClick={cycleSortMode}
-              title={`Sort: ${SORT_LABELS[folderSortMode]}`}
-              style={{
-                background: "none", border: "none", color: T.textTertiary,
-                fontSize: 11, cursor: "pointer", fontFamily: T.mono, padding: "2px 4px",
-                borderRadius: 3,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = T.accent; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = T.textTertiary; }}
-            >{SORT_LABELS[folderSortMode]}</button>
-          </div>
-
-          {/* Folder list (scrollable) */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
-            {/* All Projects */}
-            <div
-              onClick={() => onSelectFolder(null)}
-              style={{
-                padding: "8px 12px", cursor: "pointer",
-                background: activeFolder === null ? T.accentDim : "transparent",
-                borderLeft: activeFolder === null ? `2px solid ${T.accent}` : "2px solid transparent",
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-              }}
-              onMouseEnter={(e) => { if (activeFolder !== null) e.currentTarget.style.background = T.surfaceHover; }}
-              onMouseLeave={(e) => { if (activeFolder !== null) e.currentTarget.style.background = "transparent"; }}
-            >
-              <span style={{ fontSize: 13, fontWeight: activeFolder === null ? 700 : 500, color: activeFolder === null ? T.text : T.textSecondary }}>
-                All Projects
-              </span>
-              <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textTertiary }}>{localProjects.length}</span>
-            </div>
-
-            {/* Folder entries */}
-            {sortedFolders.map((f) => {
-              const count = f.projectIds.filter((pid) => localProjects.some((p) => p.id === pid)).length;
-              const isActive = activeFolder === f.id;
-              const isRenaming = renamingFolderId === f.id;
-
-              return (
+        subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` · ${processingCount} processing` : ""}${readyCount > 0 ? ` · ${readyCount} to review` : ""}${doneCount > 0 ? ` · ${doneCount} done` : ""}`}
+      >
+        {/* Sort dropdown */}
+        <div data-menu style={{ position: "relative" }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setSortOpen((o) => !o); }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, color: T.textSecondary, background: T.surface, border: `1px solid ${sortOpen ? T.accentBorder : T.border}`, borderRadius: 9, padding: "8px 12px", cursor: "pointer", fontFamily: T.font }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M6 12h12M10 18h4" /></svg>
+            Sort: <span style={{ color: T.text }}>{(PROJECT_SORTS.find((s) => s.id === projectSortMode) || PROJECT_SORTS[0]).label}</span>
+            <span style={{ fontSize: 9, color: T.textMuted }}>{"▾"}</span>
+          </button>
+          {sortOpen && (
+            <div data-menu style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 190, background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", padding: 5, zIndex: 50 }}>
+              {PROJECT_SORTS.map((s) => (
                 <div
-                  key={f.id}
-                  onClick={() => { if (!isRenaming) onSelectFolder(f.id); }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setContextMenu({ x: e.clientX, y: e.clientY, folderId: f.id });
-                  }}
-                  style={{
-                    padding: "8px 12px", cursor: "pointer",
-                    background: isActive ? T.accentDim : "transparent",
-                    borderLeft: isActive ? `2px solid ${T.accent}` : "2px solid transparent",
-                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6,
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = T.surfaceHover; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? T.accentDim : "transparent"; }}
+                  key={s.id}
+                  onClick={() => { changeProjectSort(s.id); setSortOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: T.radius.sm, fontSize: 12.5, cursor: "pointer", color: projectSortMode === s.id ? T.text : T.textSecondary, fontWeight: projectSortMode === s.id ? 600 : 500, background: projectSortMode === s.id ? T.surfaceHover : "transparent" }}
+                  onMouseEnter={(e) => { if (projectSortMode !== s.id) e.currentTarget.style.background = T.surfaceHover; }}
+                  onMouseLeave={(e) => { if (projectSortMode !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, overflow: "hidden" }}>
-                    {/* Color dot */}
-                    <div style={{
-                      width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                      background: f.color, boxShadow: `0 0 6px ${f.color}`,
-                    }} />
-                    {isRenaming ? (
-                      <input
-                        autoFocus
-                        value={renameFolderName}
-                        onChange={(e) => setRenameFolderName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleRenameFolder(f.id);
-                          if (e.key === "Escape") setRenamingFolderId(null);
-                        }}
-                        onBlur={() => handleRenameFolder(f.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          background: T.surface, border: `1px solid ${T.accentBorder}`,
-                          borderRadius: 3, color: T.text, fontSize: 12, fontFamily: T.font,
-                          padding: "2px 4px", width: "100%", outline: "none",
-                        }}
-                      />
-                    ) : (
-                      <span style={{
-                        fontSize: 12, fontWeight: isActive ? 700 : 500,
-                        color: isActive ? T.text : T.textSecondary,
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      }}>{f.name}</span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textTertiary, flexShrink: 0 }}>{count}</span>
+                  {s.label}
+                  {projectSortMode === s.id && <span style={{ marginLeft: "auto", color: T.accentLight, fontSize: 12 }}>{"✓"}</span>}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* + New Folder button */}
-          {creatingFolder ? (
-            <div style={{ padding: "8px 12px", borderTop: `1px solid ${T.border}` }}>
-              <input
-                autoFocus
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); handleCreateFolder(); }
-                  if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
-                }}
-                onBlur={handleCreateFolder}
-                placeholder="Folder name"
-                style={{
-                  background: T.surface, border: `1px solid ${T.accentBorder}`,
-                  borderRadius: 3, color: T.text, fontSize: 12, fontFamily: T.font,
-                  padding: "4px 6px", width: "100%", outline: "none",
-                }}
-              />
+              ))}
             </div>
-          ) : (
-            <button
-              onClick={() => setCreatingFolder(true)}
-              style={{
-                padding: "10px 12px", borderTop: `1px solid ${T.border}`,
-                background: "none", border: "none", color: T.accent,
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-                textAlign: "left", width: "100%",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >+ New Folder</button>
           )}
         </div>
+      </PageHeader>
 
-        {/* ── Main Panel: Project List ── */}
-        <div style={{
-          flex: 1, background: T.surface,
-          borderRadius: `0 ${T.radius.md} ${T.radius.md} 0`,
-          border: `1px solid ${T.border}`,
-          padding: "0 16px 16px",
-          display: "flex", flexDirection: "column",
-          overflow: "hidden",
-        }}>
-          {/* Header row: select all */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0 10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textTertiary, fontWeight: 600 }}>Sort</span>
-              <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3, gap: 2 }}>
-                {[["status", "Status"], ["date", "Date"], ["game", "Game"]].map(([mode, label]) => (
-                  <span
-                    key={mode}
-                    onClick={() => changeProjectSort(mode)}
-                    style={{
-                      fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 6, cursor: "pointer",
-                      color: projectSortMode === mode ? T.text : T.textTertiary,
-                      background: projectSortMode === mode ? T.surfaceHover : "transparent",
-                    }}
-                  >{label}</span>
-                ))}
-              </div>
-              {selCount > 0 && (
-                <span style={{ color: T.accent, fontSize: 13, fontWeight: 700 }}>
-                  {selCount} selected
-                </span>
-              )}
-            </div>
-            <button
-              onClick={selectAll}
-              style={{ background: "none", border: "none", color: T.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: 0 }}
-            >
-              {visibleProjects.length > 0 && visibleProjects.every((p) => selected[p.id]) ? "Deselect All" : "Select All"}
-            </button>
-          </div>
-
-          {/* Project list (scrollable) */}
-          <div style={{ flex: 1, overflowY: "auto" }}>
-            {visibleProjects.length === 0 && activeFolder ? (
-              /* Empty folder state */
-              <div style={{ textAlign: "center", padding: "60px 20px" }}>
-                <div style={{ color: T.textTertiary, fontSize: 14, fontWeight: 500 }}>No projects in this folder</div>
-                <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>
-                  Select projects from All Projects and use "Move to Folder" to add them.
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {sorted.map((p) => {
-                  const st = getProjectStatus(p);
-                  const pColor = getGameColor(p, gamesDb);
-                  const clipCount = p.clips ? p.clips.length : (p.clipCount || 0);
-                  const isSel = !!selected[p.id];
-
-                  return (
-                    <div
-                      key={p.id}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setProjectContextMenu({ x: e.clientX, y: e.clientY, projectId: p.id });
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 12,
-                        padding: "14px 16px", borderRadius: T.radius.md,
-                        // Game-hue wash (mockup Variant B): corner glow + left gradient in the
-                        // project's game color, with a matching tinted border.
-                        background: isSel
-                          ? T.accentDim
-                          : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(255,255,255,0.02) 65%)`,
-                        border: `1px solid ${isSel ? T.accentBorder : st === "error" ? T.redBorder : `${pColor}3d`}`,
-                        opacity: st === "processing" ? 0.7 : st === "error" ? 0.5 : 1,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {/* Checkbox */}
-                      <div onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
-                        <Checkbox checked={isSel} size={18} />
-                      </div>
-
-                      {/* Main content — click to open */}
-                      <div
-                        onClick={() => (st === "ready" || st === "done") && onSelect(p)}
-                        style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, overflow: "hidden" }}
-                      >
-                        <div style={{
-                          width: 38, height: 38, borderRadius: T.radius.sm,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 18, flexShrink: 0,
-                          background: st === "done" ? T.greenDim : st === "error" ? T.redDim : `${pColor}18`,
-                        }}>
-                          {st === "done" ? "✅" : st === "error" ? "❌" : st === "processing" ? "⏳" : "🎬"}
-                        </div>
-                        <div style={{ flex: 1, overflow: "hidden" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ color: T.text, fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {p.name}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-                            {p.gameTag && p.gameTag !== "?" && (
-                              <span style={{
-                                display: "inline-flex", padding: "1px 5px",
-                                background: `${pColor}18`, border: `1px solid ${pColor}44`,
-                                borderRadius: 4, fontSize: 9, fontWeight: 700, color: pColor,
-                                fontFamily: T.mono,
-                              }}>{p.gameTag}</span>
-                            )}
-                            {/* TEST chip only on actual test projects — test-ness comes from the
-                                test watch folder at creation; normal projects get no toggle. */}
-                            {(p.testMode === true || (p.tags || []).includes("test")) && (
-                              <span onClick={(e) => e.stopPropagation()}>
-                                <TestChip
-                                  isTest
-                                  onToggle={(next) => handleToggleTestMode(p.id, next)}
-                                />
-                              </span>
-                            )}
-                            <span style={{ color: T.textTertiary, fontSize: 12 }}>
-                              {st === "processing" ? (
-                                <span>Processing{p.progress ? <span style={{ fontFamily: T.mono, color: T.yellow }}> {p.progress}%</span> : "..."}</span>
-                              ) : st === "error" ? (
-                                <span style={{ color: T.red }}>{p.error || "Failed"}</span>
-                              ) : (
-                                <><span style={{ fontFamily: T.mono }}>{clipCount}</span> clip{clipCount !== 1 ? "s" : ""}</>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Status badge */}
-                      <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
-                        {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
-                      </Badge>
-
-                      {/* Delete icon */}
-                      <span
-                        onClick={(e) => handleSingleDelete(e, p.id)}
-                        title="Delete project"
-                        style={{
-                          color: T.textMuted, fontSize: 16, cursor: "pointer", padding: "4px 6px",
-                          borderRadius: 4, flexShrink: 0, lineHeight: 1,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                      >🗑</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Filter chips: status + game (replaces the folder sidebar + sort bar) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "2px 0 16px" }}>
+        <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={localProjects.length}>All</FilterChip>
+        <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")} count={readyCount}>To review</FilterChip>
+        <FilterChip active={statusFilter === "done"} onClick={() => setStatusFilter("done")} count={doneCount}>Done</FilterChip>
+        {games.length > 0 && <span style={{ width: 1, height: 20, background: T.border, margin: "0 3px" }} />}
+        {games.length > 0 && (
+          <FilterChip active={gameFilter === "all"} onClick={() => setGameFilter("all")}>All games</FilterChip>
+        )}
+        {games.map((g) => (
+          <FilterChip key={g.tag} active={gameFilter === g.tag} onClick={() => setGameFilter(g.tag)} dot={g.color} count={g.count}>{g.tag}</FilterChip>
+        ))}
+        {visibleProjects.length > 0 && (
+          <button
+            onClick={selectAll}
+            style={{ marginLeft: "auto", background: "none", border: "none", color: T.accent, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 4px" }}
+          >{visibleProjects.every((p) => selected[p.id]) ? "Deselect all" : "Select all"}</button>
+        )}
       </div>
+
+      {/* Launch-pad list (full width) */}
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 20px" }}>
+          <div style={{ color: T.textTertiary, fontSize: 14, fontWeight: 500 }}>No projects match this filter</div>
+          <div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Try a different game or status.</div>
+        </div>
+      ) : (
+        <div className={selCount > 0 ? "pl-list selecting" : "pl-list"} style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+          {sorted.map((p) => {
+            const st = getProjectStatus(p);
+            const pColor = getGameColor(p, gamesDb);
+            const clips = p.clips || [];
+            const clipCount = clips.length || p.clipCount || 0;
+            const reviewed = clips.filter((c) => c.status && c.status !== "none").length;
+            const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
+            const leftToReview = Math.max(0, clipCount - reviewed);
+            const isSel = !!selected[p.id];
+            const openable = st === "ready" || st === "done";
+            const isTest = p.testMode === true || (p.tags || []).includes("test");
+            const dateStr = fmtProjectDate(p);
+            return (
+              <div
+                key={p.id}
+                className={`pl-row${isSel ? " sel" : ""}${openable ? " openable" : ""}`}
+                onClick={() => openable && onSelect(p)}
+                style={{
+                  position: "relative", display: "flex", alignItems: "center", gap: 14,
+                  padding: 13, borderRadius: T.radius.lg, overflow: "hidden",
+                  cursor: openable ? "pointer" : "default",
+                  background: isSel
+                    ? T.accentDim
+                    : `radial-gradient(90% 160% at 100% 0%, ${pColor}1f 0%, transparent 55%), linear-gradient(100deg, ${pColor}1a 0%, ${pColor}06 40%, rgba(255,255,255,0.02) 65%)`,
+                  border: `1px solid ${isSel ? T.accentBorder : st === "error" ? T.redBorder : `${pColor}3d`}`,
+                  opacity: st === "processing" ? 0.75 : st === "error" ? 0.6 : 1,
+                }}
+              >
+                {/* hover-reveal checkbox */}
+                <span className="pl-chk" onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
+                  <Checkbox checked={isSel} size={18} />
+                </span>
+
+                {/* game-hue poster */}
+                <div style={{ position: "relative", flexShrink: 0, width: 44, height: 58, borderRadius: 9, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
+                  <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${pColor}55 65%, ${pColor}22)`, opacity: openable ? 0.9 : 0.5 }} />
+                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))" }} />
+                  <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(0,0,0,.6)" }}>
+                    {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
+                  </span>
+                </div>
+
+                {/* main content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: T.text, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.name}>{p.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 12, color: T.textSecondary, flexWrap: "wrap" }}>
+                    {isTest && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.06em", color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, padding: "1px 6px", borderRadius: 5 }}>TEST</span>}
+                    <span>{dateStr ? `${dateStr} · ` : ""}{clipCount} clip{clipCount !== 1 ? "s" : ""}</span>
+                  </div>
+                  {st === "processing" ? (
+                    <div style={{ marginTop: 8, fontSize: 12, color: T.yellow }}>Processing{p.progress ? ` ${p.progress}%` : "..."}</div>
+                  ) : st === "error" ? (
+                    <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
+                  ) : clipCount > 0 ? (
+                    <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                      {clips.slice(0, 40).map((c, i) => {
+                        const cc = (c.status === "approved" || c.status === "ready") ? T.green : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
+                        return <span key={i} style={{ width: 14, height: 6, borderRadius: 2, background: cc }} />;
+                      })}
+                      <span style={{ marginLeft: 8, fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
+                        {leftToReview > 0
+                          ? <><b style={{ color: T.text }}>{leftToReview}</b> of {clipCount} left{rendered > 0 ? ` · ${rendered} rendered` : ""}</>
+                          : <>all reviewed{rendered > 0 ? <> {"·"} <b style={{ color: T.text }}>{rendered}</b> rendered</> : ""}</>}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* status + open */}
+                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9 }}>
+                  <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
+                    {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
+                  </Badge>
+                  {openable && (
+                    <button
+                      className="pl-open"
+                      onClick={(e) => { e.stopPropagation(); onSelect(p); }}
+                      style={{
+                        fontFamily: T.font, fontSize: 12.5, fontWeight: 700, borderRadius: 9, padding: "7px 14px", cursor: "pointer",
+                        color: st === "done" ? T.textSecondary : "#fff",
+                        background: st === "done" ? T.surfaceHover : T.accent,
+                        border: st === "done" ? `1px solid ${T.border}` : "none",
+                        boxShadow: st === "done" ? "none" : "0 6px 16px -8px rgba(139,92,246,0.8)",
+                      }}
+                    >{st === "done" ? "Open" : "Review"}</button>
+                  )}
+                </div>
+
+                {/* hover-reveal delete */}
+                <span
+                  className="pl-trash"
+                  onClick={(e) => handleSingleDelete(e, p.id)}
+                  title="Delete project"
+                  style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
 
       {/* ── Floating Action Bar (when projects selected) ── */}
       {selCount > 0 && (
@@ -1354,84 +1273,6 @@ export function ProjectsListView({
           boxShadow: "0 -4px 20px rgba(0,0,0,0.3)",
         }}>
           <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>{selCount} selected</span>
-
-          {/* Move to Folder dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              data-menu
-              onClick={(e) => { e.stopPropagation(); setMoveFolderDropdown(!moveFolderDropdown); }}
-              style={{
-                padding: "8px 14px", borderRadius: T.radius.sm,
-                background: T.accentDim, border: `1px solid ${T.accentBorder}`,
-                color: T.accent, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-              }}
-            >Move to Folder ▾</button>
-            {moveFolderDropdown && (
-              <div
-                data-menu
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: "absolute", bottom: "100%", left: 0, marginBottom: 4,
-                  background: T.surface, border: `1px solid ${T.border}`,
-                  borderRadius: T.radius.sm, minWidth: 160, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                  zIndex: 100, overflow: "hidden",
-                }}
-              >
-                {projectFolders.map((f) => (
-                  <div
-                    key={f.id}
-                    onClick={() => {
-                      const ids = Object.keys(selected).filter((id) => selected[id]);
-                      handleMoveProjects(f.id, ids);
-                    }}
-                    style={{
-                      padding: "8px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
-                      fontSize: 12, color: T.textSecondary,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: f.color, boxShadow: `0 0 6px ${f.color}` }} />
-                    <span>{f.name}</span>
-                  </div>
-                ))}
-                {activeFolder && (
-                  <div
-                    onClick={() => {
-                      const ids = Object.keys(selected).filter((id) => selected[id]);
-                      handleMoveProjects(null, ids);
-                    }}
-                    style={{
-                      padding: "8px 12px", cursor: "pointer", fontSize: 12, color: T.textTertiary,
-                      borderTop: projectFolders.length > 0 ? `1px solid ${T.border}` : "none",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                  >Remove from Folder</div>
-                )}
-                <div
-                  onClick={async () => {
-                    const ids = Object.keys(selected).filter((id) => selected[id]);
-                    setMoveFolderDropdown(false);
-                    try {
-                      const res = await window.clipflow.folderCreate({ name: "New Folder" });
-                      if (res?.success && ids.length > 0) {
-                        await window.clipflow.folderAddProjects(res.folder.id, ids);
-                      }
-                      onFoldersChanged();
-                      setSelected({});
-                    } catch (_) { /* IPC error */ }
-                  }}
-                  style={{
-                    padding: "8px 12px", cursor: "pointer", fontSize: 12, color: T.accent,
-                    fontWeight: 600, borderTop: `1px solid ${T.border}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                >+ New Folder...</div>
-              </div>
-            )}
-          </div>
 
           <button
             onClick={handleDelete}
