@@ -1,48 +1,48 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-21 — Session 120 — **Projects tab rebuilt as a launch-pad list (folders retired) + three Rename-tab fixes. Cut 0.3.0-alpha.4; Fega installed it.**_
+_Last updated: 2026-07-21 — Session 121 — **Three more Rename-tab dropdown fixes (format-picker clipping, left-edge accent bar, middle-mouse scroll close). Cut 0.3.0-alpha.5; Fega installed it and confirmed all three work.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega asked for four things and approved an HTML mockup for the big one: the Rename game-dropdown was clipped by its card (fixed with a React portal), always-visible selection checkboxes on Rename + Projects (now hover-reveal), the per-row TEST toggle removed from Rename, and a full redesign of the **outer** Projects list — now a "launch pad" with game-hue poster rows, a per-clip pip progress strip, status + game filter chips and a sort dropdown, with the folder sidebar retired. Built, renderer compiles clean, installer 0.3.0-alpha.4 cut + pushed (commit `0159181`) + installed.
+Follow-up to session 120's game-dropdown portal fix. The two naming-format pickers had the same card-clipping bug (session-header "Date + Tag" chip + per-file proposed-name), the highlighted menu row had an AI-slop purple left-edge bar, and the alpha.4 portal fix had introduced a regression where middle-mouse/wheel scrolling inside the game menu closed it. All three fixed in `RenameView.js`, installer 0.3.0-alpha.5 cut + pushed (commit `b796c15`) + installed + **Fega-verified**.
 
 ## Current State
 
-- **0.3.0-alpha.4 installed** (Fega confirmed "installed it"). Renderer build clean (2748 modules). **Not yet visually verified by Fega in real use** — awaiting his read on the live Projects/Rename look.
-- Four changes shipped (below). Dead folder code left inert in ProjectsView.js — cleanup ticket **#179** open.
+- **0.3.0-alpha.5 installed and verified.** Fega: "installed it, all three work now." Renderer + installer both built clean.
+- No open work outstanding from this session. No matching GitHub issue existed (bugs reported inline, fixed same-session) — nothing to close.
 
 ## What Was Just Built
 
-- **Rename — game dropdown portal fix.** `GroupedSelect` (RenameView.js) renders its menu via `createPortal` to `document.body` (position:fixed from getBoundingClientRect), escaping the session card's `overflow:hidden` clip + the z-index race with the naming pill. Closes on outside-click / scroll. Removed the old wrapper-only outside-click effect (would've closed the portaled menu before a selection registered).
-- **Hover-reveal checkboxes — Rename + Projects.** Hidden (width/opacity 0) until row hover, or shown for all rows when a selection is active ("select mode"). Rename: `.cfr-check` wrappers + `.cfr-selecting`/`.cfr-shead` rules in the injected `<style>`. Projects: `.pl-chk` + `.pl-list.selecting` in a new injected `<style>`.
-- **Rename — TEST toggle removed.** Deleted the `<TestChip>` render (~RenameView.js:1709) + its import. TestChip.js untouched (still used by Projects/Queue/Upload). `isTest` still auto-set by the test watcher.
-- **Projects OUTER list — launch-pad redesign.** Rebuilt ProjectsListView header/list: game-hue poster + per-clip pip strip (green approved / red rejected / dim to-review) + "N of M left · X rendered" + Review/Open + hover trash. Folder sidebar + Status/Date/Game sort bar removed; replaced by status chips + game filter chips + a Sort dropdown (recent/oldest/most-to-review/name). Move-to-Folder bulk action removed. Pips come from real `p.clips[].status`/`renderStatus` (already in the listProjects summary). Folder store data left untouched.
+All in `src/renderer/views/RenameView.js`:
+
+- **Format pickers portaled (clipping fix).** `SessionPresetPicker` (session-header "Date + Tag + Day + Part" chip) and `PresetNamePicker` (per-file clickable proposed-name) now render their menus via `createPortal` to `document.body`, position:fixed from `getBoundingClientRect()` — same pattern as `GroupedSelect` (the game picker). Escapes the session card's `overflow:hidden`. `SessionPresetPicker` is right-aligned to its chip (`right: window.innerWidth - rect.right`); `PresetNamePicker` is left-aligned (`left: rect.left`).
+- **Left-edge accent bar removed.** Deleted `borderLeft: 3px solid <accent/hue>` from the highlighted item in both pickers. Selected state still reads via background tint + coloured text (per the no-left-edge-colour-bars rule).
+- **Middle-mouse scroll no longer closes the menu.** `GroupedSelect`'s `onScroll` handler was `() => setOpen(false)` on a capture-phase window scroll listener — it fired on scrolls originating *inside* the portaled menu, so middle-click auto-scroll (and wheel) snapped it shut. Now guarded: `if (menuRef.current.contains(e.target)) return;` — closes only on page-behind scroll, not menu-internal scroll. The two newly-portaled pickers got the same guarded handler so they don't reintroduce the bug.
 
 ## Key Decisions
 
-- **Rich rows over Tight** (Fega's pick from the mockup). Kept the game-hue wash (corner glow, not a left-edge bar — his rule) + hover-lift.
-- **Portal over dropping overflow:hidden** for the dropdown fix (robust, industry-standard).
-- **Folders retired, data left in storage** (Fega: "leave the folder data"). Dead folder UI/handlers left inert to keep the build green; excision → #179 rather than risk a ~400-line delete in the same pass.
-- **Version = 0.3.0-alpha.4** (alpha tick, not a minor): the whole 0.3.0-alpha line is the pre-beta iteration track (the Rename redesign itself was alpha.1), so consistency beat a 0.4.0 jump.
-- **No projects.js change** — pips derive from clips already in the summary.
+- **Reused the GroupedSelect portal pattern inline** in both pickers rather than extracting a shared component. Consistency with the existing (already-inlined) pattern beat DRY for a 3-fix pass; matches project surgical-change preference.
+- **Fixed the per-file `PresetNamePicker` too**, though Fega only pointed at the session-header chip — it's the identical component with the identical two bugs; flagged it in chat before implementing.
+- **Version = 0.3.0-alpha.5** (alpha tick): three small UI-polish fixes, staying on the 0.3.0 pre-beta iteration line.
 
 ## Next Steps
 
-1. **Fega verifies the live look** on the daily driver with real projects. Watch: pip colors correct, game-filter narrows to one game, sort order, hover-reveal feel, nothing misaligned. Fix on report.
-2. **#179 — excise the dead folder code** (sidebar handlers, folder + project context menus, delete-folder dialog, undo toast, orphaned state) and drop the now-unused props from the App.js call site. Own focused pass + rebuild.
-3. Optional: decide whether to purge the folder store data (left for now).
+_(Carried over from session 120 — not touched this session.)_
+
+1. **Fega verifies the live Projects launch-pad look** on the daily driver with real projects (pip colors, game-filter, sort order, hover-reveal) — session-120 work, still pending his read.
+2. **#179 — excise the dead folder code** in ProjectsView.js (inert sidebar handlers, folder/project context menus, delete-folder dialog, undo toast, orphaned state) + drop unused props from the App.js call site. Own focused pass + rebuild.
+3. Optional: decide whether to purge the leftover folder store data.
 
 ## Watch Out For
 
-- **ProjectsView.js is CRLF + has emoji escapes.** Large edits fail exact Edit-match — use a Node patch script with ASCII-only `indexOf` anchors + slice (this session: `scratchpad/pv-splice.js`). Single-line ASCII edits via Edit are fine.
-- **Inert folder machinery still in ProjectsView.js.** Rows no longer wire `onContextMenu` and the sidebar is gone, so `contextMenu`/`projectContextMenu`/`deletingFolder`/`moveFolderDropdown` never set → those menus/dialogs/toast render nothing; handlers (`handleMoveProjects` etc.) are dead but still defined. #179 removes them.
-- **Not driven live this session.** Verified compile + structure only (Fega's app was running; no CDP client installed — no `ws`/`chrome-remote-interface`). Any rendering glitch surfaces on his real-data pass.
-- **Sort default changed to "recent";** old stored `status`/`date`/`game` values are ignored on load (guarded), falling back to recent.
+- **Portaled-dropdown pattern is now used in three places in RenameView.js** (`GroupedSelect`, `SessionPresetPicker`, `PresetNamePicker`). Any future dropdown that closes on scroll MUST exclude menu-internal scrolls (`menuRef.contains(e.target)`) or it'll reintroduce the middle-mouse-close bug. Any dropdown inside the session card (`overflow:hidden`, RenameView.js:1667) MUST portal or it clips.
+- **`SessionPresetPicker` right-alignment uses `window.innerWidth - rect.right`.** On window resize the menu closes (resize listener) rather than repositioning, so no stale-position risk — but if that close-on-resize is ever removed, the right-anchor math must be recomputed.
+- **ProjectsView.js is still CRLF + has emoji escapes** and still carries inert folder machinery (#179) — unchanged from session 120.
 
 ## Logs / Debugging
 
-- `npm run build:renderer` → clean (2748 modules, ~17.6s). `npm run build` → `dist/ClipFlow Setup 0.3.0-alpha.4.exe` (124 MB, exit 0). Benign warnings only (chunk >500 kB; "author is missed"; @electron/rebuild).
-- No console/runtime driving performed. If a runtime error appears, likely spots: the new injected `<style>` blocks, the sort dropdown's outside-click (shares the existing `[data-menu]` mousedown handler + `setSortOpen`), or a project with no `clips` array (guarded via `p.clips || []` + `clipCount` fallback).
-- No CDP tooling present. To drive next time: launch a dev-profile instance from `build/` with `--remote-debugging-port=9222` + install a CDP client, OR use computer-use on "electron.exe" (per memory `project_computer_use_app_names`).
+- `npm run build:renderer` → clean (2748 modules, ~10.6s). `npm run build` → `dist/ClipFlow Setup 0.3.0-alpha.5.exe` (124 MB, exit 0, timestamp 2026-07-21 22:24). Benign warnings only (chunk >500 kB; "author is missed"; @electron/rebuild).
+- No CDP driving this session — the three fixes are contained positioning/event-handler logic, build passed clean, and Fega verified on the installed build directly.
+- If a format-picker menu ever appears mis-positioned: check `rect` is captured on open (the `if (ref.current) setRect(...)` in the open-effect) and that the trigger `ref` is on the outer wrapper, not the clickable span.
