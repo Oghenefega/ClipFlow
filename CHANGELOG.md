@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-23 (session 122) — 0.3.0-alpha.6 installer: preview sharpness + Queue polish + clip management
+
+### Changed
+- **Version bumped 0.3.0-alpha.5 → 0.3.0-alpha.6 and a fresh installer cut.** Sizing call: a batch of fixes, Queue polish, and clip-management upgrades on existing surfaces — an alpha tick on the 0.3.0 pre-beta line, consistent with how the Projects redesign shipped. Promotes everything from session 122 below: the editor preview sharpness fix, game-hue Queue rows and portaled dropdowns, video-level Published Today, working Duplicate / Create as new clip / Delete clip, the editable Play Style diff dialog, viewport-aware right-click menus, and the editor scroll-restore behaviors.
+
 ## [Unreleased] — 2026-07-22/23 (session 122) — Editor preview sharpness, Queue polish, clip management + review-flow upgrades
 
 ### Added
