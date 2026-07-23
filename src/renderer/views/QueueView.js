@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, extractGameTag, toFileUrl } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, extractGameTag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
@@ -538,6 +538,19 @@ export default function QueueView({
         && !scheduledTitles.has(c.title));
   }).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
   const isClipTest = (clip) => !!(clip && clip._projectId && projectInfo[clip._projectId]?.testMode);
+  // Game pill color — the clip's real game hue (parent project first, then
+  // gamesDb by tag/hashtag/name), accent as last resort. Keeps the Queue pills
+  // consistent with the Projects tab instead of the old purple/green pair.
+  const gameColorFor = (clip) => {
+    const projColor = clip._projectId ? projectInfo[clip._projectId]?.gameColor : "";
+    if (projColor) return projColor;
+    const g = (gamesDb || []).find((g) =>
+      (g.tag || "").toLowerCase() === clip.gameTag ||
+      (g.hashtag || "").toLowerCase() === clip.gameTag ||
+      (g.name || "").toLowerCase().replace(/\s+/g, "") === clip.gameTag
+    );
+    return g?.color || T.accent;
+  };
   const mainCount = approved.filter((c) => c.gameTag === mainGameTagLc).length;
   const [selClip, setSelClip] = useState(null);
   const [schedAction, setSchedAction] = useState(null);
@@ -1246,7 +1259,14 @@ export default function QueueView({
   const scheduledClips = approved.filter((c) => !!c.scheduledAt).sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
 
   // Compute stats
-  const publishedToday = publishLogs.filter((l) => l.status === "success" && new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
+  // Unique VIDEOS published today, not platform posts — one clip pushed to 4
+  // platforms writes 4 success logs but is still 1 video (matches how the
+  // other three stat cards count). clipTitle is the legacy-log fallback key.
+  const publishedToday = new Set(
+    publishLogs
+      .filter((l) => l.status === "success" && new Date(l.timestamp).toDateString() === new Date().toDateString())
+      .map((l) => l.clipId || l.clipTitle || "unknown")
+  ).size;
   const failedCount = approved.filter((c) => publishStatus[c.id]?.state === "failed").length;
 
   // Phase 5: Collect unique game tags for filter (lowercased — clip.gameTag is canonical)
@@ -1435,7 +1455,6 @@ export default function QueueView({
         )}
 
         {filteredUnscheduled.map((clip) => {
-          const isM = clip.gameTag === mainGameTagLc;
           const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
@@ -1447,6 +1466,13 @@ export default function QueueView({
           const durationStr = duration > 0 ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}` : "";
           const projName = projectInfo[clip._projectId]?.name || "";
           const badge = statusBadge(clip);
+          // Game-hue row wash — same recipe as the Projects launch-pad rows.
+          const gc = gameColorFor(clip);
+          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(255,255,255,0.02) 65%)`;
+          const rowBgHover = `linear-gradient(rgba(255,255,255,0.025), rgba(255,255,255,0.025)), ${rowBg}`;
+          // Selected keeps the game hue (stronger wash) instead of snapping to
+          // the purple accent; the expanded settings panel stays neutral.
+          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(255,255,255,0.03) 65%)`;
 
           return (
             <SortableRow key={clip.id} id={clip.id}>
@@ -1455,9 +1481,9 @@ export default function QueueView({
                   {/* Table row */}
                   <div
                     onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? T.accentGlow : "transparent", transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
-                    onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "rgba(255,255,255,0.015)"; }}
-                    onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
+                    onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
                   >
                     {/* Drag handle */}
                     <div {...listeners} onClick={(e) => e.stopPropagation()} style={{ cursor: "grab", color: T.textMuted, fontSize: 14 }}>{"\u2630"}</div>
@@ -1475,7 +1501,7 @@ export default function QueueView({
                       <div style={{ color: T.textTertiary, fontSize: 10, marginTop: 2 }}>{durationStr}{projName ? ` \u00B7 ${projName}` : ""}</div>
                     </div>
                     {/* Game tag */}
-                    <div>{gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()}</span>}</div>
+                    <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
                     {/* Platform icons — dimmed if toggled off */}
                     <div style={{ display: "flex", gap: 3 }}>
                       {activePlat.map((p) => {
@@ -1556,7 +1582,7 @@ export default function QueueView({
                           )}
                           <div style={{ display: "flex", gap: 12, fontSize: 12.5, color: T.textSecondary, marginBottom: 16, alignItems: "center" }}>
                             <span style={{ fontFamily: T.mono }}>{durationStr}</span>
-                            {gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 800, letterSpacing: 0.6, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.toUpperCase()}</span>}
+                            {gameTag && <GamePill tag={gameTag.toUpperCase()} color={gameColorFor(clip)} variant="solid" />}
                             {projName && <span>{projName}</span>}
                           </div>
 
@@ -1648,16 +1674,21 @@ export default function QueueView({
                                       {isYt && (
                                         <div style={{ padding: "6px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 8 }}>
                                           <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, minWidth: 32 }}>Privacy</span>
-                                          <select
-                                            value={clip.youtubePrivacy || "public"}
-                                            onChange={(e) => { e.stopPropagation(); saveYoutubePrivacy(clip, e.target.value); }}
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${T.border}`, borderRadius: 4, padding: "3px 8px", color: T.text, fontSize: 11, fontFamily: T.font, outline: "none", cursor: "pointer" }}
-                                          >
-                                            <option value="public">Public</option>
-                                            <option value="unlisted">Unlisted</option>
-                                            <option value="private">Private</option>
-                                          </select>
+                                          {/* Custom Select (not native <select>) — Chromium's native
+                                              option popup renders near-unreadable on the dark theme,
+                                              same reason the TikTok privacy picker uses it. */}
+                                          <div onClick={(e) => e.stopPropagation()}>
+                                            <Select
+                                              value={clip.youtubePrivacy || "public"}
+                                              onChange={(value) => saveYoutubePrivacy(clip, value)}
+                                              options={[
+                                                { value: "public", label: "Public" },
+                                                { value: "unlisted", label: "Unlisted" },
+                                                { value: "private", label: "Private" },
+                                              ]}
+                                              style={{ padding: 0, fontSize: 11, minWidth: 110 }}
+                                            />
+                                          </div>
                                         </div>
                                       )}
 
@@ -1864,7 +1895,6 @@ export default function QueueView({
         </div>
 
         {filteredScheduled.map((clip) => {
-          const isM = clip.gameTag === mainGameTagLc;
           const gameTag = clip.gameTag;
           const ps = publishStatus[clip.id];
           const isPub = ps?.state === "done";
@@ -1873,14 +1903,21 @@ export default function QueueView({
           const isSel = selClip === clip.id;
           const hasVideoId = !!clip.renderPath;
           const badge = statusBadge(clip);
+          // Game-hue row wash — same recipe as the Projects launch-pad rows.
+          const gc = gameColorFor(clip);
+          const rowBg = `radial-gradient(90% 160% at 100% 0%, ${gc}1f 0%, transparent 55%), linear-gradient(100deg, ${gc}1a 0%, ${gc}06 40%, rgba(255,255,255,0.02) 65%)`;
+          const rowBgHover = `linear-gradient(rgba(255,255,255,0.025), rgba(255,255,255,0.025)), ${rowBg}`;
+          // Selected keeps the game hue (stronger wash) instead of snapping to
+          // the purple accent; the expanded settings panel stays neutral.
+          const rowBgSel = `radial-gradient(90% 160% at 100% 0%, ${gc}33 0%, transparent 55%), linear-gradient(100deg, ${gc}2b 0%, ${gc}0d 40%, rgba(255,255,255,0.03) 65%)`;
 
           return (
             <div key={clip.id}>
               <div
                 onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? T.accentGlow : "transparent", transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
-                onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "rgba(255,255,255,0.015)"; }}
-                onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
+                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
+                onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
               >
                 {/* Thumbnail */}
                 <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1891,7 +1928,7 @@ export default function QueueView({
                   <div style={{ color: T.text, fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</div>
                 </div>
                 {/* Game */}
-                <div>{gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()}</span>}</div>
+                <div>{gameTag && <GamePill tag={(gameTag.length > 6 ? gameTag.slice(0, 6) : gameTag).toUpperCase()} color={gameColorFor(clip)} size="sm" variant="solid" />}</div>
                 {/* Scheduled time */}
                 <div style={{ fontSize: 11, fontWeight: 600, color: T.yellow }}>{formatSchedule(clip.scheduledAt)}</div>
                 {/* Status */}
@@ -1924,7 +1961,7 @@ export default function QueueView({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{clip.title}</div>
                       <div style={{ display: "flex", gap: 10, fontSize: 11, color: T.textTertiary, marginBottom: 8, alignItems: "center" }}>
-                        {gameTag && <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 800, letterSpacing: 0.6, background: isM ? T.accentDim : "rgba(52,211,153,0.12)", color: isM ? T.accentLight : T.green }}>{gameTag.toUpperCase()}</span>}
+                        {gameTag && <GamePill tag={gameTag.toUpperCase()} color={gameColorFor(clip)} variant="solid" />}
                         <span style={{ color: T.yellow, fontWeight: 600 }}>{formatSchedule(clip.scheduledAt)}</span>
                       </div>
                       {/* Platform toggles */}

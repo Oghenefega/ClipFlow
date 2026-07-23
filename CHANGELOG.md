@@ -4,9 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-22 (session 122) — Editor preview sharpness fix for vertical layouts
+## [Unreleased] — 2026-07-22 (session 122) — Editor preview sharpness fix + Queue tab polish
+
+### Changed
+- **Queue rows now carry their game's color, matching the Projects tab.** Every clip row on the Queue (Unscheduled and Scheduled) gets the same soft game-hue gradient wash the Projects launch-pad rows use, and the small game tag is a bold game-colored gradient pill instead of the old purple-for-main-game / green-for-everything-else pair. Clicking a row keeps the game hue (slightly stronger) rather than snapping to purple. The expanded settings area deliberately stays neutral dark so platform settings look identical across games. [QueueView.js, shared.js]
 
 ### Fixed
+- **The Queue schedule date/time dropdowns are no longer hidden behind other elements.** Opening the "Pick date" / hour / minute menus while scheduling a clip showed a menu clipped by the card edge — the same disease the Rename-tab pickers had. The shared dropdown component now renders its open menu above everything (portal), which cures every clipped dropdown app-wide at once, including the Queue filter dropdowns; menus also stack above confirmation dialogs. [shared.js]
+- **The YouTube "Privacy" picker in a clip's expanded settings is now the app's dark dropdown.** It was a native browser dropdown whose white popup rendered the Unlisted/Private options nearly unreadable on the dark theme — the same reason the TikTok privacy picker was converted earlier. [QueueView.js]
+- **"Published Today" on the Queue counts videos, not platform posts.** One video published to 4 platforms used to count as 4 (e.g. the misleading "17"); it now counts each video once, consistent with the other three stat cards. The Publish Log below keeps the per-platform detail. [QueueView.js]
 - **The editor preview is no longer blurry/pixelated at Fit zoom when a vertical layout (reframe) is active.** Since the reframe feature, the preview repaints the video through a compositing canvas, and shrinking the 2560-wide recording down to the Fit-sized preview in a single step used a rough scaling filter — small text was unreadable until you zoomed in (zooming shrank less, so it looked fine). The facecam and gameplay bands are now downscaled in halving stages (each step ≤2x), which produces a crisp image at any zoom, and the canvas requests Chrome's high-quality smoothing as well. The intentionally-blurred background band is untouched, and exports were never affected (they render through FFmpeg). [PreviewPanelNew.js]
 
 ## [Unreleased] — 2026-07-21 (session 121) — 0.3.0-alpha.5 installer: three more Rename-tab dropdown fixes

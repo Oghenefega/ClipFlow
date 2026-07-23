@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import T from "../styles/theme";
 
 // ============ UTILITIES ============
@@ -27,8 +28,18 @@ export const PulseDot = ({ color = T.green, size = 8 }) => (
   </span>
 );
 
-export const GamePill = ({ tag, color, size = "md" }) => {
+export const GamePill = ({ tag, color, size = "md", variant }) => {
   const s = size === "sm" ? { px: 6, py: 3, fs: 10 } : { px: 10, py: 4, fs: 11 };
+  // "solid": bold game-hue gradient fill with white text — the Projects-tab
+  // poster look shrunk to pill size (Queue rows). Default stays the subtle
+  // tint used across Rename/Settings.
+  if (variant === "solid") {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py + 1}px ${s.px + 2}px`, borderRadius: 6, fontSize: s.fs, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1, background: `linear-gradient(150deg, ${color}, ${color}99 70%, ${color}55)`, textShadow: "0 1px 3px rgba(0,0,0,0.55)", boxShadow: `0 0 10px ${color}33` }}>
+        {tag}
+      </span>
+    );
+  }
   return (
     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${s.py}px ${s.px}px`, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 6, fontSize: s.fs, fontWeight: 700, color, fontFamily: T.mono, letterSpacing: "1px", lineHeight: 1 }}>
       {tag}
@@ -106,16 +117,49 @@ export const Select = ({ value, onChange, options, style: x, renderOption, rende
   const [open, setOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(-1);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const [rect, setRect] = useState(null);
 
+  // Portal the menu to <body> so it escapes ancestors' overflow:hidden and the
+  // stacking contexts dnd-kit's row transforms create (Queue schedule pickers
+  // were clipped by their section card \u2014 same disease as the Rename pickers).
+  // Outside-click checks trigger AND menu; page scroll closes it but scrolling
+  // inside the menu does not (RenameView pattern).
   useEffect(() => {
     if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    if (ref.current) setRect(ref.current.getBoundingClientRect());
+    const onDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onScroll = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [open]);
 
   const parsed = options.map((o) => typeof o === "string" ? { value: o, label: o } : o);
   const selected = parsed.find((o) => o.value === value);
+
+  const menu = open && rect ? createPortal(
+    <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 4, left: rect.left, minWidth: rect.width, width: "max-content", maxWidth: Math.max(rect.width, window.innerWidth - rect.left - 12), maxHeight: 240, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 10000, padding: 4 }}>
+      {parsed.map((o, i) => (
+        <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
+          {renderOption ? renderOption(o) : o.label}
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-block", ...x }}>
@@ -125,15 +169,7 @@ export const Select = ({ value, onChange, options, style: x, renderOption, rende
         </span>
         <span style={{ color: T.textMuted, fontSize: 10, transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>{"\u25BC"}</span>
       </button>
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxHeight: 240, overflowY: "auto", overflowX: "hidden", background: T.surface, border: `1px solid ${T.borderHover || T.border}`, borderRadius: T.radius.md, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 999, padding: 4 }}>
-          {parsed.map((o, i) => (
-            <div key={o.value} onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(-1)} onClick={() => { onChange(o.value); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, cursor: "pointer", background: o.value === value ? "rgba(139,92,246,0.12)" : hovIdx === i ? "rgba(255,255,255,0.06)" : "transparent", color: o.value === value ? T.accentLight : T.text, fontSize: 13, fontFamily: T.font, fontWeight: o.value === value ? 600 : 400, transition: "background 0.1s" }}>
-              {renderOption ? renderOption(o) : o.label}
-            </div>
-          ))}
-        </div>
-      )}
+      {menu}
     </div>
   );
 };
