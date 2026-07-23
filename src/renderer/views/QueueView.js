@@ -1700,10 +1700,24 @@ export default function QueueView({
                                         {isEditingThis ? (
                                           <textarea
                                             autoFocus
+                                            // Open at content height (≥120px, matching the read view)
+                                            // and auto-grow while typing — never the old 2-line box.
+                                            // dataset.sized guards the inline ref re-running on every
+                                            // keystroke render so a manual drag-resize isn't undone.
+                                            ref={(el) => {
+                                              if (el && !el.dataset.sized) {
+                                                el.dataset.sized = "1";
+                                                el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
+                                              }
+                                            }}
                                             value={editCaptionValue}
-                                            onChange={(e) => setEditCaptionValue(e.target.value)}
+                                            onChange={(e) => {
+                                              setEditCaptionValue(e.target.value);
+                                              const el = e.target;
+                                              if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
+                                            }}
                                             onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
-                                            style={{ width: "100%", minHeight: 64, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
+                                            style={{ width: "100%", minHeight: 120, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
                                           />
                                         ) : (
                                           <div

@@ -34,6 +34,7 @@ import {
   Download,
   FolderOpen,
   X,
+  Trash2,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -72,8 +73,12 @@ function fmtDuration(sec) {
 }
 
 // ── Clip Navigator Dropdown ──
-function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) {
+function ClipNavigator({ clips, currentClipId, onSelect, onDelete, onClose, chevronRef }) {
   const dropdownRef = useRef(null);
+  const activeTileRef = useRef(null);
+  // Two-stage delete: first click arms ("Delete?"), second click fires.
+  // Leaving the tile disarms — no accidental one-click deletions.
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -86,6 +91,11 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose, chevronRef]);
+
+  // Open scrolled to the clip being edited, not the top of the grid.
+  useEffect(() => {
+    activeTileRef.current?.scrollIntoView({ block: "nearest" });
+  }, []);
 
   if (!clips || clips.length === 0) {
     return (
@@ -137,9 +147,14 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                       ? "border-emerald-400/40 bg-card hover:bg-secondary/40"
                       : "border-border/60 hover:border-muted-foreground/40 bg-card hover:bg-secondary/40";
             return (
-              <button
+              <div
                 key={c.id}
+                ref={isActive ? activeTileRef : undefined}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(c.id)}
+                onKeyDown={(e) => { if (e.key === "Enter") onSelect(c.id); }}
+                onMouseLeave={() => { if (confirmDeleteId === c.id) setConfirmDeleteId(null); }}
                 className={`
                   group flex flex-col rounded-lg overflow-hidden border transition-all cursor-pointer
                   w-[108px] shrink-0
@@ -173,15 +188,34 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                       <Check className="h-2.5 w-2.5 text-white" />
                     </div>
                   )}
-                  {/* Status badge — top right corner */}
+                  {/* Status badge — top right corner (hides while hovering so the delete button owns the corner) */}
                   {isPosted && (
-                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/90 text-white px-1 py-0.5 rounded">✓ Posted</span>
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/90 text-white px-1 py-0.5 rounded group-hover:opacity-0 transition-opacity">✓ Posted</span>
                   )}
                   {isQueued && (
-                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-cyan-500/90 text-white px-1 py-0.5 rounded">Queued</span>
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-cyan-500/90 text-white px-1 py-0.5 rounded group-hover:opacity-0 transition-opacity">Queued</span>
                   )}
                   {isApproved && !isActive && (
-                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/70 text-white px-1 py-0.5 rounded">✓</span>
+                    <span className="absolute top-1 right-1 text-[8px] font-bold bg-emerald-500/70 text-white px-1 py-0.5 rounded group-hover:opacity-0 transition-opacity">✓</span>
+                  )}
+                  {/* Hover delete — two-stage confirm */}
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirmDeleteId === c.id) { setConfirmDeleteId(null); onDelete(c.id); }
+                        else setConfirmDeleteId(c.id);
+                      }}
+                      title={confirmDeleteId === c.id ? "Click again to delete this clip" : "Delete clip"}
+                      className={`absolute top-1 right-1 z-10 flex items-center gap-0.5 rounded px-1 py-0.5 transition-all ${
+                        confirmDeleteId === c.id
+                          ? "opacity-100 bg-red-500 text-white text-[8px] font-bold"
+                          : "opacity-0 group-hover:opacity-100 bg-black/70 hover:bg-red-500/90 text-white"
+                      }`}
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                      {confirmDeleteId === c.id && "Delete?"}
+                    </button>
                   )}
                 </div>
                 {/* Title */}
@@ -194,7 +228,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onClose, chevronRef }) 
                     {c.title || "Untitled"}
                   </span>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -650,6 +684,32 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
     }
   };
 
+  // Delete a clip from the navigator. Removes the record only (rendered files
+  // stay on disk). Deleting the open clip jumps to its nearest neighbor, or
+  // leaves the editor if it was the last one; deleting another clip just
+  // refreshes the project so the tile disappears.
+  const handleClipDelete = async (clipId) => {
+    if (!project?.id) return;
+    const r = await window.clipflow?.projectDeleteClip?.(project.id, clipId);
+    if (r?.error) { console.error("Delete clip failed:", r.error); return; }
+    if (clipId === clip?.id) {
+      const idx = clips.findIndex((c) => c.id === clipId);
+      const remaining = clips.filter((c) => c.id !== clipId);
+      const next = remaining[Math.min(Math.max(idx, 0), remaining.length - 1)];
+      if (next) {
+        useEditorStore.getState().initFromContext({ projectId: project.id, clipId: next.id }, [project]);
+      } else {
+        setNavOpen(false);
+        onBack?.();
+      }
+    } else {
+      try {
+        const full = await window.clipflow.projectLoad(project.id);
+        if (full?.project) useEditorStore.setState({ project: full.project });
+      } catch (e) { console.error("Project refresh after delete failed:", e); }
+    }
+  };
+
   return (
     <div className="h-12 min-h-[48px] flex items-center px-3 border-b bg-card select-none relative">
       {/* Left: ClipFlow logo/back + Undo/Redo + Last saved */}
@@ -770,6 +830,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
             clips={clips}
             currentClipId={clip?.id}
             onSelect={handleClipSelect}
+            onDelete={handleClipDelete}
             onClose={() => setNavOpen(false)}
             chevronRef={navChevronRef}
           />

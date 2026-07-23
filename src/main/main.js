@@ -1708,6 +1708,21 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   } catch (err) { return { error: err.message }; }
 });
 
+ipcMain.handle("project:duplicateClip", async (_, projectId, clipId, overrides) => {
+  try {
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
+    return projects.duplicateClip(watchFolder, projectId, clipId, overrides || {});
+  } catch (err) { return { error: err.message }; }
+});
+
+// Removes the clip record only — never deletes rendered/source files from disk.
+ipcMain.handle("project:deleteClip", async (_, projectId, clipId) => {
+  try {
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
+    return projects.deleteClip(watchFolder, projectId, clipId, false);
+  } catch (err) { return { error: err.message }; }
+});
+
 ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)

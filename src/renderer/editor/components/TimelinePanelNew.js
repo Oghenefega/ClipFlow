@@ -1078,7 +1078,24 @@ export default function TimelinePanelNew() {
       </div>
 
       {/* ── Context menu ── */}
-      {contextMenu && (
+      {contextMenu && (() => {
+        // "Duplicate original video" / "Create as new clip" (both were dead
+        // menu items). Save current edits first so the copy matches the
+        // screen, duplicate on disk, then reload the project and open the
+        // copy — landing the user on the clip they'll trim next.
+        const duplicateCurrentClip = async (overrides) => {
+          const s = useEditorStore.getState();
+          const { project, clip } = s;
+          if (!project?.id || !clip?.id || project.id === "__source_preview__") return;
+          await s.handleSave();
+          const r = await window.clipflow?.projectDuplicateClip?.(project.id, clip.id, overrides);
+          if (r?.success && r.clip) {
+            s.initFromContext({ projectId: project.id, clipId: r.clip.id }, []);
+          } else if (r?.error) {
+            console.error("Duplicate clip failed:", r.error);
+          }
+        };
+        return (
         <TrackContextMenu
           x={contextMenu.x} y={contextMenu.y}
           track={contextMenu.track}
@@ -1104,7 +1121,15 @@ export default function TimelinePanelNew() {
           } : undefined}
           onRippleDelete={() => handleDelete(true, contextMenu.track, contextMenu.segId)}
           onDelete={() => handleDelete(false, contextMenu.track, contextMenu.segId)}
-          onDuplicate={() => { /* TODO */ }}
+          onDuplicate={() => duplicateCurrentClip()}
+          onCreateClip={() => {
+            // New clip containing ONLY the right-clicked scene segment — the
+            // "two funny moments in one clip" workflow: each becomes its own
+            // video without sacrificing the other.
+            const seg = useEditorStore.getState().nleSegments.find((n) => n.id === contextMenu.segId);
+            if (!seg) return;
+            duplicateCurrentClip({ nleSegments: [seg], startTime: seg.sourceStart, endTime: seg.sourceEnd });
+          }}
           onDeleteWithAudio={() => {
             // "Delete subtitle/caption + clip" — cut only this span out of the
             // NLE timeline. Shared store action (#109) so the timeline menu and
@@ -1114,7 +1139,8 @@ export default function TimelinePanelNew() {
             setSelectedSegIds(new Set());
           }}
         />
-      )}
+        );
+      })()}
     </div>
   );
 }

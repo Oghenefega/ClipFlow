@@ -634,9 +634,10 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
 }
 
 // ============ CLIP ROW ============
-function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, gamesDb, template }) {
+function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
 
@@ -739,8 +740,35 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
               </div>
             )}
           </div>
-          <div style={{ flexShrink: 0 }}>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
             <ScoreDisplay score={clip.highlightScore} />
+            {/* Quiet delete — two-stage confirm; removes the record only, files stay on disk */}
+            {onDeleteClip && (
+              <button
+                onClick={() => {
+                  if (confirmDelete) { setConfirmDelete(false); onDeleteClip(project.id, clip.id); }
+                  else setConfirmDelete(true);
+                }}
+                onMouseLeave={() => setConfirmDelete(false)}
+                title={confirmDelete ? "Click again to delete this clip" : "Delete clip"}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: confirmDelete ? "4px 8px" : 4, borderRadius: 6,
+                  border: `1px solid ${confirmDelete ? T.red : T.border}`,
+                  background: confirmDelete ? T.redDim : "transparent",
+                  color: confirmDelete ? T.red : T.textMuted,
+                  fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => { if (!confirmDelete) e.currentTarget.style.color = T.red; }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                {confirmDelete && "Delete?"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1495,8 +1523,19 @@ export function ProjectsListView({
 // ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, gamesDb }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId }) {
   const [filter, setFilter] = useState("all");
+
+  // Returning from the editor lands on the clip that was being edited instead
+  // of the top of the list. One rAF lets the rows lay out before scrolling.
+  useEffect(() => {
+    if (!scrollToClipId) return;
+    const id = requestAnimationFrame(() => {
+      document.querySelector(`[data-clip-id="${scrollToClipId}"]`)?.scrollIntoView({ block: "center" });
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [batchRendering, setBatchRendering] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ pct: 0, detail: "" });
 
@@ -1589,16 +1628,18 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
         {filtered.map((clip) => (
-          <ClipRow
-            key={clip.id}
-            clip={clip}
-            project={project}
-            onUpdateClip={onUpdateClip}
-            onEditClipTitle={onEditClipTitle}
-            onOpenInEditor={onOpenInEditor}
-            gamesDb={gamesDb}
-            template={previewTemplate}
-          />
+          <div key={clip.id} data-clip-id={clip.id}>
+            <ClipRow
+              clip={clip}
+              project={project}
+              onUpdateClip={onUpdateClip}
+              onEditClipTitle={onEditClipTitle}
+              onOpenInEditor={onOpenInEditor}
+              onDeleteClip={onDeleteClip}
+              gamesDb={gamesDb}
+              template={previewTemplate}
+            />
+          </div>
         ))}
         {filtered.length === 0 && (
           <Card style={{ padding: 40, textAlign: "center" }}>

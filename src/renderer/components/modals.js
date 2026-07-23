@@ -295,15 +295,86 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
 };
 
 // ============ PROFILE DIFF MODAL ============
+// Line-level diff helpers: lines are compared whitespace/case-insensitively so
+// cosmetic tweaks don't light up as "new". A changed line counts as new (green
+// in Proposed) AND dropped (red tint in Current) — that's what a reviewer wants
+// to read on both sides.
+const normLine = (l) => l.replace(/\s+/g, " ").trim().toLowerCase();
+const lineSetOf = (text) => new Set((text || "").split("\n").map(normLine).filter(Boolean));
+const wordCountOf = (text) => (text || "").trim().split(/\s+/).filter(Boolean).length;
+
+// One diff pane: highlighted read view with an Edit pencil that swaps in an
+// auto-sized textarea; blur returns to the highlighted view with edits kept.
+function ProfilePane({ label, dotColor, tint, text, onChange, otherLineSet, highlightColor, emptyLabel }) {
+  const [editing, setEditing] = useState(false);
+  const words = wordCountOf(text);
+  const lines = (text || "").split("\n");
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+        <div style={{ width: 8, height: 8, borderRadius: 4, background: dotColor, boxShadow: `0 0 6px ${dotColor}` }} />
+        <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</span>
+        <div style={{ flex: 1 }} />
+        {/* Word counter — amber past 300 words, the update prompt's own budget */}
+        <span style={{ fontSize: 10.5, fontFamily: T.mono, color: words > 300 ? T.yellow : T.textMuted }} title={words > 300 ? "Over ~300 words — consider merging or cutting bullets so AI generation stays sharp" : "Word count"}>{words}w</span>
+        <button
+          onClick={() => setEditing(!editing)}
+          title={editing ? "Done editing" : "Edit this text"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 5, border: `1px solid ${editing ? T.accentBorder : T.border}`, background: editing ? T.accentDim : "transparent", color: editing ? T.accentLight : T.textTertiary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+          {editing ? "Done" : "Edit"}
+        </button>
+      </div>
+      {editing ? (
+        <textarea
+          autoFocus
+          ref={(el) => { if (el && !el.dataset.sized) { el.dataset.sized = "1"; el.style.height = Math.max(160, el.scrollHeight + 2) + "px"; } }}
+          value={text}
+          onChange={(e) => {
+            onChange(e.target.value);
+            const el = e.target;
+            if (el.scrollHeight > el.clientHeight) el.style.height = el.scrollHeight + 2 + "px";
+          }}
+          onBlur={() => setEditing(false)}
+          style={{ width: "100%", minHeight: 160, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, fontFamily: T.font, outline: "none", resize: "vertical" }}
+        />
+      ) : (
+        <div
+          onDoubleClick={() => setEditing(true)}
+          title="Double-click to edit"
+          style={{ background: tint.bg, border: `1px solid ${tint.border}`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, minHeight: 120, cursor: "text" }}
+        >
+          {text
+            ? lines.map((line, i) => {
+                const changed = normLine(line) && !otherLineSet.has(normLine(line));
+                return (
+                  <div key={i} style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", ...(changed ? { background: highlightColor, borderRadius: 4, padding: "1px 4px", margin: "1px -4px" } : {}) }}>
+                    {line || " "}
+                  </div>
+                );
+              })
+            : <span style={{ color: T.textMuted, fontStyle: "italic" }}>{emptyLabel}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, onAccept, onDismiss }) => {
   const [accepting, setAccepting] = useState(false);
+  // Both panes are editable; the button you press saves THAT pane's text.
+  const [curText, setCurText] = useState(oldProfile || "");
+  const [newText, setNewText] = useState(newProfile || "");
+  const curSet = lineSetOf(curText);
+  const newSet = lineSetOf(newText);
 
   const handleAccept = async () => {
     setAccepting(true);
     try {
-      await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, newProfile);
+      await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, newText);
       await window.clipflow.gameProfilesResetCount(gameTag);
-      onAccept(newProfile);
+      onAccept(newText);
     } catch (err) {
       console.error("Failed to save profile update:", err);
     } finally {
@@ -312,9 +383,20 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
   };
 
   const handleDismiss = async () => {
-    await window.clipflow.gameProfilesResetCount(gameTag);
+    try {
+      // Honor edits made to the Current pane — "Keep Current" keeps what the
+      // user sees there, not a stale copy from before their edits.
+      if (curText !== (oldProfile || "")) {
+        await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, curText);
+      }
+      await window.clipflow.gameProfilesResetCount(gameTag);
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    }
     onDismiss();
   };
+
+  const curEdited = curText !== (oldProfile || "");
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
@@ -325,7 +407,7 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
             <div style={{ width: 32, height: 32, borderRadius: 8, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🧠</div>
             <div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>Play Style Update — {gameName}</div>
-              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>AI analyzed recent sessions and suggests updating your play style profile</div>
+              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>Green = newly added in the proposal · red tint = dropped from current · both sides editable</div>
             </div>
           </div>
         </div>
@@ -333,32 +415,32 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
         {/* Diff content */}
         <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {/* Old */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: T.red, boxShadow: `0 0 6px ${T.red}` }} />
-                <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Current</span>
-              </div>
-              <div style={{ background: "rgba(248,113,113,0.04)", border: `1px solid rgba(248,113,113,0.15)`, borderRadius: T.radius.md, padding: "14px 16px", color: T.textSecondary, fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", minHeight: 120 }}>
-                {oldProfile || "(empty)"}
-              </div>
-            </div>
-            {/* New */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}` }} />
-                <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Proposed</span>
-              </div>
-              <div style={{ background: "rgba(52,211,153,0.04)", border: `1px solid rgba(52,211,153,0.15)`, borderRadius: T.radius.md, padding: "14px 16px", color: T.text, fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", minHeight: 120 }}>
-                {newProfile || "(empty)"}
-              </div>
-            </div>
+            <ProfilePane
+              label="Current"
+              dotColor={T.red}
+              tint={{ bg: "rgba(248,113,113,0.04)", border: "rgba(248,113,113,0.15)" }}
+              text={curText}
+              onChange={setCurText}
+              otherLineSet={newSet}
+              highlightColor="rgba(248,113,113,0.14)"
+              emptyLabel="(empty)"
+            />
+            <ProfilePane
+              label="Proposed"
+              dotColor={T.green}
+              tint={{ bg: "rgba(52,211,153,0.04)", border: "rgba(52,211,153,0.15)" }}
+              text={newText}
+              onChange={setNewText}
+              otherLineSet={curSet}
+              highlightColor="rgba(52,211,153,0.18)"
+              emptyLabel="(empty)"
+            />
           </div>
         </div>
 
         {/* Actions */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={handleDismiss} style={{ flex: 1, padding: 12, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Keep Current</button>
+          <button onClick={handleDismiss} style={{ flex: 1, padding: 12, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{curEdited ? "Keep Current (edited)" : "Keep Current"}</button>
           <button onClick={handleAccept} disabled={accepting} style={{ flex: 2, padding: 12, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: accepting ? 0.6 : 1 }}>{accepting ? "Saving..." : "Accept Update"}</button>
         </div>
       </div>

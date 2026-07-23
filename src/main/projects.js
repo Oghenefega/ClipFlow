@@ -317,6 +317,45 @@ function addClip(watchFolder, projectId, clipData) {
 }
 
 /**
+ * Duplicate a clip within a project. The copy keeps every editing field
+ * (timeline segments, subtitles, captions, styles) but gets a fresh id, a
+ * "(copy)" title, un-rendered state, review status "none", and no publish
+ * history. `overrides` lets callers reshape the copy — "Create as new clip"
+ * passes a single-segment nleSegments plus matching start/end times.
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {string} clipId
+ * @param {object} overrides
+ * @returns {{ success: true, clip: object }|{ error: string }}
+ */
+function duplicateClip(watchFolder, projectId, clipId, overrides = {}) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  const idx = project.clips.findIndex((c) => c.id === clipId);
+  if (idx === -1) return { error: "Clip not found" };
+  const src = project.clips[idx];
+
+  const copy = {
+    ...JSON.parse(JSON.stringify(src)),
+    ...overrides,
+    id: generateClipId(),
+    title: `${src.title || "Clip"} (copy)`,
+    status: "none",
+    renderStatus: "pending",
+    renderPath: null,
+    publishState: {},
+    createdAt: new Date().toISOString(),
+  };
+
+  // Sit right after the original so the pair reads together in the clip list.
+  project.clips.splice(idx + 1, 0, copy);
+  saveProject(watchFolder, project);
+
+  return { success: true, clip: copy };
+}
+
+/**
  * Delete a clip from a project (and optionally its file).
  * @param {string} watchFolder
  * @param {string} projectId
@@ -374,6 +413,7 @@ module.exports = {
   updateClip,
   updateReframe,
   addClip,
+  duplicateClip,
   deleteClip,
   updateProjectField,
   getClipsDir,

@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
 import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onDeleteWithAudio, splitDisabledReason, onAddWord }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -10,13 +10,29 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
+  // Viewport-aware placement: the timeline lives at the bottom of the window,
+  // so a menu at the cursor usually has no room below. Measure after mount
+  // (useLayoutEffect — before paint, so no flicker) and flip above the cursor
+  // when the menu would spill past the bottom; clamp the right edge likewise.
+  const [pos, setPos] = useState({ left: x, top: y });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    let left = x, top = y;
+    if (left + r.width > window.innerWidth - pad) left = Math.max(pad, window.innerWidth - pad - r.width);
+    if (top + r.height > window.innerHeight - pad) top = Math.max(pad, y - r.height);
+    setPos({ left, top });
+  }, [x, y]);
+
   const trackLabel = track === "cap" ? "caption" : track === "sub" ? "subtitle" : "scene";
 
   return (
     <div
       ref={ref}
       className="fixed rounded-lg border bg-popover shadow-xl z-[100] overflow-hidden w-[220px]"
-      style={{ left: x, top: y }}
+      style={{ left: pos.left, top: pos.top }}
     >
       <button
         className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
@@ -39,7 +55,7 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
       <Separator />
       {track === "audio" && (
         <>
-          <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onClose(); }}>
+          <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onCreateClip?.(); onClose(); }}>
             <FilePlus className="h-3.5 w-3.5 text-green-400" /> Create as new clip
           </button>
           <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onDuplicate(); onClose(); }}>

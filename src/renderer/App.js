@@ -126,6 +126,7 @@ export default function App() {
 
   // Editor context — which project/clip to open
   const [editorContext, setEditorContext] = useState(null); // { projectId, clipId }
+  const [returnClipId, setReturnClipId] = useState(null); // clip to scroll to when returning from the editor
 
   // Add Game modal — null or "game" or "content"
   const [showAddGame, setShowAddGame] = useState(null);
@@ -634,7 +635,19 @@ export default function App() {
             if (full?.project) setSelProj(full.project);
           } catch (e) { /* ignore */ }
         }}
+        onDeleteClip={async (projectId, clipId) => {
+          try {
+            const r = await window.clipflow.projectDeleteClip(projectId, clipId);
+            if (r?.error) { console.error("Delete clip failed:", r.error); return; }
+            const full = await window.clipflow.projectLoad(projectId);
+            if (full?.project) {
+              setLocalProjects((prev) => prev.map((p) => p.id === projectId ? full.project : p));
+              setSelProj((prev) => prev && prev.id === projectId ? full.project : prev);
+            }
+          } catch (e) { console.error("Delete clip failed:", e); }
+        }}
         gamesDb={gamesDb}
+        scrollToClipId={returnClipId}
       />
     );
   };
@@ -841,6 +854,7 @@ export default function App() {
               }
               // #125: source-preview opened from Recordings → return there, not Clips
               const backTo = editorContext?.sourcePreviewPath ? "recordings" : "clips";
+              setReturnClipId(editorContext?.clipId || null); // land the clip list on this clip
               setEditorContext(null); setView(backTo);
             }} onClipRendered={async (projectId) => {
               try {
