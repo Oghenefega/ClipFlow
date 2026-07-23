@@ -50,6 +50,50 @@ const CENTER_DRIFT = 1;
 // can be moved freely in any direction but never lost off-screen (recenter via Fit).
 const KEEP_VISIBLE = 48;
 
+// #164: high-quality downscale for video→canvas band draws. A single drawImage
+// bilinear-samples only 2×2 source texels, so shrinks past ~2x (2560-wide source
+// into a ~500px Fit canvas) alias into a blurry/pixelated band — and Chromium
+// ignores imageSmoothingQuality "high" on the GPU video path, so the hint alone
+// doesn't fix it. Halving through a scratch canvas until the final step is ≤2x
+// gives mipmap-grade output at negligible paint cost.
+function drawVideoHQ(ctx, source, sx, sy, sw, sh, dx, dy, dw, dh, scratch) {
+  if (sw <= dw * 2) {
+    ctx.drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh);
+    return;
+  }
+  // Ladder of intermediate sizes: dw*2, dw*4, … capped so the first step down
+  // from the source is itself ≤2x. (sw > dw*2 here, so at least one rung.)
+  const sizes = [];
+  let w = Math.ceil(dw), h = Math.ceil(dh);
+  while (w * 2 < sw && sizes.length < 4) {
+    w *= 2;
+    h *= 2;
+    sizes.push([w, h]);
+  }
+  if (!sizes.length) {
+    // Rounding left no rung (shrink barely over 2x) — direct draw is fine there.
+    ctx.drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh);
+    return;
+  }
+  sizes.reverse();
+  const [w0, h0] = sizes[0];
+  if (scratch.width < w0) scratch.width = w0;
+  if (scratch.height < h0) scratch.height = h0;
+  const sctx = scratch.getContext("2d");
+  sctx.imageSmoothingEnabled = true;
+  sctx.imageSmoothingQuality = "high";
+  sctx.drawImage(source, sx, sy, sw, sh, 0, 0, w0, h0);
+  let cw = w0, ch = h0;
+  for (let i = 1; i < sizes.length; i++) {
+    const [nw, nh] = sizes[i];
+    // Canvas-to-self draw is spec-safe (source snapshots before the write).
+    sctx.drawImage(scratch, 0, 0, cw, ch, 0, 0, nw, nh);
+    cw = nw;
+    ch = nh;
+  }
+  ctx.drawImage(scratch, 0, 0, cw, ch, dx, dy, dw, dh);
+}
+
 // ── Zoom Menu ──
 function ZoomMenu({ zoom, setZoom, onClose, triggerRef }) {
   const menuRef = useRef(null);
@@ -836,6 +880,7 @@ export default function PreviewPanelNew() {
   const compositeCanvasRef = useRef(null); // #164 reframe compositor surface
   const blurScratchRef = useRef(null); // #164 tiny offscreen canvas for the blur band
   const featherScratchRef = useRef(null); // #164 polish: offscreen canvas for the game band's bottom-edge alpha feather
+  const hqScratchRef = useRef(null); // #164: stepped-downscale ladder canvas for drawVideoHQ
   const [isPanning, setIsPanning] = useState(false);
 
   // Track canvas size for proportional text scaling
@@ -1348,7 +1393,14 @@ export default function PreviewPanelNew() {
     const style = resolveReframeStyle(rf.style);
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "medium";
+    ctx.imageSmoothingQuality = "high";
+    // Sharp bands (cam/game) go through drawVideoHQ — see its comment for why
+    // a direct drawImage pixelates at Fit-sized shrinks.
+    let hqScratch = hqScratchRef.current;
+    if (!hqScratch) {
+      hqScratch = document.createElement("canvas");
+      hqScratchRef.current = hqScratch;
+    }
 
     // #164 B3 fully-zoomed mirror: same 1080-space band + thresholds as
     // render.js — no cam and the band spans the 1920 frame → the game crop is
@@ -1356,12 +1408,12 @@ export default function PreviewPanelNew() {
     const band1080 = 2 * Math.round((1080 * game.h / game.w) / 2);
     if (!cam && band1080 >= 1916) {
       if (band1080 <= 1924) {
-        ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, 0, W, H);
+        drawVideoHQ(ctx, video, game.x, game.y, game.w, game.h, 0, 0, W, H, hqScratch);
       } else {
         // Taller than the frame: center it — the canvas clips top/bottom just
         // like the render side's centered 1920 crop.
         const tallH = W * (game.h / game.w);
-        ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, (H - tallH) / 2, W, tallH);
+        drawVideoHQ(ctx, video, game.x, game.y, game.w, game.h, 0, (H - tallH) / 2, W, tallH, hqScratch);
       }
       return;
     }
@@ -1402,7 +1454,7 @@ export default function PreviewPanelNew() {
     const gameBandH = W * (game.h / game.w);
     const bandsBottom = camBandH + gameBandH;
     const gameY = cam ? camBandH : (H - gameBandH) / 2;
-    if (cam) ctx.drawImage(video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH);
+    if (cam) drawVideoHQ(ctx, video, cam.x, cam.y, cam.w, cam.h, 0, 0, W, camBandH, hqScratch);
 
     const gh = Math.round(gameBandH);
     const F = Math.min(Math.round(H * style.seamSize / 100), Math.floor(gh / 2));
@@ -1420,7 +1472,9 @@ export default function PreviewPanelNew() {
       }
       const fctx = fScratch.getContext("2d");
       fctx.clearRect(0, 0, W, gh);
-      fctx.drawImage(video, game.x, game.y, game.w, game.h, 0, 0, W, gh);
+      fctx.imageSmoothingEnabled = true;
+      fctx.imageSmoothingQuality = "high";
+      drawVideoHQ(fctx, video, game.x, game.y, game.w, game.h, 0, 0, W, gh, hqScratch);
       fctx.globalCompositeOperation = "destination-out";
       const fadeGrad = fctx.createLinearGradient(0, gh - F, 0, gh);
       fadeGrad.addColorStop(0, "rgba(0,0,0,0)");
@@ -1430,7 +1484,7 @@ export default function PreviewPanelNew() {
       fctx.globalCompositeOperation = "source-over";
       ctx.drawImage(fScratch, 0, gameY);
     } else {
-      ctx.drawImage(video, game.x, game.y, game.w, game.h, 0, gameY, W, gameBandH);
+      drawVideoHQ(ctx, video, game.x, game.y, game.w, game.h, 0, gameY, W, gameBandH, hqScratch);
     }
   }, []);
 

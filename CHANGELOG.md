@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-22 (session 122) — Editor preview sharpness fix for vertical layouts
+
+### Fixed
+- **The editor preview is no longer blurry/pixelated at Fit zoom when a vertical layout (reframe) is active.** Since the reframe feature, the preview repaints the video through a compositing canvas, and shrinking the 2560-wide recording down to the Fit-sized preview in a single step used a rough scaling filter — small text was unreadable until you zoomed in (zooming shrank less, so it looked fine). The facecam and gameplay bands are now downscaled in halving stages (each step ≤2x), which produces a crisp image at any zoom, and the canvas requests Chrome's high-quality smoothing as well. The intentionally-blurred background band is untouched, and exports were never affected (they render through FFmpeg). [PreviewPanelNew.js]
+
 ## [Unreleased] — 2026-07-21 (session 121) — 0.3.0-alpha.5 installer: three more Rename-tab dropdown fixes
 
 ### Changed
