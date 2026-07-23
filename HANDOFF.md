@@ -1,48 +1,75 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-21 — Session 121 — **Three more Rename-tab dropdown fixes (format-picker clipping, left-edge accent bar, middle-mouse scroll close). Cut 0.3.0-alpha.5; Fega installed it and confirmed all three work.**_
+_Last updated: 2026-07-23 — Session 122 — **Preview sharpness fix + Queue polish + clip management (duplicate/create/delete, editable Play Style diff, scroll restore). Cut 0.3.0-alpha.6; Fega installed it. ALL of it is still untested on the daily driver — next session is a verification pass.**_
 
 ---
 
 ## One-line TL;DR
 
-Follow-up to session 120's game-dropdown portal fix. The two naming-format pickers had the same card-clipping bug (session-header "Date + Tag" chip + per-file proposed-name), the highlighted menu row had an AI-slop purple left-edge bar, and the alpha.4 portal fix had introduced a regression where middle-mouse/wheel scrolling inside the game menu closed it. All three fixed in `RenameView.js`, installer 0.3.0-alpha.5 cut + pushed (commit `b796c15`) + installed + **Fega-verified**.
+A long grab-bag session driven by Fega's live testing: fixed the reframe preview's blurry-at-Fit rendering (stepped downscale), polished the Queue tab (game-hue rows, portaled dropdowns, honest video-level "Published Today"), made the editor's dead context-menu items real (Duplicate original video + Create as new clip), added clip deletion (editor dropdown + Review Rail), rebuilt the Play Style dialog as an editable diff, made right-click menus viewport-aware, and added scroll-restore to clip navigation. Cut + pushed 0.3.0-alpha.6 (commit `02481ac`); Fega installed it at session end.
 
 ## Current State
 
-- **0.3.0-alpha.5 installed and verified.** Fega: "installed it, all three work now." Renderer + installer both built clean.
-- No open work outstanding from this session. No matching GitHub issue existed (bugs reported inline, fixed same-session) — nothing to close.
+- **0.3.0-alpha.6 installed** on the daily driver. Builds clean (renderer + NSIS).
+- **Nothing from this session is Fega-verified on the INSTALLED build yet.** He verified each change on `npm start` source runs as they landed, then installed alpha.6 and closed the session. Next session opens with him re-testing the batch on the daily driver.
+- Commits this session: `f1e761b` (preview sharpness), `172b368` (Queue polish), `160a914` (clip management + Play Style + scroll restore), `02481ac` (version bump + installer).
 
 ## What Was Just Built
 
-All in `src/renderer/views/RenameView.js`:
+**Editor preview sharpness (reframe active)** — `PreviewPanelNew.js`
+- At Fit zoom the #164 compositor shrank the 2560-wide source 4–5× in one `drawImage` → aliased/pixelated (fine when zoomed in, since the ratio drops under 2×). Chromium ignores `imageSmoothingQuality: "high"` on the GPU video path, so the real fix is `drawVideoHQ()`: a halving-ladder downscale through a scratch canvas until the final step is ≤2×. Applied to cam band, game band, feather path, and the fully-zoomed path; the intentionally-blurred background band untouched. Exports were never affected (FFmpeg path).
 
-- **Format pickers portaled (clipping fix).** `SessionPresetPicker` (session-header "Date + Tag + Day + Part" chip) and `PresetNamePicker` (per-file clickable proposed-name) now render their menus via `createPortal` to `document.body`, position:fixed from `getBoundingClientRect()` — same pattern as `GroupedSelect` (the game picker). Escapes the session card's `overflow:hidden`. `SessionPresetPicker` is right-aligned to its chip (`right: window.innerWidth - rect.right`); `PresetNamePicker` is left-aligned (`left: rect.left`).
-- **Left-edge accent bar removed.** Deleted `borderLeft: 3px solid <accent/hue>` from the highlighted item in both pickers. Selected state still reads via background tint + coloured text (per the no-left-edge-colour-bars rule).
-- **Middle-mouse scroll no longer closes the menu.** `GroupedSelect`'s `onScroll` handler was `() => setOpen(false)` on a capture-phase window scroll listener — it fired on scrolls originating *inside* the portaled menu, so middle-click auto-scroll (and wheel) snapped it shut. Now guarded: `if (menuRef.current.contains(e.target)) return;` — closes only on page-behind scroll, not menu-internal scroll. The two newly-portaled pickers got the same guarded handler so they don't reintroduce the bug.
+**Queue tab** — `QueueView.js`, `shared.js`
+- Shared `Select` menu now portals to `<body>` (fixed-position, zIndex 10000): escapes card `overflow:hidden` + dnd-kit transform stacking contexts. Closes on outside click / page scroll, NOT menu-internal scroll (RenameView pattern). Fixes schedule date/hour/minute pickers + every clipped Select app-wide.
+- Clip rows carry the Projects-tab game-hue wash (`gameColorFor()`: project gameColor → gamesDb tag/hashtag/name match → accent). Selected row = stronger wash, NOT purple. **Expanded settings panel deliberately neutral** — Fega: per-game-tinted form areas read as inconsistency; identity color on rows only.
+- Game tag pills use `GamePill` with a new `variant="solid"` (Projects-poster gradient, white text). Default tint variant unchanged elsewhere.
+- "Published Today" counts unique videos (Set over `clipId||clipTitle` of today's success logs), not per-platform log entries.
+- YouTube Privacy picker converted from native `<select>` (unreadable white Chromium popup) to the shared Select — same reason TikTok's was converted long ago.
+- Caption/description edit textarea opens ≥120px (read-view parity) and auto-grows; guarded so manual drag-resize isn't fought (`dataset.sized` + only-grow-on-overflow).
+
+**Play Style dialog** — `modals.js` (`ProfileDiffModal` + new `ProfilePane`)
+- Both panes editable in place (Edit pencil or double-click; blur returns to highlighted view). Line-level diff, whitespace/case-insensitive: green = added in Proposed, red tint = dropped from Current. Per-pane word counter, amber >300 words (the AI update prompt's own budget). "Accept Update" saves Proposed as edited; "Keep Current" now persists Current-side edits (was silently discarding them). Trigger is still organic only (post-batch threshold via `UploadView.js` profileQueue) — no manual test button.
+
+**Editor context menu** — `TrackContextMenu.js`, `TimelinePanelNew.js`, `projects.js`, `main.js`, `preload.js`
+- Viewport-aware placement: measures in `useLayoutEffect` (pre-paint, no flicker), flips above the cursor when no room below, clamps right edge.
+- "Duplicate original video" (was `/* TODO */`) and "Create as new clip" (was close-only) now work via new `project:duplicateClip` IPC. `projects.duplicateClip()` deep-copies the clip; copy = new id, "(copy)" title, `status: "none"`, `renderStatus: "pending"`, `renderPath: null`, `publishState: {}`, inserted after the original. Create-as-new passes overrides `{ nleSegments: [seg], startTime/endTime: seg bounds }`. Renderer saves current edits first (`handleSave`), then `initFromContext` to the copy.
+
+**Clip deletion** — `main.js`, `preload.js`, `EditorLayout.js`, `ProjectsView.js`, `App.js`
+- New `project:deleteClip` IPC wrapping the pre-existing (never-exposed) `projects.deleteClip` with `deleteFile=false` — **record removal only, files never deleted from disk**.
+- Editor `ClipNavigator` tiles: hover trash, two-stage confirm ("Delete?"), status badges hide on hover so the corner is free. Tiles converted `<button>` → `<div role="button">` (nested-button validity). Deleting the open clip jumps to nearest neighbor; last clip exits the editor.
+- Review Rail `ClipRow`: quiet trash beside the score, same two-stage confirm; App-level handler reloads the project into `localProjects` + `selProj`.
+
+**Clip navigation scroll-restore** — `EditorLayout.js`, `ProjectsView.js`, `App.js`
+- ClipNavigator opens scrolled to the active tile (`scrollIntoView` on mount).
+- Exiting the editor: `App.js` captures `editorContext.clipId` → `returnClipId` → `ClipBrowser scrollToClipId` prop; rows are wrapped in `data-clip-id` divs; one rAF then `scrollIntoView({ block: "center" })`. Not cleared after use (clip ids are globally unique, so a stale value can only ever match the same project — re-scrolling there is acceptable).
 
 ## Key Decisions
 
-- **Reused the GroupedSelect portal pattern inline** in both pickers rather than extracting a shared component. Consistency with the existing (already-inlined) pattern beat DRY for a 3-fix pass; matches project surgical-change preference.
-- **Fixed the per-file `PresetNamePicker` too**, though Fega only pointed at the session-header chip — it's the identical component with the identical two bugs; flagged it in chat before implementing.
-- **Version = 0.3.0-alpha.5** (alpha tick): three small UI-polish fixes, staying on the 0.3.0 pre-beta iteration line.
+- **Version 0.3.0-alpha.6** (alpha tick, not minor bump): fixes + polish + features on existing surfaces; consistent with the 0.3.0 pre-beta line precedent (Projects redesign also shipped as a tick).
+- **Identity color on identity surfaces only** (Fega): game hue on rows/headers; settings/forms stay neutral across games. He explicitly declined a standing rule/lesson about it — treat as this-session context, not doctrine.
+- **Delete never touches files on disk** — record-only. If Fega wants render-file deletion too, it's a one-flag change in the IPC handler.
+- **Duplicate switches the editor to the copy** — matches the "trim the second moment next" flow.
+- **Play Style advice given:** the profile has real diminishing-returns dynamics (attention dilution, contradiction rot); the update prompt already targets 150–300 words and rewrite-not-append; the amber word counter is the nudge. No hard cap added.
+- **data/ files:** the launcher skill's rule (never commit `data/clipflow.db` / `game_profiles.json`) was violated in `160a914` (I followed older per-session precedent before loading the skill). Left as-is (private repo, own data); follow the strict rule going forward.
 
 ## Next Steps
 
-_(Carried over from session 120 — not touched this session.)_
-
-1. **Fega verifies the live Projects launch-pad look** on the daily driver with real projects (pip colors, game-filter, sort order, hover-reveal) — session-120 work, still pending his read.
-2. **#179 — excise the dead folder code** in ProjectsView.js (inert sidebar handlers, folder/project context menus, delete-folder dialog, undo toast, orphaned state) + drop unused props from the App.js call site. Own focused pass + rebuild.
-3. Optional: decide whether to purge the leftover folder store data.
+1. **Daily-driver verification pass of the whole alpha.6 batch** (Fega said explicitly: "a ton of upgrades and changes that I need to test in the next session"): preview Fit sharpness, Queue dropdowns/rows/pills/count, description edit box, context-menu flip, Duplicate + Create as new clip, clip delete (both places), dropdown + back-navigation scroll restore, and — when it next fires organically — the Play Style diff dialog.
+2. Fega mentioned the app "feels smaller / eye strain" in non-maximized mode — advised Ctrl+0 (page zoom likely nudged); **no confirmation it helped**. If it persists, investigate properly (zoom factor persistence, or an actual density audit).
+3. If anything in the batch fails on the installed build, remember it worked on source — check installed-vs-source first (see feedback_test_on_daily_build).
 
 ## Watch Out For
 
-- **Portaled-dropdown pattern is now used in three places in RenameView.js** (`GroupedSelect`, `SessionPresetPicker`, `PresetNamePicker`). Any future dropdown that closes on scroll MUST exclude menu-internal scrolls (`menuRef.contains(e.target)`) or it'll reintroduce the middle-mouse-close bug. Any dropdown inside the session card (`overflow:hidden`, RenameView.js:1667) MUST portal or it clips.
-- **`SessionPresetPicker` right-alignment uses `window.innerWidth - rect.right`.** On window resize the menu closes (resize listener) rather than repositioning, so no stale-position risk — but if that close-on-resize is ever removed, the right-anchor math must be recomputed.
-- **ProjectsView.js is still CRLF + has emoji escapes** and still carries inert folder machinery (#179) — unchanged from session 120.
+- **`drawVideoHQ` ladder edge case is guarded** (shrink barely over 2× → empty ladder → direct draw) — don't remove the `!sizes.length` guard.
+- **Shared Select is now portaled app-wide.** Any Select inside a modal relies on menu zIndex 10000 > modal 9999. If a new overlay goes above 10000, menus will hide behind it.
+- **ClipNavigator tiles are divs, not buttons** — keyboard Enter handled manually; keep `role="button"`/`tabIndex` if editing.
+- **Deleting the open clip while dirty:** edits are intentionally discarded (user is deleting the clip); a trailing autosave may fire `projectUpdateClip` against the deleted clip id — returns "Clip not found", harmless, but don't "fix" it into recreating the clip.
+- **Duplicate copies persisted subtitles filtered to the ORIGINAL's segments** — the copy carries extra subs harmlessly (only visible-segment subs render; next save of the copy prunes to its own segments). Don't "fix" the surplus; it's self-healing.
+- **`data/clipflow.db` + `data/game_profiles.json` are always dirty** — never stage them (launcher skill hard rule; was breached once this session, see Key Decisions).
+- **Play Style modal has no manual trigger** — testing it means waiting for a clip batch to cross a game's session threshold, or temporarily lowering the threshold in Settings → game modal.
 
-## Logs / Debugging
+## Logs/Debugging
 
-- `npm run build:renderer` → clean (2748 modules, ~10.6s). `npm run build` → `dist/ClipFlow Setup 0.3.0-alpha.5.exe` (124 MB, exit 0, timestamp 2026-07-21 22:24). Benign warnings only (chunk >500 kB; "author is missed"; @electron/rebuild).
-- No CDP driving this session — the three fixes are contained positioning/event-handler logic, build passed clean, and Fega verified on the installed build directly.
-- If a format-picker menu ever appears mis-positioned: check `rect` is captured on open (the `if (ref.current) setRect(...)` in the open-effect) and that the trigger `ref` is on the outer wrapper, not the clickable span.
+- No new error patterns this session. App boots clean post-changes (`App started 0.3.0-alpha.5→6`, DB schema v4, migration skip — normal).
+- The repeated background-task "failed with exit code 1" notices during the session were just `npm start` processes dying when `taskkill //F //IM electron.exe` cleared them for rebuilds — expected, not crashes.
+- Verification method this session: `npm run build:renderer` + `npm start` per change, Fega eyeballing; computer-use screen access was requested once (preview sharpness) and denied — verification stayed manual.
