@@ -43,6 +43,7 @@ const namingPresets = require("./naming-presets");
 const fileMigration = require("./file-migration");
 const reconcile = require("./reconcile");
 const subtitlePollutionMigration = require("./subtitle-pollution-migration");
+const renderCollisionRepair = require("./render-collision-repair");
 const gameProfiles = require("./game-profiles");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
@@ -613,6 +614,24 @@ app.whenReady().then(async () => {
       }
     } catch (err) {
       logger.error(logger.MODULES.system, `Subtitle pollution repair failed: ${err.message}`);
+    }
+
+    // #181: one-time repair of legacy flat-folder render collisions. Record
+    // repair is synchronous (untrusted renderPaths reset before the renderer
+    // loads); wrong-game thumbnails regenerate from source in the background.
+    try {
+      const rcResult = renderCollisionRepair.runRenderCollisionRepair(libraryRoot(), store, projects, ffmpeg, logger);
+      if (rcResult.ran) {
+        logger.info(logger.MODULES.system, `#181 render collision repair: ${rcResult.rendersReset} render record(s) reset, ${rcResult.thumbsQueued} thumbnail(s) queued for regen`);
+        if (rcResult.errors.length > 0) {
+          logger.warn(logger.MODULES.system, `#181 repair had ${rcResult.errors.length} errors`, { errors: rcResult.errors.slice(0, 5) });
+        }
+        rcResult.background.then(({ thumbsFixed }) => {
+          logger.info(logger.MODULES.system, `#181 thumbnail regen complete: ${thumbsFixed}/${rcResult.thumbsQueued} regenerated from source`);
+        });
+      }
+    } catch (err) {
+      logger.error(logger.MODULES.system, `#181 render collision repair failed: ${err.message}`);
     }
   }
 
