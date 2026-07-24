@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 124) — Subtitle overlay render speed: skip identical frames + stream into FFmpeg (NOT yet in an installer)
+
+### Changed
+- **The subtitle overlay phase of rendering is now 3-5x faster — a 15s clip renders in ~16s total (was ~75s).** Two changes, identical output quality. First, the overlay renderer no longer screenshots every single frame: it computes exactly when the picture on screen changes (new word highlighted, pop animation moving, caption appearing) and only captures those moments — during silence or a held word, the previous frame is reused byte-for-byte (real clips skip 85-95% of captures). Second, captured frames now stream directly into FFmpeg's stdin as they're made instead of being written to disk as hundreds of PNG files first — no temp files at all, and FFmpeg encodes the video *while* frames are still being generated instead of waiting for all of them. Verified on real dev-profile clips: a 15s clip (451 frames, 424 skipped) took 16.0s end to end; a 26s clip with word-pop animation (781 frames, 705 skipped) took 26.0s — with word-perfect karaoke highlights, animation intact, and reframe layouts unaffected. [subtitle-overlay-renderer.js, overlay-renderer.js, render.js]
+- **Render progress is now one smooth 0→99% bar.** Frame capture and FFmpeg encode run concurrently and both track the same timeline position, so progress reports whichever is further along and never jumps or goes backwards (the old bar sat in a 0-40% "subtitles" band then restarted the ruler at 40%). [render.js]
+
 ## [Unreleased] — 2026-07-24 (session 123, post-alpha.7) — Queue trash data-loss fix + Alt+drag duplicate rework (NOT yet in an installer)
 
 ### Fixed

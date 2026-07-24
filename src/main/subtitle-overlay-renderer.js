@@ -3,8 +3,16 @@
  *
  * Spins up a hidden offscreen Electron BrowserWindow, loads an HTML page that
  * renders subtitles/captions using the same subtitleStyleEngine.js as the editor
- * preview, captures PNG frames at a fixed FPS, and outputs sequentially numbered
- * PNGs for FFmpeg image2 input.
+ * preview, and captures PNG frames at a fixed FPS which the caller streams
+ * straight into FFmpeg's stdin (image2pipe) — no PNG files on disk.
+ *
+ * Two speed properties fall out of this design:
+ *  - Identical frames are never re-captured: the overlay page reports whether
+ *    the picture changed since the last frame (__renderFrame__), and unchanged
+ *    frames re-send the cached PNG buffer (silence/static periods skip the
+ *    expensive capture + encode entirely).
+ *  - FFmpeg encodes concurrently with frame generation instead of waiting for
+ *    the full frame set, so total render time is max(capture, encode), not sum.
  *
  * This produces pixel-perfect subtitle rendering that matches the editor preview
  * exactly, because the same Chromium engine + same CSS + same style code is used.
@@ -71,7 +79,13 @@ function probeDuration(filePath) {
 }
 
 /**
- * Render subtitle/caption overlay frames for a clip.
+ * Create an overlay capture session: probes duration/resolution, builds the
+ * offscreen window, loads the overlay page, and waits for fonts. Returns null
+ * when there is nothing to capture (non-positive duration).
+ *
+ * The caller drives the capture via session.captureFrames() — which streams
+ * one PNG buffer per output frame through the writeFrame callback — and MUST
+ * call session.destroy() when done (captureFrames does not destroy the window).
  *
  * @param {object} params
  * @param {Array} params.subtitleSegments - Subtitle segments with word-level timing
@@ -80,14 +94,14 @@ function probeDuration(filePath) {
  * @param {object} params.captionStyle - Full caption style config from editor stores
  * @param {number} params.clipStartTime - Clip start time in source video (seconds)
  * @param {number} params.clipEndTime - Clip end time in source video (seconds)
- * @param {string} params.tempDir - Directory for temporary PNG files
- * @param {string} params.sourceFile - Source video path (for resolution probing)
+ * @param {string} params.sourceFile - Source video path (for duration probing; null in NLE mode)
+ * @param {number} [params.timelineDuration] - NLE mode: explicit timeline duration
+ * @param {string} [params.resolutionProbeFile] - Path for resolution probing when sourceFile is null
  * @param {number} [params.targetWidth] - Explicit overlay canvas width; skips source-res probe when paired with targetHeight (#164 reframe)
  * @param {number} [params.targetHeight] - Explicit overlay canvas height
- * @param {function} [params.onProgress] - Progress callback
- * @returns {Promise<{frameDir: string, fps: number, totalFrames: number, width: number, height: number}>}
+ * @returns {Promise<null | {fps: number, totalFrames: number, width: number, height: number, captureFrames: Function, destroy: Function}>}
  */
-async function renderOverlayFrames(params) {
+async function createOverlaySession(params) {
   const {
     subtitleSegments = [],
     subtitleStyle = {},
@@ -97,17 +111,11 @@ async function renderOverlayFrames(params) {
     clipStartTime = 0,
     clipEndTime = 0,
     timelineDuration: explicitDuration, // NLE mode: explicit timeline duration
-    tempDir,
     sourceFile,
     resolutionProbeFile, // separate path for resolution probing (NLE: sourceFile is null but we still need resolution)
     targetWidth, // #164: explicit override (reframe bakes a fixed 1080x1920 canvas) — skips probeResolution when set with targetHeight
     targetHeight,
-    onProgress,
-    shouldCancel, // #140: () => boolean — when true, bail the frame loop cleanly
   } = params;
-
-  // Create temp directory for PNGs
-  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
   // Duration priority:
   // 1. Explicit timelineDuration (NLE mode — caller computed from segments)
@@ -131,8 +139,8 @@ async function renderOverlayFrames(params) {
   // +1 ensures a frame exists at the exact clip end time
   const totalFrames = Math.ceil(clipDuration * OVERLAY_FPS) + 1;
 
-  if (totalFrames <= 0) {
-    return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: 0, width: 1080, height: 1920 };
+  if (clipDuration <= 0 || totalFrames <= 0) {
+    return null;
   }
 
   // Probe source video resolution so overlay matches exactly, unless the
@@ -258,75 +266,80 @@ async function renderOverlayFrames(params) {
     // Wait for fonts to load
     await win.webContents.executeJavaScript(`document.fonts.ready.then(() => true)`);
     await new Promise((r) => setTimeout(r, 150));
+  } catch (err) {
+    try { if (!win.isDestroyed()) win.destroy(); } catch (_) {}
+    throw err;
+  }
 
-    // Capture frames at fixed FPS for the full clip duration
+  /**
+   * Capture loop. Emits exactly totalFrames PNG buffers through writeFrame in
+   * frame order — unchanged frames re-send the cached buffer without touching
+   * the DOM or the compositor. writeFrame must return a promise that resolves
+   * when the sink can accept more data (pipe backpressure).
+   *
+   * @param {object} opts
+   * @param {(buf: Buffer) => Promise<void>} opts.writeFrame
+   * @param {function} [opts.onProgress] - ({frame, totalFrames}) every 10 frames
+   * @param {function} [opts.shouldCancel] - #140: () => boolean — bail cleanly when true
+   * @returns {Promise<{captured: number, skipped: number, canceled: boolean}>}
+   */
+  async function captureFrames({ writeFrame, onProgress, shouldCancel }) {
     console.log("[OverlayRenderer] Starting frame capture:", totalFrames, "frames");
-
-    // #140: cancel may have landed during init (before the loop) — bail early.
-    if (shouldCancel && shouldCancel()) {
-      console.log("[OverlayRenderer] Canceled before frame capture");
-      return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: 0, width, height, canceled: true };
-    }
+    let lastBuf = null;
+    let captured = 0;
+    let skipped = 0;
 
     for (let i = 0; i < totalFrames; i++) {
-      // #140: stop capturing as soon as a cancel is requested. The finally block
-      // below destroys the offscreen window; render.js cleans up partial frames.
+      // #140: stop capturing as soon as a cancel is requested.
       if (shouldCancel && shouldCancel()) {
         console.log("[OverlayRenderer] Canceled at frame", i, "of", totalFrames);
-        return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames: i, width, height, canceled: true };
+        return { captured, skipped, canceled: true };
       }
       const t = i / OVERLAY_FPS; // time relative to clip start (0-based)
 
-      // Update the overlay to this timestamp (clip-relative, matching editSegments timing)
-      await win.webContents.executeJavaScript(`
-        try { window.__seekTo__(${t}); "ok"; } catch(e) { "err:" + e.message; }
+      // Seek the overlay to this timestamp; the page reports "same" when the
+      // picture is identical to the previously rendered frame.
+      const state = await win.webContents.executeJavaScript(`
+        try { window.__renderFrame__(${t}); } catch(e) { "err:" + e.message; }
       `);
-
-      // Small delay for DOM to settle
-      await new Promise((r) => setTimeout(r, 20));
-
-      // Capture the frame
-      const image = await win.webContents.capturePage();
-      const pngBuffer = image.toPNG();
-
-      // Always save every frame (sequential numbering required for FFmpeg image2)
-      const pngPath = path.join(tempDir, `frame_${String(i).padStart(5, "0")}.png`);
-      fs.writeFileSync(pngPath, pngBuffer);
-
-      if (i === 0) {
-        console.log("[OverlayRenderer] First frame:", pngBuffer.length, "bytes, size:", image.getSize().width, "x", image.getSize().height);
+      if (typeof state === "string" && state.startsWith("err:")) {
+        throw new Error("Overlay frame render failed: " + state);
       }
+
+      if (state !== "same" || !lastBuf) {
+        // Small delay for DOM to settle before capture
+        await new Promise((r) => setTimeout(r, 20));
+        const image = await win.webContents.capturePage();
+        lastBuf = image.toPNG();
+        captured++;
+        if (captured === 1) {
+          console.log("[OverlayRenderer] First frame:", lastBuf.length, "bytes, size:", image.getSize().width, "x", image.getSize().height);
+        }
+      } else {
+        skipped++;
+      }
+
+      await writeFrame(lastBuf);
 
       if (onProgress && i % 10 === 0) {
-        onProgress({
-          stage: "subtitles",
-          pct: Math.round(((i + 1) / totalFrames) * 100),
-          detail: `Rendering subtitle frame ${i + 1}/${totalFrames}`,
-        });
+        onProgress({ frame: i + 1, totalFrames });
       }
     }
 
-    console.log("[OverlayRenderer] Frame capture complete:", totalFrames, "frames");
-    return { frameDir: tempDir, fps: OVERLAY_FPS, totalFrames, width, height };
-  } finally {
-    win.destroy();
+    console.log(`[OverlayRenderer] Frame capture complete: ${captured} captured, ${skipped} skipped of ${totalFrames}`);
+    return { captured, skipped, canceled: false };
   }
+
+  return {
+    fps: OVERLAY_FPS,
+    totalFrames,
+    width,
+    height,
+    captureFrames,
+    destroy() {
+      try { if (!win.isDestroyed()) win.destroy(); } catch (_) {}
+    },
+  };
 }
 
-/**
- * Clean up temporary overlay frame files.
- * @param {string} tempDir
- */
-function cleanupOverlayFrames(tempDir) {
-  try {
-    if (fs.existsSync(tempDir)) {
-      const files = fs.readdirSync(tempDir);
-      for (const f of files) {
-        try { fs.unlinkSync(path.join(tempDir, f)); } catch (_) {}
-      }
-      try { fs.rmdirSync(tempDir); } catch (_) {}
-    }
-  } catch (_) {}
-}
-
-module.exports = { renderOverlayFrames, cleanupOverlayFrames };
+module.exports = { createOverlaySession };

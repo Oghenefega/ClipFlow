@@ -320,11 +320,70 @@ function renderCaption(timestamp) {
   }
 }
 
+// ── Frame-skip signature ──
+// The captured picture is a pure function of a small visual state: which
+// segment/word is active, progressive-fill %, pop-animation progress, and the
+// set of active captions. When that state matches the previously rendered
+// frame the pixels are identical, so the main process can reuse the last PNG
+// instead of re-capturing. Each signature term mirrors a branch in
+// renderSubtitle/renderCaption — if a new time-varying input is added there,
+// it MUST be added here or skipped frames will freeze mid-animation.
+let lastRenderedSig = null;
+
+function subtitleSignature(timestamp) {
+  if (!subOverlay || !styleEngine) return "x";
+  const s = subtitleStyle;
+  if (s.showSubs === false) return "x";
+  const currentTime = timestamp - (syncOffset || 0);
+  const result = wordFinder
+    ? wordFinder.findActiveWord(subtitleSegments, globalWordIndex, currentTime)
+    : { seg: null, wordIdx: -1, wordProgress: 0 };
+  if (!result.seg) return "x";
+  const parts = [subtitleSegments.indexOf(result.seg), result.wordIdx];
+  if ((s.highlightMode || "instant") === "progressive") {
+    // Same granularity as the clip-path inset (toFixed(1) of a percentage)
+    parts.push((result.wordProgress * 100).toFixed(1));
+  }
+  if (s.animateOn) {
+    // Pre-ease pop progress, clamped exactly like easeOutCubic clamps its
+    // input — equal here ⇒ equal eased scale in the DOM transform.
+    const words = result.seg.words || [];
+    const w = result.wordIdx >= 0 ? words[result.wordIdx] : null;
+    const raw = w ? (currentTime - w.start) / (s.animateSpeed || 0.2) : 1;
+    parts.push(Math.max(0, Math.min(1, raw)).toFixed(4));
+  }
+  return parts.join(":");
+}
+
+function captionSignature(timestamp) {
+  if (!capOverlay) return "x";
+  const currentTime = timestamp - (syncOffset || 0);
+  const active = [];
+  for (let i = 0; i < captionSegments.length; i++) {
+    const seg = captionSegments[i];
+    if (seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity)) {
+      active.push(i);
+    }
+  }
+  return active.join(",");
+}
+
 // ── Public API (called by main process via executeJavaScript) ──
 
 window.__seekTo__ = function (timestamp) {
   renderSubtitle(timestamp);
   renderCaption(timestamp);
+};
+
+// Seek that reports whether the picture changed since the last rendered frame.
+// Returns "same" without touching the DOM when the frame would be identical.
+window.__renderFrame__ = function (timestamp) {
+  const sig = subtitleSignature(timestamp) + "|" + captionSignature(timestamp);
+  if (sig === lastRenderedSig) return "same";
+  lastRenderedSig = sig;
+  renderSubtitle(timestamp);
+  renderCaption(timestamp);
+  return "changed";
 };
 
 window.__initOverlay__ = function () {
@@ -356,6 +415,7 @@ window.__initOverlay__ = function () {
   canvas.innerHTML = "";
   subOverlay = null;
   capOverlay = null;
+  lastRenderedSig = null;
 
   // Create overlays
   const subY = subtitleStyle.yPercent ?? 80;

@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const { renderOverlayFrames, cleanupOverlayFrames } = require("./subtitle-overlay-renderer");
+const { createOverlaySession } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments } = require("../renderer/editor/models/timeMapping");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
@@ -259,7 +259,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
  */
 // #140: handle to the currently-active single-clip render so a render:cancel IPC
 // can halt whichever phase is live (offscreen overlay frame loop or the FFmpeg
-// encode). Shape: { canceled, proc, tempDir, outputPath }. null when idle.
+// encode). Shape: { canceled, proc, outputPath }. null when idle.
 let active = null;
 
 /**
@@ -280,7 +280,9 @@ function cancelActiveRender() {
 function renderClip(clipData, projectData, outputPath, options = {}) {
   return new Promise(async (resolve, reject) => {
     // #140: register this render so an external render:cancel can halt it.
-    active = { canceled: false, proc: null, tempDir: null, outputPath };
+    active = { canceled: false, proc: null, outputPath };
+    // Hoisted so the catch block can destroy the offscreen window on failure.
+    let overlaySession = null;
     try {
       const { onProgress } = options;
       const nleSegments = clipData.nleSegments || [];
@@ -388,17 +390,16 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // Check if we have any overlay content
       const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
 
-      const tempDir = outputPath.replace(/\.[^.]+$/, "_overlay_tmp");
-      if (active) active.tempDir = tempDir;
-      let overlayResult = null;
-
       if (hasOverlay) {
-        // Phase 1: Render overlay frames using offscreen BrowserWindow
+        // Phase 1: prepare the offscreen overlay window (probes, page load,
+        // fonts). Frame capture itself runs concurrently with the FFmpeg
+        // encode below — frames stream into FFmpeg's stdin as they're
+        // captured, and identical frames re-send the cached PNG.
         if (onProgress) {
-          onProgress({ stage: "subtitles", pct: 0, detail: "Rendering subtitle overlay..." });
+          onProgress({ stage: "subtitles", pct: 0, detail: "Preparing subtitle overlay..." });
         }
 
-        overlayResult = await renderOverlayFrames({
+        overlaySession = await createOverlaySession({
           subtitleSegments,
           subtitleStyle: options.subtitleStyle || clipData.subtitleStyle || {},
           captionSegments,
@@ -409,34 +410,38 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
           clipStartTime: useNle ? 0 : (clipData.startTime || 0),
           clipEndTime: useNle ? timelineDuration : (clipData.endTime || 0),
           timelineDuration: useNle ? timelineDuration : 0, // explicit duration for NLE (skips file probe)
-          tempDir,
           sourceFile: useNle ? null : srcFile, // NLE: skip duration probe (uses timelineDuration)
           resolutionProbeFile: srcFile, // always pass source for resolution probing
           // #164: reframe bakes a fixed 1080x1920 canvas — target it directly
           // so overlay=0:0 lines up; skips the source-resolution probe.
           ...(reframeActive ? { targetWidth: 1080, targetHeight: 1920 } : {}),
-          onProgress: (p) => {
-            if (onProgress) {
-              onProgress({ stage: "subtitles", pct: Math.round(p.pct * 0.4), detail: p.detail });
-            }
-          },
-          // #140: let the overlay frame loop bail when a cancel is requested.
-          shouldCancel: () => active && active.canceled,
         });
       }
 
-      // #140: cancel landed during the overlay phase — no FFmpeg process exists yet.
-      // Clean up partial frames and resolve as canceled (never a "failed" render).
+      // #140: cancel landed during overlay prep — no FFmpeg process exists yet.
       if (active && active.canceled) {
-        cleanupOverlayFrames(tempDir);
+        if (overlaySession) overlaySession.destroy();
         active = null;
         return resolve({ canceled: true });
       }
 
-      // Phase 2: FFmpeg render
+      // Phase 2: FFmpeg render (overlay frames stream in concurrently)
       if (onProgress) {
-        onProgress({ stage: "rendering", pct: 40, detail: "Starting video render..." });
+        onProgress({ stage: "rendering", pct: 0, detail: "Starting video render..." });
       }
+
+      // Unified monotonic progress: frame capture and FFmpeg encode both track
+      // the same timeline position (pipe backpressure keeps them in lockstep),
+      // so report whichever is further along and never go backwards.
+      let lastPct = 0;
+      const reportPct = (pct, detail) => {
+        if (!onProgress) return;
+        const clamped = Math.max(0, Math.min(99, pct));
+        if (clamped > lastPct) {
+          lastPct = clamped;
+          onProgress({ stage: "rendering", pct: clamped, detail });
+        }
+      };
 
       const args = ["-y"];
 
@@ -457,14 +462,19 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         args.push("-i", srcFile);
       }
 
-      // Overlay PNG sequence input (if we have subtitles/captions) — index n
-      // in NLE mode (after the n segment inputs), index 1 in fallback mode.
-      const hasFrames = overlayResult && overlayResult.totalFrames > 0;
+      // Overlay PNG stream input (if we have subtitles/captions) — PNGs are
+      // piped into stdin (image2pipe) as they're captured, no files on disk.
+      // Index n in NLE mode (after the n segment inputs), index 1 in fallback.
+      const hasFrames = !!overlaySession; // null when there's nothing to capture
       if (hasFrames) {
-        const framePattern = path.join(tempDir, "frame_%05d.png").replace(/\\/g, "/");
         args.push(
-          "-framerate", String(overlayResult.fps),
-          "-i", framePattern
+          "-f", "image2pipe",
+          "-framerate", String(overlaySession.fps),
+          "-c:v", "png",
+          // Frames arrive in bursts (skipped frames are near-instant, captured
+          // ones ~100ms) — a deeper input queue avoids demux stalls.
+          "-thread_queue_size", "512",
+          "-i", "pipe:0"
         );
       }
 
@@ -510,24 +520,69 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         try { proc.kill("SIGTERM"); } catch (_) {}
       }
       let stderr = "";
+      let overlayError = null;
+
+      // Stream overlay frames into FFmpeg's stdin concurrently with the encode.
+      if (hasFrames) {
+        // EPIPE surfaces through write callbacks below; the stream-level error
+        // event must have a listener or Node crashes the process.
+        proc.stdin.on("error", () => {});
+
+        const writeFrame = (buf) =>
+          new Promise((res, rej) => {
+            if (!proc.stdin.writable) return rej(new Error("ffmpeg stdin closed"));
+            const ok = proc.stdin.write(buf, (err) => { if (err) rej(err); });
+            if (ok) res();
+            else proc.stdin.once("drain", res); // backpressure: wait for FFmpeg to drain the pipe
+          });
+
+        const session = overlaySession;
+        (async () => {
+          try {
+            const result = await session.captureFrames({
+              writeFrame,
+              // #140: also bail if this render's close handler already ran
+              // (active cleared) — e.g. FFmpeg died mid-capture.
+              shouldCancel: () => !active || active.canceled,
+              onProgress: ({ frame, totalFrames }) =>
+                reportPct(
+                  Math.round((frame / totalFrames) * 98),
+                  `Rendering subtitle frame ${frame}/${totalFrames}`
+                ),
+            });
+            console.log(`[Render] Overlay frames: ${result.captured} captured, ${result.skipped} skipped (identical)${result.canceled ? ", canceled" : ""}`);
+          } catch (err) {
+            overlayError = err;
+            console.error("[Render] Overlay capture failed:", err.message);
+            try { proc.kill("SIGTERM"); } catch (_) {}
+          } finally {
+            // EOF tells FFmpeg the overlay stream is done (eof_action=pass
+            // keeps the video going if it ends a hair early).
+            try { proc.stdin.end(); } catch (_) {}
+            session.destroy();
+          }
+        })();
+      }
 
       proc.stderr.on("data", (data) => {
         stderr += data.toString();
-        if (onProgress && timelineDuration > 0) {
+        if (timelineDuration > 0) {
           const timeMatch = data.toString().match(/time=(\d+):(\d+):(\d+\.?\d*)/);
           if (timeMatch) {
             const h = parseInt(timeMatch[1]);
             const m = parseInt(timeMatch[2]);
             const s = parseFloat(timeMatch[3]);
             const currentSec = h * 3600 + m * 60 + s;
-            const pct = Math.min(99, 40 + Math.round((currentSec / timelineDuration) * 59));
-            onProgress({ stage: "rendering", pct, detail: `${Math.round(currentSec)}s / ${Math.round(timelineDuration)}s` });
+            reportPct(
+              Math.round((currentSec / timelineDuration) * 99),
+              `${Math.round(currentSec)}s / ${Math.round(timelineDuration)}s`
+            );
           }
         }
       });
 
       proc.on("close", (code) => {
-        cleanupOverlayFrames(tempDir);
+        if (overlaySession) overlaySession.destroy();
 
         // #140: user canceled — the kill fired this close with a non-zero/null code.
         // Resolve as canceled (not "failed") and delete any partial output file.
@@ -540,13 +595,14 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
         if (code !== 0) {
           console.error("[Render] FFmpeg failed:", stderr.slice(-500));
-          return reject(new Error(`ffmpeg render failed (code ${code}): ${stderr.slice(-500)}`));
+          const overlayMsg = overlayError ? ` (overlay capture error: ${overlayError.message})` : "";
+          return reject(new Error(`ffmpeg render failed (code ${code})${overlayMsg}: ${stderr.slice(-500)}`));
         }
         resolve({ success: true, path: outputPath, duration: timelineDuration });
       });
 
       proc.on("error", (err) => {
-        cleanupOverlayFrames(tempDir);
+        if (overlaySession) overlaySession.destroy();
         if (active && active.canceled) {
           active = null;
           return resolve({ canceled: true });
@@ -555,6 +611,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         reject(new Error(`ffmpeg spawn failed: ${err.message}`));
       });
     } catch (err) {
+      if (overlaySession) overlaySession.destroy();
       active = null;
       reject(err);
     }
