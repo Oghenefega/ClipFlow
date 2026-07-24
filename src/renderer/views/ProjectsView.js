@@ -1572,8 +1572,10 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
     setRenderError(null);
     setBatchRendering(true);
     setBatchProgress({ pct: 0, detail: "Starting batch render..." });
-    const onProgress = (p) => setBatchProgress(p);
-    window.clipflow?.onRenderProgress?.(onProgress);
+    // Skip terminal lifecycle stages (done/canceled/error) — they carry no pct
+    // for this inline % display; the App-level floating pill handles them.
+    const onProgress = (p) => { if (!p?.stage || p.stage === "subtitles" || p.stage === "rendering") setBatchProgress(p); };
+    const unsubProgress = window.clipflow?.onRenderProgress?.(onProgress);
     try {
       const clipsToRender = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered");
       const result = await window.clipflow.batchRender(clipsToRender, project, null, {});
@@ -1591,7 +1593,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
       console.error("[BatchRender] Exception:", e);
       setRenderError(e.message || "Render failed");
     }
-    window.clipflow?.removeRenderProgressListener?.();
+    unsubProgress?.();
     setBatchRendering(false);
     if (onBatchRender) onBatchRender(project.id);
   };

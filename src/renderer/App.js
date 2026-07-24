@@ -163,6 +163,41 @@ export default function App() {
     return () => { window.clipflow?.removeAudioCalibrationListener?.(); };
   }, []);
 
+  // Global render job — single source of truth for the render progress pill.
+  // Renders run in the main process and outlive the editor (which fully
+  // unmounts on tab switch), so progress state must live here. Fed by the
+  // persistent render:progress listener; main.js sends explicit terminal
+  // stages (done/canceled/error) when a render ends.
+  // Shape: null | { pct, detail, canceling, done, error }
+  const [renderJob, setRenderJob] = useState(null);
+
+  useEffect(() => {
+    const unsub = window.clipflow?.onRenderProgress?.((p) => {
+      if (p?.stage === "done") {
+        setRenderJob((j) => ({ ...(j || {}), pct: 100, detail: "Done!", done: true, canceling: false }));
+      } else if (p?.stage === "canceled") {
+        setRenderJob(null);
+      } else if (p?.stage === "error") {
+        setRenderJob((j) => ({ ...(j || {}), done: true, error: true, detail: p.detail || "Render failed" }));
+      } else {
+        setRenderJob((j) => ({ pct: p?.pct || 0, detail: p?.detail || "Rendering...", canceling: j?.canceling || false }));
+      }
+    });
+    return () => { unsub?.(); };
+  }, []);
+
+  // Let "Done!" / "Render failed" linger briefly, then clear the pill
+  useEffect(() => {
+    if (!renderJob?.done) return;
+    const t = setTimeout(() => setRenderJob(null), renderJob.error ? 4000 : 1500);
+    return () => clearTimeout(t);
+  }, [renderJob]);
+
+  const cancelRenderJob = useCallback(() => {
+    setRenderJob((j) => (j ? { ...j, canceling: true } : j));
+    try { window.clipflow?.cancelRender?.(); } catch (_) {}
+  }, []);
+
   const respondAudioCal = useCallback(async (setup) => {
     const id = audioCalAsk?.requestId;
     setAudioCalAsk(null);
@@ -842,7 +877,7 @@ export default function App() {
         {/* Editor — full-pane sibling, only mounted when active */}
         {view === "editor" && (
           <div style={{ flex: 1, overflow: "hidden", height: "100%" }}>
-            <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} onBack={async () => {
+            <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} renderJob={renderJob} onCancelRenderJob={cancelRenderJob} onBack={async () => {
               if (editorContext?.projectId) {
                 try {
                   const full = await window.clipflow.projectLoad(editorContext.projectId);
@@ -873,6 +908,27 @@ export default function App() {
           onNavigate={nav}
         />
       </div>
+      {/* Floating render pill — a render runs in the main process and outlives
+          the editor, so outside the editor this is the only progress/cancel
+          surface. Inside the editor the topbar pill covers it. */}
+      {renderJob && view !== "editor" && (
+        <div style={{ position: "fixed", bottom: 20, right: 24, zIndex: 950, display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", borderRadius: 10, background: renderJob.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", boxShadow: "0 8px 24px rgba(0,0,0,0.45)", fontFamily: T.font, color: "#fff" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>
+              {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering ${renderJob.pct || 0}%`}
+            </span>
+            {!renderJob.done && !renderJob.canceling && (
+              <div style={{ width: "100%", height: 4, background: "rgba(0,0,0,0.3)", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${renderJob.pct || 0}%`, background: "#fff", borderRadius: 999, transition: "width 0.3s" }} />
+              </div>
+            )}
+            <span style={{ fontSize: 10, opacity: 0.85, maxWidth: 190, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{renderJob.detail || ""}</span>
+          </div>
+          {!renderJob.done && (
+            <button onClick={cancelRenderJob} disabled={renderJob.canceling} title="Cancel render" style={{ background: "rgba(0,0,0,0.25)", border: "none", color: "#fff", width: 22, height: 22, borderRadius: 6, cursor: renderJob.canceling ? "default" : "pointer", fontSize: 12, lineHeight: 1, opacity: renderJob.canceling ? 0.5 : 1 }}>✕</button>
+          )}
+        </div>
+      )}
       {onboardingComplete === false && (
         <OnboardingView onComplete={(profile) => {
           setOnboardingComplete(true);

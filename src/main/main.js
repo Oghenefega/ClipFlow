@@ -2557,6 +2557,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
 
     // #140: user canceled mid-render — nothing to thumbnail or mark rendered.
     if (result?.canceled) {
+      mainWindow?.webContents.send("render:progress", { stage: "canceled" });
       return { canceled: true };
     }
 
@@ -2583,9 +2584,14 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
       } catch (e) { /* non-critical */ }
     }
 
+    // Terminal lifecycle event — the app-level floating render pill (App.js)
+    // survives editor unmounts, so it needs an explicit done/error/canceled
+    // signal rather than inferring completion from the invoke resolving.
+    mainWindow?.webContents.send("render:progress", { stage: "done", pct: 100, detail: "Done!" });
     return { ...result, thumbnailPath };
   } catch (err) {
     console.error("[render:clip] Render failed:", err.message, err.stack);
+    mainWindow?.webContents.send("render:progress", { stage: "error", detail: err.message });
     return { error: err.message };
   }
 });
@@ -2634,8 +2640,11 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
       }
     }
 
+    // Terminal event for the app-level floating render pill (see render:clip).
+    mainWindow?.webContents.send("render:progress", { stage: "done", pct: 100, detail: "Done!" });
     return { success: true, results };
   } catch (err) {
+    mainWindow?.webContents.send("render:progress", { stage: "error", detail: err.message });
     return { error: err.message };
   }
 });

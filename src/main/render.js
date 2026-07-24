@@ -103,12 +103,21 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
 /**
  * Build FFmpeg filter_complex for NLE segment assembly.
  *
- * Trims each NLE segment from the source file and concatenates them. When
- * reframe is active, bakes the vertical composite (webcam band on top, game
- * band below, blurred game fill underneath) before the overlay step (#164).
+ * Inputs are pre-seeked per segment (`-ss <start> -t <dur>` BEFORE each `-i`,
+ * see renderClip): input i already contains exactly segment i's range, so no
+ * trim filters are needed — just PTS normalization + concat. This is the fix
+ * for whole-recording decode: filter-level trim forced FFmpeg to decode the
+ * ENTIRE source (a 13s clip from a 30-min 2560×2880 HEVC recording decoded
+ * all 30 minutes on CPU — multi-minute renders + the 40%/99% progress stalls).
+ * Input-level seeking jumps straight to each segment's keyframe and decodes
+ * only the clip itself.
+ *
+ * When reframe is active, bakes the vertical composite (webcam band on top,
+ * game band below, blurred game fill underneath) before the overlay step (#164).
  * Null camRect = game-only layout (#164 B3): the game band centers vertically
  * (letterboxed over the bg), or fills the frame outright when it spans 1920.
- * If overlay frames exist, composites the PNG sequence on top.
+ * If overlay frames exist, composites the PNG sequence on top — the overlay
+ * input is input index n (after the n segment inputs).
  *
  * @param {Array} nleSegments - [{id, sourceStart, sourceEnd}, ...]
  * @param {boolean} hasFrames - Whether overlay PNG frames exist
@@ -122,16 +131,14 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   const filters = [];
 
   if (n === 1) {
-    // Single segment: simple trim, no concat needed
-    const seg = nleSegments[0];
-    filters.push(`[0:v]trim=start=${seg.sourceStart}:end=${seg.sourceEnd},setpts=PTS-STARTPTS[base_v]`);
-    filters.push(`[0:a]atrim=start=${seg.sourceStart}:end=${seg.sourceEnd},asetpts=PTS-STARTPTS[base_a]`);
+    // Single segment: input 0 is already the trimmed range — normalize PTS only
+    filters.push(`[0:v]setpts=PTS-STARTPTS[base_v]`);
+    filters.push(`[0:a]asetpts=PTS-STARTPTS[base_a]`);
   } else {
-    // Multi-segment: trim each + concat
+    // Multi-segment: each input is one pre-seeked segment — normalize + concat
     for (let i = 0; i < n; i++) {
-      const seg = nleSegments[i];
-      filters.push(`[0:v]trim=start=${seg.sourceStart}:end=${seg.sourceEnd},setpts=PTS-STARTPTS[v${i}]`);
-      filters.push(`[0:a]atrim=start=${seg.sourceStart}:end=${seg.sourceEnd},asetpts=PTS-STARTPTS[a${i}]`);
+      filters.push(`[${i}:v]setpts=PTS-STARTPTS[v${i}]`);
+      filters.push(`[${i}:a]asetpts=PTS-STARTPTS[a${i}]`);
     }
     const concatInputs = Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("");
     filters.push(`${concatInputs}concat=n=${n}:v=1:a=1[base_v][base_a]`);
@@ -217,8 +224,9 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   }
 
   if (hasFrames) {
-    // Composite overlay PNG sequence on top of assembled video
-    filters.push("[1:v]format=rgba[sub]");
+    // Composite overlay PNG sequence on top of assembled video.
+    // Overlay is input n — it comes after the n per-segment source inputs.
+    filters.push(`[${n}:v]format=rgba[sub]`);
     filters.push(`[${videoLabel}][sub]overlay=0:0:eof_action=pass[out]`);
     return {
       filterComplex: filters.join(";"),
@@ -432,10 +440,25 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 
       const args = ["-y"];
 
-      // Input 0: source file (full recording for NLE, pre-cut clip for fallback)
-      args.push("-i", srcFile);
+      // NLE: one pre-seeked input PER SEGMENT (-ss/-t before -i) so FFmpeg
+      // decodes only each segment's range instead of the whole recording.
+      // Input-level -ss is frame-accurate when re-encoding (decoder discards
+      // frames between the keyframe and the seek point). Fallback keeps the
+      // single full-file input (pre-cut clip MP4s are already clip-length).
+      if (useNle) {
+        for (const seg of nleSegments) {
+          args.push(
+            "-ss", String(seg.sourceStart),
+            "-t", String(Math.max(0.04, seg.sourceEnd - seg.sourceStart)),
+            "-i", srcFile
+          );
+        }
+      } else {
+        args.push("-i", srcFile);
+      }
 
-      // Input 1: overlay PNG sequence (if we have subtitles/captions)
+      // Overlay PNG sequence input (if we have subtitles/captions) — index n
+      // in NLE mode (after the n segment inputs), index 1 in fallback mode.
       const hasFrames = overlayResult && overlayResult.totalFrames > 0;
       if (hasFrames) {
         const framePattern = path.join(tempDir, "frame_%05d.png").replace(/\\/g, "/");

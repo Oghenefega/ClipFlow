@@ -238,7 +238,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onDelete, onClose, chev
 }
 
 // ── Topbar ──
-function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
+function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
   const clipTitle = useEditorStore((s) => s.clipTitle);
   const editingTitle = useEditorStore((s) => s.editingTitle);
   const dirty = useEditorStore((s) => s.dirty);
@@ -258,10 +258,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const [lastSaved, setLastSaved] = useState(null);
   const [saveFlash, setSaveFlash] = useState(false);
   const [hashtagWarning, setHashtagWarning] = useState(false);
+  // Render progress display comes from the global renderJob prop (App.js owns
+  // it — renders outlive this component, which unmounts on tab switch).
+  // `rendering` only tracks THIS component's in-flight doRender promise.
   const [rendering, setRendering] = useState(false);
-  const [renderPct, setRenderPct] = useState(0);
-  const [canceling, setCanceling] = useState(false);
-  const [renderDetail, setRenderDetail] = useState("");
   const [lastRender, setLastRender] = useState(null); // { path, addedToQueue } — success notification
   const [retranscribing, setRetranscribing] = useState(false);
   const [retranscribeStage, setRetranscribeStage] = useState("");
@@ -297,7 +297,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   // clip's status is left alone — the user just wants an exported MP4 without
   // committing to the publish flow.
   const doRender = useCallback(async (addToQueue) => {
-    if (!clip || !project || rendering) return;
+    // renderJob guard: a render started elsewhere (or before a tab-switch
+    // remount) may still be running — the main process tracks only ONE active
+    // render, so starting a second would hijack its cancel handle.
+    if (!clip || !project || rendering || renderJob) return;
     // #140: remember pre-render status so a cancel can restore the clip exactly
     // (never leave it stuck "rendering" or wrongly "approved" with no output).
     const prevRenderStatus = clip.renderStatus;
@@ -315,18 +318,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       renderStatus: "rendering",
     });
 
-    // Start render with progress tracking
+    // Start render — progress display is driven by the global render:progress
+    // listener in App.js (renderJob prop); no per-component listener needed.
     setRendering(true);
-    setRenderPct(0);
-    setRenderDetail("Starting render...");
 
-    const onProgress = (p) => {
-      setRenderPct(p.pct || 0);
-      setRenderDetail(p.detail || "Rendering...");
-    };
-    window.clipflow?.onRenderProgress?.(onProgress);
-
-    let wasCanceled = false;
     try {
       // Build render-ready clip with current subtitle/caption data from stores
       // (handleSave persists to disk but doesn't update the clip object in Zustand)
@@ -428,7 +423,6 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       if (result?.canceled) {
         // #140: render aborted — restore the clip's prior status (never "failed"),
         // leave no Queue entry. Don't fire onClipRendered.
-        wasCanceled = true;
         await window.clipflow?.projectUpdateClip(project.id, clip.id, {
           renderStatus: prevRenderStatus ?? null,
           ...(addToQueue ? { status: prevStatus ?? null } : {}),
@@ -437,9 +431,8 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
         console.error("[Render] Failed:", result.error);
         await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
       } else {
-        setRenderPct(100);
-        setRenderDetail("Done!");
         // Surface success notification with path + open-folder action
+        // ("Done!" pill display + linger is handled by App.js via renderJob)
         setLastRender({ path: result.path || null, addedToQueue: !!addToQueue });
         // Refresh project in App.js state so Queue tab picks up the rendered clip
         if (onClipRendered) onClipRendered(project.id);
@@ -448,15 +441,11 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
       console.error("[Render] Error:", err);
       await window.clipflow?.projectUpdateClip(project.id, clip.id, { renderStatus: "failed" });
     } finally {
-      window.clipflow?.removeRenderProgressListener?.();
-      setCanceling(false);
-      setTimeout(() => {
-        setRendering(false);
-        setRenderPct(0);
-        setRenderDetail("");
-      }, wasCanceled ? 0 : 1500);
+      // Buttons return when the global renderJob clears (App.js lingers
+      // "Done!" 1.5s / errors 4s) — no local timing needed anymore.
+      setRendering(false);
     }
-  }, [handleSave, clip, project, rendering, onClipRendered]);
+  }, [handleSave, clip, project, rendering, renderJob, onClipRendered]);
 
   // Auto-dismiss the render success notification after 6s
   useEffect(() => {
@@ -486,14 +475,6 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
   const onRenderOnly = useCallback(() => {
     doRender(false);
   }, [doRender]);
-
-  // #140: abort the in-progress render. The main process halts whichever phase is
-  // live (overlay frames or FFmpeg) and resolves the render as canceled.
-  const onCancelRender = useCallback(async () => {
-    setCanceling(true);
-    setRenderDetail("Canceling…");
-    try { await window.clipflow?.cancelRender?.(); } catch (_) {}
-  }, []);
 
   // Subtitle debug report — logs clip subtitle data for diagnosis
   // Initialize debugStatus from clip's persisted subtitleRating
@@ -964,27 +945,32 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered }) {
           <Check className="h-3.5 w-3.5 mr-1.5" />
           {saveFlash ? "Saved!" : "Save"}
         </Button>
-        {rendering ? (
+        {(rendering || renderJob) ? (
+          // Pill shows for THIS component's render (rendering) or any render
+          // still running globally, e.g. after a mid-render tab-switch remount
+          // (renderJob). Display data always comes from the global renderJob.
           <div className="h-8 pl-4 pr-2 flex items-center gap-2 rounded-md text-xs font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            style={{ background: renderJob?.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
+            {!renderJob?.error && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <div className="flex flex-col leading-none">
-              <span>{canceling ? "Canceling…" : `${renderPct}%`}</span>
+              <span>{renderJob?.error ? "Render failed" : renderJob?.canceling ? "Canceling…" : renderJob?.done ? "Done!" : `${renderJob?.pct || 0}%`}</span>
             </div>
-            {!canceling && (
+            {!renderJob?.canceling && !renderJob?.error && (
               <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderPct}%` }} />
+                <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderJob?.pct || 0}%` }} />
               </div>
             )}
-            <button
-              type="button"
-              onClick={onCancelRender}
-              disabled={canceling}
-              title="Cancel render"
-              className="ml-0.5 flex items-center justify-center h-5 w-5 rounded hover:bg-black/30 disabled:opacity-40 disabled:cursor-default"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            {!renderJob?.done && (
+              <button
+                type="button"
+                onClick={onCancelRenderJob}
+                disabled={renderJob?.canceling}
+                title="Cancel render"
+                className="ml-0.5 flex items-center justify-center h-5 w-5 rounded hover:bg-black/30 disabled:opacity-40 disabled:cursor-default"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -1149,7 +1135,7 @@ function MiniPlayerBar({ onShowTimeline }) {
 }
 
 // ── Main Layout Shell ──
-export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, requireHashtagInTitle = true, onClipRendered }) {
+export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
 
   // Global undo/redo keyboard shortcuts
@@ -1217,7 +1203,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Top toolbar */}
-      <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} />
+      <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} renderJob={renderJob} onCancelRenderJob={onCancelRenderJob} />
 
       {/* Body + Timeline — timeline fully collapses/expands */}
       <div className="flex-1 flex flex-col overflow-hidden">

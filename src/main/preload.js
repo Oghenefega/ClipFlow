@@ -134,11 +134,13 @@ contextBridge.exposeInMainWorld("clipflow", {
   batchRender: (clips, projectData, outputDir, options) =>
     ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
   cancelRender: () => ipcRenderer.invoke("render:cancel"),
+  // Returns an unsubscribe fn that removes ONLY this listener — App.js keeps a
+  // persistent global listener (floating render pill), so removeAllListeners
+  // would silently kill it.
   onRenderProgress: (callback) => {
-    ipcRenderer.on("render:progress", (_, data) => callback(data));
-  },
-  removeRenderProgressListener: () => {
-    ipcRenderer.removeAllListeners("render:progress");
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("render:progress", handler);
+    return () => ipcRenderer.removeListener("render:progress", handler);
   },
 
   // Video splitting
