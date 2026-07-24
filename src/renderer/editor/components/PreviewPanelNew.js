@@ -7,6 +7,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
+import { buildRenderPayload } from "../utils/renderPayload";
 import {
   Maximize,
   ChevronDown,
@@ -667,14 +668,31 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
 }
 
 // ── Main Preview Panel ──
-export default function PreviewPanelNew({ onScreenshot }) {
-  // Session 124: viewer screenshot → Shorts thumbnail. Busy state guards
-  // double-clicks while the one-frame render (~2-4s) runs in the main process.
+export default function PreviewPanelNew() {
+  // Session 124: viewer screenshot → Shorts thumbnail. Self-contained — builds
+  // the same IPC payload as doRender (current unsaved edits included) and runs
+  // a one-frame render at the playhead in the main process. Busy state guards
+  // double-clicks while the capture (~1-2s) runs.
   const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [screenshotToast, setScreenshotToast] = useState(null); // { path } | { error }
+  const screenshotToastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(screenshotToastTimer.current), []);
   const handleScreenshot = async () => {
-    if (!onScreenshot || screenshotBusy) return;
+    if (screenshotBusy) return;
+    const payload = buildRenderPayload();
+    if (!payload) return; // no clip/project loaded
     setScreenshotBusy(true);
-    try { await onScreenshot(); } finally { setScreenshotBusy(false); }
+    try {
+      const time = usePlaybackStore.getState().currentTime || 0;
+      const result = await window.clipflow?.thumbnailCapture?.(payload.safeClip, payload.safeProject, time, payload.safeOptions);
+      setScreenshotToast(result?.error ? { error: result.error } : { path: result?.path || null });
+    } catch (e) {
+      setScreenshotToast({ error: e.message || "Screenshot failed" });
+    } finally {
+      setScreenshotBusy(false);
+      clearTimeout(screenshotToastTimer.current);
+      screenshotToastTimer.current = setTimeout(() => setScreenshotToast(null), 8000);
+    }
   };
   const clip = useEditorStore((s) => s.clip);
   const project = useEditorStore((s) => s.project);
@@ -1656,6 +1674,26 @@ export default function PreviewPanelNew({ onScreenshot }) {
           )}
         </div>
       </div>
+
+      {/* Screenshot result toast — anchored under the top controls */}
+      {screenshotToast && (
+        <div className={`absolute top-11 left-2 z-40 max-w-[320px] rounded-lg border ${screenshotToast.error ? "border-red-500/40" : "border-emerald-500/40"} bg-popover/95 shadow-xl p-2.5`}>
+          <p className="text-xs font-medium text-foreground">
+            {screenshotToast.error ? "Screenshot failed" : "Thumbnail saved"}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate" title={screenshotToast.error || screenshotToast.path || ""}>
+            {screenshotToast.error || screenshotToast.path}
+          </p>
+          {!screenshotToast.error && screenshotToast.path && (
+            <button
+              className="mt-1.5 text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              onClick={() => window.clipflow?.revealInFolder?.(screenshotToast.path)}
+            >
+              Show in folder
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Video canvas area — the canvas floats on an open background; zoom/pan are applied
           as a transform (#134). overflow-hidden clips the overflow; middle-click drags. */}

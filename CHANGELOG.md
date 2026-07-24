@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 124) — 0.3.0-alpha.9 hotfix: editor crash on open (alpha.8 regression)
+
+### Fixed
+- **CRITICAL — opening any clip in the editor crashed alpha.8 with "onScreenshot is not defined."** The new screenshot button's handler was defined in the editor's top bar component but referenced from the layout component that renders the preview — a scope error that only fires when the editor mounts, which is exactly the one screen the pre-ship smoke test didn't open. The screenshot logic now lives fully inside the preview panel itself (shared payload builder extracted to `renderPayload.js`), and the fix was verified by driving the real app: editor opens clean, camera button produces `Clip 1_thumbnail.png` on disk with the success toast. Clips "not opening" after deleting queue entries was this same crash — the deletions were unrelated and harmless (clip records intact, as designed). [EditorLayout.js, PreviewPanelNew.js, renderPayload.js]
+
+### Changed
+- **Version bumped 0.3.0-alpha.8 → 0.3.0-alpha.9 and a replacement installer cut.** Same contents as alpha.8 plus the editor crash fix; a new version number is required so the installed alpha.8 app surfaces the update banner.
+
 ## [Unreleased] — 2026-07-24 (session 124) — 0.3.0-alpha.8 installer: render speed, Queue data-loss fix, viewer screenshot, scheduling visibility
 
 ### Changed
