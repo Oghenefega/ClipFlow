@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 125, part 3) — 0.3.0-alpha.12: one-time repair of collision-damaged clip records (#181)
+
+### Fixed
+- **One-time startup repair cleans up the damage the render collisions already did (#181).** The alpha.11 prevention fix stopped new collisions but left existing records poisoned — Fega's Projects tab showed Rocket League thumbnails on Egging On clips across two projects, and one published EO clip still claimed RENDERED while its file on disk actually held a different RL clip's video (a re-publish would have posted the wrong game under an EO caption). The repair runs once at boot: any clip whose render file lives in the old shared folder under a filename claimed by more than one clip — or whose file is gone — loses its RENDERED badge (12 records across 6 projects; a fresh render re-earns it safely), and every wrong-game thumbnail is regenerated from the clip's own source recording at its own timestamp, which cannot carry another project's content (14 thumbnails, all verified). Rendered files on disk, publish history, and the tracker are untouched; fresh installs no-op. Verified by a full dry run against a copy of the real library, then executed against the real library with a pre-repair backup (`.clipflow\projects-backup-pre181`): 12 reset, 14/14 thumbnails regenerated, zero shared filenames remain. [render-collision-repair.js, main.js]
+
+### Changed
+- **Version bumped 0.3.0-alpha.11 → 0.3.0-alpha.12 and the installer cut.** Alpha.10 and alpha.11 were cut earlier today but never installed; alpha.12 supersedes both so one install carries the Facebook Reels fix, the collision prevention, and this repair. Sizing: bug-fix batch → alpha tick.
+
 ## [Unreleased] — 2026-07-24 (session 125, part 2) — 0.3.0-alpha.11: render filename collisions fixed (#181)
 
 ### Fixed
