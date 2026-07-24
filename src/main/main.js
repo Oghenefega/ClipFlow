@@ -3196,7 +3196,7 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
 
     require("electron-log/main").scope("facebook").info("Starting publish", { title, accountId, pageName: account.pageName });
 
-    const result = await facebookPublish.publishVideo(
+    const result = await facebookPublish.publish(
       account.pageAccessToken,
       account.pageId,
       videoPath,
@@ -3206,14 +3206,15 @@ ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, 
       }
     );
 
-    require("electron-log/main").scope("facebook").info("Publish success", { videoId: result.videoId });
+    require("electron-log/main").scope("facebook").info("Publish success", { videoId: result.videoId, postId: result.postId, surface: result.surface });
     publishLog.logPublish({
       ...logBase, status: "success",
-      publishId: result.videoId, postId: result.videoId,
+      publishId: result.videoId, postId: result.postId || result.videoId,
+      surface: result.surface,
       apiResponse: result,
     });
 
-    return { success: true, videoId: result.videoId, status: result.status };
+    return { success: true, videoId: result.videoId, postId: result.postId || result.videoId, surface: result.surface, url: result.url || null, status: result.status };
   } catch (err) {
     require("electron-log/main").scope("facebook").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });

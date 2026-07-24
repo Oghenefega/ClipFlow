@@ -88,9 +88,21 @@ Verify: edit description → click anywhere outside → collapse/reopen panel
 
 ---
 
-## 📋 QUEUED (specced 2026-07-24 by Wick) — Facebook Reels publishing
+## 🔨 BUILT — AWAITING VERIFICATION (built 2026-07-24, session 125, shipped in 0.3.1-alpha.1) — Facebook Reels publishing
 
-Spec: `tasks/specs/facebook-reels-publishing.md`. Fega-approved, ready to build.
+Spec: `tasks/specs/facebook-reels-publishing.md`. Built as specced: three-phase
+`publishReel` + legacy path renamed `publishLegacyVideo` + ffprobe duration router
+(3–90s inclusive → Reels, outside → legacy video, probe failure → legacy).
+`surface` reaches the publish log; Reels path stores `facebook.com/reel/<id>` in
+platformResults; legacy path stores no URL. Error codes 613/190/200/100/6000 get
+plain-language messages. Raw status + finish responses logged for the first real
+run (Meta's docs are thin on the video_reels status shape — polling parses
+tolerantly and proceeds to finish on an unrecognized shape).
+
+**NOT DONE until Fega verifies:** (1) sub-90s clip appears in the page's REELS
+tab, (2) log shows `surface: "reels"` + real post ID, (3) tracker link opens,
+(4) the 90.73s clip posts as normal video without failing the batch, (5) non-zero
+views after 24h — the only check that proves the fix.
 
 **Why:** every video ClipFlow ever posted to Fega's Facebook page had zero views.
 Two independent causes. (1) The Meta app was in Development mode, so posts were

@@ -1004,8 +1004,8 @@ export default function QueueView({
         } else {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
-          const postId = result?.post_id || result?.mediaId || result?.videoId || null;
-          const url = plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null;
+          const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
+          const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
           publishResultsRef.current[clip.id] = {
             ...(publishResultsRef.current[clip.id] || {}),
             [pk]: { platform: pk, accountId: plat.key, ...(postId ? { postId } : {}), ...(url ? { url } : {}) },
@@ -1242,8 +1242,8 @@ export default function QueueView({
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
-          const postId = result?.post_id || result?.mediaId || result?.videoId || null;
-          const url = plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null;
+          const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
+          const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
           publishResultsRef.current[clip.id] = {
             ...(publishResultsRef.current[clip.id] || {}),
             [platKey]: { platform: platKey, accountId: plat.key, ...(postId ? { postId } : {}), ...(url ? { url } : {}) },
