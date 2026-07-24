@@ -4,7 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-24 (session 124, part 2) — Viewer screenshot, Recordings auto-refresh, scheduling visibility, Queue blur-save (NOT yet in an installer)
+## [Unreleased] — 2026-07-24 (session 124) — 0.3.0-alpha.8 installer: render speed, Queue data-loss fix, viewer screenshot, scheduling visibility
+
+### Changed
+- **Version bumped 0.3.0-alpha.7 → 0.3.0-alpha.8 and a fresh installer cut** (Fega's explicit call). Promotes everything since alpha.7: the critical Queue-tab trash data-loss fix + the Alt+drag duplicate rework (session 123 post-alpha.7), the subtitle overlay render speed overhaul (3-5x faster renders — a 15s clip in ~16s total), and the session 124 upgrade batch: viewer screenshot → Shorts thumbnail, Recordings tab auto-refresh with NEW chips, Scheduled/Published visibility + honest DONE on the Projects tab, and Queue click-outside save.
+
+## [Unreleased] — 2026-07-24 (session 124, part 2) — Viewer screenshot, Recordings auto-refresh, scheduling visibility, Queue blur-save
 
 ### Added
 - **Camera button on the editor preview — save the current frame as a Shorts thumbnail PNG.** Sits next to the fullscreen button on the viewer. One click runs a one-frame render through the real pipeline (webcam/game reframe layout, subtitles, captions — current unsaved edits included), so the PNG is pixel-identical to that moment of the final video. Saves to the render output folder as `<clip title>_thumbnail.png` (~1-2s) with a toast + "Show in folder". For YouTube's new custom Shorts thumbnails. [PreviewPanelNew.js, EditorLayout.js, render.js, subtitle-overlay-renderer.js, main.js, preload.js]
