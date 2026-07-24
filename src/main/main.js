@@ -2657,7 +2657,11 @@ function enqueueRenderJob(clipData, projectData, outputPath, options, emitWrap) 
           resolve({ canceled: true });
           return;
         }
-        resolve(await doRenderClip(clipData, projectData, outputPath, options, emit));
+        // outputPath may be a resolver function (#181): evaluated at run time,
+        // not enqueue time, so a batch of same-named clips sees each prior
+        // file on disk and suffixes instead of overwriting.
+        const resolvedPath = typeof outputPath === "function" ? outputPath() : outputPath;
+        resolve(await doRenderClip(clipData, projectData, resolvedPath, options, emit));
       },
     };
     renderQueue.push(job);
@@ -2666,14 +2670,42 @@ function enqueueRenderJob(clipData, projectData, outputPath, options, emitWrap) 
   });
 }
 
+// #181: render outputs are scoped per project. Filenames derive from the clip
+// title — which is the default label ("Clip 3") until the user titles it — so
+// two projects, or a duplicated clip, can share a name. In the old flat output
+// folder they silently overwrote each other's files, and deleteClipRender then
+// removed the shared file out from under every other clip pointing at it
+// (failed scheduled publish + wrong-game thumbnail, 2026-07-24).
+function renderOutputDir(outputFolder, projectData) {
+  const dir = projectData?.name
+    ? path.join(outputFolder, String(projectData.name).replace(/[<>:"\/\\|?*]/g, "_"))
+    : outputFolder;
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+// Collision guard on top of the project subfolder: if the target name is
+// taken and it isn't this clip's OWN current renderPath, suffix " (2)"… —
+// a clip re-rendering onto its own file still overwrites in place.
+function resolveRenderOutputPath(outputFolder, clipData, projectData) {
+  const dir = renderOutputDir(outputFolder, projectData);
+  const base = `${clipData.title || `clip_${clipData.id}`}`.replace(/[<>:"\/\\|?*]/g, "_");
+  let candidate = path.join(dir, `${base}.mp4`);
+  let n = 2;
+  while (fs.existsSync(candidate) && clipData.renderPath !== candidate) {
+    candidate = path.join(dir, `${base} (${n}).mp4`);
+    n++;
+  }
+  return candidate;
+}
+
 ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
   try {
     // Determine output path if not provided
     if (!outputPath) {
       const outputFolder = resolveTestAwareOutputFolder(projectData);
       if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
-      const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
-      outputPath = path.join(outputFolder, fileName);
+      outputPath = () => resolveRenderOutputPath(outputFolder, clipData, projectData); // #181 lazy: resolved when the job runs
     }
     const encoder = await resolveClipCutEncoder();
     return await enqueueRenderJob(clipData, projectData, outputPath, { ...options, encoder });
@@ -2692,7 +2724,9 @@ ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelin
     const outputFolder = resolveTestAwareOutputFolder(projectData);
     if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
     const fileName = `${clipData.title || `clip_${clipData.id}`}_thumbnail.png`.replace(/[<>:"\/\\|?*]/g, "_");
-    const outputPath = path.join(outputFolder, fileName);
+    // #181: same per-project scoping as renders. No collision suffix here —
+    // recapturing the same clip's screenshot should overwrite its own PNG.
+    const outputPath = path.join(renderOutputDir(outputFolder, projectData), fileName);
     return await render.renderThumbnail(clipData, projectData, timelineTime, outputPath, options || {});
   } catch (err) {
     console.error("[thumbnail:capture] failed:", err.message);
@@ -2735,8 +2769,7 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
     const results = [];
     for (let i = 0; i < total; i++) {
       const clip = clips[i];
-      const fileName = `${clip.title || `clip_${clip.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
-      const outputPath = path.join(outputDir, fileName);
+      const outputPath = () => resolveRenderOutputPath(outputDir, clip, projectData); // #181 lazy: same-named clips suffix instead of overwrite
       const emitWrap = (baseEmit) => (p) => {
         if (p.stage === "subtitles" || p.stage === "rendering") {
           const overallPct = Math.round(((i + (p.pct || 0) / 100) / total) * 100);
