@@ -36,6 +36,9 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
      version (`0.1.8` → `0.1.9`) and reset the counter (`-alpha.1`).
    - A completed flagship epic or launch-milestone shift → consider the next tier (`0.2.0`).
    State the sizing call in one line in the changelog entry; don't ask permission per cut.
+   **Size by what the USER gets, not implementation novelty** (session 125): ask "would Fega
+   describe this installer as a new capability, or as 'X works now'?" — "works now" = alpha
+   tick no matter how much plumbing changed. Don't inflate the label to match the bump.
 3. **If Fega names an explicit version** ("update to 0.2.0", "ship 0.1.9"), that always wins.
 4. **Keep `-alpha`** while the product is pre-launch / personal-testing. Only drop the suffix if
    Fega explicitly says so (it's a semantic signal toward release).

@@ -1,55 +1,55 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-24 — Session 124 — **Render speed overhaul (overlay frame-skip + FFmpeg streaming, 3-5x faster); four pre-alpha.8 upgrades (viewer screenshot → Shorts thumbnail, Recordings auto-refresh + NEW chips, Scheduled/Published visibility + honest DONE, Queue click-outside save); alpha.8 shipped with an editor-mount crash, hotfixed and re-cut as alpha.9 (installed, Fega-confirmed).**_
+_Last updated: 2026-07-24 — Session 125 — **Facebook Reels publishing (the zero-views fix) + render filename collision prevention AND one-time repair (#181); three installers cut, Fega on 0.3.0-alpha.12 with the fix chain verified end-to-end in production logs.**_
 
 ---
 
 ## One-line TL;DR
 
-Killed the remaining ~60s of render time (subtitle overlay now skips provably-identical frames and streams PNGs straight into FFmpeg's stdin — a 15s clip renders in ~16s total, was ~75s), built Fega's four asks (camera button that saves a WYSIWYG thumbnail PNG through the real render pipeline; Recordings tab reloads itself after renames with glowing NEW chips; Projects tab shows Scheduled/Published badges + "To schedule" filter and DONE now means all-scheduled; Queue descriptions save on click-outside) — then alpha.8 crashed every editor open (`onScreenshot` defined in Topbar, referenced in EditorLayout — same file, different component; build/boot checks are blind to editor mount). Fixed by making the screenshot self-contained in PreviewPanelNew with the payload builder extracted to `renderPayload.js`, verified by CDP-driving the real app (editor opens, camera saves a real PNG), re-cut as **0.3.0-alpha.9 — installed, editor confirmed working.**
+Built the queued Facebook Reels task (Wick's spec: three-phase `video_reels` flow adapted from instagram-publish.js, 3–90s duration router with the legacy `/videos` path as silent-but-logged fallback, `surface` in the publish log, real `facebook.com/reel/<id>` links into platformResults) — then, mid-verification, Fega's scheduled publish failed and exposed a much older bug: render filenames come from the clip title (default "Clip N") written into ONE flat shared folder, so clips from different projects overwrote and deleted each other's files (his EO clip's file was killed by an RL project's render+delete; wrong-game thumbnails everywhere). Shipped prevention (per-project subfolders + render-time collision guard, `resolveRenderOutputPath` in main.js) AND a one-time boot repair (`render-collision-repair.js`: 12 untrusted render records reset, 14 thumbnails regenerated from each clip's own source recording — dry-run on a copied library first, then live with backup). **Fega installed alpha.12, re-rendered + published the EO clip: logs show the render in its per-project folder and Facebook returning `surface: "reels"` with a real post_id. #181 closed verified.**
 
 ## Current State
 
-- **Installed daily driver: 0.3.0-alpha.9.** Fega confirmed the editor opens fine. Everything from the alpha.8 batch is in it.
-- Master is clean and pushed through `8b366ac` (+ session-end commit). No uncommitted app code.
-- #180 (render speed) closed with `status: untested` — Fega hasn't explicitly confirmed the speed on his install yet.
-- Queued next build: **Facebook Reels publishing** (Wick's spec, Fega-approved: `tasks/specs/facebook-reels-publishing.md`, summary in tasks/todo.md) — swap `/{page-id}/videos` for the three-phase Reels flow; out-of-range durations fall back to the legacy path.
+- **Installed daily driver: 0.3.0-alpha.12.** Carries FB Reels publishing, collision prevention, and the record repair (repair already ran + flagged done, so its boot pass no-ops).
+- Master clean and pushed through `0ad5d31` (+ this session-end commit).
+- **#181 closed, Fega-verified.** Collision map reports zero shared filenames; backup of pre-repair project JSONs at `W:\...\Vertical Recordings Onwards\.clipflow\projects-backup-pre181\`.
+- **The ONE remaining check of the whole zero-views saga:** the "I finally made this Difficult jump" reel (posted 2026-07-24 ~14:43, post_id 1079234704765331) shows **non-zero views after 24h**. Everything else passed; this is the check that proves distribution. The FB Reels task in tasks/todo.md stays "awaiting verification" until then.
+- Version note: 0.3.1-alpha.1 was briefly cut and RETRACTED (wrong sizing — see Key Decisions); alpha.10/alpha.11 were cut but never installed, superseded by alpha.12.
 
 ## What Was Just Built
 
-- **Render speed (commit `6a16202`):** overlay page computes a visual-state signature per frame (`__renderFrame__` in `public/subtitle-overlay/overlay-renderer.js`); unchanged frames re-send the cached PNG (85-95% skipped on real clips). `subtitle-overlay-renderer.js` rewritten to a session API (`createOverlaySession` → `captureFrames`/`captureFrameAt`/`destroy`); `render.js` spawns FFmpeg first and pipes PNGs via image2pipe stdin, encode runs concurrently; unified monotonic 0-99% progress. Verified on real dev clips: 15s/451-frame clip → 27 captured, 16.0s total; 26s animateOn clip → 76 captured, 26.0s.
-- **Viewer screenshot (commits `13668e6` + `8b366ac`):** camera button in the preview's top-left controls → `thumbnail:capture` IPC → `renderThumbnail` in render.js (single pre-seeked input through `buildNleFilterComplex` with new `{audio:false}` opt + one overlay frame via `captureFrameAt`) → `<title>_thumbnail.png` in the output folder, toast + Show in folder. Payload builder shared with doRender lives in `src/renderer/editor/utils/renderPayload.js`.
-- **Recordings auto-refresh:** RenameView calls `onFilesRenamed` after a rename batch → App bumps `recordingsRefreshKey` → RecordingsView (UploadView.js) re-runs `loadAndReconcile`; rows unseen in the previous load get a NEW chip until the tab is left (session-only state).
-- **Projects scheduling visibility:** `makePublishState(trackerData)` in ProjectsView (tracker entry + `clip.scheduledAt` = Scheduled; entry without = Published); Scheduled/Published badges on ClipRow, purple mini-bars, "To schedule" filter chip, three-stage card status, `getProjectStatus(p, pub)` gained the "schedule" state — DONE now requires every clip rejected or scheduled/published. Zero new persisted state.
-- **Queue click-outside save:** description/caption textarea saves on blur with a green "Saved" flash by the label; Save button removed; Cancel via `onMouseDown` + `preventDefault` (runs before blur), Escape unchanged.
-- **Installers:** alpha.8 cut (`ca4a379`), then hotfix + alpha.9 (`8b366ac`).
+- **facebook-publish.js rewrite** — `publishReel` (start → rupload binary → finish, page token, v21.0), `publishLegacyVideo` (old multipart path, intact), `publish` router (ffprobe duration, 3–90s inclusive → Reels, outside/probe-fail → legacy). Error codes 613/6000/190/100/200 → plain-language messages. Raw status + finish responses logged (Meta's real shapes confirmed in production: status has `video_status`/`uploading_phase.status`; finish returns `{success, post_id}`).
+- **main.js `facebook:publish` handler** — returns `postId`/`surface`/`url`; publish log records `surface`.
+- **QueueView (both publish sites)** — `result.url` preferred for platformResults links (YouTube fallback unchanged); `postId` chain now includes camelCase.
+- **main.js render pathing (#181 prevention)** — `renderOutputDir` + `resolveRenderOutputPath`; render:clip, render:batch, and thumbnail:capture all scope outputs to `<outputFolder>\<project name>\`; collision guard suffixes " (2)" unless the path is the clip's own renderPath; paths resolve lazily at job run time (thunk through enqueueRenderJob) so same-titled clips in one batch can't clobber each other.
+- **render-collision-repair.js (#181 repair)** — one-time, store-flag `renderCollisionRepairDone`, same pattern as the #84 subtitle repair. Flat-folder renderPaths shared-or-dangling → pending; shared thumbnails → nulled then regenerated in background from `project.sourceFile` at `clip.startTime+1` into the project's clips dir (`<clipId>_repairthumb.jpg`).
 
 ## Key Decisions
 
-- **Frame-skip is signature-based, not pixel-diff** — the overlay picture is a pure function of (segment idx, word idx, progressive-fill %, pop growT, active captions); equality is exact, so skipping never loses quality. If a new time-varying input joins renderSubtitle/renderCaption it MUST join the signature (comment at the top of the signature block).
-- **PNG via image2pipe, not raw BGRA** — keeps toPNG's premultiply handling (byte-identical quality to the old file-based path) while eliminating disk I/O; duplicates cost one small buffer re-send.
-- **Screenshot = one-frame render through the real pipeline** (Fega's pick over a clean instant frame) — WYSIWYG including reframe + unsaved edits; ~1-2s.
-- **DONE = all scheduled** (Fega's pick) — publishing fires automatically after scheduling, so scheduled counts as finished; Published still gets its own badge.
-- **Scheduling state derived, never stored** — all from trackerData + clip.scheduledAt, mirroring App.js's queue-badge exclusion logic; can't drift.
+- **Duration fallback is Fega's locked call** (spec): outside 3–90s posts as a normal video, silent-but-logged, never fails the multi-platform batch. No Reels-error → legacy-retry fallback (double-post risk); routing is by duration only.
+- **Version sizing corrected by Fega, twice-refined:** the FB fix is user-facing "Facebook posting works correctly now" → alpha tick, NOT a minor bump (0.3.1-alpha.1 retracted, installer deleted). And 0.3 itself predates this session (Rename redesign, session 117) — Fega considered rolling back to 0.2.x, then decided to stay on 0.3. Rule now in clipflow-update-launcher + memory: size by what the user gets, not implementation novelty.
+- **Repair distrusts, never guesses ownership:** any flat-folder render file claimed by >1 clip (or missing) is untrusted → record reset; files on disk, publish history, tracker all untouched. Thumbnails regenerate from the clip's own source recording — the one origin that can't carry another project's content.
+- **deleteClipRender still keeps the thumbnail** (session-123 "list identity" choice) — safe now that paths are per-clip; deliberately NOT changed.
+- **No mass re-render homework for Fega:** reset clips re-render lazily, only if/when he publishes them again.
 
 ## Next Steps
 
-1. **Facebook Reels publishing** (`tasks/specs/facebook-reels-publishing.md`) — approved, scoped, ready to build.
-2. Fega's remaining alpha.9 test pass: render speed feel (#180 untested), camera button on a real clip, NEW chips after a rename session, Scheduled/Published badges vs his real queue, Queue blur-save feel, plus the still-unexercised alpha.6/alpha.7 leftovers (right-click merge/split, auto-caps).
-3. #178 product guard (ALAC/undecodable-audio ingest warning) still open.
+1. **Tomorrow: check views on the "Difficult jump" Facebook reel.** Non-zero = the zero-views saga is closed end-to-end (both causes: app Live mode + Reels surface). Then mark the FB Reels task DONE in tasks/todo.md.
+2. Spec's flagged future win (out of scope this session): Facebook native scheduling (`video_state=SCHEDULED`) would fire FB posts without the app open — worth a ticket when scheduling comes up again.
+3. Spec footnote: `business_management` scope in meta.js:42 is heavier than page posting needs — only revisit if a reconnect hits friction.
+4. `projects-backup-pre181` folder can be deleted once Fega's happy everything looks right (ask him first — it's his safety net).
 
 ## Watch Out For
 
-- **The overlay frame-skip signature must track renderSubtitle/renderCaption** — any new animation/time-varying styling added to the overlay page needs a matching signature term or skipped frames will freeze it (overlay-renderer.js, comment above `subtitleSignature`).
-- **`buildNleFilterComplex` gained `opts.audio`** — `{audio:false}` is single-segment-only (thumbnail path). The render path still always maps audio.
-- **EditorLayout.js holds FIVE components** (ClipNavigator, Topbar, MiniPlayerBar, EditorLayout + helpers) — the alpha.8 crash came from inserting a handler in Topbar and referencing it in EditorLayout. Check the enclosing function before inserting; rule now in clipflow-code-review.
-- **Editor-touching changes need a CDP clip-open drive** — build + boot smoke CANNOT catch editor-mount crashes (the editor is the only conditionally-mounted view). Script pattern: launch `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, then click `.pl-open` → "Open in Editor", assert no "Editor Crash" text (session 124 scratchpad `cdp-editor-check.js` / `cdp-camera-check.js`).
-- **Queue Cancel button relies on mousedown-before-blur** — converting it to onClick would make blur save first and Cancel a no-op.
-- **Dev profile now has `outputFolder` set** to `C:/Users/IAmAbsolute/AppData/Local/Temp/claude/clipflow-thumb-test` (set during CDP verification) — harmless, but dev-profile renders/thumbnails land there until changed.
+- **Legacy flat-folder files still exist** (old renders + orphaned thumbs like the RL-content `Clip 3_thumb.jpg`). Harmless — nothing references untrusted ones anymore — but don't "clean up" the renders folder without checking references; uniquely-claimed legacy records still point there.
+- **Old clips re-rendered post-fix migrate paths silently:** their new render lands in the per-project subfolder while the stale flat file stays behind. Expected, not a bug.
+- **The update notifier compares version-string inequality, newest-by-mtime** (main.js `update:check` ~3390) — it will offer ANY different version, including a lower number. Retracted installers must be deleted from dist/ (0.3.1-alpha.1 was).
+- **Reels finish returns before Facebook finishes processing** ("Video is Processing" message) — success + post_id is the accepted contract; don't add post-finish polling unless a real failure shows up.
+- **`npm start` (source, prod profile) shares the REAL settings store and W: projects tree** — a boot smoke runs migrations/repairs against real data. Deliberate this session (backup first); remember it before adding future boot-time repairs.
 
-## Logs / Debugging
+## Logs/Debugging
 
-- **Editor crash signature (fixed):** `ReferenceError: onScreenshot is not defined` in the Editor Crash boundary — if anything similar reappears, it's a cross-component scope error; check which of EditorLayout.js's five components owns the identifier.
-- **Render pipeline logging:** `[OverlayRenderer]` lines now report `N captured, M skipped of T` — a healthy clip skips 85-95%; captured≈total means the signature is churning (check for a new time-varying style input). `[Render] Overlay frames:` mirrors it from render.js.
-- **Thumbnail path logging:** `[Thumbnail] FFmpeg args:` prints the one-frame graph; failures surface in the in-app toast verbatim ("Output folder not configured. Go to Settings." was the only failure seen, on the unconfigured dev profile).
-- **CDP harnesses:** `render-harness.js` (full render + `--thumb` mode), `cdp-editor-check.js`, `cdp-camera-check.js` in this session's scratchpad — patterns worth recreating; traps in memory `project_cdp_verification_gotchas`.
+- Main log: `%APPDATA%\clipflow\logs\app.log`. This session's forensic anchors: RL publish of shared path Jul 14 13:30 (`app.log:33628`), EO failed publishes Jul 24 12:30/13:08 ("Video file not found"), successful Reels publish Jul 24 14:43 (`surface:"reels"`, videoId 1373136057662973, postId 1079234704765331).
+- `#181 render collision repair:` / `#181 thumbnail regen complete:` log lines confirm the repair pass (12 reset, 14/14 regenerated).
+- Facebook publish scope is `(facebook)`; first-run raw responses logged at "Reels status raw response" / "Reels finish raw response".
+- Diagnosis tooling that worked well: collision-map script + repair dry-run live in this session's scratchpad (pattern: copy project JSONs, mock store, stub ffmpeg's electron logger dep).
