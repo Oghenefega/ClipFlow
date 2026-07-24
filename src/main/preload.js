@@ -132,6 +132,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Render pipeline
   renderClip: (clipData, projectData, outputPath, options) =>
     ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),
+  thumbnailCapture: (clipData, projectData, timelineTime, options) =>
+    ipcRenderer.invoke("thumbnail:capture", clipData, projectData, timelineTime, options),
   batchRender: (clips, projectData, outputDir, options) =>
     ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
   // clipId targets a specific job: the current render is aborted, a WAITING

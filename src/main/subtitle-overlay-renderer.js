@@ -330,12 +330,31 @@ async function createOverlaySession(params) {
     return { captured, skipped, canceled: false };
   }
 
+  /**
+   * Capture a single frame at an arbitrary timeline time (seconds) — used by
+   * renderThumbnail for the WYSIWYG viewer screenshot. Returns a PNG buffer.
+   * @param {number} t
+   * @returns {Promise<Buffer>}
+   */
+  async function captureFrameAt(t) {
+    const state = await win.webContents.executeJavaScript(`
+      try { window.__renderFrame__(${t}); "ok"; } catch(e) { "err:" + e.message; }
+    `);
+    if (typeof state === "string" && state.startsWith("err:")) {
+      throw new Error("Overlay frame render failed: " + state);
+    }
+    await new Promise((r) => setTimeout(r, 20));
+    const image = await win.webContents.capturePage();
+    return image.toPNG();
+  }
+
   return {
     fps: OVERLAY_FPS,
     totalFrames,
     width,
     height,
     captureFrames,
+    captureFrameAt,
     destroy() {
       try { if (!win.isDestroyed()) win.destroy(); } catch (_) {}
     },

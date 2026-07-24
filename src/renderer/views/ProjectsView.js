@@ -52,12 +52,40 @@ const getGameColor = (p, gamesDb) => {
 };
 
 // Pure helper — determine project status
-const getProjectStatus = (p) => {
+// Publish-pipeline state, derived from trackerData (zero new persisted state).
+// Scheduling on the Queue tab creates a tracker entry (clipId/title) AND sets
+// clip.scheduledAt; the scheduler clears scheduledAt at fire time. So:
+// entry + scheduledAt = Scheduled (pending), entry without = Published.
+// Same id/title matching App.js uses for the Queue badge.
+const makePublishState = (trackerData) => {
+  const ids = new Set((trackerData || []).map((t) => t.clipId).filter(Boolean));
+  const titles = new Set((trackerData || []).map((t) => t.title).filter(Boolean));
+  const tracked = (c) => ids.has(c.id) || titles.has(c.title);
+  return {
+    isScheduled: (c) => tracked(c) && !!c.scheduledAt,
+    isPublished: (c) => tracked(c) && !c.scheduledAt,
+  };
+};
+
+const isClipApproved = (c) => c.status === "approved" || c.status === "ready";
+
+// "done" is honest (session 124): a project is only DONE when every clip is
+// reviewed AND every approved clip is scheduled or published — review alone
+// now yields "schedule" (all reviewed, approved clips still need queueing).
+// Without a pub state (no trackerData in scope) it falls back to the old
+// done-when-reviewed behavior.
+const getProjectStatus = (p, pub) => {
   if (p.status === "processing") return "processing";
   if (p.status === "error") return "error";
   if (p.clips && p.clips.length > 0) {
     const allReviewed = p.clips.filter((c) => c.status === "none").length === 0;
-    return allReviewed ? "done" : "ready";
+    if (!allReviewed) return "ready";
+    if (pub) {
+      const unscheduled = p.clips.filter((c) =>
+        isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
+      if (unscheduled > 0) return "schedule";
+    }
+    return "done";
   }
   return "ready";
 };
@@ -634,7 +662,14 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
 }
 
 // ============ CLIP ROW ============
-function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template }) {
+// Compact schedule stamp for the Scheduled badge — local clock (EST for Fega)
+const fmtScheduledAt = (iso) => {
+  try {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch (_) { return ""; }
+};
+
+function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template, pub }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -797,6 +832,8 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
           {rej && <Badge color={T.red}>Rejected</Badge>}
           {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
+          {pub?.isScheduled(clip) && <Badge color={T.accent}>{`Scheduled · ${fmtScheduledAt(clip.scheduledAt)}`}</Badge>}
+          {pub?.isPublished(clip) && <Badge color={T.green}>Published</Badge>}
         </div>
 
         {/* Flowing transcript: reads like the editor, no [mm:ss] stamps */}
@@ -860,8 +897,9 @@ function sortFolders(folders, mode) {
 
 export function ProjectsListView({
   localProjects = [], setLocalProjects, projectFolders = [], activeFolder, onSelectFolder,
-  onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [],
+  onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [], trackerData = [],
 }) {
+  const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   // Toggle per-project test mode. Optimistic update on the local state, then
   // persist to disk via IPC. On failure, revert so the chip doesn't lie about
   // where outputs will actually route.
@@ -938,8 +976,9 @@ export function ProjectsListView({
 
   // --- Filter projects by status + game (folders retired) ---
   const visibleProjects = localProjects.filter((p) => {
-    if (statusFilter === "review" && getProjectStatus(p) !== "ready") return false;
-    if (statusFilter === "done" && getProjectStatus(p) !== "done") return false;
+    if (statusFilter === "review" && getProjectStatus(p, pub) !== "ready") return false;
+    if (statusFilter === "schedule" && getProjectStatus(p, pub) !== "schedule") return false;
+    if (statusFilter === "done" && getProjectStatus(p, pub) !== "done") return false;
     if (gameFilter !== "all" && p.gameTag !== gameFilter) return false;
     return true;
   });
@@ -971,8 +1010,9 @@ export function ProjectsListView({
 
   const selCount = Object.values(selected).filter(Boolean).length;
   const processingCount = localProjects.filter((p) => p.status === "processing").length;
-  const readyCount = localProjects.filter((p) => getProjectStatus(p) === "ready").length;
-  const doneCount = localProjects.filter((p) => getProjectStatus(p) === "done").length;
+  const readyCount = localProjects.filter((p) => getProjectStatus(p, pub) === "ready").length;
+  const scheduleCount = localProjects.filter((p) => getProjectStatus(p, pub) === "schedule").length;
+  const doneCount = localProjects.filter((p) => getProjectStatus(p, pub) === "done").length;
 
   const handleDelete = () => {
     if (!confirmDelete) {
@@ -1162,6 +1202,7 @@ export function ProjectsListView({
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "2px 0 16px" }}>
         <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={localProjects.length}>All</FilterChip>
         <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")} count={readyCount}>To review</FilterChip>
+        <FilterChip active={statusFilter === "schedule"} onClick={() => setStatusFilter("schedule")} count={scheduleCount}>To schedule</FilterChip>
         <FilterChip active={statusFilter === "done"} onClick={() => setStatusFilter("done")} count={doneCount}>Done</FilterChip>
         {games.length > 0 && <span style={{ width: 1, height: 20, background: T.border, margin: "0 3px" }} />}
         {games.length > 0 && (
@@ -1187,15 +1228,18 @@ export function ProjectsListView({
       ) : (
         <div className={selCount > 0 ? "pl-list selecting" : "pl-list"} style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
           {sorted.map((p) => {
-            const st = getProjectStatus(p);
+            const st = getProjectStatus(p, pub);
             const pColor = getGameColor(p, gamesDb);
             const clips = p.clips || [];
             const clipCount = clips.length || p.clipCount || 0;
             const reviewed = clips.filter((c) => c.status && c.status !== "none").length;
             const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
             const leftToReview = Math.max(0, clipCount - reviewed);
+            const toSchedule = clips.filter((c) => isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
+            const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
+            const approvedCount = clips.filter(isClipApproved).length;
             const isSel = !!selected[p.id];
-            const openable = st === "ready" || st === "done";
+            const openable = st === "ready" || st === "schedule" || st === "done";
             const isTest = p.testMode === true || (p.tags || []).includes("test");
             const dateStr = fmtProjectDate(p);
             return (
@@ -1242,13 +1286,19 @@ export function ProjectsListView({
                   ) : clipCount > 0 ? (
                     <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
                       {clips.slice(0, 40).map((c, i) => {
-                        const cc = (c.status === "approved" || c.status === "ready") ? T.green : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
+                        // Purple = scheduled/published (handled beyond approval) — the
+                        // card shows publish progress, not just review progress.
+                        const cc = (pub.isScheduled(c) || pub.isPublished(c)) ? T.accent
+                          : (c.status === "approved" || c.status === "ready") ? T.green
+                          : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
                         return <span key={i} style={{ width: 14, height: 6, borderRadius: 2, background: cc }} />;
                       })}
                       <span style={{ marginLeft: 8, fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
                         {leftToReview > 0
                           ? <><b style={{ color: T.text }}>{leftToReview}</b> of {clipCount} left{rendered > 0 ? ` · ${rendered} rendered` : ""}</>
-                          : <>all reviewed{rendered > 0 ? <> {"·"} <b style={{ color: T.text }}>{rendered}</b> rendered</> : ""}</>}
+                          : toSchedule > 0
+                            ? <>all reviewed · <b style={{ color: T.accent }}>{toSchedule} to schedule</b></>
+                            : <>all {approvedCount > 0 ? "scheduled" : "reviewed"}{publishedCount > 0 ? <> {"·"} <b style={{ color: T.text }}>{publishedCount}</b> published</> : ""}</>}
                       </span>
                     </div>
                   ) : null}
@@ -1256,21 +1306,23 @@ export function ProjectsListView({
 
                 {/* status + open */}
                 <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9 }}>
-                  <Badge color={st === "done" ? T.green : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
-                    {st === "done" ? "Done" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
+                  <Badge color={st === "done" ? T.green : st === "schedule" ? T.accent : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
+                    {st === "done" ? "Done" : st === "schedule" ? "To schedule" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
                   </Badge>
                   {openable && (
                     <button
                       className="pl-open"
                       onClick={(e) => { e.stopPropagation(); onSelect(p); }}
                       style={{
+                        // "schedule" gets the muted Open treatment too — the remaining
+                        // action (scheduling) happens on the Queue tab, not in here.
                         fontFamily: T.font, fontSize: 12.5, fontWeight: 700, borderRadius: 9, padding: "7px 14px", cursor: "pointer",
-                        color: st === "done" ? T.textSecondary : "#fff",
-                        background: st === "done" ? T.surfaceHover : T.accent,
-                        border: st === "done" ? `1px solid ${T.border}` : "none",
-                        boxShadow: st === "done" ? "none" : "0 6px 16px -8px rgba(139,92,246,0.8)",
+                        color: st === "ready" ? "#fff" : T.textSecondary,
+                        background: st === "ready" ? T.accent : T.surfaceHover,
+                        border: st === "ready" ? "none" : `1px solid ${T.border}`,
+                        boxShadow: st === "ready" ? "0 6px 16px -8px rgba(139,92,246,0.8)" : "none",
                       }}
-                    >{st === "done" ? "Open" : "Review"}</button>
+                    >{st === "ready" ? "Review" : "Open"}</button>
                   )}
                 </div>
 
@@ -1523,7 +1575,8 @@ export function ProjectsListView({
 // ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, trackerData = [] }) {
+  const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   const [filter, setFilter] = useState("all");
 
   // Returning from the editor lands on the clip that was being edited instead
@@ -1564,6 +1617,9 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
   const pending = clips.filter((c) => c.status === "none").length;
   const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
   const renderableApproved = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered").length;
+  const scheduledCount = clips.filter((c) => pub.isScheduled(c)).length;
+  const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
+  const toSchedule = clips.filter((c) => isApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
 
   const [renderError, setRenderError] = useState(null);
 
@@ -1600,7 +1656,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
 
   return (
     <div>
-      <PageHeader title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}`} backAction={onBack}>
+      <PageHeader title={project.name} subtitle={`${approved} approved · ${pending} pending${rendered > 0 ? ` · ${rendered} rendered` : ""}${scheduledCount > 0 ? ` · ${scheduledCount} scheduled` : ""}${publishedCount > 0 ? ` · ${publishedCount} published` : ""}${toSchedule > 0 ? ` · ${toSchedule} to schedule` : ""}`} backAction={onBack}>
         {renderableApproved > 0 && (
           <button
             onClick={handleBatchRender}
@@ -1634,6 +1690,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
             <ClipRow
               clip={clip}
               project={project}
+              pub={pub}
               onUpdateClip={onUpdateClip}
               onEditClipTitle={onEditClipTitle}
               onOpenInEditor={onOpenInEditor}

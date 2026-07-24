@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 124, part 2) — Viewer screenshot, Recordings auto-refresh, scheduling visibility, Queue blur-save (NOT yet in an installer)
+
+### Added
+- **Camera button on the editor preview — save the current frame as a Shorts thumbnail PNG.** Sits next to the fullscreen button on the viewer. One click runs a one-frame render through the real pipeline (webcam/game reframe layout, subtitles, captions — current unsaved edits included), so the PNG is pixel-identical to that moment of the final video. Saves to the render output folder as `<clip title>_thumbnail.png` (~1-2s) with a toast + "Show in folder". For YouTube's new custom Shorts thumbnails. [PreviewPanelNew.js, EditorLayout.js, render.js, subtitle-overlay-renderer.js, main.js, preload.js]
+- **Recordings tab now updates itself after renaming — no more Ctrl+R.** The Rename tab tells the Recordings library to reload the moment a rename batch lands, and every freshly-arrived recording wears a glowing green NEW chip until you leave the tab (so you can see at a glance what just came in). [App.js, RenameView.js, UploadView.js]
+- **Projects tab now shows the full publish pipeline, not just review state.** Clip cards gain "Scheduled · Jul 25, 3:00 PM" (purple) and "Published" (green) badges next to Approved/Rendered, derived live from the Queue/Tracker data — nothing new is stored, so it can never drift. The project list gains a "To schedule" filter chip, clip mini-bars turn purple once scheduled, and the card status line reads "all reviewed · 2 to schedule" so one glance answers "did I queue everything I approved?" [ProjectsView.js, App.js]
+
+### Changed
+- **A project only says DONE when it's actually done.** Previously DONE meant "every clip approved or rejected" — even with approved clips never queued for publishing. Now DONE requires every clip to be rejected OR scheduled/published; in between, the card shows a purple "To schedule" badge with the exact count remaining. (Fega's call: scheduled counts as done, since publishing fires automatically afterward.) [ProjectsView.js]
+- **Queue tab platform text boxes save on click-outside.** Editing a YouTube description or platform caption no longer requires hunting for the Save button at the bottom — click anywhere outside the box and it saves, with a brief green "Saved" flash next to the field label. Escape or the Cancel button still discards. The Save button is gone (it would have been dead weight). [QueueView.js]
+
 ## [Unreleased] — 2026-07-24 (session 124) — Subtitle overlay render speed: skip identical frames + stream into FFmpeg (NOT yet in an installer)
 
 ### Changed

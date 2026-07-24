@@ -765,7 +765,12 @@ export default function QueueView({
     } catch (e) { console.error("Platform toggle failed:", e); }
   };
 
-  // Phase 2: Save caption override for a platform
+  // Phase 2: Save caption override for a platform. Fires on textarea blur
+  // (click anywhere outside the box) — there is no Save button. A brief
+  // "Saved ✓" chip next to the field label confirms the write.
+  const [captionSavedFlash, setCaptionSavedFlash] = useState(null); // "clipId:platformKey"
+  const captionFlashTimer = useRef(null);
+  useEffect(() => () => clearTimeout(captionFlashTimer.current), []);
   const saveCaptionOverride = async (clip, platformKey, value) => {
     if (!clip._projectId) return;
     const resolved = resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb);
@@ -774,7 +779,12 @@ export default function QueueView({
     const updated = { ...current, [platformKey]: value === resolved ? undefined : value };
     try {
       const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { captionOverrides: updated });
-      if (!r?.error) updateClipInState(clip._projectId, clip.id, { captionOverrides: updated });
+      if (!r?.error) {
+        updateClipInState(clip._projectId, clip.id, { captionOverrides: updated });
+        setCaptionSavedFlash(`${clip.id}:${platformKey}`);
+        clearTimeout(captionFlashTimer.current);
+        captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
+      }
     } catch (e) { console.error("Caption override save failed:", e); }
     setEditingCaption(null);
   };
@@ -1769,7 +1779,15 @@ export default function QueueView({
                                           options so it sits near the top of the card (close to the
                                           title), and styled as a clearly editable field. */}
                                       <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase", marginBottom: 6 }}>{isYt ? "Description" : "Caption"}</div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>{isYt ? "Description" : "Caption"}</div>
+                                          {captionSavedFlash === `${clip.id}:${pk}` && (
+                                            <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                                              Saved
+                                            </span>
+                                          )}
+                                        </div>
                                         {isEditingThis ? (
                                           <textarea
                                             autoFocus
@@ -1790,6 +1808,9 @@ export default function QueueView({
                                               if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(120, el.scrollHeight + 2) + "px";
                                             }}
                                             onKeyDown={(e) => { if (e.key === "Escape") setEditingCaption(null); }}
+                                            // Click anywhere outside the box = save. Escape unmounts the
+                                            // textarea without firing blur, so it still cancels cleanly.
+                                            onBlur={() => saveCaptionOverride(clip, pk, editCaptionValue)}
                                             style={{ width: "100%", minHeight: 120, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.55 }}
                                           />
                                         ) : (
@@ -1810,13 +1831,15 @@ export default function QueueView({
                                             </span>
                                           </div>
                                         )}
-                                        {/* Edit/Save/Reset actions */}
+                                        {/* Char count + cancel — saving happens on click-outside (textarea blur).
+                                            Cancel uses onMouseDown + preventDefault so it runs BEFORE the
+                                            textarea's blur would save; Escape does the same from the keyboard. */}
                                         {isEditingThis && (
                                           <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
                                             <span style={{ fontSize: 11, fontFamily: T.mono, color: charCountColor(editCaptionValue.length, charLimit) }}>{editCaptionValue.length}/{charLimit}</span>
+                                            <span style={{ fontSize: 10.5, color: T.textTertiary }}>click outside to save</span>
                                             <div style={{ flex: 1 }} />
-                                            <button onClick={(e) => { e.stopPropagation(); saveCaptionOverride(clip, pk, editCaptionValue); }} style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: T.accent, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
-                                            <button onClick={(e) => { e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                                            <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingCaption(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                                           </div>
                                         )}
                                         {!isEditingThis && hasOverride && (

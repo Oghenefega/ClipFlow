@@ -2,7 +2,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
-const { getTimelineDuration, visibleSubtitleSegments } = require("../renderer/editor/models/timeMapping");
+const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
@@ -124,16 +124,19 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  * @param {object|null} [reframe] - { camRect|null, gameRect } in source pixels, or null (#164)
  * @param {number} [sourceWidth] - Probed source width, for reframe crop clamping
  * @param {number} [sourceHeight] - Probed source height, for reframe crop clamping
+ * @param {object} [opts] - { audio: false } builds a video-only graph (single-segment
+ *   only — used by renderThumbnail, whose PNG output can't accept audio streams)
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
-function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight) {
+function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight, opts = {}) {
+  const withAudio = opts.audio !== false;
   const n = nleSegments.length;
   const filters = [];
 
   if (n === 1) {
     // Single segment: input 0 is already the trimmed range — normalize PTS only
     filters.push(`[0:v]setpts=PTS-STARTPTS[base_v]`);
-    filters.push(`[0:a]asetpts=PTS-STARTPTS[base_a]`);
+    if (withAudio) filters.push(`[0:a]asetpts=PTS-STARTPTS[base_a]`);
   } else {
     // Multi-segment: each input is one pre-seeked segment — normalize + concat
     for (let i = 0; i < n; i++) {
@@ -223,21 +226,92 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     }
   }
 
+  const audioMap = withAudio ? ["-map", "[base_a]"] : [];
   if (hasFrames) {
-    // Composite overlay PNG sequence on top of assembled video.
+    // Composite overlay PNG stream on top of assembled video.
     // Overlay is input n — it comes after the n per-segment source inputs.
     filters.push(`[${n}:v]format=rgba[sub]`);
     filters.push(`[${videoLabel}][sub]overlay=0:0:eof_action=pass[out]`);
     return {
       filterComplex: filters.join(";"),
-      mapArgs: ["-map", "[out]", "-map", "[base_a]"],
+      mapArgs: ["-map", "[out]", ...audioMap],
     };
   }
 
   return {
     filterComplex: filters.join(";"),
-    mapArgs: ["-map", `[${videoLabel}]`, "-map", "[base_a]"],
+    mapArgs: ["-map", `[${videoLabel}]`, ...audioMap],
   };
+}
+
+/**
+ * Resolve a clip's subtitles into timeline-time (0-based) segments for the
+ * overlay renderer. EditorLayout passes an already-mapped array; render-from-
+ * disk paths (batch/queue) run the SAME resolver the editor (initSegments) +
+ * Projects preview use — resolveClipSubtitles — so the source-priority chain
+ * AND the word-repair stack (token-merge → validate → timestamp-clean) are
+ * applied identically. #8: render.js previously re-derived raw segments and
+ * skipped that repair, burning whisper subword-splits/dupes into never-opened
+ * clips. Shared by renderClip and renderThumbnail so both paint identical text.
+ *
+ * @returns {Array} timeline-time subtitle segments
+ */
+function resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments) {
+  let subtitleSegments = [];
+  let subsAreSourceAbsolute = false;
+  if (Array.isArray(clipData.subtitles)) {
+    // EditorLayout already resolved + mapped these to timeline time.
+    subtitleSegments = clipData.subtitles;
+  } else {
+    // resolveClipSubtitles returns SOURCE-ABSOLUTE, repaired segments
+    // {start,end,text,words}. Map start/end → startSec/endSec so the
+    // visibleSubtitleSegments NLE mapping (and the overlay) can consume them.
+    const resolved = resolveClipSubtitles(clipData, projectData, { includeExtras: false });
+    if (resolved.segments.length > 0) {
+      subtitleSegments = resolved.segments.map((s) => ({
+        startSec: s.start,
+        endSec: s.end,
+        text: s.text,
+        words: s.words,
+      }));
+      subsAreSourceAbsolute = true;
+      console.log(`[Render] Subtitle source: resolveClipSubtitles (${resolved.source}),`, subtitleSegments.length, "segments");
+    }
+  }
+
+  // Convert source-absolute resolver output to the overlay's clip-relative
+  // (0-based) time domain.
+  if (useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
+    // NLE path: map through the segment list (handles trims/reorders).
+    const mapped = visibleSubtitleSegments(subtitleSegments, nleSegments);
+    subtitleSegments = mapped.map((seg) => ({
+      ...seg,
+      startSec: seg.timelineStartSec,
+      endSec: seg.timelineEndSec,
+      words: (seg.words || []).map((w) => ({
+        ...w,
+        start: w.timelineStart !== undefined ? w.timelineStart : w.start,
+        end: w.timelineEnd !== undefined ? w.timelineEnd : w.end,
+      })),
+    }));
+    console.log("[Render] Mapped", mapped.length, "subtitles from source-absolute to timeline time");
+  } else if (!useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
+    // Legacy fallback renders the pre-cut clip MP4, which starts at 0 — shift
+    // source-absolute timestamps back to clip-relative by subtracting the origin.
+    const origin = clipData.startTime || 0;
+    subtitleSegments = subtitleSegments.map((seg) => ({
+      ...seg,
+      startSec: (seg.startSec || 0) - origin,
+      endSec: (seg.endSec || 0) - origin,
+      words: (seg.words || []).map((w) => ({
+        ...w,
+        start: (w.start ?? 0) - origin,
+        end: (w.end ?? 0) - origin,
+      })),
+    }));
+    console.log("[Render] Shifted", subtitleSegments.length, "subtitles to clip-relative time (legacy path)");
+  }
+  return subtitleSegments;
 }
 
 /**
@@ -321,68 +395,8 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       const sourceFps = await probeFps(srcFile);
       console.log("[Render] Source FPS:", sourceFps);
 
-      // ── Subtitle segments ──
-      // EditorLayout pre-maps subtitles to timeline time for single-clip render
-      // (passes subtitles as a plain array). For render-from-disk (batch/queue),
-      // run the SAME resolver the editor (initSegments) + Projects preview use —
-      // resolveClipSubtitles — so the source-priority chain AND the word-repair
-      // stack (token-merge → validate → timestamp-clean) are applied identically.
-      // #8: render.js previously re-derived raw segments here and skipped that
-      // repair, burning whisper subword-splits/dupes into never-opened clips.
-      let subtitleSegments = [];
-      let subsAreSourceAbsolute = false;
-      if (Array.isArray(clipData.subtitles)) {
-        // EditorLayout already resolved + mapped these to timeline time.
-        subtitleSegments = clipData.subtitles;
-      } else {
-        // resolveClipSubtitles returns SOURCE-ABSOLUTE, repaired segments
-        // {start,end,text,words}. Map start/end → startSec/endSec so the
-        // visibleSubtitleSegments NLE mapping (and the overlay) can consume them.
-        const resolved = resolveClipSubtitles(clipData, projectData, { includeExtras: false });
-        if (resolved.segments.length > 0) {
-          subtitleSegments = resolved.segments.map((s) => ({
-            startSec: s.start,
-            endSec: s.end,
-            text: s.text,
-            words: s.words,
-          }));
-          subsAreSourceAbsolute = true;
-          console.log(`[Render] Subtitle source: resolveClipSubtitles (${resolved.source}),`, subtitleSegments.length, "segments");
-        }
-      }
-
-      // Convert source-absolute resolver output to the overlay's clip-relative
-      // (0-based) time domain.
-      if (useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
-        // NLE path: map through the segment list (handles trims/reorders).
-        const mapped = visibleSubtitleSegments(subtitleSegments, nleSegments);
-        subtitleSegments = mapped.map((seg) => ({
-          ...seg,
-          startSec: seg.timelineStartSec,
-          endSec: seg.timelineEndSec,
-          words: (seg.words || []).map((w) => ({
-            ...w,
-            start: w.timelineStart !== undefined ? w.timelineStart : w.start,
-            end: w.timelineEnd !== undefined ? w.timelineEnd : w.end,
-          })),
-        }));
-        console.log("[Render] Mapped", mapped.length, "subtitles from source-absolute to timeline time");
-      } else if (!useNle && subsAreSourceAbsolute && subtitleSegments.length > 0) {
-        // Legacy fallback renders the pre-cut clip MP4, which starts at 0 — shift
-        // source-absolute timestamps back to clip-relative by subtracting the origin.
-        const origin = clipData.startTime || 0;
-        subtitleSegments = subtitleSegments.map((seg) => ({
-          ...seg,
-          startSec: (seg.startSec || 0) - origin,
-          endSec: (seg.endSec || 0) - origin,
-          words: (seg.words || []).map((w) => ({
-            ...w,
-            start: (w.start ?? 0) - origin,
-            end: (w.end ?? 0) - origin,
-          })),
-        }));
-        console.log("[Render] Shifted", subtitleSegments.length, "subtitles to clip-relative time (legacy path)");
-      }
+      // ── Subtitle segments ── (shared with renderThumbnail)
+      const subtitleSegments = resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments);
 
       // Caption segments
       const captionSegments = options.captionSegments || clipData.captionSegments || [];
@@ -622,8 +636,114 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
 // through the shared render job queue, so batch and single renders serialize
 // through one path instead of two competing loops.
 
+/**
+ * Capture a single WYSIWYG frame of a clip as a PNG (session 124: Shorts
+ * thumbnails). Runs the exact render pipeline for one moment in time — same
+ * reframe composite, same overlay engine — so the PNG is pixel-identical to
+ * that frame of the final render.
+ *
+ * @param {object} clipData - Same shape renderClip receives (editor payload)
+ * @param {object} projectData - Project with sourceFile, reframe, source dims
+ * @param {number} timelineTime - Playhead position on the editor timeline (s)
+ * @param {string} outputPath - Destination .png path
+ * @param {object} options - { subtitleStyle, captionStyle, captionSegments }
+ * @returns {Promise<{success: true, path: string}>}
+ */
+async function renderThumbnail(clipData, projectData, timelineTime, outputPath, options = {}) {
+  const nleSegments = clipData.nleSegments || [];
+  const sourceFile = projectData.sourceFile;
+  const sourceOk = sourceFile && fs.existsSync(sourceFile);
+  const useNle = nleSegments.length > 0 && sourceOk;
+  const reframeActive = isReframeActive(projectData.reframe);
+
+  let srcFile;
+  if (useNle) srcFile = sourceFile;
+  else if (clipData.filePath && fs.existsSync(clipData.filePath)) srcFile = clipData.filePath;
+  else throw new Error("Cannot capture: source recording not found");
+
+  const timelineDuration = useNle
+    ? getTimelineDuration(nleSegments)
+    : ((clipData.endTime || 0) - (clipData.startTime || 0));
+  // Clamp inside the clip so the seek always lands on a decodable frame
+  const t = Math.max(0, Math.min(timelineTime || 0, Math.max(0, timelineDuration - 0.05)));
+  let sourceTime;
+  if (useNle) {
+    const mapped = timelineToSource(t, nleSegments);
+    sourceTime = mapped && mapped.found ? mapped.sourceTime : (nleSegments[0].sourceStart + t);
+  } else {
+    sourceTime = (clipData.startTime || 0) + t;
+  }
+
+  const dir = path.dirname(outputPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const subtitleSegments = resolveTimelineSubtitles(clipData, projectData, useNle, nleSegments);
+  const captionSegments = options.captionSegments || clipData.captionSegments || [];
+  const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
+
+  // One overlay frame at the playhead, written to a temp PNG beside the output
+  let overlayPng = null;
+  let session = null;
+  try {
+    if (hasOverlay) {
+      session = await createOverlaySession({
+        subtitleSegments,
+        subtitleStyle: options.subtitleStyle || clipData.subtitleStyle || {},
+        captionSegments,
+        captionStyle: options.captionStyle || clipData.captionStyle || {},
+        syncOffset: clipData.syncOffset || 0,
+        clipStartTime: useNle ? 0 : (clipData.startTime || 0),
+        clipEndTime: useNle ? timelineDuration : (clipData.endTime || 0),
+        timelineDuration: useNle ? timelineDuration : 0,
+        sourceFile: useNle ? null : srcFile,
+        resolutionProbeFile: srcFile,
+        ...(reframeActive ? { targetWidth: 1080, targetHeight: 1920 } : {}),
+      });
+      if (session) {
+        const buf = await session.captureFrameAt(t);
+        overlayPng = outputPath + ".overlay_tmp.png";
+        fs.writeFileSync(overlayPng, buf);
+      }
+    }
+
+    // Single pre-seeked input through the SAME filter graph as a real render
+    // (reframe composite included), video-only, one frame out.
+    const args = ["-y", "-ss", String(sourceTime), "-i", srcFile];
+    if (overlayPng) args.push("-i", overlayPng.replace(/\\/g, "/"));
+    const { filterComplex, mapArgs } = buildNleFilterComplex(
+      [{ id: "thumb", sourceStart: sourceTime, sourceEnd: sourceTime + 1 }],
+      !!overlayPng,
+      projectData.reframe,
+      projectData.sourceWidth,
+      projectData.sourceHeight,
+      { audio: false }
+    );
+    args.push("-filter_complex", filterComplex, ...mapArgs, "-frames:v", "1", outputPath);
+    console.log("[Thumbnail] FFmpeg args:", args.join(" "));
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn("ffmpeg", args);
+      let stderr = "";
+      const timer = setTimeout(() => { try { proc.kill("SIGTERM"); } catch (_) {} }, 60000);
+      proc.stderr.on("data", (d) => (stderr += d.toString()));
+      proc.on("close", (code) => {
+        clearTimeout(timer);
+        if (code !== 0) return reject(new Error(`thumbnail ffmpeg failed (code ${code}): ${stderr.slice(-400)}`));
+        resolve();
+      });
+      proc.on("error", (err) => { clearTimeout(timer); reject(new Error(`ffmpeg spawn failed: ${err.message}`)); });
+    });
+
+    return { success: true, path: outputPath };
+  } finally {
+    if (session) session.destroy();
+    if (overlayPng) { try { fs.unlinkSync(overlayPng); } catch (_) {} }
+  }
+}
+
 module.exports = {
   renderClip,
+  renderThumbnail,
   cancelActiveRender,
   buildNleFilterComplex, // #164: exported as a seam for the render-args verification harness
 };

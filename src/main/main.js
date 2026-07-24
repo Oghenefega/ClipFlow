@@ -2684,6 +2684,22 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
   }
 });
 
+// Session 124: WYSIWYG viewer screenshot → Shorts thumbnail PNG. Same payload
+// shape as render:clip plus the playhead time; runs a one-frame render through
+// the real pipeline (reframe + overlay) so the PNG matches the final video.
+ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelineTime, options) => {
+  try {
+    const outputFolder = resolveTestAwareOutputFolder(projectData);
+    if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
+    const fileName = `${clipData.title || `clip_${clipData.id}`}_thumbnail.png`.replace(/[<>:"\/\\|?*]/g, "_");
+    const outputPath = path.join(outputFolder, fileName);
+    return await render.renderThumbnail(clipData, projectData, timelineTime, outputPath, options || {});
+  } catch (err) {
+    console.error("[thumbnail:capture] failed:", err.message);
+    return { error: err.message };
+  }
+});
+
 // #140: cancel a render. No clipId (legacy) or the current job's clipId →
 // abort the live render. A WAITING job's clipId → drop it from the queue and
 // resolve its invoke as canceled (never touches the live render).

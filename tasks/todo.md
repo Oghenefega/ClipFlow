@@ -6,7 +6,89 @@
 
 ---
 
-## 🔄 ACTIVE (session 123) — Subtitle upgrades + render queue + Queue-tab delete
+## 🔄 ACTIVE (session 124) — Pre-alpha.8 batch: viewer screenshot, Recordings auto-refresh, scheduled visibility, Queue blur-save
+
+Render speed work (skip identical overlay frames + FFmpeg streaming) shipped
+`6a16202`, closed #180 untested. Four upgrades below join the alpha.8 batch.
+Status: DONE — all four built + verified. Decisions (Fega, via question UI):
+screenshot = exact-as-final WYSIWYG; DONE = all scheduled (publish is
+automatic after); Published gets its own badge. Verified: thumbnail harness
+(1.4s, pixel-matches render frame at same t), full-render regression clean
+(27/424 frames, 16.3s), renderer build clean, app boots with all four
+modified views mounted, no errors. UI behaviors (blur-save feel, NEW chip,
+badges on real scheduled clips) await Fega on the alpha.8 installer.
+
+### 1. Viewer screenshot → Shorts thumbnail
+What: camera button in the editor preview toolbar. Captures the CURRENT
+paused frame and saves a PNG to the render output folder as
+`<clip title>_thumbnail.png`, with a toast confirming + click-to-reveal.
+OPEN DECISION: exact-as-final (subtitles + reframe layout burned in, ~2-4s,
+uses a one-frame render through the real pipeline) vs clean raw frame
+(instant, no subtitles) vs a camera button with both options.
+How (exact-as-final): new IPC `thumbnail:capture` in main.js — map playhead
+timeline time → source time (timeMapping), single pre-seeked FFmpeg input
+through the existing filter graph (buildNleFilterComplex, video-only maps),
+one overlay PNG at that timestamp via createOverlaySession, `-frames:v 1`.
+Files: PreviewPanelNew.js (button), preload.js, main.js, render.js (export a
+one-frame seam) or new thumbnail.js.
+Verify: screenshot at a karaoke moment → PNG matches rendered output frame
+(text, layout, resolution); saved file lands in output folder; toast fires.
+
+### 2. Recordings tab auto-refresh + NEW badge
+Root cause: Recordings tab (UploadView.js) loads its file list on mount and
+manual refresh only. The file watcher already emits `watcher:fileAdded` /
+`fileRemoved` (preload.js:17-25) but only RenameView subscribes (:397).
+Renames rewrite files in the watch tree → Recordings list goes stale until
+app reload (Ctrl+R).
+How: subscribe ONCE at App level (avoids the preload removeAllListeners
+stomp between views), debounce-bump a `recordingsVersion` counter, pass to
+UploadView → refreshFiles() on change. RenameView's rename-complete path
+also bumps it directly (belt + suspenders).
+NEW badge: files first seen since the last time the Recordings tab was
+viewed get a "NEW" chip + 7-8px glow dot (ui-standards); clears when the
+tab is next viewed. Session-only state, nothing persisted.
+Files: App.js, UploadView.js, RenameView.js (bump on rename complete).
+Verify: rename a batch in Rename tab → switch to Recordings → files appear
+without Ctrl+R, wearing NEW badges; badges gone on next visit; new OBS
+recording while app open also appears live.
+
+### 3. Scheduled/Published visibility on Projects tab (the brainstorm)
+Current truth: clip.status = none/approved/rejected (review), renderStatus
+= rendered, SCHEDULED = trackerData row keyed by clipId (+ clip.scheduledAt
+until fire time), PUBLISHED = tracker row whose time passed / publish log
+success. ProjectsView receives no trackerData at all today — that's the
+entire blind spot. "Send to Queue" (editor) = render + approve; every
+approved clip auto-appears on the Queue tab; the manual step Fega can't see
+from Projects is SCHEDULING.
+Plan (recommended):
+- Pass trackerData into ProjectsView (App.js already derives scheduled sets
+  from it at :650-662 — same zero-new-persisted-state pattern).
+- Clip rows/cards gain "Scheduled" badge (purple, with EST date/time) and
+  "Published" badge (emerald) alongside Approved/Rendered.
+- Project card status becomes three-stage: "N left to review" → "all
+  reviewed · N to schedule" (with count of approved-but-unscheduled) →
+  "DONE" only when every clip is rejected OR scheduled/published.
+- Detail header adds an "Approved" filter-adjacent count: "2 to schedule".
+OPEN DECISIONS: (a) does DONE require published or is scheduled enough?
+(b) show Published as its own badge or collapse into Scheduled?
+Files: App.js (prop), ProjectsView.js (badges, card status, counts).
+Verify: schedule one of two approved clips → Projects shows Scheduled on
+that clip, card says "1 to schedule"; schedule the other → DONE; published
+clip (past tracker entry) shows Published.
+
+### 4. Queue tab: click-outside saves platform text fields
+What: editing the YouTube description (and the other per-platform text
+fields in the expanded clip panel) saves automatically when the field loses
+focus / on click outside — no hunting for the bottom Save button. Save
+button removed (redundant-actions rule) with a brief "Saved ✓" flash near
+the field (ui-standards: every action needs confirmation).
+Files: QueueView.js (expanded panel field handlers).
+Verify: edit description → click anywhere outside → collapse/reopen panel
+→ text persisted; restart app → still there.
+
+---
+
+## 🗄 PREVIOUS (session 123) — Subtitle upgrades + render queue + Queue-tab delete
 
 Shipped earlier this session (committed `e963c13`, unreleased): render input-seek
 speed fix (5min → ~8s FFmpeg phase) + app-level floating render pill. Cut of

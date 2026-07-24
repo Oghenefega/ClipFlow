@@ -663,6 +663,10 @@ export default function App() {
 
   const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); } catch (_) {} };
 
+  // Bumped by RenameView after a rename batch — RecordingsView reloads its
+  // SQLite-backed list on change (it otherwise only loads on mount).
+  const [recordingsRefreshKey, setRecordingsRefreshKey] = useState(0);
+
   const navItems = [
     { id: "rename", icon: "\u270f\ufe0f", label: "Rename" },
     { id: "recordings", icon: "\u2b06\ufe0f", label: "Recordings" },
@@ -685,6 +689,7 @@ export default function App() {
     return (
       <ClipBrowser
         project={proj}
+        trackerData={trackerData}
         onBack={() => { setSelProj(null); setView("projects"); }}
         onUpdateClip={handleUpdateClip}
         onTranscript={setTranscript}
@@ -755,6 +760,7 @@ export default function App() {
               onGameDayUpdate={handleGameDayUpdate}
               watchFolder={watchFolder}
               testWatchFolder={testWatchFolder}
+              onFilesRenamed={() => setRecordingsRefreshKey((k) => k + 1)}
             />
           </div>
         </div>
@@ -764,6 +770,8 @@ export default function App() {
               gamesDb={gamesDb}
               localProjects={localProjects}
               testWatchFolder={testWatchFolder}
+              refreshKey={recordingsRefreshKey}
+              isActive={view === "recordings"}
               onOpenSourcePreview={handleOpenSourcePreview}
               onProjectCreated={(projectId) => {
                 window.clipflow?.projectList().then((result) => {
@@ -889,6 +897,7 @@ export default function App() {
               onDeleteProjects={handleDeleteProjects}
               mainGame={mainGame}
               gamesDb={gamesDb}
+              trackerData={trackerData}
             />
           </div>
         </div>

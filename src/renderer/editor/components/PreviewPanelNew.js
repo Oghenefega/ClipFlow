@@ -13,6 +13,8 @@ import {
   Minus,
   Plus,
   Crop,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -665,7 +667,15 @@ function CalibrationBoxes({ videoDims, draft, canvasW, canvasH, onRectChange }) 
 }
 
 // ── Main Preview Panel ──
-export default function PreviewPanelNew() {
+export default function PreviewPanelNew({ onScreenshot }) {
+  // Session 124: viewer screenshot → Shorts thumbnail. Busy state guards
+  // double-clicks while the one-frame render (~2-4s) runs in the main process.
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const handleScreenshot = async () => {
+    if (!onScreenshot || screenshotBusy) return;
+    setScreenshotBusy(true);
+    try { await onScreenshot(); } finally { setScreenshotBusy(false); }
+  };
   const clip = useEditorStore((s) => s.clip);
   const project = useEditorStore((s) => s.project);
   const videoVersion = useEditorStore((s) => s.videoVersion);
@@ -1593,22 +1603,38 @@ export default function PreviewPanelNew() {
     >
       {/* Top controls overlay */}
       <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Left: Fullscreen */}
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 bg-black/40 hover:bg-black/60 text-white/80 hover:text-white backdrop-blur-sm pointer-events-auto"
-                onClick={toggleFullscreen}
-              >
-                <Maximize className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Fullscreen</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Left: Fullscreen + Screenshot */}
+        <div className="flex items-center gap-1.5">
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 bg-black/40 hover:bg-black/60 text-white/80 hover:text-white backdrop-blur-sm pointer-events-auto"
+                  onClick={toggleFullscreen}
+                >
+                  <Maximize className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Fullscreen</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 bg-black/40 hover:bg-black/60 text-white/80 hover:text-white backdrop-blur-sm pointer-events-auto"
+                  onClick={handleScreenshot}
+                  disabled={screenshotBusy}
+                >
+                  {screenshotBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Save this frame as a thumbnail PNG</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
         {/* Right: Zoom control */}
         <div className="relative pointer-events-auto">

@@ -125,8 +125,13 @@ const CLUSTER_SHELL = {
   animation: "clipflowClusterUp 0.18s ease-out",
 };
 
-export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, testWatchFolder = "" }) {
+export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, testWatchFolder = "", refreshKey = 0, isActive = false }) {
   const [files, setFiles] = useState([]);
+  // Rows that appeared since the user last looked at this tab wear a NEW chip.
+  // Session-only; cleared when the tab is left. knownIdsRef is the id set from
+  // the previous load — null until the first load so it never badges everything.
+  const [newIds, setNewIds] = useState(() => new Set());
+  const knownIdsRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
   const [generating, setGenerating] = useState(null);
@@ -267,6 +272,13 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         present.sort(compareRecordings);
         setFiles(present);
         setMissingFiles(rows.filter((r) => missingIds.has(r.id)));
+        // Badge rows that weren't in the previous load (skip the first load)
+        const known = knownIdsRef.current;
+        if (known) {
+          const fresh = present.filter((r) => !known.has(r.id)).map((r) => r.id);
+          if (fresh.length) setNewIds((prev) => new Set([...prev, ...fresh]));
+        }
+        knownIdsRef.current = new Set(present.map((r) => r.id));
       }
       if (rec?.adopted > 0) {
         setReconcileNotice(`Added ${rec.adopted} recording${rec.adopted === 1 ? "" : "s"} found on disk`);
@@ -319,6 +331,19 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
       await loadAndReconcile();
     } catch (_) {}
   }, [loadAndReconcile]);
+
+  // App bumps refreshKey after a Rename-tab batch — reload so renamed files
+  // appear without an app reload. Key starts at 0, so mount is a no-op.
+  useEffect(() => {
+    if (refreshKey > 0) refreshFiles();
+  }, [refreshKey, refreshFiles]);
+
+  // NEW chips clear when the user leaves the tab — they've seen them.
+  const wasActiveRef = useRef(isActive);
+  useEffect(() => {
+    if (wasActiveRef.current && !isActive) setNewIds((prev) => (prev.size ? new Set() : prev));
+    wasActiveRef.current = isActive;
+  }, [isActive]);
 
   // Remove library entries for files deleted outside ClipFlow. The main
   // process re-verifies each file is really gone (and its drive reachable)
@@ -1516,6 +1541,18 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                         }}>
                           {shortName(f)}
                         </span>
+
+                        {newIds.has(f.id) && (
+                          <span style={{
+                            flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4,
+                            padding: "1px 6px 1px 4px", borderRadius: 4,
+                            background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.4)",
+                            color: T.green, fontSize: 8.5, fontWeight: 800, letterSpacing: "0.6px",
+                          }}>
+                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}` }} />
+                            NEW
+                          </span>
+                        )}
 
                         {/* #125/#126: hover-revealed info affordance — bare italic serif "i",
                             no circle (Fega's pick; a single letter centres cleanly, no sub-pixel

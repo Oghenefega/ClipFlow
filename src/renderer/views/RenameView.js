@@ -308,7 +308,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
   );
 }
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder, onFilesRenamed }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -1377,6 +1377,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       setRenameDone(true);
       setTimeout(() => setRenameDone(false), 3000);
     }
+    // Renamed files enter the Recordings library — tell App so the Recordings
+    // tab reloads (it otherwise only reads SQLite on mount → stale until Ctrl+R).
+    if (renamedIds.size > 0) onFilesRenamed?.();
   };
 
   // ============ UNDO ============
