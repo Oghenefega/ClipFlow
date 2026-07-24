@@ -260,9 +260,17 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   const [hashtagWarning, setHashtagWarning] = useState(false);
   // Render progress display comes from the global renderJob prop (App.js owns
   // it — renders outlive this component, which unmounts on tab switch).
-  // `rendering` only tracks THIS component's in-flight doRender promise.
-  const [rendering, setRendering] = useState(false);
+  // renderingClipIds tracks THIS component's in-flight doRender invokes BY
+  // CLIP, so queueing clip B while clip A renders is allowed but double-firing
+  // the same clip isn't (the "queued" event round-trip leaves a brief gap
+  // where renderJob alone can't catch a double-click).
+  const [renderingClipIds, setRenderingClipIds] = useState(() => new Set());
   const [lastRender, setLastRender] = useState(null); // { path, addedToQueue } — success notification
+
+  // Is the OPEN clip the current render or waiting in the queue?
+  const openIsCurrent = !!(renderJob && clip && renderJob.clipId === clip.id);
+  const openIsWaiting = !!(renderJob && clip && (renderJob.waitingIds || []).includes(clip.id));
+  const openInvolved = openIsCurrent || openIsWaiting || (clip && renderingClipIds.has(clip.id));
   const [retranscribing, setRetranscribing] = useState(false);
   const [retranscribeStage, setRetranscribeStage] = useState("");
   const [, forceUpdate] = useState(0);
@@ -297,10 +305,12 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   // clip's status is left alone — the user just wants an exported MP4 without
   // committing to the publish flow.
   const doRender = useCallback(async (addToQueue) => {
-    // renderJob guard: a render started elsewhere (or before a tab-switch
-    // remount) may still be running — the main process tracks only ONE active
-    // render, so starting a second would hijack its cancel handle.
-    if (!clip || !project || rendering || renderJob) return;
+    // Per-clip guard only: renders QUEUE in the main process now, so another
+    // clip rendering doesn't block this one — but the same clip can't be
+    // enqueued twice.
+    if (!clip || !project) return;
+    if (renderingClipIds.has(clip.id) || (renderJob && (renderJob.clipId === clip.id || (renderJob.waitingIds || []).includes(clip.id)))) return;
+    const thisClipId = clip.id;
     // #140: remember pre-render status so a cancel can restore the clip exactly
     // (never leave it stuck "rendering" or wrongly "approved" with no output).
     const prevRenderStatus = clip.renderStatus;
@@ -318,9 +328,9 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
       renderStatus: "rendering",
     });
 
-    // Start render — progress display is driven by the global render:progress
-    // listener in App.js (renderJob prop); no per-component listener needed.
-    setRendering(true);
+    // Mark this clip in-flight — progress display is driven by the global
+    // render:progress listener in App.js (renderJob prop).
+    setRenderingClipIds((prev) => new Set(prev).add(thisClipId));
 
     try {
       // Build render-ready clip with current subtitle/caption data from stores
@@ -443,9 +453,13 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     } finally {
       // Buttons return when the global renderJob clears (App.js lingers
       // "Done!" 1.5s / errors 4s) — no local timing needed anymore.
-      setRendering(false);
+      setRenderingClipIds((prev) => {
+        const next = new Set(prev);
+        next.delete(thisClipId);
+        return next;
+      });
     }
-  }, [handleSave, clip, project, rendering, renderJob, onClipRendered]);
+  }, [handleSave, clip, project, renderingClipIds, renderJob, onClipRendered]);
 
   // Auto-dismiss the render success notification after 6s
   useEffect(() => {
@@ -945,27 +959,32 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
           <Check className="h-3.5 w-3.5 mr-1.5" />
           {saveFlash ? "Saved!" : "Save"}
         </Button>
-        {(rendering || renderJob) ? (
-          // Pill shows for THIS component's render (rendering) or any render
-          // still running globally, e.g. after a mid-render tab-switch remount
-          // (renderJob). Display data always comes from the global renderJob.
+        {openInvolved ? (
+          // Pill only when the OPEN clip is rendering or waiting in the queue.
+          // Other clips rendering never block this clip's buttons (see below).
           <div className="h-8 pl-4 pr-2 flex items-center gap-2 rounded-md text-xs font-semibold text-white"
-            style={{ background: renderJob?.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
-            {!renderJob?.error && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            style={{ background: openIsCurrent && renderJob?.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", minWidth: 120 }}>
+            {!(openIsCurrent && renderJob?.error) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <div className="flex flex-col leading-none">
-              <span>{renderJob?.error ? "Render failed" : renderJob?.canceling ? "Canceling…" : renderJob?.done ? "Done!" : `${renderJob?.pct || 0}%`}</span>
+              <span>
+                {openIsWaiting && !openIsCurrent ? "Queued…"
+                  : openIsCurrent && renderJob?.error ? "Render failed"
+                  : openIsCurrent && renderJob?.canceling ? "Canceling…"
+                  : openIsCurrent && renderJob?.done ? "Done!"
+                  : `${(openIsCurrent && renderJob?.pct) || 0}%`}
+              </span>
             </div>
-            {!renderJob?.canceling && !renderJob?.error && (
+            {openIsCurrent && !renderJob?.canceling && !renderJob?.error && (
               <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
                 <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${renderJob?.pct || 0}%` }} />
               </div>
             )}
-            {!renderJob?.done && (
+            {!(openIsCurrent && renderJob?.done) && (
               <button
                 type="button"
-                onClick={onCancelRenderJob}
-                disabled={renderJob?.canceling}
-                title="Cancel render"
+                onClick={() => onCancelRenderJob?.(clip?.id)}
+                disabled={openIsCurrent && renderJob?.canceling}
+                title={openIsWaiting && !openIsCurrent ? "Remove from render queue" : "Cancel render"}
                 className="ml-0.5 flex items-center justify-center h-5 w-5 rounded hover:bg-black/30 disabled:opacity-40 disabled:cursor-default"
               >
                 <X className="h-3.5 w-3.5" />
@@ -974,6 +993,17 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
           </div>
         ) : (
           <>
+            {/* Passive mini-indicator: ANOTHER clip is rendering/queued — this
+                clip's buttons stay fully usable (jobs queue up in main). */}
+            {renderJob && (
+              <div
+                className="h-8 px-2.5 flex items-center gap-1.5 rounded-md text-[11px] font-semibold text-yellow-400 bg-yellow-500/10 border border-yellow-500/25"
+                title={`Rendering${renderJob.clipTitle ? ` “${renderJob.clipTitle}”` : " another clip"}${renderJob.waiting > 0 ? ` — ${renderJob.waiting} waiting` : ""}`}
+              >
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>{renderJob.pct || 0}%{renderJob.waiting > 0 ? ` +${renderJob.waiting}` : ""}</span>
+              </div>
+            )}
             {/* Render — export MP4 without adding to upload queue */}
             <Button
               size="sm"

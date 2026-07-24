@@ -6,6 +6,98 @@
 
 ---
 
+## 🔄 ACTIVE (session 123) — Subtitle upgrades + render queue + Queue-tab delete
+
+Shipped earlier this session (committed `e963c13`, unreleased): render input-seek
+speed fix (5min → ~8s FFmpeg phase) + app-level floating render pill. Cut of
+alpha.7 deferred until this batch lands.
+
+### A. Auto-capitalize I'm / oh my God (smallest, first)
+Where: `resolveSubtitles.js` resolvedSegments map (the single choke point all
+three consumers share — editor load `useSubtitleStore.js:353`, projects preview
+`buildPreviewSubtitles.js:90`, render `render.js:339`), transforming
+`repairedWords[i].word` before text rebuild at `:276-278`.
+Rules: standalone i + i'm/i'll/i've/i'd → capital I; "god" → "God" only inside
+the word sequence "oh my god" (case-insensitive, within a segment, punctuation
+preserved). Gate behind `!hasEditorSavedSubs` so a user's saved hand-edits are
+never clobbered on reload (mirrors existing cleanup gates at `:192/:211/:290`).
+Verify: fresh clip w/ whisper "i'm" renders "I'm" in panel + preview + render;
+hand-edited lowercase survives reopen.
+
+### B. Multi-word input into a word block → real word objects (+ merge)
+Root cause: `updateWordInSegment` standard path (`useSubtitleStore.js:542`)
+stores the whole typed string (spaces included) into ONE word object → text/words
+token desync → highlighter treats phrase as one word (Fega's symptom).
+Fix at the commit point: split multi-word input into N word objects across the
+original word's [start,end], time distributed by char count (reuse/extract
+`redistributeByCharCount` from `cleanWordTimestamps.js:138-166`). Rebuild
+seg.text from words. 1-word-mode branch (`:503-529`) unchanged.
+Merge (Fega clarified 2026-07-23): merge = SEGMENT merge — "very" and "angry"
+each on their own segment → one segment holding both as separate word objects,
+shown together on screen, highlighted one after the other. Store action
+`mergeSegment` (`useSubtitleStore.js:807-824`) already does exactly this —
+verify its callers (may be unwired); expose it in the panel: right-click a
+segment row → "Merge with next segment" (+ "previous" if trivial).
+Verify: type "I am very angry" into one block → 4 blocks, per-word highlight
+walks through them in preview; segment merge combines blocks with sequential
+highlighting; undo works for both.
+
+### C. Alt+drag duplicates a subtitle segment on the timeline
+NLE convention. Gesture is unclaimed (no modifier handling in the drag path —
+`SegmentBlock.js:52-90`).
+Impl: capture `e.altKey` at pointerdown in `SegmentBlock.onDragStart`; on 3px
+threshold cross with Alt: parent callback (`TimelinePanelNew.js`) runs
+`startDrag()` (single undo snapshot; _dragging guard makes inner pushes no-ops)
+then inserts a clone (fresh `_newSegId()`, deep-copied words) via new store
+action `duplicateSegment(segId)` → returns cloneId; SegmentBlock swaps its drag
+target to cloneId so the COPY moves, original stays. Existing overlap-push +
+snap logic applies (`handleSubtitleDrag:357-409`); `toSource()` conversion as
+usual. `endDrag` on release → one undo entry reverts everything.
+Verify: Alt+drag left/right → copy lands where dropped, original untouched,
+one Ctrl+Z removes the copy; plain drag unchanged.
+
+### D. Queue tab: discoverable remove + optional delete-from-disk
+Existing "Remove" (dequeue → status "dequeued", `QueueView.js:680-686`) is
+buried in the expanded panel with no confirm. Plan:
+- Hover trash icon on the collapsed row (both sections), matching the session-122
+  Review-Rail pattern → small confirm popover with two actions:
+  "Remove from queue" (existing dequeue, reversible) ·
+  "Delete clip + rendered file" (red, destructive).
+- Fix latent gap: `projects.deleteClip` deleteFile branch (`projects.js:366-385`)
+  unlinks filePath+thumbnailPath but NOT renderPath — add renderPath unlink.
+  Never touches project sourceFile.
+- Plumb deleteFile through `project:deleteClip` IPC (`main.js:1719`) + preload
+  (`preload.js:87`) as optional param, default false — existing editor/rail
+  callers unchanged.
+- QueueView needs an onClipDeleted callback prop from App (rows derive from
+  localProjects, so App must reload the project — same as `App.js:675` flow).
+Verify: trash visible on hover; queue-only removal keeps files; full delete
+removes record + rendered MP4 + thumb from disk; source recording untouched.
+
+### E. Render queue — serial, auto-drain (Option A; Fega to confirm)
+Main process job manager in `main.js`: render:clip invokes enqueue jobs
+({clipData, projectData, outputPath, options}); worker drains one at a time via
+`render.renderClip`. Progress events gain `{clipId, clipTitle, waiting}`;
+terminal events per job. `render:cancel` takes clipId — current job → 
+`cancelActiveRender()`, waiting job → drop from queue (resolve canceled).
+`render:batch` re-routed through the same queue (enqueue each clip, await all,
+aggregate) so batch + single can never run concurrently — `render.batchRender`
+becomes dead and is removed.
+Renderer: App.js renderJob gains clipId/clipTitle/waiting + waitingIds; floating
+pill shows "Rendering <title> — N waiting" and now ALSO shows inside the editor
+when the rendering clip ≠ open clip. Topbar pill/buttons: pill only when the
+OPEN clip is current-or-waiting; otherwise Queue/Render buttons stay live
+(fixes "button blocked behind other clip's %"). doRender guard: only block for
+this clip.
+Verify: queue clip A, open clip B → B shows green Queue button + floating pill
+for A; queue B → both render sequentially; cancel current vs waiting both work;
+"Render All" still works and interleaves safely.
+
+Sequencing: A → B → C → D → E, verify each on source, then cut 0.3.0-alpha.7
+carrying today's speed fix + pill + this batch.
+
+---
+
 ## ✅ SHIPPED (session 120, 0.3.0-alpha.4 — Fega installed; awaiting his live-look confirmation) — Rename fixes + Projects list redesign
 
 Design approved via mockup `tasks/mocks/projects-list-redesign.html`:

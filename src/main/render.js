@@ -561,53 +561,12 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
   });
 }
 
-/**
- * Batch render multiple clips from a project.
- */
-async function batchRender(clips, projectData, outputDir, options = {}) {
-  const results = [];
-  const total = clips.length;
-
-  for (let i = 0; i < total; i++) {
-    const clip = clips[i];
-    const fileName = `${clip.title || `clip_${clip.id}`}.mp4`
-      .replace(/[<>:"/\\|?*]/g, "_");
-    const outputPath = path.join(outputDir, fileName);
-
-    if (options.onProgress) {
-      options.onProgress({
-        stage: "rendering",
-        pct: Math.round((i / total) * 100),
-        detail: `Rendering clip ${i + 1} of ${total}`,
-        clipId: clip.id,
-      });
-    }
-
-    try {
-      const result = await renderClip(clip, projectData, outputPath, {
-        subtitleStyle: options.subtitleStyle || clip.subtitleStyle,
-        captionStyle: options.captionStyle || clip.captionStyle,
-        captionSegments: clip.captionSegments || [],
-        encoder: options.encoder,
-        onProgress: (p) => {
-          if (options.onProgress) {
-            const overallPct = Math.round(((i + p.pct / 100) / total) * 100);
-            options.onProgress({ ...p, pct: overallPct, detail: `Clip ${i + 1}/${total}: ${p.detail}` });
-          }
-        },
-      });
-      results.push({ clipId: clip.id, success: true, path: result.path });
-    } catch (err) {
-      results.push({ clipId: clip.id, success: false, error: err.message });
-    }
-  }
-
-  return results;
-}
+// batchRender was removed: render:batch (main.js) now enqueues each clip
+// through the shared render job queue, so batch and single renders serialize
+// through one path instead of two competing loops.
 
 module.exports = {
   renderClip,
-  batchRender,
   cancelActiveRender,
   buildNleFilterComplex, // #164: exported as a seam for the render-args verification harness
 };

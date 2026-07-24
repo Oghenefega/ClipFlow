@@ -84,7 +84,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   fileMoveToTestMode: (fileId, nextIsTest) => ipcRenderer.invoke("file:moveToTestMode", fileId, nextIsTest),
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   projectDuplicateClip: (projectId, clipId, overrides) => ipcRenderer.invoke("project:duplicateClip", projectId, clipId, overrides),
-  projectDeleteClip: (projectId, clipId) => ipcRenderer.invoke("project:deleteClip", projectId, clipId),
+  projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),
   reframeDetect: (projectId) => ipcRenderer.invoke("reframe:detect", projectId),
 
@@ -133,7 +133,9 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.invoke("render:clip", clipData, projectData, outputPath, options),
   batchRender: (clips, projectData, outputDir, options) =>
     ipcRenderer.invoke("render:batch", clips, projectData, outputDir, options),
-  cancelRender: () => ipcRenderer.invoke("render:cancel"),
+  // clipId targets a specific job: the current render is aborted, a WAITING
+  // job is dropped from the queue. Omit clipId to cancel the current render.
+  cancelRender: (clipId) => ipcRenderer.invoke("render:cancel", clipId),
   // Returns an unsubscribe fn that removes ONLY this listener — App.js keeps a
   // persistent global listener (floating render pill), so removeAllListeners
   // would silently kill it.

@@ -10,6 +10,14 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// Small stroke-style trash glyph (lucide Trash2 path) — QueueView doesn't pull
+// in lucide-react, and an emoji trash renders in fixed color on dark rows.
+const TrashIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
 const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const FULL_DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
@@ -683,6 +691,34 @@ export default function QueueView({
       const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { status: "dequeued" });
       if (!r?.error) updateClipInState(clip._projectId, clip.id, { status: "dequeued" });
     } catch (e) { console.error("Dequeue failed:", e); }
+  };
+
+  // Remove-or-delete popover opened by the trash icon on queue rows. Rendered
+  // at component root — NOT inside the dnd-kit rows, whose transforms would
+  // re-anchor a position:fixed popover (same trap as the pre-portal Selects).
+  const [deleteAsk, setDeleteAsk] = useState(null); // { clip, x, y }
+
+  useEffect(() => {
+    if (!deleteAsk) return;
+    const close = () => setDeleteAsk(null);
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", onKey); };
+  }, [deleteAsk]);
+
+  // Hard-delete: remove the clip record (+ its rendered MP4 and thumbnail when
+  // deleteFiles). The project's source recording is never touched. Reload the
+  // project afterwards so the derived queue row disappears.
+  const deleteClipHard = async (clip, deleteFiles) => {
+    if (!clip._projectId) return;
+    try {
+      const r = await window.clipflow?.projectDeleteClip?.(clip._projectId, clip.id, deleteFiles);
+      if (r?.error) { console.error("Delete clip failed:", r.error); return; }
+      const full = await window.clipflow?.projectLoad?.(clip._projectId);
+      if (full?.project) setLocalProjects((prev) => prev.map((p) => (p.id === clip._projectId ? full.project : p)));
+      if (selClip === clip.id) setSelClip(null);
+    } catch (e) { console.error("Delete clip failed:", e); }
   };
 
   // Save inline title edit
@@ -1427,6 +1463,34 @@ export default function QueueView({
         );
       })()}
 
+      {/* Remove-or-delete popover (trash icon on queue rows). Fixed-position at
+          component root, above the portaled Select menus (zIndex 10000). */}
+      {deleteAsk && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ position: "fixed", left: deleteAsk.x, top: deleteAsk.y, zIndex: 10001, width: 240, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,0.55)", padding: 6, fontFamily: T.font }}
+        >
+          <button
+            onClick={() => { dequeueClip(deleteAsk.clip); setDeleteAsk(null); }}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>Remove from queue</div>
+            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Clip and files stay — re-queue it from the editor anytime.</div>
+          </button>
+          <button
+            onClick={() => { deleteClipHard(deleteAsk.clip, true); setDeleteAsk(null); }}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Delete clip + rendered file</div>
+            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Removes the clip and its rendered MP4 from disk. Your recording is untouched.</div>
+          </button>
+        </div>
+      )}
+
       {/* Dashboard table — Phase 3: split into Unscheduled / Scheduled sections */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={clipIds} strategy={verticalListSortingStrategy}>
@@ -1442,7 +1506,7 @@ export default function QueueView({
           </div>
         </div>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 104px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["", "Clip", "Title", "Game", "Platforms", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -1481,7 +1545,7 @@ export default function QueueView({
                   {/* Table row */}
                   <div
                     onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 104px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
                     onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
                   >
@@ -1514,8 +1578,8 @@ export default function QueueView({
                     </div>
                     {/* Status */}
                     <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
-                    {/* Action button */}
-                    <div style={{ textAlign: "right" }}>
+                    {/* Action buttons */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                       {!isPub && !isPublishing && hasVideoId && (
                         isClipTest(clip) ? (
                           <TestChip isTest disabled size="sm" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
@@ -1530,6 +1594,15 @@ export default function QueueView({
                             >Publish</button>
                           );
                         })()
+                      )}
+                      {!isPublishing && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteAsk({ clip, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 160) }); }}
+                          title="Remove from queue / delete clip"
+                          style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 6, border: "none", background: "transparent", color: T.textMuted, opacity: 0.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                        ><TrashIcon /></button>
                       )}
                     </div>
                   </div>
@@ -1902,7 +1975,7 @@ export default function QueueView({
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted }}>{filteredScheduled.length} clip{filteredScheduled.length !== 1 ? "s" : ""}</span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 80px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 104px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["Clip", "Title", "Game", "Scheduled For", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -1929,7 +2002,7 @@ export default function QueueView({
             <div key={clip.id}>
               <div
                 onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 80px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 104px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
                 onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
                 onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
               >
@@ -1948,7 +2021,7 @@ export default function QueueView({
                 {/* Status */}
                 <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
                 {/* Action */}
-                <div style={{ textAlign: "right" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                   {!isPub && !isPublishing && hasVideoId && (() => {
                     const tikBlock = getTiktokBlockReason(clip);
                     return (
@@ -1960,6 +2033,15 @@ export default function QueueView({
                       >Publish</button>
                     );
                   })()}
+                  {!isPublishing && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteAsk({ clip, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 160) }); }}
+                      title="Remove from queue / delete clip"
+                      style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 6, border: "none", background: "transparent", color: T.textMuted, opacity: 0.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = T.red; e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                    ><TrashIcon /></button>
+                  )}
                 </div>
               </div>
 

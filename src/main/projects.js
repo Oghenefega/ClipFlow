@@ -370,9 +370,15 @@ function deleteClip(watchFolder, projectId, clipId, deleteFile = false) {
   const clip = project.clips.find((c) => c.id === clipId);
   if (!clip) return { error: "Clip not found" };
 
-  // Optionally delete the clip file
+  // Optionally delete the clip's files. renderPath is the rendered vertical
+  // output (the file the Queue publishes) — it was missing here, which orphaned
+  // the actual MP4 on disk whenever deleteFile ran. The project's sourceFile
+  // (the recording) is NEVER touched by clip deletion.
   if (deleteFile && clip.filePath && fs.existsSync(clip.filePath)) {
     try { fs.unlinkSync(clip.filePath); } catch (e) { /* ignore */ }
+  }
+  if (deleteFile && clip.renderPath && fs.existsSync(clip.renderPath)) {
+    try { fs.unlinkSync(clip.renderPath); } catch (e) { /* ignore */ }
   }
   if (deleteFile && clip.thumbnailPath && fs.existsSync(clip.thumbnailPath)) {
     try { fs.unlinkSync(clip.thumbnailPath); } catch (e) { /* ignore */ }

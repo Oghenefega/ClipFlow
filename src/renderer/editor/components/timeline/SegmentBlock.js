@@ -1,13 +1,14 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, WORD_TOOTH_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onDuplicate, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
   const startRef = useRef({ x: 0, startSec: 0, endSec: 0 });
   const rafRef = useRef(null);
   const dragThresholdRef = useRef(false);
+  const dragTargetRef = useRef(null); // seg.id, or the clone id during Alt+drag
   const startToothRef = useRef({ x: 0, t0: 0 });
   const toothRafRef = useRef(null);
 
@@ -49,16 +50,25 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
   }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onResize, onResizeEnd]);
 
   // ── Drag (move) handler — hold and drag segment body ──
+  // Alt+drag (NLE convention): duplicate the segment and drag the COPY, the
+  // original stays put. Alt is sampled at pointer-down; the clone is created
+  // once, when the 3px threshold crosses, and the drag target swaps to it.
   const onDragStart = useCallback((e) => {
     if (!onDrag) return; // drag not supported for this track
     e.stopPropagation();
     startRef.current = { x: e.clientX, startSec: seg.startSec, endSec: seg.endSec };
     dragThresholdRef.current = false;
+    dragTargetRef.current = seg.id;
+    const wantDuplicate = !!(e.altKey && onDuplicate);
 
     const onMove = (ev) => {
       const dx = ev.clientX - startRef.current.x;
       // Require 3px movement before starting drag (prevent accidental drags)
       if (!dragThresholdRef.current && Math.abs(dx) < 3) return;
+      if (!dragThresholdRef.current && wantDuplicate) {
+        const cloneId = onDuplicate(seg.id);
+        if (cloneId) dragTargetRef.current = cloneId;
+      }
       dragThresholdRef.current = true;
       if (!dragging) setDragging(true);
 
@@ -71,13 +81,13 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
         // Clamp to timeline bounds
         if (newStart < 0) { newStart = 0; newEnd = segDur; }
         if (newEnd > duration) { newEnd = duration; newStart = duration - segDur; }
-        onDrag(seg.id, newStart, newEnd);
+        onDrag(dragTargetRef.current, newStart, newEnd);
       });
     };
     const onUp = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (dragThresholdRef.current && onDragEnd) {
-        onDragEnd(seg.id);
+        onDragEnd(dragTargetRef.current);
       }
       setDragging(false);
       dragThresholdRef.current = false;
@@ -87,7 +97,7 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onDrag, onDragEnd, dragging]);
+  }, [seg.id, seg.startSec, seg.endSec, duration, timelineWidth, onDrag, onDragEnd, onDuplicate, dragging]);
 
   // ── Per-word boundary "teeth" drag (#119) — selected subtitle blocks only ──
   // Mirrors onHandleDown but moves an INTERNAL word boundary, not a block edge.
@@ -284,6 +294,7 @@ export default React.memo(SegmentBlock, (prev, next) => {
     prev.rippleAnimating === next.rippleAnimating &&
     prev.sourceWordCount === next.sourceWordCount &&
     prev.onDrag === next.onDrag &&
+    prev.onDuplicate === next.onDuplicate &&
     prev.onWordBoundaryDrag === next.onWordBoundaryDrag
   );
 });

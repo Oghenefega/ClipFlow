@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../../../components/ui/tooltip";
-import { Trash2, Film } from "lucide-react";
+import { Trash2, Film, Scissors, Merge } from "lucide-react";
 import useSubtitleStore from "../../stores/useSubtitleStore";
 import useEditorStore from "../../stores/useEditorStore";
 import usePlaybackStore from "../../stores/usePlaybackStore";
@@ -170,6 +170,40 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
   { seg, isActive, activeWordInSeg, selectedWordIdx, anySelected, editing, setEditingWord },
   ref
 ) {
+  // Right-click word menu — { wordIdx, x, y, canSplit, canMergePrev, canMergeNext }.
+  // Exposes the toolbar's split/merge (which Fega couldn't find) right where the
+  // words are. Flags computed at open time from the RAW store (seg prop is the
+  // timeline-mapped copy).
+  const [wordMenu, setWordMenu] = useState(null);
+
+  useEffect(() => {
+    if (!wordMenu) return;
+    const close = () => setWordMenu(null);
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [wordMenu]);
+
+  const handleWordContextMenu = (e, wordIdx) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { editSegments } = useSubtitleStore.getState();
+    const idx = editSegments.findIndex((s) => s.id === seg.id);
+    if (idx < 0) return;
+    const textWords = (editSegments[idx].text || "").split(/\s+/).filter(Boolean);
+    setWordMenu({
+      wordIdx,
+      x: Math.min(e.clientX, window.innerWidth - 210),
+      y: Math.min(e.clientY, window.innerHeight - 130),
+      canSplit: wordIdx > 0 && textWords.length >= 2,
+      canMergePrev: idx > 0,
+      canMergeNext: idx < editSegments.length - 1,
+    });
+  };
   // Store actions are read via getState() inside handlers (event-time, never render
   // path) so they don't need to be threaded as props — keeps the prop set small and
   // stable so React.memo can bail on inactive rows.
@@ -251,6 +285,7 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
           `}
           onClick={(e) => { e.stopPropagation(); handleWordClick(currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: false }); }}
           onDoubleClick={(e) => { e.stopPropagation(); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: true }); }}
+          onContextMenu={(e) => handleWordContextMenu(e, currentWordIdx)}
         >
           {token}
         </span>
@@ -383,6 +418,61 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
           <div className="mt-1"><span className="text-xs text-amber-500/70">{seg.warning}</span></div>
         )}
       </div>
+
+      {/* Right-click word menu — split/merge where the words live */}
+      {wordMenu && (
+        <div
+          className="fixed z-[100] w-[200px] py-1 rounded-md bg-[hsl(240_6%_10%)] border border-[hsl(240_4%_20%)] shadow-xl"
+          style={{ left: wordMenu.x, top: wordMenu.y }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
+            disabled={!wordMenu.canSplit}
+            onClick={() => {
+              const sub = useSubtitleStore.getState();
+              sub.setActiveSegId(seg.id);
+              // splitSegment's selectedWordInfo branch splits at this word's start
+              sub.setSelectedWordInfo({ segId: seg.id, wordIdx: wordMenu.wordIdx });
+              sub.splitSegment();
+              setWordMenu(null);
+            }}
+          >
+            <Scissors className="h-3.5 w-3.5" /> Split segment before this word
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
+            disabled={!wordMenu.canMergePrev}
+            onClick={() => {
+              const sub = useSubtitleStore.getState();
+              const segs = sub.editSegments;
+              const idx = segs.findIndex((s) => s.id === seg.id);
+              if (idx > 0) {
+                // mergeSegment merges activeSegId with its NEXT — so merging
+                // "with previous" = merge from the previous segment's side.
+                sub.setActiveSegId(segs[idx - 1].id);
+                sub.mergeSegment();
+              }
+              setWordMenu(null);
+            }}
+          >
+            <Merge className="h-3.5 w-3.5 rotate-180" /> Merge with previous segment
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
+            disabled={!wordMenu.canMergeNext}
+            onClick={() => {
+              const sub = useSubtitleStore.getState();
+              sub.setActiveSegId(seg.id);
+              sub.mergeSegment();
+              setWordMenu(null);
+            }}
+          >
+            <Merge className="h-3.5 w-3.5" /> Merge with next segment
+          </button>
+        </div>
+      )}
     </div>
   );
 }));

@@ -408,6 +408,23 @@ export default function TimelinePanelNew() {
     store.updateSegmentTimes(segId, toSource(sStart), toSource(sEnd));
   }, [effectiveDuration, applySnap, toSource]);
 
+  // Alt+drag duplicate: clone the segment, then the drag moves the copy.
+  // startDrag + the originals snapshot happen HERE — BEFORE the clone exists —
+  // so one Ctrl+Z reverts the whole gesture (clone included) and neighbor
+  // push/restore works against pre-clone positions. handleSubtitleDrag's own
+  // first-call snapshot then sees dragOriginalsRef already set and skips.
+  const handleSubtitleDuplicate = useCallback((segId) => {
+    const store = useSubtitleStore.getState();
+    if (!dragOriginalsRef.current) {
+      store.startDrag();
+      dragOriginalsRef.current = {};
+      for (const seg of store.getTimelineMappedSegments()) {
+        dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
+      }
+    }
+    return store.duplicateSegment(segId);
+  }, []);
+
   // On drag end — create real segments from phantoms, clear state
   const handleSubtitleDragEnd = useCallback((segId) => {
     useSubtitleStore.getState().endDrag();
@@ -969,6 +986,7 @@ export default function TimelinePanelNew() {
                       onResizeEnd={handleSubtitleResizeEnd}
                       onDrag={handleSubtitleDrag}
                       onDragEnd={handleSubtitleDragEnd}
+                      onDuplicate={handleSubtitleDuplicate}
                       onWordBoundaryDrag={handleWordBoundaryDrag}
                       onWordBoundaryDragEnd={handleWordBoundaryDragEnd}
                       sourceWordCount={sourceWordCounts[seg.id] ?? 0}

@@ -528,18 +528,39 @@ const useSubtitleStore = create((set, get) => ({
       return;
     }
 
-    // Standard single-word update
+    // Standard update. Multi-word input becomes N REAL word objects sharing the
+    // original word's time span (char-weighted) — storing the whole phrase in
+    // one word object (the old behavior) broke text↔words token sync and made
+    // the karaoke highlighter treat the phrase as a single word.
     set((s) => ({
       editSegments: s.editSegments.map(seg => {
         if (seg.id !== segId) return seg;
         const textWords = seg.text.split(/\s+/).filter(Boolean);
         if (wordIdx < 0 || wordIdx >= textWords.length) return seg;
-        textWords[wordIdx] = newText;
+        textWords.splice(wordIdx, 1, ...inputWords);
         const updatedSeg = { ...seg, text: textWords.join(" ") };
-        // Also update words array if present
+        // Mirror into words[] if present (parallel arrays, same index)
         if (updatedSeg.words && updatedSeg.words[wordIdx]) {
+          const old = updatedSeg.words[wordIdx];
+          let replacement;
+          if (inputWords.length === 1) {
+            replacement = [{ ...old, word: inputWords[0] }];
+          } else {
+            // Distribute the old word's span across the new words by character
+            // count (min 3 per word so tiny words keep readable highlight time
+            // — same weighting as cleanWordTimestamps' redistribute pass).
+            const span = Math.max(0, (old.end ?? 0) - (old.start ?? 0));
+            const totalChars = inputWords.reduce((n, w) => n + Math.max(w.length, 3), 0);
+            let t = old.start ?? 0;
+            replacement = inputWords.map((w) => {
+              const start = t;
+              t += span * (Math.max(w.length, 3) / totalChars);
+              return { word: w, start, end: t, probability: 1 };
+            });
+            replacement[replacement.length - 1].end = old.end ?? t; // absorb rounding
+          }
           updatedSeg.words = [...updatedSeg.words];
-          updatedSeg.words[wordIdx] = { ...updatedSeg.words[wordIdx], word: newText };
+          updatedSeg.words.splice(wordIdx, 1, ...replacement);
         }
         return updatedSeg;
       }),
@@ -802,6 +823,27 @@ const useSubtitleStore = create((set, get) => ({
     const next = [...editSegments];
     next.splice(idx, 1, seg1, seg2);
     set({ editSegments: next, selectedWordInfo: null, activeSegId: seg1.id });
+  },
+
+  // Duplicate a segment in place (Alt+drag on the timeline). Inserts the copy
+  // directly after the original with identical times/words; the caller then
+  // drags the copy. _pushUndo respects the _dragging guard, so inside an
+  // Alt-drag (startDrag already called) the clone + move is ONE undo entry.
+  duplicateSegment: (segId) => {
+    const { editSegments } = get();
+    const idx = editSegments.findIndex(s => s.id === segId);
+    if (idx < 0) return null;
+    get()._pushUndo();
+    const seg = editSegments[idx];
+    const clone = {
+      ...seg,
+      id: _newSegId(),
+      words: (seg.words || []).map(w => ({ ...w })),
+    };
+    const next = [...editSegments];
+    next.splice(idx + 1, 0, clone);
+    set({ editSegments: next, activeSegId: clone.id });
+    return clone.id;
   },
 
   mergeSegment: () => {

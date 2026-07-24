@@ -165,37 +165,63 @@ export default function App() {
 
   // Global render job — single source of truth for the render progress pill.
   // Renders run in the main process and outlive the editor (which fully
-  // unmounts on tab switch), so progress state must live here. Fed by the
-  // persistent render:progress listener; main.js sends explicit terminal
-  // stages (done/canceled/error) when a render ends.
-  // Shape: null | { pct, detail, canceling, done, error }
+  // unmounts on tab switch), so progress state must live here. Renders queue
+  // FIFO in main.js; every event carries {clipId, clipTitle, waiting,
+  // waitingIds} plus explicit terminal stages (done/canceled/error).
+  // Shape: null | { clipId, clipTitle, pct, detail, waiting, waitingIds,
+  //                 canceling, done, error }
   const [renderJob, setRenderJob] = useState(null);
 
   useEffect(() => {
     const unsub = window.clipflow?.onRenderProgress?.((p) => {
-      if (p?.stage === "done") {
-        setRenderJob((j) => ({ ...(j || {}), pct: 100, detail: "Done!", done: true, canceling: false }));
-      } else if (p?.stage === "canceled") {
-        setRenderJob(null);
-      } else if (p?.stage === "error") {
-        setRenderJob((j) => ({ ...(j || {}), done: true, error: true, detail: p.detail || "Render failed" }));
-      } else {
-        setRenderJob((j) => ({ pct: p?.pct || 0, detail: p?.detail || "Rendering...", canceling: j?.canceling || false }));
-      }
+      if (!p) return;
+      setRenderJob((j) => {
+        const q = {
+          waiting: p.waiting ?? j?.waiting ?? 0,
+          waitingIds: p.waitingIds ?? j?.waitingIds ?? [],
+        };
+        if (p.stage === "queued") {
+          // New job waiting — keep whatever is currently rendering on the pill
+          return { ...(j || { clipId: null, clipTitle: p.clipTitle || "", pct: 0, detail: "Waiting…", canceling: false }), ...q };
+        }
+        if (p.stage === "done" || p.stage === "canceled" || p.stage === "error") {
+          // A WAITING job was canceled (not the one on the pill): just update counts
+          if (p.stage === "canceled" && j && p.clipId != null && j.clipId !== p.clipId) {
+            return { ...j, ...q };
+          }
+          if (q.waiting > 0) {
+            // More jobs behind — next job's progress overwrites momentarily
+            return { ...(j || {}), ...q, pct: 100, detail: p.stage === "error" ? (p.detail || "Render failed") : p.stage === "canceled" ? "Canceled" : "Done!", canceling: false };
+          }
+          if (p.stage === "canceled") return null;
+          return { ...(j || {}), ...q, pct: 100, done: true, canceling: false, error: p.stage === "error", detail: p.stage === "error" ? (p.detail || "Render failed") : "Done!" };
+        }
+        // Live progress — this clip is the current render
+        return {
+          clipId: p.clipId ?? j?.clipId ?? null,
+          clipTitle: p.clipTitle ?? j?.clipTitle ?? "",
+          pct: p.pct || 0,
+          detail: p.detail || "Rendering...",
+          ...q,
+          canceling: j?.canceling && j?.clipId === (p.clipId ?? j?.clipId) ? j.canceling : false,
+        };
+      });
     });
     return () => { unsub?.(); };
   }, []);
 
-  // Let "Done!" / "Render failed" linger briefly, then clear the pill
+  // Let the final "Done!" / "Render failed" linger briefly, then clear the pill
   useEffect(() => {
-    if (!renderJob?.done) return;
+    if (!renderJob?.done || renderJob.waiting > 0) return;
     const t = setTimeout(() => setRenderJob(null), renderJob.error ? 4000 : 1500);
     return () => clearTimeout(t);
   }, [renderJob]);
 
-  const cancelRenderJob = useCallback(() => {
-    setRenderJob((j) => (j ? { ...j, canceling: true } : j));
-    try { window.clipflow?.cancelRender?.(); } catch (_) {}
+  // Cancel a specific clip's render (current job aborts, waiting job is
+  // dropped); no clipId = cancel whatever is currently rendering.
+  const cancelRenderJob = useCallback((clipId) => {
+    setRenderJob((j) => (j && (clipId == null || j.clipId === clipId) ? { ...j, canceling: true } : j));
+    try { window.clipflow?.cancelRender?.(clipId); } catch (_) {}
   }, []);
 
   const respondAudioCal = useCallback(async (setup) => {
@@ -914,18 +940,20 @@ export default function App() {
       {renderJob && view !== "editor" && (
         <div style={{ position: "fixed", bottom: 20, right: 24, zIndex: 950, display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", borderRadius: 10, background: renderJob.error ? "linear-gradient(135deg, #7f1d1d, #b91c1c)" : "linear-gradient(135deg, #854d0e, #ca8a04, #eab308)", boxShadow: "0 8px 24px rgba(0,0,0,0.45)", fontFamily: T.font, color: "#fff" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>
-              {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering ${renderJob.pct || 0}%`}
+            <span style={{ fontSize: 12, fontWeight: 700, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {renderJob.error ? "Render failed" : renderJob.canceling ? "Canceling…" : renderJob.done ? "Rendered!" : `Rendering${renderJob.clipTitle ? ` “${renderJob.clipTitle}”` : ""} ${renderJob.pct || 0}%`}
             </span>
             {!renderJob.done && !renderJob.canceling && (
               <div style={{ width: "100%", height: 4, background: "rgba(0,0,0,0.3)", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${renderJob.pct || 0}%`, background: "#fff", borderRadius: 999, transition: "width 0.3s" }} />
               </div>
             )}
-            <span style={{ fontSize: 10, opacity: 0.85, maxWidth: 190, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{renderJob.detail || ""}</span>
+            <span style={{ fontSize: 10, opacity: 0.85, maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {renderJob.waiting > 0 ? `${renderJob.detail || ""} · ${renderJob.waiting} waiting` : (renderJob.detail || "")}
+            </span>
           </div>
           {!renderJob.done && (
-            <button onClick={cancelRenderJob} disabled={renderJob.canceling} title="Cancel render" style={{ background: "rgba(0,0,0,0.25)", border: "none", color: "#fff", width: 22, height: 22, borderRadius: 6, cursor: renderJob.canceling ? "default" : "pointer", fontSize: 12, lineHeight: 1, opacity: renderJob.canceling ? 0.5 : 1 }}>✕</button>
+            <button onClick={() => cancelRenderJob(renderJob.clipId)} disabled={renderJob.canceling} title="Cancel current render" style={{ background: "rgba(0,0,0,0.25)", border: "none", color: "#fff", width: 22, height: 22, borderRadius: 6, cursor: renderJob.canceling ? "default" : "pointer", fontSize: 12, lineHeight: 1, opacity: renderJob.canceling ? 0.5 : 1 }}>✕</button>
           )}
         </div>
       )}

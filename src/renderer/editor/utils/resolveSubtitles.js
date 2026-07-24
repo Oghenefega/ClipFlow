@@ -33,6 +33,35 @@ const { mergeWordTokens, validateWords } = require("./wordRepair");
  *   isPreChunked: boolean, clipOrigin: number, source: string|null }}
  *   `segments` are SOURCE-ABSOLUTE and repaired; `source` is null when no data exists.
  */
+// ─── Auto-capitalization ──────────────────────────────────────────────
+// Whisper emits lowercase "i'm" / "oh my god". Fix the universally-expected
+// casing here in the shared resolver so editor, preview, and final render all
+// see identical text. The caller gates this behind !hasEditorSavedSubs: once
+// the user saves edits, their casing is authoritative and never rewritten.
+// Idempotent — already-capitalized words pass through unchanged.
+const I_FORMS = new Set(["i", "i'm", "i'll", "i've", "i'd"]);
+
+function autoCapitalizeWords(words) {
+  // Split each token into lead-punct / core / trail-punct so "i'm," → "I'm,"
+  const parts = words.map((w) => {
+    const raw = w.word || "";
+    const m = raw.match(/^([^A-Za-z0-9]*)([A-Za-z0-9'’]+)([^A-Za-z0-9]*)$/);
+    return m ? { lead: m[1], core: m[2], trail: m[3] } : { lead: "", core: raw, trail: "" };
+  });
+  // Normalized cores (straight apostrophe, lowercase) for matching
+  const cores = parts.map((p) => p.core.replace(/’/g, "'").toLowerCase());
+  return words.map((w, i) => {
+    let core = parts[i].core;
+    if (I_FORMS.has(cores[i])) {
+      core = "I" + core.slice(1);
+    } else if (cores[i] === "god" && i >= 2 && cores[i - 1] === "my" && cores[i - 2] === "oh") {
+      core = core.replace(/^g/, "G"); // only inside "oh my god"
+    }
+    if (core === parts[i].core) return w;
+    return { ...w, word: parts[i].lead + core + parts[i].trail };
+  });
+}
+
 function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = false } = {}) {
   if (!clip) {
     return { segments: [], isPreChunked: false, clipOrigin: 0, source: null };
@@ -256,10 +285,13 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
 
       const rawWords = mergeWordTokens(s.words, s.text);
       const validatedWords = validateWords(rawWords, segStartSec, segEndSec);
-      const repairedWords = cleanWordTimestamps(validatedWords, {
+      let repairedWords = cleanWordTimestamps(validatedWords, {
         segStart: segStartSec,
         segEnd: segEndSec,
       });
+      // Fresh transcription only — editor-saved casing is the user's and is
+      // never rewritten (mirrors the other hasEditorSavedSubs cleanup gates).
+      if (!hasEditorSavedSubs) repairedWords = autoCapitalizeWords(repairedWords);
 
       if (i === 0) {
         log(`[initSegments] First seg (source-abs): [${segStartSec.toFixed(2)}-${segEndSec.toFixed(2)}], text="${(s.text || "").slice(0, 40)}"`);

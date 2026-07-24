@@ -1715,11 +1715,14 @@ ipcMain.handle("project:duplicateClip", async (_, projectId, clipId, overrides) 
   } catch (err) { return { error: err.message }; }
 });
 
-// Removes the clip record only — never deletes rendered/source files from disk.
-ipcMain.handle("project:deleteClip", async (_, projectId, clipId) => {
+// Removes the clip record; deleteFile=true also unlinks the clip's own files
+// (rendered MP4 + thumbnail + legacy pre-cut file). The project's source
+// recording is never deleted. Default false — editor/rail callers keep
+// record-only semantics; the Queue's explicit "delete from disk" opts in.
+ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
-    return projects.deleteClip(watchFolder, projectId, clipId, false);
+    return projects.deleteClip(watchFolder, projectId, clipId, deleteFile === true);
   } catch (err) { return { error: err.message }; }
 });
 
@@ -2534,30 +2537,52 @@ function resolveTestAwareOutputFolder(projectData) {
   return store.get("outputFolder");
 }
 
-ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
-  try {
-    // Determine output path if not provided
-    if (!outputPath) {
-      const outputFolder = resolveTestAwareOutputFolder(projectData);
-      if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
-      const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
-      outputPath = path.join(outputFolder, fileName);
-    }
+// ── Render job queue ──────────────────────────────────────────────────
+// Renders are SERIALIZED: render.js tracks exactly one active render (cancel
+// handle + offscreen overlay window), so concurrent render:clip invokes must
+// never overlap. Jobs run FIFO; each invoke resolves with its own result when
+// its job finishes. Every progress event is tagged {clipId, clipTitle,
+// waiting, waitingIds} so the renderer can show "Rendering X — N waiting" and
+// per-clip button states, and cancel can target the current OR a waiting job.
+const renderQueue = []; // waiting jobs
+let renderCurrentJob = null; // job whose render is live right now
+let renderDraining = false;
 
-    const encoder = await resolveClipCutEncoder();
+function renderQueueSnapshot() {
+  return { waiting: renderQueue.length, waitingIds: renderQueue.map((j) => j.clipId) };
+}
+
+function sendRenderProgress(p) {
+  mainWindow?.webContents.send("render:progress", p);
+}
+
+async function drainRenderQueue() {
+  if (renderDraining) return;
+  renderDraining = true;
+  while (renderQueue.length > 0) {
+    const job = renderQueue.shift();
+    renderCurrentJob = job;
+    await job.run();
+    renderCurrentJob = null;
+  }
+  renderDraining = false;
+}
+
+// The actual per-clip render work (unchanged logic: render → thumbnail →
+// project update), with all progress routed through `emit`.
+async function doRenderClip(clipData, projectData, outputPath, options, emit) {
+  try {
     const result = await render.renderClip(clipData, projectData, outputPath, {
       subtitleStyle: options?.subtitleStyle || {},
       captionStyle: options?.captionStyle || {},
       captionSegments: options?.captionSegments || [],
-      encoder,
-      onProgress: (p) => {
-        mainWindow?.webContents.send("render:progress", p);
-      },
+      encoder: options?.encoder,
+      onProgress: emit,
     });
 
     // #140: user canceled mid-render — nothing to thumbnail or mark rendered.
     if (result?.canceled) {
-      mainWindow?.webContents.send("render:progress", { stage: "canceled" });
+      emit({ stage: "canceled" });
       return { canceled: true };
     }
 
@@ -2568,7 +2593,7 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
       thumbnailPath = path.join(path.dirname(result.path), thumbName);
       await ffmpeg.generateThumbnail(result.path, thumbnailPath, 1);
     } catch (e) {
-      console.warn("[render:clip] Thumbnail extraction failed:", e.message);
+      console.warn("[render] Thumbnail extraction failed:", e.message);
       thumbnailPath = null;
     }
 
@@ -2587,20 +2612,81 @@ ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, o
     // Terminal lifecycle event — the app-level floating render pill (App.js)
     // survives editor unmounts, so it needs an explicit done/error/canceled
     // signal rather than inferring completion from the invoke resolving.
-    mainWindow?.webContents.send("render:progress", { stage: "done", pct: 100, detail: "Done!" });
+    emit({ stage: "done", pct: 100, detail: "Done!" });
     return { ...result, thumbnailPath };
   } catch (err) {
+    console.error("[render] Render failed:", err.message, err.stack);
+    emit({ stage: "error", detail: err.message });
+    return { error: err.message };
+  }
+}
+
+// Enqueue one render job. Resolves with the job's result when it completes
+// (or immediately-ish with {canceled:true} if it's removed while waiting).
+// emitWrap lets the batch path remap per-clip pct into overall batch pct.
+function enqueueRenderJob(clipData, projectData, outputPath, options, emitWrap) {
+  return new Promise((resolve) => {
+    const meta = { clipId: clipData?.id ?? null, clipTitle: clipData?.title || "" };
+    const baseEmit = (p) => sendRenderProgress({ ...p, ...meta, ...renderQueueSnapshot() });
+    const emit = emitWrap ? emitWrap(baseEmit) : baseEmit;
+    const job = {
+      ...meta,
+      canceledWhileWaiting: false,
+      run: async () => {
+        if (job.canceledWhileWaiting) {
+          resolve({ canceled: true });
+          return;
+        }
+        resolve(await doRenderClip(clipData, projectData, outputPath, options, emit));
+      },
+    };
+    renderQueue.push(job);
+    sendRenderProgress({ stage: "queued", ...meta, ...renderQueueSnapshot() });
+    drainRenderQueue();
+  });
+}
+
+ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
+  try {
+    // Determine output path if not provided
+    if (!outputPath) {
+      const outputFolder = resolveTestAwareOutputFolder(projectData);
+      if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
+      const fileName = `${clipData.title || `clip_${clipData.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
+      outputPath = path.join(outputFolder, fileName);
+    }
+    const encoder = await resolveClipCutEncoder();
+    return await enqueueRenderJob(clipData, projectData, outputPath, { ...options, encoder });
+  } catch (err) {
     console.error("[render:clip] Render failed:", err.message, err.stack);
-    mainWindow?.webContents.send("render:progress", { stage: "error", detail: err.message });
+    sendRenderProgress({ stage: "error", clipId: clipData?.id ?? null, detail: err.message, ...renderQueueSnapshot() });
     return { error: err.message };
   }
 });
 
-// #140: cancel the in-progress single-clip render (editor topbar ✕).
-ipcMain.handle("render:cancel", () => {
-  return render.cancelActiveRender();
+// #140: cancel a render. No clipId (legacy) or the current job's clipId →
+// abort the live render. A WAITING job's clipId → drop it from the queue and
+// resolve its invoke as canceled (never touches the live render).
+ipcMain.handle("render:cancel", (_, clipId) => {
+  if (clipId == null || renderCurrentJob?.clipId === clipId) {
+    return render.cancelActiveRender();
+  }
+  const idx = renderQueue.findIndex((j) => j.clipId === clipId);
+  if (idx >= 0) {
+    const [job] = renderQueue.splice(idx, 1);
+    job.canceledWhileWaiting = true;
+    job.run(); // resolves that invoke with { canceled: true }
+    sendRenderProgress({ stage: "canceled", clipId: job.clipId, clipTitle: job.clipTitle, ...renderQueueSnapshot() });
+    return { canceled: true };
+  }
+  return { canceled: false, reason: "no matching render" };
 });
 
+// Batch render — each clip is enqueued through the SAME render queue as
+// single renders, so "Render All" and editor Queue jobs can never overlap
+// (they interleave FIFO). Per-clip thumbnail + renderStatus writes happen in
+// doRenderClip; per-clip pct is remapped to overall batch pct for the
+// ProjectsView button, keeping its old display semantics.
 ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, options) => {
   try {
     if (!outputDir) {
@@ -2609,42 +2695,36 @@ ipcMain.handle("render:batch", async (event, clips, projectData, outputDir, opti
     }
 
     const encoder = await resolveClipCutEncoder();
-    const results = await render.batchRender(clips, projectData, outputDir, {
-      subtitleStyle: options?.subtitleStyle || {},
-      encoder,
-      onProgress: (p) => {
-        mainWindow?.webContents.send("render:progress", p);
-      },
-    });
-
-    // Update render status + extract thumbnails for each successful clip
-    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
-    for (const r of results) {
-      if (r.success && projectData?.id && r.clipId) {
-        let thumbnailPath = null;
-        try {
-          const thumbName = path.basename(r.path, ".mp4") + "_thumb.jpg";
-          thumbnailPath = path.join(path.dirname(r.path), thumbName);
-          await ffmpeg.generateThumbnail(r.path, thumbnailPath, 1);
-        } catch (e) {
-          console.warn("[render:batch] Thumbnail extraction failed:", e.message);
-          thumbnailPath = null;
+    const total = clips.length;
+    const results = [];
+    for (let i = 0; i < total; i++) {
+      const clip = clips[i];
+      const fileName = `${clip.title || `clip_${clip.id}`}.mp4`.replace(/[<>:"\/\\|?*]/g, "_");
+      const outputPath = path.join(outputDir, fileName);
+      const emitWrap = (baseEmit) => (p) => {
+        if (p.stage === "subtitles" || p.stage === "rendering") {
+          const overallPct = Math.round(((i + (p.pct || 0) / 100) / total) * 100);
+          baseEmit({ ...p, pct: overallPct, detail: `Clip ${i + 1}/${total}: ${p.detail || ""}` });
+        } else {
+          // Terminal stages pass through untagged with batch pct — the last
+          // clip's "done" is the batch's done.
+          baseEmit(p);
         }
-        try {
-          projects.updateClip(watchFolder, projectData.id, r.clipId, {
-            renderStatus: "rendered",
-            renderPath: r.path,
-            thumbnailPath,
-          });
-        } catch (e) { /* non-critical */ }
-      }
+      };
+      const result = await enqueueRenderJob(clip, projectData, outputPath, {
+        subtitleStyle: options?.subtitleStyle || clip.subtitleStyle,
+        captionStyle: options?.captionStyle || clip.captionStyle,
+        captionSegments: clip.captionSegments || [],
+        encoder,
+      }, emitWrap);
+      if (result?.error) results.push({ clipId: clip.id, success: false, error: result.error });
+      else if (result?.canceled) results.push({ clipId: clip.id, success: false, error: "canceled" });
+      else results.push({ clipId: clip.id, success: true, path: result.path });
     }
 
-    // Terminal event for the app-level floating render pill (see render:clip).
-    mainWindow?.webContents.send("render:progress", { stage: "done", pct: 100, detail: "Done!" });
     return { success: true, results };
   } catch (err) {
-    mainWindow?.webContents.send("render:progress", { stage: "error", detail: err.message });
+    sendRenderProgress({ stage: "error", detail: err.message, ...renderQueueSnapshot() });
     return { error: err.message };
   }
 });
