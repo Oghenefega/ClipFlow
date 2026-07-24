@@ -4,6 +4,27 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-23 (session 123) — 0.3.0-alpha.7 installer: render speed fix, render queue, subtitle upgrades, Queue delete
+
+### Changed
+- **Version bumped 0.3.0-alpha.6 → 0.3.0-alpha.7 and a fresh installer cut.** Sizing call: a major performance fix plus a batch of workflow upgrades on existing surfaces — an alpha tick on the 0.3.0 pre-beta line. Promotes everything from session 123 below: the render speed fix (minutes → seconds), the render queue with the floating progress pill, the subtitle word/merge/split/capitalization upgrades, Alt+drag subtitle duplication, and the Queue tab's remove-or-delete control.
+
+## [Unreleased] — 2026-07-23 (session 123) — Render pipeline speed fix + render queue, subtitle editing upgrades, Queue-tab delete
+
+### Fixed
+- **Rendering a clip no longer takes minutes — it takes seconds.** The render was feeding FFmpeg the entire 30-minute recording and asking it to keep only the clip's seconds, so FFmpeg decompressed the whole recording frame by frame (before, during, AND after the clip) on the CPU — a 13-second clip could take 5–20 minutes depending on where it sat in the recording. The render now jumps FFmpeg directly to each scene's spot in the recording and decodes only what the clip actually uses: measured on a real recording, the FFmpeg step dropped from 5+ minutes to ~8 seconds, with identical output quality (same GPU encode, 60fps preserved). [render.js]
+- **The render progress bar no longer freezes at 40% or 99%.** Both stalls were the same bug as above — the bar only moves when finished frames come out, and FFmpeg was silently chewing through the rest of the recording producing nothing. With the seek fix the bar now tracks real work. [render.js]
+- **A failed render now shows a red "Render failed" pill instead of silently vanishing** (part of #151). [App.js, EditorLayout.js, main.js]
+- **Deleting a clip with file deletion enabled now actually deletes the rendered MP4.** The internal delete-files path (never previously exposed in the UI) removed the legacy clip file and thumbnail but skipped the rendered output — the one file that matters. The source recording is never touched. [projects.js]
+
+### Added
+- **Render queue — render as many clips as you like, back to back.** Hitting Queue (or Render) on a clip while another is rendering now lines the job up instead of being blocked: jobs render one after another automatically, and the editor's buttons only lock for the clip that's already in line — every other clip stays renderable. A floating pill (bottom-right, on every tab) shows the current render's title, live %, and how many are waiting, with a cancel ✕; canceling works on the current render or anything still waiting. "Render All" on a project joins the same line, so batch and single renders can never collide. Switching tabs mid-render was already safe — now the progress survives the trip too, including returning to the editor mid-render (the pill used to vanish and the render looked finished when it wasn't). [main.js, preload.js, App.js, EditorView.js, EditorLayout.js, ProjectsView.js]
+- **Queue tab: every clip row now has a visible trash button with two clear choices.** "Remove from queue" takes the clip out of the publish queue but keeps the clip and its files (re-queue it from the editor anytime — this existed before but was buried in the expanded panel). "Delete clip + rendered file" removes the clip and its rendered MP4/thumbnail from disk — for abandoned or test clips — and always leaves the original recording untouched. [QueueView.js, main.js, preload.js, projects.js]
+- **Typing several words into one subtitle word now creates real separate words.** Previously "I am very angry" typed into a single word block was stored as one giant word — the karaoke highlighter lit the whole phrase at once and the words could never be split apart again. Each word now becomes its own block, sharing the original word's screen time proportionally to word length, and highlights one at a time. [useSubtitleStore.js]
+- **Right-click any word in the subtitle panel for split & merge.** "Split segment before this word", "Merge with previous segment", and "Merge with next segment" — merging keeps each word separate, so two one-word subtitles merge into one on-screen block whose words still highlight one after the other. (These existed as tiny toolbar icons; now they're where the words actually are.) [SegmentRow.js]
+- **Alt+drag duplicates a subtitle on the timeline.** Hold Alt and drag a subtitle block — a copy follows the mouse while the original stays put (standard editor convention). One Ctrl+Z removes the copy. [SegmentBlock.js, TimelinePanelNew.js, useSubtitleStore.js]
+- **"i'm" is now always "I'm", and "oh my god" becomes "oh my God".** Fresh transcriptions get the expected casing (i, i'm, i'll, i've, i'd → capital I; god capitalized only inside "oh my god") everywhere at once — editor, preview, and final render. Once a clip's subtitles have been hand-edited and saved, your casing is law and is never rewritten. [resolveSubtitles.js]
+
 ## [Unreleased] — 2026-07-23 (session 122) — 0.3.0-alpha.6 installer: preview sharpness + Queue polish + clip management
 
 ### Changed
