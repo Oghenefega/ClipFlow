@@ -88,7 +88,7 @@ Verify: edit description → click anywhere outside → collapse/reopen panel
 
 ---
 
-## 🔨 BUILT — AWAITING VERIFICATION (built 2026-07-24, session 125, shipped in 0.3.1-alpha.1) — Facebook Reels publishing
+## 🔨 BUILT — AWAITING VERIFICATION (built 2026-07-24, session 125, shipped in 0.3.0-alpha.10) — Facebook Reels publishing
 
 Spec: `tasks/specs/facebook-reels-publishing.md`. Built as specced: three-phase
 `publishReel` + legacy path renamed `publishLegacyVideo` + ffprobe duration router

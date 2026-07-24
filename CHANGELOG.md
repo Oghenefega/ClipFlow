@@ -4,14 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-24 (session 125) — 0.3.1-alpha.1: Facebook Reels publishing (the zero-views fix)
+## [Unreleased] — 2026-07-24 (session 125) — 0.3.0-alpha.10: Facebook Reels publishing (the zero-views fix)
 
 ### Added
 - **Facebook publishing now targets the Reels surface — the code half of the zero-views fix.** Every clip ClipFlow ever posted to Facebook went to the legacy Page-video endpoint, which lands in the page's Videos tab and never enters Facebook's Reels distribution feed (the other half — the Meta app being in Development mode — Fega already fixed by switching it to Live, no code needed). Clips between 3 and 90 seconds now publish through the three-phase `video_reels` flow (start session → binary upload to rupload.facebook.com → finish), adapted from the proven Instagram Reels implementation against the same Meta upload infra. Clips outside that window (e.g. the one 90.73s render) silently fall back to the old Page-video post — logged, never a user-facing error, and never a reason to fail a multi-platform publish (Fega's locked call). The publish log now records `surface: "reels"` or `"video"` on every Facebook post so underperformance questions are answerable without a code read. [facebook-publish.js, main.js]
 - **Facebook posts finally get real, clickable links in the tracker.** The Reels finish phase returns a genuine post ID (the legacy endpoint never did), and the publish result now carries a `facebook.com/reel/<id>` URL into `platformResults` — same treatment YouTube links already get. Legacy-path posts store no URL rather than a fabricated link that could 404. Known Facebook error codes (rate limit 613, expired token 190, permissions 200, upload 6000) now surface as plain-language messages instead of raw API dumps. [facebook-publish.js, main.js, QueueView.js]
 
 ### Changed
-- **Version bumped 0.3.0-alpha.9 → 0.3.1-alpha.1 and a fresh installer cut.** Minor bump, not an alpha tick: this installer carries a new publishing subsystem (Facebook Reels surface routing), and Fega asked for it in one install. First real Reels publish should be watched in the log — Meta's docs are thin on the `video_reels` status shape, so the code logs the raw response and parses tolerantly.
+- **Version bumped 0.3.0-alpha.9 → 0.3.0-alpha.10 and a fresh installer cut.** Alpha tick, not a minor bump: user-facing, this installer is "Facebook posting works correctly now" — a fix to an existing feature, however much plumbing changed underneath. (An earlier cut of this same code was briefly labeled 0.3.1-alpha.1 by inflating the routing fix into "a new subsystem"; that number is retracted and its installer removed — Fega's correction, lesson logged.) First real Reels publish should be watched in the log — Meta's docs are thin on the `video_reels` status shape, so the code logs the raw response and parses tolerantly.
 
 ## [Unreleased] — 2026-07-24 (session 124) — 0.3.0-alpha.9 hotfix: editor crash on open (alpha.8 regression)
 
