@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 123, post-alpha.7) — Queue trash data-loss fix + Alt+drag duplicate rework (NOT yet in an installer)
+
+### Fixed
+- **CRITICAL — the Queue tab's red trash option no longer deletes clips from projects.** As shipped in alpha.7 it deleted the entire clip record (edits included) — Fega lost several clips before catching it, and those records are unrecoverable (no backups exist; file deletion bypasses the Recycle Bin). The option is now "Remove + delete rendered video": it takes the clip off the publish queue and deletes the rendered MP4 from disk, but the clip and every edit ALWAYS stay in the Projects tab. Nothing on the Queue tab can delete a clip record anymore. **Until the next installer, do not use the red trash option in the installed alpha.7 app.** [QueueView.js, main.js, preload.js]
+- **Alt+drag subtitle duplication no longer destroys the subtitles it drags across.** Reproducing the gesture with real simulated input showed the duplicate itself worked, but the copy spawns on top of the original and the live push-neighbors-out-of-the-way logic shredded every one-word subtitle the copy crossed in transit (one test drag silently deleted 4 words) — which reads as "Alt+drag doesn't work." The copy now floats freely while dragging and collisions resolve only where it's dropped; everything it crossed survives, and one Ctrl+Z still reverts the whole gesture. Alt is also detected mid-drag in case Windows swallows the initial keypress. [SegmentBlock.js, TimelinePanelNew.js]
+
 ## [Unreleased] — 2026-07-23 (session 123) — 0.3.0-alpha.7 installer: render speed fix, render queue, subtitle upgrades, Queue delete
 
 ### Changed
