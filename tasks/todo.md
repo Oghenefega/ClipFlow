@@ -88,6 +88,46 @@ Verify: edit description → click anywhere outside → collapse/reopen panel
 
 ---
 
+## 📋 QUEUED (specced 2026-07-24 by Wick) — Facebook Reels publishing
+
+Spec: `tasks/specs/facebook-reels-publishing.md`. Fega-approved, ready to build.
+
+**Why:** every video ClipFlow ever posted to Fega's Facebook page had zero views.
+Two independent causes. (1) The Meta app was in Development mode, so posts were
+visible only to app-role users; Fega switched the app to Live on 2026-07-24 and
+Meta un-hides that content retroactively. No code needed, already done. (2) THIS
+TASK: `facebook-publish.js:73` posts to `/{page-id}/videos`, the legacy Page video
+endpoint, so clips never enter Facebook's Reels distribution surface. Instagram
+already does this correctly (`instagram-publish.js:154`, `media_type: "REELS"`).
+
+**Scope:** API swap only. All 28 of Fega's renders already pass every Facebook
+Reels spec (1080x1920, 60fps, AAC 48kHz stereo ~194kbps). No re-encoding, no
+reframing, no render pipeline work.
+
+**Build:** three-phase Reels flow (start → binary upload to rupload.facebook.com →
+finish), adapted from the working resumable-upload pattern already in
+`instagram-publish.js`. Keep the existing `/videos` path as a fallback.
+
+**Fega's locked call:** clips outside 3 to 90 seconds post as a normal video
+instead of erroring. The legacy path becomes a proven fallback, not dead code, and
+a 90s+ clip cannot be a Reel anyway. Never fail the whole multi-platform publish
+over Facebook's format boundary.
+
+**Files:** `src/main/oauth/facebook-publish.js` (rewrite, keep legacy fn as
+fallback), `src/main/main.js:3212` (prefer real postId). Nothing else touches FB.
+
+**Bonus:** the Reels finish phase returns a real `post_id`, so the tracker can
+finally store a clickable Facebook link in `platformResults`.
+
+**Verify:** clip under 90s lands in the page's REELS tab (not just Videos); the
+90.73s clip posts as a normal video without failing the batch; and after 24h a
+Reels post shows non-zero views. That last check is the only one that proves it.
+
+**Out of scope:** native Facebook scheduling (`video_state=SCHEDULED`), which
+would let FB posts fire with the app closed. Real future win, not this change.
+
+---
+
 ## 🗄 PREVIOUS (session 123) — Subtitle upgrades + render queue + Queue-tab delete
 
 Shipped earlier this session (committed `e963c13`, unreleased): render input-seek
