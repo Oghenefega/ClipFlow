@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-24 (session 125, part 2) — 0.3.0-alpha.11: render filename collisions fixed (#181)
+
+### Fixed
+- **Renders from different projects can no longer overwrite or delete each other's files (#181).** Render filenames come from the clip's title — which is just "Clip 3" until a clip gets a real title — and every project wrote into the same flat folder. Two projects both rendered a "Clip 3": the files silently clobbered each other, and the Queue's delete-rendered-video cleanup then removed the shared file out from under the other project's clip. That's exactly why Fega's scheduled Egging On publish failed on all four platforms with "file not found" while its Queue card wore a Rocket League thumbnail (the orphaned shared thumb held the other project's frame). Every render now lands in a per-project subfolder (`ClipFlow Renders\2026-02-27 EO Day3 Pt1\Clip 3.mp4`), and a collision guard suffixes " (2)" if a *different* clip already owns the target name (a clip re-rendering itself still overwrites its own file in place — resolved at render time, so even a Render All batch containing two same-titled duplicates produces two files). Viewer screenshots (`_thumbnail.png`) get the same per-project scoping. Existing rendered files are untouched and keep working; the wrongly-thumbnailed EO clip heals itself on re-render. Verified with an 8-case standalone test of the path logic, including Fega's exact two-project "Clip 3" scenario. [main.js]
+
+### Changed
+- **Version bumped 0.3.0-alpha.10 → 0.3.0-alpha.11 and the installer cut.** Alpha.10 was cut earlier today but never installed; alpha.11 supersedes it so one install carries both the Facebook Reels fix and the render-collision fix. Sizing: bug fix → alpha tick.
+
 ## [Unreleased] — 2026-07-24 (session 125) — 0.3.0-alpha.10: Facebook Reels publishing (the zero-views fix)
 
 ### Added
