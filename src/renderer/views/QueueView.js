@@ -707,18 +707,18 @@ export default function QueueView({
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", onKey); };
   }, [deleteAsk]);
 
-  // Hard-delete: remove the clip record (+ its rendered MP4 and thumbnail when
-  // deleteFiles). The project's source recording is never touched. Reload the
-  // project afterwards so the derived queue row disappears.
-  const deleteClipHard = async (clip, deleteFiles) => {
+  // Remove from queue AND delete the rendered MP4 from disk. The clip itself
+  // (and every hand edit on it) stays in the project — Queue-tab actions must
+  // NEVER delete clip records (session 123 data-loss lesson).
+  const removeAndDeleteRender = async (clip) => {
     if (!clip._projectId) return;
     try {
-      const r = await window.clipflow?.projectDeleteClip?.(clip._projectId, clip.id, deleteFiles);
-      if (r?.error) { console.error("Delete clip failed:", r.error); return; }
-      const full = await window.clipflow?.projectLoad?.(clip._projectId);
-      if (full?.project) setLocalProjects((prev) => prev.map((p) => (p.id === clip._projectId ? full.project : p)));
+      await dequeueClip(clip);
+      const r = await window.clipflow?.projectDeleteClipRender?.(clip._projectId, clip.id);
+      if (r?.error) { console.error("Delete render failed:", r.error); return; }
+      updateClipInState(clip._projectId, clip.id, { renderPath: null, renderStatus: "pending" });
       if (selClip === clip.id) setSelClip(null);
-    } catch (e) { console.error("Delete clip failed:", e); }
+    } catch (e) { console.error("Delete render failed:", e); }
   };
 
   // Save inline title edit
@@ -1480,13 +1480,13 @@ export default function QueueView({
             <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Clip and files stay — re-queue it from the editor anytime.</div>
           </button>
           <button
-            onClick={() => { deleteClipHard(deleteAsk.clip, true); setDeleteAsk(null); }}
+            onClick={() => { removeAndDeleteRender(deleteAsk.clip); setDeleteAsk(null); }}
             style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", fontFamily: T.font }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Delete clip + rendered file</div>
-            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Removes the clip and its rendered MP4 from disk. Your recording is untouched.</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Remove + delete rendered video</div>
+            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Takes it off the queue and deletes the rendered MP4 from disk. The clip and your edits stay in Projects.</div>
           </button>
         </div>
       )}

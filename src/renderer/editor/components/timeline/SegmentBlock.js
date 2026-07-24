@@ -65,7 +65,10 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
       const dx = ev.clientX - startRef.current.x;
       // Require 3px movement before starting drag (prevent accidental drags)
       if (!dragThresholdRef.current && Math.abs(dx) < 3) return;
-      if (!dragThresholdRef.current && wantDuplicate) {
+      // Alt read at pointer-down OR live off the move event — physical Alt on
+      // Windows can be swallowed at press time (menu accelerator), but real
+      // pointermove events still carry the held-modifier state.
+      if (!dragThresholdRef.current && onDuplicate && (wantDuplicate || ev.altKey)) {
         const cloneId = onDuplicate(seg.id);
         if (cloneId) dragTargetRef.current = cloneId;
       }

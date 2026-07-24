@@ -352,26 +352,13 @@ export default function TimelinePanelNew() {
     }
   }, [duration, deleteCaptionSegment]);
 
-  // Drag (move) subtitle segment — pushes overlapping neighbors.
-  // Uses getState() to avoid stale closure issues during drag.
-  const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
-    const store = useSubtitleStore.getState();
-    const segDur = newEnd - newStart;
-    let sStart = applySnap(newStart, segId, "sub");
-    sStart = Math.max(0, sStart);
-    let sEnd = Math.min(effectiveDuration, sStart + segDur);
-
-    // Snapshot originals on first drag call (timeline coordinates for overlap detection)
-    if (!dragOriginalsRef.current) {
-      store.startDrag();
-      dragOriginalsRef.current = {};
-      const mapped = store.getTimelineMappedSegments();
-      for (const seg of mapped) {
-        dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
-      }
-    }
-
-    const originals = dragOriginalsRef.current;
+  // Shared overlap-resolution pass: trims/splits/deletes neighbors that the
+  // dragged rect [sStart, sEnd] covers, restores untouched ones to their
+  // pre-drag positions. Returns middle-split phantoms. Normal drags run it
+  // LIVE per move; a duplicate-drag runs it ONCE at drop (the clone spawns on
+  // top of its original, so live-pushing would shred neighbors in transit).
+  const resolveSubtitleOverlaps = useCallback((store, segId, sStart, sEnd) => {
+    const originals = dragOriginalsRef.current || {};
     const phantoms = [];
     const mapped = store.getTimelineMappedSegments();
 
@@ -402,17 +389,49 @@ export default function TimelinePanelNew() {
         store.updateSegmentTimes(seg.id, toSource(orig.startSec), toSource(orig.endSec));
       }
     }
+    return phantoms;
+  }, [toSource]);
 
+  // Drag (move) subtitle segment — pushes overlapping neighbors.
+  // Uses getState() to avoid stale closure issues during drag.
+  const handleSubtitleDrag = useCallback((segId, newStart, newEnd) => {
+    const store = useSubtitleStore.getState();
+    const segDur = newEnd - newStart;
+    let sStart = applySnap(newStart, segId, "sub");
+    sStart = Math.max(0, sStart);
+    let sEnd = Math.min(effectiveDuration, sStart + segDur);
+
+    // Snapshot originals on first drag call (timeline coordinates for overlap detection)
+    if (!dragOriginalsRef.current) {
+      store.startDrag();
+      dragOriginalsRef.current = {};
+      const mapped = store.getTimelineMappedSegments();
+      for (const seg of mapped) {
+        dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
+      }
+    }
+
+    if (dupDragRef.current) {
+      // Duplicate-drag: the clone floats freely (drawn over neighbors);
+      // collisions resolve once at drop in handleSubtitleDragEnd.
+      dupDragLastRef.current = { segId, sStart, sEnd };
+      store.updateSegmentTimes(segId, toSource(sStart), toSource(sEnd));
+      return;
+    }
+
+    const phantoms = resolveSubtitleOverlaps(store, segId, sStart, sEnd);
     dragPhantomsRef.current = phantoms;
     setDragPhantoms(phantoms);
     store.updateSegmentTimes(segId, toSource(sStart), toSource(sEnd));
-  }, [effectiveDuration, applySnap, toSource]);
+  }, [effectiveDuration, applySnap, toSource, resolveSubtitleOverlaps]);
 
   // Alt+drag duplicate: clone the segment, then the drag moves the copy.
   // startDrag + the originals snapshot happen HERE — BEFORE the clone exists —
   // so one Ctrl+Z reverts the whole gesture (clone included) and neighbor
   // push/restore works against pre-clone positions. handleSubtitleDrag's own
   // first-call snapshot then sees dragOriginalsRef already set and skips.
+  const dupDragRef = useRef(false);
+  const dupDragLastRef = useRef(null); // { segId, sStart, sEnd } — clone's live rect
   const handleSubtitleDuplicate = useCallback((segId) => {
     const store = useSubtitleStore.getState();
     if (!dragOriginalsRef.current) {
@@ -422,12 +441,26 @@ export default function TimelinePanelNew() {
         dragOriginalsRef.current[seg.id] = { startSec: seg.startSec, endSec: seg.endSec };
       }
     }
+    dupDragRef.current = true;
+    dupDragLastRef.current = null;
     return store.duplicateSegment(segId);
   }, []);
 
   // On drag end — create real segments from phantoms, clear state
   const handleSubtitleDragEnd = useCallback((segId) => {
-    useSubtitleStore.getState().endDrag();
+    const store = useSubtitleStore.getState();
+    // Duplicate-drop: resolve collisions against the clone's final rect now
+    // (inside the startDrag undo envelope, so one Ctrl+Z reverts everything).
+    if (dupDragRef.current) {
+      const last = dupDragLastRef.current;
+      if (last && last.segId === segId) {
+        const phantoms = resolveSubtitleOverlaps(store, last.segId, last.sStart, last.sEnd);
+        dragPhantomsRef.current = phantoms;
+      }
+      dupDragRef.current = false;
+      dupDragLastRef.current = null;
+    }
+    store.endDrag();
     const phantoms = dragPhantomsRef.current;
     if (phantoms.length > 0) {
       const { addSegmentAt } = useSubtitleStore.getState();
@@ -440,7 +473,7 @@ export default function TimelinePanelNew() {
     dragPhantomsRef.current = [];
     setDragPhantoms([]);
     dragOriginalsRef.current = null;
-  }, []);
+  }, [resolveSubtitleOverlaps]);
 
   // Drag (move) caption segment
   const handleCaptionDrag = useCallback((id, newStart, newEnd) => {

@@ -1726,6 +1726,26 @@ ipcMain.handle("project:deleteClip", async (_, projectId, clipId, deleteFile) =>
   } catch (err) { return { error: err.message }; }
 });
 
+// Queue-scoped destructive option: delete ONLY the clip's rendered MP4 from
+// disk and reset its render state. The clip record — and every hand edit on
+// it — always survives. Exists so "remove from queue + delete the rendered
+// video" can never destroy project data (session 123 data-loss lesson).
+// The thumbnail is kept for list identity.
+ipcMain.handle("project:deleteClipRender", async (_, projectId, clipId) => {
+  try {
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
+    const project = projects.loadProject(watchFolder, projectId);
+    if (!project) return { error: "Project not found" };
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return { error: "Clip not found" };
+    if (clip.renderPath && fs.existsSync(clip.renderPath)) {
+      try { fs.unlinkSync(clip.renderPath); }
+      catch (e) { return { error: `Could not delete rendered file: ${e.message}` }; }
+    }
+    return projects.updateClip(watchFolder, projectId, clipId, { renderPath: null, renderStatus: "pending" });
+  } catch (err) { return { error: err.message }; }
+});
+
 ipcMain.handle("project:updateReframe", async (_, projectId, reframe) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)

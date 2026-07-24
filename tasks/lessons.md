@@ -828,3 +828,11 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 
 **Rule:** When a user reports a shipped fix "doesn't work," FIRST compare the fix's install time against the user's test timestamps (exe mtime vs. UI/DB timestamps) before any code-level diagnosis. And when shipping a fix with a data horizon: (1) state the horizon in the verification ask ("old entries won't change — test with a NEW rename"), and (2) plan for what pre-fix data looks like in the new UI; stale lying state left visible reads as "still broken."
 
+
+## Session 123 — Queue "delete clip" destroyed project clips because "clip" meant different things (2026-07-24)
+
+**What went wrong:** The Queue tab's new trash popover offered "Delete clip + rendered file," implemented as full clip-record deletion from the project (plus files). Fega meant something queue-scoped: take the entry out of the publish queue and optionally delete the rendered MP4 — never remove the clip (and its edits) from the Projects tab. He tested it and permanently lost a batch of clip records; project JSONs have no backups, unlinkSync bypasses the recycle bin, and the DB doesn't mirror clips.
+
+**Why:** I mapped his words onto the nearest existing primitive (`projects.deleteClip`, my noun "record") instead of onto the surface he was standing on — actions on a Queue row scope to queue membership and queue artifacts. The approved plan even said "removes the record," but "record" is implementer vocabulary; the plan never said the user-visible consequence: "the clip disappears from the Projects tab too and its edits are gone."
+
+**Rule:** For any destructive option: (1) the plan must state consequences as what disappears from WHICH SCREENS, in app-user words, not internal nouns; (2) when a destruction request is ambiguous, implement the LEAST destructive reading that satisfies the stated goal and ask about the rest; (3) an option that deletes something the user edited by hand (clips, subtitles, profiles) needs an explicit "your edits on X will be lost" line in both the plan and the confirm UI.
