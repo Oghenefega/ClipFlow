@@ -8,6 +8,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - **A failed Instagram upload is now retried three times before the publish is called a failure (#185).** Meta's upload endpoint gives itself roughly 33-35 seconds to process a completed upload and rejects anything slower with `ProcessingFailedError` — and its `retriable: false` flag is simply wrong: byte-identical files produced both success and failure across 24 measured uploads. Each attempt creates a fresh container (a failed one resets its offset to 0 and can't be reused) and waits 20s then 60s between tries. This recovers the marginal band outright — clips in the 45-55s range at 1080p currently succeed about half the time on a single attempt. [instagram-publish.js]
+- **Render audio now encodes at 128 kbps instead of 192 kbps.** Meta documents 128 kbps AAC as the Reels audio spec and third-party schedulers list too-high audio bitrate as a publish-failure cause, so ClipFlow's renders were quietly violating a published spec on every Instagram post. Not the cause of #185 — the clips that succeeded had the same 192k audio — but a real spec violation worth closing. YouTube and TikTok re-encode audio well below this anyway. [render.js]
 - **The error shown when Instagram refuses a clip is now readable** — it names the likely cause (a long clip at 1080p) and the workaround (a shorter cut), instead of pasting Meta's raw JSON into the results panel. [instagram-publish.js]
 
 ### Notes

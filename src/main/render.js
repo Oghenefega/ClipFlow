@@ -517,7 +517,10 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         "-r", String(Math.round(sourceFps)),
         ...require("./ffmpeg").buildEncoderArgs(renderEncoder),
         "-c:a", "aac",
-        "-b:a", "192k",
+        // 128k, not 192k: Meta documents 128 kbps AAC as the Reels audio spec and
+        // lists too-high audio bitrate as a publish-failure cause (#185). Every
+        // other target (YouTube, TikTok) re-encodes audio well below this anyway.
+        "-b:a", "128k",
         "-movflags", "+faststart",
         outputPath
       );
