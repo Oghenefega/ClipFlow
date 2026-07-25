@@ -4,13 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-24 (session 126) — single-instance lock (#156)
+## [Unreleased] — 2026-07-24 (session 126) — 0.3.0-alpha.14: single-instance lock (#156)
 
 ### Added
 - **Only one ClipFlow per profile can run at a time (#156).** Launching a second copy now quits immediately and brings the window you already have to the front, the way most desktop apps behave. Six copies stacked up during yesterday's installer churn, which is how one clip got published twice; part 4 below stops the duplicate post itself, and this stops the two copies existing to fight over the database and settings in the first place. Deliberately placed *after* the profile redirect in `main.js`, because the lock is scoped to the profile's data folder — requesting it any earlier would make dev and prod contend for one lock and stop `npm run dev` running alongside the installed app. As placed, only same-profile launches collide, which is exactly the case that caused the incident (the installed exe and a source `npm start` are both the prod profile). The losing instance exits synchronously on the lock check, before Sentry, the database, the stores or any migration can touch state the winner owns. Verified against the real app: a dev instance started normally while the installed prod app was running (profile scoping holds), and a second dev instance exited in 4 seconds having logged no startup at all — no "App started", no database init. [main.js]
 
+### Changed
+- **Version bumped 0.3.0-alpha.13 → 0.3.0-alpha.14 and the installer cut.** Alpha.13 was cut minutes earlier and carried the duplicate-publish fix but not the lock; alpha.14 supersedes it so one install carries both halves of the double-post problem — the symptom (a clip can't be published twice) and the cause (two copies can't run at once). Sizing: behavioural fix → alpha tick, not a new capability.
+
 ### Notes
-- The lock only excludes copies that both check for it, so protection is complete once every running copy is on a build that has it — an already-running older build holds no lock and won't be detected. Not in the 0.3.0-alpha.13 installer, which was cut before this change.
+- The lock only excludes copies that both check for it, so protection is complete once every running copy is on a build that has it — an already-running older build holds no lock and won't be detected. In practice that means the first launch after installing alpha.14 is the point it starts working.
 
 ## [Unreleased] — 2026-07-24 (session 125, part 4) — 0.3.0-alpha.13: duplicate publishing fixed (#156, #182)
 
