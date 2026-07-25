@@ -84,6 +84,9 @@ NEVER use timing-gap heuristics for merging — whisper gaps are too inconsisten
 - Ruler ticks must account for label column offset (LABEL_W)
 - `contentWidth = timelineWidth - LABEL_W` for all position calculations
 - Playhead position uses the same offset calculation
+- **`nleSegments` order IS the timeline order, and it is NOT source order** (#184 made sections reorderable). Never treat array index as a proxy for source position: neighbour clamps (extend), "next segment" recovery, and any `sourceStart >`-style scan must resolve in the coordinate space they actually mean. `sourceToTimeline`/`timelineToSource` already walk in array order and are safe.
+- **`visibleSubtitleSegments` output is sorted by `timelineStartSec`** — consumers walk it as a flat sequence (karaoke global word index, Edit-subtitles rows, Transcript paragraphs) and track the wrong word if it arrives in source order. Any new derived list built off the segment list needs the same explicit sort; the input's incidental order is not a guarantee.
+- **A subtitle straddling a cut can map to an inverted range** (start lands late, end lands early) once the two sides aren't adjacent. `visibleSubtitleSegments` clips it to the section holding its start and rebuilds `text` from the kept words — keep `text`/`words[]` in sync there or the burned-in render silently drops a word (#116).
 
 ## NEVER Do These
 
