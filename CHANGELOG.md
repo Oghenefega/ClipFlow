@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-25 (session 129) — Instagram upload retries instead of giving up (#185)
+## [Unreleased] — 2026-07-25 (session 129) — 0.3.0-alpha.16: Instagram upload retries instead of giving up (#185)
+
+### Changed
+- **Version bumped 0.3.0-alpha.15 → 0.3.0-alpha.16 and the installer cut.** Alpha counter tick, as it will be from here on — the minor number does not move without Fega calling it.
 
 ### Fixed
 - **A failed Instagram upload is now retried three times before the publish is called a failure (#185).** Meta's upload endpoint gives itself roughly 33-35 seconds to process a completed upload and rejects anything slower with `ProcessingFailedError` — and its `retriable: false` flag is simply wrong: byte-identical files produced both success and failure across 24 measured uploads. Each attempt creates a fresh container (a failed one resets its offset to 0 and can't be reused) and waits 20s then 60s between tries. This recovers the marginal band outright — clips in the 45-55s range at 1080p currently succeed about half the time on a single attempt. [instagram-publish.js]
