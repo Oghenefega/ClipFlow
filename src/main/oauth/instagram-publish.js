@@ -147,112 +147,155 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
   const fileSize = fs.statSync(videoPath).size;
   log.info("Starting publish", { videoPath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
 
-  // Step 1: Create media container with resumable upload
-  onProgress({ stage: "init", pct: 5, detail: "Creating media container..." });
-
-  const containerBody = {
-    media_type: "REELS",
-    upload_type: "resumable",
-  };
-  if (caption) containerBody.caption = caption;
-
-  // For Instagram Business Login (graph.instagram.com), the `/me/media` endpoint
-  // resolves to whichever IG user the access token represents — no stored ID lookup.
-  // The OAuth `user_id` field captured at connect time is *not* always the same
-  // identifier the Content Publishing API expects, so we route through `/me` instead.
-  // For Facebook Login (graph.facebook.com), keep the explicit IG account ID — that
-  // flow uses the FB-Page-linked IG Business Account ID, which is reliable.
-  const containerPath = useIgGraph ? `${GRAPH_BASE}/me/media` : `${GRAPH_BASE}/${igUserId}/media`;
-  log.info("Container request", { url: containerPath, igUserId, useIgGraph });
-  const containerResult = await graphPost(
-    containerPath,
-    containerBody,
-    accessToken
-  );
-  log.info("Container response", { result: containerResult });
-
-  if (containerResult.error) {
-    const errType = containerResult.error.type || "?";
-    const errCode = containerResult.error.code || "?";
-    const errSub = containerResult.error.error_subcode || "?";
-    const traceId = containerResult.error.fbtrace_id || "?";
-    throw new Error(`Container creation failed [type=${errType}, code=${errCode}, sub=${errSub}, trace=${traceId}]: ${containerResult.error.message}`);
-  }
-
-  const containerId = containerResult.id;
-  const uploadUri = containerResult.uri;
-  log.info("Container created", { containerId });
-  log.debug("Upload URI obtained", { uploadUri });
-
-  if (!uploadUri) {
-    throw new Error("No upload URI returned. Check permissions and account type.");
-  }
-
-  // Step 2: Upload video binary
-  onProgress({ stage: "uploading", pct: 15, detail: "Uploading video..." });
-
-  const fileBuffer = fs.readFileSync(videoPath);
-  const uploadResult = await uploadBinary(uploadUri, fileBuffer, fileSize, accessToken);
-
-  if (!uploadResult.body.success && uploadResult.statusCode !== 200) {
-    throw new Error(`Upload failed (HTTP ${uploadResult.statusCode}): ${JSON.stringify(uploadResult.body)}`);
-  }
-
-  log.info("Upload complete, polling status...");
-  onProgress({ stage: "processing", pct: 60, detail: "Processing on Instagram..." });
-
-  // Step 3: Poll container status until FINISHED
-  const maxAttempts = 60; // 10 minutes (10s intervals)
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, 10000));
+  // The upload step is retried as a unit (#185). Meta's rupload endpoint gives itself
+  // ~33-35s to process a completed upload and returns ProcessingFailedError when it
+  // runs out, so the same bytes can fail once and succeed the next time — measured
+  // both outcomes on byte-identical files. Its `retriable: false` flag is not reliable.
+  // A failed container can't be reused (the server resets its offset to 0), so each
+  // attempt creates a fresh one. Chunked upload does NOT avoid this: the pieces are
+  // accepted in <1s each and the final piece hits the same 34s wall.
+  const UPLOAD_ATTEMPTS = 3;
+  const RETRY_DELAYS_MS = [20000, 60000];
+  let containerId;
+  for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
+    try {
+      containerId = await createContainerAndUpload();
+      break;
+    } catch (err) {
+      if (attempt === UPLOAD_ATTEMPTS) {
+        log.error("Upload failed on every attempt", { attempts: UPLOAD_ATTEMPTS, error: err.message });
+        throw new Error(
+          `Instagram could not process this clip after ${UPLOAD_ATTEMPTS} attempts. ` +
+            `Long clips at 1080p are the usual cause — Instagram's upload processing times out on them. ` +
+            `A shorter cut usually goes through. (${err.message})`
+        );
+      }
+      const waitMs = RETRY_DELAYS_MS[attempt - 1];
+      log.warn("Upload attempt failed — retrying", { attempt, of: UPLOAD_ATTEMPTS, waitSec: waitMs / 1000, error: err.message });
+      onProgress({
+        stage: "retrying",
+        pct: 10,
+        detail: `Instagram rejected the upload — retrying in ${waitMs / 1000}s (${attempt + 1}/${UPLOAD_ATTEMPTS})...`,
+      });
+      await new Promise((r) => setTimeout(r, waitMs));
     }
+  }
 
-    const statusResult = await graphGet(
-      `${GRAPH_BASE}/${containerId}?fields=id,status_code,status`,
+  return pollAndPublish(containerId);
+
+  // Steps 1-2: create the container and push the bytes. Returns the container id.
+  async function createContainerAndUpload() {
+    onProgress({ stage: "init", pct: 5, detail: "Creating media container..." });
+
+    const containerBody = {
+      media_type: "REELS",
+      upload_type: "resumable",
+    };
+    if (caption) containerBody.caption = caption;
+
+    // For Instagram Business Login (graph.instagram.com), the `/me/media` endpoint
+    // resolves to whichever IG user the access token represents — no stored ID lookup.
+    // The OAuth `user_id` field captured at connect time is *not* always the same
+    // identifier the Content Publishing API expects, so we route through `/me` instead.
+    // For Facebook Login (graph.facebook.com), keep the explicit IG account ID — that
+    // flow uses the FB-Page-linked IG Business Account ID, which is reliable.
+    const containerPath = useIgGraph ? `${GRAPH_BASE}/me/media` : `${GRAPH_BASE}/${igUserId}/media`;
+    log.info("Container request", { url: containerPath, igUserId, useIgGraph });
+    const containerResult = await graphPost(
+      containerPath,
+      containerBody,
       accessToken
     );
+    log.info("Container response", { result: containerResult });
 
-    const statusCode = statusResult.status_code;
-    log.info("Poll status", { attempt: `${attempt + 1}/${maxAttempts}`, statusCode });
+    if (containerResult.error) {
+      const errType = containerResult.error.type || "?";
+      const errCode = containerResult.error.code || "?";
+      const errSub = containerResult.error.error_subcode || "?";
+      const traceId = containerResult.error.fbtrace_id || "?";
+      throw new Error(`Container creation failed [type=${errType}, code=${errCode}, sub=${errSub}, trace=${traceId}]: ${containerResult.error.message}`);
+    }
 
-    if (statusCode === "FINISHED") {
-      onProgress({ stage: "publishing", pct: 85, detail: "Publishing Reel..." });
+    const containerId = containerResult.id;
+    const uploadUri = containerResult.uri;
+    log.info("Container created", { containerId });
+    log.debug("Upload URI obtained", { uploadUri });
 
-      // Step 4: Publish the container — route via /me for IG Business Login (same
-      // reasoning as Step 1: avoids stored-IG-user-id mismatch).
-      const publishPath = useIgGraph ? `${GRAPH_BASE}/me/media_publish` : `${GRAPH_BASE}/${igUserId}/media_publish`;
-      const publishResult = await graphPost(
-        publishPath,
-        { creation_id: containerId },
+    if (!uploadUri) {
+      throw new Error("No upload URI returned. Check permissions and account type.");
+    }
+
+    // Step 2: Upload video binary
+    onProgress({ stage: "uploading", pct: 15, detail: "Uploading video..." });
+
+    const fileBuffer = fs.readFileSync(videoPath);
+    const uploadResult = await uploadBinary(uploadUri, fileBuffer, fileSize, accessToken);
+
+    if (!uploadResult.body.success && uploadResult.statusCode !== 200) {
+      throw new Error(`Upload failed (HTTP ${uploadResult.statusCode}): ${JSON.stringify(uploadResult.body)}`);
+    }
+
+    log.info("Upload complete, polling status...");
+    return containerId;
+  }
+
+  // Steps 3-4: wait for Instagram to finish processing, then publish.
+  async function pollAndPublish(containerId) {
+    onProgress({ stage: "processing", pct: 60, detail: "Processing on Instagram..." });
+
+    // Step 3: Poll container status until FINISHED
+    const maxAttempts = 60; // 10 minutes (10s intervals)
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 10000));
+      }
+
+      const statusResult = await graphGet(
+        `${GRAPH_BASE}/${containerId}?fields=id,status_code,status`,
         accessToken
       );
 
-      if (publishResult.error) {
-        throw new Error(`Publish failed: ${publishResult.error.message}`);
+      const statusCode = statusResult.status_code;
+      log.info("Poll status", { attempt: `${attempt + 1}/${maxAttempts}`, statusCode });
+
+      if (statusCode === "FINISHED") {
+        onProgress({ stage: "publishing", pct: 85, detail: "Publishing Reel..." });
+
+        // Step 4: Publish the container — route via /me for IG Business Login (same
+        // reasoning as Step 1: avoids stored-IG-user-id mismatch).
+        const publishPath = useIgGraph ? `${GRAPH_BASE}/me/media_publish` : `${GRAPH_BASE}/${igUserId}/media_publish`;
+        const publishResult = await graphPost(
+          publishPath,
+          { creation_id: containerId },
+          accessToken
+        );
+
+        if (publishResult.error) {
+          throw new Error(`Publish failed: ${publishResult.error.message}`);
+        }
+
+        log.info("Published!", { mediaId: publishResult.id });
+        onProgress({ stage: "done", pct: 100, detail: "Reel published!" });
+
+        return {
+          mediaId: publishResult.id,
+          containerId,
+          status: "PUBLISHED",
+        };
       }
 
-      log.info("Published!", { mediaId: publishResult.id });
-      onProgress({ stage: "done", pct: 100, detail: "Reel published!" });
+      if (statusCode === "ERROR") {
+        const errDetail = statusResult.status || "Unknown processing error";
+        throw new Error(`Instagram processing failed: ${errDetail}`);
+      }
 
-      return {
-        mediaId: publishResult.id,
-        containerId,
-        status: "PUBLISHED",
-      };
+      // Still processing — update progress (60-85% range)
+      const progressPct = 60 + Math.min(25, Math.round((attempt / maxAttempts) * 25));
+      onProgress({ stage: "processing", pct: progressPct, detail: `Processing on Instagram (${attempt + 1})...` });
     }
 
-    if (statusCode === "ERROR") {
-      const errDetail = statusResult.status || "Unknown processing error";
-      throw new Error(`Instagram processing failed: ${errDetail}`);
-    }
-
-    // Still processing — update progress (60-85% range)
-    const progressPct = 60 + Math.min(25, Math.round((attempt / maxAttempts) * 25));
-    onProgress({ stage: "processing", pct: progressPct, detail: `Processing on Instagram (${attempt + 1})...` });
+    throw new Error("Instagram processing timed out after 10 minutes");
   }
-
-  throw new Error("Instagram processing timed out after 10 minutes");
 }
 
 module.exports = {

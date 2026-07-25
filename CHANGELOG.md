@@ -4,6 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-25 (session 129) — Instagram upload retries instead of giving up (#185)
+
+### Fixed
+- **A failed Instagram upload is now retried three times before the publish is called a failure (#185).** Meta's upload endpoint gives itself roughly 33-35 seconds to process a completed upload and rejects anything slower with `ProcessingFailedError` — and its `retriable: false` flag is simply wrong: byte-identical files produced both success and failure across 24 measured uploads. Each attempt creates a fresh container (a failed one resets its offset to 0 and can't be reused) and waits 20s then 60s between tries. This recovers the marginal band outright — clips in the 45-55s range at 1080p currently succeed about half the time on a single attempt. [instagram-publish.js]
+- **The error shown when Instagram refuses a clip is now readable** — it names the likely cause (a long clip at 1080p) and the workaround (a shorter cut), instead of pasting Meta's raw JSON into the results panel. [instagram-publish.js]
+
+### Notes
+- **What actually causes this, measured rather than assumed.** File size is irrelevant: a 109.5 MB clip uploads fine while the same footage at 13.5 MB fails. Duration alone isn't the gate either — 55s passed, 53s failed, 45s did both. The driver is how long Meta spends processing, which scales with resolution × duration: the failing 57.2s clip fails 10/10 at 1080×1920 at any bitrate and either frame rate, but passes at 720×1280 and at 540×960. Successes return in 26-34s, failures cluster at 33-36s — including a 10 MB upload that sat for 34.6s, which is Meta thinking, not ClipFlow sending.
+- **Chunked/resumable upload was tested and does not help.** The pieces are accepted in under a second each (`HTTP 206 / PartialRequestError / retriable: true`, with the server's offset query confirming the bytes are held), and then the final piece triggers processing and hits the same 34-second wall. The original fix proposal was built on this idea and was wrong; the experiment ran before any code was written.
+- **Clips over ~55s at 1080p still cannot reach Instagram** and no amount of retrying will change that. Automatic downscaling was considered and declined — ClipFlow will not quietly post a lower-resolution copy than what was rendered. The only remaining route is handing Instagram a hosted link instead of uploading directly, which is filed as #186 because it would mean renders transiting a ClipFlow server. Until then: a shorter cut, or post that one from the phone app.
+
 ## [Unreleased] — 2026-07-25 (session 128) — 0.3.0-alpha.15: Reorder clip sections on the timeline (#184)
 
 ### Changed
