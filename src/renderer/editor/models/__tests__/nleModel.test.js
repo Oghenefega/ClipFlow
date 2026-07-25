@@ -20,6 +20,7 @@ const {
   splitAtSource,
   splitAtTimeline,
   deleteSegment,
+  moveSegment,
   trimSegmentLeft,
   trimSegmentRight,
   trimSegment,
@@ -676,5 +677,156 @@ describe("migration: old format → NLE", () => {
     // Should NOT double-offset
     expect(migrated[0].startSec).toBeCloseTo(303.09);
     expect(migrated[0].endSec).toBeCloseTo(303.72);
+  });
+});
+
+// ─── Reorder (#184) ─────────────────────────────────────────────────────────
+// Timeline position is derived from ARRAY order, so a reordered list is one
+// where source times no longer ascend. Everything that used array position as a
+// proxy for source position has to hold up here.
+
+describe("reorder", () => {
+  // Source 10-14 plays FIRST, source 0-9 plays second.
+  // Timeline: 0-4 = source 10-14,  4-13 = source 0-9
+  const reordered = () => [
+    createSegment(10, 14, "later"),
+    createSegment(0, 9, "earlier"),
+  ];
+
+  describe("moveSegment", () => {
+    test("moves a segment to the front", () => {
+      const s = segs([[0, 9], [10, 14]]);
+      const result = moveSegment(s, "seg-1", 0);
+      expect(result.map((x) => x.id)).toEqual(["seg-1", "seg-0"]);
+    });
+
+    test("moves a segment one slot later", () => {
+      const s = segs([[0, 5], [5, 10], [10, 15]]);
+      const result = moveSegment(s, "seg-0", 1);
+      expect(result.map((x) => x.id)).toEqual(["seg-1", "seg-0", "seg-2"]);
+    });
+
+    test("clamps an out-of-range destination to the end", () => {
+      const s = segs([[0, 5], [5, 10]]);
+      const result = moveSegment(s, "seg-0", 99);
+      expect(result.map((x) => x.id)).toEqual(["seg-1", "seg-0"]);
+    });
+
+    test("dropping in its own slot returns the input array unchanged", () => {
+      const s = segs([[0, 5], [5, 10]]);
+      expect(moveSegment(s, "seg-0", 0)).toBe(s);
+    });
+
+    test("unknown id is a no-op", () => {
+      const s = segs([[0, 5], [5, 10]]);
+      expect(moveSegment(s, "nope", 1)).toBe(s);
+    });
+
+    test("total duration is unchanged", () => {
+      const s = segs([[0, 5], [5, 10], [10, 15]]);
+      const before = getTimelineDuration(s);
+      expect(getTimelineDuration(moveSegment(s, "seg-2", 0))).toBeCloseTo(before);
+    });
+
+    test("source times are untouched", () => {
+      const s = segs([[0, 9], [10, 14]]);
+      const result = moveSegment(s, "seg-1", 0);
+      expect(result[0]).toEqual({ id: "seg-1", sourceStart: 10, sourceEnd: 14 });
+    });
+  });
+
+  describe("mapping through a reordered list", () => {
+    test("sourceToTimeline follows array order, not source order", () => {
+      const r = reordered();
+      expect(sourceToTimeline(11, r).timelineTime).toBeCloseTo(1);
+      expect(sourceToTimeline(2, r).timelineTime).toBeCloseTo(6);
+    });
+
+    test("timelineToSource round-trips", () => {
+      const r = reordered();
+      expect(timelineToSource(1, r).sourceTime).toBeCloseTo(11);
+      expect(timelineToSource(5, r).sourceTime).toBeCloseTo(1);
+    });
+
+    test("output is in timeline order, not source order", () => {
+      // Source order is [early, late]; after the reorder `late` plays first, so
+      // it must come out first — consumers walk this list as a flat sequence.
+      const subs = [
+        { id: "early", startSec: 1, endSec: 2, text: "second", words: [{ word: "second", start: 1, end: 2 }] },
+        { id: "late", startSec: 11, endSec: 12, text: "first", words: [{ word: "first", start: 11, end: 12 }] },
+      ];
+      const out = visibleSubtitleSegments(subs, reordered());
+      expect(out.map((s) => s.id)).toEqual(["late", "early"]);
+      expect(out[0].timelineStartSec).toBeLessThan(out[1].timelineStartSec);
+    });
+
+    test("a subtitle inside the moved section lands at its new position", () => {
+      const r = reordered();
+      const subs = [{ id: 1, startSec: 11, endSec: 13, text: "moved", words: [{ word: "moved", start: 11, end: 13 }] }];
+      const [out] = visibleSubtitleSegments(subs, r);
+      expect(out.timelineStartSec).toBeCloseTo(1);
+      expect(out.timelineEndSec).toBeCloseTo(3);
+      expect(out.words[0].timelineStart).toBeCloseTo(1);
+    });
+  });
+
+  describe("straddle guard", () => {
+    // Spoken across the cut: "one two" at 8-9 (in the second section),
+    // "three" at 10.2-11 (in the first). Once reordered, the end maps EARLIER
+    // than the start — without the guard this draws as a negative-width block.
+    const straddler = [{
+      id: 1,
+      startSec: 8,
+      endSec: 11,
+      text: "one two three",
+      words: [
+        { word: "one", start: 8, end: 8.5 },
+        { word: "two", start: 8.6, end: 9 },
+        { word: "three", start: 10.2, end: 11 },
+      ],
+    }];
+
+    test("clips to the section holding the start", () => {
+      const [out] = visibleSubtitleSegments(straddler, reordered());
+      expect(out.timelineStartSec).toBeCloseTo(12);
+      expect(out.timelineEndSec).toBeCloseTo(13);
+      expect(out.timelineEndSec).toBeGreaterThan(out.timelineStartSec);
+    });
+
+    test("drops the words that moved away and keeps text in sync with them", () => {
+      const [out] = visibleSubtitleSegments(straddler, reordered());
+      expect(out.words.map((w) => w.word)).toEqual(["one", "two"]);
+      expect(out.text).toBe("one two");
+    });
+
+    test("no-op on an in-order list — straddling subtitle stays whole", () => {
+      // Adjacent sections in source order: the block spans the cut as before.
+      const inOrder = [createSegment(0, 9, "a"), createSegment(10, 14, "b")];
+      const [out] = visibleSubtitleSegments(straddler, inOrder);
+      expect(out.timelineStartSec).toBeCloseTo(8);
+      expect(out.timelineEndSec).toBeCloseTo(10);
+      expect(out.text).toBe("one two three");
+      expect(out.words).toHaveLength(3);
+    });
+  });
+
+  describe("extend clamps against source neighbours, not array neighbours", () => {
+    test("extendSegmentRight stops at the nearest later source segment", () => {
+      // "earlier" (0-9) is LAST in the list, so there is no array-next segment —
+      // the old index-based clamp would have let it eat into 10-14.
+      const result = extendSegmentRight(reordered(), "earlier", 12, 100);
+      expect(result.find((s) => s.id === "earlier").sourceEnd).toBeCloseTo(10);
+    });
+
+    test("extendSegmentLeft stops at the nearest earlier source segment", () => {
+      // "later" (10-14) is FIRST in the list, so there is no array-prev segment.
+      const result = extendSegmentLeft(reordered(), "later", 5, 100);
+      expect(result.find((s) => s.id === "later").sourceStart).toBeCloseTo(9);
+    });
+
+    test("still extends freely into a genuine gap", () => {
+      const result = extendSegmentLeft(reordered(), "earlier", -5, 100);
+      expect(result.find((s) => s.id === "earlier").sourceStart).toBe(0);
+    });
   });
 });

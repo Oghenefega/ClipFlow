@@ -1,12 +1,14 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { AUDIO_TRACK_H, TRIM_HANDLE_HIT_W, SEGMENT_RADIUS, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating }) {
+function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sourceDuration = Infinity, timelineWidth, currentTime, selected, onSelect, onContextMenu, nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, rippleAnimating, onMoveStart, onMoveDrag, onMoveEnd, onSeekClick, moveDragging }) {
   const canvasRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [hovered, setHovered] = useState(false);
   const startRef = useRef({ x: 0, sourceStart: 0, sourceEnd: 0 });
   const rafRef = useRef(null);
+  const moveXRef = useRef(0);
+  const movedRef = useRef(false); // true once the 3px threshold is crossed
 
   const onHandleDown = useCallback((side, e) => {
     if (!nleSegment) return;
@@ -55,6 +57,42 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   }, [nleSegment, onTrimLeft, onTrimRight, onTrimStart, onTrimEnd, timelineWidth, sourceDuration]);
+
+  // ── Body drag = reorder this section on the timeline ──
+  // Pressing the block swallows the container's scrub handler, so a press that
+  // never becomes a drag seeks explicitly via onSeekClick — otherwise adding the
+  // gesture would silently remove click-to-seek over the waveform.
+  const onBodyDown = useCallback((e) => {
+    if (!onMoveDrag || !nleSegment || e.button !== 0) return;
+    e.stopPropagation();
+    moveXRef.current = e.clientX;
+    movedRef.current = false;
+    const segId = nleSegment.id;
+
+    const onMove = (ev) => {
+      if (!movedRef.current) {
+        if (Math.abs(ev.clientX - moveXRef.current) < 3) return;
+        movedRef.current = true;
+        document.body.style.cursor = "grabbing";
+        if (onMoveStart) onMoveStart(segId);
+      }
+      onMoveDrag(segId, ev.clientX);
+    };
+    const onUp = (ev) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.cursor = "";
+      if (movedRef.current) {
+        if (onMoveEnd) onMoveEnd(segId);
+      } else if (onSeekClick) {
+        onSeekClick(ev.clientX);
+      }
+      // movedRef stays set until the next pointerdown so the click that follows
+      // this pointerup can tell a drag from a plain click.
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [nleSegment, onMoveDrag, onMoveStart, onMoveEnd, onSeekClick]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -167,18 +205,21 @@ function WaveformTrack({ peaks, error, clipFileDuration = 0, clipOrigin = 0, sou
 
   return (
     <div
-      className="relative h-full cursor-pointer"
+      className="relative h-full"
       style={{
         width: timelineWidth,
         background: bgColor,
         border: `1px solid ${borderColor}`,
         borderRadius: SEGMENT_RADIUS,
         boxShadow: shadow,
-        transition: resizing ? "none" : rippleAnimating
+        cursor: onMoveDrag ? (moveDragging ? "grabbing" : "grab") : "pointer",
+        opacity: moveDragging ? 0.45 : 1,
+        transition: resizing || moveDragging ? "none" : rippleAnimating
           ? `all ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
           : "background 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out",
       }}
-      onClick={(e) => { e.stopPropagation(); onSelect(); }}
+      onPointerDown={onBodyDown}
+      onClick={(e) => { e.stopPropagation(); if (!movedRef.current) onSelect(); }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e); }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -231,6 +272,8 @@ export default React.memo(WaveformTrack, (prev, next) => {
     prev.timelineWidth === next.timelineWidth &&
     prev.selected === next.selected &&
     prev.nleSegment === next.nleSegment &&
-    prev.rippleAnimating === next.rippleAnimating
+    prev.rippleAnimating === next.rippleAnimating &&
+    prev.moveDragging === next.moveDragging &&
+    prev.onMoveDrag === next.onMoveDrag
   );
 });

@@ -178,7 +178,7 @@ let _activeVideoRef = null;
 // file directly, so vid.currentTime is already source-absolute (no clipFileOffset). Returns
 // { timelineTime, needsSeek, seekTo, atEnd }; timelineTime is -1 while parked in a deleted
 // gap, signalling the caller to freeze the playhead until the seek lands. #113
-function mapPreviewSourceTime(sourceAbs, nle) {
+function mapPreviewSourceTime(sourceAbs, nle, timelineNow = 0) {
   const mapped = sourceToTimeline(sourceAbs, nle);
   if (mapped.found) {
     const seg = nle[mapped.segmentIndex];
@@ -189,11 +189,14 @@ function mapPreviewSourceTime(sourceAbs, nle) {
     }
     return { timelineTime: mapped.timelineTime, needsSeek: false, seekTo: 0, atEnd: false };
   }
-  // In a deleted gap — seek forward into the next surviving segment, if any.
-  for (let i = 0; i < nle.length; i++) {
-    if (nle[i].sourceStart > sourceAbs) {
-      return { timelineTime: -1, needsSeek: true, seekTo: nle[i].sourceStart, atEnd: false };
-    }
+  // In a deleted gap — resume at the head of whatever section follows the
+  // PLAYHEAD. Sections can be reordered, so "the next segment by source time"
+  // may sit anywhere on the timeline; on an unreordered list this picks the same
+  // segment the old source-order search did.
+  const here = timelineToSource(timelineNow, nle);
+  const nextIdx = here.found ? here.segmentIndex + 1 : nle.length;
+  if (nextIdx < nle.length) {
+    return { timelineTime: -1, needsSeek: true, seekTo: nle[nextIdx].sourceStart, atEnd: false };
   }
   return { timelineTime: getTimelineDuration(nle), needsSeek: false, seekTo: 0, atEnd: true };
 }
@@ -201,6 +204,9 @@ function mapPreviewSourceTime(sourceAbs, nle) {
 function ClipVideoPlayer({ clip, project, template }) {
   const videoRef = useRef(null);
   const seekbarRef = useRef(null);
+  // Last reported timeline position — the rAF loop's gap recovery needs it, and
+  // reading `currentTime` state inside the loop's closure would be stale.
+  const tlTimeRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -303,10 +309,11 @@ function ClipVideoPlayer({ clip, project, template }) {
       if (vid && !isSeeking) {
         if (useNle) {
           // Walk the NLE timeline: skip deleted spans, report cut-compressed time.
-          const result = mapPreviewSourceTime(vid.currentTime, nleSegments);
+          const result = mapPreviewSourceTime(vid.currentTime, nleSegments, tlTimeRef.current);
           if (result.atEnd) {
             vid.pause();
             vid.currentTime = playStart;
+            tlTimeRef.current = 0;
             setCurrentTime(0);
             setIsPlaying(false);
             return;
@@ -315,7 +322,10 @@ function ClipVideoPlayer({ clip, project, template }) {
               Math.abs(vid.currentTime - result.seekTo) > 0.05) {
             vid.currentTime = result.seekTo;
           }
-          if (result.timelineTime >= 0) setCurrentTime(result.timelineTime);
+          if (result.timelineTime >= 0) {
+            tlTimeRef.current = result.timelineTime;
+            setCurrentTime(result.timelineTime);
+          }
         } else if (sourceMode) {
           if (vid.currentTime >= clipEnd - 0.05) {
             vid.pause();
@@ -389,6 +399,7 @@ function ClipVideoPlayer({ clip, project, template }) {
     } else {
       vid.currentTime = sourceMode ? (clipStart + rel) : rel;
     }
+    tlTimeRef.current = rel;
     setCurrentTime(rel);
   }, [videoDuration, useNle, nleSegments, playStart, sourceMode, clipStart]);
 

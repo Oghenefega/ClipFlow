@@ -9,7 +9,7 @@ import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
 import { getTimelineDuration, sourceToTimeline, getSegmentTimelineRange } from "../models/timeMapping";
-import { splitAtTimeline, deleteSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
+import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
 
 // ── Autosave internals (module-closure, NOT in state) ──
@@ -350,6 +350,23 @@ const useEditorStore = create((set, get) => ({
   splitAtTimeline: (timelineTime) => {
     get()._pushNleUndo();
     const newSegs = splitAtTimeline(get().nleSegments, timelineTime);
+    set({ nleSegments: newSegs });
+    usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  /**
+   * Reorder: move a section to a different slot on the timeline. Source times
+   * are untouched, so subtitles (source-timed, projected through this list on
+   * every read) travel with the section automatically.
+   *
+   * @param {string} segmentId
+   * @param {number} toIndex - slot counted AFTER the section is lifted out
+   */
+  moveNleSegment: (segmentId, toIndex) => {
+    const newSegs = moveSegment(get().nleSegments, segmentId, toIndex);
+    if (newSegs === get().nleSegments) return; // no-op drop — no undo entry
+    get()._pushNleUndo();
     set({ nleSegments: newSegs });
     usePlaybackStore.getState().setNleSegments(newSegs);
     get().markDirty();

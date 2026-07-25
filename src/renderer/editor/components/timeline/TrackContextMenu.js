@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
-import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus } from "lucide-react";
+import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -53,6 +53,29 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
         </button>
       )}
       <Separator />
+      {track === "audio" && onMoveEarlier && (
+        <>
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+              canMoveEarlier ? "text-foreground hover:bg-secondary/60" : "text-muted-foreground/50 cursor-default"
+            }`}
+            disabled={!canMoveEarlier}
+            onClick={() => { onMoveEarlier(); onClose(); }}
+          >
+            <ChevronLeft className={`h-3.5 w-3.5 ${canMoveEarlier ? "text-orange-400" : "text-muted-foreground/40"}`} /> Move section earlier
+          </button>
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+              canMoveLater ? "text-foreground hover:bg-secondary/60" : "text-muted-foreground/50 cursor-default"
+            }`}
+            disabled={!canMoveLater}
+            onClick={() => { onMoveLater(); onClose(); }}
+          >
+            <ChevronRight className={`h-3.5 w-3.5 ${canMoveLater ? "text-orange-400" : "text-muted-foreground/40"}`} /> Move section later
+          </button>
+          <Separator />
+        </>
+      )}
       {track === "audio" && (
         <>
           <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors" onClick={() => { onCreateClip?.(); onClose(); }}>

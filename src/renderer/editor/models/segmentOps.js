@@ -73,6 +73,34 @@ function deleteSegment(segments, segmentId) {
   return segments.filter((seg) => seg.id !== segmentId);
 }
 
+// ─── Move (reorder) ─────────────────────────────────────────────────────────
+
+/**
+ * Move a segment to a different slot in the list. Since timeline position is
+ * derived from array order, reordering the array IS reordering the timeline —
+ * no source times change, so subtitles (which are source-timed and projected
+ * through this list) follow the segment automatically.
+ *
+ * @param {Array} segments - current segment list
+ * @param {string} segmentId - ID of segment to move
+ * @param {number} toIndex - destination slot, counted AFTER the segment is
+ *                           lifted out of the list (0 = first). Clamped.
+ * @returns {Array} new segment list, or the input unchanged if it's a no-op
+ */
+function moveSegment(segments, segmentId, toIndex) {
+  const from = segments.findIndex((s) => s.id === segmentId);
+  if (from === -1) return segments;
+
+  const result = segments.slice();
+  const [seg] = result.splice(from, 1);
+  const to = Math.max(0, Math.min(toIndex, result.length));
+  // Same slot — return the original array so React/Zustand skip the re-render
+  if (to === from) return segments;
+
+  result.splice(to, 0, seg);
+  return result;
+}
+
 // ─── Trim ───────────────────────────────────────────────────────────────────
 
 /**
@@ -126,9 +154,35 @@ function trimSegment(segments, segmentId, newSourceStart, newSourceEnd) {
 
 // ─── Extend ─────────────────────────────────────────────────────────────────
 
+// Nearest segment boundary in SOURCE order — not array order. Once the list can
+// be reordered, segment idx-1 / idx+1 is no longer necessarily the neighbouring
+// stretch of footage, so clamping against it would either stop an extend early
+// or let one segment eat into another's source range.
+function _sourceBoundBefore(segments, idx) {
+  const start = segments[idx].sourceStart;
+  let bound = 0;
+  for (let i = 0; i < segments.length; i++) {
+    if (i === idx) continue;
+    const end = segments[i].sourceEnd;
+    if (end <= start && end > bound) bound = end;
+  }
+  return bound;
+}
+
+function _sourceBoundAfter(segments, idx) {
+  const end = segments[idx].sourceEnd;
+  let bound = Infinity;
+  for (let i = 0; i < segments.length; i++) {
+    if (i === idx) continue;
+    const start = segments[i].sourceStart;
+    if (start >= end && start < bound) bound = start;
+  }
+  return bound;
+}
+
 /**
  * Extend a segment's left edge earlier into the source (move sourceStart backward).
- * Cannot extend past 0 or into the previous segment's source range.
+ * Cannot extend past 0 or into another segment's source range.
  *
  * @param {Array} segments - current segment list
  * @param {string} segmentId - ID of segment to extend
@@ -142,17 +196,8 @@ function extendSegmentLeft(segments, segmentId, newSourceStart, sourceDuration) 
 
   const seg = segments[idx];
 
-  // Floor: can't go below 0
-  let clamped = Math.max(0, newSourceStart);
-
-  // Don't overlap with previous segment's source range
-  // (In a simple model, segments shouldn't overlap in source time)
-  if (idx > 0) {
-    const prevEnd = segments[idx - 1].sourceEnd;
-    // Allow extending up to the previous segment's end but no further
-    // This prevents source-time overlap
-    clamped = Math.max(clamped, prevEnd);
-  }
+  // Floor: can't go below 0, or into the nearest earlier segment's footage
+  let clamped = Math.max(0, newSourceStart, _sourceBoundBefore(segments, idx));
 
   // Can't go past our own end
   clamped = Math.min(clamped, seg.sourceEnd - MIN_SEGMENT_DURATION);
@@ -164,7 +209,7 @@ function extendSegmentLeft(segments, segmentId, newSourceStart, sourceDuration) 
 
 /**
  * Extend a segment's right edge later into the source (move sourceEnd forward).
- * Cannot extend past sourceDuration or into the next segment's source range.
+ * Cannot extend past sourceDuration or into another segment's source range.
  */
 function extendSegmentRight(segments, segmentId, newSourceEnd, sourceDuration) {
   const idx = segments.findIndex((s) => s.id === segmentId);
@@ -172,14 +217,8 @@ function extendSegmentRight(segments, segmentId, newSourceEnd, sourceDuration) {
 
   const seg = segments[idx];
 
-  // Ceiling: can't go past source duration
-  let clamped = Math.min(sourceDuration, newSourceEnd);
-
-  // Don't overlap with next segment's source range
-  if (idx < segments.length - 1) {
-    const nextStart = segments[idx + 1].sourceStart;
-    clamped = Math.min(clamped, nextStart);
-  }
+  // Ceiling: source duration, or the nearest later segment's footage
+  let clamped = Math.min(sourceDuration, newSourceEnd, _sourceBoundAfter(segments, idx));
 
   // Can't go before our own start
   clamped = Math.max(clamped, seg.sourceStart + MIN_SEGMENT_DURATION);
@@ -224,6 +263,7 @@ module.exports = {
   splitAtSource,
   splitAtTimeline,
   deleteSegment,
+  moveSegment,
   trimSegmentLeft,
   trimSegmentRight,
   trimSegment,

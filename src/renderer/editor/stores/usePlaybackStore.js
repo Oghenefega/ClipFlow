@@ -175,15 +175,20 @@ const usePlaybackStore = create((set, get) => ({
       return { timelineTime: mapped.timelineTime, needsSeek: false, seekToSource: 0 };
     }
 
-    // Source time is in a gap — find next segment
-    for (let i = 0; i < nleSegments.length; i++) {
-      if (nleSegments[i].sourceStart > sourceAbs) {
-        return {
-          timelineTime: get().currentTime,
-          needsSeek: true,
-          seekToSource: toVid(nleSegments[i].sourceStart),
-        };
-      }
+    // Source time is in a gap — the element decoded past a cut before our seek
+    // landed. Recover in TIMELINE order, not source order: sections can be
+    // reordered, so the segment with the next later source time may sit anywhere
+    // on the timeline. Resume at the head of whatever section follows the
+    // playhead. (On an unreordered list this picks the same segment as before.)
+    const tlNow = get().currentTime;
+    const here = timelineToSource(tlNow, nleSegments);
+    const nextIdx = here.found ? here.segmentIndex + 1 : nleSegments.length;
+    if (nextIdx < nleSegments.length) {
+      return {
+        timelineTime: tlNow,
+        needsSeek: true,
+        seekToSource: toVid(nleSegments[nextIdx].sourceStart),
+      };
     }
 
     return {

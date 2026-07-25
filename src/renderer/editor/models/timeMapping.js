@@ -195,13 +195,24 @@ function visibleWords(words, segments) {
 
     if (!startMap.found) continue;
 
+    // Reorder guard (see visibleSubtitleSegments): when the segment holding the
+    // word's end sits EARLIER on the timeline than the one holding its start,
+    // the mapped range runs backwards. Clip the word to the segment that owns
+    // its start. No-op while the list is in source order.
+    let timelineEnd = endMap.found
+      ? endMap.timelineTime
+      : startMap.timelineTime + (effEnd - effStart);
+    if (timelineEnd < startMap.timelineTime) {
+      const seg = segments[startMap.segmentIndex];
+      const clampedStart = Math.max(seg.sourceStart, Math.min(seg.sourceEnd, effStart));
+      timelineEnd = startMap.timelineTime + (seg.sourceEnd - clampedStart);
+    }
+
     result.push({
       ...word,
       srcWordIdx: w,
       timelineStart: startMap.timelineTime,
-      timelineEnd: endMap.found
-        ? endMap.timelineTime
-        : startMap.timelineTime + (effEnd - effStart),
+      timelineEnd,
     });
   }
   return result;
@@ -261,25 +272,55 @@ function visibleSubtitleSegments(subtitleSegs, nleSegments) {
 
     if (!startMap.found) continue; // safety net
 
-    const timelineEnd = endMap.found
+    let timelineEnd = endMap.found
       ? endMap.timelineTime
       : startMap.timelineTime + (effEnd - effStart);
 
     // Map words (each word filtered individually — partial words drop normally)
-    const mappedWords = sub.words
+    let mappedWords = sub.words
       ? visibleWords(sub.words, nleSegments)
       : [];
+
+    // ── Reorder guard ──
+    // Sections can be reordered, so the segment holding this subtitle's END may
+    // now sit EARLIER on the timeline than the one holding its START — the mapped
+    // range runs backwards and the block draws with negative width. Clip the
+    // subtitle to the section that owns its start, dropping the tail words that
+    // moved elsewhere and rebuilding `text` to match (a partial `words[]` against
+    // a full `text` silently drops words from the burned-in render, #116).
+    // Unreachable while the list is in source order — the mapped end can never
+    // precede the mapped start there — so trimmed clips are byte-identical.
+    let clippedText = null;
+    if (timelineEnd < startMap.timelineTime) {
+      const seg = nleSegments[startMap.segmentIndex];
+      const clampedStart = Math.max(seg.sourceStart, Math.min(seg.sourceEnd, effStart));
+      timelineEnd = startMap.timelineTime + (seg.sourceEnd - clampedStart);
+      const kept = mappedWords.filter(
+        (w) => w.start >= seg.sourceStart && w.start < seg.sourceEnd
+      );
+      if (kept.length > 0 && kept.length < mappedWords.length) {
+        mappedWords = kept;
+        clippedText = kept.map((w) => w.word).join(" ");
+      }
+    }
 
     // Include if any words remain, or if the sub has no word-level data
     if (mappedWords.length > 0 || !sub.words || sub.words.length === 0) {
       result.push({
         ...sub,
+        ...(clippedText !== null ? { text: clippedText } : {}),
         timelineStartSec: startMap.timelineTime,
         timelineEndSec: timelineEnd,
         words: mappedWords,
       });
     }
   }
+
+  // Emit in TIMELINE order. Input is in source order, which stops matching
+  // playback order the moment a section is moved — and consumers that walk this
+  // list as a flat sequence (the karaoke word index, the Edit-subtitles rows)
+  // then track the wrong word. Stable no-op on an unreordered list.
+  result.sort((a, b) => a.timelineStartSec - b.timelineStartSec);
 
   return result;
 }

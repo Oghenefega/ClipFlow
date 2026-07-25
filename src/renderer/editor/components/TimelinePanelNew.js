@@ -81,6 +81,9 @@ export default function TimelinePanelNew() {
   const [scrubbing, setScrubbing] = useState(false);
   const [rippleAnimating, setRippleAnimating] = useState(false);
   const [snapGuides, setSnapGuides] = useState([]);
+  // Section reorder drag: { segId, idx, indicatorSec } — idx null until the
+  // pointer has moved far enough to pick a destination slot.
+  const [nleDrag, setNleDrag] = useState(null);
 
   // Refs
   const scrollRef = useRef(null);
@@ -90,6 +93,7 @@ export default function TimelinePanelNew() {
   const dragOriginalsRef = useRef(null); // snapshot of all segment positions before drag
   const resizeOriginalsRef = useRef(null); // snapshot of all segment positions before resize
   const wordBoundaryDraggingRef = useRef(false); // true while a word "tooth" is dragged (#119)
+  const nleDragRef = useRef(null); // live mirror of nleDrag for the pointerup listener
   const dragPhantomsRef = useRef([]); // phantom right portions during middle-case drag
   const [dragPhantoms, setDragPhantoms] = useState([]);
   const scrubRafRef = useRef(null);
@@ -481,6 +485,63 @@ export default function TimelinePanelNew() {
     const sStart = applySnap(newStart, id, "cap");
     updateCaptionSegmentTimes(id, Math.max(0, sStart), Math.min(duration, sStart + segDur));
   }, [duration, updateCaptionSegmentTimes, applySnap]);
+
+  // ── NLE section reorder (drag a waveform block to a new slot) ──
+  // Pointer x → timeline seconds, in the scroll container's content space.
+  const pointerToTimelineSec = useCallback((clientX) => {
+    const el = scrollRef.current;
+    if (!el || effectiveDuration <= 0 || clipContentWidth <= 0) return 0;
+    const rect = el.getBoundingClientRect();
+    const x = clientX - rect.left + el.scrollLeft - LABEL_W;
+    return Math.max(0, Math.min(effectiveDuration, (x / clipContentWidth) * effectiveDuration));
+  }, [effectiveDuration, clipContentWidth]);
+
+  // Destination slot = how many of the OTHER sections have their midpoint before
+  // the cursor. That index is already in "list with the dragged section lifted
+  // out" terms, which is exactly what moveSegment expects.
+  const computeInsertion = useCallback((segId, timeSec) => {
+    const rest = useEditorStore.getState().nleSegments.filter((s) => s.id !== segId);
+    let offset = 0;
+    let idx = rest.length;
+    for (let i = 0; i < rest.length; i++) {
+      const dur = rest[i].sourceEnd - rest[i].sourceStart;
+      if (timeSec < offset + dur / 2) { idx = i; break; }
+      offset += dur;
+    }
+    let indicatorSec = 0;
+    for (let i = 0; i < idx; i++) indicatorSec += rest[i].sourceEnd - rest[i].sourceStart;
+    return { idx, indicatorSec };
+  }, []);
+
+  // Mirrored into a ref because the pointerup listener is registered once at
+  // pointer-down and would otherwise read a stale captured value.
+  const setNleDragState = useCallback((v) => {
+    nleDragRef.current = v;
+    setNleDrag(v);
+  }, []);
+
+  const handleNleMoveStart = useCallback((segId) => {
+    setNleDragState({ segId, idx: null, indicatorSec: 0 });
+  }, [setNleDragState]);
+
+  const handleNleMoveDrag = useCallback((segId, clientX) => {
+    const { idx, indicatorSec } = computeInsertion(segId, pointerToTimelineSec(clientX));
+    setNleDragState({ segId, idx, indicatorSec });
+  }, [computeInsertion, pointerToTimelineSec, setNleDragState]);
+
+  const handleNleMoveEnd = useCallback((segId) => {
+    const drag = nleDragRef.current;
+    setNleDragState(null);
+    if (drag && drag.segId === segId && drag.idx !== null) {
+      useEditorStore.getState().moveNleSegment(segId, drag.idx);
+    }
+  }, [setNleDragState]);
+
+  // A press on a waveform block swallows the container's scrub handler; a press
+  // that never became a drag still seeks, as it did before the gesture existed.
+  const handleNleSeekClick = useCallback((clientX) => {
+    seekTo(pointerToTimelineSec(clientX));
+  }, [seekTo, pointerToTimelineSec]);
 
   // NLE trim handlers — called from WaveformTrack with source-absolute values
   const handleNleTrimLeft = useCallback((id, newSourceStart) => {
@@ -926,6 +987,20 @@ export default function TimelinePanelNew() {
             />
           ))}
 
+          {/* ── Section-reorder drop indicator ── */}
+          {nleDrag && nleDrag.idx !== null && effectiveDuration > 0 && (
+            <div
+              className="absolute z-30 pointer-events-none"
+              style={{
+                left: LABEL_W + (nleDrag.indicatorSec / effectiveDuration) * clipContentWidth - 1,
+                top: 0, bottom: 0, width: 2,
+                background: "hsl(25 90% 58%)",
+                boxShadow: "0 0 6px hsl(25 90% 58%)",
+                borderRadius: 1,
+              }}
+            />
+          )}
+
           {/* ── Ruler ── */}
           <Ruler duration={effectiveDuration} clipContentWidth={clipContentWidth} />
 
@@ -1100,6 +1175,11 @@ export default function TimelinePanelNew() {
                       onTrimRight={handleNleTrimRight}
                       onTrimStart={() => setTrimSnapshot(rawEffectiveDuration)}
                       onTrimEnd={() => setTrimSnapshot(null)}
+                      onMoveStart={handleNleMoveStart}
+                      onMoveDrag={handleNleMoveDrag}
+                      onMoveEnd={handleNleMoveEnd}
+                      onSeekClick={handleNleSeekClick}
+                      moveDragging={nleDrag?.segId === seg.id}
                       rippleAnimating={rippleAnimating}
                     />
                   </div>
@@ -1146,11 +1226,21 @@ export default function TimelinePanelNew() {
             console.error("Duplicate clip failed:", r.error);
           }
         };
+        // Section reorder from the menu — a drag gesture is an accelerator, not
+        // the only path. Index is in "list with this section lifted out" terms,
+        // so one slot earlier is idx-1 and one slot later is idx+1.
+        const nleIdx = contextMenu.track === "audio"
+          ? nleSegments.findIndex((s) => s.id === contextMenu.segId)
+          : -1;
         return (
         <TrackContextMenu
           x={contextMenu.x} y={contextMenu.y}
           track={contextMenu.track}
           onClose={() => setContextMenu(null)}
+          onMoveEarlier={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx - 1) : undefined}
+          onMoveLater={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx + 1) : undefined}
+          canMoveEarlier={nleIdx > 0}
+          canMoveLater={nleIdx >= 0 && nleIdx < nleSegments.length - 1}
           onSplit={() => {
             const time = usePlaybackStore.getState().currentTime;
             if (contextMenu.track === "cap") {

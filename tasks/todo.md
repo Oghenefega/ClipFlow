@@ -6,6 +6,147 @@
 
 ---
 
+## ✅ DONE (session 128) — Reorder sections on the timeline (#184)
+
+All five phases built and verified in the running app (dev profile, built renderer
+— the daily driver was open, so the single-instance lock ruled out `npm start`).
+
+**Verified:** 91 unit tests green (74 pre-existing unchanged); dragged the third
+of three sections to the front → subtitles followed, duration unchanged; one
+Ctrl+Z reverted it; playback crossed both seams monotonically (10.9 → 12.0 →
+14.0); order survived an app reload; "Move section later" from the right-click
+menu reordered correctly and greyed out at the ends; a subtitle deliberately
+split across a cut clipped cleanly instead of glitching; click-to-seek on the
+waveform still works. Rendered the reordered clip: 30.03s out, frame at 1s
+matches source 19s, frame at 13s matches source ~2s with the right burned-in
+subtitle.
+
+**Found during verification:** the subtitle mapping returned segments in
+recording order, so the karaoke word index and Transcript panel tracked the
+wrong word once sections were reordered. Fixed by sorting the mapped output by
+timeline position (no-op on an unreordered list).
+
+Original plan below.
+
+---
+
+## 📋 PLAN (session 128) — Reorder sections on the timeline
+
+**Ask:** move a section of a clip in front of another (10s–14s plays before 0s–9s).
+Subtitles must follow the section.
+
+**Scope decisions (Fega, session 128):**
+1. Drop behaviour = **insert / gapless ripple**. No free placement, no gaps.
+2. On-screen captions stay pinned to timeline time — they do **not** follow a moved
+   section. Revisit only if it turns out to be annoying in practice.
+3. **Duplicating sections is cut** — not worth the ambiguity it creates on the
+   timeline. Alt+drag duplicate is out of scope; the whole per-occurrence subtitle
+   mapping rewrite (old Phase 3) is dropped with it.
+
+### Where this lands
+
+The video/audio blocks on the **Audio track** (the orange waveform lane) are the
+"sections" — one block per NLE segment. Today they can only be trimmed at the
+edges, split, and deleted. They can't be picked up and moved, and they can't be
+duplicated. Everything below is about that lane. The Subtitle lane already has
+free drag + Alt+drag duplicate (SegmentBlock), so it needs no new gestures.
+
+### What already works in our favour
+
+`nleSegments` is an **ordered list**; timeline position is derived by summing
+durations in array order (`timeMapping.sourceToTimeline`). So:
+
+- **Reordering is a pure array move.** No coordinate math changes.
+- **Subtitles follow a reorder for free.** Subtitle times are source-absolute and
+  projected through the ordered segment list on every read, so moving a segment
+  moves its subtitles with it — no subtitle data is touched.
+- **Render is already order-agnostic.** `render.js` emits one `-ss/-t` input per
+  segment in array order and concats them (`buildNleFilterComplex`). A reordered
+  or duplicated list needs zero render changes.
+
+### What genuinely breaks, and why
+
+Three places assume the segment list is in **recording order**. Reordering makes
+that false. None of them are large, but all three are silent failures if missed.
+
+1. **Extend clamps against index-neighbours.** `extendSegmentLeft/Right`
+   (`segmentOps.js:139,169`) treat segment i-1 / i+1 as the source-time
+   neighbour to clamp against. After a reorder that's the wrong segment, so
+   dragging a section's edge outward would stop early or overlap another
+   section's footage. Must clamp against the nearest segment in *source* order.
+
+2. **The playback gap-recovery searches in source order.** Normal segment-to-
+   segment advance is index-based and already correct
+   (`usePlaybackStore.mapSourceTime:159`). But when the video drifts into a
+   deleted span, the fallback picks the segment with the next later *source*
+   time (`usePlaybackStore.js:179`, mirrored in `ProjectsView.js:193`) — which
+   after a reorder can be somewhere else entirely, so playback jumps. Must
+   recover in *timeline* order.
+
+3. **A subtitle straddling a cut point maps to an inverted range.** Today a
+   subtitle whose start is in section A and end in section B renders as one
+   continuous block, because A and B are adjacent on both the timeline and the
+   recording. Reorder them and the start maps late while the end maps early —
+   `timelineEnd < timelineStart` — producing a negative-width block
+   (`visibleSubtitleSegments:264`). Fega's 1–3 word chunks are short, but a cut
+   lands inside one often enough to matter. Fix: when the mapped range inverts
+   (i.e. the two segments are no longer contiguous), clamp the subtitle to the
+   section containing its **start** and clip the tail. Behaviour on an in-order
+   list is byte-identical, so trimmed clips are unaffected. Same guard for
+   `visibleWords`.
+
+### Phases
+
+**Phase 1 — Model op + order-safety fixes** (`models/segmentOps.js`, `models/__tests__/nleModel.test.js`)
+- `moveSegment(segments, segmentId, toIndex)` — pure array reorder.
+- Fix `extendSegmentLeft/Right` to clamp against the nearest segment in *source*
+  order rather than array-index neighbours.
+- Unit tests: reorder repositions subtitles correctly; total duration unchanged;
+  extend clamps correctly on a reordered list.
+
+**Phase 2 — Straddle guard** (`models/timeMapping.js`)
+- In `visibleSubtitleSegments` and `visibleWords`: if the mapped end lands before
+  the mapped start, clamp to the segment holding the start. Assert in tests that
+  an in-order list produces identical output to today.
+
+**Phase 3 — Playback recovers in timeline order** (`stores/usePlaybackStore.js`, `views/ProjectsView.js`)
+- Replace the source-order gap search with timeline-order recovery in both the
+  editor store and the Projects preview's own copy of the logic.
+
+**Phase 4 — The gesture** (`components/timeline/WaveformTrack.js`, `TimelinePanelNew.js`, `TrackContextMenu.js`, `stores/useEditorStore.js`)
+- Body-drag on a waveform block, mirroring `SegmentBlock.onDragStart` (3px
+  threshold before the drag engages).
+- While dragging: dim the block and draw an insertion indicator at the drop slot.
+- Drop commits a new `moveNleSegment(id, toIndex)` store action wrapped in the
+  existing `_pushNleUndo()` so one Ctrl+Z reverts the whole gesture.
+- Add **Move left / Move right** to the Audio track right-click menu — a drag
+  gesture must never be the only path to a requested capability.
+
+**Phase 5 — Verify**
+- `npx jest src/renderer/editor/models` green (existing cases unchanged).
+- `npm run build:renderer && npm start`, then on a real multi-section clip:
+  1. Split into 3 sections, drag the third to the front → preview plays in the
+     new order, subtitles land on the right footage, total duration unchanged.
+  2. A subtitle that straddled the cut renders as one clean block, not a glitch.
+  3. Ctrl+Z once → fully reverted.
+  4. Queue + render the reordered clip → the exported MP4 matches the editor
+     preview (order, duration, burned-in subtitles).
+  5. Existing trim / split / delete / extend still behave on a reordered list.
+  6. Reopen the clip after save → order persisted.
+
+### Risks
+
+- **`clip:concatRecut` (main.js:1473) sorts segments by start time** before
+  writing `nleSegments` — it would silently undo a reorder. It is reached only
+  from the legacy `rippleDeleteAudioSegment` path, which the current timeline
+  doesn't call. Confirm it's genuinely unreachable; if not, drop the sort.
+- **Straddle guard touches shared mapping code** (`timeMapping.js`) used by every
+  subtitle surface — editor preview, timeline, left panel, Projects preview,
+  burn-in render. The existing `nleModel.test.js` coverage must stay green with
+  no expectation edits; any test that needs changing means the guard is too broad.
+
+---
+
 ## ✅ DONE (session 127) — Fix AI titles & captions (#183)
 
 All four phases built and verified. Issue: https://github.com/Oghenefega/ClipFlow/issues/183
