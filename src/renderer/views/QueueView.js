@@ -619,8 +619,9 @@ export default function QueueView({
   }, [approved]);
   // ── Auto-fire scheduler ──
   // Ticks once per minute (plus once on mount) and triggers publishClip for any clip
-  // whose scheduledAt has passed. Clears scheduledAt at fire time so the same clip
-  // can't double-fire if the publish takes >60s or if the user reopens the app late.
+  // whose scheduledAt has passed. Firing goes through projectClaimScheduledPublish,
+  // which is the only thing standing between a stale clip list and a duplicate post
+  // — see the claim call below. In-memory guards alone are not enough (#156, #182).
   // Test-mode clips are skipped (publish is blocked for them anyway).
   // Limitation: only fires while ClipFlow is running. App closed at scheduled time =
   // the next tick after reopen catches it (still due because scheduledAt <= now).
@@ -640,12 +641,24 @@ export default function QueueView({
     for (const clip of due) {
       if (publishingRef.current) break;
       autoFiringRef.current.add(clip.id);
-      console.log("[Scheduler] Firing scheduled publish:", clip.title, "(was scheduled for", clip.scheduledAt + ")");
       try {
-        await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt: null });
+        // #156/#182: `due` was computed from this renderer's in-memory clip list,
+        // which goes stale the moment anything else publishes — a second app
+        // instance, or the user hitting Publish now. Claim through the main
+        // process, which re-reads from disk and clears scheduledAt in one
+        // read-modify-write, so only one caller can ever fire a given schedule.
+        const claim = await window.clipflow?.projectClaimScheduledPublish(clip._projectId, clip.id);
+        if (!claim?.claimed) {
+          console.log("[Scheduler] Skipping", clip.title, "—", claim?.reason || "claim unavailable");
+          // Resync our stale copy to whatever disk actually says (undefined when
+          // the clip is gone — leave those alone for the clip list to reconcile).
+          if (claim && "scheduledAt" in claim) {
+            updateClipInState(clip._projectId, clip.id, { scheduledAt: claim.scheduledAt });
+          }
+          continue;
+        }
         updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
-      } catch (_) { /* non-fatal */ }
-      try {
+        console.log("[Scheduler] Firing scheduled publish:", clip.title, "(was scheduled for", clip.scheduledAt + ")");
         await publishClip(clip.id, null);
       } catch (e) {
         console.error("[Scheduler] Auto-fire failed for", clip.id, e);
@@ -893,9 +906,13 @@ export default function QueueView({
       if (!ok) return;
     }
     const scheduledAt = `${date}T${time}:00`;
+    // #156: scheduling is an explicit "publish this (again)" instruction, so it re-arms
+    // the clip by clearing publishedAt. Without this the dedup guard would permanently
+    // block a deliberate repost of an already-published clip.
+    const updates = { scheduledAt, publishedAt: null };
     try {
-      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt });
-      if (!r?.error) updateClipInState(clip._projectId, clip.id, { scheduledAt });
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, updates);
     } catch (e) { console.error("Schedule save failed:", e); }
     setSchedAction(null);
   };
@@ -966,6 +983,10 @@ export default function QueueView({
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing" } }));
     let nextPublishState = { ...(clip.publishState || {}) };
     let allSuccess = true;
+    // #156: same publishedAt stamp as publishClip — a retry that lands means the clip
+    // has now gone out, and the scheduler must not treat it as still pending.
+    let anySuccess = false;
+    let publishedStamped = false;
     for (const platKey of failedKeys) {
       const plat = activePlat.find((p) => p.key === platKey);
       if (!plat) continue;
@@ -1004,6 +1025,7 @@ export default function QueueView({
         } else {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
+          anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
           publishResultsRef.current[clip.id] = {
@@ -1018,8 +1040,10 @@ export default function QueueView({
       }
       try {
         const updates = { publishState: { ...nextPublishState } };
+        if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
+        if (updates.publishedAt) publishedStamped = true;
       } catch (_) { /* non-fatal */ }
     }
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: allSuccess ? "done" : "failed" } }));
@@ -1161,6 +1185,19 @@ export default function QueueView({
     publishingRef.current = true;
     posthog.capture("clipflow_publish_triggered");
 
+    // #182: publishing supersedes any pending schedule. Disarm it before uploading
+    // so the auto-fire scheduler can't post this clip again at its original slot,
+    // and the queue stops showing a schedule badge that will never fire. On the
+    // auto-fire path the claim already cleared it on disk, but `clip` here is a
+    // pre-claim render snapshot, so this re-clears redundantly — an idempotent
+    // write, cheap enough not to be worth threading the live value through.
+    if (clip.scheduledAt) {
+      try {
+        await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { scheduledAt: null });
+        updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
+      } catch (_) { /* non-fatal — publishedAt below is the durable dedup signal */ }
+    }
+
     // Initialize platform statuses
     const platStatuses = {};
     enabledPlat.forEach((p) => { platStatuses[p.key] = "pending"; });
@@ -1175,6 +1212,11 @@ export default function QueueView({
     // and the clip stays visible/retryable in the queue (#retry-failed-publishes).
     let nextPublishState = { ...(clip.publishState || {}) };
     let allSuccess = true;
+    // #156: publishedAt is the durable "already went out" marker the scheduler's claim
+    // checks. Stamped on the first real success rather than after the loop, so a crash
+    // mid-run still can't leave the clip eligible to auto-fire and post twice.
+    let anySuccess = false;
+    let publishedStamped = false;
 
     for (let i = 0; i < enabledPlat.length; i++) {
       const plat = enabledPlat[i];
@@ -1242,6 +1284,7 @@ export default function QueueView({
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
+          anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
           publishResultsRef.current[clip.id] = {
@@ -1259,8 +1302,10 @@ export default function QueueView({
       // app close still leaves the clip in a recoverable state.
       try {
         const updates = { publishState: { ...nextPublishState } };
+        if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
+        if (updates.publishedAt) publishedStamped = true;
       } catch (_) { /* non-fatal — in-memory publishStatus is the source of truth for this session */ }
     }
 

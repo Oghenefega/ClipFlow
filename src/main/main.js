@@ -1727,6 +1727,15 @@ ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   } catch (err) { return { error: err.message }; }
 });
 
+// #156/#182: the auto-fire scheduler must arbitrate through disk, not renderer
+// memory, or a stale second instance re-posts a clip that's already out.
+ipcMain.handle("project:claimScheduledPublish", async (_, projectId, clipId) => {
+  try {
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
+    return projects.claimScheduledPublish(watchFolder, projectId, clipId);
+  } catch (err) { return { claimed: false, reason: err.message }; }
+});
+
 ipcMain.handle("project:duplicateClip", async (_, projectId, clipId, overrides) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)

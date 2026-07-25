@@ -239,6 +239,49 @@ function updateClip(watchFolder, projectId, clipId, updates) {
 }
 
 /**
+ * Atomically claim a clip's scheduled auto-publish (#156, #182).
+ *
+ * The auto-fire scheduler lives in the renderer and kept its dedup state in
+ * memory, so a second app instance — or the same instance after the user
+ * published a scheduled clip early — could still believe a clip was due and
+ * post it twice. This is the single arbitration point: it re-reads the clip
+ * from disk, refuses anything already published or no longer due, and clears
+ * scheduledAt inside the same synchronous read-modify-write. loadProject and
+ * saveProject are both sync, so no other claim can interleave and exactly one
+ * caller wins.
+ *
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {string} clipId
+ * @returns {{ claimed: true, clip: object }|{ claimed: false, reason: string, scheduledAt?: string|null }}
+ *   On refusal, scheduledAt is the value now on disk (absent if the clip is
+ *   gone) so the caller can resync its stale in-memory copy.
+ */
+function claimScheduledPublish(watchFolder, projectId, clipId) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { claimed: false, reason: "Project not found" };
+
+  const clipIndex = (project.clips || []).findIndex((c) => c.id === clipId);
+  if (clipIndex === -1) return { claimed: false, reason: "Clip not found" };
+
+  const clip = project.clips[clipIndex];
+  if (clip.publishedAt) {
+    return { claimed: false, reason: "Already published", scheduledAt: clip.scheduledAt ?? null };
+  }
+  if (!clip.scheduledAt) {
+    return { claimed: false, reason: "No longer scheduled", scheduledAt: null };
+  }
+  if (new Date(clip.scheduledAt).getTime() > Date.now()) {
+    return { claimed: false, reason: "Not due yet", scheduledAt: clip.scheduledAt };
+  }
+
+  project.clips[clipIndex] = { ...clip, scheduledAt: null };
+  saveProject(watchFolder, project);
+
+  return { claimed: true, clip: project.clips[clipIndex] };
+}
+
+/**
  * Validate a reframe rect: finite numeric x/y/w/h with positive width/height.
  */
 function isValidReframeRect(r) {
@@ -417,6 +460,7 @@ module.exports = {
   listProjects,
   deleteProject,
   updateClip,
+  claimScheduledPublish,
   updateReframe,
   addClip,
   duplicateClip,
