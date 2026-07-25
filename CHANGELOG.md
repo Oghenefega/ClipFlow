@@ -4,14 +4,17 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-24 (session 125, part 4) — duplicate publishing fixed (#156, #182)
+## [Unreleased] — 2026-07-24 (session 125, part 4) — 0.3.0-alpha.13: duplicate publishing fixed (#156, #182)
 
 ### Fixed
 - **A clip can no longer be posted twice to every platform (#156).** The "I chickened out literally #eggingon" clip went out to Facebook, TikTok, YouTube and Instagram twice about fifteen minutes apart — two complete runs, distinct post IDs on all four, the same video file both times. The cause was two ClipFlow instances running at once: the installed app plus one launched from source, which the interleaved session IDs in `app.log` prove (`sess_baffbecbb341` kept logging after `sess_44f55de0b1b4` started, and six launches spanning alpha.9 through alpha.12 overlapped during the day's installer churn). The auto-fire scheduler lives in the renderer and both of its dedup guards were process-local — an in-memory `Set` and clearing `scheduledAt` at fire time — so when one instance published and cleared the schedule on disk, the other was still working from the clip list it had loaded minutes earlier, saw the clip as due, and posted it again. It wasn't only that clip: "I finally made this Difficult jump" fired at 12:30, 1:08, 2:30, 2:35 and 2:42. Firing now goes through `claimScheduledPublish` in the main process, which re-reads the clip from disk and clears `scheduledAt` inside a single synchronous read-modify-write, so exactly one caller can ever win a given schedule; clips also carry a durable `publishedAt` stamp, written the moment any platform actually succeeds (not after the run, so a crash mid-upload still can't leave the clip eligible), and the claim refuses anything already stamped. Scheduling a clip clears `publishedAt` again, so a deliberate repost still works. Verified with a 17-case harness against the real module, including a burst of five simultaneous claims yielding exactly one winner. [projects.js, main.js, preload.js, QueueView.js]
 - **Publishing a scheduled clip early no longer double-posts it later (#182).** "Publish now" never cleared `scheduledAt`, so the clip stayed armed and the scheduler published it a second time when its original slot came around — no second instance required, one app was enough. Publishing now disarms any pending schedule before uploading, which also stops the queue advertising a schedule badge that will never fire. [QueueView.js]
 
+### Changed
+- **Version bumped 0.3.0-alpha.12 → 0.3.0-alpha.13 and the installer cut.** Promotes the duplicate-publish fix to the daily driver — the only code change since alpha.12. Sizing: bug fix → alpha tick. User-facing this installer is "clips don't get posted twice any more", not a new capability, however much of the scheduler's arbitration was rewritten underneath.
+
 ### Notes
-- The single-instance lock itself (#156's original scope) is still open and deliberately not part of this change: `app.requestSingleInstanceLock()` would block running a source build alongside the installed app, which is a workflow call for Fega, and the duplicate-post symptom is now closed regardless of how many instances are open. No version bump or installer cut — this batches with whatever ships next.
+- The single-instance lock itself (#156's original scope) is still open and deliberately not part of this change: `app.requestSingleInstanceLock()` would block running a source build alongside the installed app, which is a workflow call for Fega, and the duplicate-post symptom is now closed regardless of how many instances are open.
 
 ## [Unreleased] — 2026-07-24 (session 125, part 3) — 0.3.0-alpha.12: one-time repair of collision-damaged clip records (#181)
 
