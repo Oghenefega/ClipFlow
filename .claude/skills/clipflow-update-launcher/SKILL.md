@@ -29,16 +29,16 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
 
 1. Read the current version from `package.json` line 3 (the ONLY place it lives — the renderer
    reads it live via `app.getVersion()`, there are no hardcoded version strings in the UI).
-2. **Scale the bump to what the installer CARRIES (session 103 — Fega delegated this judgment:
-   "I'll leave it in your hand to know when we should bump a main number up"):**
-   - Small fixes / UI-polish batch → tick the alpha counter (`0.1.9-alpha.1` → `0.1.9-alpha.2`).
-   - A substantial feature or new subsystem (e.g. Auto-Reframe Phase A) → bump the minor
-     version (`0.1.8` → `0.1.9`) and reset the counter (`-alpha.1`).
-   - A completed flagship epic or launch-milestone shift → consider the next tier (`0.2.0`).
-   State the sizing call in one line in the changelog entry; don't ask permission per cut.
-   **Size by what the USER gets, not implementation novelty** (session 125): ask "would Fega
-   describe this installer as a new capability, or as 'X works now'?" — "works now" = alpha
-   tick no matter how much plumbing changed. Don't inflate the label to match the bump.
+2. **ALWAYS tick the alpha counter. NEVER move the minor number on your own judgment**
+   (session 129 — Fega reversed the session-103 delegation after two features in a row were
+   cut as 0.4.0 and 0.5.0: "We're meant to stay on v3 until a very huge change worthy of going
+   to v4 is made"). The default is the only default: `0.3.0-alpha.14` → `0.3.0-alpha.15` →
+   `0.3.0-alpha.16`, forever, regardless of how big the feature is. The counter has no ceiling —
+   `-alpha.40` is fine.
+   - If a build genuinely feels milestone-sized, **propose** the minor bump in chat and wait for
+     Fega to agree. Do not bump and explain afterwards.
+   - Do not justify a bump in the changelog. If you're writing a paragraph arguing why the
+     minor number should move, that's the tell it shouldn't.
 3. **If Fega names an explicit version** ("update to 0.2.0", "ship 0.1.9"), that always wins.
 4. **Keep `-alpha`** while the product is pre-launch / personal-testing. Only drop the suffix if
    Fega explicitly says so (it's a semantic signal toward release).
