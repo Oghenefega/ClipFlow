@@ -1,106 +1,89 @@
 /**
- * Title & Caption prompt builder (#85).
+ * Title & caption prompt builder (#85, rewritten in #183).
  *
- * Replaces the inline system prompt that previously lived in
- * src/main/main.js:2146-2222. Architecture and reasoning are in
- * src/main/data/caption-frameworks.md; the machine-readable knowledge base
- * is src/main/data/caption-hook-examples.json — update both together.
+ * What changed and why — the previous build injected a 3-pillar / 4-driver /
+ * payoff-integrity / worked-example framework that ran ~14,000 characters
+ * before the transcript was even read. Measured against the creator's own
+ * publishing record, it wasn't working: 28 of 31 published titles were
+ * hand-written, and every accepted suggestion was edited down before it
+ * shipped — always by cutting the second clause. Stacking that many rules
+ * makes a model optimize for not-breaking-them, which reads as slop.
  *
- * Pipeline (never skip a stage, never start from a template):
- *   CLIP TRUTH → 3 PILLARS → DRIVER → EXECUTION → 3 cards
+ * This version is ~3k chars and spends its budget on ONE thing: examples of
+ * what the creator actually publishes, read live from the title_caption_rounds
+ * table (src/main/title-caption-log.js). Rules are the short list that survives
+ * contact with real output; everything else is delegated to the examples.
+ *
+ * Note on "caption": it is the hook text burned ON SCREEN over the clip's
+ * opening seconds, not the social post caption (that comes from the per-platform
+ * templates in QueueView.resolveCaption). The old prompt never said so, which is
+ * why captions read like tweets instead of on-screen text.
  *
  * Output schema (per card): { title|caption, chip }
- *   chip = short plain-language angle label, replaces the old `why` paragraph.
  */
 
 const kb = require("../data/caption-hook-examples.json");
 
 // ─── Section builders ─────────────────────────────────────────────
 
-function formatPillars() {
-  const rows = kb.pillars.map((p) =>
-    `- **${p.label}** — ${p.definition} (Find in clip: ${p.find_in_clip})`
-  );
-  return rows.join("\n");
-}
-
-function formatDrivers() {
-  const header = "| Driver | Moment | Mechanism | Use when |\n|---|---|---|---|";
-  const rows = kb.drivers.map((d) =>
-    `| **${d.label}** | ${d.moment} | ${d.mechanism} | ${d.use_when} |`
-  );
-  return [header, ...rows].join("\n");
-}
-
-function formatExecution() {
-  const e = kb.execution;
-  return [
-    `**Casing.** ${e.casing}`,
-    "",
-    `**Title.** ${e.title.voice} Length: ${e.title.length_words} words. ${e.title.suffix}`,
-    "",
-    `**Caption — two hard rules:**`,
-    `1. It OPENS the loop; the footage closes it. The payoff lives in the clip, never in the caption.`,
-    `2. NO CONSTRUCTED TWO-BEAT. The "setup, then payoff" antithesis ("I said hi, he said no") is a stale AI tell. Write one natural thought.`,
-    "",
-    `Caption voice: ${e.caption.voice} Length: ${e.caption.length_words} words.`,
-    `Forbidden in captions: ${e.caption.forbidden}`,
-    "",
-    `**One idea only.** ${e.one_idea}`,
-    `**Specific over vague.** ${e.specificity}`,
-    `**Readability.** ${e.readability}`,
-    `**Surface-form variety across the batch.** ${e.surface_form_variety}`,
-  ].join("\n");
-}
-
-function formatPayoffIntegrity() {
-  const p = kb.payoff_integrity;
-  return [
-    `- **Discard rule.** ${p.discard_rule}`,
-    `- **Caption rule.** ${p.caption_rule}`,
-    `- **No invention.** ${p.no_invention}`,
-  ].join("\n");
-}
-
-function formatBatch() {
-  const b = kb.batch;
-  return [
-    `Default output: **${b.default}**.`,
-    ``,
-    `**Angle rule.** ${b.rule}`,
-    ``,
-    `**Chip.** ${b.chip}`,
-    ``,
-    `**Chip variety.** ${b.chip_variety}`,
-  ].join("\n");
-}
-
-function formatWorkedExamples() {
-  const blocks = kb.worked_examples.map((ex, i) => {
-    const pillars = `character — ${ex.pillars.character}; concept — ${ex.pillars.concept}; stakes — ${ex.pillars.stakes}`;
-    return [
-      `### Example ${i + 1} — ${ex.content_type}`,
-      `- Clip truth: ${ex.clip_truth}`,
-      `- Pillars: ${pillars}`,
-      `- Drivers fired: ${ex.drivers.join(", ")}`,
-      `- → Title: "${ex.title}"`,
-      `- → Caption: "${ex.caption}"`,
-      `- → Chip: "${ex.chip}"`,
-      `- Reasoning: ${ex.why}`,
-    ].join("\n");
-  });
-  return blocks.join("\n\n");
-}
-
-function formatRealWorldTitles() {
-  const rows = kb.real_world_titles.map((t) =>
-    `- "${t.title}" — drivers: ${t.drivers.join(", ")} (${t.why})`
-  );
-  return rows.join("\n");
-}
-
 function formatAntiPatterns() {
   return kb.anti_patterns.map((p) => `- ${p}`).join("\n");
+}
+
+/** Show an on-screen caption's line break inline so the shape is visible. */
+function flattenCaption(text) {
+  return String(text || "").replace(/\s*\n\s*/g, " / ").trim();
+}
+
+/**
+ * The voice section — the heart of the prompt.
+ *
+ * Real published examples when we have them, the static cold-start set when we
+ * don't (fresh install, before the creator has shipped anything). Never both:
+ * mixing invented examples into real ones dilutes exactly the signal we're
+ * trying to concentrate.
+ *
+ * @param {Array<{title: string, caption: string, game: string}>} voiceExamples
+ */
+function formatVoice(voiceExamples) {
+  const real = (voiceExamples || []).filter((e) => e && e.title);
+
+  if (real.length === 0) {
+    const rows = kb.cold_start_examples.map((ex) =>
+      `- "${ex.title}"  →  on-screen: "${flattenCaption(ex.caption)}"\n  (${ex.note})`
+    );
+    return [
+      "No published history for this creator yet, so these are reference examples.",
+      "Match their LENGTH and PLAINNESS, not their subject matter.",
+      "",
+      rows.join("\n"),
+    ].join("\n");
+  }
+
+  const titleRows = real.map((e) => `- "${e.title}"${e.game ? `  [${e.game}]` : ""}`);
+  const withCaptions = real.filter((e) => e.caption);
+  const captionRows = withCaptions.map((e) => `- "${flattenCaption(e.caption)}"`);
+
+  const out = [
+    "These are titles this creator has ACTUALLY PUBLISHED. This is the target.",
+    "Study the length, the plainness, the rhythm, where emphasis lands.",
+    "Do NOT reuse their subject matter — only their voice.",
+    "Older entries may use inconsistent casing; the casing RULE below wins over",
+    "anything you see here.",
+    "",
+    titleRows.join("\n"),
+  ];
+
+  if (captionRows.length > 0) {
+    out.push(
+      "",
+      "On-screen captions they've actually used (\" / \" marks the line break):",
+      "",
+      captionRows.join("\n")
+    );
+  }
+
+  return out.join("\n");
 }
 
 // Detection's read of the clip's intensity (#85 Chunk B). Calibration only —
@@ -118,94 +101,92 @@ function formatClipSignals(energyLevel, confidence) {
   return `\n\n## Clip Signals (calibration — match the wording's intensity to this, do NOT invent detail from it):\n${parts.join(", ")}`;
 }
 
+// ─── Shared rule blocks ───────────────────────────────────────────
+
+const CLIP_TRUTH = `Read the transcript (and the frames, if given) and work out what actually
+happened — the wow, the irony, the specific moment. Everything you write comes
+from that.
+
+- Never invent a detail, game term, player name, or event the clip doesn't support.
+- If the transcript doesn't tell you what happened, write about the REACTION, not the event.
+- The caption opens the loop; the footage closes it. Never put the outcome in the caption.`;
+
+const HARD_RULES = `**Titles**
+- 3-7 words, then one #gamehashtag at the end.
+- Sentence case. Never Title Case.
+- **A fragment beats a sentence.** Stop at the interesting part. Do not add a
+  second clause that explains or twists it. "The pass was PERFECT" lands.
+  "The pass was PERFECT and I still blew it" is the same hook with the air let out.
+- One idea. If it needs a comma, it's probably two ideas.
+
+**Captions — this is text burned ON SCREEN over the opening seconds of the clip.**
+The viewer reads it while the footage plays, in roughly two short lines.
+- 4-9 words. Write it to break naturally across two lines.
+- First person, spoken register — how you'd say it out loud, not how you'd write it.
+- No hashtags, no emoji.
+- You may put ONE word or short phrase in ALL CAPS for emphasis. At most once.
+
+**Both**
+- Plain words. If a word would make someone ask "who talks like that", cut it.
+- Never repeat a crutch word across the batch.`;
+
 // ─── Public API ───────────────────────────────────────────────────
 
 /**
  * Build the system prompt for title/caption generation.
  *
  * @param {object} opts
- * @param {string} [opts.styleGuide]    Creator's free-text style guide.
- * @param {string} [opts.gameContext]   Pre-formatted game context section.
- * @param {string} [opts.styleHistory]  Pre-formatted pick/reject history section.
+ * @param {string} [opts.styleGuide]     Creator's free-text style guide.
+ * @param {string} [opts.gameContext]    Pre-formatted game context section.
+ * @param {string} [opts.styleHistory]   Pre-formatted rejection history section.
+ * @param {Array}  [opts.voiceExamples]  Published examples from title-caption-log.
  * @returns {string}
  */
-function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "" } = {}) {
+function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [] } = {}) {
   return `# TASK
 
-You are a title and caption specialist for short-form gaming clips (YouTube Shorts, TikTok, Instagram Reels). For one finished clip, produce **3 title options + 3 caption options**. Each option is a genuinely different ANGLE on the same clip — never the same idea reworded.
+You write the two pieces of copy that sell a short-form gaming clip:
+
+1. **Title** — the post title (YouTube Shorts, TikTok, Instagram Reels).
+2. **Caption** — hook text burned ON SCREEN over the clip's opening seconds.
+
+Produce **3 titles + 3 captions**. Each option is a genuinely different ANGLE on
+the same clip — never the same idea reworded.
 
 ---
 
-# THE PIPELINE
+# 1. FIND THE CLIP TRUTH FIRST
 
-Every title and caption is built in this order. Never skip a stage. Never start from a template.
-
-\`\`\`
-  CLIP TRUTH  →  3 PILLARS  →  DRIVER  →  EXECUTION  →  3 cards
-   (the gate)    (skeleton)    (engine)    (finish)
-\`\`\`
-
-There is NO archetype layer. "Curiosity gap", "status reversal" and the rest are vocabulary, not a build step. Picking a named pattern first and filling its template is the cargo-cult failure mode that makes AI copy read generic.
+${CLIP_TRUTH}
 
 ---
 
-# 1. CLIP TRUTH — the gate
+# 2. WRITE THE WAY THIS CREATOR WRITES
 
-Before any wording, find what genuinely happened in this clip: the wow, the irony, the specific moment, the personal why. This is raw material to be FOUND, never invented.
-
-${formatPayoffIntegrity()}
+${formatVoice(voiceExamples)}
 
 ---
 
-# 2. THE 3 PILLARS — the skeleton
+# 3. HARD RULES
 
-Every hook must define all three. Cut anything that serves none.
-
-${formatPillars()}
+${HARD_RULES}
 
 ---
 
-# 3. THE 4 DRIVERS — the engine
+# 4. ANTI-PATTERNS
 
-Beneath every hook are four psychological forces. A clip fires **one or two** — never all four. Choose based on the Clip Truth, not on a default.
-
-${formatDrivers()}
-
-**Alertness in text.** Alertness is mostly visual — a shocking first frame. In wording, treat it as a *constraint* (front-load a surprising word), not the main engine. Friction, Utility and Resonance do the generative work.
-
----
-
-# 4. EXECUTION — the finish
-
-${formatExecution()}
+${formatAntiPatterns()}
 
 ---
 
 # 5. THE 3-CARD BATCH
 
-${formatBatch()}
+Three genuinely different angles, not three phrasings of one. If two cards could
+swap their chips without anyone noticing, one of them is wasted.
 
----
-
-# 6. WORKED EXAMPLES
-
-These teach the PIPELINE — the reasoning chain from clip truth to wording — not templates to copy. Read all six. Notice that each card commits to a specific angle and the caption never spoils the payoff.
-
-${formatWorkedExamples()}
-
----
-
-# 7. REAL-WORLD VIRAL TITLES — driver grounding
-
-Reference only, for grounding the four drivers in real shorts. Their Title Case is the original creators' — IGNORE casing here; we always use sentence case.
-
-${formatRealWorldTitles()}
-
----
-
-# 8. ANTI-PATTERNS — never do these
-
-${formatAntiPatterns()}${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
+Each card carries a **chip**: a 2-6 word plain-language label for its angle
+("leads with the fail", "asks a question"). Vary the grammatical shape of the
+chips — don't start more than one the same way.${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
 
 ---
 
@@ -213,16 +194,15 @@ ${formatAntiPatterns()}${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${s
 
 Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` with zero modifications.
 
-Schema:
 \`\`\`json
 {
   "titles": [
-    { "title": "<5-10 words, sentence case (1-3 ALL-CAPS allowed), ends with one #gamehashtag>", "chip": "<2-6 words, plain-language angle>" },
+    { "title": "<3-7 words, sentence case, ends with one #gamehashtag>", "chip": "<2-6 words>" },
     { "title": "...", "chip": "..." },
     { "title": "...", "chip": "..." }
   ],
   "captions": [
-    { "caption": "<3-7 words, first-person, sentence case (1-3 ALL-CAPS allowed), NO hashtags>", "chip": "<2-6 words, plain-language angle>" },
+    { "caption": "<4-9 words, first person, no hashtags>", "chip": "<2-6 words>" },
     { "caption": "...", "chip": "..." },
     { "caption": "...", "chip": "..." }
   ]
@@ -230,22 +210,17 @@ Schema:
 \`\`\`
 
 ## DO NOT
-- Wrap the JSON in markdown code fences
-- Add any text before or after the JSON object
-- Use placeholder values like "..." or "etc"
-- Return fewer or more than 3 titles, or 3 captions
-- Include hashtags in captions — hashtags belong only on titles
-- Use any emojis — plain text only
-- Use Title Case — sentence case only (the single clearest tell of AI short-form copy)
-- Spoil the payoff in any caption — the caption opens the loop, the footage closes it
-- Use a constructed two-beat ("I said X, he said Y") — write one natural thought
-- Repeat a crutch word ("yikes", "crazy", "insane") across the batch
-- Reuse a chip template across cards ("Leads with…" on more than one) — vary each chip's grammatical shape
-- Use filler openers ("hey guys", "ok so", "welcome back")`;
+- Wrap the JSON in code fences, or add any text around it
+- Return fewer or more than 3 titles and 3 captions
+- Use emojis, Title Case, or hashtags in a caption
+- Add a second clause to a title that already landed`;
 }
 
 /**
  * Build the per-clip user message.
+ *
+ * Returns a string when there are no frames, or an Anthropic content-block
+ * array when there are — the provider layer accepts either.
  *
  * @param {object} opts
  * @param {string} [opts.transcript]
@@ -254,9 +229,10 @@ Schema:
  * @param {string} [opts.energyLevel]   Detection's energy read (LOW|MED|HIGH|EXPLOSIVE).
  * @param {number} [opts.confidence]    Detection confidence 0-1.
  * @param {Array}  [opts.rejectedSuggestions]  Strings or { text|title|caption } objects.
- * @returns {string}
+ * @param {Array}  [opts.frames]        [{ base64, label }] stills from the clip (#183 Phase 1).
+ * @returns {string|Array}
  */
-function buildUserContent({ transcript, projectName, userContext, energyLevel, confidence, rejectedSuggestions } = {}) {
+function buildUserContent({ transcript, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames } = {}) {
   let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
   out += formatClipSignals(energyLevel, confidence);
   if (projectName) out += `\n\n## Project/Game: ${projectName}`;
@@ -268,16 +244,33 @@ function buildUserContent({ transcript, projectName, userContext, energyLevel, c
       if (text) out += `- "${text}"\n`;
     });
   }
-  return out;
+
+  const stills = (frames || []).filter((f) => f && f.base64);
+  if (stills.length === 0) return out;
+
+  // Frames go LAST so the transcript still anchors the read, and each is
+  // labelled with its position in the clip so the model can tell setup from
+  // payoff rather than treating them as an unordered pile.
+  const content = [{ type: "text", text: out }];
+  content.push({
+    type: "text",
+    text: `\n## ${stills.length} stills from this clip, in order:\nUse them to see what the transcript can't say — what is on screen, what the moment looks like. Do not describe the frames; use them to know what happened.`,
+  });
+  for (const f of stills) {
+    content.push({ type: "text", text: f.label || "" });
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: f.base64 },
+    });
+  }
+  return content;
 }
 
 // ─── Single-card builders (Rephrase / Regenerate, #85 Chunk A) ─────
 //
-// These act on ONE existing card and return ONE replacement. They reuse the
-// pipeline RULE sections but deliberately omit the worked examples and
-// real-world title list — those teach batch-level angle variety, which a
-// single-card edit doesn't need. Keeping them out makes the call leaner
-// (the point of rephrase/regenerate being cheaper than a full batch).
+// These act on ONE existing card and return ONE replacement. They carry the
+// same rules and voice examples as the batch prompt but drop the batch-variety
+// section, which a single-card edit has no use for.
 
 function singleModeInstruction(mode, kind) {
   if (mode === "rephrase") {
@@ -287,16 +280,13 @@ function singleModeInstruction(mode, kind) {
       `You are given ONE existing ${kind}. Keep its hook, its angle, and its meaning EXACTLY the same. Change ONLY the sentence structure and word choice — say the same thing a different way.`,
       ``,
       `Do NOT introduce a new idea, a new angle, or a new detail. This is a rewording, not a new hook.`,
-      ``,
-      `Example of the kind of transformation wanted (same meaning, new shape):`,
-      `  "He ran to save his life"  ->  "If he didn't make this run, his life was over"`,
     ].join("\n");
   }
   // regenerate
   return [
     `# THIS TASK — REGENERATE`,
     ``,
-    `You are given ONE existing ${kind} and the other current options. Produce a genuinely DIFFERENT angle on the SAME clip — a different pillar leading, or a different driver.`,
+    `You are given ONE existing ${kind} and the other current options. Produce a genuinely DIFFERENT angle on the SAME clip.`,
     ``,
     `Do NOT reword the given ${kind} and do NOT repeat the angle of any other current option. Find a fresh hook in the same clip truth.`,
   ].join("\n");
@@ -311,22 +301,20 @@ function singleModeInstruction(mode, kind) {
  * @param {string} [opts.styleGuide]
  * @param {string} [opts.gameContext]
  * @param {string} [opts.styleHistory]
+ * @param {Array}  [opts.voiceExamples]
  * @returns {string}
  */
-function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "" } = {}) {
+function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [] } = {}) {
   const isTitle = kind === "title";
   const outputField = isTitle ? "title" : "caption";
   const outputDesc = isTitle
-    ? "5-10 words, sentence case (1-3 ALL-CAPS allowed), ends with one #gamehashtag"
-    : "3-7 words, first-person, sentence case (1-3 ALL-CAPS allowed), NO hashtags";
+    ? "3-7 words, sentence case, ends with one #gamehashtag"
+    : "4-9 words, first person, no hashtags";
 
   return `# ROLE
 
-You are a title and caption specialist for short-form gaming clips. You build hooks from a clip using this pipeline — never from a template:
-
-\`\`\`
-  CLIP TRUTH  →  3 PILLARS  →  DRIVER  →  EXECUTION
-\`\`\`
+You write copy for short-form gaming clips. Titles are post titles; captions are
+hook text burned ON SCREEN over the clip's opening seconds.
 
 ${singleModeInstruction(mode, kind)}
 
@@ -334,31 +322,25 @@ Return exactly ONE ${kind}.
 
 ---
 
-# CLIP TRUTH — the gate
+# THE CLIP TRUTH
 
-${formatPayoffIntegrity()}
-
----
-
-# THE 3 PILLARS
-
-${formatPillars()}
+${CLIP_TRUTH}
 
 ---
 
-# THE 4 DRIVERS
+# WRITE THE WAY THIS CREATOR WRITES
 
-${formatDrivers()}
-
----
-
-# EXECUTION
-
-${formatExecution()}
+${formatVoice(voiceExamples)}
 
 ---
 
-# ANTI-PATTERNS — never do these
+# HARD RULES
+
+${HARD_RULES}
+
+---
+
+# ANTI-PATTERNS
 
 ${formatAntiPatterns()}${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}${gameContext}${styleHistory}
 
@@ -373,10 +355,9 @@ Return ONLY valid JSON parseable by \`JSON.parse()\` with zero modifications:
 \`\`\`
 
 ## DO NOT
-- Wrap the JSON in markdown code fences, or add any text around it
+- Wrap the JSON in code fences, or add any text around it
 - Use emojis, Title Case, or hashtags in a caption
-- Spoil the payoff in a caption (it opens the loop; the footage closes it)
-- Use a constructed two-beat ("I said X, he said Y") — write one natural thought`;
+- Add a second clause to a ${kind} that already landed`;
 }
 
 /**

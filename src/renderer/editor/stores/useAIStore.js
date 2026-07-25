@@ -41,6 +41,10 @@ const useAIStore = create((set, get) => ({
       transcript,
       userContext: aiContext.trim(),
       gameName: aiGame,
+      // #183: identity so the generated options can be joined against what
+      // actually gets published for this clip later.
+      clipId: clip?.id || "",
+      projectId: project?.id || "",
       gameContextAuto: activeGame?.aiContextAuto || "",
       gameContextUser: activeGame?.aiContextUser || "",
       projectName: project?.name || "",

@@ -125,6 +125,12 @@ contextBridge.exposeInMainWorld("clipflow", {
   anthropicResearchGame: (gameName) => ipcRenderer.invoke("anthropic:researchGame", gameName),
   anthropicLogHistory: (entry) => ipcRenderer.invoke("anthropic:logHistory", entry),
 
+  // Title/caption training data (#183)
+  titleCaptionRecordPublish: (params) => ipcRenderer.invoke("titleCaptionLog:recordPublish", params),
+  titleCaptionGetStats: () => ipcRenderer.invoke("titleCaptionLog:getStats"),
+  titleCaptionGetExamples: (limit) => ipcRenderer.invoke("titleCaptionLog:getExamples", limit),
+  titleCaptionRefreshViews: () => ipcRenderer.invoke("titleCaptionLog:refreshViews"),
+
   // Subtitle debug log
   debugLogSubtitle: (entry) => ipcRenderer.invoke("debug:logSubtitle", entry),
   debugGetSubtitleLog: () => ipcRenderer.invoke("debug:getSubtitleLog"),

@@ -276,6 +276,33 @@ async function fetchChannelInfo(accessToken) {
 }
 
 /**
+ * Fetch view counts for published videos (#183 Phase 4).
+ *
+ * Read-only against videos the account owns. Used to rank the title/caption
+ * few-shot examples by what actually performed instead of by recency.
+ * The API caps `id` at 50 per call, so callers must chunk.
+ *
+ * @param {string} accessToken
+ * @param {string[]} videoIds - Max 50
+ * @returns {Promise<Object<string, number>>} videoId → view count
+ */
+async function fetchVideoStats(accessToken, videoIds) {
+  const ids = (videoIds || []).filter(Boolean).slice(0, 50);
+  if (ids.length === 0) return {};
+  const res = await httpsGet(
+    `${YT_API_BASE}/videos?part=statistics&id=${encodeURIComponent(ids.join(","))}`,
+    { Authorization: `Bearer ${accessToken}` }
+  );
+  if (res.error) throw new Error(res.error.message || "YouTube stats request failed");
+  const out = {};
+  for (const item of res.items || []) {
+    const views = Number(item?.statistics?.viewCount);
+    if (item.id && Number.isFinite(views)) out[item.id] = views;
+  }
+  return out;
+}
+
+/**
  * Refresh an expired access token using the refresh token.
  */
 async function refreshAccessToken(clientId, clientSecret, refreshToken) {
@@ -336,5 +363,6 @@ function buildResultPage(success, message) {
 module.exports = {
   startOAuthFlow,
   refreshAccessToken,
+  fetchVideoStats,
   CALLBACK_PORT,
 };

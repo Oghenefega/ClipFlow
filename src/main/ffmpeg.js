@@ -318,6 +318,56 @@ function generateThumbnail(videoPath, outPath, time) {
 }
 
 /**
+ * Extract downscaled stills from a video at given timestamps (#183 Phase 1).
+ *
+ * Feeds the title/caption model actual pictures of the clip instead of the
+ * transcript alone. Long edge is capped at 640px — enough to read the scene,
+ * small enough that four of them don't dominate the request. Source frames are
+ * up to 2560x2880 (see the creator's 8:9 canvas), so skipping the downscale
+ * would be roughly a 20x token cost for no extra usable detail.
+ *
+ * Existing files are reused, so regenerate/rephrase on the same clip costs
+ * nothing. A single failed timestamp is skipped rather than failing the batch —
+ * frames are an enhancement, never a hard requirement for generation.
+ *
+ * @param {string} videoPath
+ * @param {number[]} times - Timestamps in seconds
+ * @param {string} outDir - Cache directory
+ * @param {number} [maxEdge=640]
+ * @returns {Promise<Array<{path: string, time: number}>>}
+ */
+async function extractClipStills(videoPath, times, outDir, maxEdge = 640) {
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  const out = [];
+
+  for (const time of times) {
+    const outPath = path.join(outDir, `still_${Math.round(time * 100)}.jpg`);
+    if (fs.existsSync(outPath) && fs.statSync(outPath).size > 0) {
+      out.push({ path: outPath, time });
+      continue;
+    }
+    try {
+      await new Promise((resolve, reject) => {
+        const args = [
+          "-ss", String(time),
+          "-i", videoPath,
+          "-vframes", "1",
+          // Downscale the long edge only; -1 keeps aspect and rounds to even.
+          "-vf", `scale='if(gt(iw,ih),${maxEdge},-2)':'if(gt(iw,ih),-2,${maxEdge})'`,
+          "-q:v", "4",
+          "-y",
+          outPath,
+        ];
+        execFile("ffmpeg", args, { timeout: 30000 }, (err) => (err ? reject(err) : resolve()));
+      });
+      if (fs.existsSync(outPath) && fs.statSync(outPath).size > 0) out.push({ path: outPath, time });
+    } catch (_) { /* skip this timestamp — a partial frame set is still useful */ }
+  }
+
+  return out;
+}
+
+/**
  * Analyze audio loudness across a file, returning per-segment energy levels.
  * Used for highlight detection.
  * @param {string} audioPath - WAV or video file
@@ -632,6 +682,7 @@ module.exports = {
   extractAudio,
   extractAudioRange,
   generateThumbnail,
+  extractClipStills,
   analyzeLoudness,
   extractWaveformPeaks,
   splitFile,

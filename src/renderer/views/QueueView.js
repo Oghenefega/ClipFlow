@@ -1151,6 +1151,16 @@ export default function QueueView({
       return captured[k] || { platform: k, accountId: p.key };
     });
     setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    // #183: the title/caption that actually shipped is voice training data —
+    // especially when it was hand-written and never matched a suggestion.
+    // Fire-and-forget; a logging failure must never affect the publish result.
+    window.clipflow?.titleCaptionRecordPublish?.({
+      clipId: clip.id,
+      projectId: clip._projectId,
+      game: clip.game || gt,
+      title: clip.title || "",
+      caption: clip.caption || "",
+    }).catch(() => {});
     awardXp(`clip:${id}`, 10, "clip", date);
     delete publishResultsRef.current[clip.id];
   };

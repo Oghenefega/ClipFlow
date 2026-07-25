@@ -148,6 +148,37 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_file_is_test ON file_metadata(is_test)`);
     },
   },
+  {
+    version: 5,
+    description: "Create title_caption_rounds table for AI copy training data (#183)",
+    up(database) {
+      // One row per clip: what the AI offered, what actually shipped, and how
+      // it performed. This is the training set the title/caption prompt reads
+      // its few-shot examples from — see src/main/title-caption-log.js.
+      database.run(`
+        CREATE TABLE title_caption_rounds (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          clip_id           TEXT NOT NULL UNIQUE,
+          project_id        TEXT,
+          game              TEXT,
+          transcript        TEXT,
+          suggestions_json  TEXT,
+          final_title       TEXT,
+          final_caption     TEXT,
+          title_source      TEXT,
+          caption_source    TEXT,
+          views             INTEGER,
+          views_updated_at  TEXT,
+          published_at      TEXT,
+          created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      database.run(`CREATE UNIQUE INDEX idx_tcr_clip ON title_caption_rounds(clip_id)`);
+      database.run(`CREATE INDEX idx_tcr_published ON title_caption_rounds(published_at DESC)`);
+      database.run(`CREATE INDEX idx_tcr_views ON title_caption_rounds(views DESC)`);
+    },
+  },
 ];
 
 /**

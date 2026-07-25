@@ -6,6 +6,127 @@
 
 ---
 
+## ✅ DONE (session 127) — Fix AI titles & captions (#183)
+
+All four phases built and verified. Issue: https://github.com/Oghenefega/ClipFlow/issues/183
+Outstanding: in-app confirmation on the next installer (the single-instance lock
+blocked a source launch while the daily driver was open), and Fega's read on
+whether the new suggestions are actually usable.
+
+Original plan below, kept for the reasoning.
+
+---
+
+
+Fega's report: the titles/captions are unusable. He hasn't accepted a single
+suggestion in days. Evidence from his own data confirms it, and shows why.
+
+### The evidence
+
+Pulled from `%APPDATA%\clipflow\clipflow-publish-log.json` and
+`clipflow-settings.json` (`titleCaptionHistory`, 100 entries):
+
+- 31 distinct titles published. **28 of them he wrote himself.** Only 3
+  matched an accepted AI suggestion.
+- When he *did* accept one, he then edited it down before publishing:
+  - AI: "The sideways jump giveth and the sideways jump taketh" →
+    shipped: "The sideways jump giveth and taketh"
+  - AI: "A 1-0 lead has never felt less safe" →
+    shipped: "1-0 leads never feel safe in Rocket League"
+  - AI: "The pass was PERFECT and I still blew it" →
+    shipped: "The pass was PERFECT"
+  He cuts the second clause every time.
+- Length: his published titles average **5.5 words** (range 3-8). AI-accepted
+  ones average 7.5 (range 6-9). The prompt spec asks for **5-10 words** — the
+  spec itself is calibrated wrong.
+- His voice, from what he actually ships: "He STOLE my Goal", "I went
+  speechless", "How do I miss that", "I chickened out literally", "The fear in
+  my eyes", "All part of the plan", "POV: Your brain turns off mid game".
+  Short fragments, plain words, zero constructed wit, one ALL-CAPS word for
+  emphasis, sometimes a typo. The AI writes complete two-clause sentences with
+  a twist.
+
+### Root causes (three, all independent)
+
+**A. The model has never seen the clip.** Only the transcript text is sent —
+`useAIStore._collectClipParams` (src/renderer/editor/stores/useAIStore.js:31-52)
+→ `buildUserContent` (src/main/ai/title-caption-prompt.js:259-272). No frames,
+no thumbnail, no audio. Meanwhile the *detection* stage already sends peak
+frames as images (src/main/ai-prompt.js:365-389). The plumbing exists; the
+title stage just doesn't use it.
+
+**B. The prompt is over-engineered into blandness.** The system prompt is
+14,207 characters (~3,700 tokens) before the transcript is even read: 3
+pillars, 4 drivers, an execution spec, a payoff-integrity section, a batch
+spec, 6 worked examples, 11 real-world titles, 11 anti-patterns, and a 13-line
+DO NOT list. Stacking that many constraints collapses output variety — the
+model optimizes for not-breaking-rules, which is exactly what "slop" sounds
+like. The prompt warns against cargo-culting a framework while being one.
+
+**C. There is no voice to copy.** `styleGuide` in his store is **empty**. The
+only voice signal is a bare list of past picks with no clip context, capped at
+100 entries. And the highest-value signal is thrown away: what the AI offered
+vs. what he actually shipped is never recorded (`_perClipCache` in
+useAIStore.js:21 is in-memory only, dies on app close).
+
+### Proposed fix — 4 phases
+
+**Phase 1 — Show it the clip (frames).**
+Send 3-6 evenly-spaced frames from the clip's cut window to the title/caption
+call, the same way detection does. Extract on demand via FFmpeg, cache per
+clip so regenerate/rephrase don't re-pay.
+Files: `src/main/ffmpeg.js` (frame extract helper), `src/main/main.js`
+(`anthropic:generate` handler ~2411), `src/main/ai/title-caption-prompt.js`
+(accept image content blocks), `useAIStore.js` (pass clip id + cut window).
+Verify: generate on a clip whose transcript is uninformative (mostly silence
+or filler) — suggestions should reference what's visually happening.
+
+**Phase 2 — Rewrite the prompt around his voice, not a framework.**
+Cut the system prompt from ~14k chars to ~3k. Keep: the clip-truth gate, the
+no-spoiler rule, sentence case, one hashtag, no emoji. Delete: the pillars /
+drivers taxonomy, the real-world-titles list, the 6 abstract worked examples,
+and most of the DO NOT list. Replace all of it with **20 of his actual shipped
+titles** as the examples. Retune the length spec from 5-10 words to **3-7**,
+and add an explicit "fragments beat complete sentences — no second clause"
+rule (this is the single most consistent edit he makes).
+Files: `src/main/ai/title-caption-prompt.js`,
+`src/main/data/caption-hook-examples.json`,
+`src/main/data/caption-frameworks.md`.
+Verify: side-by-side — run the same 5 clips through old and new prompt, show
+Fega both sets blind.
+
+**Phase 3 — Start recording real training data.**
+New SQLite table `title_caption_rounds`: clip id, game, transcript, the full
+3+3 the AI generated, which one (if any) he accepted, the final published text,
+and whether he edited it. Log at publish time, not accept time — so
+hand-written titles are captured too. Backfill the 31 published titles from
+the publish log + `trackerData`. Then Phase 2's examples come from this table
+automatically instead of being hardcoded, and improve on their own.
+Also: log captions at publish time — right now the publish log stores only
+`clipTitle`, so caption history is being lost entirely.
+Files: `src/main/database.js` (migration), `src/main/publish.js`,
+`src/main/main.js`, new `src/main/title-caption-log.js`.
+Verify: publish a clip → row appears with all fields; a hand-typed title is
+recorded as `edited: true` with both the AI options and his final text.
+
+**Phase 4 (optional, later) — Close the loop with real numbers.**
+`trackerData` already stores YouTube video IDs and Facebook reel URLs for every
+published clip. Pull view counts back via the YouTube Data API (already
+authorized) and rank the Phase 3 examples by what actually performed, so the
+few-shot set is his best titles, not just his most recent.
+
+### What Fega does
+Nothing for Phase 1-3 except review. For Phase 2 verification he picks which
+of two blind sets reads better. Optionally: if he wants to seed the voice
+faster than the data does, paste 10-20 titles he'd genuinely write — but the
+31 published ones may already be enough.
+
+### Open decision
+Whether to do all 4 phases, or start with Phase 2 alone (cheapest, no new
+plumbing, probably the biggest single jump in quality) and judge from there.
+
+---
+
 ## 🔄 ACTIVE (session 124) — Pre-alpha.8 batch: viewer screenshot, Recordings auto-refresh, scheduled visibility, Queue blur-save
 
 Render speed work (skip identical overlay frames + FFmpeg streaming) shipped

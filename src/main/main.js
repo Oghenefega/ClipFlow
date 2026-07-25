@@ -76,6 +76,7 @@ const logger = require("./logger");
 const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
 const titleCaptionPrompt = require("./ai/title-caption-prompt");
+const titleCaptionLog = require("./title-caption-log");
 const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
 require("./ai/providers/anthropic");
@@ -232,6 +233,8 @@ const STORE_DEFAULTS = {
   tiktokClientSecret: "",
   styleGuide: "",
   titleCaptionHistory: [],
+  // #183 — daily view-count refresh stamp. Reads falsy-safe, no migration needed.
+  titleCaptionViewsRefreshedAt: 0,
   creatorProfile: {
     archetype: "variety",
     description: "",
@@ -544,6 +547,43 @@ app.whenReady().then(async () => {
 
   // Run one-time migrations for rename redesign
   fileMigration.migrateStoreData(store);
+
+  // #183: seed the title/caption training table from the publish log and
+  // tracker rows the app has been accumulating all along.
+  //
+  // Runs every startup rather than behind a "done" flag on purpose. The flag
+  // would live in electron-store, which prod-from-source and the packaged exe
+  // SHARE, while the table lives in a database they do NOT (see the DB_DIR
+  // split in database.js) — so a flag set by one would starve the other's
+  // table forever. backfill() only inserts clip ids it doesn't already have,
+  // so re-running costs a few dozen indexed lookups.
+  try {
+    const result = titleCaptionLog.backfill({
+      publishLogEntries: publishLog.getRecentLogs(500),
+      trackerData: store.get("trackerData") || [],
+      titleCaptionHistory: store.get("titleCaptionHistory") || [],
+    });
+    if (result.inserted > 0) {
+      logger.info(logger.MODULES.titleGeneration, "Title/caption backfill seeded rows", result);
+    }
+  } catch (err) {
+    logger.warn(logger.MODULES.titleGeneration, "Title/caption backfill failed", { error: err.message });
+  }
+
+  // #183 Phase 4: refresh view counts once a day, in the background, well after
+  // the window is up. Never blocks startup and never surfaces an error — with
+  // no counts the examples simply fall back to recency ordering.
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  if (Date.now() - (store.get("titleCaptionViewsRefreshedAt") || 0) > DAY_MS) {
+    setTimeout(() => {
+      refreshYoutubeViews()
+        .then((r) => {
+          store.set("titleCaptionViewsRefreshedAt", Date.now());
+          if (r.updated > 0) logger.info(logger.MODULES.titleGeneration, "Refreshed YouTube view counts", r);
+        })
+        .catch((err) => logger.warn(logger.MODULES.titleGeneration, "View refresh failed", { error: err.message }));
+    }, 30000);
+  }
 
   // #60: reconcile is_test flag against physical location on every startup.
   // Invariant: a file inside testWatchFolder has is_test=1; a file outside
@@ -2382,19 +2422,15 @@ function buildTitleCaptionStoreContext(params = {}) {
   const styleGuide = store.get("styleGuide") || "";
   const history = store.get("titleCaptionHistory") || [];
 
-  // Last 20 picks and 20 rejections
-  const picks = history.filter((h) => h.type === "pick").slice(-20);
+  // #183: the past-PICKS list is gone. It's superseded by voiceExamples, which
+  // reads what actually got published (including the hand-written titles a pick
+  // list can't see) instead of what was merely clicked. Rejections stay —
+  // "don't write like this" is signal the published set doesn't carry.
   const rejects = history.filter((h) => h.type === "reject").slice(-20);
 
   let styleHistory = "";
-  if (picks.length > 0) {
-    styleHistory += "\n\n## Creator's Past Picks (titles & captions they chose):\n";
-    picks.forEach((p, i) => {
-      styleHistory += `${i + 1}. Title: "${p.titleChosen}" | Caption: "${p.captionChosen}"${p.game ? ` [${p.game}]` : ""}\n`;
-    });
-  }
   if (rejects.length > 0) {
-    styleHistory += "\n\n## Creator's Past Rejections (titles & captions they passed on):\n";
+    styleHistory += "\n\n---\n\n## Rejected by this creator (do not write anything like these):\n";
     rejects.forEach((r, i) => {
       styleHistory += `${i + 1}. ${r.titleRejected ? `Title: "${r.titleRejected}"` : `Caption: "${r.captionRejected}"`}${r.game ? ` [${r.game}]` : ""}\n`;
     });
@@ -2404,22 +2440,104 @@ function buildTitleCaptionStoreContext(params = {}) {
   if (params.gameContextAuto) gameContext += `\n\n## Game Knowledge (auto-researched):\n${params.gameContextAuto}`;
   if (params.gameContextUser) gameContext += `\n\n## Creator's Play Style for ${params.gameName}:\n${params.gameContextUser}`;
 
-  return { styleGuide, styleHistory, gameContext };
+  // The few-shot voice set — real published copy, best-performing first.
+  // Rows store whatever the publish path had to hand, which for backfilled
+  // ones is the lowercase tracker tag ("rl"). Resolve to the display name so
+  // the prompt reads "[Rocket League]" instead of "[rl]".
+  const gamesDb = store.get("gamesDb") || [];
+  const resolveGameName = (g) => {
+    if (!g) return "";
+    const needle = String(g).toLowerCase();
+    const hit = gamesDb.find((entry) =>
+      (entry.tag || "").toLowerCase() === needle ||
+      (entry.hashtag || "").toLowerCase() === needle ||
+      (entry.name || "").toLowerCase() === needle
+    );
+    return hit?.name || g;
+  };
+  const voiceExamples = titleCaptionLog
+    .getVoiceExamples(20)
+    .map((e) => ({ ...e, game: resolveGameName(e.game) }));
+
+  return { styleGuide, styleHistory, gameContext, voiceExamples };
+}
+
+// #183 Phase 1: give the title/caption model actual stills from the clip.
+//
+// Until now it only ever saw the transcript, which is why suggestions went
+// blank on clips where the interesting thing is visual and nobody narrates it.
+// Detection has sent frames since #85 (ai-prompt.js buildUserContent) — this
+// closes the same gap on the generation side.
+//
+// Samples across the clip's real cut window (nleSegments if the clip has been
+// edited, otherwise start/end) so a trimmed-out middle isn't described back.
+// Best-effort throughout: any failure returns [] and generation proceeds on
+// the transcript alone, exactly as before.
+const FRAME_COUNT = 4;
+
+async function collectClipFrames({ projectId, clipId }) {
+  if (!projectId || !clipId) return [];
+  try {
+    const project = projects.loadProject(libraryRoot(), projectId);
+    if (!project?.sourceFile || !fs.existsSync(project.sourceFile)) return [];
+    const clip = (project.clips || []).find((c) => c.id === clipId);
+    if (!clip) return [];
+
+    // Build the list of source ranges actually present in the clip.
+    const segs = Array.isArray(clip.nleSegments) && clip.nleSegments.length > 0
+      ? clip.nleSegments
+          .map((s) => ({ start: Number(s.sourceStart), end: Number(s.sourceEnd) }))
+          .filter((s) => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start)
+      : [{ start: Number(clip.startTime), end: Number(clip.endTime) }];
+    const valid = segs.filter((s) => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start);
+    if (valid.length === 0) return [];
+
+    const total = valid.reduce((sum, s) => sum + (s.end - s.start), 0);
+    if (total <= 0) return [];
+
+    // Sample at the midpoint of each of FRAME_COUNT equal slices of clip time,
+    // then map each back into source time across the segment list.
+    const times = [];
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      let offset = total * ((i + 0.5) / FRAME_COUNT);
+      for (const s of valid) {
+        const len = s.end - s.start;
+        if (offset <= len) { times.push(s.start + offset); break; }
+        offset -= len;
+      }
+    }
+    if (times.length === 0) return [];
+
+    const outDir = path.join(app.getPath("userData"), "processing", "frames", "titlecaption", clipId);
+    const stills = await ffmpeg.extractClipStills(project.sourceFile, times, outDir);
+
+    return stills.map((s, i) => ({
+      base64: fs.readFileSync(s.path).toString("base64"),
+      label: `Frame ${i + 1} of ${stills.length}:`,
+    }));
+  } catch (err) {
+    logger.warn(logger.MODULES.titleGeneration, "Clip frame extraction failed", { clipId, error: err.message });
+    return [];
+  }
 }
 
 // Generate titles & captions for a clip
 ipcMain.handle("anthropic:generate", async (_, params) => {
   try {
-    const { styleGuide, styleHistory, gameContext } = buildTitleCaptionStoreContext(params);
+    const { styleGuide, styleHistory, gameContext, voiceExamples } = buildTitleCaptionStoreContext(params);
 
-    // Pipeline-based prompt (#85). Architecture in src/main/data/caption-frameworks.md;
-    // knowledge base in src/main/data/caption-hook-examples.json. Output is 3+3 with
-    // a short `chip` per card (replaces the long `why` paragraph).
+    // Voice-led prompt (#183 — replaces the #85 pillars/drivers framework).
+    // Reasoning in src/main/data/caption-frameworks.md; rules and cold-start
+    // examples in src/main/data/caption-hook-examples.json. The examples that
+    // matter come from the title_caption_rounds table, not this file.
     const systemPrompt = titleCaptionPrompt.buildSystemPrompt({
       styleGuide,
       gameContext,
       styleHistory,
+      voiceExamples,
     });
+
+    const frames = await collectClipFrames({ projectId: params.projectId, clipId: params.clipId });
 
     const userMessage = titleCaptionPrompt.buildUserContent({
       transcript: params.transcript,
@@ -2428,6 +2546,7 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
       energyLevel: params.energyLevel,
       confidence: params.confidence,
       rejectedSuggestions: params.rejectedSuggestions,
+      frames,
     });
 
     const provider = llmProvider.getProvider();
@@ -2443,10 +2562,124 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
     // Robust JSON extraction — handles fences, preamble, etc.
     try {
       const parsed = aiPrompt.extractJSON(text, "object");
+      // #183: persist what was offered so publish time can compare it against
+      // what actually shipped. Best-effort — never fail a generate over it.
+      titleCaptionLog.recordGeneration({
+        clipId: params.clipId,
+        projectId: params.projectId,
+        game: params.gameName,
+        transcript: params.transcript,
+        suggestions: parsed,
+      });
       return { success: true, data: parsed };
     } catch (e) {
       return { error: `Failed to parse AI response as JSON: ${e.message}`, raw: text };
     }
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// #183: record what actually shipped for a clip. Fired once per clip from the
+// Queue when every enabled platform has published — including when the creator
+// typed their own title and never touched a suggestion, which is exactly the
+// case the old publish log couldn't see.
+ipcMain.handle("titleCaptionLog:recordPublish", async (_, params = {}) => {
+  try {
+    let transcript = params.transcript || "";
+    // The renderer's clip list is stripped of transcription (projects.js:172),
+    // so read it off disk here rather than shipping it through IPC twice.
+    if (!transcript && params.projectId && params.clipId) {
+      try {
+        const proj = projects.loadProject(libraryRoot(), params.projectId);
+        const clip = (proj?.clips || []).find((c) => c.id === params.clipId);
+        const segs = clip?.transcription?.segments || [];
+        transcript = segs.map((s) => s.text).join(" ").trim();
+      } catch (_) { /* transcript is a nice-to-have, not required */ }
+    }
+    titleCaptionLog.recordPublish({ ...params, transcript });
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// #183 Phase 4: pull YouTube view counts back onto the training rows so the
+// few-shot examples can be ranked by what actually performed rather than by
+// how recently it was posted. The video ids were already being stored in
+// trackerData.platformResults on every publish — nothing new is collected.
+//
+// Read-only, own-channel, and throttled to once a day. Returns counts rather
+// than throwing so a disconnected account degrades to "no ranking data".
+async function refreshYoutubeViews() {
+  const pending = titleCaptionLog.getRowsNeedingViews();
+  if (pending.length === 0) return { updated: 0, skipped: 0 };
+
+  // clipId → YouTube video id, from the tracker rows written at publish time.
+  const videoIdByClip = new Map();
+  for (const row of store.get("trackerData") || []) {
+    if (!row?.clipId || !Array.isArray(row.platformResults)) continue;
+    const yt = row.platformResults.find((p) => p?.platform === "youtube" && p.postId);
+    if (yt) videoIdByClip.set(row.clipId, yt.postId);
+  }
+
+  const targets = pending
+    .map((r) => ({ clipId: r.clip_id, videoId: videoIdByClip.get(r.clip_id) }))
+    .filter((t) => t.videoId);
+  if (targets.length === 0) return { updated: 0, skipped: pending.length };
+
+  const account = (tokenStore.getAllAccounts() || []).find((a) => a.platform === "youtube");
+  if (!account) return { updated: 0, skipped: targets.length, error: "No YouTube account connected" };
+
+  let accessToken = account.accessToken;
+  if (account.expiresAt && Date.now() > account.expiresAt) {
+    const clientId = store.get("youtubeClientId");
+    const clientSecret = store.get("youtubeClientSecret");
+    if (!clientId || !clientSecret || !account.refreshToken) {
+      return { updated: 0, skipped: targets.length, error: "YouTube token expired — reconnect in Settings" };
+    }
+    const r = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
+    if (r.error || !r.access_token) {
+      return { updated: 0, skipped: targets.length, error: "YouTube token refresh failed" };
+    }
+    tokenStore.updateTokens(account.id, r.access_token, account.refreshToken, Date.now() + (r.expires_in || 3600) * 1000);
+    accessToken = r.access_token;
+  }
+
+  let updated = 0;
+  // videos.list caps `id` at 50 per request.
+  for (let i = 0; i < targets.length; i += 50) {
+    const batch = targets.slice(i, i + 50);
+    const stats = await youtubeOAuth.fetchVideoStats(accessToken, batch.map((t) => t.videoId));
+    for (const t of batch) {
+      const views = stats[t.videoId];
+      if (Number.isFinite(views)) { titleCaptionLog.recordViews(t.clipId, views); updated++; }
+    }
+  }
+  return { updated, skipped: targets.length - updated };
+}
+
+ipcMain.handle("titleCaptionLog:refreshViews", async () => {
+  try {
+    const result = await refreshYoutubeViews();
+    store.set("titleCaptionViewsRefreshedAt", Date.now());
+    return { success: true, data: result };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("titleCaptionLog:getStats", async () => {
+  try {
+    return { success: true, data: titleCaptionLog.getStats() };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("titleCaptionLog:getExamples", async (_, limit) => {
+  try {
+    return { success: true, data: titleCaptionLog.getVoiceExamples(limit || 20) };
   } catch (err) {
     return { error: err.message };
   }
@@ -2458,10 +2691,10 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
 async function handleSingleCard(mode, params) {
   try {
     const kind = params.kind === "caption" ? "caption" : "title";
-    const { styleGuide, styleHistory, gameContext } = buildTitleCaptionStoreContext(params);
+    const { styleGuide, styleHistory, gameContext, voiceExamples } = buildTitleCaptionStoreContext(params);
 
     const systemPrompt = titleCaptionPrompt.buildSingleSystemPrompt({
-      mode, kind, styleGuide, gameContext, styleHistory,
+      mode, kind, styleGuide, gameContext, styleHistory, voiceExamples,
     });
     const userMessage = titleCaptionPrompt.buildSingleUserContent({
       kind,
@@ -2949,7 +3182,7 @@ ipcMain.handle("tiktok:queryCreatorInfo", async (_event, { accountId }) => {
 });
 
 ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "TikTok", accountId, accountName: "", videoPath };
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "TikTok", accountId, accountName: "", videoPath };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -3163,7 +3396,7 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 // ── Instagram Content Publishing ──
 
 ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Instagram", accountId, accountName: "", videoPath };
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -3260,7 +3493,7 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
 // ── Facebook Page Publishing ──
 
 ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "Facebook", accountId, accountName: "", videoPath };
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Facebook", accountId, accountName: "", videoPath };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -3350,7 +3583,7 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 // ── YouTube Publishing ──
 
 ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", platform: "YouTube", accountId, accountName: "", videoPath };
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "YouTube", accountId, accountName: "", videoPath };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
