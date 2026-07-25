@@ -11,6 +11,22 @@ if (CLIPFLOW_PROFILE === "dev") {
   app.setPath("userData", devUserData);
 }
 
+// One running app per profile (#156). MUST come after the profile redirect above:
+// the lock is scoped to the userData directory, so requesting it first would make
+// dev and prod contend for a single lock and stop `npm run dev` running alongside
+// the installed app. As placed, only same-profile launches collide — which is the
+// case that actually bit us: the installed exe and a source `npm start` are both
+// the prod profile, and each renderer ran its own auto-fire publish scheduler over
+// the same project library, posting one clip twice (#182 has the other half).
+//
+// app.exit(0) halts synchronously — verified — so a losing instance dies on this
+// line, before Sentry, the database, the stores, or any migration can touch state
+// the winning instance owns. Do not soften this to app.quit(), which is async and
+// would let the rest of this file run first.
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0);
+}
+
 require("dotenv").config();
 const Sentry = require("@sentry/electron/main");
 
@@ -388,6 +404,16 @@ function runStoreMigrations(store) {
 let mainWindow;
 let watcher = null;
 let testWatcher = null;
+
+// #156: someone tried to launch a second copy of this profile and it exited on the
+// lock check. Surface the window we already have so the launch isn't a silent no-op
+// — from the user's side clicking the icon again should just bring ClipFlow forward.
+app.on("second-instance", () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+});
 
 // Pending imports — suppresses chokidar for drag-and-drop copies
 // Entries: { filename: string, sizeBytes: number }
