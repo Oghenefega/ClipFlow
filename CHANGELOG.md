@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-25 (session 128) — Reorder clip sections on the timeline (#184)
+## [Unreleased] — 2026-07-25 (session 128) — 0.5.0-alpha.1: Reorder clip sections on the timeline (#184)
+
+### Changed
+- **Version bumped 0.4.0-alpha.1 → 0.5.0-alpha.1 and the installer cut.** Sizing: minor bump, counter reset. The editor can do something it could not do before — rearrange the order a clip plays in — which reads as a new capability rather than "X works now", and the previous minor number went to the last new capability (the title/caption rebuild).
 
 ### Added
 - **Sections of a clip can be moved to a different point in the timeline (#184).** Pick up any block on the Audio track and drag it — a bright insertion line shows the slot it will drop into, and the timeline stays gapless: everything else shifts to make room. So the 10s–14s moment can be made to play before the 0s–9s build-up without re-cutting anything. **Subtitles travel with the footage automatically**, because they're stored against moments in the original recording and re-projected through the section list on every read — no subtitle data is touched by a move. One Ctrl+Z reverts the whole gesture. Verified end-to-end on a real 30-second Rocket League clip: dragged the last section to the front, played across both seams (time advanced smoothly, no jump), reopened the clip after an app restart with the order intact, and rendered the result — the exported MP4 is still 30.03s and its frame at 1s matches the source frame from 19s in, with the right burned-in subtitle over it. [segmentOps.js, useEditorStore.js, WaveformTrack.js, TimelinePanelNew.js]
