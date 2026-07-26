@@ -6,15 +6,29 @@
 
 ---
 
-## 📋 APPROVED, NOT STARTED (session 129) — 720p copy button → **#187**
+## ✅ BUILT, AWAITING A LIVE POST (session 130) — automatic 720p fallback → **#189**
 
-Plan moved to [#187](https://github.com/Oghenefega/ClipFlow/issues/187) with full steps,
-file impact and verification criteria. Scope settled by Fega: **the button appears only
-after Instagram has failed**, never pre-emptively on long clips. Nothing automatic —
-a lighter copy only exists because of a click.
+Plan in [#189](https://github.com/Oghenefega/ClipFlow/issues/189). **Supersedes the manual
+button scope of [#187](https://github.com/Oghenefega/ClipFlow/issues/187)** — Fega reversed
+that call: the switch to 720p happens automatically now, with a durable record each time it
+fires. Trigger: on clips over ~55s, one full-quality attempt instead of three, then fall
+back. Short clips untouched.
+
+**Verified:** 22 assertions green (13 stubbed-network classification + 9 against the live
+Graph API). Badge and both Publish Log lines confirmed rendering in the running app via
+CDP against an isolated sandbox project. Renderer builds; app boots clean.
+
+**Not yet exercised:** the success path end-to-end — a real long clip actually failing at
+1080p and landing at 720p — needs a live Instagram post. Same gap #185 had at ship time.
+The live-progress line is in the same bucket (it only renders mid-publish).
 
 Blocked on nothing. The real fix is [#186](https://github.com/Oghenefega/ClipFlow/issues/186)
 (hosted delivery), still an open decision.
+
+### Shipped, superseded (session 129) — 720p copy button → **#187**
+
+The click-only button shipped in 0.3.0-alpha.17. #189 makes it automatic; recommend
+keeping the button as the escape hatch for when the automatic fallback itself fails.
 
 ## ✅ DONE (session 128) — Reorder sections on the timeline (#184)
 

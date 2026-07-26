@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-26 (session 130) — Instagram falls back to 720p on its own (#189)
+
+### Changed
+- **The 720p switch is now automatic, and the "never quietly downscale" position recorded last session is formally reversed.** Fega's call: having to notice a failure and press a button is worse than the app handling it, provided every instance is recorded. The button from #187 stays as the escape hatch for when the automatic path itself fails. [main.js, instagram-publish.js, QueueView.js]
+- **Long clips now spend one attempt on full quality instead of three.** For clips over ~55s that are larger than 720p — the band Meta's ~35s processing wall makes unwinnable (#185) — the retry ladder is cut to a single try before the fallback takes over, turning roughly 3 minutes of known-failure into about 1. Clips under 55s are untouched: full three-attempt ladder, and they are never downscaled. [main.js, instagram-publish.js]
+
+### Added
+- **Instagram publishes a 720p copy by itself when the full-size render is refused (#189).** Lives in the publish handler rather than the queue UI, so manual publishing, Retry Failed, and the auto-fire scheduler all inherit it without duplicated logic. Full quality is still attempted first, the copy is deleted the moment the post lands, and the render on disk is never touched. If Instagram refuses the 720p copy too, the error says both were tried instead of reading as a plain upload failure. [main.js]
+- **Three places now record that it happened, since Fega is no longer the one clicking.** A `720p` chip sits beside the Instagram checkmark on the queue card and is stored on the clip, so it survives a restart. The Publish Log keeps both halves of the exchange — the refused full-size attempt labelled `1080x1920 — Instagram could not process it` and the successful `720p copy — sent automatically after 1080x1920 was refused` — so the resolution of any past post is answerable months later. A line also lands in the app log at the moment of the switch. [main.js, QueueView.js]
+- **The live upload status line is finally on screen.** Progress detail from all four platforms ("Uploading video...", "Processing on Instagram (3)...") had been collected into state since publishing was built and never rendered anywhere. It now shows under the per-platform list while a clip is publishing, which is where the automatic 720p switch announces itself as it happens. [QueueView.js]
+
+### Fixed
+- **An expired Instagram login no longer masquerades as a clip-length problem.** The "could not process this clip after N attempts — long clips at 1080p are the usual cause" message was being applied to every failure that exhausted the retry loop, including OAuth errors, so a dead token read as a video problem. The wording is now reserved for genuine processing failures and auth errors surface Meta's own message. This also gates the new fallback: only failures a smaller file could actually fix trigger a re-encode, so an expired token fails fast instead of burning a pointless transcode and second upload. [instagram-publish.js]
+
 ## [Unreleased] — 2026-07-25 (session 129) — 0.3.0-alpha.16 → 0.3.0-alpha.18: Instagram upload limits (#185, #187, #188)
 
 ### Changed

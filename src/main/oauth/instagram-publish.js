@@ -132,12 +132,14 @@ function uploadBinary(uploadUrl, fileBuffer, fileSize, accessToken) {
  * @param {string} accessToken - User access token
  * @param {string} igUserId - Instagram Business Account ID
  * @param {string} videoPath - Local path to video file
- * @param {object} options - { caption, useIgGraph } — useIgGraph=true for IG Business Login tokens
+ * @param {object} options - { caption, useIgGraph, uploadAttempts } — useIgGraph=true for
+ *   IG Business Login tokens; uploadAttempts trims the retry ladder (#189: long clips get
+ *   one shot at full quality before the caller falls back to a 720p copy).
  * @param {function} onProgress - Progress callback: ({ stage, pct, detail })
  * @returns {Promise<object>} - { mediaId, status }
  */
 async function publishReel(accessToken, igUserId, videoPath, options = {}, onProgress = () => {}) {
-  const { caption = "", useIgGraph = false } = options;
+  const { caption = "", useIgGraph = false, uploadAttempts } = options;
   const GRAPH_BASE = getGraphBase({ useIgGraph });
 
   // Validate file exists
@@ -154,7 +156,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
   // A failed container can't be reused (the server resets its offset to 0), so each
   // attempt creates a fresh one. Chunked upload does NOT avoid this: the pieces are
   // accepted in <1s each and the final piece hits the same 34s wall.
-  const UPLOAD_ATTEMPTS = 3;
+  const UPLOAD_ATTEMPTS = uploadAttempts || 3;
   const RETRY_DELAYS_MS = [20000, 60000];
   let containerId;
   for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
@@ -164,8 +166,14 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     } catch (err) {
       if (attempt === UPLOAD_ATTEMPTS) {
         log.error("Upload failed on every attempt", { attempts: UPLOAD_ATTEMPTS, error: err.message });
-        throw new Error(
-          `Instagram could not process this clip after ${UPLOAD_ATTEMPTS} attempts. ` +
+        // #189: the tag is INHERITED from the underlying failure, never stamped on every
+        // exhaustion — an expired token exhausts this loop too, and re-encoding at 720p
+        // for an OAuth error is pure waste. Same reason the summary wording below is
+        // reserved for real processing failures: "long clips at 1080p are the usual
+        // cause" is actively misleading when the actual cause was a bad token.
+        if (!err.processingWall) throw err;
+        throw taggedProcessingError(
+          `Instagram could not process this clip after ${UPLOAD_ATTEMPTS} attempt${UPLOAD_ATTEMPTS === 1 ? "" : "s"}. ` +
             `Long clips at 1080p are the usual cause — Instagram's upload processing times out on them. ` +
             `A shorter cut usually goes through. (${err.message})`
         );
@@ -232,7 +240,10 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
     const uploadResult = await uploadBinary(uploadUri, fileBuffer, fileSize, accessToken);
 
     if (!uploadResult.body.success && uploadResult.statusCode !== 200) {
-      throw new Error(`Upload failed (HTTP ${uploadResult.statusCode}): ${JSON.stringify(uploadResult.body)}`);
+      // This is where the ~35s wall lands: rupload accepts the bytes, runs out of its own
+      // processing budget, and answers ProcessingFailedError. The one failure a smaller
+      // file actually fixes (#189).
+      throw taggedProcessingError(`Upload failed (HTTP ${uploadResult.statusCode}): ${JSON.stringify(uploadResult.body)}`);
     }
 
     log.info("Upload complete, polling status...");
@@ -286,7 +297,7 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
 
       if (statusCode === "ERROR") {
         const errDetail = statusResult.status || "Unknown processing error";
-        throw new Error(`Instagram processing failed: ${errDetail}`);
+        throw taggedProcessingError(`Instagram processing failed: ${errDetail}`);
       }
 
       // Still processing — update progress (60-85% range)
@@ -294,8 +305,21 @@ async function publishReel(accessToken, igUserId, videoPath, options = {}, onPro
       onProgress({ stage: "processing", pct: progressPct, detail: `Processing on Instagram (${attempt + 1})...` });
     }
 
-    throw new Error("Instagram processing timed out after 10 minutes");
+    throw taggedProcessingError("Instagram processing timed out after 10 minutes");
   }
+}
+
+/**
+ * Mark an error as "Meta failed to process these bytes" (#189).
+ *
+ * Only these failures are worth re-attempting with a smaller file. Auth, account,
+ * permission and missing-file errors are deliberately left untagged — a 720p copy
+ * fails them identically and the encode is wasted.
+ */
+function taggedProcessingError(message) {
+  const err = new Error(message);
+  err.processingWall = true;
+  return err;
 }
 
 module.exports = {

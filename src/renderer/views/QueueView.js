@@ -988,6 +988,9 @@ export default function QueueView({
     const publishPath = opts.videoPath || clip.renderPath;
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing" } }));
     let nextPublishState = { ...(clip.publishState || {}) };
+    // #189: platform key → the resolution a post actually went out at, when it wasn't
+    // the render's. Only Instagram sets it, and only via its automatic fallback.
+    let nextDownscaled = { ...(clip.downscaledPosts || {}) };
     let allSuccess = true;
     // #156: same publishedAt stamp as publishClip — a retry that lands means the clip
     // has now gone out, and the scheduler must not treat it as still pending.
@@ -1031,6 +1034,7 @@ export default function QueueView({
         } else {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: "done" } } }));
           nextPublishState[platKey] = "success";
+          if (result?.downscaled) nextDownscaled[platKey] = result.downscaledTo || "720p";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -1047,6 +1051,7 @@ export default function QueueView({
       try {
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
+        if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -1268,6 +1273,9 @@ export default function QueueView({
     // Track per-platform persistence on the clip itself so failures survive app restart
     // and the clip stays visible/retryable in the queue (#retry-failed-publishes).
     let nextPublishState = { ...(clip.publishState || {}) };
+    // #189: platform key → the resolution a post actually went out at, when it wasn't
+    // the render's. Only Instagram sets it, and only via its automatic fallback.
+    let nextDownscaled = { ...(clip.downscaledPosts || {}) };
     let allSuccess = true;
     // #156: publishedAt is the durable "already went out" marker the scheduler's claim
     // checks. Stamped on the first real success rather than after the loop, so a crash
@@ -1341,6 +1349,7 @@ export default function QueueView({
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: "done" } } }));
           nextPublishState[plat.key] = "success";
+          if (result?.downscaled) nextDownscaled[plat.key] = result.downscaledTo || "720p";
           anySuccess = true;
           const postId = result?.postId || result?.post_id || result?.mediaId || result?.videoId || null;
           const url = result?.url || (plat.platform === "YouTube" && result?.videoId ? `https://www.youtube.com/watch?v=${result.videoId}` : null);
@@ -1360,6 +1369,7 @@ export default function QueueView({
       try {
         const updates = { publishState: { ...nextPublishState } };
         if (anySuccess && !publishedStamped) updates.publishedAt = new Date().toISOString();
+        if (Object.keys(nextDownscaled).length) updates.downscaledPosts = { ...nextDownscaled };
         await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
         updateClipInState(clip._projectId, clip.id, updates);
         if (updates.publishedAt) publishedStamped = true;
@@ -1995,15 +2005,26 @@ export default function QueueView({
                                     if (!plat) return null;
                                     const st = ps.platforms[platKey] || "pending";
                                     const { icon, color } = getPlatStatusIcon(st);
+                                    // #189: this post went out as an automatic 720p copy because
+                                    // Instagram refused the full-size render. Persisted on the clip,
+                                    // so the badge is still here after a restart.
+                                    const downscaledTo = clip.downscaledPosts?.[platKey];
                                     return (
                                       <div key={platKey} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                                         <span style={{ fontSize: 12 }}>{icon}</span>
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
                                         <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
+                                        {downscaledTo && <span title={`Instagram couldn't process the full-size render, so ClipFlow sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
                                       </div>
                                     );
                                   })}
                                 </div>
+                                {/* #189: the live upload detail from the platform modules. Collected
+                                    since publishing was built and never shown until now — it's where
+                                    the automatic 720p switch announces itself while it happens. */}
+                                {isPublishing && publishProgress?.detail && (
+                                  <div style={{ marginTop: 8, color: T.textSecondary, fontSize: 11, fontWeight: 600 }}>{publishProgress.detail}</div>
+                                )}
                                 {isFailed && ps.error && <div style={{ marginTop: 8, color: T.red, fontSize: 11, fontWeight: 600 }}>{ps.error}</div>}
                                 {/* A9 / Point 5d — TikTok processing notice per Content Sharing
                                     Guidelines. Rendered as a prominent info banner so it's clearly
@@ -2263,6 +2284,11 @@ export default function QueueView({
                     <span>{log.platform} → {log.accountName || log.accountId}</span>
                     <span>{time}</span>
                   </div>
+                  {/* #189: which file actually went out. Present on both halves of an
+                      automatic Instagram fallback — the refused full-size attempt and the
+                      720p copy that replaced it — so the resolution of any past post is
+                      answerable without guessing. */}
+                  {log.qualityNote && <div style={{ color: T.yellow, fontSize: 11, marginTop: 4, fontWeight: 600 }}>{log.qualityNote}</div>}
                   {log.error && <div style={{ color: T.red, fontSize: 11, marginTop: 4, fontFamily: T.mono, wordBreak: "break-all" }}>{log.error}</div>}
                   {log.publishId && <div style={{ color: T.textMuted, fontSize: 10, marginTop: 2, fontFamily: T.mono }}>publish_id: {log.publishId}</div>}
                   {log.postId && <div style={{ color: T.green, fontSize: 10, marginTop: 2, fontFamily: T.mono }}>post_id: {log.postId}</div>}

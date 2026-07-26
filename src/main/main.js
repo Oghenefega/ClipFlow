@@ -2982,12 +2982,16 @@ function resolveRenderOutputPath(outputFolder, clipData, projectData) {
   return projects.uniquePath(dir, base, ".mp4", clipData.renderPath);
 }
 
-// #187: manual Instagram fallback — write a lighter copy of an existing render.
-// Never called automatically; the renderer only invokes this from a button that
-// appears after Instagram has already refused the clip. The copy is temporary
-// and discarded by clip:discardLightCopy once the post lands.
-ipcMain.handle("clip:makeLightCopy", async (_, params = {}) => {
-  const { videoPath, shortSide = 720 } = params;
+// #189: the shorter dimension a fallback copy is scaled to, and the clip length past
+// which Instagram is known to fail at full resolution (measured, not guessed — #185).
+const LIGHT_COPY_SHORT_SIDE = 720;
+const IG_LONG_CLIP_SEC = 55;
+
+// #187/#189: write a lighter copy of an existing render for Instagram. Two callers —
+// the manual "Send IG a 720p copy" button, and instagram:publish itself when Meta
+// refuses the full-size file. The copy is temporary and discardLightCopy deletes it
+// once the post lands. Renders themselves are never touched.
+async function makeLightCopy(videoPath, shortSide = LIGHT_COPY_SHORT_SIDE) {
   try {
     if (!videoPath || !fs.existsSync(videoPath)) {
       return { error: "Rendered file not found — re-render the clip first." };
@@ -3007,12 +3011,11 @@ ipcMain.handle("clip:makeLightCopy", async (_, params = {}) => {
     logger.warn(logger.MODULES.system, `makeLightCopy failed: ${err.message}`);
     return { error: err.message };
   }
-});
+}
 
 // Deletes only the temp copies made above — the filename pattern is the guard,
 // so this can never be pointed at a real render.
-ipcMain.handle("clip:discardLightCopy", async (_, params = {}) => {
-  const target = params.path;
+function discardLightCopy(target) {
   if (!target || !/\.ig\d+\.mp4$/i.test(target)) return { error: "Not a light copy." };
   try {
     if (fs.existsSync(target)) fs.unlinkSync(target);
@@ -3020,7 +3023,11 @@ ipcMain.handle("clip:discardLightCopy", async (_, params = {}) => {
   } catch (err) {
     return { error: err.message };
   }
-});
+}
+
+ipcMain.handle("clip:makeLightCopy", async (_, params = {}) => makeLightCopy(params.videoPath, params.shortSide || LIGHT_COPY_SHORT_SIDE));
+
+ipcMain.handle("clip:discardLightCopy", async (_, params = {}) => discardLightCopy(params.path));
 
 ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
   try {
@@ -3505,24 +3512,68 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
     }
 
     const postCaption = caption || title || "";
-    const result = await instagramPublish.publishReel(
+    const onProgress = (progress) => { mainWindow?.webContents.send("instagram:publishProgress", progress); };
+    const attempt = (file, uploadAttempts) => instagramPublish.publishReel(
       accessToken,
       account.igAccountId,
-      videoPath,
-      { caption: postCaption, useIgGraph: isIgLogin },
-      (progress) => {
-        mainWindow?.webContents.send("instagram:publishProgress", progress);
-      }
+      file,
+      { caption: postCaption, useIgGraph: isIgLogin, uploadAttempts },
+      onProgress
     );
 
-    require("electron-log/main").scope("instagram").info("Publish success", { mediaId: result.mediaId });
+    // #189: Meta's upload endpoint gives itself ~35s to process a finished upload and
+    // cannot clear a long 1080p clip inside it. Resolution is the only input that moves
+    // the outcome — bitrate, frame rate, codec, edit lists and chunked upload were all
+    // measured against the live API and ruled out (#185). So a long clip spends ONE
+    // attempt on full quality rather than three (~1 min of known-failure instead of ~3)
+    // and then falls back to a 720p copy on its own. Short clips are untouched: full
+    // retry ladder, never downscaled.
+    const info = await ffmpeg.probe(videoPath).catch(() => null);
+    const sourceShortSide = info ? Math.min(info.width || 0, info.height || 0) : 0;
+    const canDownscale = sourceShortSide > LIGHT_COPY_SHORT_SIDE;
+    const isLongClip = (info?.duration || 0) > IG_LONG_CLIP_SEC;
+    const sourceLabel = info?.width && info?.height ? `${info.width}x${info.height}` : "full quality";
+
+    let result;
+    let lightPath = null;
+    let downscaled = false;
+    try {
+      result = await attempt(videoPath, canDownscale && isLongClip ? 1 : undefined);
+    } catch (err) {
+      // Only a processing-class failure is worth re-attempting smaller. Auth, account and
+      // permission errors reject a 720p copy identically, so the encode would be wasted.
+      if (!err.processingWall || !canDownscale) throw err;
+      require("electron-log/main").scope("instagram").warn("Falling back to a lighter copy", { from: sourceLabel, to: `${LIGHT_COPY_SHORT_SIDE}p`, error: err.message });
+      logger.warn(logger.MODULES.system, `Instagram refused ${sourceLabel} — retrying at ${LIGHT_COPY_SHORT_SIDE}p: ${path.basename(videoPath)}`);
+      publishLog.logPublish({ ...logBase, status: "failed", error: err.message, qualityNote: `${sourceLabel} — Instagram could not process it` });
+      onProgress({ stage: "retrying", pct: 10, detail: `Instagram couldn't process the full-size file — sending a ${LIGHT_COPY_SHORT_SIDE}p copy...` });
+
+      const copy = await makeLightCopy(videoPath, LIGHT_COPY_SHORT_SIDE);
+      if (copy.error) throw new Error(`${err.message} (the ${LIGHT_COPY_SHORT_SIDE}p fallback also failed: ${copy.error})`);
+      lightPath = copy.path;
+      downscaled = true;
+      try {
+        result = await attempt(lightPath, undefined);
+      } catch (err2) {
+        // Without this the surfaced message reads as a plain upload failure and hides
+        // the fact that the fallback already ran.
+        throw new Error(`Instagram refused both the ${sourceLabel} render and a ${LIGHT_COPY_SHORT_SIDE}p copy of it. (${err2.message})`);
+      }
+    } finally {
+      // The copy has served its purpose either way — its bytes are already uploaded on
+      // success, and on failure a stray .ig720.mp4 beside the render is just clutter.
+      if (lightPath) discardLightCopy(lightPath);
+    }
+
+    require("electron-log/main").scope("instagram").info("Publish success", { mediaId: result.mediaId, downscaled });
     publishLog.logPublish({
       ...logBase, status: "success",
       publishId: result.mediaId, postId: result.mediaId,
+      ...(downscaled ? { qualityNote: `${LIGHT_COPY_SHORT_SIDE}p copy — sent automatically after ${sourceLabel} was refused` } : {}),
       apiResponse: result,
     });
 
-    return { success: true, mediaId: result.mediaId, status: result.status };
+    return { success: true, mediaId: result.mediaId, status: result.status, downscaled, downscaledTo: downscaled ? `${LIGHT_COPY_SHORT_SIDE}p` : null };
   } catch (err) {
     require("electron-log/main").scope("instagram").error("Publish failed", { error: err.message });
     publishLog.logPublish({ ...logBase, status: "failed", error: err.message });
