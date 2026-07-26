@@ -6,6 +6,16 @@
 
 ---
 
+## 📋 APPROVED, NOT STARTED (session 129) — 720p copy button → **#187**
+
+Plan moved to [#187](https://github.com/Oghenefega/ClipFlow/issues/187) with full steps,
+file impact and verification criteria. Scope settled by Fega: **the button appears only
+after Instagram has failed**, never pre-emptively on long clips. Nothing automatic —
+a lighter copy only exists because of a click.
+
+Blocked on nothing. The real fix is [#186](https://github.com/Oghenefega/ClipFlow/issues/186)
+(hosted delivery), still an open decision.
+
 ## ✅ DONE (session 128) — Reorder sections on the timeline (#184)
 
 All five phases built and verified in the running app (dev profile, built renderer
