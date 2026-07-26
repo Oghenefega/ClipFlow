@@ -2976,14 +2976,10 @@ function renderOutputDir(outputFolder, projectData) {
 // a clip re-rendering onto its own file still overwrites in place.
 function resolveRenderOutputPath(outputFolder, clipData, projectData) {
   const dir = renderOutputDir(outputFolder, projectData);
-  const base = `${clipData.title || `clip_${clipData.id}`}`.replace(/[<>:"\/\\|?*]/g, "_");
-  let candidate = path.join(dir, `${base}.mp4`);
-  let n = 2;
-  while (fs.existsSync(candidate) && clipData.renderPath !== candidate) {
-    candidate = path.join(dir, `${base} (${n}).mp4`);
-    n++;
-  }
-  return candidate;
+  // #188: same sanitize + collision helpers the title-change rename uses, so a
+  // rendered name and a renamed name can never drift apart.
+  const base = projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`);
+  return projects.uniquePath(dir, base, ".mp4", clipData.renderPath);
 }
 
 ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
@@ -3010,7 +3006,9 @@ ipcMain.handle("thumbnail:capture", async (event, clipData, projectData, timelin
   try {
     const outputFolder = resolveTestAwareOutputFolder(projectData);
     if (!outputFolder) return { error: "Output folder not configured. Go to Settings." };
-    const fileName = `${clipData.title || `clip_${clipData.id}`}_thumbnail.png`.replace(/[<>:"\/\\|?*]/g, "_");
+    // #188: base must match what the title-change rename produces, or a retitle
+    // would orphan the PNG instead of moving it.
+    const fileName = `${projects.sanitizeFileBase(clipData.title || `clip_${clipData.id}`)}_thumbnail.png`;
     // #181: same per-project scoping as renders. No collision suffix here —
     // recapturing the same clip's screenshot should overwrite its own PNG.
     const outputPath = path.join(renderOutputDir(outputFolder, projectData), fileName);

@@ -20,6 +20,29 @@ function generateProjectId() {
 }
 
 /**
+ * Strip characters Windows won't accept in a filename.
+ * Shared with the render output path builder (main.js) so a file created by a
+ * render and a file renamed by a title change can never disagree (#188).
+ */
+function sanitizeFileBase(name) {
+  return String(name).replace(/[<>:"\/\\|?*]/g, "_");
+}
+
+/**
+ * First free path of the form `<dir>/<base><ext>`, suffixing " (2)", " (3)"…
+ * on collision. `ownPath` counts as free, so an asset can keep its own name.
+ */
+function uniquePath(dir, base, ext, ownPath) {
+  let candidate = path.join(dir, `${base}${ext}`);
+  let n = 2;
+  while (fs.existsSync(candidate) && candidate !== ownPath) {
+    candidate = path.join(dir, `${base} (${n})${ext}`);
+    n++;
+  }
+  return candidate;
+}
+
+/**
  * Generate a unique clip ID.
  */
 function generateClipId() {
@@ -232,10 +255,58 @@ function updateClip(watchFolder, projectId, clipId, updates) {
   const clipIndex = project.clips.findIndex((c) => c.id === clipId);
   if (clipIndex === -1) return { error: "Clip not found" };
 
-  project.clips[clipIndex] = { ...project.clips[clipIndex], ...updates };
+  const existing = project.clips[clipIndex];
+  const merged = { ...existing, ...updates };
+
+  // #188: render filenames are stamped from the title at the moment the render
+  // runs, so titling a clip afterwards left the file as "Clip 13.mp4" forever —
+  // nothing ever revisited the name. Keep the files following the title.
+  // Skipped when the caller is setting renderPath itself (a render finishing),
+  // since that path is authoritative and already title-derived.
+  const titleChanged =
+    typeof updates.title === "string" &&
+    updates.title.trim() &&
+    updates.title !== existing.title &&
+    updates.renderPath === undefined;
+  if (titleChanged) {
+    const base = sanitizeFileBase(updates.title.trim());
+    if (base) {
+      merged.renderPath = renameAssetTo(existing.renderPath, base);
+      merged.thumbnailPath = renameAssetTo(existing.thumbnailPath, `${base}_thumbnail`);
+    }
+  }
+
+  project.clips[clipIndex] = merged;
   saveProject(watchFolder, project);
 
-  return { success: true, clip: project.clips[clipIndex] };
+  return { success: true, clip: merged };
+}
+
+/**
+ * Rename a clip asset in place to `<newBase><its existing extension>`.
+ * Returns the new path, or the original path if the rename couldn't happen —
+ * a stale filename is cosmetic, a dangling renderPath breaks publishing.
+ */
+function renameAssetTo(currentPath, newBase) {
+  if (!currentPath) return currentPath;
+  let ext;
+  try {
+    if (!fs.existsSync(currentPath)) return currentPath;
+    ext = path.extname(currentPath);
+    if (path.basename(currentPath, ext) === newBase) return currentPath;
+  } catch (e) {
+    return currentPath;
+  }
+  const target = uniquePath(path.dirname(currentPath), newBase, ext, currentPath);
+  try {
+    fs.renameSync(currentPath, target);
+    return target;
+  } catch (e) {
+    // EBUSY: Windows locks the file while an upload streams it. EPERM/ENOENT:
+    // moved or removed underneath us. Either way, keep pointing at what works.
+    console.warn(`[projects] Could not rename ${path.basename(currentPath)}: ${e.message}`);
+    return currentPath;
+  }
 }
 
 /**
@@ -469,4 +540,6 @@ module.exports = {
   getClipsDir,
   getProjectsRoot,
   generateClipId,
+  sanitizeFileBase,
+  uniquePath,
 };
