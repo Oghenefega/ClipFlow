@@ -4,10 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-25 (session 129) — 0.3.0-alpha.16: Instagram upload retries instead of giving up (#185)
+## [Unreleased] — 2026-07-25 (session 129) — 0.3.0-alpha.16 and 0.3.0-alpha.17: Instagram upload limits (#185, #187, #188)
 
 ### Changed
-- **Version bumped 0.3.0-alpha.15 → 0.3.0-alpha.16 and the installer cut.** Alpha counter tick, as it will be from here on — the minor number does not move without Fega calling it.
+- **Two installers cut this session.** `0.3.0-alpha.16` carried the Instagram retry plus the render bitrate and audio changes; `0.3.0-alpha.17` carries the 720p button (#187) and the title-driven filenames (#188). Alpha counter ticks both times, as it will be from here on — the minor number does not move without Fega calling it.
 
 ### Added
 - **"Send IG a 720p copy" button on Instagram publish failures (#187).** Appears next to Retry Failed, and only when the platform that failed is Instagram — never pre-emptively on long clips, by explicit choice. One click makes a 720p copy of the render, publishes that to Instagram alone (leaving platforms that already succeeded untouched), and deletes the copy once the post lands. Renders stay 1080p and full quality is always attempted first; a lighter copy exists only because the button was pressed. The publish log records that a 720p copy shipped, so a post's real resolution is answerable later. Downscaling caps the *shorter* dimension rather than assuming 9:16, so it holds for the 8:9 canvas and for landscape. [ffmpeg.js, main.js, preload.js, QueueView.js]
