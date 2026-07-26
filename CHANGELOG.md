@@ -4,9 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-26 (session 130) — Instagram falls back to 720p on its own (#189)
+## [Unreleased] — 2026-07-26 (session 130) — 0.3.0-alpha.19: Instagram falls back to 720p on its own (#189)
 
 ### Changed
+- **Installer cut as `0.3.0-alpha.19`**, carrying the single change below. Cut on one change rather than the usual batch of ~10 because the fallback's success path can only be proven by a live Instagram post from the installed app — everything testable without one was already covered.
 - **The 720p switch is now automatic, and the "never quietly downscale" position recorded last session is formally reversed.** Fega's call: having to notice a failure and press a button is worse than the app handling it, provided every instance is recorded. The button from #187 stays as the escape hatch for when the automatic path itself fails. [main.js, instagram-publish.js, QueueView.js]
 - **Long clips now spend one attempt on full quality instead of three.** For clips over ~55s that are larger than 720p — the band Meta's ~35s processing wall makes unwinnable (#185) — the retry ladder is cut to a single try before the fallback takes over, turning roughly 3 minutes of known-failure into about 1. Clips under 55s are untouched: full three-attempt ladder, and they are never downscaled. [main.js, instagram-publish.js]
 
