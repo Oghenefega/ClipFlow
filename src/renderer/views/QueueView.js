@@ -968,18 +968,24 @@ export default function QueueView({
   };
 
   // Phase 4: Retry publishing only failed platforms for a clip
-  const retryFailed = async (clipId) => {
+  // opts (#187): { restrictToKey } retries a single platform instead of every
+  // failed one; { videoPath, qualityNote } publish a different file than the
+  // clip's render (the manual Instagram 720p copy) and record which one shipped.
+  const retryFailed = async (clipId, opts = {}) => {
     const clip = approved.find((c) => c.id === clipId);
     const ps = publishStatus[clipId];
-    if (!clip || !ps?.platforms) return;
+    if (!clip || !ps?.platforms) return { allSuccess: false };
     // #60: Hard-block publish for test clips.
     if (isClipTest(clip)) {
       setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first." } }));
-      return;
+      return { allSuccess: false };
     }
     publishingRef.current = true;
-    const failedKeys = Object.entries(ps.platforms).filter(([, st]) => st !== "done" && st !== "pending" && st !== "publishing").map(([k]) => k);
-    if (failedKeys.length === 0) { publishingRef.current = false; return; }
+    const failedKeys = Object.entries(ps.platforms)
+      .filter(([k, st]) => st !== "done" && st !== "pending" && st !== "publishing" && (!opts.restrictToKey || k === opts.restrictToKey))
+      .map(([k]) => k);
+    if (failedKeys.length === 0) { publishingRef.current = false; return { allSuccess: false }; }
+    const publishPath = opts.videoPath || clip.renderPath;
     setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing" } }));
     let nextPublishState = { ...(clip.publishState || {}) };
     let allSuccess = true;
@@ -997,7 +1003,7 @@ export default function QueueView({
         let result;
         if (plat.platform === "TikTok" && window.clipflow?.tiktokPublish) {
           result = await window.clipflow.tiktokPublish({
-            accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
+            accountId: plat.key, videoPath: publishPath, title: clip.title,
             caption, clipId: clip.id,
             postMode: platformOptions?.tiktokPostMode || "direct_post",
             isTest: isClipTest(clip),
@@ -1012,11 +1018,11 @@ export default function QueueView({
             },
           });
         } else if ((plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId)) && window.clipflow?.instagramPublish) {
-          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
+          result = await window.clipflow.instagramPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip), qualityNote: opts.qualityNote || "" });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
-          result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
+          result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
-          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: clip.renderPath, title: clip.title, caption, clipId: clip.id, tags: [], youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
+          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: [], youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
@@ -1062,6 +1068,47 @@ export default function QueueView({
         logPost(clip, localISO(now), FULL_DAY_NAMES[now.getDay()], now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), false);
       }
     }
+    return { allSuccess };
+  };
+
+  // #187: true only when a *failed* platform is Instagram — the 720p button is
+  // scoped to the one platform that needs it, and never appears pre-emptively.
+  const hasFailedInstagram = (clipId) => {
+    const ps = publishStatus[clipId];
+    if (!ps?.platforms) return false;
+    return Object.entries(ps.platforms).some(([k, st]) => {
+      if (st === "done" || st === "pending" || st === "publishing") return false;
+      const plat = activePlat.find((p) => p.key === k);
+      return plat && (plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId));
+    });
+  };
+
+  // #187: manual, click-only Instagram fallback. Meta's upload endpoint can't
+  // process a 1080p clip over ~55s inside its own ~35s processing timeout, and
+  // resolution is the only lever that moves it (bitrate, frame rate, codec and
+  // chunked upload were all measured and ruled out — see #185/#186). Renders stay
+  // 1080p and full quality is always attempted first; this exists only because
+  // Fega clicked it, and the lighter copy is deleted once the post lands.
+  const sendInstagramLightCopy = async (clipId) => {
+    const clip = approved.find((c) => c.id === clipId);
+    const ps = publishStatus[clipId];
+    if (!clip || !ps?.platforms || publishingRef.current) return;
+    const igKey = Object.entries(ps.platforms).find(([k, st]) => {
+      if (st === "done" || st === "pending" || st === "publishing") return false;
+      const plat = activePlat.find((p) => p.key === k);
+      return plat && (plat.platform === "Instagram" || (plat.platform === "Meta" && plat.igAccountId));
+    })?.[0];
+    if (!igKey) return;
+
+    setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "publishing", platforms: { ...prev[clipId].platforms, [igKey]: "publishing" } } }));
+    const made = await window.clipflow?.makeLightCopy({ videoPath: clip.renderPath, shortSide: 720 });
+    if (!made || made.error) {
+      setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], state: "failed", platforms: { ...prev[clipId].platforms, [igKey]: made?.error || "Could not make a 720p copy" } } }));
+      return;
+    }
+    const { allSuccess } = await retryFailed(clipId, { restrictToKey: igKey, videoPath: made.path, qualityNote: "720p copy" });
+    // Keep the copy on failure so it can be inspected; it's temp either way.
+    if (allSuccess) await window.clipflow?.discardLightCopy({ path: made.path });
   };
 
   // Phase 4: Open confirmation modal before publishing
@@ -1993,7 +2040,10 @@ export default function QueueView({
                             )}
                             {/* Phase 4: Retry failed */}
                             {isFailed && (
-                              <button onClick={() => retryFailed(clip.id)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Retry Failed</button>
+                              <>
+                                <button onClick={() => retryFailed(clip.id)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Retry Failed</button>
+                                {hasFailedInstagram(clip.id) && <button onClick={() => sendInstagramLightCopy(clip.id)} title="Instagram cannot process long 1080p clips. This sends it a 720p copy — your render stays 1080p." style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.borderLight}`, background: T.bgInput, color: T.textDim, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Send IG a 720p copy</button>}
+                              </>
                             )}
                             <div style={{ flex: 1 }} />
                             {schedAction !== "schedule" && !clip.scheduledAt && (
@@ -2163,6 +2213,7 @@ export default function QueueView({
                         >Remove</button>
                         <button onClick={() => unscheduleClip(clip)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Unschedule</button>
                         {isFailed && <button onClick={() => retryFailed(clip.id)} style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Retry Failed</button>}
+                        {hasFailedInstagram(clip.id) && <button onClick={() => sendInstagramLightCopy(clip.id)} title="Instagram cannot process long 1080p clips. This sends it a 720p copy — your render stays 1080p." style={{ padding: "7px 14px", borderRadius: 7, border: `1px solid ${T.borderLight}`, background: T.bgInput, color: T.textDim, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Send IG a 720p copy</button>}
                         <div style={{ flex: 1 }} />
                         {!isPub && !isPublishing && (() => {
                           const tikBlock = getTiktokBlockReason(clip);

@@ -250,6 +250,9 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Instagram publishing
   instagramPublish: (params) => ipcRenderer.invoke("instagram:publish", params),
+  // #187: manual Instagram 720p fallback — button-triggered only.
+  makeLightCopy: (params) => ipcRenderer.invoke("clip:makeLightCopy", params),
+  discardLightCopy: (params) => ipcRenderer.invoke("clip:discardLightCopy", params),
   onInstagramPublishProgress: (callback) => {
     ipcRenderer.on("instagram:publishProgress", (_, data) => callback(data));
   },

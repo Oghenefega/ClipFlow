@@ -1,4 +1,4 @@
-const { execFile } = require("child_process");
+const { execFile, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -98,6 +98,49 @@ function buildEncoderArgs(encoder) {
   // render doesn't silently produce a file twice the size of a GPU one; crf 18
   // still drives quality, the cap only binds on motion-saturated stretches.
   return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-maxrate", "10M", "-bufsize", "20M"];
+}
+
+/**
+ * Write a lower-resolution copy of an already-rendered clip (#187).
+ *
+ * Only ever called from the manual "Send IG a 720p copy" button. Instagram's
+ * upload endpoint cannot process a 1080p clip over ~55s inside its own ~35s
+ * processing window, and resolution is the only input that changes the outcome —
+ * bitrate (18 → 1.8 Mbps), frame rate, codec, edit lists and chunked upload were
+ * all measured against the live API and ruled out (#185).
+ *
+ * Caps the SHORTER dimension so it stays aspect-agnostic: portrait 1080x1920
+ * becomes 720x1280, and a landscape or 8:9 source scales correctly rather than
+ * being squashed into a hardcoded 9:16 box.
+ *
+ * @param {string} videoPath
+ * @param {string} outPath
+ * @param {object} [opts] - { shortSide = 720, encoder = "x264" }
+ * @returns {Promise<{success: true, path: string}>}
+ */
+function transcodeCopy(videoPath, outPath, opts = {}) {
+  const { shortSide = 720, encoder = "x264" } = opts;
+  return new Promise((resolve, reject) => {
+    const scale = `scale='if(gt(iw,ih),-2,${shortSide})':'if(gt(iw,ih),${shortSide},-2)'`;
+    const args = [
+      "-y",
+      "-i", videoPath,
+      "-vf", scale,
+      ...buildEncoderArgs(encoder),
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      outPath,
+    ];
+    const proc = spawn("ffmpeg", args);
+    let stderrTail = "";
+    proc.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-2000); });
+    proc.on("error", (e) => reject(new Error(`ffmpeg failed to start: ${e.message}`)));
+    proc.on("close", (code) => {
+      if (code === 0 && fs.existsSync(outPath)) return resolve({ success: true, path: outPath });
+      reject(new Error(`Transcode failed (exit ${code}): ${stderrTail.slice(-300)}`));
+    });
+  });
 }
 
 /**
@@ -683,6 +726,7 @@ module.exports = {
   checkNvenc,
   resolveEncoder,
   buildEncoderArgs,
+  transcodeCopy,
   probe,
   probeAudioTracks,
   extractTrackSample,

@@ -2982,6 +2982,46 @@ function resolveRenderOutputPath(outputFolder, clipData, projectData) {
   return projects.uniquePath(dir, base, ".mp4", clipData.renderPath);
 }
 
+// #187: manual Instagram fallback — write a lighter copy of an existing render.
+// Never called automatically; the renderer only invokes this from a button that
+// appears after Instagram has already refused the clip. The copy is temporary
+// and discarded by clip:discardLightCopy once the post lands.
+ipcMain.handle("clip:makeLightCopy", async (_, params = {}) => {
+  const { videoPath, shortSide = 720 } = params;
+  try {
+    if (!videoPath || !fs.existsSync(videoPath)) {
+      return { error: "Rendered file not found — re-render the clip first." };
+    }
+    const info = await ffmpeg.probe(videoPath);
+    const currentShort = Math.min(info.width || 0, info.height || 0);
+    if (!currentShort) return { error: "Could not read the video's dimensions." };
+    if (currentShort <= shortSide) {
+      return { error: `This clip is already ${info.width}x${info.height} — a smaller copy wouldn't help.` };
+    }
+    const outPath = videoPath.replace(/\.mp4$/i, `.ig${shortSide}.mp4`);
+    const encoder = await resolveClipCutEncoder();
+    logger.info(logger.MODULES.system, `Making ${shortSide}p copy for Instagram: ${path.basename(videoPath)}`);
+    await ffmpeg.transcodeCopy(videoPath, outPath, { shortSide, encoder });
+    return { success: true, path: outPath };
+  } catch (err) {
+    logger.warn(logger.MODULES.system, `makeLightCopy failed: ${err.message}`);
+    return { error: err.message };
+  }
+});
+
+// Deletes only the temp copies made above — the filename pattern is the guard,
+// so this can never be pointed at a real render.
+ipcMain.handle("clip:discardLightCopy", async (_, params = {}) => {
+  const target = params.path;
+  if (!target || !/\.ig\d+\.mp4$/i.test(target)) return { error: "Not a light copy." };
+  try {
+    if (fs.existsSync(target)) fs.unlinkSync(target);
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle("render:clip", async (event, clipData, projectData, outputPath, options) => {
   try {
     // Determine output path if not provided
@@ -3393,8 +3433,10 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 
 // ── Instagram Content Publishing ──
 
-ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath };
+ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, qualityNote }) => {
+  // #187: qualityNote records when a lighter copy shipped instead of the render,
+  // so a post's actual resolution is answerable later without guessing.
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath, ...(qualityNote ? { qualityNote } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
