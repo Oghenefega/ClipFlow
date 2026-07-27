@@ -22,10 +22,11 @@ const DEFAULT_CREATOR_PROFILE = {
  * @param {string} opts.gameName - Game display name
  * @param {string} opts.gameContext - AI-researched game description
  * @param {Array} opts.approvedClips - Approved clips from feedback.db
+ * @param {Array} [opts.rejectedClips] - Rejected clips from feedback.db (negative calibration, #191)
  * @param {object} [opts.creatorProfile] - Creator profile (falls back to DEFAULT_CREATOR_PROFILE)
  * @returns {string} Full system prompt
  */
-function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, creatorProfile }) {
+function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, rejectedClips, creatorProfile }) {
   const creator = creatorProfile || DEFAULT_CREATOR_PROFILE;
   const sections = [];
 
@@ -157,6 +158,12 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
     sections.push(fewShotSection);
   }
 
+  // ── Section 8: Rejected Moments (negative calibration, #191) ──
+  const rejectedSection = buildRejectedSection(rejectedClips);
+  if (rejectedSection) {
+    sections.push(rejectedSection);
+  }
+
   return sections.join("\n\n---\n\n");
 }
 
@@ -172,6 +179,56 @@ function getArchetypePersonality(archetype) {
     variety: "Balanced gaming content mixing action, humor, and commentary. Values both high-energy moments and interesting observations. Adaptable tone that matches the moment.",
   };
   return personalities[archetype] || personalities.variety;
+}
+
+// ── Few-shot snippet formatting (#191) ──
+// Real clips are shown as quoted transcript snippets — what was actually being
+// said is the field that carries taste. Cross-video timestamps taught nothing
+// and are gone. Approved + rejected sections share a combined ~6k char budget.
+const SNIPPET_MAX_CHARS = 180;
+const SECTION_CHAR_BUDGET = 3000; // per section; two sections ≈ 6k combined
+
+/**
+ * Collapse whitespace and truncate at a word boundary — never mid-word.
+ */
+function truncateSnippet(text, max = SNIPPET_MAX_CHARS) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.lastIndexOf(" ", max);
+  return (cut > 0 ? clean.slice(0, cut) : clean.slice(0, max)) + "…";
+}
+
+/**
+ * Format one real feedback row as a snippet entry. Returns "" when the row
+ * has nothing usable (legacy rows with empty transcript_segment and no note).
+ */
+function formatRealClipEntry(clip, { withNote = false } = {}) {
+  const snippet = truncateSnippet(clip.transcript_segment);
+  const note = withNote ? String(clip.user_note || "").trim() : "";
+  if (!snippet && !note) return "";
+  let entry = "";
+  if (snippet) entry += `\n- "${snippet}"`;
+  else entry += `\n- ${clip.title || "(untitled)"}`;
+  if (snippet) entry += `\n  Title: ${clip.title || "(untitled)"}`;
+  entry += `\n  Energy: ${clip.energy_level || "unknown"}`;
+  if (note) entry += `\n  Creator's note: ${note}`;
+  return entry;
+}
+
+/**
+ * Format rows into entries, stopping when the section budget is spent.
+ */
+function formatEntriesWithinBudget(clips, opts) {
+  const entries = [];
+  let used = 0;
+  for (const clip of clips) {
+    const entry = formatRealClipEntry(clip, opts);
+    if (!entry) continue;
+    if (used + entry.length > SECTION_CHAR_BUDGET) break;
+    entries.push(entry);
+    used += entry.length;
+  }
+  return entries;
 }
 
 /**
@@ -191,7 +248,9 @@ function buildFewShotSection(approvedClips, archetype) {
 
   // Tier 3: 20+ real clips — only real data, no static examples
   if (realCount >= 20) {
-    return formatRealClipsSection(realClips.slice(0, 20));
+    const entries = formatEntriesWithinBudget(realClips);
+    if (entries.length > 0) return approvedSectionHeader() + entries.join("");
+    // All rows unusable (no snippets at all) — fall through to static blending
   }
 
   // Get static archetype examples for Tier 1 and Tier 2
@@ -211,19 +270,11 @@ These examples show the expected output format, timestamp boundaries, and narrat
 
   // Tier 2: 1-19 real clips — blend real + static to reach minimum 5
   const MIN_EXAMPLES = 5;
-  const staticNeeded = Math.max(0, MIN_EXAMPLES - realCount);
+  const entries = formatEntriesWithinBudget(realClips);
+  const staticNeeded = Math.max(0, MIN_EXAMPLES - entries.length);
   const staticToUse = staticExamples.slice(0, staticNeeded);
 
-  let section = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
-
-Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
-
-  // Real clips first (they take priority)
-  for (const clip of realClips.slice(0, 20)) {
-    section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
-    section += `\n  Title: ${clip.title || "(untitled)"}`;
-    section += `\n  Energy: ${clip.energy_level || "unknown"}`;
-  }
+  let section = approvedSectionHeader() + entries.join("");
 
   // Pad with static examples if needed
   if (staticToUse.length > 0) {
@@ -236,19 +287,26 @@ Use these as calibration for this creator's taste. Prioritize similar moments.\n
   return section;
 }
 
-/**
- * Format a real approved clips section (Tier 3).
- */
-function formatRealClipsSection(clips) {
-  let section = `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
+function approvedSectionHeader() {
+  return `# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED
 
-Use these as calibration for this creator's taste. Prioritize similar moments.\n`;
-  for (const clip of clips) {
-    section += `\n- Timestamp: ${clip.clip_start} > ${clip.clip_end}`;
-    section += `\n  Title: ${clip.title || "(untitled)"}`;
-    section += `\n  Energy: ${clip.energy_level || "unknown"}`;
-  }
-  return section;
+Each example quotes what was being said during a clip this creator approved. Use them as calibration for this creator's taste — prioritize moments with similar energy, humor, and subject matter. The quotes come from other videos; do not look for these exact words or reuse them for this video.\n`;
+}
+
+/**
+ * Build the rejected-moments section (#191). Negative calibration: moments a
+ * previous run clipped and the creator threw away. Returns null when the game
+ * has no usable rejections so the section is omitted cleanly.
+ *
+ * @param {Array|null} rejectedClips - Rejected clips from feedback DB
+ * @returns {string|null}
+ */
+function buildRejectedSection(rejectedClips) {
+  const entries = formatEntriesWithinBudget(rejectedClips || [], { withNote: true });
+  if (entries.length === 0) return null;
+  return `# MOMENTS THIS CREATOR REJECTED
+
+These moments were picked by a previous run and this creator rejected them. Treat them as negative calibration — do NOT pick moments like these. Where a creator's note is present, it is the rejection reason in their own words.\n` + entries.join("");
 }
 
 /**
@@ -458,4 +516,8 @@ module.exports = {
   parseTimestamp,
   formatTimestamp,
   DEFAULT_CREATOR_PROFILE,
+  // exported for unit tests (#191)
+  buildFewShotSection,
+  buildRejectedSection,
+  truncateSnippet,
 };

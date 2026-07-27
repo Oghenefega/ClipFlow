@@ -649,8 +649,10 @@ async function runAIPipeline({
     // Get game context (AI-researched description from game library)
     const gameContext = gameEntry?.aiContext || "";
 
-    // Get few-shot examples from feedback DB
+    // Get few-shot examples from feedback DB — approved for taste calibration,
+    // rejected for negative calibration (#191)
     const approvedClips = feedback.getApprovedClips(gameData.gameTag, 20);
+    const rejectedClips = feedback.getRejectedClips(gameData.gameTag, 15);
 
     const systemPrompt = aiPrompt.buildSystemPrompt({
       gameTag: gameData.gameTag,
@@ -658,8 +660,16 @@ async function runAIPipeline({
       gameContext,
       entryType,
       approvedClips,
+      rejectedClips,
       creatorProfile,
     });
+
+    // Persist the exact prompt for this run next to claude_ready.txt (#191)
+    try {
+      fs.writeFileSync(path.join(processingDir, "claude", `${videoName}.system_prompt.txt`), systemPrompt, "utf-8");
+    } catch (e) {
+      logger.info(`Could not write system prompt file: ${e.message}`);
+    }
 
     const userContent = aiPrompt.buildUserContent({
       claudeReadyText,

@@ -1,56 +1,71 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-26 — Session 130 — **Instagram now falls back to 720p by itself when the full-size render is refused. Shipped as 0.3.0-alpha.19.**_
+_Last updated: 2026-07-26 — Session 131 — **The feedback loop is finally plugged in: detection prompt learns from rejections (#191), playstyle updater mines kept clips instead of raw transcripts (#192).**_
 
 ---
 
 ## One-line TL;DR
 
-Fega reversed a decision he'd made the day before: the 720p Instagram fallback from #187 shouldn't need a button press, it should happen automatically — on the condition that every occurrence is recorded so he stays aware of it. Built as **#189**, entirely inside the publish handler so manual publishing, Retry Failed and the auto-fire scheduler all inherit it. Cut as **0.3.0-alpha.19** because the one remaining unverified piece — a real long clip failing at 1080p and landing at 720p — can only be proven from the installed app.
+Both learning-loop issues built and closed (`status: untested`). The detection prompt now shows the model quoted transcript snippets of what Fega approved AND a "moments this creator rejected" section (149 rejections had never been used); the playstyle updater mines approved feedback rows + published title/caption rounds from the DB instead of raw session transcripts, so chat asides like the church play can never again become "content strategy." No installer cut — rides in the next batch.
 
 ## Current State
 
-**0.3.0-alpha.19** built and pushed — `dist\ClipFlow Setup 0.3.0-alpha.19.exe` (124 MB, 17:38). **Not yet installed or confirmed by Fega.**
-
-Cut on a single change rather than the usual batch of ~10, deliberately and with that stated: everything testable without a live Instagram post was already covered, and the remaining gap needs the daily driver.
-
-Open: **#189** (built, awaiting a live post), **#186** (a decision, not a task), **#187** superseded by #189 but its button retained, **#188** shipped-untested.
+- **#191 and #192 closed with `status: untested`** — code verified headless against real data, but no real pipeline run has flowed through yet. Fega confirms on his next generate.
+- **No version bump, no installer.** Daily driver remains `0.3.0-alpha.19`. These changes reach Fega on the next `npm run build` + reinstall (batch rule).
+- **46 unit-test assertions added** — `node src/main/ai-prompt.test.js` (31) and `node src/main/game-profiles.test.js` (15), plain-node runners in the segmentWords.test.js style (electron stubbed via `Module._load`).
+- Renderer untouched. Build clean, source boot clean (dev profile).
 
 ## What Was Just Built
 
-**#189 — automatic 720p fallback for Instagram** — `src/main/main.js`, `src/main/oauth/instagram-publish.js`, `src/renderer/views/QueueView.js`
+**#191 — detection prompt learns from rejections and real snippets** — `src/main/ai-prompt.js`, `src/main/ai-pipeline.js`
 
-- **The fallback itself.** Instagram refuses the full-size render → ClipFlow writes a 720p copy, publishes that, deletes the copy. Lives in the `instagram:publish` handler rather than the queue UI, so every caller inherits it without duplicated logic. Renders on disk are never touched; full quality is always attempted first.
-- **Long clips fail faster.** Clips over ~55s that are larger than 720p get **one** full-quality attempt instead of three (`uploadAttempts` option on `publishReel`), cutting ~3 minutes of known-failure to ~1. Clips under 55s are completely untouched — full three-attempt ladder, never downscaled.
-- **Gated on a `processingWall` tag** set at the specific failures a smaller file can actually fix (the rupload processing failure, a poll `status_code === "ERROR"`, a poll timeout). Auth/account/permission errors don't carry it and fail fast without a wasted encode.
-- **Three records, since Fega is no longer the one clicking.** A persisted `720p` chip beside the Instagram checkmark on the queue card (`clip.downscaledPosts`, keyed by account key); both halves of the exchange in the Publish Log via `qualityNote`; a `logger.warn` line at the moment of the switch.
-- **The live upload status line is finally rendered.** `publishProgress` had been collected from all four platforms since publishing was built and displayed nowhere. It now shows under the per-platform list while publishing — which is where the 720p switch announces itself as it happens.
-- **Auth errors stopped lying.** "Could not process this clip after N attempts — long clips at 1080p are the usual cause" was being applied to every failure that exhausted the retry loop, including OAuth errors. That wording is now reserved for genuine processing failures.
+- Approved examples rebuilt around quoted `transcript_segment` snippets (~180 chars, word-boundary truncation, never mid-word) + title + energy. Cross-video timestamps removed from real examples.
+- New Section 8 `# MOMENTS THIS CREATOR REJECTED` — up to 15 rejected clips as snippets, `user_note` verbatim when present, framed as "do NOT pick moments like these." Omitted cleanly when a game has zero rejections.
+- Pipeline fetches `feedback.getRejectedClips(gameTag, 15)` (previously zero callers) alongside the approved 20.
+- Budget: `SECTION_CHAR_BUDGET = 3000` per section (~6k combined); entries dropped oldest-last once spent.
+- Tier 1/2/3 archetype blending unchanged; static examples keep their Timestamp format (structural refs only).
+- **Every run now writes its exact system prompt** to `processing/claude/<video>.system_prompt.txt`.
+
+**#192 — playstyle updater mines kept clips** — `src/main/game-profiles.js`, `src/main/title-caption-log.js`, `src/main/main.js`
+
+- `gameProfiles.generateProfileUpdate(gameTag, {creatorName})` — new home for the whole flow; the IPC handler in main.js is now 4 lines. Result shape unchanged (`{success, oldProfile, newProfile, gameName}`), diff card untouched.
+- Sources: `feedback.getApprovedClips(tag, 30)` + new `titleCaptionLog.getPublishedRounds(tag, gameName, 30)`. The rounds query matches the free-form `game` column (`"rl"`, `"rocketleague"`, `"Rocket League"`) case-insensitively with spaces stripped.
+- New prompt: pattern must appear in ≥2 kept clips, one-off asides banned outright, 150-300 words with a consolidate-don't-append clause (added after the first live run came back at 469 words; second run: 294).
+- Thin-data guard: <5 kept datapoints → `{success: false, skipped: "thin-data", note, oldProfile === newProfile}` — no LLM call, no diff card, profile untouched.
+- `getRecentTranscripts` deleted (single caller was this handler). Rejected snippets deliberately NOT fed to the playstyle prompt (spec said MAY; omitting guarantees polluted source text can't leak in).
+
+## Verification Evidence (headless, real data)
+
+Harness: `scratchpad/verify-harness.js` run via `CLIPFLOW_PROFILE=dev npx electron <path>` after copying the **prod appdata DB** (`%APPDATA%\clipflow\data\clipflow.db`) into the dev profile. Evidence files in the session scratchpad `evidence/` dir; key results:
+
+- RL detection prompt: both sections present, 11 approved + 15 rejected snippets, zero `Timestamp:` lines among real clips. The church-play snippet sits in the REJECTED section — exactly where it teaches.
+- RL playstyle regen via the real `generateProfileUpdate`: 294 words, **zero church/jesus/acting references** (regex-verified), patterns clearly multi-clip.
+- Valorant (0 kept clips): thin-data skip, old === new, no API call.
 
 ## Key Decisions
 
-1. **Automatic downscaling, reversing the position recorded one session earlier.** Session 129's changelog says outright: "ClipFlow will not quietly post a lower-resolution copy than what was rendered." Fega reversed it himself. The condition he attached was awareness, which is what the three records above are for. **Do not "restore" manual-only behaviour on the strength of the older note.**
-2. **One full-quality attempt on long clips, not zero and not three.** Offered him three options; he picked the middle. Zero would mean never discovering if Meta fixes the wall; three is ~3 minutes of guaranteed failure on every long clip.
-3. **The #187 button stays** as the escape hatch for when the automatic path itself fails. It will rarely appear now.
-4. **The fallback lives in the main process, not the renderer.** The alternative was duplicating it into both `publishClip` and `retryFailed`; putting it in the handler also means the publish log gets both entries for free.
-5. **Installer cut on one change**, against the usual batch-of-10 rule, because the success path is only provable from the installed app.
+1. **Thin-data guard returns `success: false`** so the diff card doesn't pop with identical old/new text. The renderer only renders the card on `success` — sparse games silently skip. Session count is NOT reset on skip, so it re-checks next threshold hit (no LLM cost either way).
+2. **Playstyle generation moved into game-profiles.js** rather than staying inline in main.js — needed a real, callable production function for headless verification and unit tests. Handler is a thin delegate.
+3. **Rejected-as-contrast omitted from the playstyle prompt** (issue said MAY). Guarantees the church-play text physically cannot reach the profile generator.
+4. **Word-count enforcement via prompt rule**, not truncation — the model consolidates; code never cuts profile text.
 
 ## Next Steps
 
-1. **Install `0.3.0-alpha.19` and publish a >55s clip to Instagram.** Expected: one failed full-quality attempt (~1 min), the status line announcing the switch, the post landing, a `720p` chip on the card, two Publish Log entries, and no leftover `.ig720.mp4` beside the render. That closes #189.
-2. **#186 still needs Fega's decision** — hosted delivery (hand Instagram a `video_url`) is the only route that removes the limit rather than working around it. It trades against the local-first design, so it's his call, not mine.
-3. #187 and #188 remain shipped-untested; fold their confirmation into the same install.
+1. **Next real pipeline run**: confirm `processing/claude/<video>.system_prompt.txt` appears and the run feels better-calibrated. Remove `status: untested` from #191 when Fega confirms.
+2. **Next playstyle threshold trigger**: confirm the diff card still renders and the new profile reads clean. Remove `status: untested` from #192.
+3. Installer batch is accumulating (this session = 2 changes since alpha.19). Cut when ~10 or on ask.
 
 ## Watch Out For
 
-- **`downscaledPosts` is keyed by ACCOUNT key** (`plat.key`, e.g. `ig_178414…`), not the platform key from `accountToPlatformKey`. It has to match `ps.platforms`, which the results panel iterates. Mixing the two silently hides the badge.
-- **The `finally` deletes the light copy on both paths.** If a future change needs the 720p file kept for inspection after a failure, that's the line to touch — but a stray `.ig720.mp4` sits in the render folder, where `projects.js` rename logic walks.
-- **`transcodeCopy` has `encoder = "x264"` as a default parameter** (`ffmpeg.js:122`). Inert today because the only caller passes the resolved encoder, but a future caller that forgets would silently drop to CPU. Fega's `clipCutEncoder` is `"gpu"` and his ffmpeg has `h264_nvenc`, so all three encode paths are NVENC today.
-- **Don't seed fixtures into `W:` project files.** The dev profile shares the real project tree, and the daily driver is usually open. Session 130's verification used an isolated scratchpad `projectsRoot` plus a fake connected platform in the dev settings, with both dev stores backed up and restored afterwards.
+- **The repo `data/clipflow.db` is STALE** (64 feedback rows, no `title_caption_rounds` table). Real data lives in `%APPDATA%\clipflow\data\clipflow.db` (packaged app). Source-run prod (`npm start`) reads the stale repo copy — measured counts must come from the appdata DB.
+- **`title_caption_rounds.game` is free-form** — any new query against it must normalize (lower + strip spaces) like `getPublishedRounds` does, or it silently drops rows.
+- **`npm start` exits 0 immediately when the daily driver is running** (single-instance lock, shared prod profile). Boot-verify with `CLIPFLOW_PROFILE=dev npx electron .` instead — separate lock, still loads `build/`.
+- The two prompt test files stub electron via `Module._load` intercept — they must keep running under plain `node`, don't convert them to require real electron.
+- Backups made this session: `%APPDATA%\clipflow-dev\data\clipflow.db.bak-s131` and `game_profiles.json.bak-s131` (dev DB was overwritten with a prod snapshot for verification — that's the sanctioned direction, but the dev profile now mirrors prod data as of tonight).
 
-## Logs/Debugging
+## Logs / Debugging
 
-- **The switch logs twice**: `electron-log` scope `instagram` → `Falling back to a lighter copy { from, to, error }`, and the app logger → `Instagram refused <WxH> — retrying at 720p: <file>`. Both in `%APPDATA%\clipflow\logs\`.
-- **If the 720p copy is refused too**, the surfaced error reads "Instagram refused both the <WxH> render and a 720p copy of it. (…)" — deliberately, so it can't be mistaken for a plain upload failure.
-- **Verification harnesses** in the session scratchpad (`12402b58…`): `ig189-test.js` (9 assertions against the live Graph API — bogus token, so nothing is uploaded), `ig189-classify-test.js` (13 assertions with `https.request` stubbed, covering both the tagged and untagged branches), `cdp.js` / `shot.js` (CDP evaluator + screenshot).
-- **Computer-use input was blocked all session** by a foreground PowerToys Mouse-Without-Borders helper — screenshots worked, clicks didn't. CDP with `--remote-debugging-port=9222` was the way through; see memory `project_cdp_verification_gotchas` gotcha 16.
+- Headless harness output: session scratchpad `evidence/RL.system_prompt.txt` (the logged prompt) and `evidence/RL-playstyle-regen.json` (full regen result).
+- Dev-profile app log: `%APPDATA%\clipflow-dev\logs\main.log` — clean boot at 22:27 (`App started 0.3.0-alpha.19`, schema v5, backfill 0 inserted).
+- Anthropic calls went through the CF gateway (BYOK) — two calls this session (first regen 469 words, second 294 after the consolidate clause).
+- Unit tests: `node src/main/ai-prompt.test.js && node src/main/game-profiles.test.js` — 46/46 green.

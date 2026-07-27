@@ -2247,60 +2247,11 @@ ipcMain.handle("gameProfiles:resetCount", async (_, gameTag) => {
   return { success: true };
 });
 
+// #192: mines kept clips (approved feedback + published rounds) from the DB —
+// never raw session transcripts. Works with all project folders deleted.
 ipcMain.handle("gameProfiles:generateUpdate", async (_, gameTag) => {
-  const profile = gameProfiles.getProfile(gameTag);
-  if (!profile) return { error: `No profile found for ${gameTag}` };
-
-  const watchFolder = libraryRoot(); // transcripts are read from library projects
-  if (!watchFolder) return { error: "Watch folder not set." };
-
-  const transcripts = gameProfiles.getRecentTranscripts(watchFolder, gameTag, 10);
-  if (transcripts.length === 0) return { error: "No recent transcripts found for this game." };
-
-  const transcriptBlock = transcripts.map((t, i) =>
-    `--- Session ${i + 1}: ${t.projectName} ---\n${t.transcript}`
-  ).join("\n\n");
-
-  const systemPrompt = `You are analyzing a gaming content creator's recent gameplay sessions to update their play style profile. The creator's name is Fega.
-
-Your task: Based on the recent transcripts below, write an updated play style profile for this game. The profile should describe HOW Fega plays this specific game — his patterns, humor style, recurring phrases, emotional reactions, and content style.
-
-Rules:
-- Write in third person ("Fega does X", not "You do X")
-- Focus on patterns that repeat across sessions
-- Include specific phrases or catchphrases you notice
-- Note gameplay style (aggressive, cautious, chaotic, etc.)
-- Note content style (comedic, competitive, educational, etc.)
-- Keep it concise but thorough — 150-300 words
-- If the current profile is good and the transcripts don't reveal anything new, return the current profile unchanged
-- Output ONLY the profile text, no headers or explanations`;
-
-  const userMessage = `Game: ${profile.gameName} (${gameTag})
-
-CURRENT PLAY STYLE PROFILE:
-${profile.playStyle || "(empty — no profile yet)"}
-
-RECENT SESSION TRANSCRIPTS (${transcripts.length} sessions):
-${transcriptBlock}
-
-Write the updated play style profile:`;
-
-  try {
-    const provider = llmProvider.getProvider();
-    const { text } = await provider.chat({
-      model: provider.defaultModel,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-      maxTokens: 1000,
-    });
-
-    const newProfile = (text || "").trim();
-    if (!newProfile) return { error: "Empty response from LLM provider" };
-
-    return { success: true, oldProfile: profile.playStyle || "", newProfile, gameName: profile.gameName };
-  } catch (err) {
-    return { error: err.message || "Failed to generate profile update" };
-  }
+  const creatorName = (store.get("creatorProfile") || {}).name;
+  return gameProfiles.generateProfileUpdate(gameTag, { creatorName });
 });
 
 // ============ PIPELINE LOGS ============

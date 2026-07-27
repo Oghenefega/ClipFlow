@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-26 (session 131) — Detection prompt learns from rejections; playstyle mines kept clips (#191, #192)
+
+### Changed
+- **The detection prompt's approved examples now show what was actually said, not timestamps from other videos (#191).** Each approved clip appears as a quoted transcript snippet (word-boundary truncated at ~180 chars) with its title and energy level. The old `Timestamp: 00:41:12 > 00:42:03` format — meaningless coordinates from a different recording — is gone from real examples. The static archetype examples used during cold start are unchanged, structural references only. [ai-prompt.js]
+- **The playstyle updater now mines kept clips from the database instead of raw session transcripts (#192).** Approved feedback rows (transcript snippet, title, note) and published title/caption rounds (shipped title, clip transcript) replace the last 10 full session transcripts — so chat banter and one-off asides can no longer become "content strategy" (the church-play incident, 2026-07-25). The new prompt requires a pattern to appear in at least 2 kept clips before it can be stated and bans one-off conversational asides outright. Regenerated the Rocket League profile against real data as proof: 294 words, zero reference to the church-play conversation. The old/new diff card flow is untouched. Learning now survives deleting project folders entirely — it reads only the DB. [game-profiles.js, title-caption-log.js, main.js]
+
+### Added
+- **Rejections finally reach the detection model (#191).** A new "MOMENTS THIS CREATOR REJECTED" prompt section shows up to 15 rejected clips as quoted snippets — negative calibration, framed as "do not pick moments like these" — with the creator's rejection note verbatim when one was typed. The 149 rejections logged since feedback began had never been shown to the model. Approved and rejected sections share a ~6k character budget; the rejected section is omitted cleanly for games with no rejections, and the two legacy rows with empty snippets are skipped without crashing. [ai-prompt.js, ai-pipeline.js]
+- **Every pipeline run now saves its exact system prompt** to `processing/claude/<video>.system_prompt.txt` alongside the existing `claude_ready.txt`, so what the model was told is inspectable after the fact. [ai-pipeline.js]
+- **A thin-data guard on playstyle updates (#192).** A game with fewer than 5 kept datapoints returns the current profile unchanged with an explanatory note instead of letting the model hallucinate a profile from almost nothing — verified live on Valorant (0 kept clips → profile untouched, no LLM call). [game-profiles.js]
+- **46 unit-test assertions across two new test files** covering the detection prompt builder (tier blending, snippet truncation, budget, rejected-section rules) and the playstyle prompt builder (pattern threshold, aside exclusion, data blocks). Run with `node src/main/ai-prompt.test.js` and `node src/main/game-profiles.test.js`. [ai-prompt.test.js, game-profiles.test.js]
+
+### Removed
+- **`getRecentTranscripts` deleted from game-profiles.js** — its only caller was the playstyle handler that now reads the DB. This was the last learning component coupled to project-folder storage. [game-profiles.js]
+
 ## [Unreleased] — 2026-07-26 (session 130) — 0.3.0-alpha.19: Instagram falls back to 720p on its own (#189)
 
 ### Changed

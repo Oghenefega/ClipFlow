@@ -251,6 +251,44 @@ function getVoiceExamples(limit = 20) {
   }
 }
 
+/**
+ * Published rounds for one game — kept-clip ground truth the playstyle
+ * updater mines (#192). The game column is free-form ("rl", "rocketleague",
+ * "Rocket League"), so match case-insensitively with spaces stripped against
+ * both the tag and the display name.
+ *
+ * @param {string} gameTag - e.g. "RL"
+ * @param {string} gameName - e.g. "Rocket League"
+ * @param {number} [limit=30]
+ * @returns {Array<{transcript: string|null, final_title: string, published_at: string}>}
+ */
+function getPublishedRounds(gameTag, gameName, limit = 30) {
+  const d = db();
+  if (!d) return [];
+  const variants = [...new Set(
+    [gameTag, gameName]
+      .filter(Boolean)
+      .map((s) => String(s).replace(/\s+/g, "").toLowerCase())
+  )];
+  if (variants.length === 0) return [];
+  try {
+    const placeholders = variants.map(() => "?").join(", ");
+    return database.toRows(d.exec(
+      `SELECT transcript, final_title, published_at
+         FROM title_caption_rounds
+        WHERE published_at IS NOT NULL
+          AND final_title IS NOT NULL AND TRIM(final_title) != ''
+          AND LOWER(REPLACE(game, ' ', '')) IN (${placeholders})
+        ORDER BY published_at DESC
+        LIMIT ?`,
+      [...variants, Math.max(1, limit)]
+    ));
+  } catch (err) {
+    log.warn("getPublishedRounds failed", { gameTag, error: err.message });
+    return [];
+  }
+}
+
 /** Rows that have a published clip but no view count yet (Phase 4 input). */
 function getRowsNeedingViews() {
   const d = db();
@@ -372,6 +410,7 @@ module.exports = {
   recordPublish,
   recordViews,
   getVoiceExamples,
+  getPublishedRounds,
   getRowsNeedingViews,
   getStats,
   backfill,
