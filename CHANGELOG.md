@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.23: borderline moments included, zero-clip runs explained
+
+### Changed
+- **Installer cut as `0.3.0-alpha.23`.** Promotes the borderline-inclusion prompt guidance and the zero-clip explanation below.
+- **Borderline moments are now included with honest low confidence instead of dropped (#200 follow-up).** After alpha.22 removed the clip-count floor, a 1-min test recording returned 0 clips. Diagnosis via a model replay: the recording was setup talk + training misses that Fega had HIMSELF rejected the day before ("it's just me training. it's boring content") — the rejection learning was correctly refusing his own rejected moments. Two prompt additions keep that judgment while preventing over-caution: borderline moments come back at low confidence (a weak pick costs one click to reject; a skipped moment is unrecoverable, an empty array is reserved for truly empty recordings), and the rejected-examples section now states it teaches WHICH moments to skip, not HOW MANY to return. Verified on a full 30-min session with real feedback data in the prompt: 15 non-overlapping clips, confidence spread 0.97–0.60. 2 new unit assertions (44 total). [ai-prompt.js, ai-prompt.test.js]
+
+### Fixed
+- **A zero-clip run now explains itself (#200 follow-up).** "Generated 0 clips" plus an empty project read as a crash. The completion panel now shows a note: detection finished but nothing met your bar — setup talk, training segments, and previously-rejected-style moments are skipped on purpose. [UploadView.js]
+- **The completion badge counts the signals that actually contributed** — it was hardcoded "5/5", wrong once the game-audio signals joined (7-8 signals). [UploadView.js]
+
 ## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.22: free clip count
 
 ### Changed
