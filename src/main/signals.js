@@ -17,11 +17,16 @@ const STALL_TIMEOUT_MS = 30000;
 // scene_change dropped 2026-04-25 — proved low signal density on gaming content
 // (6 cuts in 30 min for RL) and lagging vs audio reaction signals; the 0.05
 // it held is folded into energy across all archetypes.
+// #190: game_energy (0.10) + game_yamnet (0.05) shaved proportionally from the
+// mic-side weights (each × 0.85) so every row still sums to 1. When the game
+// track isn't configured, redistributeWeights() drops the game keys and the
+// division by 0.85 restores the original mic-only split — single-track runs
+// score exactly as before (unit-tested in signals.test.js).
 const ARCHETYPE_WEIGHTS = {
-  hype:        { energy: 0.55, yamnet: 0.15, pitch: 0.10, density: 0.05, reaction_words: 0.10, spike: 0.05 },
-  competitive: { energy: 0.45, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, spike: 0.05 },
-  chill:       { energy: 0.35, yamnet: 0.10, pitch: 0.20, density: 0.15, reaction_words: 0.15, spike: 0.05 },
-  variety:     { energy: 0.45, yamnet: 0.15, pitch: 0.15, density: 0.10, reaction_words: 0.10, spike: 0.05 },
+  hype:        { energy: 0.4675, yamnet: 0.1275, pitch: 0.085,  density: 0.0425, reaction_words: 0.085,  spike: 0.0425, game_energy: 0.10, game_yamnet: 0.05 },
+  competitive: { energy: 0.3825, yamnet: 0.1275, pitch: 0.1275, density: 0.085,  reaction_words: 0.085,  spike: 0.0425, game_energy: 0.10, game_yamnet: 0.05 },
+  chill:       { energy: 0.2975, yamnet: 0.085,  pitch: 0.17,   density: 0.1275, reaction_words: 0.1275, spike: 0.0425, game_energy: 0.10, game_yamnet: 0.05 },
+  variety:     { energy: 0.3825, yamnet: 0.1275, pitch: 0.1275, density: 0.085,  reaction_words: 0.085,  spike: 0.0425, game_energy: 0.10, game_yamnet: 0.05 },
 };
 
 function resolveArchetypeWeights(archetype) {
@@ -36,6 +41,33 @@ const YAMNET_REACTION_CLASSES = new Set([
   "Screaming", "Shout", "Yell", "Whoop",
   "Cheering", "Applause", "Gasp",
 ]);
+
+// #190: extra AudioSet classes requested from yamnet_events.py for the GAME
+// track only ("Speech" on the game track = announcer/character voice lines).
+const GAME_YAMNET_EXTRA_CLASSES = ["Speech", "Crowd"];
+
+// #190: game-track YAMNet classes that count as game events. Generic AudioSet
+// classes only — game-agnostic by construction, no per-game sound lists.
+// Music and Silence are deliberately excluded: most games run continuous
+// background music, so it carries no moment-level information.
+const GAME_YAMNET_EVENT_CLASSES = new Set([
+  "Explosion", "Gunshot, gunfire", "Alarm",
+  "Cheering", "Applause", "Crowd",
+  "Screaming", "Shout", "Yell", "Whoop",
+  "Speech",
+]);
+
+// #190 game_energy: RMS loudness of the game track in 1 s windows, scored
+// against this recording's own loudness distribution (median baseline + high-
+// percentile spike floor). Self-calibrating per game and per session: OBS game
+// tracks are often mixed very low (Fega's sits ≈ -52 dBFS) with compressed
+// dynamics — measured on a real RL recording, goals peak at only ~2× the
+// median, so fixed multipliers and absolute thresholds don't transfer. All
+// thresholds derive from the same distribution, making the signal gain-invariant.
+const GAME_ENERGY_WINDOW_SEC = 1.0;
+const GAME_ENERGY_SPIKE_PCTL = 0.98;   // windows above this percentile are spike candidates
+const GAME_ENERGY_MIN_CONTRAST = 1.25; // spike floor must clear baseline by this ratio (flat tracks emit nothing)
+const GAME_ENERGY_MIN_FLOOR = 0.001;   // ≈ -60 dBFS — below this the track is effectively silent
 
 // ─── Helpers ───
 
@@ -178,6 +210,150 @@ function detectSilenceSpike(energyJson, silenceThresholdSec = 1.0, spikeMultipli
   return { events };
 }
 
+// ─── Signal 7 (#190): Game-Track Energy ───
+
+/**
+ * Stream a PCM WAV and return per-window RMS values (no full-file buffering —
+ * a multi-hour game track never has to fit in memory at once).
+ * Only handles 16-bit PCM, which is what ffmpeg.extractAudio always writes.
+ */
+async function readWavRmsWindows(wavPath, windowSec) {
+  const fh = await fs.promises.open(wavPath, "r");
+  try {
+    const stat = await fh.stat();
+    const head = Buffer.alloc(12);
+    await fh.read(head, 0, 12, 0);
+    if (head.toString("ascii", 0, 4) !== "RIFF" || head.toString("ascii", 8, 12) !== "WAVE") {
+      throw new Error("not a RIFF/WAVE file");
+    }
+
+    // Walk chunks to find fmt + data (ffmpeg inserts a LIST chunk between them).
+    let pos = 12;
+    let fmt = null, dataStart = null, dataSize = null;
+    const chunkHead = Buffer.alloc(8);
+    while (pos + 8 <= stat.size) {
+      await fh.read(chunkHead, 0, 8, pos);
+      const id = chunkHead.toString("ascii", 0, 4);
+      const size = chunkHead.readUInt32LE(4);
+      if (id === "fmt ") {
+        const fmtBuf = Buffer.alloc(16);
+        await fh.read(fmtBuf, 0, 16, pos + 8);
+        fmt = {
+          audioFormat: fmtBuf.readUInt16LE(0),
+          channels: fmtBuf.readUInt16LE(2),
+          sampleRate: fmtBuf.readUInt32LE(4),
+          bitsPerSample: fmtBuf.readUInt16LE(14),
+        };
+      } else if (id === "data") {
+        dataStart = pos + 8;
+        dataSize = Math.min(size, stat.size - dataStart);
+        break;
+      }
+      pos += 8 + size + (size % 2); // chunks are word-aligned
+    }
+    if (!fmt || dataStart === null) throw new Error("no fmt/data chunk found");
+    if (fmt.audioFormat !== 1 || fmt.bitsPerSample !== 16) {
+      throw new Error(`unsupported wav format (fmt ${fmt.audioFormat}, ${fmt.bitsPerSample}-bit)`);
+    }
+
+    const frameBytes = 2 * fmt.channels;
+    const samplesPerWindow = Math.round(fmt.sampleRate * windowSec);
+    const windows = [];
+    let sumSq = 0, count = 0;
+    const buf = Buffer.alloc(1 << 20);
+    let leftover = Buffer.alloc(0);
+    let offset = dataStart;
+    const end = dataStart + dataSize;
+
+    while (offset < end) {
+      const toRead = Math.min(buf.length, end - offset);
+      const { bytesRead } = await fh.read(buf, 0, toRead, offset);
+      if (bytesRead <= 0) break;
+      offset += bytesRead;
+      let chunk = leftover.length
+        ? Buffer.concat([leftover, buf.subarray(0, bytesRead)])
+        : buf.subarray(0, bytesRead);
+      const usable = chunk.length - (chunk.length % frameBytes);
+      leftover = usable < chunk.length ? Buffer.from(chunk.subarray(usable)) : Buffer.alloc(0);
+      for (let i = 0; i + frameBytes <= usable; i += frameBytes) {
+        let s = 0;
+        for (let c = 0; c < fmt.channels; c++) s += chunk.readInt16LE(i + c * 2);
+        s = s / fmt.channels / 32768;
+        sumSq += s * s;
+        count++;
+        if (count >= samplesPerWindow) {
+          windows.push(Math.sqrt(sumSq / count));
+          sumSq = 0;
+          count = 0;
+        }
+      }
+    }
+    // Keep a trailing partial window if it covers at least half the span.
+    if (count > samplesPerWindow / 2) windows.push(Math.sqrt(sumSq / count));
+    return windows;
+  } finally {
+    await fh.close();
+  }
+}
+
+/**
+ * game_energy (#190): loudness spikes on the game-audio track, scored relative
+ * to THIS recording's own loudness distribution. Game-agnostic by construction —
+ * a quiet game and a loud game both work, because "loud" is always relative to
+ * the session's own soundscape (validated on a real RL recording: the two
+ * loudest windows were a goal and a save).
+ * Returns { signal, window_sec, baseline_rms, spike_floor_rms, windows_total, events }.
+ */
+async function computeGameEnergy(gameWavPath) {
+  const r5 = (v) => Math.round(v * 1e5) / 1e5;
+  const windows = await readWavRmsWindows(gameWavPath, GAME_ENERGY_WINDOW_SEC);
+  const out = {
+    signal: "game_energy",
+    window_sec: GAME_ENERGY_WINDOW_SEC,
+    baseline_rms: 0,
+    spike_floor_rms: 0,
+    windows_total: windows.length,
+    events: [],
+  };
+  if (windows.length === 0) return out;
+
+  const baseline = median(windows);
+  const sorted = [...windows].sort((a, b) => a - b);
+  const spikeFloor = sorted[Math.min(sorted.length - 1, Math.floor(GAME_ENERGY_SPIKE_PCTL * (sorted.length - 1)))];
+  const maxRms = sorted[sorted.length - 1];
+  out.baseline_rms = r5(baseline);
+  out.spike_floor_rms = r5(spikeFloor);
+
+  // Flat or effectively-silent track carries no moment-level information.
+  if (spikeFloor < GAME_ENERGY_MIN_FLOOR || spikeFloor < baseline * GAME_ENERGY_MIN_CONTRAST) return out;
+
+  let runStart = -1, runPeak = 0;
+  const flush = (endIdx) => {
+    // Score = where the run's peak sits between the spike floor and the
+    // recording's loudest window, mapped to [0.5, 1.0] — the session's
+    // biggest moment always scores 1.0 regardless of absolute mix level.
+    const span = Math.max(maxRms - spikeFloor, 1e-9);
+    out.events.push({
+      t_start: runStart * GAME_ENERGY_WINDOW_SEC,
+      t_end: endIdx * GAME_ENERGY_WINDOW_SEC,
+      peak_rms: r5(runPeak),
+      ratio: Math.round((runPeak / Math.max(baseline, 1e-5)) * 100) / 100,
+      score: Math.min(1, 0.5 + 0.5 * ((runPeak - spikeFloor) / span)),
+    });
+  };
+  for (let i = 0; i < windows.length; i++) {
+    if (windows[i] >= spikeFloor) {
+      if (runStart === -1) { runStart = i; runPeak = 0; }
+      if (windows[i] > runPeak) runPeak = windows[i];
+    } else if (runStart !== -1) {
+      flush(i);
+      runStart = -1;
+    }
+  }
+  if (runStart !== -1) flush(windows.length);
+  return out;
+}
+
 // ─── Python subprocess runners ───
 // Each returns { result, failureReason, elapsed_ms }. `result` is the parsed
 // JSON output on success or null on failure. `failureReason` is one of:
@@ -192,8 +368,11 @@ function detectSilenceSpike(energyJson, silenceThresholdSec = 1.0, spikeMultipli
 
 // Packaged app ships tools/ via extraResources (resources/tools/) so the external
 // Python can read these scripts + the yamnet model; source stays repo-relative (#143).
-const { app } = require("electron");
-const SIGNALS_SCRIPT_DIR = app.isPackaged
+// Guarded require so the module loads outside Electron too (#190 unit tests) —
+// non-Electron callers get the repo-relative path, same as an unpackaged app.
+let _electronApp = null;
+try { _electronApp = require("electron").app; } catch (_) { /* not in Electron */ }
+const SIGNALS_SCRIPT_DIR = _electronApp && _electronApp.isPackaged
   ? path.join(process.resourcesPath, "tools", "signals")
   : path.join(__dirname, "..", "..", "tools", "signals");
 
@@ -333,15 +512,20 @@ function runPythonSignal({
   });
 }
 
-async function spawnYamnet({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress, silenceSkip = true }) {
+async function spawnYamnet({ wavPath, outPath, pythonPath, sourceDuration, logger, onProgress, silenceSkip = true, extraClasses = null, normalize = false, signalName = "yamnet" }) {
   const cliArgs = ["--audio", wavPath, "--output", outPath];
   if (!silenceSkip) cliArgs.push("--no-rms-skip");
+  // #190: game-track run requests extra generic AudioSet classes (Speech, Crowd)
+  if (Array.isArray(extraClasses) && extraClasses.length) cliArgs.push("--extra-classes", extraClasses.join(","));
+  // #190: game tracks are often mixed very low — measured on a real RL goal,
+  // Explosion scored 0.33-0.67 normalized vs ~0.0 raw. Mic runs never pass this.
+  if (normalize) cliArgs.push("--normalize");
   return runPythonSignal({
     scriptName: "yamnet_events.py",
     cliArgs,
     pythonPath, outPath, logger, onProgress, sourceDuration,
     startupGraceMs: 15000,   // model load + class-map load
-    signalName: "yamnet",
+    signalName,
   });
 }
 
@@ -375,6 +559,7 @@ function redistributeWeights(baseWeights, failedKeys) {
 function buildEventTimeline({
   energyJson, yamnet, pitch,
   density, reactionWords, silenceSpike,
+  gameEnergy = null, gameYamnet = null,
   archetype, videoName, sourceDuration, extraction_ms,
 }) {
   const signals_computed = ["energy"];
@@ -384,6 +569,13 @@ function buildEventTimeline({
   if (silenceSpike) signals_computed.push("silence_spike"); else signals_failed.push("silence_spike");
   if (yamnet) signals_computed.push("yamnet"); else signals_failed.push("yamnet");
   if (pitch) signals_computed.push("pitch_spike"); else signals_failed.push("pitch_spike");
+  // #190: game signals are additive — listed when they ran, but NEVER pushed
+  // into signals_failed. The strict/degrade gate reads signals_failed, and a
+  // missing game track (off / single-track / bad index / failed run) must read
+  // as not-configured, not as a failed pipeline. Their weight is renormalized
+  // away below instead.
+  if (gameEnergy) signals_computed.push("game_energy");
+  if (gameYamnet) signals_computed.push("game_yamnet");
 
   const events = [];
 
@@ -443,6 +635,29 @@ function buildEventTimeline({
     }
   }
 
+  // #190: game-track events — the moments the mic-side signals are deaf to.
+  if (gameEnergy && Array.isArray(gameEnergy.events)) {
+    for (const e of gameEnergy.events) {
+      events.push({
+        t_start: e.t_start, t_end: e.t_end, signal: "game_energy",
+        score: e.score, label: "game_audio_spike",
+        metadata: { peak_rms: e.peak_rms, baseline_rms: gameEnergy.baseline_rms, ratio: e.ratio },
+      });
+    }
+  }
+
+  if (gameYamnet && Array.isArray(gameYamnet.frames)) {
+    for (const f of gameYamnet.frames) {
+      let best = { label: null, score: 0 };
+      for (const [label, s] of Object.entries(f.scores || {})) {
+        if (GAME_YAMNET_EVENT_CLASSES.has(label) && s > best.score) best = { label, score: s };
+      }
+      if (best.score >= 0.3) {
+        events.push({ t_start: f.t_start, t_end: f.t_end, signal: "game_yamnet", score: best.score, label: best.label, metadata: {} });
+      }
+    }
+  }
+
   // ── Weight redistribution ──
   // The three JS signals never "fail" here — their redistribution is handled
   // only for Python signals. If a JS signal produced no events, its boost is
@@ -451,6 +666,11 @@ function buildEventTimeline({
   const failedWeightKeys = [];
   if (!yamnet) failedWeightKeys.push("yamnet");
   if (!pitch) failedWeightKeys.push("pitch");
+  // #190: absent game signals (not configured OR failed) just lose their
+  // weight — dropping both divides the mic weights by 0.85, which restores
+  // the pre-#190 split exactly.
+  if (!gameEnergy) failedWeightKeys.push("game_energy");
+  if (!gameYamnet) failedWeightKeys.push("game_yamnet");
   const weights = redistributeWeights(baseWeights, failedWeightKeys);
 
   // ── Composite score per energy segment ──
@@ -463,6 +683,7 @@ function buildEventTimeline({
 
     let yamnet_boost = 0, pitch_boost = 0, density_boost = 0, reaction_boost = 0;
     let spike_boost = 0;
+    let game_energy_boost = 0, game_yamnet_boost = 0;
 
     for (const e of events) {
       switch (e.signal) {
@@ -481,6 +702,12 @@ function buildEventTimeline({
         case "silence_spike":
           if (overlaps(e.t_start, e.t_end)) spike_boost = 1.0;
           break;
+        case "game_energy":
+          if (overlaps(e.t_start, e.t_end) && e.score > game_energy_boost) game_energy_boost = e.score;
+          break;
+        case "game_yamnet":
+          if (overlaps(e.t_start, e.t_end) && e.score > game_yamnet_boost) game_yamnet_boost = e.score;
+          break;
       }
     }
 
@@ -492,7 +719,9 @@ function buildEventTimeline({
       weights.pitch * pitch_boost +
       weights.density * density_boost +
       weights.reaction_words * reaction_boost +
-      weights.spike * spike_boost;
+      weights.spike * spike_boost +
+      (weights.game_energy || 0) * game_energy_boost +
+      (weights.game_yamnet || 0) * game_yamnet_boost;
 
     segments.push({
       start: segStart,
@@ -510,6 +739,8 @@ function buildEventTimeline({
         density: density_boost,
         reaction_words: reaction_boost,
         spike: spike_boost,
+        game_energy: game_energy_boost,
+        game_yamnet: game_yamnet_boost,
       },
     });
   }
@@ -549,6 +780,7 @@ async function runSignalExtraction({
   processingDir, videoName, pythonPath, archetype,
   logger, isTest = false, sendSignalProgress,
   yamnetSilenceSkip = true,
+  gameWavPath = null, // #190: game-track wav; null = not configured / skipped upstream
 }) {
   // Compute source duration once — used for backstop scaling per-signal.
   let sourceDuration = 0;
@@ -646,14 +878,39 @@ async function runSignalExtraction({
       }
     };
 
-    const [yamnet, pitch] = await Promise.all([
+    // #190: game-track signals run concurrently with the mic signals when a
+    // game wav was extracted. Their failures land in failure_details (greppable)
+    // but never in signals_failed — see buildEventTimeline.
+    const gameYamnetOut = path.join(signalsDir, `${videoName}.game_yamnet.json`);
+    const [yamnet, pitch, gameEnergy, gameYamnet] = await Promise.all([
       runPy("yamnet", (onProgress) => spawnYamnet({ wavPath, outPath: yamnetOut, pythonPath, sourceDuration, logger, onProgress, silenceSkip: yamnetSilenceSkip })),
       runPy("pitch_spike", (onProgress) => spawnPitchSpike({ wavPath, outPath: pitchOut, pythonPath, sourceDuration, logger, onProgress })),
+      gameWavPath
+        ? runPy("game_energy", async () => {
+            const t0 = Date.now();
+            const result = await computeGameEnergy(gameWavPath);
+            return { result, failureReason: null, elapsed_ms: Date.now() - t0 };
+          })
+        : Promise.resolve(null),
+      gameWavPath
+        ? runPy("game_yamnet", (onProgress) => spawnYamnet({
+            wavPath: gameWavPath, outPath: gameYamnetOut, pythonPath, sourceDuration, logger, onProgress,
+            silenceSkip: yamnetSilenceSkip, extraClasses: GAME_YAMNET_EXTRA_CLASSES, normalize: true, signalName: "game_yamnet",
+          }))
+        : Promise.resolve(null),
     ]);
+
+    // Persist game_energy alongside the Python signal outputs for debugging.
+    if (gameEnergy) {
+      try {
+        fs.writeFileSync(path.join(signalsDir, `${videoName}.game_energy.json`), JSON.stringify(gameEnergy, null, 2), "utf-8");
+      } catch (_) { /* non-critical */ }
+    }
 
     const eventTimeline = buildEventTimeline({
       energyJson, yamnet, pitch,
       density, reactionWords, silenceSpike,
+      gameEnergy, gameYamnet,
       archetype, videoName, sourceDuration, extraction_ms,
     });
 
@@ -718,9 +975,11 @@ async function runSignalExtraction({
 module.exports = {
   ARCHETYPE_WEIGHTS,
   resolveArchetypeWeights,
+  redistributeWeights,
   computeTranscriptDensity,
   computeReactionWords,
   detectSilenceSpike,
+  computeGameEnergy,
   buildEventTimeline,
   runSignalExtraction,
 };

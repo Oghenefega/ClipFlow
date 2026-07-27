@@ -75,6 +75,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [whisperModel, setWhisperModel] = useState("large-v3-turbo");
   // Audio track selection
   const [audioTrack, setAudioTrack] = useState(0);
+  // #190: game-audio track for detection signals (null = off)
+  const [gameAudioTrack, setGameAudioTrack] = useState(null);
   // #169: verified track layout from the calibration wizard (null = never calibrated)
   const [audioSetup, setAudioSetup] = useState(null);
   // #169: recalibration in progress — { path, trackCount } opens the wizard
@@ -113,6 +115,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         // Load audio track setting
         const at = await window.clipflow.storeGet("transcriptionAudioTrack");
         if (at !== undefined && at !== null) setAudioTrack(at);
+        // #190: load game-audio track setting (null = off)
+        const gat = await window.clipflow.storeGet("gameAudioTrack");
+        setGameAudioTrack(typeof gat === "number" ? gat : null);
         // #169: load verified track layout
         const aset = await window.clipflow.storeGet("audioSetup");
         if (aset) setAudioSetup(aset);
@@ -155,6 +160,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
     (async () => {
       const at = await window.clipflow.storeGet("transcriptionAudioTrack");
       if (at !== undefined && at !== null) setAudioTrack(at);
+      const gat = await window.clipflow.storeGet("gameAudioTrack");
+      setGameAudioTrack(typeof gat === "number" ? gat : null);
       const aset = await window.clipflow.storeGet("audioSetup");
       setAudioSetup(aset || null);
     })();
@@ -1063,6 +1070,49 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </div>
           {calNotice && <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>{calNotice}</div>}
           <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>Subtitles and waveforms are built from this track. Changed your OBS audio setup? Recalibrate with a new recording.</div>
+        </div>
+        {/* #190: game-audio track for detection signals */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ color: T.textSecondary, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Game Audio Track (Detection)</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(() => {
+              const offActive = gameAudioTrack === null;
+              return (
+                <button onClick={async () => {
+                  setGameAudioTrack(null);
+                  await window.clipflow?.storeSet("gameAudioTrack", null);
+                }}
+                  style={{
+                    padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer",
+                    border: offActive ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                    background: offActive ? T.accentDim : "rgba(255,255,255,0.03)",
+                    color: offActive ? T.accentLight : T.textSecondary,
+                  }}>Off</button>
+              );
+            })()}
+            {Array.from({ length: Math.max(audioSetup?.trackCount || 0, 4) }, (_, idx) => {
+              const isSelected = gameAudioTrack === idx;
+              const isVoiceTrack = idx === audioTrack;
+              const LABEL_TEXT = { voice: "My voice", game: "Game / desktop", music: "Music", comms: "Voice chat", mix: "Everything mixed", other: "Other", empty: "Empty", unknown: "?" };
+              const learned = audioSetup?.tracks?.find((t) => t.index === idx)?.label;
+              const label = learned ? `Track ${idx + 1} — ${LABEL_TEXT[learned] || learned}` : `Track ${idx + 1}`;
+              return (
+                <button key={idx} disabled={isVoiceTrack} title={isVoiceTrack ? "This is your voice track — detection already hears it" : undefined}
+                  onClick={async () => {
+                    setGameAudioTrack(idx);
+                    await window.clipflow?.storeSet("gameAudioTrack", idx);
+                  }}
+                  style={{
+                    padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font,
+                    cursor: isVoiceTrack ? "default" : "pointer", opacity: isVoiceTrack ? 0.35 : 1,
+                    border: isSelected ? `1px solid ${T.accentBorder}` : `1px solid ${T.border}`,
+                    background: isSelected ? T.accentDim : "rgba(255,255,255,0.03)",
+                    color: isSelected ? T.accentLight : T.textSecondary,
+                  }}>{label}</button>
+              );
+            })}
+          </div>
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 6 }}>Optional: pick the track with game/desktop sound. Clip detection then hears goals, kills, and announcer moments even when you're quiet. Off = detection listens to your voice only.</div>
         </div>
         {calFile && (
           <AudioCalibrationModal

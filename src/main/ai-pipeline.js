@@ -289,6 +289,28 @@ async function extractTopFrames(videoPath, energyJson, framesDir, videoName, top
       .filter((seg) => typeof seg.composite_score === "number")
       .sort((a, b) => b.composite_score - a.composite_score)
       .slice(0, topN);
+
+    // #190: energy segments are transcript-derived, so a game moment where the
+    // creator said nothing has NO segment and can never win a composite slot —
+    // the exact "never photographed" gap this issue closes. Reserve up to 4
+    // slots for the highest-scoring game events that no segment covers
+    // (mic-only runs have no game events, so this is a no-op for them).
+    const gameEvents = (eventTimeline.events || [])
+      .filter((e) => e.signal === "game_energy" || e.signal === "game_yamnet")
+      .filter((e) => !eventTimeline.segments.some((s) => !(s.end < e.t_start - 1 || s.start > e.t_end + 1)))
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const reserved = [];
+    for (const e of gameEvents) {
+      if (reserved.length >= Math.min(4, topN)) break;
+      const mid = e.t_start + (e.t_end - e.t_start) / 2;
+      // one frame per moment — game_energy and game_yamnet often fire together
+      if (reserved.some((r) => Math.abs((r.start + (r.end - r.start) / 2) - mid) < 10)) continue;
+      reserved.push({ start: e.t_start, end: e.t_end });
+    }
+    if (reserved.length > 0) {
+      logger.info(`Reserving ${reserved.length} frame slot(s) for uncovered game events (#190)`);
+      sorted = [...sorted.slice(0, topN - reserved.length), ...reserved];
+    }
   } else {
     sorted = [...energyJson]
       .filter((seg) => seg.peak_energy != null)
@@ -495,6 +517,37 @@ async function runAIPipeline({
     if (audioResult.error) throw new Error(`Audio extraction failed: ${audioResult.error}`);
     logger.endStep("Extract Audio", wavPath);
 
+    // #190: second extraction — game-audio track for game_energy/game_yamnet.
+    // Graceful skip, never abort: off, single-track source, missing track
+    // index, or a failed extraction each log one line and the pipeline runs
+    // exactly like a mic-only run (the strict/degrade gate never sees game
+    // signals — see buildEventTimeline).
+    let gameWavPath = null;
+    const gameAudioTrack = store.get("gameAudioTrack");
+    if (typeof gameAudioTrack === "number" && gameAudioTrack >= 0) {
+      try {
+        if (gameAudioTrack === audioTrack) {
+          logger.info(`Game audio: track ${gameAudioTrack + 1} is the voice track — game signals skipped`);
+        } else {
+          const audioInfo = await ffmpeg.probeAudioTracks(sourceFile);
+          if ((audioInfo.trackCount || 0) <= 1) {
+            logger.info(`Game audio: source has ${audioInfo.trackCount || 0} audio track(s) — game signals skipped`);
+          } else if (gameAudioTrack >= audioInfo.trackCount) {
+            logger.info(`Game audio: track ${gameAudioTrack + 1} not in this file (${audioInfo.trackCount} tracks) — game signals skipped`);
+          } else {
+            const candidate = path.join(projects.getProjectsRoot(watchFolder), project.id, "game_audio.wav");
+            await ffmpeg.extractAudio(sourceFile, candidate, gameAudioTrack, { fallbackToFirst: false });
+            gameWavPath = candidate;
+            logger.info(`Game audio: extracted track ${gameAudioTrack + 1} → ${candidate}`);
+          }
+        }
+      } catch (e) {
+        logger.info(`Game audio: extraction failed (${e.message}) — game signals skipped`);
+      }
+    } else {
+      logger.info("Game audio: not configured — game signals skipped");
+    }
+
     // ============ Stage 3: Transcribe (stable-ts) ============
     sendProgress("transcribing", 10, "Transcribing with stable-ts...");
     logger.startStep("Transcription");
@@ -570,6 +623,7 @@ async function runAIPipeline({
       logger, isTest: !!gameData.isTest,
       sendSignalProgress,
       yamnetSilenceSkip: store.get("yamnetSilenceSkip") !== false,
+      gameWavPath, // #190: null when the game track is off/unavailable
     });
     logger.endStep(
       "Signal Extraction",
@@ -910,8 +964,9 @@ async function runAIPipeline({
     projects.saveProject(watchFolder, project);
     logger.endStep("Save Project");
 
-    // Clean up wav file
+    // Clean up wav files
     try { fs.unlinkSync(wavPath); } catch (e) { /* ignore */ }
+    if (gameWavPath) { try { fs.unlinkSync(gameWavPath); } catch (e) { /* ignore */ } }
 
     // Increment game session count (for profile auto-update)
     const thresholdReached = gameProfiles.incrementSessionCount(gameData.gameTag);

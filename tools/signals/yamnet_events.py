@@ -12,6 +12,9 @@ has no Windows/py3.12 wheel as of 2026).
 
 Input:  --audio <path_to.wav>  (any sample rate; resampled inline to 16 kHz)
 Output: --output <path_to.json>
+
+--extra-classes appends generic AudioSet display names to the kept set
+(#190 game-audio track passes 'Speech,Crowd' — announcer/crowd moments).
 """
 import argparse
 import csv
@@ -95,7 +98,15 @@ def main():
     ap.add_argument("--output", required=True)
     ap.add_argument("--no-rms-skip", action="store_true",
                     help="Disable the RMS pre-filter; run inference on every frame.")
+    ap.add_argument("--extra-classes", default="",
+                    help="Comma-separated AudioSet display names kept in addition to the built-in list (e.g. 'Speech,Crowd').")
+    ap.add_argument("--normalize", action="store_true",
+                    help="Peak-normalize the audio before inference. #190 game tracks are often "
+                         "mixed very low (-50 dBFS) and score near-zero without it; the mic run never passes this.")
     args = ap.parse_args()
+
+    extra = [c.strip() for c in args.extra_classes.split(",") if c.strip()]
+    keep_classes = KEEP_CLASSES + [c for c in extra if c not in KEEP_CLASSES]
 
     if not os.path.exists(MODEL_PATH):
         log(f"ERROR: model not found at {MODEL_PATH}")
@@ -109,9 +120,15 @@ def main():
     audio = load_audio_mono_16k(args.audio)
     log(f"Audio length: {len(audio) / SAMPLE_RATE:.1f} s (loaded in {time.time() - t_audio:.2f}s)")
 
+    if args.normalize and len(audio):
+        peak = float(np.max(np.abs(audio)))
+        if peak > 1e-6:
+            audio = (audio * (0.95 / peak)).astype(np.float32)
+            log(f"Peak-normalized audio: {peak:.5f} -> 0.95")
+
     class_map = load_class_map(CLASS_MAP_PATH)
-    keep_indices = {name: class_map[name] for name in KEEP_CLASSES if name in class_map}
-    missing = [n for n in KEEP_CLASSES if n not in class_map]
+    keep_indices = {name: class_map[name] for name in keep_classes if name in class_map}
+    missing = [n for n in keep_classes if n not in class_map]
     if missing:
         log(f"WARN: missing class names in class map: {missing}")
 
@@ -165,7 +182,7 @@ def main():
     out = {
         "signal": "yamnet",
         "frame_duration_ms": int(FRAME_LEN / SAMPLE_RATE * 1000),
-        "classes_kept": KEEP_CLASSES,
+        "classes_kept": keep_classes,
         "frames": frames,
     }
 

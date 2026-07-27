@@ -259,9 +259,12 @@ function extractTrackSample(videoPath, wavPath, trackIndex, startSec, durSec) {
  * @param {string} videoPath - Source video
  * @param {string} wavPath - Output WAV path
  * @param {number} [audioTrackIndex=0] - 0-based audio stream index (0 = track 1, 1 = track 2, etc.)
+ * @param {object} [opts] - { fallbackToFirst = true } — #190 game-track extraction
+ *   passes false: silently analyzing the mic as "game audio" would be worse
+ *   than skipping the game signals entirely.
  * @returns {Promise<{success: true, path: string}>}
  */
-function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
+function extractAudio(videoPath, wavPath, audioTrackIndex = 0, { fallbackToFirst = true } = {}) {
   const dir = path.dirname(wavPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -286,7 +289,7 @@ function extractAudio(videoPath, wavPath, audioTrackIndex = 0) {
 
   // Try configured track first; if it fails (e.g. clip has fewer tracks), fall back to track 0
   if (trackIdx > 0) {
-    return run(trackIdx).catch(() => run(0));
+    return fallbackToFirst ? run(trackIdx).catch(() => run(0)) : run(trackIdx);
   }
   return run(0);
 }

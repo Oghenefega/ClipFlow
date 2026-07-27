@@ -441,9 +441,17 @@ function buildUserContent({ claudeReadyText, frames, eventTimeline }) {
       ? ` | failed: ${eventTimeline.signals_failed.join(", ")}`
       : "";
 
+    // #190: when game-audio signals contributed, tell the model what they mean.
+    // Empty string when absent — mic-only runs keep a byte-identical prompt.
+    const hasGameSignals = (eventTimeline.signals_computed || [])
+      .some((s) => s === "game_energy" || s === "game_yamnet");
+    const gameNote = hasGameSignals
+      ? `\ngame_energy and game_yamnet events come from the GAME audio track (announcer, crowd, explosions, goal/kill sounds) — they mark big in-game moments even when the creator's mic is quiet. Clusters of game events are strong clip evidence, especially where the transcript is silent.\n`
+      : "";
+
     content.push({
       type: "text",
-      text: `\n## Multi-Signal Event Timeline (${used}${failed}):\n\nTop events by confidence:\n${top}`,
+      text: `\n## Multi-Signal Event Timeline (${used}${failed}):\n${gameNote}\nTop events by confidence:\n${top}`,
     });
   }
 

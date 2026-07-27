@@ -104,6 +104,13 @@ const SIGNAL_ROWS = [
   { key: "pitch_spike", label: "Pitch spike" },
 ];
 
+// #190: game-audio rows appear only when the pipeline actually emits them
+// (game track configured) — mic-only runs keep the same 5-row table.
+const GAME_SIGNAL_ROWS = [
+  { key: "game_energy", label: "Game energy" },
+  { key: "game_yamnet", label: "Game YAMNet" },
+];
+
 function signalStatusVisuals(status) {
   if (status === "done") return { icon: "✅", color: T.green };
   if (status === "running") return { icon: "⚡", color: T.yellow };
@@ -1317,7 +1324,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
                       border: `1px solid ${T.border}`,
                       display: "flex", flexDirection: "column", gap: 4,
                     }}>
-                      {SIGNAL_ROWS.map((row) => {
+                      {[...SIGNAL_ROWS, ...GAME_SIGNAL_ROWS.filter((r) => signalHealth[r.key])].map((row) => {
                         const sh = signalHealth[row.key] || { status: "pending", progress: 0, elapsed_ms: 0 };
                         const v = signalStatusVisuals(sh.status);
                         const pct = Math.round((sh.progress || 0) * 100);

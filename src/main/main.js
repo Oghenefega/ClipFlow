@@ -248,6 +248,10 @@ const STORE_DEFAULTS = {
   splitSourceRetention: "keep",
   // Audio track selection for transcription (0-indexed: 0 = track 1, 1 = track 2, etc.)
   transcriptionAudioTrack: 0,
+  // #190: game-audio track for detection signals (game_energy / game_yamnet).
+  // null = off (default). 0-based audio stream index when set, same convention
+  // as transcriptionAudioTrack.
+  gameAudioTrack: null,
   // #169: user-verified audio track layout from the calibration wizard.
   // null = never calibrated. Shape: { trackCount, tracks: [{ index, label }], calibratedAt }
   // Labels: voice | game | music | comms | mix | other | empty | unknown
@@ -367,6 +371,11 @@ function runStoreMigrations(store) {
   // ── Migration: yamnet silence-skip default ON (Issue #72 Phase 3) ──
   // Existing installs get the safe default; user choice is preserved if set.
   if (!store.has("yamnetSilenceSkip")) store.set("yamnetSilenceSkip", true);
+
+  // ── Migration: game-audio track signal (#190) ──
+  // Default off (null) — game signals only run once the user picks a game
+  // track in Settings. Existing installs see zero behavior change.
+  if (!store.has("gameAudioTrack")) store.set("gameAudioTrack", null);
 
   // ── Migration: clip cutting encoder default "auto" (Issue #75 Phase 1) ──
   // "auto" = NVENC if detected, else x264. "gpu" = strict NVENC (errors if

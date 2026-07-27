@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132) — Detection finally hears the game: game-audio track signals (#190)
+
+### Added
+- **Detection now listens to the game, not just the mic (#190).** A new "Game Audio Track (Detection)" picker in Settings (next to the transcription track picker, off by default, voice track disabled with a tooltip) tells the pipeline which OBS track carries game/desktop sound. When set, the pipeline extracts that track as a second WAV and runs two new signals on it, merged into the event timeline alongside the five mic signals. Verified end-to-end on a real 30-min Rocket League recording: the two loudest game-track moments were a goal ("FEGA YT SCORED!") and a save. [SettingsView.js, main.js, ai-pipeline.js, signals.js, ffmpeg.js]
+- **`game_energy` signal:** per-second RMS loudness of the game track scored against the recording's own loudness distribution (median baseline, 98th-percentile spike floor) — fully self-calibrating and gain-invariant, because real OBS game tracks sit far lower and flatter than any fixed threshold assumes (Fega's is ≈ -52 dBFS with goals peaking at just 2× the median). No per-game sound lists anywhere; a quiet game and a loud game both work. Flat or near-silent tracks emit nothing. [signals.js]
+- **`game_yamnet` signal:** the existing YAMNet classifier runs a second pass on the game wav with two additions — generic AudioSet classes `Speech` and `Crowd` (announcer/crowd moments) via a new `--extra-classes` flag, and a new `--normalize` flag that peak-normalizes quiet game tracks before inference (measured on the RL goal: Explosion scored 0.33–0.67 normalized vs ~0 raw). The mic pass passes neither flag and is untouched. Constant background music is deliberately not an event class. [yamnet_events.py, signals.js]
+- **Quiet-mic game moments finally get photographed.** Energy segments are transcript-derived, so a goal scored while the creator says nothing had no segment and could never win a frame slot. Frame extraction now reserves up to 4 of its 20 slots for the highest-scoring game events that no transcript segment covers — in the verification run, 17 of 56 game events fell in such gaps, including a silent-mic goal-area play at 21:24 that scored 0.84. Mic-only runs are unaffected. [ai-pipeline.js]
+- **Archetype weights extended and renormalized (#190).** game_energy gets 0.10 and game_yamnet 0.05, shaved proportionally from the mic weights (× 0.85) so every row still sums to 1. When the game track is absent the existing weight redistribution divides by 0.85 and restores the pre-#190 mic-only split exactly — proven by a new unit test (`node src/main/signals.test.js`) covering all four archetypes. [signals.js, signals.test.js]
+
+### Changed
+- **The detection prompt's event timeline explains game signals when present.** Runs with game signals get one extra line telling the model that game_energy/game_yamnet mark big in-game moments even when the mic is quiet; mic-only runs keep a byte-identical prompt. [ai-prompt.js]
+
+### Fixed
+- **Graceful skip never trips the strict/degrade gate (#190).** Setting off, single-track source, track index missing from the file, same-as-voice track, or a failed game extraction each log one line and run exactly like a mic-only pipeline — game signals are never pushed into `signals_failed`, so strict mode and the degrade modal never fire over them. The game-track extraction also never falls back to track 0 (analyzing the mic as "game audio" would be worse than skipping). Verified: a single-track copy of the same recording ran to completion with zero behavior change. [signals.js, ai-pipeline.js, ffmpeg.js]
+
 ## [Unreleased] — 2026-07-27 (session 131 cont.) — 0.3.0-alpha.20: Retag clips + rejection reason chips (#197, #198)
 
 ### Added
