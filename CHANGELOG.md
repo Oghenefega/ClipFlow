@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.24: the 10-20 clip floor is back
+
+### Changed
+- **Installer cut as `0.3.0-alpha.24`.** Per Fega after testing alpha.23: detection returning nothing is worse than detection returning weak picks — reviewing and rejecting IS the training loop, and an empty project starves it. The "10 to 20 clips" floor is restored verbatim for normal recordings, with one guard instead of a straight revert: a recording physically too short to hold 10 non-overlapping clips (a 69s file caps out around 4-8 at the 7s minimum) fills with as many DISTINCT clips as fit — below-the-bar moments included at honest low confidence — rather than photocopying the same moment ten times (the original #200 complaint). An empty array is now banned outright. Verified twice on the 69s repro: 4 distinct clips covering the full minute (conf 0.5-0.72), no duplicates; the long-recording instruction is byte-identical to pre-#200 behavior. [ai-prompt.js, ai-prompt.test.js]
+
 ## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.23: borderline moments included, zero-clip runs explained
 
 ### Changed
