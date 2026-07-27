@@ -24,11 +24,19 @@ const DEFAULT_CREATOR_PROFILE = {
  * @param {Array} opts.approvedClips - Approved clips from feedback.db
  * @param {Array} [opts.rejectedClips] - Rejected clips from feedback.db (negative calibration, #191)
  * @param {object} [opts.creatorProfile] - Creator profile (falls back to DEFAULT_CREATOR_PROFILE)
+ * @param {number} [opts.sourceDuration] - Recording length in seconds (#200: lets the model calibrate clip count)
  * @returns {string} Full system prompt
  */
-function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, rejectedClips, creatorProfile }) {
+function buildSystemPrompt({ gameTag, gameName, gameContext, entryType, approvedClips, rejectedClips, creatorProfile, sourceDuration }) {
   const creator = creatorProfile || DEFAULT_CREATOR_PROFILE;
   const sections = [];
+
+  // #200: stated so the model can judge how many moments a recording of this
+  // length can honestly hold — a 1-min tail clip is not a 30-min session.
+  const durationMin = sourceDuration > 0 ? Math.max(1, Math.round(sourceDuration / 60)) : null;
+  const durationLine = durationMin
+    ? `\n\nThis recording is ~${durationMin} minute${durationMin === 1 ? "" : "s"} long.`
+    : "";
 
   // ── Section 1: Task Definition ──
   sections.push(`# TASK
@@ -42,7 +50,7 @@ You will receive:
 
 Use the event timeline as corroborating evidence. Moments where multiple signals converge are almost always stronger clip candidates than energy alone. Moments with no corroborating signals may still be good clips if the transcript supports it — use your judgment.
 
-You must return: a JSON array of 10-20 clip recommendations, ordered by confidence (highest first).
+You must return: a JSON array of clip recommendations, ordered by confidence (highest first).${durationLine}
 
 Your job is to PICK the moments — the start and end timestamps for each clip, your confidence in each pick, and basic metadata. You are NOT writing titles, descriptions, or narration. A separate downstream stage handles that. Stay disciplined: pick the moments, no prose.`);
 
@@ -133,7 +141,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 }
 
 ## Constraints:
-- Return 10 to 20 clips total
+- Return every moment that genuinely earns a clip, and no more — a full ~30-minute session typically yields 10 to 20 clips; a short recording holds proportionally fewer. There is NO minimum count: if only 2 moments earn a clip, return exactly 2. Never return more than 20.
 - Order by confidence descending (best clips first)
 - clip_number must be sequential: 1, 2, 3, ...
 - start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")
@@ -149,7 +157,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 - Do not add any text, explanation, or commentary before or after the JSON array
 - Do not use placeholder values like "..." or "etc"
 - Do not return confidence as a string (use 0.85 not "0.85" or "high")
-- Do not return fewer than 10 clips unless the video genuinely has fewer than 10 interesting moments
+- Do not pad the clip count — never re-slice the same moment into multiple clips, and clip time ranges must not overlap one another
 - Do not include any extra fields like "title", "why", "description", or "peak_quote" — those are written by a separate downstream stage`);
 
   // ── Section 7: Few-Shot Examples (Three-Tier Blending) ──

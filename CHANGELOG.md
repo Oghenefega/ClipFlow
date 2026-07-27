@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132 cont.) — Clip count calibrates to recording length (#200)
+
+### Fixed
+- **A 1-minute recording no longer produces 10 duplicate clips (#200).** The detection prompt hard-required "10 to 20 clips" with a "do not return fewer than 10" floor — on Fega's 69-second alpha.21 test the model obeyed by slicing the same minute into 10 overlapping windows. The prompt now states the recording's actual length, says a full ~30-minute session *typically* yields 10-20 with NO minimum (two clip-worthy moments = exactly 2 clips), and bans overlapping picks of the same moment. Verified on the same 69s recording (3 distinct non-overlapping clips, was 10 duplicates) and a full 30-min session (15 clips, zero overlaps — normal density preserved). 3 new unit assertions (42 total in ai-prompt.test.js). [ai-prompt.js, ai-pipeline.js, ai-prompt.test.js]
+
 ## [Unreleased] — 2026-07-27 (session 132) — 0.3.0-alpha.21: installer cut for game-audio signals
 
 ### Changed

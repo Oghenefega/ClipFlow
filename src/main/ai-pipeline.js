@@ -718,6 +718,7 @@ async function runAIPipeline({
       approvedClips,
       rejectedClips,
       creatorProfile,
+      sourceDuration: probeResult.duration, // #200: clip count calibrates to recording length
     });
 
     // Persist the exact prompt for this run next to claude_ready.txt (#191)

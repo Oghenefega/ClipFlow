@@ -360,6 +360,34 @@ test("rejectedClips param optional — omitting it does not crash", () => {
   expect(prompt).notToContain("# MOMENTS THIS CREATOR REJECTED");
 });
 
+// ── #200: clip count calibrates to source duration, no fixed minimum ──
+
+test("short recording states its length and prompt has no fixed minimum (#200)", () => {
+  const prompt = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 69,
+  });
+  expect(prompt).toContain("This recording is ~1 minute long.");
+  expect(prompt).toContain("There is NO minimum count");
+  expect(prompt).notToContain("10-20 clip recommendations");
+  expect(prompt).notToContain("Do not return fewer than 10");
+});
+
+test("long recording rounds to minutes and keeps the overlap ban (#200)", () => {
+  const prompt = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
+    approvedClips: [], creatorProfile: null, sourceDuration: 1800,
+  });
+  expect(prompt).toContain("This recording is ~30 minutes long.");
+  expect(prompt).toContain("must not overlap");
+});
+
+test("sourceDuration omitted — no length line, count guidance still present (#200)", () => {
+  const prompt = buildFullPrompt();
+  expect(prompt).notToContain("This recording is ~");
+  expect(prompt).toContain("There is NO minimum count");
+});
+
 test("combined approved + rejected content stays within ~6k budget", () => {
   const approved = Array.from({ length: 40 }, () => approvedRow({ transcript_segment: LONG_TEXT }));
   const rejected = Array.from({ length: 40 }, () => rejectedRow({ transcript_segment: LONG_TEXT }));
