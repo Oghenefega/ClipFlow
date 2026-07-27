@@ -12,6 +12,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **The detection prompt now reads rejection reasons (#198 → #191).** Rejections tagged Duplicate, Bad cut, or Wrong content are excluded from the "do not pick moments like these" section — the moment was good, only its copy/boundaries/bucket were wrong — fixing the measured contradiction where the same Argentina moment appeared as both an approved example and a rejected one (duplicate picks). Taste rejections (Not funny, Nothing happens, Needs context) stay and now carry a `Reason:` line. 8 new unit assertions cover the filter (54 total across the two prompt test files). [ai-prompt.js, ai-pipeline.js, ai-prompt.test.js]
 
 ### Changed
+- **Installer cut as `0.3.0-alpha.20`**, promoting the whole learning-loop batch to the daily driver: rejection + snippet learning in the detection prompt (#191), kept-clip playstyle mining (#192), clip retagging (#197), and rejection reason chips (#198). First launch runs DB migrations v6 and v7 against the real data.
 - **Rejected cards dim per-region instead of whole-card** — preview, title, metadata, and transcript fade to 45% while the reason chips (and action buttons) stay at full strength. Previously the entire card sat at 50% opacity. [ProjectsView.js]
 - **The clip badge's color now follows the clip's effective tag** (resolved from the game library) rather than always using the session's game color. [ProjectsView.js]
 
