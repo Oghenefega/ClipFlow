@@ -1928,6 +1928,12 @@ ipcMain.handle("feedback:log", async (_, entry) => {
   } catch (err) { return { error: err.message }; }
 });
 
+ipcMain.handle("feedback:approvalStats", async () => {
+  try {
+    return feedbackDb.getApprovalStats();
+  } catch (err) { return { error: err.message, games: [] }; }
+});
+
 // ============ FILE METADATA (Rename System) ============
 ipcMain.handle("metadata:create", async (_, data) => {
   try {

@@ -107,10 +107,82 @@ function getFeedbackCounts(gameTag) {
   return counts;
 }
 
+// ── Approval-rate stats (#194) ──
+// Mirrors EXCLUDED_REJECT_REASONS in ai-prompt.js (#198): reasons that carry
+// no taste verdict. A reject counts as "mechanical" for the quality rate only
+// when ALL its reasons are on this list — a mixed row like "duplicate,not-funny"
+// still contains a taste verdict and stays in the denominator.
+const MECHANICAL_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content"];
+// Quality rate = picks at or above this confidence (#200: below-the-bar fills
+// are expected rejects and must not drag the headline number).
+const QUALITY_CONFIDENCE = 0.7;
+
+function isMechanicalOnlyReject(row) {
+  if (row.decision !== "rejected") return false;
+  const reasons = String(row.reject_reasons || "").split(",").map((s) => s.trim()).filter(Boolean);
+  return reasons.length > 0 && reasons.every((r) => MECHANICAL_REJECT_REASONS.includes(r));
+}
+
+function computeRates(rows) {
+  const overallApproved = rows.filter((r) => r.decision === "approved").length;
+  const quality = rows.filter((r) => (r.confidence || 0) >= QUALITY_CONFIDENCE && !isMechanicalOnlyReject(r));
+  const qualityApproved = quality.filter((r) => r.decision === "approved").length;
+  return {
+    overall: { approved: overallApproved, total: rows.length },
+    quality: { approved: qualityApproved, total: quality.length },
+  };
+}
+
+/**
+ * Per-game approval rates (#194): quality (confidence >= 0.7, mechanical-only
+ * rejects excluded) and overall, each all-time and over the last N projects
+ * (distinct video_id by most recent feedback). Derived entirely from feedback.
+ */
+function getApprovalStats(rollingProjects = 10) {
+  const db = database.getDb();
+  if (!db) return { games: [] };
+
+  const result = db.exec(
+    `SELECT game_tag, video_id, decision, confidence, reject_reasons, timestamp
+       FROM feedback WHERE decision IN ('approved', 'rejected')`
+  );
+  const rows = database.toRows(result);
+
+  const byGame = new Map();
+  for (const row of rows) {
+    const tag = row.game_tag || "?";
+    if (!byGame.has(tag)) byGame.set(tag, []);
+    byGame.get(tag).push(row);
+  }
+
+  const games = [];
+  for (const [tag, gameRows] of byGame) {
+    const latestByVideo = new Map();
+    for (const r of gameRows) {
+      const prev = latestByVideo.get(r.video_id);
+      if (prev === undefined || r.timestamp > prev) latestByVideo.set(r.video_id, r.timestamp);
+    }
+    const recentVideos = new Set(
+      [...latestByVideo.entries()].sort((a, b) => b[1] - a[1]).slice(0, rollingProjects).map(([v]) => v)
+    );
+    games.push({
+      gameTag: tag,
+      projectCount: latestByVideo.size,
+      allTime: computeRates(gameRows),
+      rolling: computeRates(gameRows.filter((r) => recentVideos.has(r.video_id))),
+      rollingProjectCount: recentVideos.size,
+    });
+  }
+
+  games.sort((a, b) => b.allTime.overall.total - a.allTime.overall.total);
+  return { games };
+}
+
 module.exports = {
   logFeedback,
   updateReasons,
   getApprovedClips,
   getRejectedClips,
   getFeedbackCounts,
+  getApprovalStats,
 };

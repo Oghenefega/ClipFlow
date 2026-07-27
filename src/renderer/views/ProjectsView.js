@@ -1127,6 +1127,22 @@ export function ProjectsListView({
   const [statusFilter, setStatusFilter] = useState("all"); // all | review | done
   const [gameFilter, setGameFilter] = useState("all"); // all | <gameTag>
   const [sortOpen, setSortOpen] = useState(false);
+  // #194 detection-quality rates — loaded lazily on first expand
+  const [ratesOpen, setRatesOpen] = useState(false);
+  const [approvalStats, setApprovalStats] = useState(null);
+
+  const toggleRates = async () => {
+    const next = !ratesOpen;
+    setRatesOpen(next);
+    if (next) {
+      try {
+        const res = await window.clipflow?.feedbackApprovalStats?.();
+        setApprovalStats(res?.games ? res : { games: [] });
+      } catch (e) {
+        setApprovalStats({ games: [] });
+      }
+    }
+  };
 
   // --- Folder CRUD state (Phase 3) ---
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -1417,6 +1433,8 @@ export function ProjectsListView({
         {games.map((g) => (
           <FilterChip key={g.tag} active={gameFilter === g.tag} onClick={() => setGameFilter(g.tag)} dot={g.color} count={g.count}>{g.tag}</FilterChip>
         ))}
+        <span style={{ width: 1, height: 20, background: T.border, margin: "0 3px" }} />
+        <FilterChip active={ratesOpen} onClick={toggleRates}>Rates</FilterChip>
         {visibleProjects.length > 0 && (
           <button
             onClick={selectAll}
@@ -1424,6 +1442,47 @@ export function ProjectsListView({
           >{visibleProjects.every((p) => selected[p.id]) ? "Deselect all" : "Select all"}</button>
         )}
       </div>
+
+      {/* #194 per-game approval rates: quality (>=70% confidence, mechanical
+          rejects excluded) vs overall, rolling last-10-projects vs all-time */}
+      {ratesOpen && (
+        <div style={{ margin: "-6px 0 16px", padding: "12px 16px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md }}>
+          {!approvalStats ? (
+            <div style={{ fontSize: 12, color: T.textTertiary }}>Loading…</div>
+          ) : approvalStats.games.length === 0 ? (
+            <div style={{ fontSize: 12, color: T.textTertiary }}>No review decisions yet — approve or reject clips and rates will show up here.</div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "52px repeat(4, 1fr)", gap: "7px 10px", alignItems: "baseline" }}>
+                <span />
+                {["Quality · last 10", "Quality · all-time", "Overall · last 10", "Overall · all-time"].map((h) => (
+                  <span key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: T.textTertiary }}>{h}</span>
+                ))}
+                {approvalStats.games.map((g) => {
+                  const cell = (r, emphasize) => r.total > 0
+                    ? <span style={{ fontSize: 12.5, fontWeight: emphasize ? 700 : 600, color: emphasize ? T.text : T.textSecondary }}>
+                        {Math.round((r.approved / r.total) * 100)}%
+                        <span style={{ marginLeft: 5, fontSize: 10.5, fontWeight: 500, color: T.textMuted }}>{r.approved}/{r.total}</span>
+                      </span>
+                    : <span style={{ fontSize: 12.5, color: T.textMuted }}>—</span>;
+                  return (
+                    <React.Fragment key={g.gameTag}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>{g.gameTag}</span>
+                      {cell(g.rolling.quality, true)}
+                      {cell(g.allTime.quality, false)}
+                      {cell(g.rolling.overall, false)}
+                      {cell(g.allTime.overall, false)}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 9, fontSize: 10.5, color: T.textMuted, lineHeight: 1.5 }}>
+                Quality = picks at 70%+ confidence, ignoring rejects marked only duplicate / bad cut / wrong content. Overall counts every pick, including low-confidence fills. Last 10 = the 10 most recently reviewed projects per game.
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Launch-pad list (full width) */}
       {sorted.length === 0 ? (
@@ -1503,8 +1562,8 @@ export function ProjectsListView({
                         {leftToReview > 0
                           ? <><b style={{ color: T.text }}>{leftToReview}</b> of {clipCount} left{rendered > 0 ? ` · ${rendered} rendered` : ""}</>
                           : toSchedule > 0
-                            ? <>all reviewed · <b style={{ color: T.accent }}>{toSchedule} to schedule</b></>
-                            : <>all {approvedCount > 0 ? "scheduled" : "reviewed"}{publishedCount > 0 ? <> {"·"} <b style={{ color: T.text }}>{publishedCount}</b> published</> : ""}</>}
+                            ? <>kept <b style={{ color: T.text }}>{approvedCount}</b> of {clipCount} ({clipCount > 0 ? Math.round((approvedCount / clipCount) * 100) : 0}%) · <b style={{ color: T.accent }}>{toSchedule} to schedule</b></>
+                            : <>kept <b style={{ color: T.text }}>{approvedCount}</b> of {clipCount} ({clipCount > 0 ? Math.round((approvedCount / clipCount) * 100) : 0}%){approvedCount > 0 ? " · all scheduled" : ""}{publishedCount > 0 ? <> {"·"} <b style={{ color: T.text }}>{publishedCount}</b> published</> : ""}</>}
                       </span>
                     </div>
                   ) : null}
