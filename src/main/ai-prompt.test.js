@@ -362,13 +362,14 @@ test("rejectedClips param optional — omitting it does not crash", () => {
 
 // ── #200: clip count calibrates to source duration, no fixed minimum ──
 
-test("short recording states its length and prompt has no fixed minimum (#200)", () => {
+test("short recording states its length; floor fills with distinct clips, never duplicates (#200)", () => {
   const prompt = buildSystemPrompt({
     gameTag: "ZZTEST", gameName: "Test Game", gameContext: "", entryType: "game",
     approvedClips: [], creatorProfile: null, sourceDuration: 69,
   });
   expect(prompt).toContain("This recording is ~1 minute long.");
-  expect(prompt).toContain("There is NO minimum count");
+  expect(prompt).toContain("Return 10 to 20 clips.");
+  expect(prompt).toContain("as many non-overlapping clips as it can physically hold");
   expect(prompt).notToContain("10-20 clip recommendations");
   expect(prompt).notToContain("Do not return fewer than 10");
 });
@@ -382,16 +383,16 @@ test("long recording rounds to minutes and keeps the overlap ban (#200)", () => 
   expect(prompt).toContain("must not overlap");
 });
 
-test("sourceDuration omitted — no length line, count guidance still present (#200)", () => {
+test("sourceDuration omitted — no length line, floor still present (#200)", () => {
   const prompt = buildFullPrompt();
   expect(prompt).notToContain("This recording is ~");
-  expect(prompt).toContain("There is NO minimum count");
+  expect(prompt).toContain("Return 10 to 20 clips.");
 });
 
-test("borderline moments are included, not dropped; empty array is exceptional (#200)", () => {
+test("borderline moments fill slots at low confidence; empty array banned (#200)", () => {
   const prompt = buildFullPrompt();
-  expect(prompt).toContain("include it with honest low confidence");
-  expect(prompt).toContain("Return an empty array only when a recording truly contains nothing");
+  expect(prompt).toContain("honest low confidence");
+  expect(prompt).toContain("Never return an empty array");
 });
 
 test("rejected section fences taste from volume (#200)", () => {

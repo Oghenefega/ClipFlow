@@ -141,8 +141,7 @@ Return ONLY a valid JSON array. Your entire response must be parseable by JSON.p
 }
 
 ## Constraints:
-- Return every moment that genuinely earns a clip, and no more — a full ~30-minute session typically yields 10 to 20 clips; a short recording holds proportionally fewer. There is NO minimum count: if only 2 moments earn a clip, return exactly 2. Never return more than 20.
-- When a moment is borderline, include it with honest low confidence rather than dropping it. The creator reviews every pick — a weak pick costs one click to reject, but a moment you skip is gone forever. Return an empty array only when a recording truly contains nothing (dead air, menu screens, AFK).
+- Return 10 to 20 clips. When the recording is too short to hold 10 non-overlapping clips, return as many non-overlapping clips as it can physically hold instead, covering the best moments available — include below-the-bar moments with honest low confidence rather than leaving slots empty. The creator reviews every pick: a weak pick costs one click to reject, but a moment you skip is gone forever. Never return an empty array.
 - Order by confidence descending (best clips first)
 - clip_number must be sequential: 1, 2, 3, ...
 - start must use format HH:MM:SS (zero-padded, e.g. "00:05:30" not "5:30")
