@@ -81,6 +81,9 @@ const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
 require("./ai/providers/anthropic");
 require("./ai/providers/openai-compat");
+// Gemini is bound (not just registered): the title/caption handler calls it
+// directly for video input (#193) — it never replaces the active llmProvider.
+const geminiProvider = require("./ai/providers/gemini");
 require("./ai/transcription/stable-ts");
 const { uuid } = require("./uuid");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
@@ -223,6 +226,7 @@ const STORE_DEFAULTS = {
   localProjects: [],
   renameHistory: [],
   anthropicApiKey: "",
+  geminiApiKey: "",
   gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
   gatewayAuthToken: "",
   youtubeClientId: "",
@@ -2493,6 +2497,83 @@ async function collectClipFrames({ projectId, clipId }) {
   }
 }
 
+// #193: give the title/caption model the actual clip — a temp 720p cut of the
+// clip range (audio included) sent to Gemini with the SAME voice prompt the
+// frames path uses. The input was the gap, not the prompt. Throws on any
+// failure; the caller falls back to the frames path, so generation never
+// blocks on Gemini being down. The temp cut is deleted success or failure.
+async function generateTitlesWithGeminiVideo({ params, systemPrompt }) {
+  const { projectId, clipId } = params;
+  if (!projectId || !clipId) throw new Error("Missing projectId/clipId");
+  const project = projects.loadProject(libraryRoot(), projectId);
+  if (!project?.sourceFile || !fs.existsSync(project.sourceFile)) throw new Error("Source video not found");
+  const clip = (project.clips || []).find((c) => c.id === clipId);
+  if (!clip) throw new Error("Clip not found");
+
+  // Cut window: the union range of the edited segments (nleSegments), else the
+  // detected start/end — same source-range logic collectClipFrames samples.
+  const segs = Array.isArray(clip.nleSegments) && clip.nleSegments.length > 0
+    ? clip.nleSegments.map((s) => ({ start: Number(s.sourceStart), end: Number(s.sourceEnd) }))
+    : [{ start: Number(clip.startTime), end: Number(clip.endTime) }];
+  const valid = segs.filter((s) => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start);
+  if (valid.length === 0) throw new Error("Clip has no valid cut range");
+  const start = Math.min(...valid.map((s) => s.start));
+  const end = Math.max(...valid.map((s) => s.end));
+
+  const previewDir = path.join(app.getPath("userData"), "processing", "titlecaption-preview");
+  fs.mkdirSync(previewDir, { recursive: true });
+  const previewPath = path.join(previewDir, `${clipId}.mp4`);
+
+  try {
+    await ffmpeg.cutTitlePreview(project.sourceFile, previewPath, { start, duration: end - start });
+
+    // Same user message as the frames path, minus frames — the video replaces them.
+    const baseText = titleCaptionPrompt.buildUserContent({
+      transcript: params.transcript,
+      projectName: params.projectName,
+      userContext: params.userContext,
+      energyLevel: params.energyLevel,
+      confidence: params.confidence,
+      rejectedSuggestions: params.rejectedSuggestions,
+    });
+    const content = [
+      { type: "text", text: baseText },
+      {
+        type: "text",
+        text: "\n## The clip itself is attached as video, with sound.\nWatch it to see what the transcript can't say — what is on screen, what the moment looks and sounds like. Do not describe the video; use it to know what happened.",
+      },
+      { type: "video", path: previewPath, mimeType: "video/mp4" },
+    ];
+
+    const model = geminiProvider.defaultModel;
+    // 8000, not the Claude path's 2000: Gemini 3.x thinks by default and the
+    // thoughts spend from the same output budget — 2000 can truncate to empty.
+    const { text, usage } = await geminiProvider.chat({
+      model,
+      system: systemPrompt,
+      messages: [{ role: "user", content }],
+      maxTokens: 8000,
+    });
+    if (!text) throw new Error("Empty response from Gemini");
+
+    // The Gemini spend is new money — write a cost log entry so the monthly
+    // total in Settings stays honest. Best-effort, never fails the generate.
+    try {
+      const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+      const costLogger = new pipelineLogger.PipelineLogger(processingDir, `titlegen ${params.projectName || projectId}`);
+      costLogger.info(`Gemini video title generation (#193) — clip ${clipId}, ${(end - start).toFixed(1)}s preview`);
+      costLogger.logApiUsage(usage.inputTokens, usage.outputTokens, model);
+      costLogger.finalize();
+    } catch (e) {
+      logger.warn(logger.MODULES.titleGeneration, "Could not write Gemini cost log", { error: e.message });
+    }
+
+    return text;
+  } finally {
+    try { if (fs.existsSync(previewPath)) fs.unlinkSync(previewPath); } catch (e) { /* non-critical */ }
+  }
+}
+
 // Generate titles & captions for a clip
 ipcMain.handle("anthropic:generate", async (_, params) => {
   try {
@@ -2509,25 +2590,42 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
       voiceExamples,
     });
 
-    const frames = await collectClipFrames({ projectId: params.projectId, clipId: params.clipId });
+    // #193: Gemini sees the clip video when a key is configured; the frames
+    // path is the fallback for no-key, cut failure, or API failure.
+    let text = null;
+    let genSource = "frames";
+    if (String(store.get("geminiApiKey") || "").trim()) {
+      try {
+        text = await generateTitlesWithGeminiVideo({ params, systemPrompt });
+        genSource = "gemini-video";
+      } catch (err) {
+        logger.warn(logger.MODULES.titleGeneration, "Gemini video generation failed — falling back to frames", {
+          clipId: params.clipId, error: err.message,
+        });
+      }
+    }
 
-    const userMessage = titleCaptionPrompt.buildUserContent({
-      transcript: params.transcript,
-      projectName: params.projectName,
-      userContext: params.userContext,
-      energyLevel: params.energyLevel,
-      confidence: params.confidence,
-      rejectedSuggestions: params.rejectedSuggestions,
-      frames,
-    });
+    if (!text) {
+      const frames = await collectClipFrames({ projectId: params.projectId, clipId: params.clipId });
 
-    const provider = llmProvider.getProvider();
-    const { text } = await provider.chat({
-      model: provider.defaultModel,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-      maxTokens: 2000,
-    });
+      const userMessage = titleCaptionPrompt.buildUserContent({
+        transcript: params.transcript,
+        projectName: params.projectName,
+        userContext: params.userContext,
+        energyLevel: params.energyLevel,
+        confidence: params.confidence,
+        rejectedSuggestions: params.rejectedSuggestions,
+        frames,
+      });
+
+      const provider = llmProvider.getProvider();
+      ({ text } = await provider.chat({
+        model: provider.defaultModel,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+        maxTokens: 2000,
+      }));
+    }
 
     if (!text) return { error: "Empty response from LLM provider" };
 
@@ -2542,6 +2640,7 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
         game: params.gameName,
         transcript: params.transcript,
         suggestions: parsed,
+        genSource,
       });
       return { success: true, data: parsed };
     } catch (e) {

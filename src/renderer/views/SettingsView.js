@@ -12,7 +12,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -30,6 +30,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const [anthropicVal, setAnthropicVal] = useState(anthropicApiKey || "");
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showAnthropicKeyEdit, setShowAnthropicKeyEdit] = useState(false);
+  // Gemini (#193 — video-aware title/caption generation)
+  const [editGemini, setEditGemini] = useState(false);
+  const [geminiVal, setGeminiVal] = useState(geminiApiKey || "");
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [showGeminiKeyEdit, setShowGeminiKeyEdit] = useState(false);
   // Gateway
   const [gatewayUrlVal, setGatewayUrlVal] = useState(gatewayUrl || "");
   const [gatewayTokenVal, setGatewayTokenVal] = useState(gatewayAuthToken || "");
@@ -320,6 +325,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
   const anthropicConfigured = Boolean(anthropicApiKey);
+  const geminiConfigured = Boolean(geminiApiKey);
   const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
   const metaConfigured = Boolean(metaAppId && metaAppSecret);
   const instagramConfigured = Boolean(instagramAppId && instagramAppSecret);
@@ -327,6 +333,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
   const apiServices = [
     { id: "anthropic", label: "Anthropic", configured: anthropicConfigured },
+    { id: "gemini", label: "Gemini", configured: geminiConfigured },
     { id: "youtube", label: "YouTube", configured: youtubeConfigured },
     { id: "instagram", label: "Instagram", configured: instagramConfigured },
     { id: "meta", label: "Facebook Pages", configured: metaConfigured },
@@ -1142,7 +1149,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: activeApi ? 16 : 0 }}>
           {apiServices.map((svc) => {
             const isSel = activeApi === svc.id;
-            const isEditing = svc.id === "anthropic" ? editAnthropic : svc.id === "youtube" ? editYouTube : svc.id === "meta" ? editMeta : editTiktok;
+            const isEditing = svc.id === "anthropic" ? editAnthropic : svc.id === "gemini" ? editGemini : svc.id === "youtube" ? editYouTube : svc.id === "meta" ? editMeta : editTiktok;
             return (
               <div key={svc.id} onClick={() => { if (!isEditing) setActiveApi(isSel ? null : svc.id); }}
                 style={{
@@ -1226,6 +1233,53 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                     <span style={{ color: T.textTertiary, fontSize: 12, margin: "0 4px" }}>&middot;</span>
                     <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>Gateway active</span>
                   </>)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Gemini detail panel (#193) */}
+        {activeApi === "gemini" && (
+          <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: T.textSecondary, fontSize: 13, fontWeight: 600 }}>Google Gemini</span>
+              {!editGemini ? (
+                <button onClick={() => { setEditGemini(true); setGeminiVal(geminiApiKey || ""); }} style={btnSecondary}>Edit</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setEditGemini(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => { setGeminiApiKey(geminiVal.trim()); setEditGemini(false); }} style={btnSave}>Save</button>
+                </div>
+              )}
+            </div>
+            {editGemini ? (
+              <div>
+                <SectionLabel>API Key</SectionLabel>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <input value={geminiVal} onChange={(e) => setGeminiVal(e.target.value)} type={showGeminiKeyEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="AIza..." />
+                  <button onClick={() => setShowGeminiKeyEdit(!showGeminiKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGeminiKeyEdit ? "Hide" : "Show"}>{showGeminiKeyEdit ? "👁" : "👁‍🗨"}</button>
+                </div>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>With a key set, title/caption suggestions are generated from the actual clip video (with sound) instead of a few stills. Clear the key to go back to stills.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>API Key</span>
+                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {!geminiApiKey ? "Not set" : showGeminiKey ? geminiApiKey : maskKey(geminiApiKey)}
+                  </span>
+                  {geminiApiKey && (
+                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      <button onClick={() => setShowGeminiKey(!showGeminiKey)} style={{ ...iconBtn, color: T.textTertiary }} title={showGeminiKey ? "Hide" : "Show"}>{showGeminiKey ? "👁" : "👁‍🗨"}</button>
+                      <button onClick={() => copyToClipboard(geminiApiKey, "gemini-key")} style={{ ...iconBtn, color: copiedField === "gemini-key" ? T.green : T.textTertiary }}>{copiedField === "gemini-key" ? "✓" : "📋"}</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Status</span>
+                  <PulseDot color={geminiConfigured ? T.green : T.red} size={6} />
+                  <span style={{ color: geminiConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{geminiConfigured ? "Titles see the clip video" : "Not set — titles use stills"}</span>
                 </div>
               </div>
             )}

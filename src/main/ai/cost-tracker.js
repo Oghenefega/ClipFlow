@@ -28,6 +28,10 @@ const PRICING = {
   // Google Gemini
   "gemini-2.5-pro":        { input: 1.25, output: 10 },
   "gemini-2.5-flash":      { input: 0.15, output: 0.60 },
+  // Current Flash (#193 video title generation) — verified 2026-07-27 against
+  // ai.google.dev/gemini-api/docs/pricing. Video input bills as normal input
+  // tokens (~300/sec of footage).
+  "gemini-3.6-flash":      { input: 1.50, output: 7.50 },
 
   // Mistral
   "mistral-large-latest":  { input: 2,    output: 6 },

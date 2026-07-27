@@ -269,6 +269,7 @@ export default function App() {
 
   // AI Title & Caption Generator
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayAuthToken, setGatewayAuthToken] = useState("");
   const [styleGuide, setStyleGuide] = useState("");
@@ -383,6 +384,7 @@ export default function App() {
           setRenameHistory(reconciled);
         }
         if (all.anthropicApiKey) setAnthropicApiKey(all.anthropicApiKey);
+        if (all.geminiApiKey) setGeminiApiKey(all.geminiApiKey);
         if (all.gatewayUrl) setGatewayUrl(all.gatewayUrl);
         if (all.gatewayAuthToken) setGatewayAuthToken(all.gatewayAuthToken);
         if (all.youtubeClientId) setYoutubeClientId(all.youtubeClientId);
@@ -475,6 +477,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("sfxFolder", sfxFolder); }, [sfxFolder]);
   useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("anthropicApiKey", anthropicApiKey); }, [anthropicApiKey]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("geminiApiKey", geminiApiKey); }, [geminiApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("gatewayUrl", gatewayUrl); }, [gatewayUrl]);
   useEffect(() => { if (!hasLoaded.current) return; persist("gatewayAuthToken", gatewayAuthToken); }, [gatewayAuthToken]);
   useEffect(() => { if (!hasLoaded.current) return; persist("youtubeClientId", youtubeClientId); }, [youtubeClientId]);
@@ -868,6 +871,8 @@ export default function App() {
               setSfxFolder={setSfxFolder}
               anthropicApiKey={anthropicApiKey}
               setAnthropicApiKey={setAnthropicApiKey}
+              geminiApiKey={geminiApiKey}
+              setGeminiApiKey={setGeminiApiKey}
               gatewayUrl={gatewayUrl}
               setGatewayUrl={setGatewayUrl}
               gatewayAuthToken={gatewayAuthToken}

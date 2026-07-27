@@ -144,6 +144,50 @@ function transcodeCopy(videoPath, outPath, opts = {}) {
 }
 
 /**
+ * Cut a small 720p preview of a clip range for AI title generation (#193).
+ *
+ * Gemini watches this instead of stills, so it needs sound: audio maps 0:a:0 —
+ * the OBS full mix, the same first-stream audio the clip render assembles
+ * ([0:a] in render.js) — so the model hears what a viewer would hear. Bitrate
+ * is capped low (2M): the model samples ~1fps server-side, visual fidelity
+ * beyond "readable gameplay" is wasted upload.
+ *
+ * @param {string} videoPath - Source recording
+ * @param {string} outPath
+ * @param {object} opts - { start, duration, shortSide = 720 }
+ * @returns {Promise<{success: true, path: string}>}
+ */
+function cutTitlePreview(videoPath, outPath, opts = {}) {
+  const { start = 0, duration = 30, shortSide = 720 } = opts;
+  return new Promise((resolve, reject) => {
+    const scale = `scale='if(gt(iw,ih),-2,${shortSide})':'if(gt(iw,ih),${shortSide},-2)'`;
+    const args = [
+      "-y",
+      "-ss", start.toFixed(3),
+      "-i", videoPath,
+      "-t", Math.max(0.5, duration).toFixed(3),
+      "-map", "0:v:0",
+      "-map", "0:a:0?",
+      "-vf", scale,
+      "-r", "30",
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+      "-maxrate", "2M", "-bufsize", "4M",
+      "-c:a", "aac", "-b:a", "128k", "-ac", "2",
+      "-movflags", "+faststart",
+      outPath,
+    ];
+    const proc = spawn("ffmpeg", args);
+    let stderrTail = "";
+    proc.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-2000); });
+    proc.on("error", (e) => reject(new Error(`ffmpeg failed to start: ${e.message}`)));
+    proc.on("close", (code) => {
+      if (code === 0 && fs.existsSync(outPath)) return resolve({ success: true, path: outPath });
+      reject(new Error(`Title preview cut failed (exit ${code}): ${stderrTail.slice(-300)}`));
+    });
+  });
+}
+
+/**
  * Probe a media file for duration, codecs, resolution, etc.
  * Returns { duration, width, height, videoCodec, audioCodec, fps, size }.
  */
@@ -730,6 +774,7 @@ module.exports = {
   resolveEncoder,
   buildEncoderArgs,
   transcodeCopy,
+  cutTitlePreview,
   probe,
   probeAudioTracks,
   extractTrackSample,

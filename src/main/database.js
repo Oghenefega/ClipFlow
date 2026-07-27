@@ -210,6 +210,17 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 8,
+    description: "Add gen_source to title_caption_rounds: which input the suggestions were generated from (#193)",
+    up(database) {
+      // 'gemini-video' (model watched the clip) vs 'frames' (stills only).
+      // Distinct from title_source, which classifies where the FINAL published
+      // title came from (ai / ai_edited / self) — comparing acceptance rates
+      // between the two generation paths needs both axes.
+      database.run(`ALTER TABLE title_caption_rounds ADD COLUMN gen_source TEXT`);
+    },
+  },
 ];
 
 /**

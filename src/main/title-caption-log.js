@@ -123,20 +123,21 @@ function db() {
  * is the one the creator actually chose from or rejected) but never clears a
  * final title already recorded by a publish.
  */
-function recordGeneration({ clipId, projectId, game, transcript, suggestions }) {
+function recordGeneration({ clipId, projectId, game, transcript, suggestions, genSource }) {
   const d = db();
   if (!d || !clipId) return;
   try {
     d.run(
-      `INSERT INTO title_caption_rounds (clip_id, project_id, game, transcript, suggestions_json)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO title_caption_rounds (clip_id, project_id, game, transcript, suggestions_json, gen_source)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(clip_id) DO UPDATE SET
          project_id       = COALESCE(excluded.project_id, project_id),
          game             = COALESCE(excluded.game, game),
          transcript       = COALESCE(excluded.transcript, transcript),
          suggestions_json = excluded.suggestions_json,
+         gen_source       = COALESCE(excluded.gen_source, gen_source),
          updated_at       = datetime('now')`,
-      [clipId, projectId || null, game || null, transcript || null, JSON.stringify(suggestions || {})]
+      [clipId, projectId || null, game || null, transcript || null, JSON.stringify(suggestions || {}), genSource || null]
     );
     database.save();
   } catch (err) {
