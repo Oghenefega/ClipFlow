@@ -168,13 +168,14 @@ function round3(n) {
  * @param {string} srtPath - SRT transcript file
  * @param {string} processingDir - Processing root directory
  * @param {PipelineLogger} logger
+ * @param {number} audioTrack - 0-based audio stream index (transcriptionAudioTrack)
  * @returns {Promise<{ energyJson: Array, claudeReadyText: string }>}
  */
-function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger) {
+function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger, audioTrack = 1) {
   return new Promise((resolve, reject) => {
     const scriptPath = "D:\\whisper\\energy_scorer.py";
     // -X utf8 forces Python UTF-8 mode so emoji energy labels (🔥⚡💤🔇) don't crash on Windows cp1252
-    const args = ["-X", "utf8", scriptPath, videoPath, srtPath];
+    const args = ["-X", "utf8", scriptPath, videoPath, srtPath, "--track", String(audioTrack)];
 
     logger.logCommand(pythonPath, args);
 
@@ -608,7 +609,7 @@ async function runAIPipeline({
     logger.startStep("Energy Analysis");
     const pythonPath = store.get("whisperPythonPath") || "D:\\whisper\\betterwhisperx-venv\\Scripts\\python.exe";
     const { energyJson, claudeReadyText } = await runEnergyScorer(
-      pythonPath, sourceFile, srtPath, processingDir, logger
+      pythonPath, sourceFile, srtPath, processingDir, logger, audioTrack
     );
     logger.endStep("Energy Analysis", `${energyJson.length} segments analyzed`);
 
