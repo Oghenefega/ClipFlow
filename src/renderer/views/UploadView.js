@@ -1256,7 +1256,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
               {generating ? generating.split(/[/\\]/).pop() : ""}
             </span>
             {progress.stage === "complete" && progress.signalSummary === "all" && (
-              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} 5/5 signals contributed</span>
+              <span style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>{"\u2705"} {(progress.computedSignals || []).length || SIGNAL_ROWS.length + 1} signals contributed</span>
             )}
             {progress.stage === "complete" && progress.signalSummary === "degraded" && (
               <span style={{ color: T.yellow, fontSize: 13, fontWeight: 700 }} title={(progress.failedSignals || []).map((f) => `${f.signal}: ${f.failureReason}`).join("; ")}>
@@ -1275,6 +1275,14 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
               <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>{"\u274C"} Failed</span>
             )}
           </div>
+
+          {/* #200: zero clips is a judgment, not a failure \u2014 say so, or an empty
+              project reads as a crash. */}
+          {progress.stage === "complete" && progress.clipCount === 0 && (
+            <div style={{ padding: "8px 12px", marginBottom: 12, background: `${T.yellow}12`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33`, color: T.textSecondary, fontSize: 12 }}>
+              Detection finished but found no moments that meet your bar \u2014 nothing was clipped. Setup talk, training segments, and moments similar to ones you've rejected before are skipped on purpose.
+            </div>
+          )}
 
           {/* Step-by-step status */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

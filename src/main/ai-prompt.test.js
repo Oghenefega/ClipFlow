@@ -388,6 +388,17 @@ test("sourceDuration omitted — no length line, count guidance still present (#
   expect(prompt).toContain("There is NO minimum count");
 });
 
+test("borderline moments are included, not dropped; empty array is exceptional (#200)", () => {
+  const prompt = buildFullPrompt();
+  expect(prompt).toContain("include it with honest low confidence");
+  expect(prompt).toContain("Return an empty array only when a recording truly contains nothing");
+});
+
+test("rejected section fences taste from volume (#200)", () => {
+  const section = buildRejectedSection([rejectedRow()]);
+  expect(section).toContain("not HOW MANY clips to return");
+});
+
 test("combined approved + rejected content stays within ~6k budget", () => {
   const approved = Array.from({ length: 40 }, () => approvedRow({ transcript_segment: LONG_TEXT }));
   const rejected = Array.from({ length: 40 }, () => rejectedRow({ transcript_segment: LONG_TEXT }));
