@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.22: free clip count
+
+### Changed
+- **Installer cut as `0.3.0-alpha.22`**, promoting the #200 fix so short recordings stop producing duplicate clips on the daily driver. Nothing else changed since alpha.21.
+
 ## [Unreleased] — 2026-07-27 (session 132 cont.) — Clip count calibrates to recording length (#200)
 
 ### Fixed
