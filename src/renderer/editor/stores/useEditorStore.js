@@ -306,11 +306,12 @@ const useEditorStore = create((set, get) => ({
     // Reset waveform (real extraction via FFmpeg in main process — TODO)
     set({ waveformPeaks: null, waveformError: null });
 
-    // Set AI game from project data
-    if (project?.game) {
+    // Set AI game from the clip's content tag when retagged (#197), else the project
+    const aiGameName = clip?.gameName || project?.game;
+    if (aiGameName) {
       setTimeout(() => {
         try {
-          useAIStore.getState().setAiGame(project.game);
+          useAIStore.getState().setAiGame(aiGameName);
         } catch (e) {}
       }, 0);
     }

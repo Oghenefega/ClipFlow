@@ -188,6 +188,25 @@ function getArchetypePersonality(archetype) {
 const SNIPPET_MAX_CHARS = 180;
 const SECTION_CHAR_BUDGET = 3000; // per section; two sections ≈ 6k combined
 
+// ── Rejection reasons (#198) ──
+// Reasons that say nothing about taste: the moment was good (duplicate of a
+// kept pick), or only the boundaries/bucket were wrong. Rows carrying any of
+// these never enter the negative-calibration set.
+const EXCLUDED_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content"];
+const REJECT_REASON_LABELS = {
+  duplicate: "duplicate of a kept clip",
+  "bad-cut": "bad cut",
+  "not-funny": "not funny",
+  "nothing-happens": "nothing happens",
+  "needs-context": "needs context a viewer wouldn't have",
+  "wrong-content": "wrong content for this game",
+};
+
+/** Parse the CSV reject_reasons column into an array of keys. */
+function parseRejectReasons(row) {
+  return String(row?.reject_reasons || "").split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 /**
  * Collapse whitespace and truncate at a word boundary — never mid-word.
  */
@@ -202,7 +221,7 @@ function truncateSnippet(text, max = SNIPPET_MAX_CHARS) {
  * Format one real feedback row as a snippet entry. Returns "" when the row
  * has nothing usable (legacy rows with empty transcript_segment and no note).
  */
-function formatRealClipEntry(clip, { withNote = false } = {}) {
+function formatRealClipEntry(clip, { withNote = false, withReasons = false } = {}) {
   const snippet = truncateSnippet(clip.transcript_segment);
   const note = withNote ? String(clip.user_note || "").trim() : "";
   if (!snippet && !note) return "";
@@ -211,6 +230,10 @@ function formatRealClipEntry(clip, { withNote = false } = {}) {
   else entry += `\n- ${clip.title || "(untitled)"}`;
   if (snippet) entry += `\n  Title: ${clip.title || "(untitled)"}`;
   entry += `\n  Energy: ${clip.energy_level || "unknown"}`;
+  if (withReasons) {
+    const labels = parseRejectReasons(clip).map((k) => REJECT_REASON_LABELS[k] || k);
+    if (labels.length > 0) entry += `\n  Reason: ${labels.join(", ")}`;
+  }
   if (note) entry += `\n  Creator's note: ${note}`;
   return entry;
 }
@@ -302,7 +325,12 @@ Each example quotes what was being said during a clip this creator approved. Use
  * @returns {string|null}
  */
 function buildRejectedSection(rejectedClips) {
-  const entries = formatEntriesWithinBudget(rejectedClips || [], { withNote: true });
+  // #198: rejections whose reason says nothing about taste (duplicate of a
+  // kept clip, bad cut, wrong content) are not negative signal — drop them.
+  const tasteRejections = (rejectedClips || []).filter(
+    (clip) => !parseRejectReasons(clip).some((k) => EXCLUDED_REJECT_REASONS.includes(k))
+  );
+  const entries = formatEntriesWithinBudget(tasteRejections, { withNote: true, withReasons: true });
   if (entries.length === 0) return null;
   return `# MOMENTS THIS CREATOR REJECTED
 

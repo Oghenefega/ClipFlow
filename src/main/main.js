@@ -1907,6 +1907,12 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
 });
 
 // ============ FEEDBACK DATABASE ============
+ipcMain.handle("feedback:updateReasons", async (_, payload) => {
+  try {
+    return feedbackDb.updateReasons(payload || {});
+  } catch (err) { return { error: err.message }; }
+});
+
 ipcMain.handle("feedback:log", async (_, entry) => {
   try {
     return feedbackDb.logFeedback(entry);

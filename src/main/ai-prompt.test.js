@@ -257,6 +257,53 @@ test("rejected section respects its character budget", () => {
   expect(section.length).toBeLessThan(3500);
 });
 
+// ── buildRejectedSection: reason filtering (#198) ──
+
+console.log("\nbuildRejectedSection reason filtering:");
+
+test("duplicate rejections are excluded from the negative set", () => {
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "duplicate" })])).toBeNull();
+});
+
+test("bad-cut and wrong-content rejections are excluded too", () => {
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "bad-cut" })])).toBeNull();
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "wrong-content" })])).toBeNull();
+});
+
+test("any excluded reason wins over a taste reason on the same row", () => {
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "duplicate,not-funny" })])).toBeNull();
+});
+
+test("taste rejections stay and render a Reason line", () => {
+  const section = buildRejectedSection([rejectedRow({ reject_reasons: "not-funny" })]);
+  expect(section).toContain("Reason: not funny");
+});
+
+test("multiple taste reasons render as a joined list", () => {
+  const section = buildRejectedSection([rejectedRow({ reject_reasons: "nothing-happens,needs-context" })]);
+  expect(section).toContain("Reason: nothing happens, needs context a viewer wouldn't have");
+});
+
+test("reason-less rows remain generic negatives with no Reason line", () => {
+  const section = buildRejectedSection([rejectedRow()]);
+  expect(section).toContain("# MOMENTS THIS CREATOR REJECTED");
+  expect(section).notToContain("Reason:");
+});
+
+test("excluded rows are filtered while taste rows survive in the same batch", () => {
+  const section = buildRejectedSection([
+    rejectedRow({ reject_reasons: "duplicate", title: "Dupe Row", transcript_segment: "the duplicate moment snippet here" }),
+    rejectedRow({ reject_reasons: "not-funny", title: "Unfunny Row", transcript_segment: "the unfunny moment snippet here" }),
+  ]);
+  expect(section).notToContain("the duplicate moment snippet");
+  expect(section).toContain("the unfunny moment snippet");
+});
+
+test("unknown reason keys pass through as raw text", () => {
+  const section = buildRejectedSection([rejectedRow({ reject_reasons: "some-future-reason" })]);
+  expect(section).toContain("Reason: some-future-reason");
+});
+
 // ── buildSystemPrompt end-to-end ──
 
 console.log("\nbuildSystemPrompt:");

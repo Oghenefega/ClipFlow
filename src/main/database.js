@@ -179,6 +179,37 @@ const MIGRATIONS = [
       database.run(`CREATE INDEX idx_tcr_views ON title_caption_rounds(views DESC)`);
     },
   },
+  {
+    version: 6,
+    description: "Add reject_reasons to feedback for rejection reason chips (#198)",
+    up(database) {
+      // CSV of reason keys (duplicate, bad-cut, not-funny, nothing-happens,
+      // needs-context, wrong-content). Empty/NULL = no reason given, which the
+      // detection prompt treats as a generic negative, same as before.
+      database.run(`ALTER TABLE feedback ADD COLUMN reject_reasons TEXT`);
+    },
+  },
+  {
+    version: 7,
+    description: "One-time data fix (#197): move approved world-cup rows from RL to JC",
+    up(database) {
+      // Three clips of world-cup talk approved during a Rocket League session
+      // (2026-07-26) were polluting RL's few-shot taste examples. They belong
+      // under Just Chatting. Guarded by id + decision + content so this is a
+      // no-op on fresh installs and on any DB where these ids hold other rows.
+      // The rejected world-cup rows deliberately STAY under RL — they are
+      // correct "don't clip chatting tangents mid-game" negative examples.
+      database.run(`
+        UPDATE feedback SET game_tag = 'JC'
+        WHERE id IN (179, 181, 182)
+          AND game_tag = 'RL'
+          AND decision = 'approved'
+          AND (transcript_segment LIKE '%rgentina%'
+            OR transcript_segment LIKE '%essi%'
+            OR transcript_segment LIKE '%hate watch%')
+      `);
+    },
+  },
 ];
 
 /**

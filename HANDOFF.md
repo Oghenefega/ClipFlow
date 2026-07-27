@@ -1,71 +1,58 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-26 — Session 131 — **The feedback loop is finally plugged in: detection prompt learns from rejections (#191), playstyle updater mines kept clips instead of raw transcripts (#192).**_
+_Last updated: 2026-07-27 — Session 131 — **Learning loop overhaul shipped as 0.3.0-alpha.20: rejection + snippet learning (#191), kept-clip playstyle mining (#192), clip retagging (#197), rejection reason chips (#198).**_
 
 ---
 
 ## One-line TL;DR
 
-Both learning-loop issues built and closed (`status: untested`). The detection prompt now shows the model quoted transcript snippets of what Fega approved AND a "moments this creator rejected" section (149 rejections had never been used); the playstyle updater mines approved feedback rows + published title/caption rounds from the DB instead of raw session transcripts, so chat asides like the church play can never again become "content strategy." No installer cut — rides in the next batch.
+Four connected learning-loop changes in one session. Morning: detection prompt learns from rejections and real transcript snippets (#191), playstyle updater mines kept clips from the DB (#192). Evening, after Fega's world-cup insight: clips can be retagged (session tag vs content tag, #197) and rejections carry optional reason chips that gate what counts as negative signal (#198). All four closed `status: untested`; installer **0.3.0-alpha.20** cut for Fega to test on the daily driver.
 
 ## Current State
 
-- **#191 and #192 closed with `status: untested`** — code verified headless against real data, but no real pipeline run has flowed through yet. Fega confirms on his next generate.
-- **No version bump, no installer.** Daily driver remains `0.3.0-alpha.19`. These changes reach Fega on the next `npm run build` + reinstall (batch rule).
-- **46 unit-test assertions added** — `node src/main/ai-prompt.test.js` (31) and `node src/main/game-profiles.test.js` (15), plain-node runners in the segmentWords.test.js style (electron stubbed via `Module._load`).
-- Renderer untouched. Build clean, source boot clean (dev profile).
+- **#191, #192, #197, #198 closed with `status: untested`** — everything verified headless/unit-level; no real pipeline run or UI session by Fega yet.
+- **0.3.0-alpha.20** built from this code (see dist/). Fega installs and tests.
+- 54 unit assertions green: `node src/main/ai-prompt.test.js` (39) + `node src/main/game-profiles.test.js` (15).
+- DB schema now **v7** (v6 adds `feedback.reject_reasons`; v7 is the one-time world-cup row move). Migrations run on first launch of the new build against the real prod DB — verified against a prod snapshot in the dev profile.
 
-## What Was Just Built
+## What Was Just Built (evening half — #197/#198)
 
-**#191 — detection prompt learns from rejections and real snippets** — `src/main/ai-prompt.js`, `src/main/ai-pipeline.js`
+**#197 retag** — `ProjectsView.js` (ClipTagMenu + ClipRow), `App.js` (handleUpdateClipFields + gamesDb wiring), `useAIStore.js` (setAiGame persists), `useEditorStore.js` (seeds from clip.gameName), `RightPanelNew.js`
+- Effective tag = `clip.gameTag || project.gameTag`. Review-card badge opens a grouped menu (Games / Content); editor's existing AI game picker now persists `{gameTag, gameName}` via projectUpdateClip and syncs the in-memory editor clip snapshot.
+- Feedback logging (`ApproveRejectButtons`) uses the effective tag. QueueView publish/tracker paths already preferred `clip.gameTag` — no change needed there.
+- Badge color resolves from the gamesDb entry for the effective tag.
 
-- Approved examples rebuilt around quoted `transcript_segment` snippets (~180 chars, word-boundary truncation, never mid-word) + title + energy. Cross-video timestamps removed from real examples.
-- New Section 8 `# MOMENTS THIS CREATOR REJECTED` — up to 15 rejected clips as snippets, `user_note` verbatim when present, framed as "do NOT pick moments like these." Omitted cleanly when a game has zero rejections.
-- Pipeline fetches `feedback.getRejectedClips(gameTag, 15)` (previously zero callers) alongside the approved 20.
-- Budget: `SECTION_CHAR_BUDGET = 3000` per section (~6k combined); entries dropped oldest-last once spent.
-- Tier 1/2/3 archetype blending unchanged; static examples keep their Timestamp format (structural refs only).
-- **Every run now writes its exact system prompt** to `processing/claude/<video>.system_prompt.txt`.
+**#198 reason chips** — `ProjectsView.js` (chip row in ClipRow), `feedback.js` (`updateReasons`), `database.js` (v6), `main.js` (`feedback:updateReasons`), `preload.js`, `ai-prompt.js` (filter)
+- Reject stays one click. Chip row renders under the transcript only when rejected; card dims per-region (chips/buttons stay bright). Reasons + note stored on the clip (`rejectReasons`, `rejectNote`) AND pushed to the latest matching rejected feedback row (matched by video_id + clip_start + clip_end, so it works for clips rejected in past sessions too).
+- Prompt filter: rows with `duplicate` / `bad-cut` / `wrong-content` never enter the rejected section (any excluded reason wins); `not-funny` / `nothing-happens` / `needs-context` stay with a `Reason:` line; reason-less rows behave as before. Pipeline now fetches 30 rejected rows to survive filtering; the 3k-char section budget still caps display.
+- "Wrong content" chip shows a "Retag it" link → un-rejects + opens the tag menu.
 
-**#192 — playstyle updater mines kept clips** — `src/main/game-profiles.js`, `src/main/title-caption-log.js`, `src/main/main.js`
+## Key Decisions (evening)
 
-- `gameProfiles.generateProfileUpdate(gameTag, {creatorName})` — new home for the whole flow; the IPC handler in main.js is now 4 lines. Result shape unchanged (`{success, oldProfile, newProfile, gameName}`), diff card untouched.
-- Sources: `feedback.getApprovedClips(tag, 30)` + new `titleCaptionLog.getPublishedRounds(tag, gameName, 30)`. The rounds query matches the free-form `game` column (`"rl"`, `"rocketleague"`, `"Rocket League"`) case-insensitively with spaces stripped.
-- New prompt: pattern must appear in ≥2 kept clips, one-off asides banned outright, 150-300 words with a consolidate-don't-append clause (added after the first live run came back at 469 words; second run: 294).
-- Thin-data guard: <5 kept datapoints → `{success: false, skipped: "thin-data", note, oldProfile === newProfile}` — no LLM call, no diff card, profile untouched.
-- `getRecentTranscripts` deleted (single caller was this handler). Rejected snippets deliberately NOT fed to the playstyle prompt (spec said MAY; omitting guarantees polluted source text can't leak in).
-
-## Verification Evidence (headless, real data)
-
-Harness: `scratchpad/verify-harness.js` run via `CLIPFLOW_PROFILE=dev npx electron <path>` after copying the **prod appdata DB** (`%APPDATA%\clipflow\data\clipflow.db`) into the dev profile. Evidence files in the session scratchpad `evidence/` dir; key results:
-
-- RL detection prompt: both sections present, 11 approved + 15 rejected snippets, zero `Timestamp:` lines among real clips. The church-play snippet sits in the REJECTED section — exactly where it teaches.
-- RL playstyle regen via the real `generateProfileUpdate`: 294 words, **zero church/jesus/acting references** (regex-verified), patterns clearly multi-clip.
-- Valorant (0 kept clips): thin-data skip, old === new, no API call.
-
-## Key Decisions
-
-1. **Thin-data guard returns `success: false`** so the diff card doesn't pop with identical old/new text. The renderer only renders the card on `success` — sparse games silently skip. Session count is NOT reset on skip, so it re-checks next threshold hit (no LLM cost either way).
-2. **Playstyle generation moved into game-profiles.js** rather than staying inline in main.js — needed a real, callable production function for headless verification and unit tests. Handler is a thin delegate.
-3. **Rejected-as-contrast omitted from the playstyle prompt** (issue said MAY). Guarantees the church-play text physically cannot reach the profile generator.
-4. **Word-count enforcement via prompt rule**, not truncation — the model consolidates; code never cuts profile text.
+1. **Asymmetric world-cup cleanup** — only the 3 APPROVED rows moved to JC (migration v7). The 7 rejected world-cup rows stay under RL as correct "don't clip chatting tangents" negatives; moving them would have poisoned JC with false negatives. Row 161 ("1v1 world cup" = RL tournament talk) proves keyword sweeps are unsafe — the migration is guarded by exact ids + decision + content.
+2. **Retag = single reassignment**, no multi-tag. Plain reject (no retag) logs under the session tag by design — that's correct negative signal for that game.
+3. **Reasons are optional, never blocking** — chips auto-save per tap, no confirm step. Taxonomy v2 after Fega rejected "Didn't land" as vague: split into Not funny / Nothing happens, added Needs context.
+4. **Editor's AI game picker became the retag control** rather than adding a second control — it was already seeded from the project and fed generation; now it persists.
+5. Computer-use verification was offered and **denied by Fega** — UI confirmation happens on his daily-driver test, which is what `status: untested` tracks.
 
 ## Next Steps
 
-1. **Next real pipeline run**: confirm `processing/claude/<video>.system_prompt.txt` appears and the run feels better-calibrated. Remove `status: untested` from #191 when Fega confirms.
-2. **Next playstyle threshold trigger**: confirm the diff card still renders and the new profile reads clean. Remove `status: untested` from #192.
-3. Installer batch is accumulating (this session = 2 changes since alpha.19). Cut when ~10 or on ask.
+1. Fega installs **0.3.0-alpha.20**, then: (a) run a generate on any recording — check the logged prompt at `processing\claude\<video>.system_prompt.txt` shows both sections; (b) reject a clip and tap chips; (c) retag a clip to Just Chatting and approve it; (d) next RL playstyle threshold → diff card should read clean.
+2. On confirmation, remove `status: untested` from #191/#192/#197/#198.
+3. Consider later: "Posted this type too often" chip if the Note channel shows it recurring; retro-retag UI for published clips (declined for v1).
 
 ## Watch Out For
 
-- **The repo `data/clipflow.db` is STALE** (64 feedback rows, no `title_caption_rounds` table). Real data lives in `%APPDATA%\clipflow\data\clipflow.db` (packaged app). Source-run prod (`npm start`) reads the stale repo copy — measured counts must come from the appdata DB.
-- **`title_caption_rounds.game` is free-form** — any new query against it must normalize (lower + strip spaces) like `getPublishedRounds` does, or it silently drops rows.
-- **`npm start` exits 0 immediately when the daily driver is running** (single-instance lock, shared prod profile). Boot-verify with `CLIPFLOW_PROFILE=dev npx electron .` instead — separate lock, still loads `build/`.
-- The two prompt test files stub electron via `Module._load` intercept — they must keep running under plain `node`, don't convert them to require real electron.
-- Backups made this session: `%APPDATA%\clipflow-dev\data\clipflow.db.bak-s131` and `game_profiles.json.bak-s131` (dev DB was overwritten with a prod snapshot for verification — that's the sanctioned direction, but the dev profile now mirrors prod data as of tonight).
+- **Migration v7 is id-anchored to the PROD database.** It no-ops on fresh installs and the stale repo DB (64 rows). If it ever needs re-running (e.g. DB restored from an old backup), the guard conditions must still hold.
+- **`feedback.updateReasons` matches by (video_id, clip_start, clip_end, decision='rejected'), latest first.** If a clip's cut boundaries change AFTER rejection, a later chip tap writes to the row matching the NEW boundaries — which won't exist → silent no-op. Acceptable: rejected clips don't get re-trimmed in practice.
+- **`clip.rejectReasons`/`rejectNote` live on the clip object in project JSON** — they rehydrate the chips. The DB row is the learning source of truth; the clip fields are display state.
+- **The dev profile DB is a prod snapshot as of 2026-07-26** (copied for verification, backups at `clipflow-dev\data\*.bak-s131`) and is now at schema v7. Prod migrates on first launch of alpha.20.
+- **Repo `data/clipflow.db` is STALE** (see memory): measure against `%APPDATA%\clipflow\data\clipflow.db`.
+- `npm start` exits 0 instantly while the daily driver runs (shared single-instance lock) — boot-verify with `CLIPFLOW_PROFILE=dev npx electron .`.
 
 ## Logs / Debugging
 
-- Headless harness output: session scratchpad `evidence/RL.system_prompt.txt` (the logged prompt) and `evidence/RL-playstyle-regen.json` (full regen result).
-- Dev-profile app log: `%APPDATA%\clipflow-dev\logs\main.log` — clean boot at 22:27 (`App started 0.3.0-alpha.19`, schema v5, backfill 0 inserted).
-- Anthropic calls went through the CF gateway (BYOK) — two calls this session (first regen 469 words, second 294 after the consolidate clause).
-- Unit tests: `node src/main/ai-prompt.test.js && node src/main/game-profiles.test.js` — 46/46 green.
+- Dev boot log with both migrations: `%APPDATA%\clipflow-dev\logs\main.log` (04:16 — "Running migration v6/v7", schema v7, no errors).
+- Migration verification queries + results: session transcript; key result — ids 179/181/182 → JC, 161 stays RL, all rejected world-cup rows stay RL, JC now has 3 approved examples.
+- #191/#192 evidence (morning): session scratchpad `evidence/RL.system_prompt.txt`, `evidence/RL-playstyle-regen.json` (294 words, church-free).
+- Unit tests: `node src/main/ai-prompt.test.js && node src/main/game-profiles.test.js` — 54/54.

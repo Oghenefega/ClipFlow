@@ -569,6 +569,18 @@ export default function App() {
     window.clipflow?.projectUpdateClip?.(projectId, clipId, { title }).catch(() => {});
   }, []);
 
+  // Generic clip-field updater (#197 retag, #198 rejection reasons) — same
+  // optimistic local update + disk persist pattern as status/title above.
+  const handleUpdateClipFields = useCallback((projectId, clipId, fields) => {
+    const updateClips = (p) => ({
+      ...p,
+      clips: (p.clips || []).map((c) => (c.id === clipId ? { ...c, ...fields } : c)),
+    });
+    setLocalProjects((prev) => prev.map((p) => p.id !== projectId ? p : updateClips(p)));
+    setSelProj((prev) => prev && prev.id === projectId ? updateClips(prev) : prev);
+    window.clipflow?.projectUpdateClip?.(projectId, clipId, fields).catch(() => {});
+  }, []);
+
   const handleOpenInEditor = useCallback((projectId, clipId) => {
     setEditorContext({ projectId, clipId });
     setView("editor");
@@ -692,9 +704,11 @@ export default function App() {
         trackerData={trackerData}
         onBack={() => { setSelProj(null); setView("projects"); }}
         onUpdateClip={handleUpdateClip}
+        onUpdateClipFields={handleUpdateClipFields}
         onTranscript={setTranscript}
         onEditClipTitle={handleEditClipTitle}
         onOpenInEditor={handleOpenInEditor}
+        gamesDb={gamesDb}
         onBatchRender={async (projectId) => {
           try {
             const full = await window.clipflow.projectLoad(projectId);

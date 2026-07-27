@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 131 cont.) — 0.3.0-alpha.20: Retag clips + rejection reason chips (#197, #198)
+
+### Added
+- **A clip can now be retagged to a different game or content type (#197).** The game badge on the review card opens a menu of the library (games and content types listed separately); the editor's AI game picker does the same job and now persists. Retagging changes what the clip is *about* — the world-cup-talk-during-Rocket-League case: one click files it under Just Chatting, so detection learning, playstyle mining, captions, and hashtags all follow the new tag while the clip stays in its recording session's project. Approve/reject now logs under the clip's effective tag instead of always the session's. [ProjectsView.js, App.js, useAIStore.js, useEditorStore.js, RightPanelNew.js]
+- **Rejection reason chips (#198).** Rejecting stays one instant click; afterwards a chip row appears in the card's free space under the transcript — Duplicate, Bad cut, Not funny, Nothing happens, Needs context, Wrong content, plus an inline Note field that finally feeds the `user_note` channel (hardcoded empty since feedback logging was built — all 149 historical rejections are reason-less because there was no UI). Multi-select, saved as tapped, nothing blocks, and chips stay editable when revisiting a rejected clip. "Wrong content" shows a "Retag it" shortcut that un-rejects and opens the tag menu. [ProjectsView.js, feedback.js, main.js, preload.js]
+- **The detection prompt now reads rejection reasons (#198 → #191).** Rejections tagged Duplicate, Bad cut, or Wrong content are excluded from the "do not pick moments like these" section — the moment was good, only its copy/boundaries/bucket were wrong — fixing the measured contradiction where the same Argentina moment appeared as both an approved example and a rejected one (duplicate picks). Taste rejections (Not funny, Nothing happens, Needs context) stay and now carry a `Reason:` line. 8 new unit assertions cover the filter (54 total across the two prompt test files). [ai-prompt.js, ai-pipeline.js, ai-prompt.test.js]
+
+### Changed
+- **Rejected cards dim per-region instead of whole-card** — preview, title, metadata, and transcript fade to 45% while the reason chips (and action buttons) stay at full strength. Previously the entire card sat at 50% opacity. [ProjectsView.js]
+- **The clip badge's color now follows the clip's effective tag** (resolved from the game library) rather than always using the session's game color. [ProjectsView.js]
+
+### Fixed
+- **Schema migration v6** adds `reject_reasons` to the feedback table; **migration v7** performs the one-time data fix from the retag discussion: the 3 approved world-cup rows move from RL to JC (they were 3 of RL's 11 taste examples), guarded by id + decision + content match so it no-ops everywhere else. The 7 rejected world-cup rows deliberately stay under RL — they are correct "don't clip chatting tangents mid-game" negatives, and moving them would have wrongly taught Just Chatting detection that world-cup talk is bad content. Verified on a prod snapshot: exactly ids 179/181/182 moved; id 161 ("hosting a freaking 1v1 world cup" — genuine RL tournament talk that keyword matching would have falsely swept) untouched. [database.js]
+- **The review card's game library was never passed down** — `ClipBrowser` had a `gamesDb` prop that App.js didn't supply, so clip rows couldn't see the library. Wired through; the retag menu needs it. [App.js]
+
 ## [Unreleased] — 2026-07-26 (session 131) — Detection prompt learns from rejections; playstyle mines kept clips (#191, #192)
 
 ### Changed

@@ -34,6 +34,29 @@ function logFeedback(entry) {
 }
 
 /**
+ * Attach or replace rejection reasons + note on the latest rejected row for a
+ * clip (#198). The row is matched by identity (video, cut window) rather than a
+ * stored id so chips also work on clips rejected in earlier sessions. Reasons
+ * arrive as an array of keys and are stored as CSV.
+ */
+function updateReasons({ videoId, clipStart, clipEnd, reasons, userNote }) {
+  const db = database.getDb();
+  if (!db) return { error: "Database not initialized" };
+
+  const csv = Array.isArray(reasons) ? reasons.join(",") : String(reasons || "");
+  db.run(
+    `UPDATE feedback SET reject_reasons = ?, user_note = ?
+      WHERE id = (SELECT id FROM feedback
+                   WHERE video_id = ? AND clip_start = ? AND clip_end = ? AND decision = 'rejected'
+                   ORDER BY timestamp DESC, id DESC LIMIT 1)`,
+    [csv, userNote || "", videoId || "", clipStart || "", clipEnd || ""]
+  );
+
+  database.save();
+  return { success: true };
+}
+
+/**
  * Get the last N approved clips for a game tag (for few-shot injection).
  */
 function getApprovedClips(gameTag, limit = 20) {
@@ -86,6 +109,7 @@ function getFeedbackCounts(gameTag) {
 
 module.exports = {
   logFeedback,
+  updateReasons,
   getApprovedClips,
   getRejectedClips,
   getFeedbackCounts,

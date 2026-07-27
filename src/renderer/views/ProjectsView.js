@@ -610,7 +610,8 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
       try {
         await window.clipflow.feedbackLog({
           videoId: project?.name || "",
-          gameTag: project?.gameTag || "",
+          // #197: learning follows the clip's content tag, not the session's
+          gameTag: clip.gameTag || project?.gameTag || "",
           clipStart: fmtHMS(clip.startTime),
           clipEnd: fmtHMS(clip.endTime),
           title: clip.title || "",
@@ -680,12 +681,120 @@ const fmtScheduledAt = (iso) => {
   } catch (_) { return ""; }
 };
 
-function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template, pub }) {
+// ── #198: rejection reason chips — optional, multi-select, never blocking ──
+const REJECT_REASON_CHIPS = [
+  { key: "duplicate", label: "Duplicate", hint: "Same or similar moment already kept — the moment itself was good" },
+  { key: "bad-cut", label: "Bad cut", hint: "Right moment, wrong start or end point" },
+  { key: "not-funny", label: "Not funny", hint: "The joke or reaction isn't funny on rewatch" },
+  { key: "nothing-happens", label: "Nothing happens", hint: "Energy without a payoff — nothing actually happens" },
+  { key: "needs-context", label: "Needs context", hint: "A cold viewer wouldn't get it without prior context" },
+  { key: "wrong-content", label: "Wrong content", hint: "Off-topic for this game's channel and hashtags" },
+];
+
+// ── #197: clip content tag control — the game badge opens a menu of library
+// entries. Retagging changes what the CLIP is about (learning + hashtags
+// follow it); the project keeps its session tag.
+function ClipTagMenu({ clip, project, gamesDb, color, effectiveTag, open, setOpen, onUpdateClipFields }) {
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open, setOpen]);
+
+  const games = (gamesDb || []).filter((g) => (g.entryType || "game") !== "content");
+  const content = (gamesDb || []).filter((g) => g.entryType === "content");
+
+  const pick = (g) => {
+    setOpen(false);
+    if ((g.tag || "").toUpperCase() === effectiveTag) return;
+    onUpdateClipFields?.(project.id, clip.id, { gameTag: g.tag, gameName: g.name });
+  };
+
+  const renderItem = (g) => {
+    const sel = (g.tag || "").toUpperCase() === effectiveTag;
+    return (
+      <div
+        key={g.tag}
+        onClick={() => pick(g)}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+          padding: "6px 9px", borderRadius: 7, fontSize: 12.5, fontFamily: T.font, cursor: "pointer",
+          color: sel ? T.accentLight : T.text,
+          background: sel ? T.accentDim : "transparent",
+        }}
+        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+        onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}
+      >
+        <span>{g.name}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: sel ? T.accentLight : T.textTertiary }}>{(g.tag || "").toUpperCase()}</span>
+      </div>
+    );
+  };
+
+  const groupLabel = (text) => (
+    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: T.textTertiary, padding: "6px 9px 3px", fontFamily: T.font }}>
+      {text}
+    </div>
+  );
+
+  return (
+    <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
+      <span
+        onClick={() => setOpen(!open)}
+        title="Change what this clip is about — learning and hashtags follow this tag"
+        style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+      >
+        <GamePill tag={effectiveTag} color={color} size="sm" />
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.textTertiary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </span>
+      {open && (
+        <div style={{
+          position: "absolute", left: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 190,
+          background: T.surface, border: `1px solid ${T.borderHover}`, borderRadius: 10,
+          boxShadow: "0 12px 34px -8px rgba(0,0,0,0.8)", padding: 5,
+        }}>
+          {games.length > 0 && groupLabel("Games")}
+          {games.map(renderItem)}
+          {content.length > 0 && groupLabel("Content")}
+          {content.map(renderItem)}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTitle, onOpenInEditor, onDeleteClip, gamesDb, template, pub }) {
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState(clip.rejectNote || "");
   const ca = clip.status === "approved" || clip.status === "ready";
   const rej = clip.status === "rejected";
+
+  // #198: persist reasons + note to the clip (optimistic) and to the latest
+  // rejected feedback row in the DB. Fire-and-forget on the DB side.
+  const rejectReasons = clip.rejectReasons || [];
+  const saveReasons = (reasons, note) => {
+    onUpdateClipFields?.(project.id, clip.id, { rejectReasons: reasons, rejectNote: note });
+    window.clipflow?.feedbackUpdateReasons?.({
+      videoId: project?.name || "",
+      clipStart: fmtHMS(clip.startTime),
+      clipEnd: fmtHMS(clip.endTime),
+      reasons,
+      userNote: note,
+    }).catch(() => {});
+  };
+  const toggleReason = (key) => {
+    const next = rejectReasons.includes(key) ? rejectReasons.filter((k) => k !== key) : [...rejectReasons, key];
+    saveReasons(next, noteText.trim());
+  };
 
   // Transcript as flowing prose — join the clip-window segment texts, no [mm:ss] stamps.
   // Mirrors how the editor's TranscriptTab reads; the per-line timestamps were the
@@ -695,7 +804,9 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
   // Game tag for the badge: prefer clip's first-class field, fall back to the parent
   // project, then to legacy title-hashtag parsing for pre-#71 clips.
   const clipGameTag = (clip.gameTag || project.gameTag || (typeof clip.title === "string" ? (clip.title.match(/#(\w+)/)?.[1] || "") : "") || "").toUpperCase();
-  const clipGameColor = project.gameColor || T.accent;
+  // #197: pill color follows the clip's effective tag, not the session's
+  const tagEntry = (gamesDb || []).find((g) => (g.tag || "").toUpperCase() === clipGameTag);
+  const clipGameColor = tagEntry?.color || project.gameColor || T.accent;
 
   // Calm metadata line — energy as colored text (amber HIGH so it never reads as a
   // reject signal), confidence + time as plain dot-separated prose instead of pills.
@@ -718,7 +829,10 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
         background: `linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0)), ${T.surface}`,
         border: `1px solid ${T.border}`,
         boxShadow: shadowCard,
-        opacity: rej ? 0.5 : 1,
+        // #198: rejected cards dim per-region (preview, title, meta, transcript)
+        // instead of whole-card, so the reason chips stay at full strength.
+        position: "relative",
+        zIndex: tagMenuOpen ? 40 : "auto",
         transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
       }}
       onMouseEnter={(e) => {
@@ -734,16 +848,18 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
     >
       {/* Left: big watchable preview with approve/reject directly under it */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0, width: 220 }}>
-        <ClipPreviewBoundary>
-          <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} />
-        </ClipPreviewBoundary>
+        <div style={{ opacity: rej ? 0.45 : 1, transition: "opacity 0.2s ease" }}>
+          <ClipPreviewBoundary>
+            <ClipVideoPlayer clip={clip} project={project} template={template || FALLBACK_TEMPLATE} />
+          </ClipPreviewBoundary>
+        </div>
         <ApproveRejectButtons clip={clip} onUpdateClip={onUpdateClip} projectId={project.id} project={project} />
       </div>
 
       {/* Right: title + score, calm metadata, flowing transcript, open-in-editor */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Title + score */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, opacity: rej ? 0.45 : 1, transition: "opacity 0.2s ease" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {editId === clip.id ? (
               <div style={{ display: "flex", gap: 6 }}>
@@ -819,8 +935,19 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
         </div>
 
         {/* Calm metadata line: game / energy / confidence / time / status chips */}
-        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", fontSize: 12.5 }}>
-          {clipGameTag && <GamePill tag={clipGameTag} color={clipGameColor} size="sm" />}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", fontSize: 12.5, opacity: rej && !tagMenuOpen ? 0.45 : 1, transition: "opacity 0.2s ease" }}>
+          {clipGameTag && (
+            <ClipTagMenu
+              clip={clip}
+              project={project}
+              gamesDb={gamesDb}
+              color={clipGameColor}
+              effectiveTag={clipGameTag}
+              open={tagMenuOpen}
+              setOpen={setTagMenuOpen}
+              onUpdateClipFields={onUpdateClipFields}
+            />
+          )}
           {metaItems.map((node, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textTertiary, display: "inline-block", flexShrink: 0 }} />}
@@ -856,8 +983,76 @@ function ClipRow({ clip, project, onUpdateClip, onEditClipTitle, onOpenInEditor,
             fontSize: 13.5, lineHeight: 1.62, color: T.textSecondary,
             maxWidth: "68ch",
             display: "-webkit-box", WebkitLineClamp: 8, WebkitBoxOrient: "vertical", overflow: "hidden",
+            opacity: rej ? 0.45 : 1, transition: "opacity 0.2s ease",
           }}>
             {transcriptText}
+          </div>
+        )}
+
+        {/* #198: rejection reason chips — optional, multi-select, saved as tapped */}
+        {rej && (
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: T.textTertiary, marginRight: 3, fontFamily: T.font }}>
+              Why?
+            </span>
+            {REJECT_REASON_CHIPS.map((r) => {
+              const on = rejectReasons.includes(r.key);
+              return (
+                <button
+                  key={r.key}
+                  onClick={() => toggleReason(r.key)}
+                  title={r.hint}
+                  style={{
+                    padding: "4px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, fontFamily: T.font,
+                    border: `1px solid ${on ? "rgba(248,113,113,0.35)" : T.border}`,
+                    background: on ? T.redDim : T.surfaceHover,
+                    color: on ? T.red : T.textSecondary,
+                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.12s ease",
+                  }}
+                  onMouseEnter={(e) => { if (!on) { e.currentTarget.style.borderColor = T.borderHover; e.currentTarget.style.color = T.text; } }}
+                  onMouseLeave={(e) => { if (!on) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textSecondary; } }}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setNoteOpen(!noteOpen)}
+              style={{
+                padding: "4px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, fontFamily: T.font,
+                border: `1px solid ${noteOpen || noteText.trim() ? T.borderHover : T.border}`,
+                background: T.surfaceHover, color: noteText.trim() ? T.text : T.textSecondary,
+                cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              Note…
+            </button>
+            {noteOpen && (
+              <input
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                onBlur={() => saveReasons(rejectReasons, noteText.trim())}
+                onKeyDown={(e) => { if (e.key === "Enter") { saveReasons(rejectReasons, noteText.trim()); setNoteOpen(false); } }}
+                autoFocus
+                placeholder="why this one didn't make it…"
+                style={{
+                  flex: 1, minWidth: 180, padding: "5px 10px", borderRadius: 999,
+                  background: T.surfaceHover, border: `1px solid ${T.borderHover}`,
+                  color: T.text, fontFamily: T.font, fontSize: 11.5, outline: "none",
+                }}
+              />
+            )}
+            {rejectReasons.includes("wrong-content") && (
+              <span style={{ fontSize: 11.5, color: T.textTertiary, fontFamily: T.font, whiteSpace: "nowrap" }}>
+                Good clip, wrong bucket?{" "}
+                <span
+                  onClick={() => { onUpdateClip(project.id, clip.id, "none"); setTagMenuOpen(true); }}
+                  style={{ color: T.accentLight, cursor: "pointer", borderBottom: `1px dotted ${T.accentLight}` }}
+                >
+                  Retag it
+                </span>
+              </span>
+            )}
           </div>
         )}
 
@@ -1586,7 +1781,7 @@ export function ProjectsListView({
 // ============ (GenerationPanel + GameDropdown removed — AI generation now lives in EditorView) ============
 
 // ============ CLIP BROWSER ============
-export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, trackerData = [] }) {
+export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields, onTranscript, onEditClipTitle, onOpenInEditor, onBatchRender, onDeleteClip, gamesDb, scrollToClipId, trackerData = [] }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   const [filter, setFilter] = useState("all");
 
@@ -1703,6 +1898,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onTranscript, onEdi
               project={project}
               pub={pub}
               onUpdateClip={onUpdateClip}
+              onUpdateClipFields={onUpdateClipFields}
               onEditClipTitle={onEditClipTitle}
               onOpenInEditor={onOpenInEditor}
               onDeleteClip={onDeleteClip}

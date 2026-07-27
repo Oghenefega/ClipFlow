@@ -201,6 +201,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Feedback database
   feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
+  feedbackUpdateReasons: (payload) => ipcRenderer.invoke("feedback:updateReasons", payload),
 
   // Game profiles
   gameProfilesGet: (gameTag) => ipcRenderer.invoke("gameProfiles:get", gameTag),

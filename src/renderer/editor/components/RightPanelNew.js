@@ -725,7 +725,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
       {/* Game + Generate */}
       <div className="flex gap-1.5">
         <div className="relative flex-1">
-          <select value={aiGame} onChange={(e) => setAiGame(e.target.value)}
+          <select value={aiGame} onChange={(e) => setAiGame(e.target.value, gamesDb)} title="What this clip is about — learning and hashtags follow this tag (#197)"
             className="w-full h-8 px-2 pr-6 text-xs rounded-md bg-secondary border border-border text-foreground outline-none appearance-none cursor-pointer">
             <option value="">Auto-detect</option>
             {(gamesDb || []).map(g => <option key={g.tag} value={g.name}>{g.name}</option>)}
