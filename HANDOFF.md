@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-27 — Session 132 — **Game-audio track signals shipped (#190): detection finally hears the game. Closed `status: untested`, commit 59f14b5. Not yet in an installer — Fega's daily driver (alpha.20) does not have it.**_
+_Last updated: 2026-07-27 — Session 132 — **#190 game-audio signals shipped and verified on prod (alpha.21); #200 clip-count saga landed on: 10-20 floor restored, short recordings fill with distinct clips, empty results banned (alpha.24). Installed daily driver: 0.3.0-alpha.24.**_
 
 ---
 
@@ -10,11 +10,13 @@ The pipeline can now extract a second audio track (the game) and run two new sig
 
 ## Current State
 
-- **#190 closed `status: untested`** (full verification evidence in the closing comment). Commit `59f14b5` pushed.
-- **No installer cut** — per the batch-versions rule. The feature reaches Fega's daily driver with the next promotion; until then his real runs are unaffected (setting defaults to off via migration, verified on a dev-profile boot).
-- Unit test green: `node src/main/signals.test.js` — all 4 archetype rows sum to 1 AND redistributing away the game keys restores the pre-#190 weights exactly.
-- Renderer built (`npm run build:renderer`) with the two view changes; dev-profile boot verified the `gameAudioTrack: null` migration writes.
-- **#199 filed** (found during verification): `energy_scorer.py` hardcodes `-map 0:a:1` — genuinely single-track sources abort at Stage 4 today (pre-existing, unrelated to #190), and `transcriptionAudioTrack` is ignored by energy analysis.
+- **#190 closed, `status: untested` REMOVED** — verified on Fega's own installed alpha.21 run (game track extracted, 8 signals green, game events + reserved frame). He turned the setting on himself (Track 3).
+- **Four installers shipped this session:** alpha.21 (#190), alpha.22 (#200 free count — reverted), alpha.23 (borderline inclusion + zero-clip banner), **alpha.24 (final: 10-20 floor restored)**. Fega's daily driver = alpha.24.
+- **The #200 clip-count saga (read before touching the count prompt again):** alpha.21's hard floor made a 69s recording yield 10 overlapping duplicates → alpha.22 removed the floor → model (correctly, per Fega's own "it's just me training, it's boring content" rejection note) returned 0 clips → Fega: empty results starve the review/training loop, revert. **Landed design (alpha.24): "Return 10 to 20 clips" verbatim + short recordings fill with as many DISTINCT non-overlapping clips as physically fit (below-the-bar picks at honest low confidence) + empty array banned + overlap ban + recording-length line in the prompt.** Verified 2× on the 69s repro: 4 distinct clips, conf 0.5-0.72. See tasks/lessons.md 2026-07-27: never let detection return empty for Fega — he is the precision filter; volume of reviewable material IS the product.
+- Unit tests green: `node src/main/signals.test.js` (weights) and `node src/main/ai-prompt.test.js` (44 assertions incl. floor/overlap/empty-ban).
+- **#199 filed** (found during verification): `energy_scorer.py` hardcodes `-map 0:a:1` — genuinely single-track sources abort at Stage 4 (pre-existing), and `transcriptionAudioTrack` is ignored by energy analysis.
+- Zero-clip completion banner + real signal-count badge shipped in UploadView (alpha.23) — mostly unreachable now that empty results are banned, but correct if they ever fire.
+- The final 30-min sanity run for alpha.24 backstopped twice on yamnet — machine contention (71% CPU from Fega's own use), not code; the long-recording instruction is pre-#200 verbatim and two earlier 30-min runs with the overlap ban were green (15 clips / 0 overlaps). Fega's next real session is the definitive check.
 
 ## What Was Just Built (#190)
 
@@ -37,10 +39,11 @@ The pipeline can now extract a second audio track (the game) and run two new sig
 
 ## Next Steps
 
-1. Fega turns the feature on (Settings → Game Audio Track → Track 3 "Game / desktop") and runs a real RL generation; watch approval rate against the 6.5% baseline over the next sessions (the epic tracks the metric).
-2. On his confirmation: remove `status: untested` from #190.
-3. #199 (energy_scorer track hardcode) — quick fix, unblocks true single-track users and makes energy analysis respect `transcriptionAudioTrack`.
-4. Next installer cut picks all of this up (tools/ ships via extraResources — the yamnet_events.py changes ride along automatically).
+1. **Fega retests the 69s recording on alpha.24** — expect ~4 distinct clips, never empty, no duplicates. If he still wants the literal old duplicates-allowed behavior, it's one line (drop the overlap bullet in ai-prompt.js DO NOT list).
+2. **Watch approval rate on RL vs the 6.5% baseline** over the next real sessions with the game track on (the #190 epic tracks the metric). His first impression of game-signal picks: "different, not so bad".
+3. **#200 is closed but `status: untested` on the alpha.24 design** — confirm his verdict on the restored floor before considering it settled.
+4. #199 (energy_scorer track hardcode) — quick fix, unblocks true single-track users and makes energy analysis respect `transcriptionAudioTrack`.
+5. Confirm a clean full-session (30-min) generation on alpha.24 whenever Fega next generates — closes the contention-blocked sanity check.
 
 ## Watch Out For
 
