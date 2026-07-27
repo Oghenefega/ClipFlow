@@ -10,8 +10,8 @@ Four connected learning-loop changes in one session. Morning: detection prompt l
 
 ## Current State
 
-- **#191, #192, #197, #198 closed with `status: untested`** — everything verified headless/unit-level; no real pipeline run or UI session by Fega yet.
-- **0.3.0-alpha.20** built from this code (see dist/). Fega installs and tests.
+- **#191, #192, #197, #198 closed with `status: untested`** — everything verified headless/unit-level.
+- **0.3.0-alpha.20 is INSTALLED — Fega was actively testing at session wrap.** His verdicts (and the v6/v7 migrations against real prod data) land next session; nothing had been reported yet when the session closed.
 - 54 unit assertions green: `node src/main/ai-prompt.test.js` (39) + `node src/main/game-profiles.test.js` (15).
 - DB schema now **v7** (v6 adds `feedback.reject_reasons`; v7 is the one-time world-cup row move). Migrations run on first launch of the new build against the real prod DB — verified against a prod snapshot in the dev profile.
 
@@ -37,7 +37,7 @@ Four connected learning-loop changes in one session. Morning: detection prompt l
 
 ## Next Steps
 
-1. Fega installs **0.3.0-alpha.20**, then: (a) run a generate on any recording — check the logged prompt at `processing\claude\<video>.system_prompt.txt` shows both sections; (b) reject a clip and tap chips; (c) retag a clip to Just Chatting and approve it; (d) next RL playstyle threshold → diff card should read clean.
+1. **Collect Fega's test results from 0.3.0-alpha.20** (he was mid-test at wrap): (a) generate on any recording — logged prompt at `processing\claude\<video>.system_prompt.txt` shows both sections; (b) reject a clip and tap chips — instant, chips readable on the dimmed card; (c) retag a clip to Just Chatting and approve — badge flips, feedback row lands under JC; (d) next RL playstyle threshold → diff card reads clean. Also confirm migrations ran (Settings shows v0.3.0-alpha.20; main.log shows "Running migration v6/v7" on first launch).
 2. On confirmation, remove `status: untested` from #191/#192/#197/#198.
 3. Consider later: "Posted this type too often" chip if the Note channel shows it recurring; retro-retag UI for published clips (declined for v1).
 

@@ -19,3 +19,4 @@ Dark theme. Key tokens in `src/renderer/styles/theme.js`.
 | Small indicators | Must have glow/shadow to be visible on dark bg |
 | Requested controls | A capability the user asked for gets a visible dedicated control (slider/button). Gestures (drag surfaces) are accelerators only, never the sole path (session 105: drag-only bg pan read as "can't pan") |
 | Redundant actions | Don't add a secondary save/confirm button when the primary commit action can absorb it — if every X follows an Apply, Apply should do X (session 105: "Save layout" folded into Apply) |
+| Adding to existing cards | Place new controls in dead space within the card's current footprint before growing it — Fega circles empty regions (session 131: reason chips moved from under the reject button to the space under the transcript) |
