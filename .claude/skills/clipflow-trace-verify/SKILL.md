@@ -45,6 +45,7 @@ If the user pushes back from domain knowledge ("I'm positive I've seen that", "t
 
 ## Distilled Lessons (process — diagnosis discipline)
 
+- **Prove a seeded fixture actually loaded — through the app's own API — before concluding anything from the UI.** A fixture that silently failed to load is indistinguishable from a feature that doesn't render, and the worse case is a stale-but-plausible fallback (cached `localProjects`) that invites a confident wrong call in either direction. Assert `projectList()` returns your project and the clip carries your field, THEN look at the screen. (Session 130: a `\1` in a JS string ate the path separators; separately `renderStatus: "done"` vs the app's `"rendered"` filter left the queue empty.)
 - **Diagnose root cause BEFORE writing any fix.** Trace the data flow in code, find the EXACT line where behavior diverges from expectation, fix THAT. If the architecture is wrong, rebuild it — never stack workarounds on a broken foundation.
 - **For multi-layer bugs (FFmpeg → file → IPC → store → renderer), trace the ENTIRE pipeline end-to-end before touching anything.** Identify ALL mismatches first, then fix from the foundation up — not symptom by symptom. (Chains of 8+ symptom-patches are how things end up "severely broken.")
 - **When a fix doesn't work or creates a new bug, STOP patching — the diagnosis is wrong.** Don't tweak the same property/value a 2nd or 3rd time. Re-read from scratch and re-diagnose. (After 2 failed attempts: full re-read, find where the mental model is wrong, propose a new approach.)
