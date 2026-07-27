@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 132) — 0.3.0-alpha.21: installer cut for game-audio signals
+
+### Changed
+- **Installer cut as `0.3.0-alpha.21`**, promoting the game-audio track signals (#190) to the daily driver so the feature can be tested on real sessions. First launch migrates the new `gameAudioTrack` setting (off by default — behavior is unchanged until the game track is picked in Settings).
+
 ## [Unreleased] — 2026-07-27 (session 132) — Detection finally hears the game: game-audio track signals (#190)
 
 ### Added
