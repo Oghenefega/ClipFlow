@@ -450,7 +450,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Sound Effects Folder</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: sfxFolder ? T.text : T.textTertiary }}>
-            {sfxFolder || "Not set \u2014 browse your sound effects folder"}
+            {sfxFolder || "Not set \u2014 sounds in this folder show up in the editor's Audio panel"}
           </span>
           <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setSfxFolder(f); }}
             style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>

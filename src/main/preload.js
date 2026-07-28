@@ -45,6 +45,12 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Dialogs
   openFileDialog: (options) => ipcRenderer.invoke("dialog:openFile", options),
 
+  // Asset library (SFX / music / pictures)
+  assetsList: () => ipcRenderer.invoke("assets:list"),
+  assetsImport: (filePaths, typeHint) => ipcRenderer.invoke("assets:import", filePaths, typeHint),
+  assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
+  assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
+
   // Persistent store
   storeGet: (key) => ipcRenderer.invoke("store:get", key),
   storeSet: (key, value) => ipcRenderer.invoke("store:set", key, value),

@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 134) — Asset library: the editor's upload areas come alive
+
+### Added
+- **The editor's Audio panel and Upload drawer now actually work (#201 Phase 1).** Both had been UI shells since the editor was first built — drop zones that silently swallowed files, an upload button with no click handler, a permanently empty track list. Now: the Audio panel's Music/Sound-effect tabs list your real imported sounds with click-to-preview playback, search, favorites (star a track and it stays pinned visible), and two-click delete; the Upload drawer's drop zone and Upload button import audio and images for real, with imported images listed below the zone as thumbnails. Imported files are copied into a ClipFlow-managed library beside your projects (`.clipflow/assets/`), so clips will never break if the original file moves. Audio is sorted into Music vs Sound effects by which tab you upload from, or by length (60s and over = music) when dropped generically. Unsupported files (videos, GIFs, documents) are refused with a visible reason instead of vanishing. [assets.js (new), main.js, preload.js, RightPanelNew.js]
+- **The Settings "Sound Effects Folder" picker finally does something.** It has existed for months with zero code reading it; now any sound file you drop into that folder automatically appears in the editor's SFX tab (marked "SFX folder"), no importing needed — Fega's decision via question UI. Files removed from the folder disappear from the tab; favorites on folder sounds persist. [assets.js, SettingsView.js]
+- **Groundwork for sounds and pictures ON clips.** The full plan is tracked as epic #201: sounds placement (SFX at a moment, music under the clip, volume + fades) is #202 and comes next per Fega's pick; picture overlays are #203. The Audio panel's "Add to timeline" button is visibly disabled with a "coming with the sounds update" tooltip until #202 lands.
+
 ## [Unreleased] — 2026-07-27 (session 133) — 0.3.0-alpha.25: video titles + rates + energy track fix
 
 ### Changed

@@ -6,6 +6,191 @@
 
 ---
 
+## 🔄 ACTIVE (session 134) — Media assets: SFX, music & pictures on clips → **epic #201**
+
+**Decisions (Fega, via question UI, 2026-07-27):**
+1. Build order after Phase 1: **sounds first** (pictures after).
+2. "Sound Effects Folder" setting: **auto-scan it** — files in that folder
+   appear in the SFX tab automatically (linked in place, not copied).
+3. Music v1: **manual volume slider + fades**; auto-duck parked.
+
+**Phase 1 (asset library) BUILT + verified (session 134).** New
+`src/main/assets.js` + `assets:list/import/delete/favorite` IPC + preload
+bridge; Audio panel wired to real data (tabs, search, All/Favorites pills,
+upload, click-to-preview, two-click delete); Upload drawer drop zone + button
+import for real, images listed with thumbnails; SFX-folder auto-scan live
+(folder files linked in place, absorbed into the index so favorites persist,
+pruned when removed); `dialog:openFile` learned `properties` passthrough
+(multi-select; existing single-select callers unchanged).
+
+**Verified via CDP on the dev-profile app (built renderer):** import inference
+(2s wav → sfx, 95s mp3 → music, png → image, .txt refused with reason),
+folder scan absorption, favorite persistence, folder-item delete refused with
+friendly message, library delete removes index entry + copied file, editor
+clip-open clean (no crash), both panels render real data, play/pause preview
+works, image thumbnail loads. Test assets cleaned off the real W:\ tree
+afterward (dev projectsRoot points at it!) and dev sfxFolder reset.
+
+**Not yet exercised:** real drag-and-drop onto the Upload drawer (CDP can't
+synthesize OS file drags — getPathForFile path is shared with the verified
+dialog flow); Fega's first real look (no installer cut — batching per policy;
+"Add to timeline" + is visibly disabled with a "coming with the sounds
+update" tooltip until #202).
+
+**Next: #202 (sounds on clips), then #203 (pictures).** Both filed with full
+scope + risks (render.js input-index arithmetic; overlay frame-skip
+signature).
+
+Original plan below.
+
+## 📋 PLAN (session 134, approved) — Media assets: SFX, music & pictures on clips
+
+**Ask:** add sound effects, music, and pictures to clips in the editor so they
+help sell the clip more, and have them baked into the final rendered video.
+
+### What's already there (surprise finding)
+
+The editor UI already ships shells for exactly this feature — none wired:
+
+- **Audio panel** (rail icon lives) with Music/SFX tabs, search, 9 filter
+  pills, favourite + "Add to timeline" hover buttons — permanently empty:
+  `DEMO_TRACKS = []` with a self-documenting comment (`RightPanelNew.js:835`).
+- **Three inert drop zones**: Brand Kit Logos/Images/Outros
+  (`RightPanelNew.js:1146/1154/1162`) and the Upload drawer's "Drop images,
+  videos or audio here" (`:1707`). All share a decorative `DropZone`
+  (`:673-691`) whose onDrop reads nothing — files dropped today vanish
+  silently with no error.
+- **Dead "Audio 2" timeline row** — "Drop audio or click to add" button with
+  no onClick and no drop handlers (`TimelinePanelNew.js:1191-1207`).
+- **"Sound Effects Folder" Settings picker** persisted but read by nothing
+  (`SettingsView.js:448-460`, `main.js:223`).
+- Every clip is created with `sfx: []` and `media: []` fields no code reads
+  (`projects.js:441-442`, `ai-pipeline.js:848-849`) — pre-allocated slots.
+
+So the browse-UI skeleton is ~half built; the data layer, import plumbing,
+preview playback, and render compositing are all missing.
+
+### Expanding the brief ("sfx, music, pictures, e.t.c")
+
+**In scope (three phases):**
+
+1. **SFX** — short one-shot sounds (airhorn, vine boom, whoosh) dropped at a
+   moment, with per-placement volume.
+2. **Music** — a background track under the whole clip, volume slider +
+   fade-in/out, trimmable start offset.
+3. **Pictures** — static images (reaction memes, emoji, arrows, logo) shown
+   for a time range, dragged to position/size on the preview.
+
+**Deliberately parked (named so they aren't forgotten):**
+
+- Animated GIFs/stickers — the burn-in renderer rebuilds its DOM every frame,
+  so animation must be a pure function of time and join the frame-skip
+  signature (`overlay-renderer.js:328-369`); same trap #148 hit. Static first.
+- Video overlays / outro cards (the Brand Kit "Outros" stub).
+- Auto-ducking music under voice — v1 is a manual volume slider.
+- A bundled royalty-free SFX/music pack — licensing question for a commercial
+  product; v1 is bring-your-own-files.
+- TikTok trending-audio browsing.
+
+### Key design decisions
+
+1. **Anchoring.** SFX and pictures anchor to **source time** (like subtitles):
+   trim or reorder sections and they stay glued to their moment. Music anchors
+   to **timeline time** (like captions): it spans the clip regardless of cuts.
+   This mirrors the split that already exists in the codebase
+   (`useEditorStore.deleteSpanWithClip:443` branches on exactly this).
+2. **Storage.** Imported files are **copied** into a ClipFlow-managed assets
+   library (`{libraryRoot}/.clipflow/assets/` + a JSON index) so clips never
+   break when the original file moves. Per-clip placements live on the clip
+   record — reviving the dead `clip.sfx` / `clip.media` fields, saved by
+   `_doSilentSave` alongside `nleSegments`.
+3. **Pictures ride the existing subtitle burn-in path.** The offscreen overlay
+   page already streams transparent PNGs composited over the full frame
+   (`render.js:230-238`) — an image layer there needs **zero FFmpeg changes**
+   and inherits WYSIWYG for free (same JS renders preview and burn-in).
+   `DraggableOverlay` (`PreviewPanelNew.js:355`) already provides
+   drag-to-position + resize with percent coords.
+4. **Audio is genuinely new plumbing on both sides.** Preview: the single
+   `<video>` is today the only clock and audio source; SFX/music need `<audio>`
+   elements synced to the playback loop across NLE cut-seeks (with unmount
+   cleanup — standing rule). Render: extra FFmpeg inputs with per-placement
+   delay/volume mixed into the base track (`adelay`/`volume`/`amix`) — none of
+   which exist in any filtergraph today.
+
+### Phases
+
+**Phase 1 — Asset library (the shared foundation)** ~1 session
+- New `src/main/assets.js`: import (copy + index), list, delete; IPC + preload
+  bridge. Audio duration probed on import (existing ffprobe helpers).
+- Wire the Audio panel to the real library (Music/SFX tabs, search, filters,
+  favourites). Wire the Upload drawer drop zone + upload buttons to import.
+  Wrong-type drops get visible feedback instead of silence.
+- Settings "Sound Effects Folder": auto-scan into the SFX tab (open Q below).
+
+**Phase 2 — Sounds on clips** ~1-2 sessions (the big one)
+- Placement model + store state (undo via the shared undo stack).
+- "Add to timeline" from the Audio panel drops at the playhead; the dead
+  "Audio 2" row becomes a real lane showing SFX/music blocks (drag to move,
+  trim, delete, right-click menu; volume + fades in a small popover).
+- Preview playback: synced `<audio>` elements following the rAF clock.
+- Render: per-placement inputs + delay/volume + mix into `[base_a]`.
+  **Risk:** input-index arithmetic — the overlay PNG pipe is currently "index
+  N after N segments" (`render.js:120,233`); new inputs shift it. Also
+  `renderThumbnail` reuses the graph with `{audio:false}` — must stay working.
+- Persist to `clip.sfx`, restore on load.
+
+**Phase 3 — Pictures on clips** ~1 session
+- Place an image from the panel at the playhead (default a few seconds,
+  adjustable range), drag/resize on the preview via `DraggableOverlay`.
+- Render: add image layer to the offscreen overlay page
+  (`__OVERLAY_CONFIG__` → `overlay-renderer.js`) + matching React layer in
+  `PreviewOverlays.js` + frame-skip signature term. **Risk:** the overlay
+  page must be able to load asset files via `file://` (check its CSP).
+- Persist to `clip.media`, restore on load.
+
+### File impact
+
+- **Phase 1:** new `src/main/assets.js`; `main.js` (IPC); `preload.js`;
+  `RightPanelNew.js` (AudioPanel/UploadPanel/DropZone wiring).
+- **Phase 2:** `useEditorStore.js` or new `useAssetStore.js`;
+  `TimelinePanelNew.js`; `PreviewPanelNew.js`; `render.js`;
+  `utils/renderPayload.js`; `projects.js`; `preload.js`.
+- **Phase 3:** `PreviewOverlays.js`; `public/subtitle-overlay/overlay-renderer.js`;
+  `src/main/subtitle-overlay-preload.js`; `src/main/subtitle-overlay-renderer.js`;
+  `projects.js`.
+- Cross-tree/bundling: no new cross-tree requires planned; if any appear they
+  must respect `build.files` (project CLAUDE.md rule).
+
+### Verification
+
+**What I do (per phase, before handover):**
+- Unit tests for placement↔timeline mapping (trim before an SFX → it stays on
+  its moment; reorder sections → same).
+- `npm run build:renderer` + `npm start`: import files, place an SFX + music +
+  image, confirm preview plays/shows them at the right times; reopen the clip
+  → everything persisted; render the clip → extract the output's audio/frames
+  and confirm the SFX lands at the right second, music sits under it, image is
+  visible in the right spot; render a clip with NO assets → byte-path
+  unchanged (no regression to plain renders or thumbnails).
+
+**What Fega does (on the next installer):**
+- Import a few of his own sounds + a meme image. Drop an airhorn on a goal,
+  music under a clip, the image over a moment. Check: preview matches the
+  final render, placing things feels quick, and a trimmed clip keeps the
+  sound on the right moment.
+
+### Open questions for Fega
+
+1. **Build order after Phase 1:** sounds first (what you named first; the big
+   gap) or pictures first (quicker win, ~1 session to something usable)?
+2. **The dead "Sound Effects Folder" setting:** repurpose it — anything you
+   drop in that folder auto-appears in the SFX tab (recommended) — or remove
+   it and import only through the app?
+3. **Music v1:** manual volume slider + fades (recommended, simple), or is
+   auto-duck-under-voice worth doing now?
+
+---
+
 ## ✅ BUILT, AWAITING A LIVE POST (session 130) — automatic 720p fallback → **#189**
 
 Plan in [#189](https://github.com/Oghenefega/ClipFlow/issues/189). **Supersedes the manual

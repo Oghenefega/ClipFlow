@@ -49,6 +49,7 @@ const { createStore } = require("./store-factory");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
+const assetLibrary = require("./assets");
 const reframeDetect = require("./reframe-detect");
 const highlights = require("./highlights");
 const render = require("./render");
@@ -922,12 +923,59 @@ ipcMain.handle("shell:revealInFolder", async (_, filePath) => {
 
 // Dialog: open file (for CSV import)
 ipcMain.handle("dialog:openFile", async (_, options) => {
+  const properties = options.properties || ["openFile"];
   const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
+    properties,
     filters: options.filters || [{ name: "CSV Files", extensions: ["csv"] }],
   });
   if (result.canceled) return null;
-  return result.filePaths[0];
+  // Multi-select callers get the full array; single-select keeps the old shape.
+  return properties.includes("multiSelections") ? result.filePaths : result.filePaths[0];
+});
+
+// ============ ASSET LIBRARY (SFX / music / pictures) ============
+function assetsRootOrThrow() {
+  const root = libraryRoot();
+  if (!root) throw new Error("Set a watch folder first (Settings) — the asset library lives beside your projects");
+  return assetLibrary.getAssetsRoot(root);
+}
+
+ipcMain.handle("assets:list", async () => {
+  try {
+    if (!libraryRoot()) return { success: true, assets: [] };
+    const assets = await assetLibrary.listAssets(assetsRootOrThrow(), store.get("sfxFolder"));
+    return { success: true, assets };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("assets:import", async (_, filePaths, typeHint) => {
+  try {
+    const result = await assetLibrary.importAssets(assetsRootOrThrow(), filePaths, typeHint);
+    logger.info(logger.MODULES.system, `Asset import: ${result.imported.length} imported, ${result.skipped.length} skipped`);
+    return { success: true, ...result };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("assets:delete", async (_, assetId) => {
+  try {
+    assetLibrary.deleteAsset(assetsRootOrThrow(), assetId);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("assets:favorite", async (_, assetId) => {
+  try {
+    const favorite = assetLibrary.toggleFavorite(assetsRootOrThrow(), assetId);
+    return { success: true, favorite };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 // ============ FFMPEG ============

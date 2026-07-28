@@ -16,10 +16,10 @@ import {
 } from "../../../components/ui/tooltip";
 import {
   Sparkles, Palette, Captions, Type, Music, Upload, ImagePlus,
-  X, Search, Play, Star, Plus, Minus, ChevronDown, ChevronRight,
+  X, Search, Play, Pause, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine, Crop,
+  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine, Crop, Trash2,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -830,22 +830,120 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
 // ════════════════════════════════════════════════════════════════
 //  DRAWER 2: AUDIO
 // ════════════════════════════════════════════════════════════════
-const AUDIO_FILTERS = ["All", "Ambient", "Chill", "Happy", "Inspiring", "Cinematic", "Pop", "Instrumental", "Celebrations"];
+// Stable per-asset gradient so rows keep the reference design's colorful
+// thumbs without any stored artwork.
+const TRACK_GRADIENTS = [
+  "from-violet-500/60 to-fuchsia-500/40",
+  "from-sky-500/60 to-indigo-500/40",
+  "from-emerald-500/60 to-teal-500/40",
+  "from-amber-500/60 to-orange-500/40",
+  "from-rose-500/60 to-pink-500/40",
+  "from-cyan-500/60 to-blue-500/40",
+];
+function gradientFor(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return TRACK_GRADIENTS[h % TRACK_GRADIENTS.length];
+}
 
-const DEMO_TRACKS = []; // Audio tracks will be populated when audio integration is built
+function fmtDur(sec) {
+  if (sec == null || !Number.isFinite(sec)) return "—";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return s === 60 ? `${m + 1}:00` : `${m}:${String(s).padStart(2, "0")}`;
+}
+
+const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a", "aac", "flac"];
 
 function AudioPanel() {
   const [subTab, setSubTab] = useState("music");
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [showFavorites, setShowFavorites] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState(null); // { text, error } — import/delete feedback
+  const [playingId, setPlayingId] = useState(null);
+  const [armedDeleteId, setArmedDeleteId] = useState(null);
+  const audioRef = useRef(null);
+  const statusTimer = useRef(null);
+
+  const refresh = useCallback(async () => {
+    const result = await window.clipflow.assetsList();
+    if (result?.success) setAssets(result.assets);
+    else if (result?.error) setStatus({ text: result.error, error: true });
+    setLoaded(true);
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  // Unmount cleanup — stop preview audio and drop the element (standing rule).
+  useEffect(() => () => {
+    clearTimeout(statusTimer.current);
+    const a = audioRef.current;
+    if (a) { a.pause(); a.removeAttribute("src"); a.load(); audioRef.current = null; }
+  }, []);
+
+  const flashStatus = useCallback((text, error = false) => {
+    setStatus({ text, error });
+    clearTimeout(statusTimer.current);
+    statusTimer.current = setTimeout(() => setStatus(null), 5000);
+  }, []);
+
+  const importFiles = useCallback(async (paths) => {
+    if (!paths || paths.length === 0) return;
+    const result = await window.clipflow.assetsImport(paths, subTab);
+    if (!result?.success) { flashStatus(result?.error || "Import failed", true); return; }
+    const n = result.imported.length;
+    const skipNote = result.skipped.length ? ` · ${result.skipped.length} skipped (${result.skipped[0].reason})` : "";
+    flashStatus(n ? `Imported ${n} file${n === 1 ? "" : "s"}${skipNote}` : `Nothing imported${skipNote}`, n === 0);
+    refresh();
+  }, [subTab, flashStatus, refresh]);
+
+  const handleUpload = useCallback(async () => {
+    const paths = await window.clipflow.openFileDialog({
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "Audio", extensions: AUDIO_EXTENSIONS }],
+    });
+    if (paths) importFiles(paths);
+  }, [importFiles]);
+
+  const togglePlay = useCallback((track) => {
+    if (playingId === track.id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+    if (!audioRef.current) audioRef.current = new Audio();
+    const a = audioRef.current;
+    a.pause();
+    a.src = `file://${track.path.replace(/\\/g, "/")}`;
+    a.onended = () => setPlayingId(null);
+    a.play().then(() => setPlayingId(track.id)).catch(() => {
+      flashStatus(`Can't play ${track.name}`, true);
+      setPlayingId(null);
+    });
+  }, [playingId, flashStatus]);
+
+  const toggleFavorite = useCallback(async (track) => {
+    const result = await window.clipflow.assetsFavorite(track.id);
+    if (result?.success) refresh();
+  }, [refresh]);
+
+  const handleDelete = useCallback(async (track) => {
+    if (armedDeleteId !== track.id) { setArmedDeleteId(track.id); return; }
+    setArmedDeleteId(null);
+    if (playingId === track.id) { audioRef.current?.pause(); setPlayingId(null); }
+    const result = await window.clipflow.assetsDelete(track.id);
+    if (result?.success) { flashStatus(`Deleted ${track.name}`); refresh(); }
+    else flashStatus(result?.error || "Delete failed", true);
+  }, [armedDeleteId, playingId, flashStatus, refresh]);
 
   const filteredTracks = useMemo(() => {
-    let t = DEMO_TRACKS;
-    if (activeFilter !== "All") t = t.filter(tr => tr.filter === activeFilter);
-    if (search) t = t.filter(tr => tr.name.toLowerCase().includes(search.toLowerCase()));
+    let t = assets.filter((a) => a.type === subTab);
+    if (showFavorites) t = t.filter((a) => a.favorite);
+    if (search) t = t.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
     return t;
-  }, [activeFilter, search]);
+  }, [assets, subTab, showFavorites, search]);
 
   return (
     <div className="flex flex-col h-full">
@@ -866,22 +964,31 @@ function AudioPanel() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
             className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
-        <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
-          <Upload className="h-3.5 w-3.5" />
-        </Button>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={handleUpload}>
+                <Upload className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-[12px]">Upload audio files</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
+      {/* Import/delete feedback */}
+      {status && (
+        <div className={`px-3 pb-1.5 text-[11px] ${status.error ? "text-red-400" : "text-emerald-400"}`}>{status.text}</div>
+      )}
+
       {/* Filter pills */}
-      <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto">
-        <button className="shrink-0 h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary/60">
-          <span className="text-sm">≡</span>
-        </button>
-        {AUDIO_FILTERS.map((f) => (
-          <button key={f} onClick={() => setActiveFilter(f)}
+      <div className="flex items-center gap-1.5 px-3 pb-2">
+        {[false, true].map((fav) => (
+          <button key={String(fav)} onClick={() => setShowFavorites(fav)}
             className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-medium transition-colors ${
-              activeFilter === f ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
+              showFavorites === fav ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
             }`}>
-            {f}
+            {fav ? "Favorites" : "All"}
           </button>
         ))}
       </div>
@@ -894,47 +1001,77 @@ function AudioPanel() {
           {filteredTracks.map((track) => (
             <div key={track.id}
               onMouseEnter={() => setHoveredId(track.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              className="flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/30 transition-colors cursor-pointer group">
-              {/* Thumbnail */}
-              <div className={`w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br ${track.gradient} shrink-0`}>
-                <Play className="h-3.5 w-3.5 text-foreground/70" />
-              </div>
+              onMouseLeave={() => { setHoveredId(null); setArmedDeleteId(null); }}
+              className={`flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/30 transition-colors group ${track.missing ? "opacity-50" : ""}`}>
+              {/* Thumbnail — click to preview */}
+              <button onClick={() => !track.missing && togglePlay(track)}
+                className={`w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br ${gradientFor(track.id)} shrink-0 ${track.missing ? "cursor-default" : "cursor-pointer hover:brightness-110"}`}>
+                {playingId === track.id
+                  ? <Pause className="h-3.5 w-3.5 text-foreground/90" />
+                  : <Play className="h-3.5 w-3.5 text-foreground/70" />}
+              </button>
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-foreground font-medium truncate">{track.name}</div>
-                <div className="text-[12px] text-muted-foreground">{track.dur}</div>
+                <div className="text-xs text-foreground font-medium truncate" title={track.path}>{track.name}</div>
+                <div className="text-[12px] text-muted-foreground">
+                  {fmtDur(track.durationSec)}
+                  {track.source === "folder" ? " · SFX folder" : ""}
+                  {track.missing ? " · file missing" : ""}
+                </div>
               </div>
-              {/* Hover actions */}
-              {hoveredId === track.id && (
+              {/* Actions — favorite star stays visible once set */}
+              {(hoveredId === track.id || track.favorite) && (
                 <div className="flex items-center gap-1 shrink-0">
                   <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                          <Star className="h-3 w-3" />
+                        <button onClick={() => toggleFavorite(track)}
+                          className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${track.favorite ? "text-amber-400" : "text-muted-foreground hover:text-foreground"}`}>
+                          <Star className="h-3 w-3" fill={track.favorite ? "currentColor" : "none"} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent className="text-[12px]">Favorite</TooltipContent>
+                      <TooltipContent className="text-[12px]">{track.favorite ? "Unfavorite" : "Favorite"}</TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors">
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-[12px]">Add to timeline</TooltipContent>
-                    </Tooltip>
+                    {hoveredId === track.id && track.source === "library" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button onClick={() => handleDelete(track)}
+                            className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${armedDeleteId === track.id ? "text-red-400 bg-red-500/15" : "text-muted-foreground hover:text-foreground"}`}>
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-[12px]">{armedDeleteId === track.id ? "Click again to delete" : "Delete"}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    {hoveredId === track.id && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button disabled
+                            className="h-6 w-6 rounded-full bg-primary/40 flex items-center justify-center text-primary-foreground/60 cursor-not-allowed">
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-[12px]">Add to timeline — coming with the sounds update</TooltipContent>
+                      </Tooltip>
+                    )}
                   </TooltipProvider>
                 </div>
               )}
             </div>
           ))}
-          {filteredTracks.length === 0 && (
-            <div className="py-12 text-center">
+          {loaded && filteredTracks.length === 0 && (
+            <div className="py-12 text-center px-4">
               <Music className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-              <div className="text-xs text-muted-foreground">No audio tracks yet</div>
-              <div className="text-[12px] text-muted-foreground/60 mt-1">Upload audio files to add to your clips</div>
+              <div className="text-xs text-muted-foreground">
+                {showFavorites ? "No favorites yet" : subTab === "music" ? "No music yet" : "No sound effects yet"}
+              </div>
+              <div className="text-[12px] text-muted-foreground/60 mt-1">
+                {showFavorites
+                  ? "Star a track to pin it here"
+                  : subTab === "music"
+                    ? "Upload audio files to add to your clips"
+                    : "Upload here, or set a Sound Effects folder in Settings — files there show up automatically"}
+              </div>
             </div>
           )}
         </div>
@@ -1675,25 +1812,94 @@ function TextPanel() {
 // ════════════════════════════════════════════════════════════════
 //  DRAWER 6: UPLOAD
 // ════════════════════════════════════════════════════════════════
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
+
 function UploadPanel() {
   const [dragOver, setDragOver] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [status, setStatus] = useState(null); // { text, error }
+  const [armedDeleteId, setArmedDeleteId] = useState(null);
+  const statusTimer = useRef(null);
+
+  const refresh = useCallback(async () => {
+    const result = await window.clipflow.assetsList();
+    if (result?.success) setAssets(result.assets);
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => () => clearTimeout(statusTimer.current), []);
+
+  const flashStatus = useCallback((text, error = false) => {
+    setStatus({ text, error });
+    clearTimeout(statusTimer.current);
+    statusTimer.current = setTimeout(() => setStatus(null), 6000);
+  }, []);
+
+  const importFiles = useCallback(async (paths) => {
+    if (!paths || paths.length === 0) return;
+    const result = await window.clipflow.assetsImport(paths, null);
+    if (!result?.success) { flashStatus(result?.error || "Import failed", true); return; }
+    const sounds = result.imported.filter((a) => a.type !== "image").length;
+    const images = result.imported.filter((a) => a.type === "image").length;
+    const parts = [];
+    if (sounds) parts.push(`${sounds} sound${sounds === 1 ? "" : "s"} → Audio panel`);
+    if (images) parts.push(`${images} image${images === 1 ? "" : "s"} saved`);
+    result.skipped.forEach((s) => parts.push(`${s.file}: ${s.reason}`));
+    flashStatus(parts.join(" · ") || "Nothing imported", result.imported.length === 0);
+    refresh();
+  }, [flashStatus, refresh]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const paths = Array.from(e.dataTransfer.files)
+      .map((f) => { try { return window.clipflow.getPathForFile(f); } catch (_) { return null; } })
+      .filter(Boolean);
+    importFiles(paths);
+  }, [importFiles]);
+
+  const handleUpload = useCallback(async () => {
+    const paths = await window.clipflow.openFileDialog({
+      properties: ["openFile", "multiSelections"],
+      filters: [
+        { name: "Media", extensions: [...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS] },
+        { name: "Audio", extensions: AUDIO_EXTENSIONS },
+        { name: "Images", extensions: IMAGE_EXTENSIONS },
+      ],
+    });
+    if (paths) importFiles(paths);
+  }, [importFiles]);
+
+  const handleDelete = useCallback(async (asset) => {
+    if (armedDeleteId !== asset.id) { setArmedDeleteId(asset.id); return; }
+    setArmedDeleteId(null);
+    const result = await window.clipflow.assetsDelete(asset.id);
+    if (result?.success) { flashStatus(`Deleted ${asset.name}`); refresh(); }
+    else flashStatus(result?.error || "Delete failed", true);
+  }, [armedDeleteId, flashStatus, refresh]);
+
+  const images = useMemo(() => assets.filter((a) => a.type === "image"), [assets]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Upload button */}
       <div className="px-3 pt-3 pb-2">
-        <Button variant="outline" className="w-full h-10 text-xs gap-2">
+        <Button variant="outline" className="w-full h-10 text-xs gap-2" onClick={handleUpload}>
           <Upload className="h-4 w-4" /> Upload
         </Button>
       </div>
 
+      {/* Import feedback */}
+      {status && (
+        <div className={`px-3 pb-1.5 text-[11px] ${status.error ? "text-red-400" : "text-emerald-400"}`}>{status.text}</div>
+      )}
+
       {/* Drop zone */}
-      <div className="flex-1 flex items-center justify-center px-3 pb-3">
+      <div className={`${images.length > 0 ? "" : "flex-1"} flex items-center justify-center px-3 pb-3`}>
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
-          className={`w-full h-full min-h-[200px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${
+          onDrop={handleDrop}
+          className={`w-full h-full ${images.length > 0 ? "min-h-[120px]" : "min-h-[200px]"} rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${
             dragOver ? "border-primary/50 bg-primary/5" : "border-border/30"
           }`}
         >
@@ -1705,10 +1911,51 @@ function UploadPanel() {
             </div>
           </div>
           <span className="text-xs text-muted-foreground text-center">
-            Drop images, videos<br />or audio here
+            Drop images or audio here<br />
+            <span className="text-muted-foreground/60">sounds land in the Audio panel</span>
           </span>
         </div>
       </div>
+
+      {/* Image library */}
+      {images.length > 0 && (
+        <ScrollArea className="flex-1">
+          <div className="px-3 pb-3">
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Images</div>
+            <div className="space-y-1">
+              {images.map((img) => (
+                <div key={img.id}
+                  onMouseLeave={() => setArmedDeleteId(null)}
+                  className={`flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-secondary/30 transition-colors group ${img.missing ? "opacity-50" : ""}`}>
+                  <div className="w-10 h-10 rounded-md bg-secondary/50 border border-border/30 overflow-hidden shrink-0 flex items-center justify-center">
+                    {img.missing
+                      ? <FileImage className="h-4 w-4 text-muted-foreground/50" />
+                      : <img src={`file://${img.path.replace(/\\/g, "/")}`} alt="" className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-foreground font-medium truncate" title={img.path}>{img.name}</div>
+                    <div className="text-[12px] text-muted-foreground">
+                      {img.sizeBytes ? `${Math.max(1, Math.round(img.sizeBytes / 1024))} KB` : ""}
+                      {img.missing ? " · file missing" : ""}
+                    </div>
+                  </div>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button onClick={() => handleDelete(img)}
+                          className={`h-6 w-6 rounded-full items-center justify-center transition-colors shrink-0 hidden group-hover:flex ${armedDeleteId === img.id ? "text-red-400 bg-red-500/15" : "text-muted-foreground hover:text-foreground"}`}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-[12px]">{armedDeleteId === img.id ? "Click again to delete" : "Delete"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }
