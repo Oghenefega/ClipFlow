@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 133) — Titles see the clip, approval rates on screen
+
+### Added
+- **Title/caption generation can now watch the actual clip (#193).** With a Google Gemini API key set (new Settings → API Credentials → Gemini pill), generating suggestions cuts a temporary 720p copy of the clip's exact edit (sound included — the same mix a viewer hears), sends it to Gemini Flash with the existing voice prompt, and deletes the temp file afterward on every path. Verified on a real clip whose transcript is just "okay… oh, okay": the video-path suggestions named the on-screen event (a lightning kickoff goal) that is never spoken. No key, a cut failure, or an API failure all silently fall back to the previous stills path — proven live when Gemini returned a 503 mid-test and the round completed via stills. Known limit: Gemini sometimes credits the creator with an opponent's play (goal replays follow the scorer's car); each round records which path produced it (`gen_source` in `title_caption_rounds`, migration v8) so acceptance rates between the two paths can be compared with real data. Gemini spend lands in the Settings monthly cost view (~2¢ per generation measured; model `gemini-3.6-flash`, pricing verified against Google's page). [gemini.js (new), main.js, ffmpeg.js, database.js, title-caption-log.js, cost-tracker.js, SettingsView.js, App.js]
+- **Detection quality now has numbers in the app (#194).** Reviewed project cards show "kept X of Y (Z%)", and a new "Rates" chip on the Projects tab expands a compact per-game table: quality rate (picks at ≥70% confidence, rejects marked only duplicate/bad-cut/wrong-content excluded — the #196/#198/#200 refinement) next to the overall rate, each as rolling-last-10-projects and all-time with raw counts. Derived entirely from the existing feedback table; verified to match hand SQL on the live database exactly. [feedback.js, main.js, preload.js, ProjectsView.js]
+
+### Fixed
+- **Energy analysis respects the configured voice track, and single-track recordings no longer abort (#199).** `energy_scorer.py` (D:\whisper, outside the repo) hardcoded audio track 2 in both analysis paths — any user whose mic isn't on OBS track 2 got game audio scored as "voice energy", and single-track files killed the pipeline at Stage 4. The script now takes a `--track` argument fed from the transcription-track setting, probes the file first, and falls back to the first audio track when the requested one doesn't exist. [ai-pipeline.js + external script]
+
 ## [Unreleased] — 2026-07-27 (session 132 cont.) — 0.3.0-alpha.24: the 10-20 clip floor is back
 
 ### Changed

@@ -2540,7 +2540,7 @@ async function generateTitlesWithGeminiVideo({ params, systemPrompt }) {
       { type: "text", text: baseText },
       {
         type: "text",
-        text: "\n## The clip itself is attached as video, with sound.\nWatch it to see what the transcript can't say — what is on screen, what the moment looks and sounds like. Do not describe the video; use it to know what happened.",
+        text: "\n## The clip itself is attached as video, with sound.\nWatch it to see what the transcript can't say — what is on screen, what the moment looks and sounds like. Do not describe the video; use it to know what happened.\nPerspective check: the gameplay is recorded from the creator's own point of view (the camera follows THEIR player), and the facecam is their reaction. Before writing, decide WHO made the play — the creator, a teammate, or an opponent (on-screen banners name the scorer; a goal against the creator's own net happened TO them). Never credit the creator with someone else's play; when it happened to them, the hook is the reaction.",
       },
       { type: "video", path: previewPath, mimeType: "video/mp4" },
     ];

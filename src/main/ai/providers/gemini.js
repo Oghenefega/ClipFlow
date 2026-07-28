@@ -209,7 +209,7 @@ const provider = {
 
     const useModel = model || DEFAULT_MODEL;
     try {
-      const result = await fetchJson(
+      const doGenerate = () => fetchJson(
         `${API_BASE}/v1beta/models/${useModel}:generateContent`,
         {
           method: "POST",
@@ -218,6 +218,19 @@ const provider = {
         },
         timeout || DEFAULT_TIMEOUT
       );
+      // One retry on overload (503/429): observed on day-6 gemini-3.6-flash —
+      // a video request 503'd while text served fine seconds later. A single
+      // 3s-spaced retry rescues the video path; anything worse still falls
+      // back to frames at the caller.
+      let result;
+      try {
+        result = await doGenerate();
+      } catch (e) {
+        if (!/HTTP (503|429)/.test(e.message)) throw e;
+        log.warn(`[gemini] ${e.message.substring(0, 120)} — retrying once in 3s`);
+        await sleep(3000);
+        result = await doGenerate();
+      }
 
       if (result.promptFeedback?.blockReason) {
         throw new Error(`Gemini blocked the request: ${result.promptFeedback.blockReason}`);
