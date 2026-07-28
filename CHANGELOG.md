@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-28 (session 134) — 0.3.0-alpha.26: asset library on the daily driver
+
+### Changed
+- **Installer cut as `0.3.0-alpha.26`**, promoting the session-134 asset library below so Fega can test importing on the installed app: working Audio panel (upload, preview, favorites, delete), working Upload drawer (drop zone + image list), and the auto-scanned Sound Effects folder. Placing sounds/pictures on clips is not in this build — that's #202/#203; the "Add to timeline" button says so in its tooltip.
+
 ## [Unreleased] — 2026-07-27 (session 134) — Asset library: the editor's upload areas come alive
 
 ### Added
