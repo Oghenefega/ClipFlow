@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-27 (session 133) — 0.3.0-alpha.25: video titles + rates + energy track fix
+
+### Changed
+- **Installer cut as `0.3.0-alpha.25`**, promoting the three session-133 changes below to the daily driver: Gemini video-aware title/caption generation (#193 — needs the Gemini key pasted into Settings → API Credentials → Gemini once), the per-project keeper line and per-game Rates panel (#194), and the energy-analysis track fix (#199). First launch runs database migration v8 (`gen_source` column).
+
 ## [Unreleased] — 2026-07-27 (session 133) — Titles see the clip, approval rates on screen
 
 ### Added
