@@ -139,7 +139,16 @@ function _snapshotStyling(subState) {
     }
   } catch (_) {}
 
-  return { sub, cap, layout, nleSegments };
+  // Capture asset audio placements (#202 — SFX/music on the Sounds lane)
+  let audioPlacements = null;
+  try {
+    const es = useEditorStore.getState();
+    if (es.audioPlacements) {
+      audioPlacements = es.audioPlacements.map((p) => ({ ...p }));
+    }
+  } catch (_) {}
+
+  return { sub, cap, layout, nleSegments, audioPlacements };
 }
 
 function _restoreStyling(snapshot, subSet) {
@@ -164,6 +173,12 @@ function _restoreStyling(snapshot, subSet) {
       useEditorStore.setState({ nleSegments: snapshot.nleSegments });
       // Sync playback store with restored segments
       usePlaybackStore.setState({ nleSegments: snapshot.nleSegments });
+    } catch (_) {}
+  }
+  // Restore asset audio placements (#202)
+  if (snapshot.audioPlacements) {
+    try {
+      useEditorStore.setState({ audioPlacements: snapshot.audioPlacements });
     } catch (_) {}
   }
 }

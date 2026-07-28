@@ -26,6 +26,8 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
+import usePlaybackStore from "../stores/usePlaybackStore";
+import { timelineToSource, getTimelineDuration } from "../models/timeMapping";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
 import { bgSourceWindow, presetFullyZoomed, presetFitToScreen } from "../utils/reframeStyle";
 
@@ -938,6 +940,25 @@ function AudioPanel() {
     else flashStatus(result?.error || "Delete failed", true);
   }, [armedDeleteId, playingId, flashStatus, refresh]);
 
+  // #202: place this asset on the clip. SFX drop at the playhead's SOURCE
+  // moment (they follow the footage through trims); music becomes the bed.
+  const handleAddToTimeline = useCallback((track) => {
+    const es = useEditorStore.getState();
+    if (!es.clip) { flashStatus("Open a clip to add sounds", true); return; }
+    const nle = es.nleSegments || [];
+    const tl = usePlaybackStore.getState().currentTime;
+    let sourceTime = tl;
+    if (nle.length > 0) {
+      const clamped = Math.max(0, Math.min(tl, getTimelineDuration(nle) - 0.05));
+      const m = timelineToSource(clamped, nle);
+      sourceTime = m.found ? m.sourceTime : nle[0].sourceStart;
+    }
+    const res = es.addAudioPlacement(track, sourceTime);
+    flashStatus(track.type === "music"
+      ? (res.replaced ? `Music bed replaced with ${track.name}` : `${track.name} set as the music bed`)
+      : `${track.name} dropped at the playhead`);
+  }, [flashStatus]);
+
   const filteredTracks = useMemo(() => {
     let t = assets.filter((a) => a.type === subTab);
     if (showFavorites) t = t.filter((a) => a.favorite);
@@ -1046,12 +1067,14 @@ function AudioPanel() {
                     {hoveredId === track.id && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button disabled
-                            className="h-6 w-6 rounded-full bg-primary/40 flex items-center justify-center text-primary-foreground/60 cursor-not-allowed">
+                          <button onClick={() => !track.missing && handleAddToTimeline(track)}
+                            className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${track.missing ? "bg-primary/30 text-primary-foreground/40 cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
                             <Plus className="h-3 w-3" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="text-[12px]">Add to timeline — coming with the sounds update</TooltipContent>
+                        <TooltipContent className="text-[12px]">
+                          {track.type === "music" ? "Set as music bed" : "Add at playhead"}
+                        </TooltipContent>
                       </Tooltip>
                     )}
                   </TooltipProvider>

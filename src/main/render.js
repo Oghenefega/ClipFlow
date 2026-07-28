@@ -2,7 +2,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
-const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
+const { getTimelineDuration, visibleSubtitleSegments, timelineToSource, sourceToTimeline } = require("../renderer/editor/models/timeMapping");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
@@ -125,7 +125,10 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  * @param {number} [sourceWidth] - Probed source width, for reframe crop clamping
  * @param {number} [sourceHeight] - Probed source height, for reframe crop clamping
  * @param {object} [opts] - { audio: false } builds a video-only graph (single-segment
- *   only — used by renderThumbnail, whose PNG output can't accept audio streams)
+ *   only — used by renderThumbnail, whose PNG output can't accept audio streams).
+ *   { audioAssets, timelineDuration } (#202) mixes SFX/music inputs into the base
+ *   audio: audioAssets = [{ inputIndex, kind, volume, delaySec, fadeIn, fadeOut }].
+ *   With no audioAssets the audio graph is byte-identical to the pre-#202 output.
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
 function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight, opts = {}) {
@@ -226,7 +229,36 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     }
   }
 
-  const audioMap = withAudio ? ["-map", "[base_a]"] : [];
+  // #202: mix SFX/music placements into the base audio. Each asset chain is
+  // normalized to a common rate/layout (amix requires it), leveled, faded
+  // (music), and delayed to its timeline position (SFX). duration=first keeps
+  // the output exactly as long as the base track; normalize=0 stops amix from
+  // ducking everything by 1/N. When no assets are given this whole block is
+  // skipped and the audio graph text is unchanged.
+  let audioLabel = "base_a";
+  const audioAssets = withAudio ? (opts.audioAssets || []) : [];
+  if (audioAssets.length > 0) {
+    const dur = opts.timelineDuration || 0;
+    const mixinLabels = [];
+    audioAssets.forEach((a, i) => {
+      let chain = "aformat=sample_rates=48000:channel_layouts=stereo";
+      if (a.kind === "music") {
+        if (dur > 0) chain += `,atrim=0:${dur}`;
+        if (a.fadeIn > 0) chain += `,afade=t=in:st=0:d=${a.fadeIn}`;
+        if (a.fadeOut > 0 && dur > a.fadeOut) chain += `,afade=t=out:st=${+(dur - a.fadeOut).toFixed(3)}:d=${a.fadeOut}`;
+      }
+      chain += `,volume=${Math.max(0, Math.min(1, a.volume ?? 1))}`;
+      const delayMs = Math.round((a.delaySec || 0) * 1000);
+      if (delayMs > 0) chain += `,adelay=${delayMs}:all=1`;
+      filters.push(`[${a.inputIndex}:a]${chain}[mixin${i}]`);
+      mixinLabels.push(`[mixin${i}]`);
+    });
+    filters.push(`[base_a]aformat=sample_rates=48000:channel_layouts=stereo[base_af]`);
+    filters.push(`[base_af]${mixinLabels.join("")}amix=inputs=${audioAssets.length + 1}:duration=first:normalize=0[mix_a]`);
+    audioLabel = "mix_a";
+  }
+
+  const audioMap = withAudio ? ["-map", `[${audioLabel}]`] : [];
   if (hasFrames) {
     // Composite overlay PNG stream on top of assembled video.
     // Overlay is input n — it comes after the n per-segment source inputs.
@@ -401,6 +433,33 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // Caption segments
       const captionSegments = options.captionSegments || clipData.captionSegments || [];
 
+      // ── #202: SFX/music placements ── resolve each to a timeline delay.
+      // SFX are source-anchored: one whose moment was trimmed away maps to no
+      // timeline position and is skipped (same rule as subtitles). Music spans
+      // the timeline from 0. A missing sound file fails the render loudly —
+      // never a silently different-sounding export.
+      const sfxPlacements = Array.isArray(clipData.sfx) ? clipData.sfx : [];
+      let activeAudioAssets = [];
+      if (sfxPlacements.length > 0 && useNle) {
+        for (const p of sfxPlacements) {
+          if (!p.path || !fs.existsSync(p.path)) {
+            return reject(new Error(
+              `Sound "${p.name || p.assetId}" is missing on disk (${p.path || "no path"}) — ` +
+              `remove it from the clip or restore the file, then render again.`
+            ));
+          }
+          if (p.kind === "music") {
+            activeAudioAssets.push({ ...p, delaySec: 0 });
+          } else {
+            const tl = sourceToTimeline(p.sourceTime, nleSegments);
+            if (tl.found) activeAudioAssets.push({ ...p, delaySec: tl.timelineTime });
+          }
+        }
+        console.log(`[Render] Audio assets: ${activeAudioAssets.length} of ${sfxPlacements.length} placements active`);
+      } else if (sfxPlacements.length > 0) {
+        console.warn("[Render] Clip has sound placements but is rendering via the legacy (no-NLE) path — sounds skipped");
+      }
+
       // Check if we have any overlay content
       const hasOverlay = subtitleSegments.length > 0 || captionSegments.length > 0;
 
@@ -492,10 +551,23 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         );
       }
 
+      // #202: one input per active sound placement, AFTER the overlay pipe so
+      // the pipe keeps its established index n. Asset input i = n + pipe + i.
+      if (activeAudioAssets.length > 0) {
+        const baseIdx = nleSegments.length + (hasFrames ? 1 : 0);
+        activeAudioAssets = activeAudioAssets.map((a, i) => {
+          args.push("-i", a.path);
+          return { ...a, inputIndex: baseIdx + i };
+        });
+      }
+
       // Build filter_complex
       if (useNle) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
-        const { filterComplex, mapArgs } = buildNleFilterComplex(nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight);
+        const { filterComplex, mapArgs } = buildNleFilterComplex(
+          nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight,
+          { audioAssets: activeAudioAssets, timelineDuration }
+        );
         args.push("-filter_complex", filterComplex);
         args.push(...mapArgs);
       } else if (hasFrames) {

@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-28 (session 134 cont.) — Sounds on clips: SFX + music placement (#202)
+
+### Added
+- **Sounds can now be placed ON clips and they survive into the final render (#202).** The Audio panel's "+" button is live: a sound effect drops at the playhead and sticks to that exact moment of footage — trim or reorder sections and the airhorn stays on the goal, exactly like subtitles do. A music track becomes the clip's background bed (one at a time, defaults to 40% volume so it sits under the voice; adding another replaces it). The dead "Audio 2" timeline row is now a real **Sounds** lane: purple blocks for sound effects (drag to move, one Ctrl+Z undoes), a teal full-width block for music; clicking a block opens its settings — volume slider, fade in/out for music, and Remove. Everything plays live in the editor preview in sync with the video, and renders bake the sounds into the exported MP4 at the right seconds (verified by frequency analysis of a real render: the test tone sits exactly in its 2-second window and nowhere else, music runs level start to finish, no clipping). Clips with no sounds render exactly as before — the audio pipeline is untouched until a placement exists (unit-asserted parity). A missing sound file fails the render with a plain-language message instead of exporting a silently different clip. [useEditorStore.js, useSubtitleStore.js, TimelinePanelNew.js, PreviewPanelNew.js, RightPanelNew.js, renderPayload.js, render.js, + 8 new filter-graph tests]
+
 ## [Unreleased] — 2026-07-28 (session 134) — 0.3.0-alpha.26: asset library on the daily driver
 
 ### Changed

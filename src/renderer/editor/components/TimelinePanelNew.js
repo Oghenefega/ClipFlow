@@ -8,7 +8,7 @@ import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
-  PanelBottomClose, Music,
+  PanelBottomClose, Music, Volume2, Trash2,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -72,6 +72,7 @@ export default function TimelinePanelNew() {
   const deleteNleSegment = useEditorStore((s) => s.deleteNleSegment);
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
   const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
+  const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Sounds lane
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -84,6 +85,9 @@ export default function TimelinePanelNew() {
   // Section reorder drag: { segId, idx, indicatorSec } — idx null until the
   // pointer has moved far enough to pick a destination slot.
   const [nleDrag, setNleDrag] = useState(null);
+  // #202 Sounds lane: SFX block drag + per-placement settings popover
+  const [soundDrag, setSoundDrag] = useState(null); // { id, startX, origTl, curTl, moved }
+  const [soundPopover, setSoundPopover] = useState(null); // { id, x, y }
 
   // Refs
   const scrollRef = useRef(null);
@@ -1188,7 +1192,7 @@ export default function TimelinePanelNew() {
             </div>
           </div>
 
-          {/* ── Additional audio track (empty placeholder) ── */}
+          {/* ── Sounds lane (#202): SFX + music-bed placements ── */}
           <div
             className="flex items-stretch"
             style={{ height: TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
@@ -1197,16 +1201,152 @@ export default function TimelinePanelNew() {
               className="shrink-0 flex items-center gap-1 px-2 z-10"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
             >
-              <span className="text-[12px] text-muted-foreground/40 font-medium">Audio 2</span>
+              <span className="text-[12px] text-muted-foreground font-medium">Sounds</span>
             </div>
             <div className="flex-1 relative flex items-center" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              <button className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors ml-3">
-                <Music className="h-3 w-3" /> Drop audio or click to add
-              </button>
+              {audioPlacements.length === 0 && (
+                <button
+                  onClick={() => useLayoutStore.getState().togglePanel("audio")}
+                  className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors ml-3">
+                  <Music className="h-3 w-3" /> Add sound or music
+                </button>
+              )}
+              {/* Music first + lower z-index: the full-width bed must never
+                  cover SFX blocks or they become unclickable/undraggable. */}
+              {[...audioPlacements].sort((a, b) => (a.kind === "music" ? 0 : 1) - (b.kind === "music" ? 0 : 1)).map((p) => {
+                const pxPerSec = effectiveDuration > 0 ? clipContentWidth / effectiveDuration : 0;
+                let tlStart, widthPx;
+                if (p.kind === "music") {
+                  tlStart = 0;
+                  widthPx = Math.max(12, nleDuration * pxPerSec);
+                } else {
+                  const dragging = soundDrag?.id === p.id && soundDrag.moved;
+                  if (dragging) {
+                    tlStart = soundDrag.curTl;
+                  } else {
+                    const m = sourceToTimeline(p.sourceTime, nleSegments);
+                    if (!m.found) return null; // its footage moment is trimmed away
+                    tlStart = m.timelineTime;
+                  }
+                  widthPx = Math.max(12, (p.durationSec || 0.5) * pxPerSec);
+                }
+                const isMusic = p.kind === "music";
+                const openPopover = (x, y) => {
+                  setSoundPopover({ id: p.id, x: Math.min(x, window.innerWidth - 280), y: Math.max(40, y - 10), pushed: false });
+                };
+                return (
+                  <div
+                    key={p.id}
+                    title={`${p.name} · ${Math.round((p.volume ?? 1) * 100)}%`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      if (e.button !== 0 || isMusic) return;
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setSoundDrag({ id: p.id, startX: e.clientX, origTl: tlStart, curTl: tlStart, moved: false });
+                    }}
+                    onPointerMove={(e) => {
+                      if (!soundDrag || soundDrag.id !== p.id) return;
+                      const dx = e.clientX - soundDrag.startX;
+                      if (!soundDrag.moved && Math.abs(dx) < 3) return;
+                      const cur = Math.max(0, Math.min(soundDrag.origTl + dx / (pxPerSec || 1), Math.max(0, nleDuration - 0.05)));
+                      setSoundDrag({ ...soundDrag, curTl: cur, moved: true });
+                    }}
+                    onPointerUp={(e) => {
+                      if (soundDrag && soundDrag.id === p.id && soundDrag.moved) {
+                        const m = timelineToSource(soundDrag.curTl, nleSegments);
+                        if (m.found) useEditorStore.getState().moveAudioPlacement(p.id, m.sourceTime);
+                        setSoundDrag(null);
+                        return;
+                      }
+                      setSoundDrag(null);
+                      openPopover(e.clientX, e.clientY);
+                    }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openPopover(e.clientX, e.clientY); }}
+                    className="absolute flex items-center gap-1 px-1.5 overflow-hidden select-none cursor-pointer"
+                    style={{
+                      left: tlStart * pxPerSec,
+                      width: widthPx,
+                      top: 5, bottom: 5,
+                      zIndex: isMusic ? 1 : 2,
+                      borderRadius: SEGMENT_RADIUS,
+                      background: isMusic ? "rgba(20,184,166,0.28)" : "rgba(139,92,246,0.35)",
+                      border: `1px solid ${isMusic ? "rgba(20,184,166,0.55)" : "rgba(139,92,246,0.65)"}`,
+                      cursor: isMusic ? "pointer" : (soundDrag?.id === p.id && soundDrag.moved ? "grabbing" : "grab"),
+                    }}
+                  >
+                    {isMusic ? <Music className="h-3 w-3 shrink-0 text-teal-300" /> : <Volume2 className="h-3 w-3 shrink-0 text-violet-300" />}
+                    <span className="text-[10px] text-foreground/90 truncate">{p.name}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Sound settings popover (#202) ── */}
+      {soundPopover && (() => {
+        const p = audioPlacements.find((x) => x.id === soundPopover.id);
+        if (!p) return null;
+        // One undo entry per settings session, pushed on the FIRST change only —
+        // opening and closing without touching anything must not eat a Ctrl+Z.
+        const setProps = (patch) => {
+          if (!soundPopover.pushed) {
+            useEditorStore.getState()._pushNleUndo();
+            setSoundPopover({ ...soundPopover, pushed: true });
+          }
+          useEditorStore.getState().setAudioPlacementProps(p.id, patch);
+        };
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onPointerDown={() => setSoundPopover(null)} onContextMenu={(e) => { e.preventDefault(); setSoundPopover(null); }} />
+            <div
+              className="fixed z-50 w-[260px] rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3 dark"
+              style={{ left: soundPopover.x, top: soundPopover.y, transform: "translateY(-100%)" }}
+            >
+              <div className="flex items-center gap-1.5">
+                {p.kind === "music" ? <Music className="h-3.5 w-3.5 text-teal-300 shrink-0" /> : <Volume2 className="h-3.5 w-3.5 text-violet-300 shrink-0" />}
+                <span className="text-xs font-medium text-foreground truncate flex-1">{p.name}</span>
+                <span className="text-[11px] text-muted-foreground">{p.kind === "music" ? "Music" : "SFX"}</span>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-muted-foreground">Volume</span>
+                  <span className="text-[11px] text-foreground">{Math.round((p.volume ?? 1) * 100)}%</span>
+                </div>
+                <Slider value={[Math.round((p.volume ?? 1) * 100)]} min={0} max={100} step={1}
+                  onValueChange={([v]) => setProps({ volume: v / 100 })} />
+              </div>
+              {p.kind === "music" && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-muted-foreground">Fade in</span>
+                      <span className="text-[11px] text-foreground">{(p.fadeIn || 0).toFixed(1)}s</span>
+                    </div>
+                    <Slider value={[p.fadeIn || 0]} min={0} max={3} step={0.1}
+                      onValueChange={([v]) => setProps({ fadeIn: v })} />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-muted-foreground">Fade out</span>
+                      <span className="text-[11px] text-foreground">{(p.fadeOut || 0).toFixed(1)}s</span>
+                    </div>
+                    <Slider value={[p.fadeOut || 0]} min={0} max={3} step={0.1}
+                      onValueChange={([v]) => setProps({ fadeOut: v })} />
+                  </div>
+                </>
+              )}
+              <button
+                onClick={() => { useEditorStore.getState().deleteAudioPlacement(p.id); setSoundPopover(null); }}
+                className="w-full h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 className="h-3 w-3" /> Remove from clip
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── Context menu ── */}
       {contextMenu && (() => {

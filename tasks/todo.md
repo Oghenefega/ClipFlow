@@ -31,15 +31,49 @@ clip-open clean (no crash), both panels render real data, play/pause preview
 works, image thumbnail loads. Test assets cleaned off the real W:\ tree
 afterward (dev projectsRoot points at it!) and dev sfxFolder reset.
 
-**Not yet exercised:** real drag-and-drop onto the Upload drawer (CDP can't
-synthesize OS file drags — getPathForFile path is shared with the verified
-dialog flow); Fega's first real look (no installer cut — batching per policy;
-"Add to timeline" + is visibly disabled with a "coming with the sounds
-update" tooltip until #202).
+**Phase 1 verified by Fega on alpha.26 (2026-07-28)** — importing, SFX-folder
+scan, drag-drop, favorites all confirmed. Noted on #201.
 
-**Next: #202 (sounds on clips), then #203 (pictures).** Both filed with full
-scope + risks (render.js input-index arithmetic; overlay frame-skip
-signature).
+**Phase 2 (#202 — sounds on clips) BUILT + verified (session 134 cont.).**
+- Model: `audioPlacements` on useEditorStore (SFX source-anchored, music
+  timeline-anchored, one bed at a time, music defaults 40% volume), persisted
+  via the revived `clip.sfx` field in `_doSilentSave`, restored on load, and
+  wired into the shared cross-store undo snapshot (`_snapshotStyling`).
+- Audio panel + button live: SFX drop at the playhead's source moment; music
+  becomes the bed (replace message when one exists).
+- Timeline "Audio 2" placeholder → real **Sounds** lane: violet SFX blocks
+  (drag to move, commit-on-drop = one Ctrl+Z), full-width teal music block,
+  click/right-click opens a settings popover (volume, music fades, remove).
+  Music renders below SFX (z-order — first live-drive bug, fixed in place).
+- Preview: per-placement `<audio>` synced to the rAF clock (timeline time is
+  continuous across cut-seeks so no chasing), music fades applied per-frame,
+  full unmount teardown.
+- Render: per-placement inputs AFTER the overlay pipe (pipe keeps index n),
+  aformat→(atrim/afades music)→volume→adelay→amix normalize=0 duration=first;
+  missing sound file fails the render with a plain-language error. Clips with
+  no placements build a byte-identical graph (unit-asserted).
+
+**Verified:** 8 new jest tests on the filter graph (parity + mix chains) + 91
+existing green; CDP drive on the built dev app: add via panel, drag commit
+(+8.4s then pixel-exact 3.64s), Ctrl+Z reverts move/delete, popover
+volume/delete, placements survive save→reopen, split+ripple-delete of 2s of
+footage shifted the SFX block to the pixel-exact new position of its
+unchanged source moment (source-anchoring proven live), preview played both
+sounds (airhorn auto-stopped after its 2s window; music tracked the clock
+within 0.06s at 40%), pause silences all. Rendered through the real pipeline:
+880Hz airhorn energy -24dB inside its 3.6-5.6s window vs -57.6dB outside;
+220Hz music bed steady -32.6dB early+late; max_volume -1.6dB (no clipping);
+no-sounds regression render clean. Real EO clip restored exactly (nleSegments
+byte-identical, test placements stripped); Fega's real "Fahh" import kept
+(index rebuilt after my cleanup nuked it — favorite flag lost if it was set).
+
+**CDP traps for next time:** trusted Input needs explicit `buttons` bitmask;
+a page reload mid-gesture wedges the browser-process input state (only an app
+relaunch fixes it); React hover = `mouseover`, not `mouseenter`; the timeline
+auto-scroll during playback moves block coordinates.
+
+**Next: #203 (pictures on clips).** Filed with full scope + risks (overlay
+frame-skip signature; overlay page file:// CSP).
 
 Original plan below.
 

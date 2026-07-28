@@ -5,6 +5,7 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
+import { sourceToTimeline, getTimelineDuration } from "../models/timeMapping";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
@@ -1245,6 +1246,83 @@ export default function PreviewPanelNew() {
     [rawEditSegments, nleSegments] // re-derive when either store changes
   );
 
+  // ── #202: preview playback for SFX/music placements ──
+  // One <audio> element per placement, driven off the same timeline clock as
+  // the video. Timeline time is CONTINUOUS across NLE cut-seeks, so a sound
+  // never needs to chase the video's seeks — only start/stop/volume matter.
+  // Reads stores via getState (long-lived handler rule); pruned + fully torn
+  // down on unmount (standing <media> cleanup rule).
+  const assetAudioRef = useRef(new Map()); // placementId → HTMLAudioElement
+  const syncAssetAudio = useCallback((timelineTime, isPlaying) => {
+    const map = assetAudioRef.current;
+    const es = useEditorStore.getState();
+    const placements = es.audioPlacements || [];
+    const nle = es.nleSegments || [];
+    const tlDur = getTimelineDuration(nle);
+    for (const p of placements) {
+      let el = map.get(p.id);
+      let start;
+      if (p.kind === "music") {
+        start = 0;
+      } else {
+        const m = sourceToTimeline(p.sourceTime, nle);
+        if (!m.found) { if (el && !el.paused) el.pause(); continue; }
+        start = m.timelineTime;
+      }
+      const dur = p.durationSec || 0;
+      const end = p.kind === "music" ? Math.min(tlDur, dur > 0 ? dur : tlDur) : start + dur;
+      const within = timelineTime >= start && timelineTime < end;
+      if (!isPlaying || !within) {
+        if (el && !el.paused) el.pause();
+        continue;
+      }
+      if (!el) {
+        el = new Audio();
+        el.src = `file://${(p.path || "").replace(/\\/g, "/")}`;
+        map.set(p.id, el);
+      }
+      const offset = timelineTime - start;
+      let vol = Math.max(0, Math.min(1, p.volume ?? 1));
+      if (p.kind === "music") {
+        const fi = p.fadeIn || 0;
+        const fo = p.fadeOut || 0;
+        if (fi > 0 && offset < fi) vol *= offset / fi;
+        const untilEnd = end - timelineTime;
+        if (fo > 0 && untilEnd < fo) vol *= Math.max(0, untilEnd / fo);
+      }
+      el.volume = vol;
+      el.playbackRate = videoRef.current?.playbackRate || 1;
+      if (Math.abs(el.currentTime - offset) > 0.25) el.currentTime = offset;
+      if (el.paused) el.play().catch(() => {});
+    }
+    // Prune elements whose placement was deleted
+    for (const [id, el] of map) {
+      if (!placements.some((p) => p.id === id)) {
+        el.pause();
+        el.removeAttribute("src");
+        el.load();
+        map.delete(id);
+      }
+    }
+  }, []);
+
+  // Pause all placement audio the moment playback stops (pause button, end of
+  // clip, spacebar) — the rAF loop is gone by then, so it can't do it.
+  useEffect(() => {
+    if (playing) return;
+    syncAssetAudio(usePlaybackStore.getState().currentTime, false);
+  }, [playing, syncAssetAudio]);
+
+  // Full teardown on unmount
+  useEffect(() => () => {
+    for (const [, el] of assetAudioRef.current) {
+      el.pause();
+      el.removeAttribute("src");
+      el.load();
+    }
+    assetAudioRef.current.clear();
+  }, []);
+
   // 60fps rAF loop — SOLE source of currentTime updates during playback
   // Video element plays source file; we map source time → timeline time via NLE segments
   useEffect(() => {
@@ -1275,6 +1353,7 @@ export default function PreviewPanelNew() {
         video.pause();
         setCurrentTime(result.timelineTime);
         setPlaying(false);
+        syncAssetAudio(result.timelineTime, false); // #202: silence SFX/music too
         return;
       }
 
@@ -1287,11 +1366,12 @@ export default function PreviewPanelNew() {
 
       // Update store with timeline time (not source time)
       setCurrentTime(result.timelineTime);
+      syncAssetAudio(result.timelineTime, true); // #202: SFX/music follow the clock
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments]);
+  }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments, syncAssetAudio]);
 
   // Video event handlers — only enforce bounds when paused (seek while paused)
   const onTimeUpdate = useCallback(() => {

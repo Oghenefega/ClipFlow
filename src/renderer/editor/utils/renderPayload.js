@@ -43,6 +43,9 @@ export function buildRenderPayload() {
     ...clip,
     subtitles: timelineSubs,
     nleSegments: nleSegs,
+    // #202: current (possibly unsaved) SFX/music placements — the render must
+    // match the preview, not the last-saved clip record.
+    sfx: editorState.audioPlacements || [],
   };
   // Full subtitle style — every property the overlay renderer needs
   // Includes both store names (subFontFamily) and engine names (fontFamily)

@@ -48,6 +48,12 @@ const useEditorStore = create((set, get) => ({
   // Each segment is { id, sourceStart, sourceEnd } — a window into the source file.
   // Timeline position is DERIVED from segment order, never stored.
   nleSegments: [],
+  // #202: SFX/music placements on the Sounds lane. SFX anchor to SOURCE time
+  // (they follow their moment through trims/reorders, like subtitles); the
+  // music bed anchors to the timeline (spans the clip, like captions).
+  // Shape: { id, assetId, name, path, kind: "sfx"|"music", durationSec,
+  //          volume 0-1, sourceTime? (sfx), fadeIn?/fadeOut? (music, seconds) }
+  audioPlacements: [],
   sourceDuration: 0, // total source file duration
 
   // Legacy compatibility — kept for gradual migration of timeline UI components
@@ -113,6 +119,7 @@ const useEditorStore = create((set, get) => ({
         waveformError: null,
         audioSegments: [],
         nleSegments: [],
+        audioPlacements: [],
         sourceStartTime: 0,
         sourceEndTime: 0,
         sourceDuration: 0,
@@ -142,7 +149,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [] });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [] });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -206,6 +213,8 @@ const useEditorStore = create((set, get) => ({
       editingTitle: false,
       dirty: false,
       nleSegments: nleSegs,
+      // #202: restore SFX/music placements from the clip record
+      audioPlacements: Array.isArray(clip?.sfx) ? clip.sfx.map((p) => ({ ...p })) : [],
       sourceStartTime: sourceStart,
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
@@ -412,6 +421,59 @@ const useEditorStore = create((set, get) => ({
     const newSegs = extendSegmentRight(nleSegments, segmentId, newSourceEnd, sourceDuration);
     set({ nleSegments: newSegs });
     usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  // ── Asset audio placements (#202) — the Sounds lane ──
+  // SFX carry a source-absolute `sourceTime`; the music bed spans the timeline.
+  // One music bed at a time: adding another replaces it (returns { replaced }).
+
+  addAudioPlacement: (asset, sourceTime) => {
+    get()._pushNleUndo();
+    const kind = asset.type === "music" ? "music" : "sfx";
+    const placement = {
+      id: `snd_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      assetId: asset.id,
+      name: asset.name,
+      path: asset.path,
+      kind,
+      durationSec: asset.durationSec || 0,
+      // Music defaults quiet — it sits under the voice; SFX at full level.
+      volume: kind === "music" ? 0.4 : 1,
+      ...(kind === "music" ? { fadeIn: 0, fadeOut: 0 } : { sourceTime }),
+    };
+    let list = get().audioPlacements;
+    const replaced = kind === "music" && list.some((p) => p.kind === "music");
+    if (kind === "music") list = list.filter((p) => p.kind !== "music");
+    set({ audioPlacements: [...list, placement] });
+    get().markDirty();
+    return { id: placement.id, replaced };
+  },
+
+  // Commit a drag: move an SFX to a new source-absolute time (undo = one Ctrl+Z).
+  moveAudioPlacement: (id, newSourceTime) => {
+    get()._pushNleUndo();
+    set({
+      audioPlacements: get().audioPlacements.map((p) =>
+        p.id === id ? { ...p, sourceTime: newSourceTime } : p
+      ),
+    });
+    get().markDirty();
+  },
+
+  // Live-updating props (volume slider, fades) — no undo entry per tick.
+  setAudioPlacementProps: (id, patch) => {
+    set({
+      audioPlacements: get().audioPlacements.map((p) =>
+        p.id === id ? { ...p, ...patch } : p
+      ),
+    });
+    get().markDirty();
+  },
+
+  deleteAudioPlacement: (id) => {
+    get()._pushNleUndo();
+    set({ audioPlacements: get().audioPlacements.filter((p) => p.id !== id) });
     get().markDirty();
   },
 
@@ -922,7 +984,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments } = get();
+      const { nleSegments, audioSegments, audioPlacements } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -986,6 +1048,7 @@ const useEditorStore = create((set, get) => ({
         captionSegments: capState.captionSegments,
         subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
         nleSegments: nleSegments,
+        sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,
         captionStyle,
