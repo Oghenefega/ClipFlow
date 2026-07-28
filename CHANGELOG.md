@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-28 (session 134 cont.) — 0.3.0-alpha.27: the sounds update
+
+### Changed
+- **Installer cut as `0.3.0-alpha.27`**, promoting the sounds update below so Fega can place SFX and music on real clips. Pictures on clips (#203) is the remaining phase of #201.
+
 ## [Unreleased] — 2026-07-28 (session 134 cont.) — Sounds on clips: SFX + music placement (#202)
 
 ### Added
