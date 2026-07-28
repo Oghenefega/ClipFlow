@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-27 — Session 133 — **#199 (energy track), #194 (approval rates in-app), #193 (Gemini video titles) all built, verified, closed `status: untested`. Daily driver still alpha.24 — next installer carries all three.**_
+_Last updated: 2026-07-27 — Session 133 — **#199 (energy track), #194 (approval rates in-app), #193 (Gemini video titles) all built, verified, closed `status: untested`. Installer `0.3.0-alpha.25` cut and pushed — Fega installs it (in-app "Install update" banner) and pastes the Gemini key into Settings.**_
 
 ---
 
@@ -10,7 +10,7 @@ Title/caption generation can now watch the actual clip: a temp 720p cut (with so
 
 ## Current State
 
-- **Three issues closed `status: untested`** (Fega hasn't seen any of it on the daily driver — no installer cut this session, per batch-versions rule):
+- **Three issues closed `status: untested`** (installer `0.3.0-alpha.25` cut at session end on Fega's ask; he hadn't installed/verified yet as of the wrap):
   - **#199**: `D:\whisper\energy_scorer.py` takes `--track` (probes stream count, falls back to `0:a:0`); pipeline passes `transcriptionAudioTrack`. Verified with synthetic single/two-track files.
   - **#194**: project cards show "kept X of Y (Z%)" once fully reviewed; "Rates" chip on Projects expands per-game quality/overall × rolling-10/all-time. Numbers verified EXACT against hand SQL on prod DB (RL overall 9/144=6%, quality 9/121=7%). Quality filter = conf ≥ 0.7 minus *exclusively*-mechanical rejects (deliberately narrower than the prompt's any-mechanical filter — flagged on the issue).
   - **#193**: new native provider `src/main/ai/providers/gemini.js` (`gemini-3.6-flash`, inline ≤14MB / resumable Files API above, one retry on 503/429, thinking tokens counted as output); `ffmpeg.cutTitlePreview` cuts the clip's nleSegments union range at 720p with audio `0:a:0` (the mix render uses); temp file deleted on success/failure/fallback (verified 0 leftovers all three ways); migration v8 adds `title_caption_rounds.gen_source` ('gemini-video'/'frames' — NOT title_source, that's publish-time provenance); Gemini spend logs as a `titlegen_*` pipeline log ($0.0214 measured) counted in Settings monthly cost; Settings → API Credentials has a Gemini pill.
@@ -29,7 +29,7 @@ Title/caption generation can now watch the actual clip: a temp 720p cut (with so
 
 ## Next Steps
 
-1. **Cut the next installer** when the batch is ready (~this is already 3 changes; Fega's call) — then he pastes the Gemini key into Settings and generates titles on a real project to feel the video-path difference.
+1. **Fega installs alpha.25** ("Install update" banner or `dist\ClipFlow Setup 0.3.0-alpha.25.exe`), pastes the Gemini key into Settings → API Credentials → Gemini, and generates titles on a real project — that's the untested-label clearing check for all three issues.
 2. **Remind Fega: flip the AI Studio account (flowveapp@gmail.com) to paid billing** before video titles become daily-path (training-data + rate-limit reasons).
 3. **Watch acceptance by gen_source** once real rounds accrue: `SELECT gen_source, title_source, COUNT(*) FROM title_caption_rounds GROUP BY 1, 2` — the measurement #193 was built for. If gemini-video rounds don't out-perform frames, consider trying `gemini-3-flash-preview` or a perspective few-shot before giving up on the path.
 4. **First sessions on alpha.25+ establish the quality-rate baseline** (#196): the Rates panel's RL quality number is the one the 40% target applies to.
