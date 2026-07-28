@@ -1,52 +1,49 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-27 — Session 133 — **#199 (energy track), #194 (approval rates in-app), #193 (Gemini video titles) all built, verified, closed `status: untested`. Installer `0.3.0-alpha.25` cut and pushed — Fega installs it (in-app "Install update" banner) and pastes the Gemini key into Settings.**_
+_Last updated: 2026-07-28 — Session 134 — **Media assets epic (#201): asset library (Phase 1, verified by Fega on alpha.26) + sounds on clips (#202, built + machine-verified). Installer `0.3.0-alpha.27` cut — Fega installs and tests placing sounds.**_
 
 ---
 
 ## One-line TL;DR
 
-Title/caption generation can now watch the actual clip: a temp 720p cut (with sound) goes to Gemini Flash with the unchanged voice prompt, stills remain the automatic fallback, every round records `gen_source` so the two paths' acceptance rates are comparable — plus approval rates (quality + overall, rolling + all-time) are now visible on the Projects tab, and energy analysis finally respects the transcription track setting.
+The editor's dead upload areas are now a real asset library (import sounds/images, auto-scanned SFX folder — Fega-verified), and sounds can be placed ON clips: SFX stick to their footage moment through trims/reorders, a music bed spans the clip with volume + fades, everything plays in the preview and mixes into the rendered MP4 (spectrally verified) — pictures (#203) is the remaining phase.
 
 ## Current State
 
-- **Three issues closed `status: untested`** (installer `0.3.0-alpha.25` cut at session end on Fega's ask; he hadn't installed/verified yet as of the wrap):
-  - **#199**: `D:\whisper\energy_scorer.py` takes `--track` (probes stream count, falls back to `0:a:0`); pipeline passes `transcriptionAudioTrack`. Verified with synthetic single/two-track files.
-  - **#194**: project cards show "kept X of Y (Z%)" once fully reviewed; "Rates" chip on Projects expands per-game quality/overall × rolling-10/all-time. Numbers verified EXACT against hand SQL on prod DB (RL overall 9/144=6%, quality 9/121=7%). Quality filter = conf ≥ 0.7 minus *exclusively*-mechanical rejects (deliberately narrower than the prompt's any-mechanical filter — flagged on the issue).
-  - **#193**: new native provider `src/main/ai/providers/gemini.js` (`gemini-3.6-flash`, inline ≤14MB / resumable Files API above, one retry on 503/429, thinking tokens counted as output); `ffmpeg.cutTitlePreview` cuts the clip's nleSegments union range at 720p with audio `0:a:0` (the mix render uses); temp file deleted on success/failure/fallback (verified 0 leftovers all three ways); migration v8 adds `title_caption_rounds.gen_source` ('gemini-video'/'frames' — NOT title_source, that's publish-time provenance); Gemini spend logs as a `titlegen_*` pipeline log ($0.0214 measured) counted in Settings monthly cost; Settings → API Credentials has a Gemini pill.
-- **Gemini API key**: created this session on **flowveapp@gmail.com** (AI Studio, free tier). It's set in the DEV profile store. **Fega must paste it into Settings → Tools & Credentials → API Credentials → Gemini on the daily driver after the next installer.** Key visible in session transcript; rotate in AI Studio if ever concerned.
-- **Free tier caveat (flagged to Fega, he's aware):** free tier = daily caps + Google may train on submitted footage (raw unpublished recordings!). Flip the AI Studio account to paid billing before this becomes the daily path.
-- **Known quality limit (#193, documented on the issue):** Gemini names the visual event correctly (verified: "kickoff goal" from a clip whose transcript is "okay… oh, okay") but on the test clip credited the creator with the OPPONENT's goal — replays follow the scorer's car. One perspective-instruction iteration didn't fix it; stopped per 2-attempt rule. The `gen_source` acceptance comparison is the designed judge. Amusingly Claude+stills got attribution right (frozen banner is easier to read).
-- Renderer built clean; dev-profile boot-verified (migration v8 ran); Rates panel + card line + Settings pill all driven and screenshotted via CDP.
+App is on **0.3.0-alpha.27** (installer in `dist/`, awaiting Fega's install + verification of #202). #201 epic: Phase 1 done + verified, Phase 2 (#202) built + machine-verified (open, untested by Fega), Phase 3 (#203 pictures) not started.
+
+## What Was Just Built
+
+- **Phase 1 — asset library (verified live by Fega on alpha.26):** `src/main/assets.js` (copy-import into `{libraryRoot}/.clipflow/assets/` + `assets.json` index; SFX-folder files linked in place and absorbed into the index so favorites persist), IPC `assets:list/import/delete/favorite`, Audio panel wired to real data (search, All/Favorites, click-to-preview, two-click delete), Upload drawer drop zone + button with an images list, Settings SFX folder auto-scan. `dialog:openFile` gained a `properties` passthrough (multi-select; single-select callers unchanged).
+- **Phase 2 — sounds on clips (#202, alpha.27):** `audioPlacements` on useEditorStore (persisted via the revived `clip.sfx` field, restored on load, in the shared cross-store undo snapshot), Audio panel "+" places SFX at the playhead / sets the music bed, timeline **Sounds** lane replaces the dead "Audio 2" row (drag SFX to move, settings popover: volume, music fades, remove), preview `<audio>` engine synced to the rAF clock with per-frame fade volume + full unmount teardown, render mixing (asset inputs AFTER the overlay pipe → aformat → atrim/afade (music) → volume → adelay → amix normalize=0 duration=first). 8 new jest tests on the filter graph (`src/main/__tests__/renderAudioMix.test.js`).
 
 ## Key Decisions
 
-1. **`gen_source` new column instead of the issue's literal `title_source`** — title_source classifies where the FINAL published title came from (ai/ai_edited/self); overloading it would break voice-example ranking. Both axes are needed for the acceptance comparison. Flagged on #193.
-2. **Model `gemini-3.6-flash` at $1.50/$7.50 per 1M** (verified against Google's live pricing page) — real cost ~2¢/generation, ~3× the issue's estimate (that math was Flash-Lite-priced). Noted on the issue.
-3. **maxTokens 8000 for Gemini (not 2000)** — 3.x thinks by default from the same output budget; 2000 can truncate to empty (measured ~2.2k thinking tokens per round).
-4. **Quality-rate mechanical filter = exclusively-mechanical** per the #194 comment's wording; mixed rows ("duplicate,not-funny") still count — a mixed row carries a taste verdict.
-5. **Gemini cost logs only gemini rounds** — anthropic title rounds were never cost-logged; keeping that delta minimal.
+- **SFX (and later pictures) anchor to SOURCE time** (follow their moment through trims/reorders, like subtitles); **music anchors to the timeline** (spans the clip, like captions). Fega's calls: sounds before pictures; SFX folder auto-scanned; music v1 = manual volume + fades (auto-duck parked).
+- **One music bed per clip** — adding another replaces it (undoable, panel says so).
+- **Volume is 0–100% (no boost)** so preview (`el.volume` caps at 1) and render (`volume=` filter) stay in exact parity. Music defaults to 40%.
+- **Missing sound file fails the render loudly** with a plain-language message — never a silently different-sounding export.
+- **No-placement clips build a byte-identical FFmpeg graph** (unit-asserted) — zero regression surface for ordinary renders. `renderThumbnail` (`{audio:false}`) skips the whole mix block by construction.
+- Parked (listed on #201): animated GIFs/stickers, video overlays/outros, auto-duck, bundled royalty-free pack, TikTok trending audio.
 
 ## Next Steps
 
-1. **Fega installs alpha.25** ("Install update" banner or `dist\ClipFlow Setup 0.3.0-alpha.25.exe`), pastes the Gemini key into Settings → API Credentials → Gemini, and generates titles on a real project — that's the untested-label clearing check for all three issues.
-2. **Remind Fega: flip the AI Studio account (flowveapp@gmail.com) to paid billing** before video titles become daily-path (training-data + rate-limit reasons).
-3. **Watch acceptance by gen_source** once real rounds accrue: `SELECT gen_source, title_source, COUNT(*) FROM title_caption_rounds GROUP BY 1, 2` — the measurement #193 was built for. If gemini-video rounds don't out-perform frames, consider trying `gemini-3-flash-preview` or a perspective few-shot before giving up on the path.
-4. **First sessions on alpha.25+ establish the quality-rate baseline** (#196): the Rates panel's RL quality number is the one the 40% target applies to.
-5. Carry-over from s132: Fega retests the 69s recording on alpha.24 (#200 floor), and a clean full-session generation confirms the contention-blocked sanity check.
+1. **Fega verifies alpha.27** (test list in chat: place the Fahh sound at a moment, drag it, trim before it, music + fades, render, Ctrl+Z). Then close #202 (respect the `status: untested` flow).
+2. **#203 — pictures on clips** (last #201 phase): image layer in `PreviewOverlays.js` + the offscreen overlay page (`__OVERLAY_CONFIG__` in `subtitle-overlay-renderer.js:245`, rendering in `overlay-renderer.js`, and a **frame-skip signature term** — mandatory or frames freeze), reuse `DraggableOverlay` for position/size, persist via `clip.media`. Check the overlay page's CSP allows `file://` images.
+3. Possible #202 follow-ups if Fega asks: multiple music beds, SFX trimming, boost >100%, drag-from-panel-to-timeline.
 
 ## Watch Out For
 
-- **The dev profile store now holds real credentials** (anthropic + gateway + gemini keys copied/set this session for verification). Fine on this machine; don't ship the dev store anywhere.
-- **energy_scorer.py lives OUTSIDE the repo** (D:\whisper) — the #199 script-side fix is NOT in git. The `tools/` packaging move (#143 pattern) is still owed before commercial packaging.
-- **Old-installer + new-script compat is safe by design**: the script's `--track` default is 1 (Fega's mic index), so an alpha.24 daily driver without the pipeline change still behaves exactly as before.
-- **game-profiles repo-write hazard from s132 still stands** for headless harness runs (this session used the dev app, not the harness — repo `data/game_profiles.json` untouched).
+- **Sounds lane z-order:** the full-width music block must render BELOW SFX blocks (music-first sort + zIndex 1 vs 2 in TimelinePanelNew) — first live-drive bug of the session; don't regress it.
+- **render.js input-index arithmetic:** asset inputs come AFTER the overlay pipe so the pipe keeps index n. Anything adding further inputs must extend that arithmetic (`buildNleFilterComplex` doc comment).
+- **`_snapshotStyling` in useSubtitleStore now carries `audioPlacements`** — any new undoable editor state must join that snapshot or Ctrl+Z will skip it.
+- **Fega's real "Fahh" sound:** my cleanup deleted `assets.json` and I rebuilt it from disk (entry id `asset_..._rebuilt`); he re-starred it. His EO clip (`clip_1784997236854_h88y`) was used for the drive — nleSegments verified byte-identical afterward, test placements stripped.
+- **The ≥60s music/SFX split** applies only to untyped imports (Upload drawer drops); Audio-panel imports use the active tab's type.
+- Preview SFX straddling an NLE cut keeps playing across the seam (timeline time is continuous); render does the same via adelay — intentional parity.
+- Dev-profile projectsRoot points at the REAL W:\ tree — any test assets/placements written there must be cleaned (this session: done, verified).
 
-## Logs / Debugging
+## Logs & Debugging
 
-- **Dev app logs**: `%APPDATA%\clipflow-dev\logs\app.log` — grep `[gemini]` (video size + inline/Files API + retry lines) and `(title-generation)` (fallback warnings with the real error). The 503-fallback event from this session is at 20:28:39.
-- **Gemini cost logs**: `%APPDATA%\clipflow-dev\processing\logs\titlegen_*.log` (prod equivalent under the configured processingDir) — one per gemini round, shows tokens + $ and counts toward Settings monthly cost.
-- **Temp previews**: `%APPDATA%\clipflow*\processing\titlecaption-preview\` — must always be empty after a round; files here = a cleanup regression.
-- **CDP driving pattern**: scratchpad `cdp.js` (Runtime.evaluate wrapper) + `shot.js` (screenshot) against `--remote-debugging-port=9222`; `ws` installed in scratchpad, not the repo. taskkill electron before relaunching (single-instance lock).
-- **Verify #194 numbers anytime**: scratchpad `verify194.js` runs the real `getApprovalStats` against a prod DB copy next to hand SQL.
-- **Verification clip** (perspective-limit repro): project `proj_1784788479474_xnshl3` clip `clip_1784788710057_mtq1` — 8s edit (35.4–43.4s of `2026-07-17 RL Day8 Pt8.mp4`), transcript "okay Oh, okay.", opponent kickoff goal + Fega laughing.
+- Render logs: `[Render] Audio assets: N of M placements active` shows how many placements survived timeline mapping; legacy-path renders warn `sounds skipped`.
+- Spectral check for "did the sound land": `ffmpeg -i out.mp4 -af "bandpass=f=<hz>:w=80,atrim=<t1>:<t2>,volumedetect" -f null -` — compare mean_volume inside vs outside the expected window (this session: -24dB in-window vs -57.6dB outside for the 880Hz test tone; music bed steady -32.6dB; max_volume -1.6dB).
+- CDP driving: session-134 scratchpad (`70c9c478…`) has `cdp.js` (one-shot evaluator), `cdp-input.js` (trusted click/drag/rclick/undo — the `buttons` bitmask is REQUIRED), `cdp-shot.js`. Four new traps recorded in memory `project_cdp_verification_gotchas` (#17–20); the reload-wedge is the nasty one — only an app relaunch fixes it.
