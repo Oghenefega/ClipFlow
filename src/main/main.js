@@ -978,6 +978,17 @@ ipcMain.handle("assets:favorite", async (_, assetId) => {
   }
 });
 
+// Waveform shape for a placed sound — the timeline draws it inside the block.
+ipcMain.handle("assets:peaks", async (_, filePath) => {
+  try {
+    if (!filePath) return { success: false, error: "No file path" };
+    const result = await assetLibrary.getPeaks(assetsRootOrThrow(), filePath);
+    return { success: !result.error, ...result };
+  } catch (err) {
+    return { success: false, error: err.message, peaks: [] };
+  }
+});
+
 // ============ FFMPEG ============
 ipcMain.handle("ffmpeg:checkInstalled", async () => {
   try { return await ffmpeg.checkFfmpeg(); }

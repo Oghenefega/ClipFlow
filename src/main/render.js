@@ -2,7 +2,8 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
-const { getTimelineDuration, visibleSubtitleSegments, timelineToSource, sourceToTimeline } = require("../renderer/editor/models/timeMapping");
+const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
+const { resolvePlacements } = require("../renderer/editor/models/audioPlacements");
 const { segmentDuration } = require("../renderer/editor/models/segmentModel");
 const { resolveClipSubtitles } = require("../renderer/editor/utils/resolveSubtitles");
 const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../renderer/editor/utils/reframeStyle");
@@ -126,8 +127,10 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  * @param {number} [sourceHeight] - Probed source height, for reframe crop clamping
  * @param {object} [opts] - { audio: false } builds a video-only graph (single-segment
  *   only — used by renderThumbnail, whose PNG output can't accept audio streams).
- *   { audioAssets, timelineDuration } (#202) mixes SFX/music inputs into the base
- *   audio: audioAssets = [{ inputIndex, kind, volume, delaySec, fadeIn, fadeOut }].
+ *   { audioAssets } (#202) mixes sound/song inputs into the base audio:
+ *   audioAssets = [{ inputIndex, kind, volume, delaySec, trimStart, trimEnd,
+ *   durationSec, fadeIn, fadeOut }] — each carries its own file window and
+ *   timeline delay, so songs no longer depend on the clip's duration.
  *   With no audioAssets the audio graph is byte-identical to the pre-#202 output.
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
@@ -229,23 +232,30 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
     }
   }
 
-  // #202: mix SFX/music placements into the base audio. Each asset chain is
-  // normalized to a common rate/layout (amix requires it), leveled, faded
-  // (music), and delayed to its timeline position (SFX). duration=first keeps
-  // the output exactly as long as the base track; normalize=0 stops amix from
-  // ducking everything by 1/N. When no assets are given this whole block is
-  // skipped and the audio graph text is unchanged.
+  // #202: mix sound/song placements into the base audio. One chain shape for
+  // both kinds: normalize to a common rate/layout (amix requires it), cut out
+  // the file window that plays, rebase its timestamps, fade (songs), level,
+  // then delay to its timeline position. duration=first keeps the output
+  // exactly as long as the base track; normalize=0 stops amix from ducking
+  // everything by 1/N. When no assets are given this whole block is skipped and
+  // the audio graph text is unchanged.
   let audioLabel = "base_a";
   const audioAssets = withAudio ? (opts.audioAssets || []) : [];
   if (audioAssets.length > 0) {
-    const dur = opts.timelineDuration || 0;
     const mixinLabels = [];
     audioAssets.forEach((a, i) => {
       let chain = "aformat=sample_rates=48000:channel_layouts=stereo";
+      const trimStart = Math.max(0, a.trimStart || 0);
+      const trimEnd = a.trimEnd != null ? a.trimEnd : (a.durationSec || 0);
+      const len = Math.max(0, trimEnd - trimStart);
+      if (len > 0) {
+        // asetpts is MANDATORY after atrim: atrim keeps the source timestamps,
+        // so adelay would otherwise stack on top and the sound would land late.
+        chain += `,atrim=${+trimStart.toFixed(3)}:${+trimEnd.toFixed(3)},asetpts=PTS-STARTPTS`;
+      }
       if (a.kind === "music") {
-        if (dur > 0) chain += `,atrim=0:${dur}`;
         if (a.fadeIn > 0) chain += `,afade=t=in:st=0:d=${a.fadeIn}`;
-        if (a.fadeOut > 0 && dur > a.fadeOut) chain += `,afade=t=out:st=${+(dur - a.fadeOut).toFixed(3)}:d=${a.fadeOut}`;
+        if (a.fadeOut > 0 && len > a.fadeOut) chain += `,afade=t=out:st=${+(len - a.fadeOut).toFixed(3)}:d=${a.fadeOut}`;
       }
       chain += `,volume=${Math.max(0, Math.min(1, a.volume ?? 1))}`;
       const delayMs = Math.round((a.delaySec || 0) * 1000);
@@ -433,11 +443,12 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // Caption segments
       const captionSegments = options.captionSegments || clipData.captionSegments || [];
 
-      // ── #202: SFX/music placements ── resolve each to a timeline delay.
-      // SFX are source-anchored: one whose moment was trimmed away maps to no
-      // timeline position and is skipped (same rule as subtitles). Music spans
-      // the timeline from 0. A missing sound file fails the render loudly —
-      // never a silently different-sounding export.
+      // ── #202: sound/song placements ── resolve each to a timeline delay
+      // through the SAME helper the editor and the preview use, so what he
+      // heard in the preview is what gets encoded. A sound whose footage moment
+      // was trimmed away is skipped (songs clamp forward instead — see
+      // models/audioPlacements.js). A missing sound file fails the render
+      // loudly — never a silently different-sounding export.
       const sfxPlacements = Array.isArray(clipData.sfx) ? clipData.sfx : [];
       let activeAudioAssets = [];
       if (sfxPlacements.length > 0 && useNle) {
@@ -448,13 +459,9 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
               `remove it from the clip or restore the file, then render again.`
             ));
           }
-          if (p.kind === "music") {
-            activeAudioAssets.push({ ...p, delaySec: 0 });
-          } else {
-            const tl = sourceToTimeline(p.sourceTime, nleSegments);
-            if (tl.found) activeAudioAssets.push({ ...p, delaySec: tl.timelineTime });
-          }
         }
+        activeAudioAssets = resolvePlacements(sfxPlacements, nleSegments)
+          .map((p) => ({ ...p, delaySec: p.tlStart }));
         console.log(`[Render] Audio assets: ${activeAudioAssets.length} of ${sfxPlacements.length} placements active`);
       } else if (sfxPlacements.length > 0) {
         console.warn("[Render] Clip has sound placements but is rendering via the legacy (no-NLE) path — sounds skipped");
@@ -566,7 +573,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
         const { filterComplex, mapArgs } = buildNleFilterComplex(
           nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight,
-          { audioAssets: activeAudioAssets, timelineDuration }
+          { audioAssets: activeAudioAssets }
         );
         args.push("-filter_complex", filterComplex);
         args.push(...mapArgs);

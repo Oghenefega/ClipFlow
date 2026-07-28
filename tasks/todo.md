@@ -6,7 +6,230 @@
 
 ---
 
-## 🔄 ACTIVE (session 134) — Media assets: SFX, music & pictures on clips → **epic #201**
+## 🔄 ACTIVE (session 135) — Sounds usability pass (#202 follow-ups) — **BUILT + machine-verified, awaiting Fega**
+
+**Built exactly as planned below, plus decisions 4–6 (multiple songs).** Verified
+on the built dev-profile app via CDP, and cleaned up after (test assets deleted,
+both test clips' `sfx` cleared, Clip 1's render record reverted, peaks cache
+folder removed, render output deleted — library back to just Fega's Fahh).
+
+**What the live drive proved:**
+- Waveform draws inside every block (silence flat, the hit as a bump); peaks
+  fetch 236ms cold / 11ms cached.
+- Music + SFX lanes both fully visible above the scrollbar at height 276.
+- Left trim handle cut 4.59s of head silence: `sourceTime` and `trimStart` both
+  advanced by 4.594 — the audible part did not move (right edge pixel-identical).
+- Alt+drag duplicated the sound and dragged the COPY; the overlap split the SFX
+  lane into two half-height rows, both waveforms readable.
+- Right-click opens the settings popover; left-click only selects.
+- Song switch: songA 0.3→10.13, songB 10.13→19.0 — no gap, no overlap, status
+  line "songB plays from 0:10 · songA now ends there". One Ctrl+Z undid the
+  whole switch (songB gone AND songA back to full length); Ctrl+Y redid it.
+- Delete key removes a selected sound; Reset in the popover restores the full
+  file AND keeps the audible part where it was (tone stayed at 9.11s).
+- Legacy-shaped music bed (no anchor/window, written by hand onto Clip 2)
+  opened spanning the whole 28s clip — old behaviour preserved.
+- Render (real pipeline, 19s clip): 400Hz trimmed tone −22.8dB inside its
+  7.8–11.1s window vs −54/−49dB outside; 6.3–7.3s and 11.4–12.4s silent
+  (−60/−57dB) so no trimmed silence leaked; songA 150Hz −32.1dB early /
+  −58.0dB late; songB 250Hz −48.9dB early / −32.0dB late; two overlapping SFX
+  summed +2.5dB; max_volume −10.2dB (no clipping).
+- 125 jest tests green (5 new render-graph, 17 new placement-model, 5 new
+  time-mapping). The 5 pre-existing `process.exit` script-style test files still
+  crash jest workers — unrelated, they predate jest here.
+
+**One real bug caught by the drive:** clicking a sound block let the click bubble
+to the scroll container's deselect handler, so selection never stuck (handles
+appeared on hover only, Delete did nothing). Fixed by stopping the click the way
+every other lane's block does.
+
+**Gotcha worth remembering:** `extractWaveformPeaks` resamples to 1000Hz, so any
+test tone above ~500Hz draws a flat waveform (my first 880Hz fixture read as
+silence). Real sounds always carry low-frequency content; synthetic fixtures
+must stay under 500Hz.
+
+Original plan below.
+
+## 📋 PLAN (session 135, approved) — Sounds usability pass (#202 follow-ups)
+
+**Fega's ask after testing alpha.27** ("good job so far, but before it's
+useable"): 1) show the sound's waveform on the timeline block so he can align
+it by eye, 2) separate Music and SFX lanes so both can play at once and be
+seen, 3) trim a placed sound's start/end (files often have silence around the
+actual hit), 4) Alt+drag to duplicate a sound (same gesture as subtitles),
+5) right-click — not left-click — opens the volume/remove popover.
+
+**Decisions (Fega, question UI, 2026-07-28):**
+1. **Grow the timeline ~35px** (234 → 272 in `EditorLayout.js`) to pay for the
+   second lane — full-height lanes, readable waveforms; preview loses ~35px.
+2. **Lanes split into two half-height rows when blocks overlap**, single
+   full-height row when they don't (same rule on both lanes).
+3. **Music is trimmable too.**
+4. **Multiple songs per clip** (hyped → sad switch). Adding a song at the
+   playhead ends the previous one there; nothing is deleted.
+5. **A song is anchored to its footage moment**, like SFX and subtitles — trim
+   footage earlier in the clip and the song change travels with its moment.
+
+### The model this collapses to (key insight)
+
+Decision 4 kills the "one music bed spanning the clip" special case, and every
+block on both lanes becomes the **same shape**: an anchor at a source moment +
+a window into its file.
+
+```
+{ id, assetId, name, path, kind: "sfx"|"music", durationSec,
+  sourceTime,              // the footage moment it starts on (both kinds)
+  trimStart, trimEnd,      // the window of the FILE that plays (both kinds)
+  volume, fadeIn?, fadeOut? }        // fades: music only
+```
+
+Timeline length = `trimEnd - trimStart` for both kinds. "Song A ends at 0:08"
+is just A's window being shortened — visible in its waveform, undoable, and it
+needs no new concepts in the preview or the render graph. Music differs from
+SFX in only four ways: its default window is as much of the song as fits, it
+has fades, adding one clamps the previous song, and it lives in its own lane.
+
+**Migration** — no migration file needed, but three derived defaults on read
+(`initFromContext` for the editor, `render.js` for a clip rendered without
+opening the editor, so old clips render byte-identically):
+`trimStart → 0`, `trimEnd → durationSec`, and a legacy music placement (no
+`sourceTime`) → anchor at timeline 0 with `trimEnd = min(durationSec,
+timelineDuration)`, i.e. exactly today's spans-the-clip behaviour.
+
+### A. Waveform on every sound block (ask 1)
+
+- `src/main/assets.js`: new `getPeaks(assetsRoot, filePath)` — reuses
+  `ffmpeg.extractWaveformPeaks`, caches to `{assetsRoot}/peaks/<hash>.json`
+  keyed on path + mtime + size (same validity check as the project waveform
+  cache, `main.js:1149-1179`). `peakCount = clamp(round(dur*50), 200, 4000)`.
+- `main.js`: IPC `assets:peaks`. `preload.js`: `assetsPeaks(filePath)`.
+- NEW `src/renderer/editor/components/timeline/SoundBlock.js` — owns the block:
+  canvas waveform (mirrored fill like `WaveformTrack`, violet SFX / teal
+  music), sliced to the trimmed window; module-level `Map` peaks cache keyed by
+  file path (survives clip switches, one fetch per file per session); flat
+  block while loading, no error text (blocks can be 12px wide).
+
+### B. Separate Music + SFX lanes (ask 2)
+
+- `TimelinePanelNew.js`: the one **Sounds** lane becomes **Music** (teal) and
+  **SFX** (violet). Kills the z-order trap from session 134 by construction —
+  a song and a sound are never in the same row.
+- Row assignment (both lanes, same helper): sort by timeline start; a block
+  overlapping the previous one drops to row 1 (2 rows max, half height each; a
+  3rd overlapper reuses row 0 with z-order). No overlaps → one full-height row.
+- Empty-lane hints stay, one per lane ("Add music" / "Add a sound").
+- `timelineConstants.js`: `SOUND_TRACK_H` + the sound colour pair (moved out of
+  the inline literals currently in `TimelinePanelNew`).
+
+### C. Trim a placed sound or song (ask 3)
+
+- Left/right trim handles on every block, both lanes (same hit-width + visual
+  as the Audio lane's).
+  - **Left handle** moves `sourceTime` and `trimStart` together, so the
+    **audible part stays put on the timeline** while the silence (or the song's
+    intro) is cut off — Premiere in-point behaviour, the whole point of the ask.
+  - **Right handle** moves `trimEnd` only.
+  - Clamps: `0 ≤ trimStart ≤ trimEnd-0.05 ≤ durationSec`. Nothing can be
+    stretched past the end of its own file.
+- Undo: one `_pushNleUndo()` at gesture start (matches the popover's
+  push-on-first-change), not one per rAF tick.
+- Preview (`PreviewPanelNew.js`): both kinds collapse to one code path —
+  `el.currentTime = trimStart + offset`, block window =
+  `start … start + (trimEnd - trimStart)`. Deletes the music/SFX branch.
+- Render (`render.js`): one chain shape for both kinds —
+  `aformat → atrim=trimStart:trimEnd → asetpts=PTS-STARTPTS →
+  (afade in/out, music) → volume → adelay=<block's timeline start>`.
+  **asetpts is mandatory**: `atrim` keeps the source PTS, so `adelay` would
+  otherwise stack on top and the sound would land late. Fades become relative
+  to the block, not the clip.
+
+### D. Alt+drag duplicates a sound or song (ask 4)
+
+- Store `duplicateAudioPlacement(id)` → clone with a new id at the same
+  moment, returns the new id. Works on both kinds now that a song is a normal
+  block (same song again later is a real move).
+- `SoundBlock` body drag mirrors `SegmentBlock`'s proven pattern: window
+  listeners (not pointer capture — the drag target swaps to the clone), 3px
+  threshold, Alt read at pointerdown OR live off `ev.altKey` (Windows
+  swallows the press-time modifier).
+- Popover gets a **Duplicate** button too — standing rule: a requested
+  capability needs a visible control, gestures are accelerators only.
+
+### E. Right-click opens the popover (ask 5)
+
+- Left click = select the block (highlight + trim handles). Drag = move.
+  Alt+drag = duplicate. **Right click = settings popover** (volume, fades for
+  music, a "plays 0:12 → 0:41 of 3:07" readout, Reset trim, Duplicate,
+  Remove). Selection joins the existing `selectedTrack`/`selectedSegIds` state
+  so a background click clears it.
+
+### F. Multiple songs on the Music lane (ask 6 — the switch)
+
+- The one-bed rule comes out of `addAudioPlacement`: no more replace, no more
+  "music bed replaced" message.
+- Adding a song anchors it at the playhead's **source** moment; its length is
+  `min(song length - trimStart, room until the next song, room until the clip
+  ends)` — never trailing silence past the end of the file.
+- The song playing across that moment has its window shortened to end exactly
+  there (**the switch**). Songs *after* the playhead are untouched — the new
+  one fills the gap up to them, so nothing is ever silently deleted. One undo
+  entry covers add + clamp. Status line says what happened
+  ("Sad Song plays from 0:08 · Hyped Song now ends there").
+- Dragging the new song later does **not** grow the old one back — expected,
+  and each block's right handle is right there.
+- Songs may overlap if you drag one onto another (both play, mixed) — the
+  two-row stacking makes that visible instead of hiding a block.
+- Anchoring (ask 5's answer) needs one small shared helper in `timeMapping.js`:
+  `sourceToTimelineClamped` — like `sourceToTimeline`, but when the anchor
+  moment itself was trimmed away it clamps FORWARD to the next surviving
+  footage instead of returning not-found. Without it, trimming the head of a
+  clip would make a song anchored near 0 vanish. SFX keep the existing
+  drop-when-its-moment-is-gone rule (correct for a one-shot, already verified).
+  Used by the timeline, the preview, and the render so all three agree.
+- `RightPanelNew.js`: music "+" tooltip becomes "Add at playhead".
+
+### Files touched
+
+| File | Change |
+|---|---|
+| `src/main/assets.js` | `getPeaks` + peaks cache |
+| `src/main/main.js` | `assets:peaks` IPC |
+| `src/main/preload.js` | `assetsPeaks` bridge |
+| `src/main/render.js` | unified trim/fade/delay chain, legacy-music fallback |
+| `src/main/__tests__/renderAudioMix.test.js` | trimmed SFX, two songs + switch, legacy fallback, parity |
+| `.../models/timeMapping.js` | `sourceToTimelineClamped` |
+| `.../models/__tests__/nleModel.test.js` | cases for it (incl. anchor inside trimmed footage) |
+| `.../timeline/SoundBlock.js` | **NEW** — waveform, drag, trim, alt-dup, right-click |
+| `.../timeline/timelineConstants.js` | sound lane height + colours |
+| `.../TimelinePanelNew.js` | two lanes, row stacking, popover |
+| `.../PreviewPanelNew.js` | one trim-aware playback path for both kinds |
+| `.../stores/useEditorStore.js` | trim fields, normalize on load, multi-song add + clamp, duplicate, trim |
+| `.../RightPanelNew.js` | music add copy |
+| `.../EditorLayout.js` | timeline height 234 → 272 |
+| `CHANGELOG.md` | session entry |
+
+### Verification criteria
+
+1. `npx jest` — new filter-graph + timeMapping cases green, existing 99 still
+   green, the "no placements → byte-identical graph" assertion untouched.
+   (Two existing music-graph strings gain `asetpts`, a no-op on a 0-based
+   trim — noted rather than silently changed.)
+2. `npm run build:renderer` + dev-profile launch: waveform draws on sounds and
+   songs; trim both ends (audible part stays put); Alt+drag duplicates;
+   left-click selects without opening the popover; right-click opens it; music
+   in its own lane; two overlapping SFX stack into rows; **song A → song B
+   switch at the playhead, then trim footage before it and confirm the switch
+   travels with its moment**; Ctrl+Z reverses each op once; everything survives
+   save → reopen.
+3. Render a clip with a trimmed SFX + two songs, spectrally verify (bandpass +
+   volumedetect) the hit lands on the right second, song A stops and song B
+   starts at the switch, and no trimmed silence leaks in.
+4. No-sounds clip renders unchanged; a clip saved before today (legacy music,
+   no trim fields) renders the same as it does now.
+
+---
+
+## ✅ DONE (session 134) — Media assets: SFX, music & pictures on clips → **epic #201**
 
 **Decisions (Fega, via question UI, 2026-07-27):**
 1. Build order after Phase 1: **sounds first** (pictures after).

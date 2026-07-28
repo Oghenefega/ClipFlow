@@ -49,6 +49,39 @@ function sourceToTimeline(sourceTime, segments) {
   return { timelineTime: -1, found: false, segmentIndex: -1 };
 }
 
+/**
+ * Like sourceToTimeline, but for anchors that must survive a trim: when the
+ * anchor moment itself was cut away, clamp FORWARD to the next surviving
+ * footage instead of reporting not-found.
+ *
+ * Used by song placements (#202b). A song anchored near the top of the clip
+ * would vanish the moment the head is trimmed if it used the plain mapping —
+ * it belongs to a stretch of footage, not to one instant. One-shot SFX keep
+ * the strict rule: their moment is gone, so they are too.
+ *
+ * Returns found: false only when the anchor sits after ALL remaining footage.
+ *
+ * @param {number} sourceTime - seconds in the source file
+ * @param {Array} segments - ordered NLE segment list
+ * @returns {{ timelineTime: number, found: boolean, clamped: boolean }}
+ */
+function sourceToTimelineClamped(sourceTime, segments) {
+  const direct = sourceToTimeline(sourceTime, segments);
+  if (direct.found) return { timelineTime: direct.timelineTime, found: true, clamped: false };
+
+  // Array order IS timeline order. Take the first section whose footage starts
+  // at or after the anchor — the song picks up where the surviving footage does.
+  let timelineOffset = 0;
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].sourceStart >= sourceTime - BOUNDARY_EPS) {
+      return { timelineTime: timelineOffset, found: true, clamped: true };
+    }
+    timelineOffset += segmentDuration(segments[i]);
+  }
+
+  return { timelineTime: -1, found: false, clamped: false };
+}
+
 // ─── Timeline Time → Source Time ────────────────────────────────────────────
 
 /**
@@ -327,6 +360,7 @@ function visibleSubtitleSegments(subtitleSegs, nleSegments) {
 
 module.exports = {
   sourceToTimeline,
+  sourceToTimelineClamped,
   timelineToSource,
   getTimelineDuration,
   getSegmentTimelineRange,

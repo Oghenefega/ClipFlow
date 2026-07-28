@@ -6,9 +6,10 @@ import useLayoutStore from "../stores/useLayoutStore";
 import useEditorStore from "../stores/useEditorStore";
 import { fmtTime } from "../utils/timeUtils";
 import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelineToSource } from "../models/timeMapping";
+import { resolvePlacements, assignRows } from "../models/audioPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
-  PanelBottomClose, Music, Volume2, Trash2,
+  PanelBottomClose, Music, Volume2, Trash2, Copy, RotateCcw,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -21,11 +22,13 @@ import {
   TRACK_COLORS, SNAP_GUIDE_COLOR,
   TIMELINE_BG, RULER_BG, TRACK_SEPARATOR,
   TRACK_H, AUDIO_TRACK_H, LABEL_W, END_PADDING,
+  SOUND_TRACK_H, SOUND_ROW_H, SOUND_STACK_ROW_H,
   CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
 import SpeedDropdown from "./timeline/SpeedDropdown";
 import TrackContextMenu from "./timeline/TrackContextMenu";
 import SegmentBlock from "./timeline/SegmentBlock";
+import SoundBlock from "./timeline/SoundBlock";
 import WaveformTrack from "./timeline/WaveformTrack";
 import Ruler from "./timeline/Ruler";
 import { TimelinePlayhead, TimelineTimecode } from "./timeline/TimelinePlayhead";
@@ -72,7 +75,7 @@ export default function TimelinePanelNew() {
   const deleteNleSegment = useEditorStore((s) => s.deleteNleSegment);
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
   const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
-  const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Sounds lane
+  const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Music + SFX lanes
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -85,9 +88,10 @@ export default function TimelinePanelNew() {
   // Section reorder drag: { segId, idx, indicatorSec } — idx null until the
   // pointer has moved far enough to pick a destination slot.
   const [nleDrag, setNleDrag] = useState(null);
-  // #202 Sounds lane: SFX block drag + per-placement settings popover
-  const [soundDrag, setSoundDrag] = useState(null); // { id, startX, origTl, curTl, moved }
-  const [soundPopover, setSoundPopover] = useState(null); // { id, x, y }
+  // #202 sound lanes: per-placement settings popover (right-click). Drag/trim
+  // state lives inside SoundBlock — it writes through the store, so the block
+  // always renders from one source of truth.
+  const [soundPopover, setSoundPopover] = useState(null); // { id, x, y, pushed }
 
   // Refs
   const scrollRef = useRef(null);
@@ -688,7 +692,9 @@ export default function TimelinePanelNew() {
     // Subtitle store times are source-absolute; timeline time only matches on
     // clips that start at second 0 of the source (#137).
     const srcTime = toSource(time);
-    let track = selectedTrack;
+    // A selected sound is not splittable — fall back to auto-detect rather than
+    // letting S silently split whatever subtitle the playhead happens to be on.
+    let track = selectedTrack === "sound" ? null : selectedTrack;
 
     if (!track) {
       const capSegsNow = useCaptionStore.getState().captionSegments;
@@ -732,6 +738,9 @@ export default function TimelinePanelNew() {
       // Mutating the subtitle store here double-shifts their source times and
       // corrupts alignment, so we deliberately do NOT touch subtitles.
       deleteNleSegment(segId);
+    } else if (track === "sound") {
+      // A placed sound/song — never ripples the footage, just comes off the clip.
+      useEditorStore.getState().deleteAudioPlacement(segId);
     }
 
     if (isRipple) {
@@ -846,6 +855,110 @@ export default function TimelinePanelNew() {
   }, [tlSpeed]);
 
   // Collapsed mode is handled by EditorLayout — this component is unmounted when collapsed
+
+  // ── Sounds on the clip (#202): the Music + SFX lanes ──
+  // Resolved through the SAME helper the preview and the render use, so all
+  // three agree on where a sound sits after trims and reorders.
+  const resolvedSounds = useMemo(
+    () => resolvePlacements(audioPlacements, nleSegments),
+    [audioPlacements, nleSegments]
+  );
+  const soundPxPerSec = effectiveDuration > 0 ? clipContentWidth / effectiveDuration : 0;
+
+  // One undo entry per gesture: pushed when the drag/trim starts, then the live
+  // updates are silent (setAudioPlacementProps takes no snapshot). Alt+drag is
+  // the exception — duplicateAudioPlacement pushes its own, covering both.
+  const soundGestureStart = useCallback(() => {
+    useEditorStore.getState()._pushNleUndo();
+  }, []);
+
+  const handleSoundMove = useCallback((id, tlStart) => {
+    const m = timelineToSource(tlStart, nleSegments);
+    if (m.found) useEditorStore.getState().setAudioPlacementProps(id, { sourceTime: m.sourceTime });
+  }, [nleSegments]);
+
+  // Left handle: the window start and the anchor advance together, so cutting
+  // silence off the front leaves the audible part exactly where it was.
+  const handleSoundTrimLeft = useCallback((id, trimStart, tlStart) => {
+    const m = timelineToSource(tlStart, nleSegments);
+    useEditorStore.getState().setAudioPlacementProps(id, {
+      trimStart,
+      ...(m.found ? { sourceTime: m.sourceTime } : {}),
+    });
+  }, [nleSegments]);
+
+  const handleSoundTrimRight = useCallback((id, trimEnd) => {
+    useEditorStore.getState().setAudioPlacementProps(id, { trimEnd });
+  }, []);
+
+  const handleSoundSelect = useCallback((id) => {
+    setSelectedTrack("sound");
+    setSelectedSegIds(new Set([id]));
+  }, []);
+
+  const handleSoundDuplicate = useCallback(
+    (id) => useEditorStore.getState().duplicateAudioPlacement(id),
+    []
+  );
+
+  const openSoundPopover = useCallback((id, e) => {
+    setSelectedTrack("sound");
+    setSelectedSegIds(new Set([id]));
+    setSoundPopover({
+      id,
+      x: Math.min(e.clientX, window.innerWidth - 280),
+      y: Math.max(40, e.clientY - 10),
+      pushed: false,
+    });
+  }, []);
+
+  const renderSoundLane = (kind, label, hint) => {
+    const { blocks, rows } = assignRows(resolvedSounds.filter((s) => s.kind === kind));
+    const rowH = rows === 2 ? SOUND_STACK_ROW_H : SOUND_ROW_H;
+    const baseTop = rows === 2 ? 2 : Math.round((SOUND_TRACK_H - SOUND_ROW_H) / 2);
+    return (
+      <div
+        className="flex items-stretch"
+        style={{ height: SOUND_TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
+        onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1 px-2 z-10"
+          style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+        >
+          <span className="text-[12px] text-muted-foreground font-medium">{label}</span>
+        </div>
+        <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
+          {blocks.length === 0 && (
+            <button
+              onClick={() => useLayoutStore.getState().togglePanel("audio")}
+              className="absolute top-1/2 -translate-y-1/2 ml-3 text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors"
+            >
+              {kind === "music" ? <Music className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />} {hint}
+            </button>
+          )}
+          {blocks.map((b) => (
+            <SoundBlock
+              key={b.id}
+              p={b}
+              pxPerSec={soundPxPerSec}
+              maxTl={nleDuration}
+              top={baseTop + b.row * (rowH + 2)}
+              height={rowH}
+              selected={selectedTrack === "sound" && selectedSegIds.has(b.id)}
+              onSelect={handleSoundSelect}
+              onContextMenu={openSoundPopover}
+              onGestureStart={soundGestureStart}
+              onMove={handleSoundMove}
+              onTrimLeft={handleSoundTrimLeft}
+              onTrimRight={handleSoundTrimRight}
+              onDuplicate={handleSoundDuplicate}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   // ════════════════════════════════════════
   //  FULL TIMELINE
@@ -1192,102 +1305,24 @@ export default function TimelinePanelNew() {
             </div>
           </div>
 
-          {/* ── Sounds lane (#202): SFX + music-bed placements ── */}
-          <div
-            className="flex items-stretch"
-            style={{ height: TRACK_H, borderBottom: `1px solid ${TRACK_SEPARATOR}` }}
-          >
-            <div
-              className="shrink-0 flex items-center gap-1 px-2 z-10"
-              style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
-            >
-              <span className="text-[12px] text-muted-foreground font-medium">Sounds</span>
-            </div>
-            <div className="flex-1 relative flex items-center" style={{ minWidth: clipContentWidth + END_PADDING }}>
-              {audioPlacements.length === 0 && (
-                <button
-                  onClick={() => useLayoutStore.getState().togglePanel("audio")}
-                  className="text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 flex items-center gap-1.5 transition-colors ml-3">
-                  <Music className="h-3 w-3" /> Add sound or music
-                </button>
-              )}
-              {/* Music first + lower z-index: the full-width bed must never
-                  cover SFX blocks or they become unclickable/undraggable. */}
-              {[...audioPlacements].sort((a, b) => (a.kind === "music" ? 0 : 1) - (b.kind === "music" ? 0 : 1)).map((p) => {
-                const pxPerSec = effectiveDuration > 0 ? clipContentWidth / effectiveDuration : 0;
-                let tlStart, widthPx;
-                if (p.kind === "music") {
-                  tlStart = 0;
-                  widthPx = Math.max(12, nleDuration * pxPerSec);
-                } else {
-                  const dragging = soundDrag?.id === p.id && soundDrag.moved;
-                  if (dragging) {
-                    tlStart = soundDrag.curTl;
-                  } else {
-                    const m = sourceToTimeline(p.sourceTime, nleSegments);
-                    if (!m.found) return null; // its footage moment is trimmed away
-                    tlStart = m.timelineTime;
-                  }
-                  widthPx = Math.max(12, (p.durationSec || 0.5) * pxPerSec);
-                }
-                const isMusic = p.kind === "music";
-                const openPopover = (x, y) => {
-                  setSoundPopover({ id: p.id, x: Math.min(x, window.innerWidth - 280), y: Math.max(40, y - 10), pushed: false });
-                };
-                return (
-                  <div
-                    key={p.id}
-                    title={`${p.name} · ${Math.round((p.volume ?? 1) * 100)}%`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      if (e.button !== 0 || isMusic) return;
-                      e.currentTarget.setPointerCapture(e.pointerId);
-                      setSoundDrag({ id: p.id, startX: e.clientX, origTl: tlStart, curTl: tlStart, moved: false });
-                    }}
-                    onPointerMove={(e) => {
-                      if (!soundDrag || soundDrag.id !== p.id) return;
-                      const dx = e.clientX - soundDrag.startX;
-                      if (!soundDrag.moved && Math.abs(dx) < 3) return;
-                      const cur = Math.max(0, Math.min(soundDrag.origTl + dx / (pxPerSec || 1), Math.max(0, nleDuration - 0.05)));
-                      setSoundDrag({ ...soundDrag, curTl: cur, moved: true });
-                    }}
-                    onPointerUp={(e) => {
-                      if (soundDrag && soundDrag.id === p.id && soundDrag.moved) {
-                        const m = timelineToSource(soundDrag.curTl, nleSegments);
-                        if (m.found) useEditorStore.getState().moveAudioPlacement(p.id, m.sourceTime);
-                        setSoundDrag(null);
-                        return;
-                      }
-                      setSoundDrag(null);
-                      openPopover(e.clientX, e.clientY);
-                    }}
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openPopover(e.clientX, e.clientY); }}
-                    className="absolute flex items-center gap-1 px-1.5 overflow-hidden select-none cursor-pointer"
-                    style={{
-                      left: tlStart * pxPerSec,
-                      width: widthPx,
-                      top: 5, bottom: 5,
-                      zIndex: isMusic ? 1 : 2,
-                      borderRadius: SEGMENT_RADIUS,
-                      background: isMusic ? "rgba(20,184,166,0.28)" : "rgba(139,92,246,0.35)",
-                      border: `1px solid ${isMusic ? "rgba(20,184,166,0.55)" : "rgba(139,92,246,0.65)"}`,
-                      cursor: isMusic ? "pointer" : (soundDrag?.id === p.id && soundDrag.moved ? "grabbing" : "grab"),
-                    }}
-                  >
-                    {isMusic ? <Music className="h-3 w-3 shrink-0 text-teal-300" /> : <Volume2 className="h-3 w-3 shrink-0 text-violet-300" />}
-                    <span className="text-[10px] text-foreground/90 truncate">{p.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* ── Music + SFX lanes (#202) ──
+              Two lanes so a song and a sound can play together and both stay
+              visible; each lane splits into two rows when its own blocks
+              overlap. Every block is source-anchored (see audioPlacements.js). */}
+          {renderSoundLane("music", "Music", "Add music")}
+          {renderSoundLane("sfx", "SFX", "Add a sound")}
         </div>
       </div>
 
-      {/* ── Sound settings popover (#202) ── */}
+      {/* ── Sound settings popover (#202) — opened by RIGHT-click, like every
+             other option on the timeline. Left-click just selects the block. ── */}
       {soundPopover && (() => {
-        const p = audioPlacements.find((x) => x.id === soundPopover.id);
+        const p = resolvedSounds.find((x) => x.id === soundPopover.id);
         if (!p) return null;
+        const fileLen = p.durationSec || 0;
+        const trimStart = p.trimStart || 0;
+        const trimEnd = p.trimEnd != null ? p.trimEnd : fileLen;
+        const trimmed = trimStart > 0.01 || (fileLen > 0 && trimEnd < fileLen - 0.01);
         // One undo entry per settings session, pushed on the FIRST change only —
         // opening and closing without touching anything must not eat a Ctrl+Z.
         const setProps = (patch) => {
@@ -1337,12 +1372,48 @@ export default function TimelinePanelNew() {
                   </div>
                 </>
               )}
-              <button
-                onClick={() => { useEditorStore.getState().deleteAudioPlacement(p.id); setSoundPopover(null); }}
-                className="w-full h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="h-3 w-3" /> Remove from clip
-              </button>
+              {/* Trim readout — the handles on the block do the trimming, this
+                  says what's playing and undoes it in one click. Reset moves the
+                  anchor back too, so what you hear stays where you put it. */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[11px] text-muted-foreground">
+                  Plays {trimStart.toFixed(1)}s → {trimEnd.toFixed(1)}s
+                  {fileLen > 0 ? ` of ${fileLen.toFixed(1)}s` : ""}
+                </span>
+                {trimmed && (
+                  <button
+                    onClick={() => {
+                      const m = timelineToSource(Math.max(0, p.tlStart - trimStart), nleSegments);
+                      setProps({
+                        trimStart: 0,
+                        trimEnd: fileLen || trimEnd,
+                        ...(m.found ? { sourceTime: m.sourceTime } : {}),
+                      });
+                    }}
+                    className="shrink-0 h-6 px-1.5 rounded text-[11px] flex items-center gap-1 text-muted-foreground hover:text-foreground border border-border/40 hover:border-border transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Reset
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    const newId = useEditorStore.getState().duplicateAudioPlacement(p.id);
+                    setSoundPopover(null);
+                    if (newId) handleSoundSelect(newId);
+                  }}
+                  className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-foreground/80 border border-border/60 hover:bg-secondary/50 transition-colors"
+                >
+                  <Copy className="h-3 w-3" /> Duplicate
+                </button>
+                <button
+                  onClick={() => { useEditorStore.getState().deleteAudioPlacement(p.id); setSoundPopover(null); }}
+                  className="flex-1 h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove
+                </button>
+              </div>
             </div>
           </>
         );

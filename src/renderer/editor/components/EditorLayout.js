@@ -1173,7 +1173,10 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
           <div
             className="shrink-0"
             style={{
-              height: 234,
+              // 5 lanes + ruler + toolbar + the horizontal scrollbar. Grew from
+              // 234 when Sounds split into Music + SFX (#202b) — the SFX lane
+              // must not sit under the scrollbar.
+              height: 276,
               borderTop: "1px solid rgba(255,255,255,0.06)",
             }}
           >

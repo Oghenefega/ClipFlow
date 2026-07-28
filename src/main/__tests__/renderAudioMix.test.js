@@ -43,15 +43,73 @@ describe("buildNleFilterComplex — #202 audio asset mixing", () => {
     expect(mapArgs).toEqual(["-map", "[out]", "-map", "[mix_a]"]);
   });
 
-  test("music bed: trimmed to the clip, faded, no delay", () => {
+  test("song: plays its own window, faded relative to the block, no delay at 0", () => {
     const { filterComplex } = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, {
-      audioAssets: [{ inputIndex: 2, kind: "music", volume: 0.4, delaySec: 0, fadeIn: 1, fadeOut: 2 }],
-      timelineDuration: 20,
+      audioAssets: [{
+        inputIndex: 2, kind: "music", volume: 0.4, delaySec: 0,
+        trimStart: 0, trimEnd: 20, durationSec: 180, fadeIn: 1, fadeOut: 2,
+      }],
     });
     expect(filterComplex).toContain(
-      "[2:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:20,afade=t=in:st=0:d=1,afade=t=out:st=18:d=2,volume=0.4[mixin0]"
+      "[2:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:20,asetpts=PTS-STARTPTS," +
+      "afade=t=in:st=0:d=1,afade=t=out:st=18:d=2,volume=0.4[mixin0]"
     );
     expect(filterComplex).not.toContain("adelay");
+  });
+
+  // #202b: the intro of a song can be skipped. asetpts is what makes the
+  // window land where adelay puts it instead of 12s later.
+  test("song trimmed off its own start: window is rebased before the delay", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, {
+      audioAssets: [{
+        inputIndex: 2, kind: "music", volume: 0.5, delaySec: 8,
+        trimStart: 12, trimEnd: 19, durationSec: 180, fadeIn: 0.5, fadeOut: 0,
+      }],
+    });
+    expect(filterComplex).toContain(
+      "[2:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=12:19,asetpts=PTS-STARTPTS," +
+      "afade=t=in:st=0:d=0.5,volume=0.5,adelay=8000:all=1[mixin0]"
+    );
+  });
+
+  // The reason trimming exists: silence around the actual hit in the file.
+  test("SFX trimmed on both ends: only the hit is mixed, at its moment", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, true, null, undefined, undefined, {
+      audioAssets: [{
+        inputIndex: 3, kind: "sfx", volume: 1, delaySec: 3.64,
+        trimStart: 5, trimEnd: 7, durationSec: 10,
+      }],
+    });
+    expect(filterComplex).toContain(
+      "[3:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=5:7,asetpts=PTS-STARTPTS," +
+      "volume=1,adelay=3640:all=1[mixin0]"
+    );
+  });
+
+  // Two songs = the hyped → sad switch. Song A's window ends where B's delay
+  // starts; both ride the same amix.
+  test("two songs: A ends where B begins", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, {
+      audioAssets: [
+        { inputIndex: 2, kind: "music", volume: 0.4, delaySec: 0, trimStart: 0, trimEnd: 8, durationSec: 120 },
+        { inputIndex: 3, kind: "music", volume: 0.4, delaySec: 8, trimStart: 0, trimEnd: 7, durationSec: 95 },
+      ],
+    });
+    expect(filterComplex).toContain("atrim=0:8,asetpts=PTS-STARTPTS,volume=0.4[mixin0]");
+    expect(filterComplex).toContain("atrim=0:7,asetpts=PTS-STARTPTS,volume=0.4,adelay=8000:all=1[mixin1]");
+    expect(filterComplex).toContain("[base_af][mixin0][mixin1]amix=inputs=3:duration=first:normalize=0[mix_a]");
+  });
+
+  // A clip saved before trimming existed carries no window — normalizePlacements
+  // fills it upstream, so nothing here has to guess.
+  test("no trim window: the atrim stage is left out entirely", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, false, null, undefined, undefined, {
+      audioAssets: [{ inputIndex: 2, kind: "sfx", volume: 1, delaySec: 1 }],
+    });
+    expect(filterComplex).not.toContain("atrim");
+    expect(filterComplex).toContain(
+      "[2:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=1,adelay=1000:all=1[mixin0]"
+    );
   });
 
   test("sfx at timeline 0 gets no adelay stage", () => {

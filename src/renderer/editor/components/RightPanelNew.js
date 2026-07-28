@@ -940,8 +940,9 @@ function AudioPanel() {
     else flashStatus(result?.error || "Delete failed", true);
   }, [armedDeleteId, playingId, flashStatus, refresh]);
 
-  // #202: place this asset on the clip. SFX drop at the playhead's SOURCE
-  // moment (they follow the footage through trims); music becomes the bed.
+  // #202: place this asset on the clip at the playhead's SOURCE moment, so it
+  // follows that footage through later trims. A song added mid-clip ends the
+  // one playing across that moment — that gesture IS the hyped → sad switch.
   const handleAddToTimeline = useCallback((track) => {
     const es = useEditorStore.getState();
     if (!es.clip) { flashStatus("Open a clip to add sounds", true); return; }
@@ -954,9 +955,10 @@ function AudioPanel() {
       sourceTime = m.found ? m.sourceTime : nle[0].sourceStart;
     }
     const res = es.addAudioPlacement(track, sourceTime);
-    flashStatus(track.type === "music"
-      ? (res.replaced ? `Music bed replaced with ${track.name}` : `${track.name} set as the music bed`)
-      : `${track.name} dropped at the playhead`);
+    const at = fmtDur(Math.max(0, tl));
+    flashStatus(res.clampedName
+      ? `${track.name} plays from ${at} · ${res.clampedName} now ends there`
+      : `${track.name} added at ${at}`);
   }, [flashStatus]);
 
   const filteredTracks = useMemo(() => {
@@ -1072,9 +1074,7 @@ function AudioPanel() {
                             <Plus className="h-3 w-3" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="text-[12px]">
-                          {track.type === "music" ? "Set as music bed" : "Add at playhead"}
-                        </TooltipContent>
+                        <TooltipContent className="text-[12px]">Add at playhead</TooltipContent>
                       </Tooltip>
                     )}
                   </TooltipProvider>

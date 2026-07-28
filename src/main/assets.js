@@ -188,6 +188,40 @@ function deleteAsset(assetsRoot, assetId) {
   saveIndex(assetsRoot, assets.filter((a) => a.id !== assetId));
 }
 
+/**
+ * Waveform peaks for a sound file, so the timeline can draw its shape (#202b —
+ * Fega aligns sounds by eye against the waveform). Cached per file under
+ * {assetsRoot}/peaks/ and invalidated on mtime/size, same rule as the project
+ * waveform cache. Sound files are short, so one extraction is cheap.
+ */
+async function getPeaks(assetsRoot, filePath) {
+  let st;
+  try { st = fs.statSync(filePath); } catch (_) { return { peaks: [], error: "File not found" }; }
+
+  const peaksDir = path.join(assetsRoot, "peaks");
+  const key = require("crypto").createHash("sha1").update(filePath.toLowerCase()).digest("hex").slice(0, 16);
+  const cachePath = path.join(peaksDir, `${key}.json`);
+
+  try {
+    const cached = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    if (cached.mtimeMs === st.mtimeMs && cached.sizeBytes === st.size && Array.isArray(cached.peaks) && cached.peaks.length > 0) {
+      return { peaks: cached.peaks, cached: true };
+    }
+  } catch (_) { /* miss — extract below */ }
+
+  const dur = await probeDurationSafe(filePath);
+  const peakCount = Math.max(200, Math.min(4000, Math.round((dur || 4) * 50)));
+  const result = await ffmpeg.extractWaveformPeaks(filePath, peakCount, 0);
+  if (!result?.peaks?.length) return { peaks: [], error: result?.error || "No audio found" };
+
+  try {
+    fs.mkdirSync(peaksDir, { recursive: true });
+    fs.writeFileSync(cachePath, JSON.stringify({ peaks: result.peaks, mtimeMs: st.mtimeMs, sizeBytes: st.size }));
+  } catch (_) { /* cache write is best-effort */ }
+
+  return { peaks: result.peaks, cached: false };
+}
+
 function toggleFavorite(assetsRoot, assetId) {
   const assets = loadIndex(assetsRoot);
   const entry = assets.find((a) => a.id === assetId);
@@ -203,4 +237,5 @@ module.exports = {
   importAssets,
   deleteAsset,
   toggleFavorite,
+  getPeaks,
 };

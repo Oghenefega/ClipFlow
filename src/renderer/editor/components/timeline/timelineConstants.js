@@ -34,6 +34,27 @@ export const TRACK_COLORS = {
   },
 };
 
+// Sounds on the clip (#202): songs teal, one-shot SFX violet — each lane keeps
+// its own colour so a song and a sound are never confusable at a glance.
+export const SOUND_COLORS = {
+  music: {
+    bg: "rgba(20,184,166,0.22)",
+    border: "rgba(20,184,166,0.55)",
+    ring: "rgba(45,212,191,0.9)",
+    wave: "rgba(94,234,212,0.55)",
+    icon: "hsl(172 66% 70%)",
+    text: "hsl(172 60% 90%)",
+  },
+  sfx: {
+    bg: "rgba(139,92,246,0.28)",
+    border: "rgba(139,92,246,0.65)",
+    ring: "rgba(167,139,250,0.95)",
+    wave: "rgba(196,181,253,0.6)",
+    icon: "hsl(258 90% 80%)",
+    text: "hsl(258 70% 93%)",
+  },
+};
+
 // ── Playhead & guides ──
 export const PLAYHEAD_COLOR = "#9ca3af";
 export const SNAP_GUIDE_COLOR = "#22d3ee";
@@ -48,6 +69,11 @@ export const TRACK_SEPARATOR = "rgba(255,255,255,0.06)";
 export const RULER_H = 24;
 export const TRACK_H = 38;
 export const AUDIO_TRACK_H = 56;
+// Music + SFX lanes. A lane splits into two half-height rows when its blocks
+// overlap, so neither can hide the other (#202b).
+export const SOUND_TRACK_H = 36;
+export const SOUND_ROW_H = 28;
+export const SOUND_STACK_ROW_H = 15;
 export const LABEL_W = 80;
 export const END_PADDING = 200;
 // Subtitle clustering: subs whose visual gap (in px) is below this threshold

@@ -5,7 +5,7 @@ import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
-import { sourceToTimeline, getTimelineDuration } from "../models/timeMapping";
+import { resolvePlacements } from "../models/audioPlacements";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
@@ -1256,22 +1256,13 @@ export default function PreviewPanelNew() {
   const syncAssetAudio = useCallback((timelineTime, isPlaying) => {
     const map = assetAudioRef.current;
     const es = useEditorStore.getState();
-    const placements = es.audioPlacements || [];
     const nle = es.nleSegments || [];
-    const tlDur = getTimelineDuration(nle);
-    for (const p of placements) {
+    // Same resolver the timeline and the render use: songs and SFX both come
+    // back with tlStart/tlEnd, and anything whose footage is gone is absent.
+    const blocks = resolvePlacements(es.audioPlacements, nle);
+    for (const p of blocks) {
       let el = map.get(p.id);
-      let start;
-      if (p.kind === "music") {
-        start = 0;
-      } else {
-        const m = sourceToTimeline(p.sourceTime, nle);
-        if (!m.found) { if (el && !el.paused) el.pause(); continue; }
-        start = m.timelineTime;
-      }
-      const dur = p.durationSec || 0;
-      const end = p.kind === "music" ? Math.min(tlDur, dur > 0 ? dur : tlDur) : start + dur;
-      const within = timelineTime >= start && timelineTime < end;
+      const within = timelineTime >= p.tlStart && timelineTime < p.tlEnd;
       if (!isPlaying || !within) {
         if (el && !el.paused) el.pause();
         continue;
@@ -1281,23 +1272,26 @@ export default function PreviewPanelNew() {
         el.src = `file://${(p.path || "").replace(/\\/g, "/")}`;
         map.set(p.id, el);
       }
-      const offset = timelineTime - start;
+      const offset = timelineTime - p.tlStart;
       let vol = Math.max(0, Math.min(1, p.volume ?? 1));
       if (p.kind === "music") {
+        // Fades are relative to this block, not to the clip.
         const fi = p.fadeIn || 0;
         const fo = p.fadeOut || 0;
         if (fi > 0 && offset < fi) vol *= offset / fi;
-        const untilEnd = end - timelineTime;
+        const untilEnd = p.tlEnd - timelineTime;
         if (fo > 0 && untilEnd < fo) vol *= Math.max(0, untilEnd / fo);
       }
       el.volume = vol;
       el.playbackRate = videoRef.current?.playbackRate || 1;
-      if (Math.abs(el.currentTime - offset) > 0.25) el.currentTime = offset;
+      // The file plays from its trim point, not from its start.
+      const filePos = (p.trimStart || 0) + offset;
+      if (Math.abs(el.currentTime - filePos) > 0.25) el.currentTime = filePos;
       if (el.paused) el.play().catch(() => {});
     }
-    // Prune elements whose placement was deleted
+    // Prune elements whose placement was deleted (or trimmed out of existence)
     for (const [id, el] of map) {
-      if (!placements.some((p) => p.id === id)) {
+      if (!(es.audioPlacements || []).some((p) => p.id === id)) {
         el.pause();
         el.removeAttribute("src");
         el.load();

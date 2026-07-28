@@ -8,6 +8,7 @@ const {
 
 const {
   sourceToTimeline,
+  sourceToTimelineClamped,
   timelineToSource,
   getTimelineDuration,
   getSegmentTimelineRange,
@@ -122,6 +123,42 @@ describe("timeMapping", () => {
       expect(r.found).toBe(true);
       expect(r.timelineTime).toBeCloseTo(15); // 10 + (125 - 120) = 15
       expect(r.segmentIndex).toBe(2);
+    });
+  });
+
+  // #202b: song anchors clamp forward instead of vanishing when their moment
+  // is trimmed away (SFX keep the strict drop rule).
+  describe("sourceToTimelineClamped", () => {
+    test("identical to sourceToTimeline when the moment survives", () => {
+      const r = sourceToTimelineClamped(112, multi);
+      expect(r).toEqual({ timelineTime: 7, found: true, clamped: false });
+    });
+
+    test("anchor before the first surviving footage clamps to timeline 0", () => {
+      // Head trimmed off: a song anchored at source 95 must still play from the top
+      const r = sourceToTimelineClamped(95, single);
+      expect(r.found).toBe(true);
+      expect(r.clamped).toBe(true);
+      expect(r.timelineTime).toBeCloseTo(0);
+    });
+
+    test("anchor inside a deleted middle region clamps to the cut", () => {
+      // 107 sits in the gap between seg 0 (ends 105) and seg 1 (starts 110).
+      // Seg 1 begins at timeline 5.
+      const r = sourceToTimelineClamped(107, multi);
+      expect(r.found).toBe(true);
+      expect(r.clamped).toBe(true);
+      expect(r.timelineTime).toBeCloseTo(5);
+    });
+
+    test("anchor past all remaining footage is dropped", () => {
+      const r = sourceToTimelineClamped(200, multi);
+      expect(r.found).toBe(false);
+      expect(r.timelineTime).toBe(-1);
+    });
+
+    test("empty segment list is not found", () => {
+      expect(sourceToTimelineClamped(5, []).found).toBe(false);
     });
   });
 

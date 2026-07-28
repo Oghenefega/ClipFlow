@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsImport: (filePaths, typeHint) => ipcRenderer.invoke("assets:import", filePaths, typeHint),
   assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
   assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
+  assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
 
   // Persistent store
   storeGet: (key) => ipcRenderer.invoke("store:get", key),

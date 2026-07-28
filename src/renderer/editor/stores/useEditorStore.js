@@ -8,7 +8,8 @@ import useLayoutStore from "./useLayoutStore";
 import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
-import { getTimelineDuration, sourceToTimeline, getSegmentTimelineRange } from "../models/timeMapping";
+import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange } from "../models/timeMapping";
+import { normalizePlacements, resolvePlacements } from "../models/audioPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
 
@@ -48,11 +49,13 @@ const useEditorStore = create((set, get) => ({
   // Each segment is { id, sourceStart, sourceEnd } — a window into the source file.
   // Timeline position is DERIVED from segment order, never stored.
   nleSegments: [],
-  // #202: SFX/music placements on the Sounds lane. SFX anchor to SOURCE time
-  // (they follow their moment through trims/reorders, like subtitles); the
-  // music bed anchors to the timeline (spans the clip, like captions).
+  // #202: SFX/music placements on the Music + SFX lanes. Both kinds share one
+  // shape: an anchor at a SOURCE moment (so they follow their footage through
+  // trims/reorders, like subtitles) plus the window of their file that plays.
+  // Timeline length is DERIVED: trimEnd - trimStart.
   // Shape: { id, assetId, name, path, kind: "sfx"|"music", durationSec,
-  //          volume 0-1, sourceTime? (sfx), fadeIn?/fadeOut? (music, seconds) }
+  //          sourceTime, trimStart, trimEnd, volume 0-1,
+  //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
   sourceDuration: 0, // total source file duration
 
@@ -213,8 +216,9 @@ const useEditorStore = create((set, get) => ({
       editingTitle: false,
       dirty: false,
       nleSegments: nleSegs,
-      // #202: restore SFX/music placements from the clip record
-      audioPlacements: Array.isArray(clip?.sfx) ? clip.sfx.map((p) => ({ ...p })) : [],
+      // #202: restore SFX/music placements from the clip record (normalize fills
+      // the trim window + anchor that pre-trimming clips don't carry)
+      audioPlacements: normalizePlacements(clip?.sfx, nleSegs),
       sourceStartTime: sourceStart,
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
@@ -424,33 +428,78 @@ const useEditorStore = create((set, get) => ({
     get().markDirty();
   },
 
-  // ── Asset audio placements (#202) — the Sounds lane ──
-  // SFX carry a source-absolute `sourceTime`; the music bed spans the timeline.
-  // One music bed at a time: adding another replaces it (returns { replaced }).
+  // ── Asset audio placements (#202) — the Music + SFX lanes ──
+  // Both kinds anchor to a source-absolute `sourceTime` and play the file
+  // window [trimStart, trimEnd]; see models/audioPlacements.js.
 
   addAudioPlacement: (asset, sourceTime) => {
     get()._pushNleUndo();
     const kind = asset.type === "music" ? "music" : "sfx";
+    const fileLen = asset.durationSec || 0;
     const placement = {
       id: `snd_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       assetId: asset.id,
       name: asset.name,
       path: asset.path,
       kind,
-      durationSec: asset.durationSec || 0,
+      durationSec: fileLen,
       // Music defaults quiet — it sits under the voice; SFX at full level.
       volume: kind === "music" ? 0.4 : 1,
-      ...(kind === "music" ? { fadeIn: 0, fadeOut: 0 } : { sourceTime }),
+      sourceTime,
+      trimStart: 0,
+      trimEnd: fileLen,
+      ...(kind === "music" ? { fadeIn: 0, fadeOut: 0 } : {}),
     };
+
     let list = get().audioPlacements;
-    const replaced = kind === "music" && list.some((p) => p.kind === "music");
-    if (kind === "music") list = list.filter((p) => p.kind !== "music");
+    let clampedName = null;
+
+    // A song fills the room it has — up to the next song, or the end of the
+    // clip, or the length of the file, whichever comes first — and the song
+    // playing across this moment ends here. That single gesture IS the switch
+    // from one track to another. Nothing is removed: a song dropped between two
+    // others just fills the gap.
+    if (kind === "music") {
+      const nle = get().nleSegments || [];
+      const clipEnd = getTimelineDuration(nle);
+      const anchor = sourceToTimelineClamped(sourceTime, nle);
+      const start = anchor.found ? anchor.timelineTime : 0;
+      const songs = resolvePlacements(list.filter((p) => p.kind === "music"), nle);
+
+      let room = clipEnd > start ? clipEnd - start : (fileLen || 0);
+      for (const s of songs) {
+        if (s.tlStart > start + 0.001) room = Math.min(room, s.tlStart - start);
+      }
+      placement.trimEnd = Math.max(0.5, Math.min(fileLen || room, room));
+
+      list = list.map((p) => {
+        if (p.kind !== "music") return p;
+        const s = songs.find((x) => x.id === p.id);
+        // Only the song actually playing across this moment gets cut short.
+        if (!s || s.tlStart > start - 0.001 || s.tlEnd <= start + 0.001) return p;
+        clampedName = p.name;
+        return { ...p, trimEnd: (p.trimStart || 0) + Math.max(0.2, start - s.tlStart) };
+      });
+    }
+
     set({ audioPlacements: [...list, placement] });
     get().markDirty();
-    return { id: placement.id, replaced };
+    return { id: placement.id, clampedName };
   },
 
-  // Commit a drag: move an SFX to a new source-absolute time (undo = one Ctrl+Z).
+  // Alt+drag duplicate — clone sits on the same moment; the drag that follows
+  // moves the clone (same convention as subtitle blocks).
+  duplicateAudioPlacement: (id) => {
+    const src = get().audioPlacements.find((p) => p.id === id);
+    if (!src) return null;
+    get()._pushNleUndo();
+    const clone = { ...src, id: `snd_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` };
+    set({ audioPlacements: [...get().audioPlacements, clone] });
+    get().markDirty();
+    return clone.id;
+  },
+
+  // Commit a drag: move a sound to a new source-absolute time (undo = one Ctrl+Z).
   moveAudioPlacement: (id, newSourceTime) => {
     get()._pushNleUndo();
     set({
@@ -461,7 +510,8 @@ const useEditorStore = create((set, get) => ({
     get().markDirty();
   },
 
-  // Live-updating props (volume slider, fades) — no undo entry per tick.
+  // Live-updating props (volume slider, fades, trim handles) — no undo entry
+  // per tick; the caller pushes one when its gesture starts.
   setAudioPlacementProps: (id, patch) => {
     set({
       audioPlacements: get().audioPlacements.map((p) =>
