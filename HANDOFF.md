@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-28 — Session 135 — **Sounds usability pass (#202 follow-ups): waveforms on blocks, Music/SFX lanes split, trim handles, Alt+drag duplicate, right-click settings, multiple songs per clip. Installer `0.3.0-alpha.28` cut — Fega installs and edits with it for real.**_
+_Last updated: 2026-07-29 — Session 135 — **Sounds usability pass (#202 follow-ups): waveforms on blocks, Music/SFX lanes split, trim handles, Alt+drag duplicate, right-click settings, multiple songs per clip. Shipped as `0.3.0-alpha.28` and VERIFIED by Fega — #202 closed. Next: pictures on clips (#203), the last phase of #201.**_
 
 ---
 
@@ -10,7 +10,7 @@ Sounds on clips went from "technically works" to actually editable: every block 
 
 ## Current State
 
-App is on **0.3.0-alpha.28** (installer in `dist/`, awaiting Fega's install). #201 epic: Phase 1 verified, Phase 2 (#202) built + twice machine-verified (open, `status: untested` — Fega never verified alpha.27 before asking for these follow-ups), Phase 3 (#203 pictures) not started.
+App is on **0.3.0-alpha.28**, installed and verified by Fega (2026-07-29): waveforms, Alt+drag duplicate + overlap stacking, left/right click split, the song switch with undo, and "the rendered result is as the editor shows it". #201 epic: Phase 1 verified, **Phase 2 (#202) verified and CLOSED**, Phase 3 (#203 pictures) not started.
 
 ## What Was Just Built (session 135, commit 2814841)
 
@@ -35,7 +35,7 @@ Fega's five asks after seeing alpha.27, plus multiple songs (asked during planni
 
 ## Next Steps
 
-1. **Fega installs alpha.28 and edits a real clip with it.** Then close #202 (respect the `status: untested` flow). Watch for: does 42px less preview height bother him; do the half-height stacked rows read clearly at his usual zoom.
+1. ~~Fega verifies alpha.28~~ — **done 2026-07-29, #202 closed.** He did not flag the 42px shorter preview; leave the height at 276 unless he raises it.
 2. **#203 — pictures on clips** (last #201 phase): image layer in `PreviewOverlays.js` + the offscreen overlay page (`__OVERLAY_CONFIG__` in `subtitle-overlay-renderer.js:245`, rendering in `overlay-renderer.js`, and a **frame-skip signature term** — mandatory or frames freeze), reuse `DraggableOverlay` for position/size, persist via `clip.media`. Check the overlay page's CSP allows `file://` images.
 3. Possible follow-ups if Fega asks: rolling edit (drag one song's edge and the neighbour follows), fade handles drawn on the block, drag-from-panel-to-timeline, boost >100%.
 

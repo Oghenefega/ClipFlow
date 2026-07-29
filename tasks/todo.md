@@ -6,7 +6,12 @@
 
 ---
 
-## 🔄 ACTIVE (session 135) — Sounds usability pass (#202 follow-ups) — **BUILT + machine-verified, awaiting Fega**
+## ✅ DONE (session 135) — Sounds usability pass (#202 follow-ups) — **shipped as alpha.28, VERIFIED by Fega 2026-07-29, #202 closed**
+
+**Fega's verification, point by point:** waveform shape visible; Alt+drag +
+overlap + duplicate work; left-click/right-click as intended; adding a song and
+Ctrl+Z work; **"the rendered result is as the editor shows it"**. No follow-up
+complaints — notably he did not flag the 42px shorter preview.
 
 **Built exactly as planned below, plus decisions 4–6 (multiple songs).** Verified
 on the built dev-profile app via CDP, and cleaned up after (test assets deleted,
