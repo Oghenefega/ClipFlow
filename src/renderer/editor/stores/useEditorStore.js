@@ -57,6 +57,12 @@ const useEditorStore = create((set, get) => ({
   //          sourceTime, trimStart, trimEnd, volume 0-1,
   //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
+  // #210: bumped whenever something outside the Audio panel edits the asset
+  // LIBRARY (not a placement) — saving a sound's default volume from the
+  // timeline popover, for one. The panel owns `assets` in its own state, so
+  // without this it keeps handing stale entries to addAudioPlacement and a
+  // freshly-saved default is ignored until the panel is reopened.
+  assetsRevision: 0,
   sourceDuration: 0, // total source file duration
 
   // Legacy compatibility — kept for gradual migration of timeline UI components
@@ -432,6 +438,8 @@ const useEditorStore = create((set, get) => ({
   // Both kinds anchor to a source-absolute `sourceTime` and play the file
   // window [trimStart, trimEnd]; see models/audioPlacements.js.
 
+  bumpAssetsRevision: () => set({ assetsRevision: get().assetsRevision + 1 }),
+
   addAudioPlacement: (asset, sourceTime) => {
     get()._pushNleUndo();
     const kind = asset.type === "music" ? "music" : "sfx";
@@ -446,7 +454,9 @@ const useEditorStore = create((set, get) => ({
       // Music sits under the voice. Effects sit above the music but still under
       // it — a library one-shot is mastered hot, and dropping one at full level
       // buried the clip. Existing placements keep whatever they were given.
-      volume: kind === "music" ? 0.4 : 0.6,
+      // #210: a level saved on the asset itself wins — that's the whole point of
+      // calibrating a boom once instead of on every clip.
+      volume: asset.defaultVolume ?? (kind === "music" ? 0.4 : 0.6),
       sourceTime,
       trimStart: 0,
       trimEnd: fileLen,

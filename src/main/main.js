@@ -999,6 +999,16 @@ ipcMain.handle("assets:setType", async (_, assetId, type) => {
   }
 });
 
+// #210: remember the level a sound should open at, so a hot master doesn't need
+// re-tuning on every clip. null clears it back to the per-kind default.
+ipcMain.handle("assets:setDefaultVolume", async (_, assetId, volume) => {
+  try {
+    return { success: true, defaultVolume: assetLibrary.setAssetDefaultVolume(assetsRootOrThrow(), assetId, volume) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle("assets:import", async (_, filePaths, typeHint) => {
   try {
     const result = await assetLibrary.importAssets(assetsRootOrThrow(), filePaths, typeHint);

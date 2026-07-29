@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
   assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
   assetsSetType: (assetId, type) => ipcRenderer.invoke("assets:setType", assetId, type),
+  // #210: per-sound default volume; null clears it
+  assetsSetDefaultVolume: (assetId, volume) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
   // Background duration scan of watched audio folders (#208)
   onAssetsScanProgress: (callback) => {

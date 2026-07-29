@@ -301,6 +301,29 @@ function setAssetType(assetsRoot, assetId, type) {
 }
 
 /**
+ * The level this sound should open at every time it's placed (#210). A library
+ * one-shot is mastered to whatever the pack author felt like, so the per-kind
+ * defaults (0.4 music / 0.6 SFX) are right on average and wrong on every
+ * cinematic boom — which meant re-tuning the same sound on every clip.
+ *
+ * Pass null to clear it and fall back to the per-kind default. Placements
+ * already on a clip are never touched: they carry their own `volume`.
+ */
+function setAssetDefaultVolume(assetsRoot, assetId, volume) {
+  const assets = loadIndex(assetsRoot);
+  const entry = assets.find((a) => a.id === assetId);
+  if (!entry) throw new Error("Asset not found");
+  if (volume == null) {
+    delete entry.defaultVolume;
+  } else {
+    if (typeof volume !== "number" || !Number.isFinite(volume)) throw new Error("Volume must be a number");
+    entry.defaultVolume = Math.max(0, Math.min(1, volume));
+  }
+  saveIndex(assetsRoot, assets);
+  return entry.defaultVolume ?? null;
+}
+
+/**
  * Import files into the library (copy + index). `typeHint` is "music"/"sfx"
  * when the import came from that sub-tab, null to infer. Images always
  * become type "image". Returns { imported, skipped: [{ file, reason }] }.
@@ -414,6 +437,7 @@ module.exports = {
   listAssets,
   backfillDurations,
   setAssetType,
+  setAssetDefaultVolume,
   importAssets,
   deleteAsset,
   toggleFavorite,

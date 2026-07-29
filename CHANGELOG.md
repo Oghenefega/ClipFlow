@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 138) — Remember a sound's volume once instead of every clip (#210)
+
+### Added
+- **A sound can now remember the level it should play at, so a hot master doesn't need re-tuning on every clip (#210).** Right-click a sound on the timeline, set the volume where you want it, and click **Remember 62% for this sound** — every future placement of that sound opens there instead of at the generic 40% (music) / 60% (sound effect) default. The saved level shows as a small badge on the track in the Audio panel, and clicking that badge forgets it. Sounds already sitting on a clip are never touched: they keep the volume you gave them, so nothing you've already mixed shifts under you. The existing clips bear the problem out — `Cinematic Boom Soft` had been hand-set to 0.29, 0.32, 0.32 and 0.32 on four different clips, and `OOF Sound Effect` to 0.53 twice. [assets.js, main.js, preload.js, useEditorStore.js, TimelinePanelNew.js, RightPanelNew.js]
+
+### Fixed
+- **The Audio panel now re-lists when the library is changed from somewhere else in the editor.** The panel keeps its own copy of the library, so a level saved from the timeline popover was invisible to it — the badge didn't appear and the next placement still used the old default until the panel was closed and reopened. Caught during verification: the value was correctly on disk while the panel kept handing out the stale entry. [useEditorStore.js, RightPanelNew.js, TimelinePanelNew.js]
+
 ## [Unreleased] — 2026-07-29 (session 138) — Audio panel: refresh, clear search, fades on sound effects (#209)
 
 ### Added

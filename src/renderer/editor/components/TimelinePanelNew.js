@@ -9,7 +9,7 @@ import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelin
 import { resolvePlacements, assignRows } from "../models/audioPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
-  PanelBottomClose, Music, Volume2, Trash2, Copy, RotateCcw,
+  PanelBottomClose, Music, Volume2, Trash2, Copy, RotateCcw, Check,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -1350,6 +1350,11 @@ export default function TimelinePanelNew() {
             useEditorStore.getState()._pushNleUndo();
             setSoundPopover({ ...soundPopover, pushed: true });
           }
+          // #210: moving the slider after saving makes the confirmation stale —
+          // drop it so the button offers to remember the NEW level.
+          if (patch.volume != null && soundPopover.savedVol != null) {
+            setSoundPopover((s) => s && ({ ...s, savedVol: null, saveError: null }));
+          }
           useEditorStore.getState().setAudioPlacementProps(p.id, patch);
         };
         return (
@@ -1371,6 +1376,31 @@ export default function TimelinePanelNew() {
                 </div>
                 <Slider value={[Math.round((p.volume ?? 1) * 100)]} min={0} max={100} step={1}
                   onValueChange={([v]) => setProps({ volume: v / 100 })} />
+                {/* #210: pin this level to the SOUND, so every future placement
+                    of it opens here. Legacy placements predate assetId — without
+                    one there's nothing in the library to write to. */}
+                {p.assetId && (
+                  <button
+                    onClick={async () => {
+                      const v = p.volume ?? 1;
+                      const r = await window.clipflow.assetsSetDefaultVolume(p.assetId, v);
+                      // The Audio panel holds its own copy of the library; tell it
+                      // to re-list or it keeps placing at the old default.
+                      if (r?.success) useEditorStore.getState().bumpAssetsRevision();
+                      setSoundPopover((s) => s && ({ ...s,
+                        savedVol: r?.success ? Math.round(v * 100) : null,
+                        saveError: r?.success ? null : (r?.error || "Couldn't save") }));
+                    }}
+                    className="mt-2 w-full h-6 rounded text-[11px] flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground border border-border/40 hover:border-border transition-colors"
+                  >
+                    {soundPopover.savedVol != null
+                      ? <><Check className="h-3 w-3 text-emerald-400" /> Every future {p.kind === "music" ? "use" : "drop"} starts at {soundPopover.savedVol}%</>
+                      : <>Remember {Math.round((p.volume ?? 1) * 100)}% for this sound</>}
+                  </button>
+                )}
+                {soundPopover.saveError && (
+                  <div className="mt-1 text-[11px] text-red-400">{soundPopover.saveError}</div>
+                )}
               </div>
               {fadeMax >= 0.05 && (
                 <>

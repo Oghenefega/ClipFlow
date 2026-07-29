@@ -886,7 +886,10 @@ function AudioPanel() {
     setLoaded(true);
     return result?.success ? result.assets : null;
   }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  // Re-lists on mount, and again whenever the library is edited from outside this
+  // panel (#210 — saving a default volume from the timeline popover).
+  const assetsRevision = useEditorStore((s) => s.assetsRevision);
+  useEffect(() => { refresh(); }, [refresh, assetsRevision]);
 
   // #208: a cold watched library spends a minute or two reading durations, and
   // a track has no honest lane until its own is read. Re-list at most every 2s
@@ -1033,6 +1036,16 @@ function AudioPanel() {
       flashStatus(`${track.name} moved to ${dest === "music" ? "Music" : "Sound effects"}`);
       refresh();
     } else flashStatus(result?.error || "Move failed", true);
+  }, [flashStatus, refresh]);
+
+  // #210: forget this sound's saved level. Sounds already placed on a clip keep
+  // the volume they were given — this only changes what future placements open at.
+  const clearDefaultVolume = useCallback(async (track) => {
+    const result = await window.clipflow.assetsSetDefaultVolume(track.id, null);
+    if (result?.success) {
+      flashStatus(`${track.name} back to the default level`);
+      refresh();
+    } else flashStatus(result?.error || "Couldn't clear", true);
   }, [flashStatus, refresh]);
 
   const filteredTracks = useMemo(() => {
@@ -1255,9 +1268,22 @@ function AudioPanel() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-foreground font-medium truncate" title={track.path}>{track.name}</div>
-                      <div className="text-[12px] text-muted-foreground">
-                        {fmtDur(track.durationSec)}
-                        {track.offline ? " · drive offline" : track.missing ? " · file missing" : ""}
+                      <div className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+                        <span>
+                          {fmtDur(track.durationSec)}
+                          {track.offline ? " · drive offline" : track.missing ? " · file missing" : ""}
+                        </span>
+                        {/* #210: this sound has a calibrated level. Click to forget
+                            it and go back to the per-kind default. */}
+                        {track.defaultVolume != null && (
+                          <button
+                            onClick={() => clearDefaultVolume(track)}
+                            title={`Always starts at ${Math.round(track.defaultVolume * 100)}% — click to forget`}
+                            className="shrink-0 h-4 px-1.5 rounded-full text-[10px] font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+                          >
+                            {Math.round(track.defaultVolume * 100)}%
+                          </button>
+                        )}
                       </div>
                     </div>
                     {/* Actions — favorite star stays visible once set */}
