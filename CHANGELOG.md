@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-28 (session 135) — 0.3.0-alpha.28: sounds become usable
+
+### Changed
+- **Installer cut as `0.3.0-alpha.28`**, promoting the six sound changes below so Fega can edit with them for real: waveforms on every timeline sound, separate Music and SFX lanes, trim handles on both ends of a block, Alt+drag duplicate, right-click for settings, and more than one song per clip with a one-click switch between them.
+
 ## [Unreleased] — 2026-07-28 (session 135) — Sounds you can see, trim, duplicate and switch (#202 follow-ups)
 
 ### Added
