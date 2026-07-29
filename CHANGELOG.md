@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 137) — 0.3.0-alpha.29: the audio library, plus four Queue and editor fixes
+
+### Changed
+- **Installer cut as `0.3.0-alpha.29`**, promoting six changes that had been sitting in source unverified on the daily driver: the whole watched-audio-folder library (#208, this session), plus session 136's four — the two Queue row buttons (Show in folder, Open in editor), the "Clip N.mp4" render-filename fix (#188), render thumbnails moving out of the output folder (#205), and Alt+scroll timeline zoom (#207).
+
 ## [Unreleased] — 2026-07-29 (session 137) — Your real audio folders, linked instead of copied (#208)
 
 ### Added
