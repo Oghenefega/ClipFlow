@@ -1,58 +1,159 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-29 — Session 135 — **Sounds usability pass (#202 follow-ups): waveforms on blocks, Music/SFX lanes split, trim handles, Alt+drag duplicate, right-click settings, multiple songs per clip. Shipped as `0.3.0-alpha.28` and VERIFIED by Fega — #202 closed. Next: pictures on clips (#203), the last phase of #201.**_
+_Last updated: 2026-07-29 — Session 136 — **Two Queue-row shortcuts, the "Clip N.mp4" filename bug fixed at its real cause, render thumbnails out of the user's output folder, Alt+scroll timeline zoom, and a full library cleanup. All in source, NOT yet on Fega's installed daily driver. Next: the audio-folder library (#208) — plan is already written in `tasks/todo.md`.**_
 
 ---
 
 ## One-line TL;DR
 
-Sounds on clips went from "technically works" to actually editable: every block draws its waveform, songs and one-shots have their own lanes, either end of a block can be trimmed (cutting head silence leaves the audible part where it is), Alt+drag duplicates, right-click opens settings, and a clip can carry more than one song with a one-click hyped→sad switch.
+Five user-facing changes shipped to master and verified on the dev build, Fega's
+renders folder went from 53 videos + 54 stray thumbnails to videos only, and the
+next session's work (#208, watch real audio folders instead of copying them) is
+planned in detail off measurements of his actual library.
 
 ## Current State
 
-App is on **0.3.0-alpha.28**, installed and verified by Fega (2026-07-29): waveforms, Alt+drag duplicate + overlap stacking, left/right click split, the song switch with undo, and "the rendered result is as the editor shows it". #201 epic: Phase 1 verified, **Phase 2 (#202) verified and CLOSED**, Phase 3 (#203 pictures) not started.
+Version is still **0.3.0-alpha.28** — **no installer was cut this session, at
+Fega's request.** Four user-facing changes are sitting in source unverified by
+him: the two Queue-row buttons, the render-filename fix, the thumbnail move, and
+Alt+scroll zoom. **Cutting an installer is the first thing to offer next
+session** — he tests on the installed exe, so none of this has reached him.
 
-## What Was Just Built (session 135, commit 2814841)
+Open issues touched: **#188** (filename bug — fixed, left open pending his
+verification), **#204/#205/#207** (this session's work, open pending
+verification), **#206** (library hygiene — orphan renders, awaiting his call),
+**#208** (audio folders — next session's work).
 
-Fega's five asks after seeing alpha.27, plus multiple songs (asked during planning):
+## What Was Built (session 136 — commits dd69b89, 8ea4cfb, 845d1d8)
 
-1. **Waveforms on every sound block** — `assets:peaks` IPC → `assets.js:getPeaks` extracts peaks per file and caches them under `{assetsRoot}/peaks/<sha1(path)>.json`, invalidated on mtime/size. New `timeline/SoundBlock.js` owns the block: canvas waveform sliced to the trimmed window, module-level peaks cache keyed by file path (one fetch per file per session, survives clip switches).
-2. **Music + SFX lanes** replace the single Sounds lane (`renderSoundLane()` in TimelinePanelNew). Overlapping blocks in a lane stack into two half-height rows via `assignRows`. `EditorLayout` timeline height 234 → **276** (5 lanes + ruler + toolbar + scrollbar).
-3. **Trim handles both ends.** Left handle moves `sourceTime` AND `trimStart` together → the audible part doesn't move. Popover shows the window + Reset (which also walks the anchor back).
-4. **Alt+drag duplicate** — `duplicateAudioPlacement`, SegmentBlock's proven pattern (window listeners, 3px threshold, Alt read at press OR live off `ev.altKey`). Popover has a Duplicate button too.
-5. **Right-click = settings popover**, left-click = select (reveals handles), Delete = remove. `handleSplit` ignores a selected sound so S doesn't split a subtitle behind your back.
-6. **Multiple songs per clip.** Adding a song at the playhead ends the song playing across that moment and fills the room up to the next song / clip end / file length. One undo entry. Nothing deleted — a song dropped between two others fills the gap.
+1. **Queue rows gained two hover buttons (#204).** Show in folder reveals the
+   clip's MP4 in Explorer; Open in editor loads that clip directly. Both tables
+   (Unscheduled and Scheduled). `editorContext` gained a `from` field so Back
+   returns to the Queue instead of a project clip list.
+2. **#188 fixed at its real cause.** The originally-filed cause ("the filename is
+   read too early") was a symptom. The editor keeps a **whole-record snapshot of
+   the open clip taken at load time** (`useEditorStore.js:212`), and
+   `buildRenderPayload` spreads it. Retitling only moves `clipTitle`; saving
+   persisted the title but never refreshed the snapshot — so Queue stamped the
+   file with the title the clip had when it was OPENED. Saving now writes the
+   returned record back, gated on `title`/`renderPath`/`thumbnailPath`.
+3. **Render thumbnails moved out of the output folder (#205)** into the
+   project's own `clips/` folder as `<clipId>_renderthumb.jpg`, where the
+   detection and repair thumbnails already live.
+4. **Alt + scroll wheel zooms the timeline (#207)**, anchored on the playhead. A
+   new branch on the existing non-passive wheel handler; no new listener.
+5. **Library cleanup** (one-off scripts against real data, not shipped code):
+   29 thumbnails relocated, 25 unreferenced ones deleted, 8 `Clip N.mp4` files
+   renamed to their real titles, one orphaned duplicate video deleted, two
+   dangling clip pointers cleared.
+6. **#208 planned** off measurements of Fega's real audio library — see
+   `tasks/todo.md`, section "NEXT SESSION — Audio library".
 
 ## Key Decisions
 
-- **Both kinds now share ONE shape**: anchor at a source moment + the file window `[trimStart, trimEnd]` that plays. Timeline length is derived (`trimEnd - trimStart`). This killed the music-bed special case and collapsed the split music/SFX paths in the preview and the render. New `models/audioPlacements.js` (CJS — main process requires it) is the single resolver: `normalizePlacements`, `resolvePlacements`, `placementLength`, `assignRows`.
-- **Songs clamp forward, one-shots drop.** New `timeMapping.sourceToTimelineClamped`: when a song's anchor moment is trimmed away it moves to the next surviving footage instead of vanishing (a song belongs to a stretch, not an instant). SFX keep the strict drop rule.
-- **No migration file.** Old clips carry no `trimStart`/`trimEnd`/`sourceTime`; all three are derived on read in `initFromContext` AND in `render.js`, so a legacy music bed still spans the clip and renders identically. Verified live with a hand-written legacy entry.
-- **`asetpts=PTS-STARTPTS` after `atrim` is mandatory** in the render chain — `atrim` keeps the source timestamps, so `adelay` would stack on top and land the sound late.
-- Dragging song B later does NOT stretch song A back out (rolling edits deliberately out of scope — Fega told).
-- Songs may overlap if dragged onto each other (both play, mixed); the row stacking makes it visible.
-- Still parked (on #201): animated GIFs/stickers, video overlays/outros, auto-duck, bundled royalty-free pack, TikTok trending audio, boost >100%, drag-from-panel-to-timeline.
+- **The snapshot refresh is gated on three fields**, not applied wholesale.
+  `title`, `renderPath` and `thumbnailPath` are the only fields the main process
+  rewrites behind the renderer's back, so an ordinary autosave swaps nothing and
+  costs no re-render. Nothing in the editor keys an effect on the `clip` object
+  (checked: 4 subscribers, all field reads, no `[clip]` deps).
+- **A title-only patch was rejected** — it would have made re-renders WORSE.
+  `renderPath` goes stale by the same mechanism, and `uniquePath`'s "a clip may
+  overwrite its own file" exemption (`projects.js:38`) needs the current path;
+  without it a retitled re-render produces `Title (2).mp4` beside an orphaned
+  `Title.mp4`.
+- **Render thumbnails are keyed by clip id, not render filename** — no collision
+  between same-titled clips, and no rename when a title changes. Hence the
+  leave-alone entry for `_renderthumb` in `renameThumbnailTo`.
+- **Hover reveal mutates style directly** in the row's existing
+  mouseenter/mouseleave handlers rather than using a hover state, matching how
+  the row wash already works — mousing down a long queue never re-renders it.
+- **One rename was deliberately blocked rather than suffixed `(2)`.** The good
+  name was held by an unreferenced byte-identical twin; suffixing would have left
+  the orphan owning the correct filename. Fega then approved deleting it.
+- **Alt, never Ctrl,** for wheel zoom — Ctrl+wheel is browser zoom.
+- **#208 direction: link, don't copy.** `V:\AutoSync\` syncs itself, so a copy
+  forks the library and the app ends up using the stale side. Copying stays the
+  default for other users.
+- **#208 classification: duration, not folder names.** Fega's root folder is
+  literally named `Sound FX` and holds all ~350 of his music files — any
+  name-based rule mislabels every song. Measured: SFX medians 0.6–4.6s vs music
+  130–280s; a 60s cut is ~97% correct (73/75 sampled).
 
 ## Next Steps
 
-1. ~~Fega verifies alpha.28~~ — **done 2026-07-29, #202 closed.** He did not flag the 42px shorter preview; leave the height at 276 unless he raises it.
-2. **#203 — pictures on clips** (last #201 phase): image layer in `PreviewOverlays.js` + the offscreen overlay page (`__OVERLAY_CONFIG__` in `subtitle-overlay-renderer.js:245`, rendering in `overlay-renderer.js`, and a **frame-skip signature term** — mandatory or frames freeze), reuse `DraggableOverlay` for position/size, persist via `clip.media`. Check the overlay page's CSP allows `file://` images.
-3. Possible follow-ups if Fega asks: rolling edit (drag one song's edge and the neighbour follows), fade handles drawn on the block, drag-from-panel-to-timeline, boost >100%.
+1. **Offer to cut an installer first.** Four changes are waiting and Fega has
+   verified none of them. Then close #188/#204/#205/#207 on his confirmation.
+2. **#208 — audio-folder library.** Full plan with the measured tree, the
+   classification rule and verification steps is in `tasks/todo.md`. Note it
+   changes a stored setting shape (`sfxFolder` string → list), so a migration is
+   mandatory per `.claude/rules/pipeline.md`.
+3. **#206 — library hygiene.** 23 orphan MP4s (~1.37 GB) listed for Fega; he has
+   seen the list and not yet said which to delete.
+4. **#203 — pictures on clips**, the last phase of the #201 epic, still not
+   started.
+5. A background task chip is pending to remove the dead `mouseXRef` from
+   `TimelinePanelNew.js` (written every mousemove, never read).
 
 ## Watch Out For
 
-- **Sound blocks must `stopPropagation` on `onClick`** — the scroll container's `onClick={handleTrackBgClick}` deselects everything, and pointerup (where selection is set) fires BEFORE click. This was the one live bug this session: selection silently never stuck, so trim handles only appeared on hover and Delete did nothing. Every other lane's block already did this.
-- **`extractWaveformPeaks` resamples to 1000Hz** — anything above ~500Hz draws a flat waveform. Real SFX/music always carry low-frequency content; only synthetic test tones hit this (my first 880Hz fixture read as pure silence and looked like a bug in my code).
-- **`resolvePlacements` is the only place the two kinds differ.** Any new consumer must go through it, or the timeline, preview and render will disagree about where a sound sits.
-- **`_snapshotStyling` in useSubtitleStore carries `audioPlacements`** — any new undoable editor state must join that snapshot or Ctrl+Z skips it.
-- **render.js input-index arithmetic**: asset inputs come AFTER the overlay pipe so the pipe keeps index n. Anything adding further inputs must extend that arithmetic.
-- **Dev-profile `projectsRoot` points at the REAL W:\ tree.** Test assets/placements/peaks-cache written there must be cleaned. This session: cleaned and verified (assets.json back to just Fega's Fahh with its favorite flag, peaks folder removed, both test clips' `sfx` cleared, Clip 1's render record reverted via `projectDeleteClipRender`, temp render output deleted).
-- **5 pre-existing test files (`segmentWords`, `trackerCalendarModel`, `signals`, `game-profiles`, `ai-prompt`) call `process.exit` and crash jest workers.** They predate jest here — "5 failed suites, 0 failed tests" is that, not a regression. Run `npx jest src/main/__tests__ src/renderer/editor/models/__tests__` for a clean signal (125 tests).
+- **`useEditorStore.clip` is a load-time snapshot, and `clipTitle` is separate
+  live state.** They only reconcile via the save path now. Anything new that
+  reads `clip.<field>` for an outbound payload must ask whether that field can
+  drift mid-session — this is exactly what #188 was.
+- **`renameThumbnailTo` decides by filename suffix** and there are now four
+  conventions (`_renderthumb`, `_thumb`, `_repairthumb`, `_thumbnail`), two of
+  which are id-keyed and must never be renamed. Adding a fifth means updating
+  that list or a thumbnail silently detaches.
+- **`resolveTestAwareOutputFolder` is per-profile.** The **dev profile's
+  `outputFolder` points at `…\Temp\claude\clipflow-thumb-test`** (left by an
+  earlier session). Dev renders land there, not in `ClipFlow Renders`. Harmless
+  now, but it previously wrote temp paths into REAL clip records — that leak is
+  what produced the two dangling pointers cleaned up this session.
+- **The dev profile shares the REAL `projectsRoot` (`W:\`).** Any test render,
+  retitle or asset write touches Fega's live library. Snapshot `project.json`
+  before and restore after — this session did exactly that and verified the
+  restore byte-for-byte.
+- **`listAssets` PRUNES linked assets whose file vanished** (`assets.js:85-89`).
+  Unplugging `V:` today would silently empty the Audio panel. Fixing this is part
+  of #208 — do not ship multi-folder watching without it.
+- **Don't infer Fega's paths from ambient signals.** I read a folder out of his
+  open Explorer windows and built a measured recommendation on a dead legacy
+  duplicate. Paths come from a setting, a config file, or from him.
 
 ## Logs & Debugging
 
-- Render logs: `[Render] Audio assets: N of M placements active` — how many placements survived timeline mapping. Legacy-path renders warn `sounds skipped`.
-- **Spectral check for "did the sound land"**: `ffmpeg -hide_banner -i out.mp4 -af "bandpass=f=<hz>:w=60,atrim=<t1>:<t2>,volumedetect" -f null -` then read `mean_volume`. **Do NOT pass `-v error`** — it suppresses volumedetect's own output (cost me a confusing empty result). Session 135 numbers: trimmed 400Hz tone −22.8dB in-window vs −54dB out and −60dB immediately before; songA 150Hz −32.1→−58.0dB across the switch; songB 250Hz −48.9→−32.0dB; max_volume −10.2dB.
-- Synthetic fixtures for sound tests (keep tones under 500Hz): `ffmpeg -f lavfi -i "sine=f=400:d=2" -af "adelay=5000|5000,apad=whole_dur=10" -ac 2 -ar 48000 trimtest.wav` gives silence/hit/silence — exactly the case trimming exists for.
-- CDP driving: session-135 scratchpad (`7d152e07…`) has `cdp.js` (one-shot evaluator), `cdp-input.js` (click/move/drag/**altdrag**/rclick/del/undo/redo — the `buttons` bitmask and `modifiers:1` for Alt are REQUIRED), `cdp-shot.js`. Launch with `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`; `taskkill //F //IM electron.exe` between runs (a reload mid-session wedges input — only a relaunch fixes it).
-- Hover-revealed buttons in the Audio panel need a separate `move` before the `click`, and the row's Y shifts when the status line appears/disappears — screenshot between steps rather than trusting earlier coordinates.
+- **Render filename** derives from `clipData.title` in `resolveRenderOutputPath`
+  (`main.js:3111`). To check what the main process actually received, the render
+  progress events carry `clipTitle` — the editor topbar pill and App.js's
+  floating pill both show it.
+- **Reading editor store state from outside** (no `window` handle exists): walk
+  the React fiber tree from `#root`'s `__reactContainer$…` key over
+  `child`/`sibling`, scanning each fiber's `memoizedState` hook chain for an
+  object with a `clip_`-prefixed `id` and a `renderStatus` key. That is
+  `useEditorStore.clip` — exactly what the render payload spreads. Lets a
+  payload bug be proven without writing a file into the real library. Pass the
+  probe to CDP as ONE line; `tr '\n' ' '` over a file with `//` comments
+  comments out the rest.
+- **`getComputedStyle` lies while the Electron window is backgrounded** —
+  Chromium suspends transition ticking, so an element read `opacity: 0` for
+  seconds after its inline style was correctly `1`. Fire
+  `Page.captureScreenshot` to force a paint, then re-probe. Cost ~5 rounds this
+  session before it was recognised.
+- **CDP `Input.dispatchMouseEvent` with `type: "mouseWheel"` never acks in this
+  Electron build** — the call hangs and no wheel event reaches the page. Use a
+  synthetic `new WheelEvent("wheel", {deltaY, altKey, bubbles:true,
+  cancelable:true})` dispatched on `document.elementFromPoint(x,y)`; the handler
+  is a plain `addEventListener`, so it fires correctly. Validate the plumbing
+  first with Shift+scroll, which should move `scrollLeft`.
+- **Zoom readback:** the timeline zoom slider's `aria-valuenow` maps as
+  `v = log(tlZoom/0.2)/log(100)*100`, so one 1.25× step is +4.85 ≈ +5 points.
+  Cross-check against the scroll container's `scrollWidth`.
+- Session-136 scratchpad (`a8ea577c…`): `cdp.js` (one-shot evaluator, needs
+  `npm i ws --no-save`), `cdp-input.js` (move/click/shot), `cdp-wheel.js` (the
+  one that hangs — kept as the record), `cleanup.js` + `cleanup2.js` (the library
+  cleanups, `--dry`/`--apply`), `probe-durations.js` (the ffprobe sampling behind
+  the #208 classification rule).
+- **5 pre-existing test files (`segmentWords`, `trackerCalendarModel`, `signals`,
+  `game-profiles`, `ai-prompt`) call `process.exit` and crash jest workers.** Run
+  `npx jest src/main/__tests__ src/renderer/editor/models/__tests__` for a clean
+  signal (125 tests, all green as of this session).
