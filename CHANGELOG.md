@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 137) — 0.3.0-alpha.30: audio loudness pass
+
+### Changed
+- **Installer cut as `0.3.0-alpha.30`**, promoting both loudness fixes on top of alpha.29: the Audio panel now auditions at 35% with a slider to adjust it, and a sound effect dropped on a clip starts at 60% instead of full level.
+- **Sound effects placed on a clip now start at 60% rather than 100%.** A library one-shot is mastered hot, so dropping one at full level buried the footage under it. 60% still sits clearly above the 40% music bed. Only newly placed sounds are affected — anything already on a clip keeps the volume it was given, and the per-sound slider in the right-click panel overrides either way. [useEditorStore.js]
+
 ## [Unreleased] — 2026-07-29 (session 137) — Preview volume for the Audio panel
 
 ### Fixed
