@@ -443,8 +443,10 @@ const useEditorStore = create((set, get) => ({
       path: asset.path,
       kind,
       durationSec: fileLen,
-      // Music defaults quiet — it sits under the voice; SFX at full level.
-      volume: kind === "music" ? 0.4 : 1,
+      // Music sits under the voice. Effects sit above the music but still under
+      // it — a library one-shot is mastered hot, and dropping one at full level
+      // buried the clip. Existing placements keep whatever they were given.
+      volume: kind === "music" ? 0.4 : 0.6,
       sourceTime,
       trimStart: 0,
       trimEnd: fileLen,
