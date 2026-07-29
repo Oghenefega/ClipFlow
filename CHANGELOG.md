@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-07-29 (session 136) — Queue row shortcuts, correct render filenames, tidy renders folder
 
 ### Added
+- **Alt + scroll wheel zooms the timeline, anchored on the playhead (#207).** One wheel notch is exactly the same 1.25×/0.8× step the +/− buttons apply, so the mouse and the buttons agree; a fine trackpad swipe scales proportionally instead of jumping a whole step per event. Zoom stays clamped to the slider's 0.2×–20× range, and the playhead holds its place on screen as the timeline expands underneath it — the same gentle drift-toward-centre the zoom slider has always used. Scrolling without Alt is unchanged (Shift+scroll still scrolls sideways). [TimelinePanelNew.js]
 - **Two hover buttons on every Queue row: Show in folder and Open in editor (#204).** Hovering a clip in either Queue table reveals a folder icon that opens Explorer with that clip's rendered MP4 selected, and a play icon that loads the clip straight into the editor. Watching or locating a queued clip no longer means remembering which project it came from and clicking through the project's clip list first. Pressing Back in the editor returns to the Queue rather than dropping you on a project list you never navigated into. [QueueView.js, App.js]
 
 ### Fixed

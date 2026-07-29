@@ -214,7 +214,16 @@ export default function TimelinePanelNew() {
     const container = scrollRef.current;
     if (!container) return;
 
-    if (e.shiftKey && Math.abs(e.deltaY) > 0) {
+    if (e.altKey && Math.abs(e.deltaY) > 0) {
+      // Alt + wheel → zoom. One 100-unit notch is exactly the 1.25x/0.8x step the
+      // +/- buttons apply, so mouse and buttons agree; a fine trackpad swipe scales
+      // proportionally instead of jumping a whole step per event. Scroll up
+      // (negative deltaY) zooms in. The playhead anchoring below reacts to tlZoom
+      // itself, so wheel zoom lands on the playhead exactly like the slider does.
+      e.preventDefault();
+      const next = tlZoom * Math.pow(1.25, -e.deltaY / 100);
+      setTlZoom(Math.max(0.2, Math.min(20, +next.toFixed(3))));
+    } else if (e.shiftKey && Math.abs(e.deltaY) > 0) {
       // Shift + vertical scroll → horizontal scroll
       e.preventDefault();
       container.scrollLeft += e.deltaY;
@@ -223,7 +232,7 @@ export default function TimelinePanelNew() {
       e.preventDefault();
       container.scrollLeft += e.deltaX;
     }
-  }, []);
+  }, [tlZoom, setTlZoom]);
 
   // #106: bind the wheel handler non-passively — React's onWheel is passive, so the
   // preventDefault() above warns and is ignored. addEventListener with { passive: false }.
