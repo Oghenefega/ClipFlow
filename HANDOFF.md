@@ -1,159 +1,171 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-29 — Session 136 — **Two Queue-row shortcuts, the "Clip N.mp4" filename bug fixed at its real cause, render thumbnails out of the user's output folder, Alt+scroll timeline zoom, and a full library cleanup. All in source, NOT yet on Fega's installed daily driver. Next: the audio-folder library (#208) — plan is already written in `tasks/todo.md`.**_
+_Last updated: 2026-07-29 — Session 137 — **The audio library landed: ClipFlow now watches Fega's real folders instead of copying them (#208). 760 tracks, 12.6 GB, nothing duplicated. Shipped as alpha.29, then alpha.30 for two loudness fixes. Fega confirmed the library works ("Phenomenal"); he was testing the volume changes when the session wrapped.**_
 
 ---
 
 ## One-line TL;DR
 
-Five user-facing changes shipped to master and verified on the dev build, Fega's
-renders folder went from 53 videos + 54 stray thumbnails to videos only, and the
-next session's work (#208, watch real audio folders instead of copying them) is
-planned in detail off measurements of his actual library.
+`sfxFolder` (one folder, top level only, everything labelled "sfx") became
+`audioFolders` (a list, recursive, music/SFX by duration, offline-safe), Fega
+pointed it at `V:\AutoSync\Audio` on the real installed app, and two follow-up
+installers fixed auditioning at full blast and effects landing at full level.
 
 ## Current State
 
-Version is still **0.3.0-alpha.28** — **no installer was cut this session, at
-Fega's request.** Four user-facing changes are sitting in source unverified by
-him: the two Queue-row buttons, the render-filename fix, the thumbnail move, and
-Alt+scroll zoom. **Cutting an installer is the first thing to offer next
-session** — he tests on the installed exe, so none of this has reached him.
+Version **0.3.0-alpha.30**, installed and running on Fega's daily driver.
 
-Open issues touched: **#188** (filename bug — fixed, left open pending his
-verification), **#204/#205/#207** (this session's work, open pending
-verification), **#206** (library hygiene — orphan renders, awaiting his call),
-**#208** (audio folders — next session's work).
+- **#208 is confirmed working by Fega** on alpha.29 — he added the folder, it
+  scanned, he said "Phenomenal". Issue closed with `status: untested` because the
+  two loudness changes that followed are still unverified by him.
+- **Unverified by Fega and still open:** the two alpha.30 loudness changes
+  (preview at 35%, placed SFX at 60%), plus session 136's four — **#188**
+  (filename bug), **#204** (Queue row buttons), **#205** (thumbnail placement),
+  **#207** (Alt+scroll zoom). All four reached him in alpha.29; none confirmed.
+- **#206** (library hygiene — 23 orphan renders, ~1.37 GB) still awaiting his call.
 
-## What Was Built (session 136 — commits dd69b89, 8ea4cfb, 845d1d8)
+## What Was Built (session 137 — commits bfd4754, cd240d2, 5a8ba01, 69eb1da, 6417417, a4e51d6)
 
-1. **Queue rows gained two hover buttons (#204).** Show in folder reveals the
-   clip's MP4 in Explorer; Open in editor loads that clip directly. Both tables
-   (Unscheduled and Scheduled). `editorContext` gained a `from` field so Back
-   returns to the Queue instead of a project clip list.
-2. **#188 fixed at its real cause.** The originally-filed cause ("the filename is
-   read too early") was a symptom. The editor keeps a **whole-record snapshot of
-   the open clip taken at load time** (`useEditorStore.js:212`), and
-   `buildRenderPayload` spreads it. Retitling only moves `clipTitle`; saving
-   persisted the title but never refreshed the snapshot — so Queue stamped the
-   file with the title the clip had when it was OPENED. Saving now writes the
-   returned record back, gated on `title`/`renderPath`/`thumbnailPath`.
-3. **Render thumbnails moved out of the output folder (#205)** into the
-   project's own `clips/` folder as `<clipId>_renderthumb.jpg`, where the
-   detection and repair thumbnails already live.
-4. **Alt + scroll wheel zooms the timeline (#207)**, anchored on the playhead. A
-   new branch on the existing non-passive wheel handler; no new listener.
-5. **Library cleanup** (one-off scripts against real data, not shipped code):
-   29 thumbnails relocated, 25 unreferenced ones deleted, 8 `Clip N.mp4` files
-   renamed to their real titles, one orphaned duplicate video deleted, two
-   dangling clip pointers cleared.
-6. **#208 planned** off measurements of Fega's real audio library — see
-   `tasks/todo.md`, section "NEXT SESSION — Audio library".
+1. **Watched audio folders replace the single Sound Effects Folder (#208).**
+   Settings takes a list, each `{ path, enabled }`, scanned recursively and
+   linked in place. `sfxFolder` → `audioFolders` ships with a migration (old path
+   becomes entry one, old key blanked so it can't resurrect). Toggling a folder
+   Off hides its tracks but keeps their favorites and lane choices; only Remove
+   forgets them.
+2. **Music/SFX split on duration, not folder names.** `MUSIC_MIN_SECONDS = 60`
+   already existed and was already applied on the copy path — the folder path
+   hardcoded `type: "sfx"`, which is why a 3-minute song scanned from a folder
+   showed up as a sound effect. A per-track override (`typeLocked`) pins the
+   exceptions and survives every rescan and re-probe.
+3. **Linked tracks are flagged, not pruned.** A folder that won't read = the
+   whole folder offline (greys out, returns by itself); a file gone from a
+   readable folder = missing. Previously both were deleted from the index, so
+   unplugging `V:` silently emptied the panel and broke clips already using a
+   track.
+4. **Durations read in the background**, cached on the index entry and
+   invalidated only by size/mtime. 77s for 760 files cold, ~50ms warm.
+5. **Panel groups by folder**, collapsed with counts, search cuts through closed
+   groups. Sort by **Folder / Name / Length**; Length drops grouping and orders
+   each lane so its questionable end comes first.
+6. **Group headings stopped contradicting themselves.** A folder named with a
+   bare lane word borrows its parent — "Epidemic Sound › SFX", "Sound FX ›
+   Effects". Only 3 of Fega's 28 qualify. Headings now carry the real path on
+   hover.
+7. **Two loudness fixes (alpha.30).** Preview auditioned at 1.0 because
+   `togglePlay` never set `volume` at all; now a persisted setting
+   (`audioPreviewVolume`, default 0.35) with a speaker button beside Upload.
+   Placed SFX default dropped 1.0 → 0.6.
 
 ## Key Decisions
 
-- **The snapshot refresh is gated on three fields**, not applied wholesale.
-  `title`, `renderPath` and `thumbnailPath` are the only fields the main process
-  rewrites behind the renderer's back, so an ordinary autosave swaps nothing and
-  costs no re-render. Nothing in the editor keys an effect on the `clip` object
-  (checked: 4 subscribers, all field reads, no `[clip]` deps).
-- **A title-only patch was rejected** — it would have made re-renders WORSE.
-  `renderPath` goes stale by the same mechanism, and `uniquePath`'s "a clip may
-  overwrite its own file" exemption (`projects.js:38`) needs the current path;
-  without it a retitled re-render produces `Title (2).mp4` beside an orphaned
-  `Title.mp4`.
-- **Render thumbnails are keyed by clip id, not render filename** — no collision
-  between same-titled clips, and no rename when a title changes. Hence the
-  leave-alone entry for `_renderthumb` in `renameThumbnailTo`.
-- **Hover reveal mutates style directly** in the row's existing
-  mouseenter/mouseleave handlers rather than using a hover state, matching how
-  the row wash already works — mousing down a long queue never re-renders it.
-- **One rename was deliberately blocked rather than suffixed `(2)`.** The good
-  name was held by an unreferenced byte-identical twin; suffixing would have left
-  the orphan owning the correct filename. Fega then approved deleting it.
-- **Alt, never Ctrl,** for wheel zoom — Ctrl+wheel is browser zoom.
-- **#208 direction: link, don't copy.** `V:\AutoSync\` syncs itself, so a copy
-  forks the library and the app ends up using the stale side. Copying stays the
-  default for other users.
-- **#208 classification: duration, not folder names.** Fega's root folder is
-  literally named `Sound FX` and holds all ~350 of his music files — any
-  name-based rule mislabels every song. Measured: SFX medians 0.6–4.6s vs music
-  130–280s; a 60s cut is ~97% correct (73/75 sampled).
+- **Link, never copy, for watched folders.** `V:\AutoSync\` syncs itself; a copy
+  forks and the stale side is the one the app uses. Copying stays the default for
+  the Upload drawer — a file dragged off a Desktop must survive a Downloads clear.
+- **The per-folder role dropdown from the session-136 draft was cut.** At 98%
+  measured accuracy it earns nothing: every folder it would let Fega label is
+  already labelled correctly by duration. Add it only if duration disappoints.
+- **The index entry IS the duration cache** — no separate cache file. Same
+  `path + mtime + size` invalidation rule `getPeaks` uses.
+- **A failed probe records `0`, not `null`,** so a broken file lands in SFX
+  instead of being retried forever — but a probe is SKIPPED entirely when the
+  file isn't readable, or a drive that dropped mid-scan would pin a whole library
+  into SFX permanently.
+- **Retention is checked against ALL configured folders, listing against enabled
+  ones only.** That's what makes Off ≠ Remove.
+- **Group labels: leaf name, parent only when the leaf is a lane word.** Two-
+  segment labels were generated and rejected — 11 of 28 groups would have gained
+  the same `Game Music - Jazz ›` prefix and truncated away the mood name, which
+  is the useful part. Fixes 4 labels, damages 11.
+- **Length sort orders per tab** (shortest first in Music, longest first in SFX)
+  rather than offering a direction toggle. One rule, and it always puts the
+  suspicious end on top.
+- **Placed SFX 0.6, not 0.4.** Effects should sit above the 0.4 music bed, just
+  not peak the mix. Only the default changed; the `?? 1` fallbacks in preview,
+  timeline and render are deliberately untouched so placements saved before
+  sounds had a volume field sound exactly as they did.
+
+## Measured facts worth not re-deriving
+
+- `V:\AutoSync\Audio` = **760 audio files, 12.59 GB, 38 folders (10 hold no
+  audio), 5 levels deep**. Session 136's "~550 files / ~11 GB" was low — it
+  missed `Epidemic Sound\SFX` (60 files).
+- Live scan sorted it **513 music / 249 sfx** (incl. 2 prior uploads).
+- Duration rule accuracy: **103 of 105 sampled files**. The ~12 real misses are
+  NOT at the 60s line (only 8 files sit in 55–65s) — they're long SFX (Epidemic
+  60–90s typing loops, `Camera Shutters`) and short game OSTs (40–60s Bayonetta,
+  Marvel Vs Capcom, Sam & Max). Sort-by-Length surfaces all of them in the first
+  ten rows of each tab.
+- Probe cost **99ms/file**; cold pass 77s, warm list ~50ms.
 
 ## Next Steps
 
-1. **Offer to cut an installer first.** Four changes are waiting and Fega has
-   verified none of them. Then close #188/#204/#205/#207 on his confirmation.
-2. **#208 — audio-folder library.** Full plan with the measured tree, the
-   classification rule and verification steps is in `tasks/todo.md`. Note it
-   changes a stored setting shape (`sfxFolder` string → list), so a migration is
-   mandatory per `.claude/rules/pipeline.md`.
-3. **#206 — library hygiene.** 23 orphan MP4s (~1.37 GB) listed for Fega; he has
-   seen the list and not yet said which to delete.
-4. **#203 — pictures on clips**, the last phase of the #201 epic, still not
-   started.
-5. A background task chip is pending to remove the dead `mouseXRef` from
-   `TimelinePanelNew.js` (written every mousemove, never read).
+1. **Ask Fega how the volumes feel.** 35% preview and 60% placed SFX are both
+   single numbers, trivially changed. He was mid-test at wrap.
+2. **Close #188 / #204 / #205 / #207** once he confirms them — all four have been
+   on his machine since alpha.29 and none are verified.
+3. **#206 — library hygiene.** 23 orphan MP4s (~1.37 GB) listed; his call.
+4. **#203 — pictures on clips**, the last phase of the #201 epic, not started.
+5. Optional, only if the duration rule annoys him in practice: the filename
+   tiebreak (`OST`/`Soundtrack` → music, `sound effect`/`SFX` + immediate folder
+   → effect) applied ONLY inside a 40–90s band. Checked against the 26 band
+   files, it'd get ~20 right. Deliberately not built — a keyword engine to save a
+   dozen one-time clicks, and keyword rules rot.
 
 ## Watch Out For
 
-- **`useEditorStore.clip` is a load-time snapshot, and `clipTitle` is separate
-  live state.** They only reconcile via the save path now. Anything new that
-  reads `clip.<field>` for an outbound payload must ask whether that field can
-  drift mid-session — this is exactly what #188 was.
-- **`renameThumbnailTo` decides by filename suffix** and there are now four
-  conventions (`_renderthumb`, `_thumb`, `_repairthumb`, `_thumbnail`), two of
-  which are id-keyed and must never be renamed. Adding a fifth means updating
-  that list or a thumbnail silently detaches.
-- **`resolveTestAwareOutputFolder` is per-profile.** The **dev profile's
-  `outputFolder` points at `…\Temp\claude\clipflow-thumb-test`** (left by an
-  earlier session). Dev renders land there, not in `ClipFlow Renders`. Harmless
-  now, but it previously wrote temp paths into REAL clip records — that leak is
-  what produced the two dangling pointers cleaned up this session.
+- **The asset index is SHARED between profiles.** It lives at
+  `<projectsRoot>\.clipflow\assets\assets.json`, not under `userData` — so the
+  dev app and Fega's installed app write the same file. **I clobbered his live
+  scan this session** by restoring a backup taken before he added his folder.
+  Before restoring any backup of that file, re-read it and confirm it still
+  matches what the backup was taken against.
+- **NEVER run `asar extract-file` with the repo as CWD.** It overwrites
+  `package.json` with the stripped packaged copy — scripts, devDependencies and
+  the whole `build` block gone. Did it again this session (memory
+  `project_package_json_strip` already warned). Use `npx asar list` or grep the
+  archive. Recovery: `git checkout -- package.json`, re-apply the version bump.
+- **An unprobed track shows in NEITHER tab.** That's deliberate — it has no
+  honest lane until its duration is known — but a half-empty panel during the
+  first 80 seconds looks like a bug if you forget.
+- **`listAssets` runs on every panel mount**, and both AudioPanel and UploadPanel
+  call it. `backfillDurations` is guarded by a module-level `scanRunning` flag;
+  don't remove it or two scans will interleave writes.
+- **`groupLabel` keys the renderer's grouping.** Two different folders that
+  produce the same label merge into one group. Harmless today (no duplicate leaf
+  names in Fega's tree, checked) but it's a real collision path.
 - **The dev profile shares the REAL `projectsRoot` (`W:\`).** Any test render,
-  retitle or asset write touches Fega's live library. Snapshot `project.json`
-  before and restore after — this session did exactly that and verified the
-  restore byte-for-byte.
-- **`listAssets` PRUNES linked assets whose file vanished** (`assets.js:85-89`).
-  Unplugging `V:` today would silently empty the Audio panel. Fixing this is part
-  of #208 — do not ship multi-folder watching without it.
-- **Don't infer Fega's paths from ambient signals.** I read a folder out of his
-  open Explorer windows and built a measured recommendation on a dead legacy
-  duplicate. Paths come from a setting, a config file, or from him.
+  retitle or asset write touches Fega's live library.
 
 ## Logs & Debugging
 
-- **Render filename** derives from `clipData.title` in `resolveRenderOutputPath`
-  (`main.js:3111`). To check what the main process actually received, the render
-  progress events carry `clipTitle` — the editor topbar pill and App.js's
-  floating pill both show it.
-- **Reading editor store state from outside** (no `window` handle exists): walk
-  the React fiber tree from `#root`'s `__reactContainer$…` key over
-  `child`/`sibling`, scanning each fiber's `memoizedState` hook chain for an
-  object with a `clip_`-prefixed `id` and a `renderStatus` key. That is
-  `useEditorStore.clip` — exactly what the render payload spreads. Lets a
-  payload bug be proven without writing a file into the real library. Pass the
-  probe to CDP as ONE line; `tr '\n' ' '` over a file with `//` comments
-  comments out the rest.
-- **`getComputedStyle` lies while the Electron window is backgrounded** —
-  Chromium suspends transition ticking, so an element read `opacity: 0` for
-  seconds after its inline style was correctly `1`. Fire
-  `Page.captureScreenshot` to force a paint, then re-probe. Cost ~5 rounds this
-  session before it was recognised.
-- **CDP `Input.dispatchMouseEvent` with `type: "mouseWheel"` never acks in this
-  Electron build** — the call hangs and no wheel event reaches the page. Use a
-  synthetic `new WheelEvent("wheel", {deltaY, altKey, bubbles:true,
-  cancelable:true})` dispatched on `document.elementFromPoint(x,y)`; the handler
-  is a plain `addEventListener`, so it fires correctly. Validate the plumbing
-  first with Shift+scroll, which should move `scrollLeft`.
-- **Zoom readback:** the timeline zoom slider's `aria-valuenow` maps as
-  `v = log(tlZoom/0.2)/log(100)*100`, so one 1.25× step is +4.85 ≈ +5 points.
-  Cross-check against the scroll container's `scrollWidth`.
-- Session-136 scratchpad (`a8ea577c…`): `cdp.js` (one-shot evaluator, needs
-  `npm i ws --no-save`), `cdp-input.js` (move/click/shot), `cdp-wheel.js` (the
-  one that hangs — kept as the record), `cleanup.js` + `cleanup2.js` (the library
-  cleanups, `--dry`/`--apply`), `probe-durations.js` (the ffprobe sampling behind
-  the #208 classification rule).
+- **CDP harness** (`--remote-debugging-port=9222`): Node 22+ has a global
+  `WebSocket`, so the one-shot evaluator needs **no `npm i ws`** — that's a change
+  from earlier sessions' notes. Scratchpad `cdp.js` (evaluate), `shot.js`
+  (`Page.captureScreenshot` → png).
+- **Electron on Windows loses piped stdout.** A headless harness run via
+  `npx electron run-x.js` prints nothing to the pipe — write results to a file and
+  `cat` it. Cost one wasted 10-minute run before it was recognised.
+- **`[role=slider]` is ambiguous in the editor** — the timeline zoom slider is
+  first in the DOM, so `document.querySelector('[role=slider]')` grabs it, not the
+  one in your popover. Scope to `[role=dialog] [role=slider]`. Same trap for
+  `.h-8.w-8` buttons (7 matched). Radix popover triggers are findable by
+  `button[aria-haspopup=dialog]`.
+- **React `onMouseEnter` needs `relatedTarget`.** A bare
+  `new MouseEvent('mouseover', {bubbles:true})` does NOT trigger it; add
+  `relatedTarget: document.body` and hover-revealed buttons appear.
+- **Proving audio volume without making noise:** patch
+  `HTMLMediaElement.prototype.play` to record `this.volume` and return
+  `Promise.resolve()`, click play, read the recorded value, then restore from the
+  saved original. Confirmed 0.35 then 0.3 this session.
+- **Headless scans of `assets.js` must run under electron** (`app.whenReady()`),
+  because `ffmpeg.js` → `logger.js` reads `app.isPackaged`. Add
+  `app.on("window-all-closed", () => {})` or it exits early.
 - **5 pre-existing test files (`segmentWords`, `trackerCalendarModel`, `signals`,
   `game-profiles`, `ai-prompt`) call `process.exit` and crash jest workers.** Run
   `npx jest src/main/__tests__ src/renderer/editor/models/__tests__` for a clean
   signal (125 tests, all green as of this session).
+- Session-137 scratchpad (`3373ca4d…`): `measure-audio.js` (tree walk),
+  `probe-new.js` / `test-band.js` (duration sampling + the 40–80s band report),
+  `test-scan.js` (full listAssets/backfill drive), `test-offline.js` (drive
+  offline / Off toggle / delete / swap on a small copied tree), `cdp.js`,
+  `shot.js`, `labels.js` (leaf vs two-segment group labels).
