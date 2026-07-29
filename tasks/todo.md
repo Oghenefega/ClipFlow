@@ -6,6 +6,168 @@
 
 ---
 
+## 📋 PLAN (session 138) — Audio panel round 2: eight requests — **awaiting approval**
+
+Follow-on to #208. All eight items live in the Audio panel and the placed-sound
+popover. Nothing here touches detection, the pipeline, or publishing.
+
+Filed as four issues under epic #201, grouped by how they'll actually ship:
+- **#209** — items 1, 2, 7 (refresh button, search clear, SFX fades)
+- **#210** — item 6 (per-sound default volume)
+- **#211** — items 4, 5 (waveform + scrubbable mini player, row extraction)
+- **#212** — items 3, 8 (mood tags, Recently used)
+
+### Decisions locked (Fega, session 138 open)
+
+1. **Tags = presets + free text.** Preset one-click moods (Hyped, Epic, Tense,
+   Sad, Moody, Chill, Funny, Eerie, Triumphant) plus a free-text field. Presets
+   keep "hype"/"hyped" from forking; free text is the escape hatch.
+2. **Seed tags from folder names on first run** — one-time, non-destructive,
+   editable. Gives ~760 pre-tagged tracks on day one.
+3. **Waveforms load as rows scroll into view**, capped concurrency. No eager
+   pass. First scroll through a folder is slow, later visits are cache hits.
+4. **Backfill Recent from existing clips** — one-time pass over saved project
+   JSONs so the tab is useful the first time it's opened.
+
+### What I verified first (liveness proofs)
+
+| Claim | Proof |
+|---|---|
+| The Audio panel is the live component | `RightPanelNew.js:2714` `case "audio": return <AudioPanel />` inside the rendered drawer switch → `AudioPanel` at `RightPanelNew.js:860` |
+| `assets:list` already rescans watched folders on every call | `main.js:980` calls `listAssets`, which walks every enabled root recursively (`assets.js:163-212`) and absorbs new files, then kicks `backfillDurations` (`main.js:983`) |
+| The panel already rescans on open | `AudioPanel` calls `refresh()` on mount (`RightPanelNew.js:886`); the drawer `switch` unmounts it on every panel change, so switching away and back = a rescan |
+| Waveform peaks infrastructure exists and RUNS | `assets.js:375` `getPeaks` → `main.js:1031` `assets:peaks` → `preload.js:54` → consumed by `SoundBlock.js:18` for every placed block |
+| Peaks are disk-cached per file | `assets.js:379-398` — `{assetsRoot}/peaks/<sha1>.json`, invalidated on mtime/size |
+| Fades are gated on music in exactly 4 places | store init `useEditorStore.js:453`, popover `TimelinePanelNew.js:1364`, preview `PreviewPanelNew.js:1277`, render `render.js:256` |
+| Fade math itself is kind-agnostic | `render.js:257-258` and `PreviewPanelNew.js:1281-1283` — only the `if (kind === "music")` wrapper restricts them |
+| `addAudioPlacement` has ONE caller | `RightPanelNew.js:998` (`handleAddToTimeline`). The lane hints at `TimelinePanelNew.js:942` only `togglePanel("audio")` — they don't place anything. So placement has a single chokepoint |
+| Placements carry `assetId` AND `path` | `useEditorStore.js:441,443` |
+| Placements persist on the clip as `sfx` | written `useEditorStore.js:1103`, read back `useEditorStore.js:221` |
+| Per-track fields have a home | `assets.json` entries already carry fields defaulted on read (`favorite` `assets.js:207`, `typeLocked` `assets.js:187`). Not electron-store, so no store migration applies |
+
+### 1. Refresh the library from the panel
+
+**Symptom:** drop a new sound into the folder, ClipFlow doesn't know.
+**Reality:** it does know — on the *next panel open*. There is no way to trigger
+it while looking at the panel and no feedback that it happened.
+**Change:** refresh button beside Upload / preview-volume. Spins while listing,
+then flashes `3 new tracks` or `Nothing new` (diff the asset-id set across the
+call). Reuses `assetsList()` untouched.
+- `RightPanelNew.js` — `AudioPanel`: new handler + button.
+
+### 2. Clear (X) in the search box
+
+Appears only when the box has text; clears and refocuses.
+- `RightPanelNew.js:1085` — search input.
+
+### 3. Tags on tracks
+
+Mood/character labels, filterable, on both lanes (music *and* SFX — "boom",
+"riser", "whoosh" is the same problem as "hyped", "sad").
+- `assets.js` — `tags: []` on the entry, defaulted on read; `setAssetTags()`.
+- `main.js` + `preload.js` — `assets:setTags`.
+- Panel — tag chips on the row, a tag filter strip, add/remove UI.
+- **Decided:** presets + free text. Presets: Hyped, Epic, Tense, Sad, Moody,
+  Chill, Funny, Eerie, Triumphant.
+- **Decided:** seed tags from folder names on first run (one-time,
+  non-destructive, editable). His folders already encode mood: "Troll - Derpy -
+  Funny", "Lowkey - Just Chatting".
+
+### 4. Mini player with scrub
+
+**Change:** the playing row grows a seek strip — position, total, click/drag to
+seek. Reuses the single existing `audioRef` (`RightPanelNew.js:877`).
+**Perf guard:** the position tick must NOT re-render the list. The row body moves
+into its own memoised `TrackRow` component so only the playing row repaints.
+- `RightPanelNew.js` — extract row; add a `timeupdate`/rAF tick inside it.
+
+### 5. Waveform per row
+
+Reuses the live `assetsPeaks` path and its disk cache. Converges with item 4: the
+playing row's scrub strip *is* the waveform, so you scrub by eye.
+**Cost:** one FFmpeg decode per file on first sight. 760 files eagerly is roughly
+5 minutes of decoding across 12.6 GB — so it must not be eager.
+- **Decided:** lazy as rows scroll into view, capped concurrency (~2-3). No
+  eager pass. Cold scroll is slow once per folder, then cache hits.
+
+### 6. Save a per-sound default volume
+
+**Change:** `defaultVolume` on the asset entry. Right-click a block on the
+timeline → the existing sound popover gains **Save as default for this sound**
+under the Volume slider. Every future placement of that sound opens at that
+level; a small `60%` badge on the library row shows which sounds are calibrated,
+with a way to clear it.
+- `assets.js` — `defaultVolume` + `setAssetDefaultVolume()`.
+- `main.js` + `preload.js` — `assets:setDefaultVolume`.
+- `useEditorStore.js:449` — `asset.defaultVolume ?? (kind === "music" ? 0.4 : 0.6)`.
+- `TimelinePanelNew.js:1361` — the save button under the slider.
+Graceful failure when the asset is no longer in the library (deleted/un-watched).
+
+### 7. Fade in / out on SFX
+
+Remove the four `kind === "music"` gates listed above. The math already works for
+both kinds.
+**One real fix while in here:** the sliders are fixed 0–3s, and most one-shots are
+under a second — a 3s fade on a 0.4s boom is nonsense. `render.js:258` guards
+fade-*out* against block length; fade-*in* has no guard at all. Clamp both slider
+maxes to the block's own length.
+- `useEditorStore.js:453`, `TimelinePanelNew.js:1364`, `PreviewPanelNew.js:1277`,
+  `render.js:256`, `__tests__/renderAudioMix.test.js`.
+
+### 8. Recently used
+
+**Change:** `lastUsedAt` stamped on the asset entry at the single placement
+chokepoint (`RightPanelNew.js:998`). Surfaced as a third filter pill beside
+All / Favorites → **Recent**: newest first, grouping dropped, capped ~30,
+per-lane so each tab keeps its meaning.
+- **Decided:** one-time backfill from existing clips, so the tab is useful the
+  first time it's opened. Backfill walks the saved project JSONs, reads each
+  clip's `sfx[]`, and matches on `path` first / `assetId` second (path is stable
+  across index rebuilds; a regenerated `assetId` is not).
+
+### Assumptions I'm making without asking
+
+- **`AudioPanel` moves to its own file.** It's ~435 lines inside a 2818-line
+  `RightPanelNew.js`, and these eight items add several hundred more. Moving it
+  to `components/audio/AudioPanel.js` + `TrackRow.js` follows the existing
+  `leftpanel/` precedent. Pure move, no logic change, same commit.
+- **Tags apply to both lanes**, not music only.
+- **Re-using a sound bumps it** to the top of Recent, even within one clip.
+- **No electron-store migration needed** — `assets.json` is its own file with
+  read-time defaults, the pattern `favorite` and `typeLocked` already use.
+
+### Sequencing
+
+The panel row is about to carry tags, a waveform, a scrub strip, a volume badge
+and the existing five actions. That's aesthetic-sensitive and dense, so:
+
+0. **HTML mock of the new row + player + tag strip, opened in the browser for
+   approval** before any React is written.
+1. Items 2, 7, 1 — small and independent, land first.
+2. Item 6 — small, high value, self-contained.
+3. Row extraction, then items 4 + 5 together (they share the strip).
+4. Item 3, then item 8.
+
+### Verification criteria
+
+- `npm run build:renderer` clean, `npm start` launches, Audio panel opens.
+- **1:** drop a file into a watched folder with the panel open → refresh shows it
+  and reports the count.
+- **2:** typing then clicking X empties the box and restores the full list.
+- **3:** tag a track, close and reopen the editor, tag survives; filter narrows.
+- **4:** click play, drag the strip mid-track, audio jumps to that point.
+- **5:** scroll a folder cold, waveforms fill in without freezing the panel;
+  reopen and they're instant (cache hit).
+- **6:** save 45% on a boom, place it on a fresh clip → it opens at 45%.
+- **7:** SFX popover shows both fade sliders; a 0.5s one-shot caps at 0.5s;
+  render the clip and confirm the fade is audible (and `render.js` emits `afade`).
+- **8:** place a sound, switch to Recent → it's top of the list.
+- No regressions: preview volume slider, favorites, lane override, Length sort,
+  offline/missing flags, group collapse all still behave.
+- Unmount cleanup still pauses and drops the audio element (standing rule).
+
+---
+
 ## ✅ DONE (session 137) — Audio library: link Fega's real folders instead of copying (#208) — **built + verified on the dev build; NOT yet on Fega's installed daily driver**
 
 Drafted at the end of session 136 (2026-07-29); re-measured, revised and built in

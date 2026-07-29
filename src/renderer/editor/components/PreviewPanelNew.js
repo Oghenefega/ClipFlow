@@ -1274,14 +1274,15 @@ export default function PreviewPanelNew() {
       }
       const offset = timelineTime - p.tlStart;
       let vol = Math.max(0, Math.min(1, p.volume ?? 1));
-      if (p.kind === "music") {
-        // Fades are relative to this block, not to the clip.
-        const fi = p.fadeIn || 0;
-        const fo = p.fadeOut || 0;
-        if (fi > 0 && offset < fi) vol *= offset / fi;
-        const untilEnd = p.tlEnd - timelineTime;
-        if (fo > 0 && untilEnd < fo) vol *= Math.max(0, untilEnd / fo);
-      }
+      // Fades are relative to this block, not to the clip, and apply to BOTH
+      // kinds (#209). Clamped to the block so a fade left over from before a
+      // trim can't ramp across the whole sound (same rule as render.js).
+      const blockLen = Math.max(0, p.tlEnd - p.tlStart);
+      const fi = Math.min(Math.max(0, p.fadeIn || 0), blockLen);
+      const fo = Math.min(Math.max(0, p.fadeOut || 0), blockLen);
+      if (fi > 0 && offset < fi) vol *= offset / fi;
+      const untilEnd = p.tlEnd - timelineTime;
+      if (fo > 0 && untilEnd < fo) vol *= Math.max(0, untilEnd / fo);
       el.volume = vol;
       el.playbackRate = videoRef.current?.playbackRate || 1;
       // The file plays from its trim point, not from its start.

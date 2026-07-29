@@ -153,4 +153,35 @@ describe("buildNleFilterComplex — #202 audio asset mixing", () => {
     });
     expect(filterComplex).toContain("volume=1[mixin0]");
   });
+
+  // #209: fades were gated on kind === "music" in the graph, the preview, the
+  // popover and the store default. A cinematic boom wants a tail too, and the
+  // afade math was never music-specific.
+  test("SFX fades: afade is emitted for a one-shot, same as for a song", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, true, null, undefined, undefined, {
+      audioAssets: [{
+        inputIndex: 3, kind: "sfx", volume: 0.6, delaySec: 2,
+        trimStart: 0, trimEnd: 4, durationSec: 4, fadeIn: 0.5, fadeOut: 1,
+      }],
+    });
+    expect(filterComplex).toContain(
+      "[3:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:4,asetpts=PTS-STARTPTS," +
+      "afade=t=in:st=0:d=0.5,afade=t=out:st=3:d=1,volume=0.6,adelay=2000:all=1[mixin0]"
+    );
+  });
+
+  // A fade set before a trim shortened its block outlives that trim. Fade-OUT
+  // was already guarded by `len > a.fadeOut`; fade-IN had no guard anywhere, so
+  // a 3s fade on a 0.4s boom ramped through the whole sound without ever
+  // reaching full level.
+  test("fades longer than the block are clamped to what actually plays", () => {
+    const { filterComplex } = buildNleFilterComplex(SEGS_2, true, null, undefined, undefined, {
+      audioAssets: [{
+        inputIndex: 3, kind: "sfx", volume: 1, delaySec: 0,
+        trimStart: 0, trimEnd: 0.4, durationSec: 5, fadeIn: 3, fadeOut: 3,
+      }],
+    });
+    expect(filterComplex).toContain("afade=t=in:st=0:d=0.4");
+    expect(filterComplex).toContain("afade=t=out:st=0:d=0.4");
+  });
 });

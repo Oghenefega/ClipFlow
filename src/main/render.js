@@ -253,10 +253,14 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
         // so adelay would otherwise stack on top and the sound would land late.
         chain += `,atrim=${+trimStart.toFixed(3)}:${+trimEnd.toFixed(3)},asetpts=PTS-STARTPTS`;
       }
-      if (a.kind === "music") {
-        if (a.fadeIn > 0) chain += `,afade=t=in:st=0:d=${a.fadeIn}`;
-        if (a.fadeOut > 0 && len > a.fadeOut) chain += `,afade=t=out:st=${+(len - a.fadeOut).toFixed(3)}:d=${a.fadeOut}`;
-      }
+      // Fades apply to BOTH kinds (#209) — only the old gate was music-specific.
+      // Clamped to what actually plays: a saved fade outlives the trim that
+      // shortened its block, and an over-long fade-in ramps through the whole
+      // sound without ever reaching full level.
+      const fadeIn = Math.min(Math.max(0, a.fadeIn || 0), len);
+      const fadeOut = Math.min(Math.max(0, a.fadeOut || 0), len);
+      if (fadeIn > 0) chain += `,afade=t=in:st=0:d=${+fadeIn.toFixed(3)}`;
+      if (fadeOut > 0) chain += `,afade=t=out:st=${+(len - fadeOut).toFixed(3)}:d=${+fadeOut.toFixed(3)}`;
       chain += `,volume=${Math.max(0, Math.min(1, a.volume ?? 1))}`;
       const delayMs = Math.round((a.delaySec || 0) * 1000);
       if (delayMs > 0) chain += `,adelay=${delayMs}:all=1`;

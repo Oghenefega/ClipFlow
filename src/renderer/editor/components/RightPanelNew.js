@@ -874,14 +874,17 @@ function AudioPanel() {
   // broadcast loudness, and a placed song sits at 0.4 anyway, so previewing at
   // 1.0 was both painful and a lie about how it lands on the clip.
   const [previewVolume, setPreviewVolume] = useState(0.35);
+  const [refreshing, setRefreshing] = useState(false);
   const audioRef = useRef(null);
   const statusTimer = useRef(null);
+  const searchRef = useRef(null);
 
   const refresh = useCallback(async () => {
     const result = await window.clipflow.assetsList();
     if (result?.success) setAssets(result.assets);
     else if (result?.error) setStatus({ text: result.error, error: true });
     setLoaded(true);
+    return result?.success ? result.assets : null;
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -930,6 +933,25 @@ function AudioPanel() {
     clearTimeout(statusTimer.current);
     statusTimer.current = setTimeout(() => setStatus(null), 5000);
   }, []);
+
+  // #209: `assets:list` already re-walks every watched folder and absorbs new
+  // files, so the library was never actually blind — but the only trigger was
+  // opening the panel, and nothing said it had happened. With the panel already
+  // open, a file dropped into the folder looked ignored.
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const before = new Set(assets.map((a) => a.id));
+    const next = await refresh();
+    setRefreshing(false);
+    if (!next) return; // refresh() already flashed the error
+    const added = next.filter((a) => !before.has(a.id));
+    if (!added.length) { flashStatus("Nothing new"); return; }
+    // A just-absorbed file has no duration yet, so it has no lane yet either and
+    // shows in neither tab until backfillDurations probes it (#208). Saying so
+    // stops the count from contradicting the list for the second that takes.
+    const sorting = added.some((a) => !a.type);
+    flashStatus(`${added.length} new track${added.length === 1 ? "" : "s"}${sorting ? " — sorting them now" : ""}`);
+  }, [assets, refresh, flashStatus]);
 
   const importFiles = useCallback(async (paths) => {
     if (!paths || paths.length === 0) return;
@@ -1082,8 +1104,18 @@ function AudioPanel() {
       <div className="flex items-center gap-1.5 px-3 py-2">
         <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-secondary/50 border border-border/40 flex-1">
           <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
+          <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
             className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground" />
+          {/* #209: clearing a query took backspacing the whole thing out. */}
+          {search && (
+            <button
+              onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+              title="Clear search"
+              className="shrink-0 h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
         <TooltipProvider delayDuration={200}>
           {/* Preview volume — affects auditioning here only, never the clip */}
@@ -1118,6 +1150,17 @@ function AudioPanel() {
               </p>
             </PopoverContent>
           </Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0"
+                onClick={handleRefresh} disabled={refreshing}>
+                {refreshing
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <RefreshCw className="h-3.5 w-3.5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-[12px]">Check your audio folders for new files</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={handleUpload}>

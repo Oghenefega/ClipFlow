@@ -450,7 +450,10 @@ const useEditorStore = create((set, get) => ({
       sourceTime,
       trimStart: 0,
       trimEnd: fileLen,
-      ...(kind === "music" ? { fadeIn: 0, fadeOut: 0 } : {}),
+      // #209: both kinds fade. A cinematic boom wants a tail as much as a song
+      // does; the fade math was never music-specific, only the gates were.
+      fadeIn: 0,
+      fadeOut: 0,
     };
 
     let list = get().audioPlacements;

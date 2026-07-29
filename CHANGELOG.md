@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 138) — Audio panel: refresh, clear search, fades on sound effects (#209)
+
+### Added
+- **A refresh button on the Audio panel, so a sound dropped into a watched folder shows up without leaving the panel (#209).** The library was never actually blind — opening the panel already re-walks every watched folder and absorbs new files — but the only way to trigger that was to switch panels and come back, and nothing ever said it had happened, which is indistinguishable from ClipFlow not noticing the file at all. The button sits beside Upload, spins while it works, and reports what it found: `3 new tracks`, or `Nothing new`. A file that has just been absorbed has no length read yet and therefore no Music/SFX lane yet, so the message says `— sorting them now` in that case rather than letting the count contradict an unchanged list. [RightPanelNew.js]
+- **Fade in and fade out are now available on sound effects, not just music (#209).** Right-clicking a sound effect on the timeline shows both sliders, and they work in the preview and in the finished render exactly as they do for a song — a cinematic boom wants a tail as much as a music bed does. The fade calculation was never music-specific; it was simply gated off for sound effects in four separate places. [useEditorStore.js, TimelinePanelNew.js, PreviewPanelNew.js, render.js]
+
+### Fixed
+- **An X button in the Audio panel search box, instead of backspacing a query out one character at a time (#209).** Appears only when there is something to clear, and puts the cursor back in the box so the next search can be typed straight away. [RightPanelNew.js]
+- **Fade sliders no longer offer a length the sound doesn't have.** They were a fixed 0–3 seconds regardless of the block, which is meaningless on a half-second one-shot — and fade-*in* had no length guard anywhere in the app, so a fade longer than the sound ramped through the whole thing and never reached full volume. Both sliders now cap at the length of the block they belong to (switching to two decimal places for sounds under half a second), and both the preview and the render clamp the stored value too, so a fade left over from before a trim can't misbehave. [TimelinePanelNew.js, PreviewPanelNew.js, render.js]
+
 ## [Unreleased] — 2026-07-29 (session 137) — 0.3.0-alpha.30: audio loudness pass
 
 ### Changed

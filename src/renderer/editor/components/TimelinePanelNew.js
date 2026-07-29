@@ -1332,6 +1332,17 @@ export default function TimelinePanelNew() {
         const trimStart = p.trimStart || 0;
         const trimEnd = p.trimEnd != null ? p.trimEnd : fileLen;
         const trimmed = trimStart > 0.01 || (fileLen > 0 && trimEnd < fileLen - 0.01);
+        // #209: fades are capped by what this block actually plays. The sliders
+        // used to be a fixed 0-3s, which is nonsense on a 0.4s one-shot — and
+        // fade-in had no length guard anywhere, so an over-long one ramped
+        // through the whole sound without reaching full level. Readouts show the
+        // clamped value so they agree with what preview and render do.
+        const blockLen = Math.max(0, trimEnd - trimStart);
+        const fadeMax = Math.min(3, blockLen);
+        const fadeStep = fadeMax <= 0.5 ? 0.05 : 0.1;
+        const fadeDigits = fadeMax <= 0.5 ? 2 : 1;
+        const fadeIn = Math.min(Math.max(0, p.fadeIn || 0), fadeMax);
+        const fadeOut = Math.min(Math.max(0, p.fadeOut || 0), fadeMax);
         // One undo entry per settings session, pushed on the FIRST change only —
         // opening and closing without touching anything must not eat a Ctrl+Z.
         const setProps = (patch) => {
@@ -1361,22 +1372,22 @@ export default function TimelinePanelNew() {
                 <Slider value={[Math.round((p.volume ?? 1) * 100)]} min={0} max={100} step={1}
                   onValueChange={([v]) => setProps({ volume: v / 100 })} />
               </div>
-              {p.kind === "music" && (
+              {fadeMax >= 0.05 && (
                 <>
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] text-muted-foreground">Fade in</span>
-                      <span className="text-[11px] text-foreground">{(p.fadeIn || 0).toFixed(1)}s</span>
+                      <span className="text-[11px] text-foreground">{fadeIn.toFixed(fadeDigits)}s</span>
                     </div>
-                    <Slider value={[p.fadeIn || 0]} min={0} max={3} step={0.1}
+                    <Slider value={[fadeIn]} min={0} max={fadeMax} step={fadeStep}
                       onValueChange={([v]) => setProps({ fadeIn: v })} />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] text-muted-foreground">Fade out</span>
-                      <span className="text-[11px] text-foreground">{(p.fadeOut || 0).toFixed(1)}s</span>
+                      <span className="text-[11px] text-foreground">{fadeOut.toFixed(fadeDigits)}s</span>
                     </div>
-                    <Slider value={[p.fadeOut || 0]} min={0} max={3} step={0.1}
+                    <Slider value={[fadeOut]} min={0} max={fadeMax} step={fadeStep}
                       onValueChange={([v]) => setProps({ fadeOut: v })} />
                   </div>
                 </>
