@@ -868,6 +868,7 @@ function AudioPanel() {
   const [playingId, setPlayingId] = useState(null);
   const [armedDeleteId, setArmedDeleteId] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState(() => new Set());
+  const [sortMode, setSortMode] = useState("folder"); // folder | name | length
   const [scan, setScan] = useState(null); // { done, total } while durations are read
   const audioRef = useRef(null);
   const statusTimer = useRef(null);
@@ -1006,21 +1007,37 @@ function AudioPanel() {
   // Watched folders keep their own shape — Fega's mood folders ("Troll - Derpy
   // - Funny", "Lowkey - Just Chatting") are the useful part of his library.
   // Insertion order follows the scan, so a folder's tracks stay together.
+  // Sorting by length drops the folders instead: the point of that view is to
+  // compare across the whole lane, which grouping would hide.
   const groups = useMemo(() => {
+    if (sortMode === "length") {
+      // The end nearest the OTHER lane comes first — a song that is suspiciously
+      // short and an effect that is suspiciously long are the two shapes the
+      // duration rule gets wrong, so this lands them at the top of each tab.
+      const dir = subTab === "music" ? 1 : -1;
+      const sorted = [...filteredTracks].sort((a, b) => dir * ((a.durationSec ?? 0) - (b.durationSec ?? 0)));
+      return [{ name: null, path: null, tracks: sorted }];
+    }
     const byName = new Map();
     for (const t of filteredTracks) {
       const g = t.group || "Other";
-      if (!byName.has(g)) byName.set(g, []);
-      byName.get(g).push(t);
+      if (!byName.has(g)) byName.set(g, { path: t.groupPath, tracks: [] });
+      byName.get(g).tracks.push(t);
     }
-    return [...byName.entries()].map(([name, tracks]) => ({ name, tracks }));
-  }, [filteredTracks]);
+    let out = [...byName.entries()].map(([name, v]) => ({ name, path: v.path, tracks: v.tracks }));
+    if (sortMode === "name") {
+      out = out
+        .map((g) => ({ ...g, tracks: [...g.tracks].sort((a, b) => a.name.localeCompare(b.name)) }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return out;
+  }, [filteredTracks, sortMode, subTab]);
 
   // Groups start collapsed — hundreds of open rows is a wall. Searching opens
   // everything so nothing is buried behind a closed folder, and a lone group
   // never collapses (a small uploaded library behaves exactly as before).
   const searching = search.trim().length > 0;
-  const grouped = groups.length > 1;
+  const grouped = sortMode !== "length" && groups.length > 1;
   const isOpen = useCallback(
     (name) => searching || !grouped || expandedGroups.has(name),
     [searching, grouped, expandedGroups],
@@ -1076,7 +1093,7 @@ function AudioPanel() {
         </div>
       )}
 
-      {/* Filter pills */}
+      {/* Filter pills + sort */}
       <div className="flex items-center gap-1.5 px-3 pb-2">
         {[false, true].map((fav) => (
           <button key={String(fav)} onClick={() => setShowFavorites(fav)}
@@ -1086,6 +1103,26 @@ function AudioPanel() {
             {fav ? "Favorites" : "All"}
           </button>
         ))}
+        <TooltipProvider delayDuration={200}>
+          <div className="ml-auto flex items-center gap-1.5">
+            {[["folder", "Folder", "Grouped by the folder they live in"],
+              ["name", "Name", "A to Z within each folder"],
+              ["length", "Length", subTab === "music" ? "Shortest first — the ones most likely to be sound effects" : "Longest first — the ones most likely to be music"]]
+              .map(([id, label, hint]) => (
+                <Tooltip key={id}>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setSortMode(id)}
+                      className={`shrink-0 text-[11px] transition-colors ${
+                        sortMode === id ? "text-primary font-medium" : "text-muted-foreground/70 hover:text-foreground"
+                      }`}>
+                      {label}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-[12px]">{hint}</TooltipContent>
+                </Tooltip>
+              ))}
+          </div>
+        </TooltipProvider>
       </div>
 
       <Separator />
@@ -1094,14 +1131,16 @@ function AudioPanel() {
       <ScrollArea className="flex-1">
         <div className="py-1">
           {groups.map((g) => (
-            <div key={g.name}>
+            <div key={g.name || "__all__"}>
               {grouped && (
                 <button onClick={() => toggleGroup(g.name)}
                   className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/20 transition-colors">
                   {isOpen(g.name)
                     ? <ChevronDown className="h-3 w-3 shrink-0" />
                     : <ChevronRight className="h-3 w-3 shrink-0" />}
-                  <span className="truncate" title={g.name}>{g.name}</span>
+                  {/* Hover shows the real folder — the short name alone can't say
+                      which "Music" or "SFX" folder this is. */}
+                  <span className="truncate" title={g.path || g.name}>{g.name}</span>
                   <span className="ml-auto opacity-60">{g.tracks.length}</span>
                 </button>
               )}

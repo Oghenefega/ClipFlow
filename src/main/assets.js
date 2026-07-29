@@ -116,6 +116,21 @@ function watchedRoots(folders, onlyEnabled) {
     .map((f) => path.resolve(f.path));
 }
 
+// Folder names that say nothing on their own. A group headed "Music" or "SFX"
+// reads as a contradiction inside the opposite lane's tab, so these borrow their
+// parent's name. Every other folder keeps its own — in a real library that name
+// is the useful part ("Troll - Derpy - Funny"), and prefixing them all would
+// push it off the right edge of a narrow panel.
+const VAGUE_FOLDER_NAMES = new Set(["music", "sfx", "effects", "sound effects", "sounds", "sound", "audio"]);
+
+/** The label the Audio panel heads this folder's tracks with. */
+function groupLabel(dir) {
+  const name = path.basename(dir);
+  if (!VAGUE_FOLDER_NAMES.has(name.toLowerCase())) return name;
+  const parent = path.basename(path.dirname(dir));
+  return parent && parent !== name ? `${parent} › ${name}` : name;
+}
+
 /** Is `file` inside `dir`? Both absolute. */
 function isUnder(file, dir) {
   const a = file.toLowerCase();
@@ -201,17 +216,19 @@ async function listAssets(assetsRoot, folders) {
   return assets.flatMap((a) => {
     const abs = resolvePath(assetsRoot, a);
     if (a.source !== "folder") {
-      return [{ ...a, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads" }];
+      return [{ ...a, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads", groupPath: getFilesDir(assetsRoot) }];
     }
     // A folder toggled off leaves the panel but keeps its index entries.
     if (!roots.some((r) => isUnder(abs, r))) return [];
     const offline = !reachableRoots.some((r) => isUnder(abs, r));
+    const dir = path.dirname(abs);
     return [{
       ...a,
       path: abs,
       offline,
       missing: !offline && !onDisk.has(abs.toLowerCase()),
-      group: path.basename(path.dirname(abs)),
+      group: groupLabel(dir),
+      groupPath: dir,
     }];
   });
 }
