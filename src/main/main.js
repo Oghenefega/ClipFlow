@@ -3023,20 +3023,27 @@ async function doRenderClip(clipData, projectData, outputPath, options, emit) {
       return { canceled: true };
     }
 
-    // Extract thumbnail from rendered clip
+    // Extract thumbnail from rendered clip. #205: it lives in the project's own
+    // clips folder, NOT beside the MP4 — the output folder is a folder the user
+    // browses, and a jpg per render buried it. Keyed by clip id (like the repair
+    // thumbnails) so two same-titled clips can't collide and a retitle never has
+    // to move it.
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
     let thumbnailPath = null;
-    try {
-      const thumbName = path.basename(result.path, ".mp4") + "_thumb.jpg";
-      thumbnailPath = path.join(path.dirname(result.path), thumbName);
-      await ffmpeg.generateThumbnail(result.path, thumbnailPath, 1);
-    } catch (e) {
-      console.warn("[render] Thumbnail extraction failed:", e.message);
-      thumbnailPath = null;
+    if (projectData?.id && clipData?.id) {
+      try {
+        const clipsDir = projects.getClipsDir(watchFolder, projectData.id);
+        fs.mkdirSync(clipsDir, { recursive: true });
+        thumbnailPath = path.join(clipsDir, `${clipData.id}_renderthumb.jpg`);
+        await ffmpeg.generateThumbnail(result.path, thumbnailPath, 1);
+      } catch (e) {
+        console.warn("[render] Thumbnail extraction failed:", e.message);
+        thumbnailPath = null;
+      }
     }
 
     // Update clip renderStatus in project JSON
     if (projectData?.id && clipData?.id) {
-      const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
       try {
         projects.updateClip(watchFolder, projectData.id, clipData.id, {
           renderStatus: "rendered",

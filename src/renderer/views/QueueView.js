@@ -18,6 +18,70 @@ const TrashIcon = ({ size = 13 }) => (
   </svg>
 );
 
+// #204: the two hover-revealed row actions. Same stroke style as TrashIcon.
+const FolderIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2Z" />
+  </svg>
+);
+
+const EditorIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M10 9.5v5l4.5-2.5Z" />
+  </svg>
+);
+
+// Shared style for the hover-revealed icon buttons (Show in folder / Open in
+// editor) and their wrapper. Hidden by default; the row's mouseenter flips
+// opacity + pointerEvents directly, the same way it already swaps the row wash —
+// no hover state, so mousing down a long queue never re-renders the list.
+const ROW_ACTS_HIDDEN = { display: "flex", gap: 4, opacity: 0, pointerEvents: "none", transition: "opacity 0.15s" };
+// textTertiary, not the trash's textMuted: the trash is always on screen and
+// wants to recede, these two only exist while the row is hovered and have to be
+// legible the moment they appear.
+const rowActBtn = {
+  width: 24, height: 24, flexShrink: 0, borderRadius: 6, border: "none", background: "transparent",
+  color: T.textTertiary, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+  transition: "color 0.15s, background 0.15s",
+};
+const setRowActions = (e, shown) => {
+  const el = e.currentTarget.querySelector("[data-rowacts]");
+  if (!el) return;
+  el.style.opacity = shown ? "1" : "0";
+  el.style.pointerEvents = shown ? "auto" : "none";
+};
+
+// #204: reveal the render in Explorer / jump to the clip in the editor, so a
+// queued clip can be watched or located without hunting for its project first.
+function RowActions({ clip, onOpenInEditor }) {
+  const hover = (e, on) => {
+    e.currentTarget.style.color = on ? T.text : T.textTertiary;
+    e.currentTarget.style.background = on ? "rgba(255,255,255,0.07)" : "transparent";
+  };
+  return (
+    <div data-rowacts style={ROW_ACTS_HIDDEN}>
+      {clip.renderPath && (
+        <button
+          onClick={(e) => { e.stopPropagation(); window.clipflow?.revealInFolder(clip.renderPath); }}
+          title="Show the rendered video in Explorer"
+          style={rowActBtn}
+          onMouseEnter={(e) => hover(e, true)}
+          onMouseLeave={(e) => hover(e, false)}
+        ><FolderIcon /></button>
+      )}
+      {clip._projectId && onOpenInEditor && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenInEditor(clip._projectId, clip.id); }}
+          title="Open this clip in the editor"
+          style={rowActBtn}
+          onMouseEnter={(e) => hover(e, true)}
+          onMouseLeave={(e) => hover(e, false)}
+        ><EditorIcon /></button>
+      )}
+    </div>
+  );
+}
+
 const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const FULL_DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
@@ -499,7 +563,7 @@ export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
-  platformOptions, setPlatformOptions, gamesDb, awardXp,
+  platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -1628,7 +1692,7 @@ export default function QueueView({
           </div>
         </div>
         {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 104px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 160px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["", "Clip", "Title", "Game", "Platforms", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -1667,9 +1731,9 @@ export default function QueueView({
                   {/* Table row */}
                   <div
                     onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 104px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
-                    onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
-                    onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 160px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                    onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; setRowActions(e, true); }}
+                    onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
                   >
                     {/* Drag handle */}
                     <div {...listeners} onClick={(e) => e.stopPropagation()} style={{ cursor: "grab", color: T.textMuted, fontSize: 14 }}>{"\u2630"}</div>
@@ -1702,6 +1766,7 @@ export default function QueueView({
                     <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
                     {/* Action buttons */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                      <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
                       {!isPub && !isPublishing && hasVideoId && (
                         isClipTest(clip) ? (
                           <TestChip isTest disabled size="sm" title="Test clip — publishing blocked. Untoggle TEST on the project to go live." />
@@ -2124,7 +2189,7 @@ export default function QueueView({
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted }}>{filteredScheduled.length} clip{filteredScheduled.length !== 1 ? "s" : ""}</span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 104px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 160px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
           {["Clip", "Title", "Game", "Scheduled For", "Status", ""].map((h, i) => (
             <span key={i} style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.textMuted }}>{h}</span>
           ))}
@@ -2151,9 +2216,9 @@ export default function QueueView({
             <div key={clip.id}>
               <div
                 onClick={() => { if (!isPublishing) { setSelClip(isSel ? null : clip.id); setSchedAction(null); } }}
-                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 104px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
-                onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; }}
-                onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; }}
+                style={{ display: "grid", gridTemplateColumns: "48px 1fr 70px 140px 90px 160px", gap: 0, padding: "10px 14px", alignItems: "center", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: isSel ? rowBgSel : rowBg, transition: "background 0.15s", opacity: isPub ? 0.6 : 1 }}
+                onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = rowBgHover; setRowActions(e, true); }}
+                onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = rowBg; setRowActions(e, false); }}
               >
                 {/* Thumbnail */}
                 <div style={{ width: 34, height: 60, borderRadius: 6, overflow: "hidden", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2171,6 +2236,7 @@ export default function QueueView({
                 <div><span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, whiteSpace: "nowrap" }}>{badge.label}</span></div>
                 {/* Action */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                  <RowActions clip={clip} onOpenInEditor={onOpenInEditor} />
                   {!isPub && !isPublishing && hasVideoId && (() => {
                     const tikBlock = getTiktokBlockReason(clip);
                     return (

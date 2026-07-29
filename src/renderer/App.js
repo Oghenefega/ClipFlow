@@ -584,10 +584,18 @@ export default function App() {
     window.clipflow?.projectUpdateClip?.(projectId, clipId, fields).catch(() => {});
   }, []);
 
-  const handleOpenInEditor = useCallback((projectId, clipId) => {
-    setEditorContext({ projectId, clipId });
+  // `from` is where Back should land (#204). Omitted = the project's clip list,
+  // which is right for every caller inside Projects.
+  const handleOpenInEditor = useCallback((projectId, clipId, from) => {
+    setEditorContext({ projectId, clipId, from });
     setView("editor");
   }, []);
+
+  // #204: opened from a Queue row — Back returns to the Queue, not a project
+  // list the user never navigated into.
+  const handleOpenQueueClipInEditor = useCallback((projectId, clipId) => {
+    handleOpenInEditor(projectId, clipId, "queue");
+  }, [handleOpenInEditor]);
 
   // #125: open a raw recording in the editor (watch-only source-preview, no project/clip)
   const handleOpenSourcePreview = useCallback((path, label) => {
@@ -819,6 +827,7 @@ export default function App() {
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
               awardXp={awardXp}
+              onOpenInEditor={handleOpenQueueClipInEditor}
             />
           </div>
         </div>
@@ -941,8 +950,9 @@ export default function App() {
                   }
                 } catch (e) { console.error("Failed to refresh project after editor:", e); }
               }
-              // #125: source-preview opened from Recordings → return there, not Clips
-              const backTo = editorContext?.sourcePreviewPath ? "recordings" : "clips";
+              // #125: source-preview opened from Recordings → return there, not Clips.
+              // #204: a Queue row sets from:"queue" for the same reason.
+              const backTo = editorContext?.sourcePreviewPath ? "recordings" : (editorContext?.from || "clips");
               setReturnClipId(editorContext?.clipId || null); // land the clip list on this clip
               setEditorContext(null); setView(backTo);
             }} onClipRendered={async (projectId) => {

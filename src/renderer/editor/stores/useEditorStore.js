@@ -1092,7 +1092,7 @@ const useEditorStore = create((set, get) => ({
             nleSegments.some((n) => s.startSec < n.sourceEnd && s.endSec > n.sourceStart)
           )
         : editSegments;
-      await window.clipflow.projectUpdateClip(project.id, clip.id, {
+      const res = await window.clipflow.projectUpdateClip(project.id, clip.id, {
         title: clipTitle,
         caption: capState.captionText,
         captionSegments: capState.captionSegments,
@@ -1103,7 +1103,21 @@ const useEditorStore = create((set, get) => ({
         subtitleStyle,
         captionStyle,
       });
-      set({ dirty: false });
+      // #188: `clip` is a snapshot taken when the clip was opened, and the render
+      // payload spreads it (renderPayload.js). Retitling only moves `clipTitle`,
+      // so without refreshing the snapshot a render is stamped with the title the
+      // clip had on open — "Clip 3.mp4" forever. `renderPath`/`thumbnailPath` go
+      // stale the same way, and resolveRenderOutputPath needs the current
+      // renderPath to recognise (and overwrite) this clip's OWN file.
+      // Gated on the three fields main can rewrite behind the renderer's back so
+      // an ordinary autosave swaps nothing and costs no re-render.
+      const next = res?.clip;
+      const changed = !!next && (
+        next.title !== clip.title ||
+        next.renderPath !== clip.renderPath ||
+        next.thumbnailPath !== clip.thumbnailPath
+      );
+      set({ dirty: false, ...(changed ? { clip: next } : {}) });
       return true;
     } catch (e) {
       console.error("Save failed:", e);

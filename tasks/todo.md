@@ -6,6 +6,226 @@
 
 ---
 
+## ✅ DONE (session 136) — Queue row buttons, render filenames, thumbnail placement — **built + verified on the dev build; NOT yet on Fega's installed daily driver**
+
+All three shipped as planned, plus both on-disk cleanups. Verified by driving the
+built dev-profile app over CDP.
+
+**What the live drive proved:**
+- 29 Queue rows each carry both buttons, hidden at rest (opacity 0,
+  pointer-events none); hovering reveals exactly one row's pair.
+- **Open in editor** loaded the right clip ("I went speechless #eggingon"), and
+  **Back returned to the Queue tab**, not the project clip list.
+- **Show in folder** opened Explorer at `…\ClipFlow Renders`, the folder holding
+  that clip's MP4 (confirmed against its stored `renderPath`).
+- **#188, the exact reported scenario:** retitled a clip and pressed **Queue
+  without pressing Save** → the render landed as
+  `ZZ Render Probe 136 #arcraiders.mp4`. Pre-fix that file would have been
+  `Clip 1.mp4`.
+- **Re-render case:** retitling an already-rendered clip updated the store
+  snapshot's `renderPath` along with the title (the #188 `updateClip` rename
+  fired and propagated back), so no `(2)` twin. Verified on a real clip and
+  reverted.
+- **#205:** the test render wrote its thumbnail to
+  `<project>/clips/<clipId>_renderthumb.jpg` and left **no JPG beside the MP4**.
+  28 Queue rows now draw from the moved location, 0 broken images.
+- 125 jest tests green. App boots clean with no errors in the log.
+- Test render and its thumbnail deleted; the test project's `project.json`
+  restored byte-for-byte from a pre-run backup.
+
+**Cleanup results (real library):** renders folder went from 53 mp4 + 54 jpg to
+**53 mp4 + 1 png** (the PNG is a deliberate WYSIWYG Shorts thumbnail, untouched).
+7 videos renamed to their real titles.
+
+### Three pre-existing things left alone, needing Fega's call
+
+1. **One rename blocked.** `2026-07-20 RL Day9 Pt3 / Clip 6.mp4` (title *"Rocket
+   League has the worst kickoffs #rocketleague"*) can't take its proper name —
+   an **unreferenced** file of that exact name, byte-identical in size, already
+   sits in the folder. It is almost certainly the first render of this same
+   clip: it got the name right, the re-render stamped `Clip 6`, and #188 left
+   the good name on the orphan. Suffixing `(2)` would have been worse. Deleting
+   the 18.6 MB orphan and renaming `Clip 6.mp4` into its place is the fix.
+2. **24 orphan MP4s** in the renders folder that no clip points at (~1.4 GB),
+   mostly pre-#181 flat-folder leftovers. Listed but not touched.
+3. **Two dangling pointers in the real library**, both traced to the dev
+   profile's `outputFolder` having been left pointed at a temp folder by an
+   earlier session: `2026-07-20 RL Day9 Pt4 / "Clip 1"` has a `thumbnailPath`
+   into `…\Temp\claude\clipflow-thumb-test\` (broken image in the UI), and
+   `"Clip 3"` in the same project claims a `renderPath` (`Clip 3 (2).mp4`) that
+   doesn't exist. #205 closes the leak going forward.
+
+---
+
+### Original plan (for reference)
+
+Three items from Fega: two Queue-row buttons (feature), the "Clip N.mp4"
+filename bug (#188 follow-up), and the thumbnail clutter in the renders folder.
+
+---
+
+### Item 1 — "Show in folder" + "Open in editor" on each Queue row
+
+**Feature.** Both tables on the Queue tab (Unscheduled and Scheduled) get two
+icon buttons in the right-hand action cell, revealed on row hover.
+
+- **Show in folder** — opens Explorer with the rendered MP4 selected.
+  IPC already exists: `shell:revealInFolder` (`main.js:920`,
+  `preload.js:39` → `window.clipflow.revealInFolder`). Only rendered clips
+  reach the Queue, so the button always has a `renderPath`; still guarded.
+- **Open in editor** — jumps straight to that clip in the editor. App.js
+  already has `handleOpenInEditor(projectId, clipId)` (`App.js:587`), which
+  the Projects clip list uses. Queue clips carry `_projectId`
+  (`QueueView.js:538`), so the call is a direct fit.
+
+**Back-navigation.** `EditorView`'s Back currently returns to the clip browser
+(`App.js:945`). Opened from the Queue that's wrong — it lands on a project
+list. Add `from: "queue"` to `editorContext` and have Back honour it, the same
+way `sourcePreviewPath` already routes back to Recordings.
+
+**Hover reveal** uses the row's existing `onMouseEnter`/`onMouseLeave` handlers
+(which already mutate `style.background` directly) rather than a hover state —
+no re-render of the list on mouse move, and it matches the file's idiom.
+
+**Layout.** Action column grows `104px → 160px` in both grid templates
+(header + row must stay in sync). The `1fr` title column absorbs it.
+
+**Files**
+- `src/renderer/views/QueueView.js` — two buttons × two tables, grid widths,
+  a new `onOpenInEditor` prop.
+- `src/renderer/App.js` — pass `onOpenInEditor` to `QueueView`; teach
+  `EditorView`'s `onBack` about `from: "queue"`.
+
+**Verify**
+- Hover an unscheduled row → both buttons fade in; leave → they fade out.
+- Show in folder → Explorer opens with the right MP4 selected.
+- Open in editor → correct clip loads; Back returns to the Queue tab.
+- Same on a scheduled row. Publish and trash buttons still work.
+
+---
+
+### Item 2 — Renders still land as "Clip N.mp4" after retitling (#188 follow-up)
+
+**Bug. Root cause found — and Fega's hunch about not pressing Save is wrong:
+pressing Save would not have helped.**
+
+`useEditorStore` keeps the clip in two places: `clip` (a whole-record snapshot
+taken once, when the clip is opened — `useEditorStore.js:212-231`) and
+`clipTitle` (the live title box). Editing the title only writes `clipTitle`
+(`useEditorStore.js:333`). `clip.title` stays at whatever it was on open.
+
+Saving persists the new title to disk (`_doSilentSave` sends
+`title: clipTitle`, `useEditorStore.js:1096`) but **never writes the result
+back into `clip`** — so the in-memory snapshot stays stale for the rest of the
+session.
+
+The Queue button then does: `handleSave()` → build payload → render
+(`EditorLayout.js:318-337`). The payload spreads that stale snapshot
+(`renderPayload.js:42-49` — it deliberately overrides `subtitles`,
+`nleSegments` and `sfx` with live state, but not `title`), and the main
+process stamps the filename from `clipData.title`
+(`resolveRenderOutputPath`, `main.js:3111`). Result: `Clip 3.mp4`.
+
+#188's repair path in `updateClip` (`projects.js:266-281`) can't catch it —
+it skips deliberately when the caller is setting `renderPath` itself, which is
+exactly what a finishing render does (`main.js:3041-3045`).
+
+**Confirmed against real data** — 9 clips in Fega's library have a real title
+on record and a placeholder filename on disk, e.g.
+`2026-07-17 RL Day8 Pt8` → file `Clip 1.mp4`, title
+*"He COOKED me completely #rocketleague"*. 15 `Clip N.mp4` files total in
+`ClipFlow Renders`.
+
+**Fix.** One place: `_doSilentSave` writes the saved record back into the
+store when it differs.
+
+```js
+const res = await window.clipflow.projectUpdateClip(project.id, clip.id, {...});
+// The store's `clip` is a load-time snapshot; the render payload spreads it,
+// so without this a retitled clip renders under its old name (#188).
+const next = res?.clip;
+const changed = next && (next.title !== clip.title
+  || next.renderPath !== clip.renderPath
+  || next.thumbnailPath !== clip.thumbnailPath);
+set({ dirty: false, ...(changed ? { clip: next } : {}) });
+```
+
+Only these three fields can be rewritten by the main process behind the
+renderer's back, so gating on them means a normal autosave swaps nothing and
+costs no re-render. Nothing in the editor keys an effect on the `clip` object
+(checked: 4 subscribers, all field reads, no `[clip]` deps).
+
+This also fixes the **re-render** case, which a title-only patch would have
+made worse: `renderPath` is stale for the same reason, so `uniquePath`'s
+"a clip re-rendering onto its own file overwrites in place" check
+(`projects.js:38`) currently fails after a retitle and would spawn
+`New Title (2).mp4` beside an orphaned `New Title.mp4`.
+
+Batch render ("Render All" in Projects) is unaffected — its clips come from
+project state refreshed off disk, not the editor snapshot.
+
+**Files**
+- `src/renderer/editor/stores/useEditorStore.js` — `_doSilentSave` only.
+
+**Verify**
+- Open a clip titled `Clip N`, retitle it, press **Queue** without pressing
+  Save → the MP4 on disk carries the new title.
+- Retitle an already-rendered clip and press Queue → one file, correctly
+  named, no `(2)` twin; the Queue row still plays and publishes it.
+- Retitle, press Save, then Queue → same result.
+- Title before rendering → unchanged from today.
+
+---
+
+### Item 3 — A `_thumb.jpg` next to every rendered clip
+
+**Not a bug; a placement mistake.** The thumbnails are needed — Queue rows and
+cards, the Projects clip grid and the editor's clip strip all read
+`clip.thumbnailPath`. But the render writes its thumbnail as a **sibling of
+the MP4 in the output folder** (`main.js:3029-3031`), which is Fega's browsable
+renders folder. It currently holds **54 jpgs beside 53 mp4s**.
+
+Every other thumbnail in the app already lives inside the project's private
+folder — detection thumbs (`ai-pipeline.js:772`) and repair thumbs
+(`render-collision-repair.js:110`) both use `projects.getClipsDir()`. The
+render thumbnail is the only one that leaks into user space.
+
+**Fix.** Write it to `getClipsDir(projectId)/<clipId>_renderthumb.jpg` instead.
+Keyed by clip id, so it can't collide with a same-titled clip and never needs
+renaming when the title changes — which also means it drops out of
+`renameThumbnailTo`'s rename set (`projects.js:297-306`); that gets a one-line
+guard entry so the intent is explicit rather than accidental.
+
+Nothing else reads the file: no publisher uploads it, and clip deletion
+unlinks by `thumbnailPath` (`projects.js:520`) wherever it points.
+
+**Files**
+- `src/main/main.js` — `doRenderClip` thumbnail destination.
+- `src/main/projects.js` — add `_renderthumb` to the leave-alone suffix list.
+
+**Verify**
+- Render a clip → no new jpg appears in the renders folder; the thumbnail
+  shows on the Queue row and the Projects card as before.
+- Retitle that clip → thumbnail still displays (no rename attempted).
+- Delete the clip with "delete files" → the thumbnail goes with it.
+
+---
+
+### Two backfills — need Fega's yes/no (one-shot scripts run with the app closed, not shipped code)
+
+**A. Rename the 9 mis-named MP4s** to match their real titles and update
+`renderPath` in each project.json. Six of the fifteen `Clip N.mp4` files are
+genuinely still untitled and stay as they are. Safe for already-published
+clips — the platforms hold their own copy; publish-log rows keep the old path
+as correct history. *Recommend: yes.*
+
+**B. Move the 54 stray `_thumb.jpg` files** out of the renders folder into
+each project's private folder, rewriting `thumbnailPath` as they go, and
+delete any that no clip references. Leaves the renders folder as MP4s only.
+*Recommend: yes.*
+
+---
+
 ## ✅ DONE (session 135) — Sounds usability pass (#202 follow-ups) — **shipped as alpha.28, VERIFIED by Fega 2026-07-29, #202 closed**
 
 **Fega's verification, point by point:** waveform shape visible; Alt+drag +

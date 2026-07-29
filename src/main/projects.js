@@ -288,8 +288,9 @@ function updateClip(watchFolder, projectId, clipId, updates) {
 
 /**
  * Rename a clip's thumbnail to follow its new title while KEEPING the suffix
- * convention the file already uses. Three exist and they aren't interchangeable:
- *   `<render name>_thumb.jpg`  — paired to the video filename (main.js:2899)
+ * convention the file already uses. Four exist and they aren't interchangeable:
+ *   `<clip id>_renderthumb.jpg` — post-render thumb, by id, in the project folder (#205)
+ *   `<render name>_thumb.jpg`  — legacy: paired to the video filename, pre-#205
  *   `<clip id>_repairthumb.jpg` — named by id on purpose (render-collision-repair.js)
  *   `<title>_thumbnail.png`     — the WYSIWYG screenshot, a separate feature
  * Anything without a recognised suffix is left alone rather than guessed at.
@@ -298,10 +299,10 @@ function renameThumbnailTo(currentPath, newBase) {
   if (!currentPath) return currentPath;
   const ext = path.extname(currentPath);
   const stem = path.basename(currentPath, ext);
-  const suffix = ["_repairthumb", "_thumbnail", "_thumb"].find((s) => stem.endsWith(s));
-  // Repair thumbnails are keyed by clip id by design — renaming them to a title
-  // would break the convention the repair pass regenerates them under.
-  if (!suffix || suffix === "_repairthumb") return currentPath;
+  const suffix = ["_renderthumb", "_repairthumb", "_thumbnail", "_thumb"].find((s) => stem.endsWith(s));
+  // Id-keyed thumbnails are named that way by design — renaming them to a title
+  // would break the convention their writers regenerate them under.
+  if (!suffix || suffix === "_repairthumb" || suffix === "_renderthumb") return currentPath;
   return renameAssetTo(currentPath, `${newBase}${suffix}`);
 }
 

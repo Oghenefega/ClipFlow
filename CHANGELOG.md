@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 136) — Queue row shortcuts, correct render filenames, tidy renders folder
+
+### Added
+- **Two hover buttons on every Queue row: Show in folder and Open in editor (#204).** Hovering a clip in either Queue table reveals a folder icon that opens Explorer with that clip's rendered MP4 selected, and a play icon that loads the clip straight into the editor. Watching or locating a queued clip no longer means remembering which project it came from and clicking through the project's clip list first. Pressing Back in the editor returns to the Queue rather than dropping you on a project list you never navigated into. [QueueView.js, App.js]
+
+### Fixed
+- **Renders no longer keep the "Clip N" placeholder name when the clip was titled in the same editor session (#188).** The editor holds two copies of the open clip: a whole-record snapshot taken when the clip is opened, and the live title box. Typing a new title only moved the live box; saving wrote it to disk but never refreshed the snapshot, and the render payload is built by spreading that snapshot — so pressing Queue stamped the file with the title the clip had on open. Pressing Save first did not help, because Queue already saves and the save was the thing failing to refresh. Saving now writes the returned record back into the snapshot, gated on the three fields the main process can rewrite behind the renderer's back (title, renderPath, thumbnailPath) so an ordinary autosave still swaps nothing. This also fixes the re-render case, where the stale `renderPath` defeated the "a clip may overwrite its own file" check and would have produced a `Title (2).mp4` beside an orphaned `Title.mp4`. Nine files in Fega's library had a real title on record and a `Clip N.mp4` name on disk. [useEditorStore.js]
+- **Rendered clips no longer drop a thumbnail JPG next to every exported video (#205).** The thumbnails are needed — Queue rows, Projects cards and the editor's clip strip all draw them — but the render was writing them as siblings of the MP4 in the user's own output folder, which had accumulated 54 JPGs beside 53 videos. They now go into the project's private folder as `<clipId>_renderthumb.jpg`, where the detection and repair thumbnails already live. Keying by clip id instead of by render filename means they can't collide between same-titled clips and never need renaming when a title changes. [main.js, projects.js]
+
+### Changed
+- **One-off cleanup of Fega's library** (run once against real data, not shipped code): 29 render thumbnails moved out of the renders folder into their projects, 25 unreferenced thumbnails deleted, and 7 `Clip N.mp4` files renamed to their clips' real titles. The renders folder now holds only videos. One rename was deliberately left alone — see HANDOFF.
+
 ## [Unreleased] — 2026-07-28 (session 135) — 0.3.0-alpha.28: sounds become usable
 
 ### Changed
