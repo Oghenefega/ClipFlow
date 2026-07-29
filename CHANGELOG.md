@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 137) — Preview volume for the Audio panel
+
+### Fixed
+- **Auditioning a track no longer plays at full blast.** The Audio panel's preview never set a volume at all, so clicking play on anything ran at 100% — genuinely painful on a commercial library like Epidemic, which is mastered to broadcast loudness. It was also misleading: a song dropped on a clip starts at 40%, so the preview was louder than the thing it was previewing. Preview now defaults to **35%**, with a speaker button beside Upload opening a slider to change it. The setting persists, applies mid-playback if you move it while something is playing, and affects auditioning only — a sound already on a clip keeps its own volume. [RightPanelNew.js, main.js]
+
 ## [Unreleased] — 2026-07-29 (session 137) — 0.3.0-alpha.29: the audio library, plus four Queue and editor fixes
 
 ### Changed

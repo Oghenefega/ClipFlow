@@ -227,6 +227,10 @@ const STORE_DEFAULTS = {
   // #208: folders whose audio is linked in place, never copied. Scanned
   // recursively. Shape: [{ path, enabled }].
   audioFolders: [],
+  // How loud the Audio panel auditions a track (0–1). Preview only — a placed
+  // sound carries its own volume. Defaults low: a commercial music library is
+  // mastered loud, and full-blast auditioning is painful.
+  audioPreviewVolume: 0.35,
   whisperModel: "large-v3-turbo",
   whisperPythonPath: "",
   localProjects: [],
@@ -314,6 +318,14 @@ function runStoreMigrations(store) {
     logger.info(logger.MODULES.system, `Migrated sfxFolder to audioFolders: ${legacySfxFolder}`);
   }
   if (!Array.isArray(store.get("audioFolders"))) store.set("audioFolders", []);
+
+  // ── Migration (#208): Audio panel preview volume ──
+  // Existing installs have no value; 0 is a legitimate setting, so this checks
+  // the type rather than truthiness or a mute would be reset every launch.
+  const previewVol = store.get("audioPreviewVolume");
+  if (typeof previewVol !== "number" || previewVol < 0 || previewVol > 1) {
+    store.set("audioPreviewVolume", 0.35);
+  }
 
   // ── Migration: analytics deviceId (generate once, persist forever) ──
   if (!store.get("deviceId")) {

@@ -19,7 +19,7 @@ import {
   X, Search, Play, Pause, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FolderOpen, FileImage, Film, Volume2, PenLine, Crop, Trash2,
+  UploadCloud, FolderOpen, FileImage, Film, Volume2, VolumeX, PenLine, Crop, Trash2,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
@@ -870,6 +870,10 @@ function AudioPanel() {
   const [expandedGroups, setExpandedGroups] = useState(() => new Set());
   const [sortMode, setSortMode] = useState("folder"); // folder | name | length
   const [scan, setScan] = useState(null); // { done, total } while durations are read
+  // Auditioning a library plays at full blast otherwise: Epidemic masters to
+  // broadcast loudness, and a placed song sits at 0.4 anyway, so previewing at
+  // 1.0 was both painful and a lie about how it lands on the clip.
+  const [previewVolume, setPreviewVolume] = useState(0.35);
   const audioRef = useRef(null);
   const statusTimer = useRef(null);
 
@@ -902,6 +906,17 @@ function AudioPanel() {
       window.clipflow.removeAssetsScanListeners();
     };
   }, [refresh]);
+
+  useEffect(() => {
+    window.clipflow.storeGet("audioPreviewVolume").then((v) => {
+      if (typeof v === "number" && v >= 0 && v <= 1) setPreviewVolume(v);
+    });
+  }, []);
+
+  // Moving the slider while something is auditioning takes effect immediately.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = previewVolume;
+  }, [previewVolume]);
 
   // Unmount cleanup — stop preview audio and drop the element (standing rule).
   useEffect(() => () => {
@@ -943,13 +958,14 @@ function AudioPanel() {
     if (!audioRef.current) audioRef.current = new Audio();
     const a = audioRef.current;
     a.pause();
+    a.volume = previewVolume;
     a.src = `file://${track.path.replace(/\\/g, "/")}`;
     a.onended = () => setPlayingId(null);
     a.play().then(() => setPlayingId(track.id)).catch(() => {
       flashStatus(`Can't play ${track.name}`, true);
       setPlayingId(null);
     });
-  }, [playingId, flashStatus]);
+  }, [playingId, flashStatus, previewVolume]);
 
   const toggleFavorite = useCallback(async (track) => {
     const result = await window.clipflow.assetsFavorite(track.id);
@@ -1070,6 +1086,38 @@ function AudioPanel() {
             className="flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
         <TooltipProvider delayDuration={200}>
+          {/* Preview volume — affects auditioning here only, never the clip */}
+          <Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+                    {previewVolume === 0
+                      ? <VolumeX className="h-3.5 w-3.5" />
+                      : <Volume2 className="h-3.5 w-3.5" />}
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent className="text-[12px]">Preview volume — {Math.round(previewVolume * 100)}%</TooltipContent>
+            </Tooltip>
+            <PopoverContent align="end" className="w-56 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-medium text-foreground">Preview volume</span>
+                <span className="text-[11px] text-muted-foreground">{Math.round(previewVolume * 100)}%</span>
+              </div>
+              <Slider
+                value={[previewVolume * 100]}
+                min={0}
+                max={100}
+                step={5}
+                onValueChange={([v]) => setPreviewVolume(v / 100)}
+                onValueCommit={([v]) => window.clipflow.storeSet("audioPreviewVolume", v / 100)}
+              />
+              <p className="text-[11px] text-muted-foreground/70 mt-2 leading-snug">
+                How loud tracks play when you audition them here. Doesn't change how they sound on the clip.
+              </p>
+            </PopoverContent>
+          </Popover>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={handleUpload}>
