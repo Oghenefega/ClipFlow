@@ -163,4 +163,5 @@ This is the #1 thing that keeps breaking. Any change to chunking MUST keep guard
 - **Auto-generate clip titles from the transcript** — never leave a clip with `title: ""`.
 - **Project preview renders subtitles with the real styling engine**, not a raw text overlay on the thumbnail.
 - **Right-click on the timeline must `stopPropagation`** (`pointerdown` button===2 AND `contextmenu`) so it never seeks/moves the playhead.
+- **A new timeline block must `stopPropagation` on `onClick` too**, not just `pointerdown` — the scroll container's `onClick={handleTrackBgClick}` deselects everything, and `pointerup` (where a block usually sets selection) fires BEFORE `click`, so the selection is made and then instantly cleared. Symptom is deceptive: handles appear on hover so the block looks interactive, but nothing keyed off selection (Delete key, selected styling) ever fires. Every pre-existing lane block already does this (session 135, SoundBlock).
 - **Range sliders are scoped to context** (e.g. ±5s around the segment, clamped to neighbor bounds), not the full video duration.
