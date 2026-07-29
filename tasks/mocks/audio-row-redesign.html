@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClipFlow — Audio panel row redesign (#211 / #212)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --background:hsl(240 8% 4%); --foreground:hsl(240 5% 96%);
+    --card:hsl(240 6% 7%); --popover:hsl(240 6% 9%);
+    --primary:hsl(263 70% 58%); --secondary:hsl(240 5% 12%);
+    --muted-fg:hsl(240 4% 55%); --border:hsl(240 4% 14%);
+    --sfx-wave:rgba(196,181,253,0.60); --sfx-icon:hsl(258 90% 80%);
+    --music-wave:rgba(94,234,212,0.55); --music-icon:hsl(172 66% 70%);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--background); color:var(--foreground);
+    font-family:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+    font-size:14px; padding:28px 24px 60px; -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:17px;font-weight:700;letter-spacing:-.2px}
+  .sub{color:var(--muted-fg);font-size:12.5px;margin-top:5px;max-width:760px;line-height:1.55}
+  .lanes{display:flex;gap:20px;flex-wrap:wrap;margin-top:26px;align-items:flex-start}
+  .lane{width:352px;flex:none}
+  .lane-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+       padding:2px 6px;border-radius:4px;background:var(--secondary);color:var(--muted-fg)}
+  .tag.rec{background:rgba(139,92,246,.18);color:hsl(258 90% 82%)}
+  .lane-hd h2{font-size:13.5px;font-weight:500}
+  .lane-note{color:var(--muted-fg);font-size:11.5px;line-height:1.5;margin:4px 0 10px;min-height:46px}
+
+  /* ── panel chrome ── */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .tabs{display:flex;gap:16px;padding:8px 12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .tabs span{font-size:12px;font-weight:500;color:var(--muted-fg);padding-bottom:7px;border-bottom:2px solid transparent;cursor:default}
+  .tabs span.on{color:var(--primary);border-bottom-color:var(--primary)}
+  .toolbar{display:flex;gap:6px;padding:8px 12px}
+  .search{flex:1;display:flex;align-items:center;gap:7px;height:30px;padding:0 9px;
+          background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px}
+  .search input{flex:1;background:none;border:0;outline:none;color:var(--foreground);font:inherit;font-size:12px}
+  .search input::placeholder{color:var(--muted-fg)}
+  .ibtn{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--border);
+        border-radius:6px;background:none;color:var(--muted-fg);cursor:pointer}
+  .ibtn:hover{color:var(--foreground);border-color:hsl(240 4% 22%)}
+  .pills{display:flex;gap:5px;padding:0 12px 8px;flex-wrap:wrap}
+  .pill{height:24px;padding:0 9px;display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+        font-size:11px;font-weight:500;border:1px solid var(--border);color:var(--muted-fg);
+        background:none;cursor:pointer;white-space:nowrap}
+  .pill:hover{color:var(--foreground)}
+  .pill.on{background:rgba(139,92,246,.15);color:hsl(258 90% 82%);border-color:rgba(139,92,246,.35)}
+  .pill .n{opacity:.55;font-size:10px}
+  .grp{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--muted-fg);
+       border-top:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.012)}
+  .grp .cnt{margin-left:auto;opacity:.55}
+
+  /* ── row ── */
+  .row{position:relative;display:flex;gap:9px;padding:7px 12px;cursor:default;align-items:center}
+  .row:hover{background:rgba(255,255,255,.028)}
+  .row.sel{background:rgba(139,92,246,.07)}
+  .play{width:34px;height:34px;flex:none;border-radius:7px;border:0;display:grid;place-items:center;cursor:pointer;
+        background:rgba(139,92,246,.16);color:var(--sfx-icon)}
+  .row.sel .play{background:rgba(139,92,246,.3)}
+  .play:hover{background:rgba(139,92,246,.26)}
+  .mid{flex:1;min-width:0}
+  .nm{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg);margin-top:1px}
+  .vbadge{height:15px;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:700;
+          background:rgba(139,92,246,.16);color:hsl(258 90% 82%);border:1px solid rgba(139,92,246,.3);
+          display:inline-flex;align-items:center;cursor:pointer}
+  .chips{display:flex;gap:3px;flex-wrap:wrap}
+  .chip{height:15px;padding:0 5px;border-radius:3px;font-size:9.5px;font-weight:500;
+        background:rgba(255,255,255,.06);color:hsl(240 4% 68%);display:inline-flex;align-items:center;white-space:nowrap}
+  .chip.hyped{background:rgba(244,114,60,.16);color:hsl(24 90% 74%)}
+  .chip.epic{background:rgba(139,92,246,.18);color:hsl(258 90% 80%)}
+  .chip.sad{background:rgba(96,140,240,.16);color:hsl(220 80% 76%)}
+  .chip.moody{background:rgba(120,110,180,.18);color:hsl(250 40% 76%)}
+  .chip.funny{background:rgba(250,204,60,.14);color:hsl(45 85% 70%)}
+  .chip.tense{background:rgba(240,80,80,.15);color:hsl(0 80% 74%)}
+  .chip.chill{background:rgba(60,200,180,.14);color:hsl(172 60% 70%)}
+  .acts{display:flex;gap:1px;flex:none;opacity:0;transition:opacity .12s}
+  .row:hover .acts,.row.sel .acts{opacity:1}
+  .act{width:22px;height:22px;border:0;background:none;border-radius:999px;color:var(--muted-fg);cursor:pointer;display:grid;place-items:center}
+  .act:hover{color:var(--foreground);background:rgba(255,255,255,.07)}
+  .act.star{color:hsl(43 96% 62%)}
+  .act.add{background:var(--primary);color:#fff}
+  .act.add:hover{background:hsl(263 70% 64%)}
+  canvas{display:block}
+  .wavecell{flex:none;width:60px;height:22px;opacity:.75}
+
+  /* ── inline expanded player ── */
+  .exp{padding:0 12px 9px 55px;background:rgba(139,92,246,.07)}
+  .scrub{position:relative;height:40px;border-radius:5px;background:rgba(0,0,0,.3);overflow:hidden;cursor:pointer}
+  .scrub canvas{position:absolute;inset:0}
+  .played{position:absolute;top:0;bottom:0;left:0;background:rgba(139,92,246,.22);pointer-events:none}
+  .ph{position:absolute;top:0;bottom:0;width:2px;background:hsl(258 90% 78%);
+      box-shadow:0 0 7px hsl(258 90% 70%);pointer-events:none}
+  .times{display:flex;justify-content:space-between;font-size:10px;color:var(--muted-fg);margin-top:4px;
+         font-variant-numeric:tabular-nums}
+
+  /* ── pinned bar ── */
+  .pinned{border-top:1px solid var(--border);background:var(--popover);padding:8px 12px}
+  .pinned .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .pinned .nm2{flex:1;min-width:0;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pinned .x{color:var(--muted-fg);cursor:pointer;border:0;background:none;display:grid;place-items:center}
+
+  /* ── tag editor ── */
+  .tagpop{width:236px;background:var(--popover);border:1px solid var(--border);border-radius:9px;
+          padding:10px;box-shadow:0 18px 44px -14px rgba(0,0,0,.9)}
+  .tagpop h4{font-size:11px;font-weight:500;color:var(--muted-fg);margin-bottom:7px}
+  .tagpop .grid{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
+  .tp{height:22px;padding:0 8px;border-radius:4px;font-size:10.5px;font-weight:500;cursor:pointer;
+      border:1px solid var(--border);background:none;color:hsl(240 4% 62%)}
+  .tp:hover{color:var(--foreground);border-color:hsl(240 4% 24%)}
+  .tp.on{background:rgba(139,92,246,.2);border-color:rgba(139,92,246,.45);color:hsl(258 90% 84%)}
+  .tagpop .free{display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;border-radius:5px;
+                background:rgba(255,255,255,.04);border:1px solid var(--border)}
+  .tagpop .free input{flex:1;background:none;border:0;outline:none;color:var(--foreground);font:inherit;font-size:11px}
+  .hint{font-size:10.5px;color:var(--muted-fg);margin-top:7px;line-height:1.5}
+  .callout{margin-top:30px;max-width:790px;padding:13px 15px;border:1px solid var(--border);
+           border-radius:9px;background:var(--card);font-size:12.5px;line-height:1.6;color:hsl(240 4% 72%)}
+  .callout b{color:var(--foreground);font-weight:500}
+  .callout ul{margin:7px 0 0 18px}
+  .callout li{margin-bottom:4px}
+  .q{color:hsl(258 90% 80%)}
+</style>
+</head>
+<body>
+
+<h1>Audio panel — track row redesign</h1>
+<p class="sub">
+  Three ways to fit a waveform, a scrubber and mood tags into a 352&nbsp;px panel that already carries a name, a
+  length, a volume badge and five hover actions. Everything below is live — click a play button to scrub, click the
+  filter pills, click a tag. <b style="color:var(--foreground)">Pick a lane (or mix and match) and I'll build it.</b>
+</p>
+
+<div class="lanes">
+
+  <!-- ══════════════ A ══════════════ -->
+  <div class="lane">
+    <div class="lane-hd"><span class="tag rec">Recommended</span><h2>A — Waveform on its own line</h2></div>
+    <p class="lane-note">
+      Name on top, waveform underneath with tags to its right. The wave gets real width (~230&nbsp;px) so it's
+      actually readable. Rows are 52&nbsp;px. Clicking play expands the row into a full scrubber.
+    </p>
+    <div class="panel" id="laneA"></div>
+  </div>
+
+  <!-- ══════════════ B ══════════════ -->
+  <div class="lane">
+    <div class="lane-hd"><span class="tag">Densest</span><h2>B — Waveform behind the name</h2></div>
+    <p class="lane-note">
+      One line, 40&nbsp;px rows — same density as today. The waveform is a dim backdrop behind the text, like
+      Splice. Fits ~40% more tracks on screen; the wave reads as texture more than detail.
+    </p>
+    <div class="panel" id="laneB"></div>
+  </div>
+
+  <!-- ══════════════ C ══════════════ -->
+  <div class="lane">
+    <div class="lane-hd"><span class="tag">Alternative</span><h2>C — Pinned player at the bottom</h2></div>
+    <p class="lane-note">
+      Rows stay compact with a small 60&nbsp;px wave thumbnail; the track you're auditioning gets a permanent bar
+      pinned under the list. The scrubber never moves, and the list never reflows.
+    </p>
+    <div class="panel" id="laneC"></div>
+  </div>
+
+  <!-- ══════════════ tags ══════════════ -->
+  <div class="lane">
+    <div class="lane-hd"><span class="tag">Both lanes</span><h2>Tagging a track</h2></div>
+    <p class="lane-note">
+      Nine one-click moods plus a free-text field. Click chips to toggle. The <b>seeded</b> ones came from your
+      folder names — "Troll - Derpy - Funny" gave this track Funny automatically.
+    </p>
+    <div class="tagpop">
+      <h4>Tags — Vine boom sound effect</h4>
+      <div class="grid" id="tagGrid"></div>
+      <div class="free"><span style="color:var(--muted-fg);font-size:12px">+</span>
+        <input placeholder="Add your own…"></div>
+      <p class="hint" id="tagHint">Hyped and Funny were seeded from this file's folder. Edit or clear any of them.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="callout">
+  <b>What I need from you:</b>
+  <ul>
+    <li>Which row lane — <span class="q">A</span>, <span class="q">B</span>, or <span class="q">C</span>? (A is my pick: the waveform is only worth
+      showing if it's big enough to read, and the expand-on-play doubles as the scrubber you asked for.)</li>
+    <li>Are the nine moods the right nine? <b>Hyped, Epic, Tense, Sad, Moody, Chill, Funny, Eerie, Triumphant.</b>
+      Swap or add anything.</li>
+    <li>Tags on the row all the time (as shown), or only on hover to keep rows quieter?</li>
+  </ul>
+</div>
+
+<script>
+// ── deterministic fake waveforms that look like real audio ──
+function rng(seed){let s=seed;return()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff}}
+function peaks(seed,n,shape){
+  const r=rng(seed),out=[];
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);
+    let env;
+    if(shape==='oneshot') env=Math.pow(1-t,2.2)*(t<0.04?t/0.04:1);      // transient + decay
+    else if(shape==='riser') env=Math.pow(t,1.7);
+    else env=0.5+0.32*Math.sin(t*Math.PI*3.1)+0.14*Math.sin(t*Math.PI*11); // music-ish
+    const grain=0.55+0.45*r();
+    out.push(Math.max(0.02,Math.min(1,env*grain)));
+  }
+  return out;
+}
+function draw(cv,pk,color,h){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  const mid=h/2,amp=h*0.44,n=Math.min(pk.length,Math.max(8,Math.floor(w/2.2))),per=pk.length/n;
+  c.beginPath();c.moveTo(0,mid);
+  for(let i=0;i<n;i++){let m=0;for(let j=Math.floor(i*per);j<Math.min(Math.floor((i+1)*per)+1,pk.length);j++)m=Math.max(m,pk[j]);
+    c.lineTo(i/n*w,mid-Math.max(0.6,m*amp));}
+  for(let i=n-1;i>=0;i--){let m=0;for(let j=Math.floor(i*per);j<Math.min(Math.floor((i+1)*per)+1,pk.length);j++)m=Math.max(m,pk[j]);
+    c.lineTo(i/n*w,mid+Math.max(0.6,m*amp));}
+  c.closePath();c.fillStyle=color;c.fill();
+}
+const ICON={
+  play:'<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  pause:'<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+  search:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  x:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  refresh:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>',
+  up:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M12 19V6M6 11l6-6 6 6"/></svg>',
+  vol:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M4 10v4h3l4 3V7L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>',
+  star:'<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.8 6.3.8-4.6 4.3 1.2 6.2L12 17.3 6.4 20.1l1.2-6.2L3 9.6l6.3-.8z"/></svg>',
+  star0:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l2.7 5.8 6.3.8-4.6 4.3 1.2 6.2L12 17.3 6.4 20.1l1.2-6.2L3 9.6l6.3-.8z"/></svg>',
+  swap:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h13M4 9l3-3M4 9l3 3"/><path d="M20 15H7M20 15l-3-3M20 15l-3 3"/></svg>',
+  plus:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 6v12M6 12h12"/></svg>',
+  chev:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>',
+  chevd:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>',
+};
+const TRACKS=[
+  {n:'Cinematic Boom Soft',       d:'0:04', s:11, shape:'oneshot', vol:32, tags:[['Epic','epic'],['Tense','tense']], fav:true},
+  {n:'Vine boom sound effect',    d:'0:02', s:23, shape:'oneshot', tags:[['Funny','funny'],['Hyped','hyped']]},
+  {n:'Riser — Tension Build 4',   d:'0:06', s:37, shape:'riser',   tags:[['Tense','tense']]},
+  {n:'OOF Sound Effect',          d:'0:01', s:52, shape:'oneshot', vol:53, tags:[['Funny','funny']]},
+  {n:'Troll - Derpy Whistle',     d:'0:03', s:71, shape:'oneshot', tags:[['Funny','funny'],['Chill','chill']]},
+];
+function chipsHtml(t){return t.tags.map(([l,c])=>`<span class="chip ${c}">${l}</span>`).join('')}
+function actsHtml(t){return `<div class="acts">
+  <button class="act ${t.fav?'star':''}">${t.fav?ICON.star:ICON.star0}</button>
+  <button class="act">${ICON.swap}</button>
+  <button class="act add">${ICON.plus}</button></div>`}
+function badge(t){return t.vol?`<button class="vbadge" title="Always starts at ${t.vol}% — click to forget">${t.vol}%</button>`:''}
+function chrome(extraPills){return `
+  <div class="tabs"><span>Music</span><span class="on">Sound effect</span></div>
+  <div class="toolbar">
+    <div class="search">${ICON.search}<input placeholder="Search…" value="boom"><button class="ibtn" style="width:16px;height:16px;border:0">${ICON.x}</button></div>
+    <button class="ibtn">${ICON.vol}</button><button class="ibtn">${ICON.refresh}</button><button class="ibtn">${ICON.up}</button>
+  </div>
+  <div class="pills">
+    <button class="pill on">All</button><button class="pill">Favorites</button><button class="pill">Recent <span class="n">12</span></button>
+    ${extraPills?'<button class="pill">Hyped <span class="n">31</span></button><button class="pill">Funny <span class="n">18</span></button><button class="pill">Epic <span class="n">44</span></button>':''}
+  </div>
+  <div class="grp">${ICON.chevd}<span>Sound FX › Effects</span><span class="cnt">51</span></div>`}
+
+function buildA(el){
+  el.innerHTML=chrome(true)+TRACKS.map((t,i)=>`
+    <div class="row" data-i="${i}">
+      <button class="play">${ICON.play}</button>
+      <div class="mid">
+        <div class="nm">${t.n}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+          <canvas class="wa" style="flex:1;min-width:0"></canvas>
+          <div class="chips">${chipsHtml(t)}</div>
+        </div>
+        <div class="meta" style="margin-top:2px"><span>${t.d}</span>${badge(t)}</div>
+      </div>
+      ${actsHtml(t)}
+    </div>`).join('');
+  el.querySelectorAll('.row').forEach(r=>{
+    const t=TRACKS[+r.dataset.i];
+    draw(r.querySelector('.wa'),peaks(t.s,320,t.shape),'var(--sfx-wave)',16);
+  });
+  wirePlay(el,'inline');
+}
+function buildB(el){
+  el.innerHTML=chrome(true)+TRACKS.map((t,i)=>`
+    <div class="row" data-i="${i}" style="padding:5px 12px">
+      <button class="play" style="width:28px;height:28px">${ICON.play}</button>
+      <div class="mid" style="position:relative;height:28px;display:flex;align-items:center">
+        <canvas class="wa" style="position:absolute;inset:0;opacity:.34"></canvas>
+        <div style="position:relative;display:flex;align-items:center;gap:6px;width:100%;min-width:0">
+          <span class="nm" style="text-shadow:0 1px 3px rgba(0,0,0,.85)">${t.n}</span>
+          <span style="font-size:10px;color:var(--muted-fg);flex:none">${t.d}</span>
+          ${badge(t)}
+          <div class="chips" style="margin-left:auto;flex:none">${chipsHtml(t)}</div>
+        </div>
+      </div>
+      ${actsHtml(t)}
+    </div>`).join('');
+  el.querySelectorAll('.row').forEach(r=>{
+    const t=TRACKS[+r.dataset.i];
+    draw(r.querySelector('.wa'),peaks(t.s,320,t.shape),'var(--sfx-wave)',28);
+  });
+  wirePlay(el,'inline');
+}
+function buildC(el){
+  el.innerHTML=chrome(true)+TRACKS.map((t,i)=>`
+    <div class="row" data-i="${i}" style="padding:6px 12px">
+      <button class="play" style="width:28px;height:28px">${ICON.play}</button>
+      <canvas class="wa wavecell"></canvas>
+      <div class="mid">
+        <div class="nm">${t.n}</div>
+        <div class="meta"><span>${t.d}</span>${badge(t)}<div class="chips">${chipsHtml(t)}</div></div>
+      </div>
+      ${actsHtml(t)}
+    </div>`).join('')+`<div class="pinned" id="pin" style="display:none"></div>`;
+  el.querySelectorAll('.row').forEach(r=>{
+    const t=TRACKS[+r.dataset.i];
+    draw(r.querySelector('.wa'),peaks(t.s,320,t.shape),'var(--sfx-wave)',22);
+  });
+  wirePlay(el,'pinned');
+}
+
+// ── playback / scrubbing ──
+const timers=new WeakMap();
+function fmt(s){const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0')}
+function wirePlay(panel,mode){
+  panel.querySelectorAll('.row').forEach(row=>{
+    row.querySelector('.play').addEventListener('click',()=>{
+      const on=row.classList.contains('sel');
+      panel.querySelectorAll('.row').forEach(r=>{r.classList.remove('sel');r.querySelector('.play').innerHTML=ICON.play});
+      panel.querySelectorAll('.exp').forEach(e=>e.remove());
+      const pin=panel.querySelector('#pin'); if(pin) pin.style.display='none';
+      clearInterval(timers.get(panel));
+      if(on) return;
+      row.classList.add('sel'); row.querySelector('.play').innerHTML=ICON.pause;
+      const t=TRACKS[+row.dataset.i];
+      const total=parseInt(t.d.split(':')[1])||4;
+      const host=(mode==='pinned')?pin:document.createElement('div');
+      if(mode!=='pinned'){host.className='exp';row.after(host)}
+      host.style.display='block';
+      host.innerHTML=(mode==='pinned'?`<div class="top"><button class="play" style="width:24px;height:24px">${ICON.pause}</button>
+          <span class="nm2">${t.n}</span><button class="x">${ICON.x}</button></div>`:'')+
+        `<div class="scrub"><canvas class="sw"></canvas><div class="played"></div><div class="ph"></div></div>
+         <div class="times"><span class="cur">0:00</span><span>${t.d}</span></div>`;
+      const cv=host.querySelector('.sw');
+      requestAnimationFrame(()=>draw(cv,peaks(t.s,900,t.shape),'var(--sfx-wave)',40));
+      const ph=host.querySelector('.ph'),pl=host.querySelector('.played'),cur=host.querySelector('.cur'),sc=host.querySelector('.scrub');
+      let pos=0;
+      const paint=()=>{const p=(pos/total*100);ph.style.left=p+'%';pl.style.width=p+'%';cur.textContent=fmt(pos)};
+      paint();
+      timers.set(panel,setInterval(()=>{pos=(pos+0.1)%total;paint()},100));
+      const seek=e=>{const r=sc.getBoundingClientRect();pos=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*total;paint()};
+      sc.addEventListener('pointerdown',e=>{seek(e);
+        const mv=ev=>seek(ev),up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up)};
+        window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up)});
+      if(mode==='pinned') host.querySelector('.x').addEventListener('click',()=>{
+        host.style.display='none';clearInterval(timers.get(panel));
+        row.classList.remove('sel');row.querySelector('.play').innerHTML=ICON.play});
+    });
+  });
+}
+buildA(document.getElementById('laneA'));
+buildB(document.getElementById('laneB'));
+buildC(document.getElementById('laneC'));
+
+// ── tag editor ──
+const MOODS=['Hyped','Epic','Tense','Sad','Moody','Chill','Funny','Eerie','Triumphant'];
+const on=new Set(['Hyped','Funny']);
+const grid=document.getElementById('tagGrid');
+function paintTags(){
+  grid.innerHTML=MOODS.map(m=>`<button class="tp ${on.has(m)?'on':''}" data-m="${m}">${m}</button>`).join('');
+  grid.querySelectorAll('.tp').forEach(b=>b.addEventListener('click',()=>{
+    on.has(b.dataset.m)?on.delete(b.dataset.m):on.add(b.dataset.m);paintTags();
+    document.getElementById('tagHint').textContent=on.size?`Tagged: ${[...on].join(', ')}`:'No tags — this track won’t show under any mood filter.';
+  }));
+}
+paintTags();
+addEventListener('resize',()=>{['laneA','laneB','laneC'].forEach((id,i)=>[buildA,buildB,buildC][i](document.getElementById(id)))});
+</script>
+</body>
+</html>
