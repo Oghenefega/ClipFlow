@@ -6,6 +6,185 @@
 
 ---
 
+## 📋 NEXT SESSION — Audio library: link Fega's real folders instead of copying
+
+Written at the end of session 136 (2026-07-29) so the next session can start on
+it cold. **Not started. Not approved beyond the direction.**
+
+### Why
+
+ClipFlow's Audio panel offers two ways in, and today only the wrong one works
+for Fega:
+
+- **Copy** (`importAssets`, `assets.js:130`) — `fs.copyFileSync` into
+  `{assetsRoot}/files/`, entry `source: "library"`. This is what the Upload
+  drawer does, and what Fega has been shown.
+- **Link** (`listAssets`, `assets.js:77`) — scans the folder in the `sfxFolder`
+  setting and indexes files **in place**, entry `source: "folder"`,
+  `resolvePath` returns `entry.path` untouched. **Fega's `sfxFolder` is empty**,
+  so he has never seen this work.
+
+Copying is wrong for him for one reason above all: his library lives under
+`V:\AutoSync\`, which **syncs itself**. A copy forks it — when Epidemic adds,
+renames or pulls a track, ClipFlow's copy silently stops matching the folder he
+actually maintains, and the stale one is the one the app uses. Size is the
+lesser problem, but it isn't nothing (below).
+
+Copying stays the right **default for other users** — someone dragging one file
+off their Desktop must not lose it when they clear out Downloads.
+
+### Fega's actual library (measured 2026-07-29)
+
+`V:\AutoSync\Audio\Epidemic Sound\Music` — 138 files, **5.91 GB**, flat.
+
+`V:\AutoSync\Audio\Sound FX\` — one tree, **4 levels deep**, holding BOTH kinds:
+
+```
+Sound FX                                    3 files    71.2 MB   ← music, loose at root
+  Brian Rian Rehan - Dark [MP3&WAV]         2          49.0 MB   ← music
+  Effects                                 122          82.4 MB   ← SFX
+    Swoosh SFX/002_SFX                      6           0.5 MB   ← SFX
+      Terrible Swooshes                     5           1.1 MB   ← SFX
+  Mango's Complete SFX Pack/Mango's Sfx     64         155.7 MB   ← SFX
+  SoundTracks                               35         154.5 MB   ← music
+    HarrisHeller - Streambeats               3          80.8 MB   ← music
+      100 Thieves Hype Tracks              100        3118.1 MB   ← music
+    StreamBeats Verified Music              35         702.3 MB   ← music
+  TikTok SoundTracks                         1           0.1 MB   ← music
+  Video Music 2022/Video Music 2022/
+    BASSBOOSTED                              4          19.3 MB   ← music
+    Game Music - Jazz/  (10 mood folders)  ~173        ~1106  MB   ← music
+    Holiday Themed                           2           9.6 MB
+    Meme Music                               7          45.7 MB
+```
+
+~200 SFX and ~350 music files, ~5.5 GB, plus Epidemic's 5.91 GB. **Copying would
+duplicate ~11 GB.**
+
+`F:\Youtube\Sound FX\Effects` is a **legacy duplicate** of `Effects` — Fega
+confirmed it is dead. Do not index it.
+
+### The three questions, answered
+
+#### 1. Track more than one folder — DECIDED, build it
+
+Replace the single `sfxFolder` string with a list of watched folders. Each entry
+is at minimum `{ path, enabled }`. Scan is recursive.
+
+Migration: an existing non-empty `sfxFolder` becomes the first entry in the list.
+(Fega's is empty, so this only matters for correctness, not for him.)
+
+#### 2. Telling music from sound effects — the folder tree can't be trusted, but duration can
+
+The obvious idea — read it off the folder name — **fails on Fega's library
+specifically**, and fails in the most damaging way: the root folder is called
+`Sound FX` and it contains `SoundTracks`, `100 Thieves Hype Tracks`,
+`Video Music 2022`… A "path contains SFX → it's an effect" rule labels all ~350
+music files as sound effects. Folder names are a hint, never the rule.
+
+**Duration is the real signal.** Sampled with ffprobe across his own folders:
+
+| Folder | n | min | median | max | over 60s |
+|---|---|---|---|---|---|
+| Effects | 12 | 0.9s | **4.6s** | 190.7s | 1/12 |
+| Mango's Sfx | 12 | 0.7s | **4.0s** | 29.0s | 0/12 |
+| Terrible Swooshes | 5 | 0.2s | **0.6s** | 1.2s | 0/12 |
+| SoundTracks | 12 | 99.1s | **193.1s** | 352.2s | 12/12 |
+| 100 Thieves Hype | 12 | 118.0s | **130.2s** | 170.4s | 12/12 |
+| Lowkey / Chill | 12 | 74.4s | **160.0s** | 319.7s | 12/12 |
+| Meme Music | 7 | 11.7s | **280.6s** | 882.0s | 6/7 |
+| Sound FX root | 3 | 178.1s | **264.0s** | 4096.4s | 3/3 |
+| Epidemic Music | 12 | 113.9s | **157.0s** | 260.5s | 12/12 |
+
+**A ≥60s cut classifies ~73 of 75 sampled files correctly (~97%).** The two
+misses: a 190.7s file sitting in `Effects` (almost certainly music filed in the
+wrong folder) and an 11.7s sting in `Meme Music` (arguably an SFX anyway).
+
+ClipFlow already has this constant — `MUSIC_MIN_SECONDS = 60` (`assets.js:18`) —
+and already applies it on the copy path (`assets.js:152`). It is simply never
+applied on the folder-scan path, where **everything is hardcoded
+`type: "sfx"`** (`assets.js:104`). That single line is the bug behind
+"everything from a folder shows up as a sound effect".
+
+**Proposed rule, in priority order:**
+1. A per-track manual override, if the user has set one — always wins, stored in
+   the index by path so a rescan never undoes it.
+2. A per-folder role, if the user set one on a watched folder (`music` / `sfx` /
+   `auto`) — lets Fega mark `Effects` and `Mango's Sfx` as SFX and be done.
+3. Otherwise `durationSec >= 60 → music, else sfx`.
+
+Deliberately NOT proposed: guessing from folder names (breaks on his tree, as
+above), or asking him to reorganise 550 files.
+
+The manual override is the piece that makes the ~3% tolerable — one right-click
+"Move to Music / Move to SFX" in the Audio panel, and it sticks.
+
+**Cost of the duration rule:** every file must be probed once. ~550 files ×
+~100–200ms ≈ 1–2 minutes on the first scan. Must be (a) backgrounded — the panel
+opens immediately and fills in — and (b) cached by `path + mtime + size`, the
+same invalidation rule `getPeaks` already uses (`assets.js:197`). After the first
+scan it is near-instant. Sequential probing is fine; it already runs in
+`probeDurationSafe`, just make it not block the list.
+
+#### 3. "Offline drives" — what that meant, and why it matters
+
+Plain version: `V:` is a synced drive. If it is disconnected, renamed, or the
+sync moves a folder, ClipFlow can no longer find those files. There are two
+things the app can do, and **today linking does the worse one**:
+
+- `listAssets` **prunes** folder entries whose file vanished
+  (`assets.js:85-89`) — the track silently disappears from the Audio panel, with
+  no explanation. If a clip already used it, the render fails later with a
+  missing-file error and no hint about why.
+- The copy path does the better thing already: keeps the entry and flags it
+  `missing: true` (`assets.js:121`), with the comment *"the user may restore a
+  moved drive"*.
+
+So: linked tracks should be flagged, not pruned — greyed out in the panel with an
+"offline" marker, coming back by themselves when the drive returns. Only a track
+the user explicitly removes should leave the list.
+
+Distinguish two cases when scanning: **folder unreachable** (drive offline — keep
+everything, mark the whole folder offline) vs **file gone while the folder is
+readable** (genuinely deleted — still keep it, but it can be offered for cleanup).
+Pruning a whole folder's worth of tracks because `V:` was unplugged is the
+failure this prevents.
+
+### Also in scope
+
+- **Subfolders as groups in the Audio panel.** His organisation (`Lowkey - Just
+  Chatting`, `Intense - Epic - Final Battle`, `Troll - Derpy - Funny`) is the
+  useful part of his library and must survive the import. Group by immediate
+  parent folder, collapsible.
+- **Empty/junk folders** (`Zipped`, `Tutorials _ Presets`, `Swoosh SFX` with 0
+  audio) should not render as empty groups.
+- Existing copied assets keep working — this adds a source, it does not migrate
+  or delete anything already in `{assetsRoot}/files/`.
+
+### Files this will touch
+
+- `src/main/assets.js` — the watched-folder list, recursive scan, duration cache,
+  classification, offline flagging instead of pruning.
+- `src/main/main.js` — `sfxFolder` → list setting + migration (schema change, so
+  a migration function is mandatory per `.claude/rules/pipeline.md`).
+- `src/renderer/views/SettingsView.js` — the single "Sound Effects Folder" card
+  becomes an add/remove list with a role dropdown per folder.
+- `src/renderer/editor/components/RightPanelNew.js` — subfolder groups, offline
+  styling, the per-track "Move to Music/SFX" override.
+
+### Verify
+
+- Point ClipFlow at `V:\AutoSync\Audio\Sound FX` and
+  `V:\AutoSync\Audio\Epidemic Sound\Music`. All ~550 tracks appear, ~350 under
+  Music and ~200 under SFX, grouped by their real subfolders.
+- Nothing is copied — `{assetsRoot}/files/` gains no bytes.
+- Move one track to the other lane; rescan; it stays where it was put.
+- Disconnect / rename `V:` → tracks grey out, none disappear; restore → they
+  come back.
+- Second panel open is fast (durations cached).
+
+---
+
 ## ✅ DONE (session 136) — Queue row buttons, render filenames, thumbnail placement — **built + verified on the dev build; NOT yet on Fega's installed daily driver**
 
 All three shipped as planned, plus both on-disk cleanups. Verified by driving the
