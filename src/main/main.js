@@ -221,7 +221,12 @@ const STORE_DEFAULTS = {
   },
   ytDescriptions: {},
   outputFolder: "",
+  // Legacy single "Sound Effects Folder". Superseded by audioFolders (#208);
+  // kept so the migration below has something to read, blanked once it runs.
   sfxFolder: "",
+  // #208: folders whose audio is linked in place, never copied. Scanned
+  // recursively. Shape: [{ path, enabled }].
+  audioFolders: [],
   whisperModel: "large-v3-turbo",
   whisperPythonPath: "",
   localProjects: [],
@@ -293,6 +298,22 @@ function runStoreMigrations(store) {
     store.set("projectsRoot", store.get("watchFolder"));
     logger.info(logger.MODULES.system, `Pinned projectsRoot to ${store.get("watchFolder")}`);
   }
+
+  // ── Migration (#208): the single Sound Effects Folder became a list ──
+  // One folder, top level only, could never index a real sound library. The old
+  // path becomes the first watched folder and `sfxFolder` is blanked, so this
+  // can't resurrect the folder after the user removes it from the list.
+  // Fresh installs read "" and skip.
+  const legacySfxFolder = store.get("sfxFolder");
+  if (legacySfxFolder) {
+    const watched = Array.isArray(store.get("audioFolders")) ? store.get("audioFolders") : [];
+    if (!watched.some((f) => f && f.path === legacySfxFolder)) {
+      store.set("audioFolders", [...watched, { path: legacySfxFolder, enabled: true }]);
+    }
+    store.set("sfxFolder", "");
+    logger.info(logger.MODULES.system, `Migrated sfxFolder to audioFolders: ${legacySfxFolder}`);
+  }
+  if (!Array.isArray(store.get("audioFolders"))) store.set("audioFolders", []);
 
   // ── Migration: analytics deviceId (generate once, persist forever) ──
   if (!store.get("deviceId")) {
@@ -943,8 +964,24 @@ function assetsRootOrThrow() {
 ipcMain.handle("assets:list", async () => {
   try {
     if (!libraryRoot()) return { success: true, assets: [] };
-    const assets = await assetLibrary.listAssets(assetsRootOrThrow(), store.get("sfxFolder"));
+    const root = assetsRootOrThrow();
+    const assets = await assetLibrary.listAssets(root, store.get("audioFolders"));
+    // Durations decide the Music/SFX lane, and a cold library is over a minute
+    // of probing — run it behind the open panel and let the renderer re-fetch
+    // as it lands (#208).
+    assetLibrary.backfillDurations(root, (p) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("assets:scanProgress", p);
+    }).catch((err) => logger.error(logger.MODULES.system, `Asset duration scan failed: ${err.message}`));
     return { success: true, assets };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// #208: pin a track to Music or SFX by hand when the duration rule gets it wrong.
+ipcMain.handle("assets:setType", async (_, assetId, type) => {
+  try {
+    return { success: true, type: assetLibrary.setAssetType(assetsRootOrThrow(), assetId, type) };
   } catch (err) {
     return { success: false, error: err.message };
   }

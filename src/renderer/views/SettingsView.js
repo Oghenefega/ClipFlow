@@ -12,7 +12,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, sfxFolder, setSfxFolder, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -445,18 +445,58 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         </div>
       </Card>
 
-      {/* Sound Effects Folder */}
+      {/* Audio Folders (#208) \u2014 linked in place, never copied */}
       <Card style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Sound Effects Folder</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: sfxFolder ? T.text : T.textTertiary }}>
-            {sfxFolder || "Not set \u2014 sounds in this folder show up in the editor's Audio panel"}
-          </span>
-          <button onClick={async () => { const f = await window.clipflow?.pickFolder(); if (f) setSfxFolder(f); }}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Audio Folders</div>
+          <button
+            onClick={async () => {
+              const f = await window.clipflow?.pickFolder();
+              if (!f) return;
+              if (audioFolders.some((x) => x.path.toLowerCase() === f.toLowerCase())) return;
+              setAudioFolders([...audioFolders, { path: f, enabled: true }]);
+            }}
             style={{ padding: "6px 14px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>
-            Browse
+            Add folder
           </button>
         </div>
+        <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 12px 0", lineHeight: 1.5 }}>
+          Music and sound effects in these folders show up in the editor's Audio panel.
+          Subfolders are included, and files stay where they are &mdash; nothing is copied,
+          so a folder that syncs itself keeps working.
+        </p>
+        {audioFolders.length === 0 ? (
+          <p style={{ color: T.textTertiary, fontSize: 13, fontFamily: T.mono, margin: 0 }}>
+            None yet &mdash; add the folder your music and sound effects live in
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {audioFolders.map((folder, i) => (
+              <div key={folder.path} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: T.radius.sm, background: T.surfaceHover, border: `1px solid ${T.border}` }}>
+                <button
+                  onClick={() => setAudioFolders(audioFolders.map((x, j) => (j === i ? { ...x, enabled: x.enabled === false } : x)))}
+                  title={folder.enabled === false ? "Turn this folder back on" : "Stop using this folder for now"}
+                  style={{
+                    padding: "3px 10px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                    background: folder.enabled === false ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.15)",
+                    border: `1px solid ${folder.enabled === false ? T.border : "rgba(34,197,94,0.4)"}`,
+                    color: folder.enabled === false ? T.textTertiary : T.green,
+                  }}>
+                  {folder.enabled === false ? "Off" : "On"}
+                </button>
+                <span style={{ flex: 1, fontFamily: T.mono, fontSize: 12, color: folder.enabled === false ? T.textTertiary : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={folder.path}>
+                  {folder.path}
+                </span>
+                <button
+                  onClick={() => setAudioFolders(audioFolders.filter((_, j) => j !== i))}
+                  title="Remove this folder and its tracks from the Audio panel (the files are not touched)"
+                  style={{ padding: "3px 10px", borderRadius: T.radius.sm, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, cursor: "pointer", fontFamily: T.font }}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Video Splitting */}

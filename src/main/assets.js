@@ -6,16 +6,23 @@ const { uniquePath } = require("./projects");
 // Asset library for SFX / music / pictures placed on clips (session 134).
 // Files imported through the app are COPIED into {libraryRoot}/.clipflow/assets/files/
 // so clips never break when the original moves. Sounds living in the user's
-// "Sound Effects Folder" (Settings) are linked in place instead — they get an
-// index entry on first scan (source: "folder") so favorites persist, and the
-// entry is pruned when the file disappears from the folder.
+// watched audio folders (Settings) are linked in place instead — they get an
+// index entry on first scan (source: "folder") so favorites and lane overrides
+// persist. A curated library on a syncing drive must never be copied: the copy
+// forks, and the stale side is the one the app then uses (#208).
 
 const AUDIO_EXTS = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"];
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
 
 // Audio with no explicit music/sfx hint splits on duration: a one-shot is
-// seconds long, a music bed is not.
+// seconds long, a music bed is not. Folder names can't do this job — measured
+// against a real library whose ROOT folder is named "Sound FX" and holds 500
+// songs. Duration got 103 of 105 sampled files right (#208).
 const MUSIC_MIN_SECONDS = 60;
+
+// Watched folders are walked recursively. The cap is loop insurance — a Windows
+// junction inside a synced drive can point back up its own tree.
+const MAX_SCAN_DEPTH = 10;
 
 function getAssetsRoot(libraryRoot) {
   return path.join(libraryRoot, ".clipflow", "assets");
@@ -67,46 +74,121 @@ async function probeDurationSafe(filePath) {
   }
 }
 
+/** The music/SFX lane a duration implies. Unprobeable files land in SFX. */
+function classifyByDuration(durationSec) {
+  return durationSec != null && durationSec >= MUSIC_MIN_SECONDS ? "music" : "sfx";
+}
+
+/** Every audio file under `root`, recursive, with the stat each one needs. */
+function walkAudioFiles(root) {
+  const out = [];
+  const visit = (dir, depth) => {
+    if (depth > MAX_SCAN_DEPTH) return;
+    let ents;
+    try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    for (const e of ents) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        // .clipflow holds ClipFlow's OWN copied assets — indexing them as folder
+        // entries would list every uploaded file twice if a watched folder ever
+        // sits above the project library.
+        if (e.name !== ".clipflow") visit(full, depth + 1);
+        continue;
+      }
+      if (classifyExt(path.extname(e.name).toLowerCase()) !== "audio") continue;
+      let st;
+      try { st = fs.statSync(full); } catch (_) { continue; }
+      out.push({ path: full, sizeBytes: st.size, mtimeMs: st.mtimeMs });
+    }
+  };
+  visit(root, 0);
+  return out;
+}
+
 /**
- * List all assets: index entries plus a fresh scan of the SFX folder.
- * New folder files are absorbed into the index (probed once); folder entries
- * whose file vanished are pruned; library entries whose file vanished are
- * kept but flagged `missing` (the user may restore a moved drive).
- * Returns entries with a computed absolute `path` field.
+ * Watched-folder settings → resolved paths. `onlyEnabled` drops the ones toggled
+ * off, which decides what gets SCANNED and LISTED; the full set decides what the
+ * index keeps, so toggling a folder off doesn't throw away its favorites.
  */
-async function listAssets(assetsRoot, sfxFolder) {
+function watchedRoots(folders, onlyEnabled) {
+  return (Array.isArray(folders) ? folders : [])
+    .filter((f) => f && f.path && (!onlyEnabled || f.enabled !== false))
+    .map((f) => path.resolve(f.path));
+}
+
+/** Is `file` inside `dir`? Both absolute. */
+function isUnder(file, dir) {
+  const a = file.toLowerCase();
+  const b = dir.toLowerCase();
+  return a === b || a.startsWith(b.endsWith(path.sep) ? b : b + path.sep);
+}
+
+/**
+ * List all assets: index entries plus a fresh recursive scan of every watched
+ * audio folder. New files are absorbed with no duration yet — probing 760 files
+ * takes over a minute, so `backfillDurations` fills them in behind the panel and
+ * an unprobed file shows in neither lane rather than the wrong one.
+ *
+ * Nothing linked is ever pruned for being absent. A folder that won't read is
+ * OFFLINE (drive unplugged, sync moved it) and its tracks are flagged, not
+ * dropped — dropping them silently emptied the panel and broke clips that were
+ * already using them. A file gone from a folder that reads fine is MISSING.
+ * Only removing the folder from Settings removes its tracks (#208).
+ *
+ * Returns entries with a computed absolute `path`, plus `offline`, `missing` and
+ * the `group` (parent folder name) the panel lists them under.
+ */
+async function listAssets(assetsRoot, folders) {
   let assets = loadIndex(assetsRoot);
   let dirty = false;
 
-  // Prune folder entries that left the folder (or the folder setting changed)
-  const folderOk = sfxFolder && fs.existsSync(sfxFolder);
-  const folderNorm = folderOk ? path.resolve(sfxFolder).toLowerCase() : null;
+  const configured = watchedRoots(folders, false);
+  const roots = watchedRoots(folders, true);
+  const scanned = new Map(); // reachable root -> [{ path, sizeBytes, mtimeMs }]
+  for (const root of roots) {
+    let ok = false;
+    try { ok = fs.statSync(root).isDirectory(); } catch (_) { /* offline */ }
+    if (ok) scanned.set(root, walkAudioFiles(root));
+  }
+  const reachableRoots = [...scanned.keys()];
+  const onDisk = new Map(); // lowercased path -> stat, for every file found
+  for (const files of scanned.values()) for (const f of files) onDisk.set(f.path.toLowerCase(), f);
+
+  // Folder entries survive everything except the user removing their folder
+  // from Settings. Toggling one off is not removing it — checked against every
+  // configured folder, enabled or not, so a toggle keeps favorites and lanes.
   const before = assets.length;
-  assets = assets.filter((a) => {
-    if (a.source !== "folder") return true;
-    return folderOk && path.resolve(path.dirname(a.path)).toLowerCase() === folderNorm && fs.existsSync(a.path);
-  });
+  assets = assets.filter((a) => a.source !== "folder" || configured.some((r) => isUnder(a.path, r)));
   if (assets.length !== before) dirty = true;
 
-  // Absorb new audio files from the SFX folder
-  if (folderOk) {
-    const known = new Set(assets.filter((a) => a.source === "folder").map((a) => a.path.toLowerCase()));
-    for (const name of fs.readdirSync(sfxFolder)) {
-      const ext = path.extname(name).toLowerCase();
-      if (classifyExt(ext) !== "audio") continue;
-      const full = path.join(path.resolve(sfxFolder), name);
-      if (known.has(full.toLowerCase())) continue;
-      let st;
-      try { st = fs.statSync(full); } catch (_) { continue; }
-      if (!st.isFile()) continue;
+  // A file the sync replaced under the same name gets re-probed and re-classified.
+  for (const a of assets) {
+    if (a.source !== "folder") continue;
+    const st = onDisk.get(a.path.toLowerCase());
+    if (!st || (st.sizeBytes === a.sizeBytes && st.mtimeMs === a.mtimeMs)) continue;
+    a.sizeBytes = st.sizeBytes;
+    a.mtimeMs = st.mtimeMs;
+    a.durationSec = null;
+    if (!a.typeLocked) a.type = null;
+    dirty = true;
+  }
+
+  // Absorb files that aren't in the index yet.
+  const known = new Set(assets.filter((a) => a.source === "folder").map((a) => a.path.toLowerCase()));
+  for (const [root, files] of scanned) {
+    for (const f of files) {
+      if (known.has(f.path.toLowerCase())) continue;
+      known.add(f.path.toLowerCase());
       assets.push({
         id: generateAssetId(),
-        type: "sfx",
-        name: path.basename(name, ext),
-        path: full,
+        type: null, // filled in by backfillDurations
+        name: path.basename(f.path, path.extname(f.path)),
+        path: f.path,
         source: "folder",
-        durationSec: await probeDurationSafe(full),
-        sizeBytes: st.size,
+        watchRoot: root,
+        durationSec: null,
+        sizeBytes: f.sizeBytes,
+        mtimeMs: f.mtimeMs,
         favorite: false,
         addedAt: new Date().toISOString(),
       });
@@ -116,10 +198,89 @@ async function listAssets(assetsRoot, sfxFolder) {
 
   if (dirty) saveIndex(assetsRoot, assets);
 
-  return assets.map((a) => {
+  return assets.flatMap((a) => {
     const abs = resolvePath(assetsRoot, a);
-    return { ...a, path: abs, missing: !fs.existsSync(abs) };
+    if (a.source !== "folder") {
+      return [{ ...a, path: abs, offline: false, missing: !fs.existsSync(abs), group: "Uploads" }];
+    }
+    // A folder toggled off leaves the panel but keeps its index entries.
+    if (!roots.some((r) => isUnder(abs, r))) return [];
+    const offline = !reachableRoots.some((r) => isUnder(abs, r));
+    return [{
+      ...a,
+      path: abs,
+      offline,
+      missing: !offline && !onDisk.has(abs.toLowerCase()),
+      group: path.basename(path.dirname(abs)),
+    }];
   });
+}
+
+// One duration pass at a time — `assets:list` fires on every panel open.
+let scanRunning = false;
+
+/**
+ * Probe every folder entry that has no duration yet and assign its lane. A cold
+ * 760-file library is ~1.3 minutes at ~99ms a file; the panel stays usable
+ * throughout and is instant on every later open, because the index entry IS the
+ * cache and only a changed size/mtime clears it.
+ *
+ * Saves in batches of 10, re-reading the index each time so a concurrent import
+ * isn't clobbered. A file that won't probe records duration 0 rather than null,
+ * so it lands in SFX instead of being retried on every open forever.
+ */
+async function backfillDurations(assetsRoot, onProgress) {
+  if (scanRunning) return;
+  scanRunning = true;
+  try {
+    const todo = loadIndex(assetsRoot).filter((a) => a.source === "folder" && a.durationSec == null);
+    if (!todo.length) return;
+
+    const probed = new Map(); // id -> durationSec
+    let done = 0;
+    const flush = () => {
+      const disk = loadIndex(assetsRoot);
+      for (const a of disk) {
+        if (!probed.has(a.id)) continue;
+        a.durationSec = probed.get(a.id);
+        if (!a.typeLocked) a.type = classifyByDuration(a.durationSec);
+      }
+      saveIndex(assetsRoot, disk);
+      probed.clear();
+    };
+
+    for (const entry of todo) {
+      done++;
+      // A file that went away mid-pass (the drive dropped) stays unprobed.
+      // Recording a 0 here would pin a whole offline library into the SFX lane
+      // permanently, since 0 reads as "probed" on the next run.
+      if (fs.existsSync(entry.path)) {
+        probed.set(entry.id, (await probeDurationSafe(entry.path)) ?? 0);
+      }
+      if (probed.size >= 10 || done === todo.length) {
+        if (probed.size) flush();
+        if (onProgress) onProgress({ done, total: todo.length });
+      }
+    }
+  } finally {
+    scanRunning = false;
+  }
+}
+
+/**
+ * Pin a track to the Music or SFX lane by hand. `typeLocked` makes it survive
+ * every later rescan — the duration rule is ~98% right, and this is the escape
+ * hatch for the rest.
+ */
+function setAssetType(assetsRoot, assetId, type) {
+  if (type !== "music" && type !== "sfx") throw new Error("Type must be music or sfx");
+  const assets = loadIndex(assetsRoot);
+  const entry = assets.find((a) => a.id === assetId);
+  if (!entry) throw new Error("Asset not found");
+  entry.type = type;
+  entry.typeLocked = true;
+  saveIndex(assetsRoot, assets);
+  return type;
 }
 
 /**
@@ -174,14 +335,14 @@ async function importAssets(assetsRoot, filePaths, typeHint) {
 
 /**
  * Delete a library asset (index entry + copied file). Folder-sourced entries
- * are refused — the SFX folder belongs to the user; removing the entry would
+ * are refused — a watched folder belongs to the user; removing the entry would
  * just re-absorb the file on the next scan.
  */
 function deleteAsset(assetsRoot, assetId) {
   const assets = loadIndex(assetsRoot);
   const entry = assets.find((a) => a.id === assetId);
   if (!entry) throw new Error("Asset not found");
-  if (entry.source === "folder") throw new Error("Remove this file from your Sound Effects folder instead");
+  if (entry.source === "folder") throw new Error("This file lives in a watched folder — delete it there, or un-watch the folder in Settings");
   try {
     fs.unlinkSync(resolvePath(assetsRoot, entry));
   } catch (_) { /* already gone */ }
@@ -234,6 +395,8 @@ function toggleFavorite(assetsRoot, assetId) {
 module.exports = {
   getAssetsRoot,
   listAssets,
+  backfillDurations,
+  setAssetType,
   importAssets,
   deleteAsset,
   toggleFavorite,

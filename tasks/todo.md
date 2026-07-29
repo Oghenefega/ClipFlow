@@ -6,10 +6,59 @@
 
 ---
 
-## 📋 NEXT SESSION — Audio library: link Fega's real folders instead of copying
+## ✅ DONE (session 137) — Audio library: link Fega's real folders instead of copying (#208) — **built + verified on the dev build; NOT yet on Fega's installed daily driver**
 
-Written at the end of session 136 (2026-07-29) so the next session can start on
-it cold. **Not started. Not approved beyond the direction.**
+Drafted at the end of session 136 (2026-07-29); re-measured, revised and built in
+session 137. Fega locked the scope (one folder `V:\AutoSync\Audio`, whole library
+visible); the per-folder role dropdown was cut, groups collapsed by default.
+
+### What the live drive proved (built app, dev profile, driven over CDP)
+
+- **Migration:** seeded a legacy `sfxFolder` into the dev profile → first boot
+  moved it to `audioFolders: [{path, enabled: true}]` and blanked `sfxFolder`.
+  Logged as `Migrated sfxFolder to audioFolders: …`.
+- **Full library:** pointed at `V:\AutoSync\Audio` → **762 tracks** (760 linked +
+  2 previously uploaded) in **29 groups**, sorted **513 music / 249 sfx**, zero
+  copied bytes. Cold scan 124ms; duration pass **77s for 760 files**; every later
+  list call ~50ms from the cache.
+- **Groups** render collapsed with counts; Fega's mood folders all survived
+  (`Lowkey - Just Chatting - Lobby - Chill` 68, `Troll - Derpy - Funny` 10,
+  `Intense - Epic - Final Battle…` 20). Expanding one lists its tracks.
+- **Search bypasses collapse** — typing "casino" surfaced matches from two
+  different collapsed groups.
+- **Lane override** through the UI: `2985_Descending Mount Everest` (59.9s, so
+  SFX by a hair) moved to Music, status line confirmed, `typeLocked: true` on
+  the entry, and it held through a rescan AND a second duration pass.
+- **Offline/toggle/delete** (separate harness on a small copied tree, since `V:`
+  can't be unplugged): folder Off → 0 shown but favorite + lane remembered;
+  folder renamed away → 4/4 kept and flagged offline, lanes unchanged even after
+  a scan attempt while offline; renamed back → flags cleared, no re-probe; one
+  file deleted → kept with `missing: true`; a file swapped for a longer one →
+  re-probed and re-classified sfx → music; folder removed from Settings → gone.
+- 125 jest tests green. Clean boot, no errors in the dev log.
+- Fega's real `assets.json` was backed up before the run and **restored
+  byte-for-byte** afterwards (2 entries, both uploads).
+
+### Two things left for Fega's call
+
+1. **Group names come straight off the folder**, so Epidemic's folders show as
+   groups literally named `Music` (131) and `SFX` — and `SFX` appears inside the
+   Music tab with the 4 long files it holds. Honest, but reads oddly. Renaming
+   would mean inventing labels; left alone unless he wants it changed.
+2. **The 60-second cut is exact.** `2985_Descending Mount Everest` at 59.9s
+   landed in SFX until it was overridden. Working as designed — flagging it so
+   the boundary isn't a surprise.
+
+### Original plan (kept for reference)
+
+### Locked by Fega (session 137)
+
+- **Watch one folder: `V:\AutoSync\Audio`.** Covers all 760 files, both Epidemic
+  folders and the whole Sound FX tree. He can add/remove later.
+- **Bring the whole library in** — all ~510 music tracks including the 100
+  Thieves pile. Collapsed groups + search keep the unused piles out of the way
+  rather than excluding them.
+- Per-folder role dropdown cut (see below).
 
 ### Why
 
@@ -33,11 +82,33 @@ lesser problem, but it isn't nothing (below).
 Copying stays the right **default for other users** — someone dragging one file
 off their Desktop must not lose it when they clear out Downloads.
 
-### Fega's actual library (measured 2026-07-29)
+### Fega's actual library (re-measured 2026-07-29, session 137)
 
-`V:\AutoSync\Audio\Epidemic Sound\Music` — 138 files, **5.91 GB**, flat.
+**Corrected from the session-136 figures below.** Walking the whole
+`V:\AutoSync\Audio` root — not just the two folders session 136 sampled —
+gives **760 audio files, 12.59 GB, 38 folders, 5 levels deep**. Session 136
+missed `Epidemic Sound\SFX` (60 files, 372.6 MB) and a stems subfolder inside
+Epidemic's Music. Top folders by count:
 
-`V:\AutoSync\Audio\Sound FX\` — one tree, **4 levels deep**, holding BOTH kinds:
+```
+133   6125.7 MB  Epidemic Sound\Music                                    ← music
+122     86.4 MB  Sound FX\Effects                                        ← SFX
+100   3269.6 MB  Sound FX\SoundTracks\...\100 Thieves Hype Tracks        ← music
+ 71    353.1 MB  ...\Game Music - Jazz\Lowkey - Just Chatting            ← music
+ 64    163.2 MB  Sound FX\Mango's Complete SFX Pack\Mango's Sfx          ← SFX
+ 60    372.6 MB  Epidemic Sound\SFX                        ← SFX, MISSED in s136
+ 35    736.4 MB  Sound FX\SoundTracks\StreamBeats Verified Music         ← music
+ 35    162.0 MB  Sound FX\SoundTracks                                    ← music
+ 35    264.6 MB  ...\Game Music - Jazz\Upbeat - Mario Plaza              ← music
+  5    218.0 MB  Epidemic Sound\Music\ES_Counting Blessings — 5 stems of ONE song
+                 (all 151.2s; they will show as five near-identical rows)
+ …plus 18 smaller folders, and 10 folders holding no audio at all
+ (`Meme Audio` is completely empty; `Zipped`, `Tutorials _ Presets`, …)
+```
+
+**Copying would duplicate 12.59 GB.**
+
+The session-136 tree below is still accurate for `Sound FX` itself:
 
 ```
 Sound FX                                    3 files    71.2 MB   ← music, loose at root
@@ -57,9 +128,6 @@ Sound FX                                    3 files    71.2 MB   ← music, loos
     Holiday Themed                           2           9.6 MB
     Meme Music                               7          45.7 MB
 ```
-
-~200 SFX and ~350 music files, ~5.5 GB, plus Epidemic's 5.91 GB. **Copying would
-duplicate ~11 GB.**
 
 `F:\Youtube\Sound FX\Effects` is a **legacy duplicate** of `Effects` — Fega
 confirmed it is dead. Do not index it.
@@ -96,9 +164,24 @@ music files as sound effects. Folder names are a hint, never the rule.
 | Sound FX root | 3 | 178.1s | **264.0s** | 4096.4s | 3/3 |
 | Epidemic Music | 12 | 113.9s | **157.0s** | 260.5s | 12/12 |
 
-**A ≥60s cut classifies ~73 of 75 sampled files correctly (~97%).** The two
+Session 137 re-sampled the five folders session 136 never touched, and the cut
+held **30/30**:
+
+| Folder | n | min | median | max | over 60s |
+|---|---|---|---|---|---|
+| Epidemic Sound\SFX | 12 | 0.6s | **3.3s** | 11.0s | 0/12 → all SFX ✓ |
+| ES_Counting Blessings (stems) | 5 | 151.2s | **151.2s** | 151.2s | 5/5 → all music ✓ |
+| Troll - Derpy - Funny | 10 | 66.6s | **120.6s** | 302.3s | 10/10 → all music ✓ |
+| Brian Rian Rehan - Dark | 2 | 128.9s | **129.0s** | 129.0s | 2/2 → all music ✓ |
+| TikTok SoundTracks | 1 | 8.0s | **8.0s** | 8.0s | 0/1 → SFX (folder name says music) |
+
+**Running total: 103 of 105 sampled files classified correctly (~98%).** The two
 misses: a 190.7s file sitting in `Effects` (almost certainly music filed in the
-wrong folder) and an 11.7s sting in `Meme Music` (arguably an SFX anyway).
+wrong folder) and an 11.7s sting in `Meme Music` (arguably an SFX anyway). The
+lone `TikTok SoundTracks` file is 8s, so calling it an SFX is defensible.
+
+**Probe cost re-measured: 99ms per file → 760 files ≈ 1.3 min cold**, matching
+the session-136 estimate. Cached after that.
 
 ClipFlow already has this constant — `MUSIC_MIN_SECONDS = 60` (`assets.js:18`) —
 and already applies it on the copy path (`assets.js:152`). It is simply never
@@ -106,25 +189,31 @@ applied on the folder-scan path, where **everything is hardcoded
 `type: "sfx"`** (`assets.js:104`). That single line is the bug behind
 "everything from a folder shows up as a sound effect".
 
-**Proposed rule, in priority order:**
-1. A per-track manual override, if the user has set one — always wins, stored in
-   the index by path so a rescan never undoes it.
-2. A per-folder role, if the user set one on a watched folder (`music` / `sfx` /
-   `auto`) — lets Fega mark `Effects` and `Mango's Sfx` as SFX and be done.
-3. Otherwise `durationSec >= 60 → music, else sfx`.
+**Rule, in priority order — TWO tiers, not three (session 137 change):**
+1. A per-track manual override, if the user has set one — always wins, stored on
+   the index entry so a rescan never undoes it.
+2. Otherwise `durationSec >= 60 → music, else sfx`.
+
+**The per-folder role dropdown from the session-136 draft is cut.** It was tier 2
+of three, and at 98% measured accuracy it earns nothing: every folder it would
+let Fega label is already labelled correctly by duration. It costs a dropdown in
+Settings, a third field on every watched-folder entry, and a priority branch —
+for a case that has not appeared in 105 sampled files. Add it later if the
+duration rule actually disappoints. (Simplicity rule; flagging the change because
+the session-136 draft proposed it.)
 
 Deliberately NOT proposed: guessing from folder names (breaks on his tree, as
-above), or asking him to reorganise 550 files.
+above), or asking him to reorganise 760 files.
 
-The manual override is the piece that makes the ~3% tolerable — one right-click
+The manual override is the piece that makes the ~2% tolerable — one click
 "Move to Music / Move to SFX" in the Audio panel, and it sticks.
 
-**Cost of the duration rule:** every file must be probed once. ~550 files ×
-~100–200ms ≈ 1–2 minutes on the first scan. Must be (a) backgrounded — the panel
-opens immediately and fills in — and (b) cached by `path + mtime + size`, the
-same invalidation rule `getPeaks` already uses (`assets.js:197`). After the first
-scan it is near-instant. Sequential probing is fine; it already runs in
-`probeDurationSafe`, just make it not block the list.
+**Cost of the duration rule:** every file must be probed once. Measured at 99ms
+per file → **760 files ≈ 1.3 minutes** on the first scan. Must be
+(a) backgrounded — the panel opens immediately and fills in — and (b) cached by
+`path + mtime + size`, the same invalidation rule `getPeaks` already uses
+(`assets.js:197`). After the first scan it is near-instant. Sequential probing is
+fine; it already runs in `probeDurationSafe`, just make it not block the list.
 
 #### 3. "Offline drives" — what that meant, and why it matters
 
@@ -156,10 +245,20 @@ failure this prevents.
   Chatting`, `Intense - Epic - Final Battle`, `Troll - Derpy - Funny`) is the
   useful part of his library and must survive the import. Group by immediate
   parent folder, collapsible.
-- **Empty/junk folders** (`Zipped`, `Tutorials _ Presets`, `Swoosh SFX` with 0
-  audio) should not render as empty groups.
+- **Groups start collapsed** (session 137 addition). 760 tracks in one open
+  scroll list is ~4,500 DOM nodes in a panel that renders every row eagerly;
+  collapsed it is 28 headers. **Typing in the search box bypasses collapse** and
+  shows matches across every group, so nothing is buried — that is the standard
+  pattern and it keeps the panel's existing search useful.
+- **Empty/junk folders** (`Meme Audio` — completely empty, `Zipped`,
+  `Tutorials _ Presets`, `Swoosh SFX` with 0 audio: 10 such folders) should not
+  render as empty groups.
 - Existing copied assets keep working — this adds a source, it does not migrate
   or delete anything already in `{assetsRoot}/files/`.
+- **Already-placed sounds are safe from index churn.** A placement copies the
+  absolute `path` at drop time (`useEditorStore.js:443`) and the renderer
+  resolves by `p.path` (`render.js:458`), so a re-scan that mints new asset ids
+  cannot detach a sound already on a clip.
 
 ### Files this will touch
 
@@ -168,20 +267,23 @@ failure this prevents.
 - `src/main/main.js` — `sfxFolder` → list setting + migration (schema change, so
   a migration function is mandatory per `.claude/rules/pipeline.md`).
 - `src/renderer/views/SettingsView.js` — the single "Sound Effects Folder" card
-  becomes an add/remove list with a role dropdown per folder.
-- `src/renderer/editor/components/RightPanelNew.js` — subfolder groups, offline
-  styling, the per-track "Move to Music/SFX" override.
+  becomes an add/remove list of watched folders (no role dropdown — cut above).
+- `src/renderer/editor/components/RightPanelNew.js` — subfolder groups
+  (collapsed by default, search bypasses), offline styling, the per-track
+  "Move to Music/SFX" override.
 
 ### Verify
 
-- Point ClipFlow at `V:\AutoSync\Audio\Sound FX` and
-  `V:\AutoSync\Audio\Epidemic Sound\Music`. All ~550 tracks appear, ~350 under
-  Music and ~200 under SFX, grouped by their real subfolders.
+- Point ClipFlow at `V:\AutoSync\Audio`. **All 760 tracks appear**, roughly 510
+  under Music and 250 under SFX, grouped by their real subfolders, groups
+  collapsed. `Meme Audio` and the other 9 audio-free folders show no group.
 - Nothing is copied — `{assetsRoot}/files/` gains no bytes.
+- Search finds a track inside a collapsed group without expanding it by hand.
 - Move one track to the other lane; rescan; it stays where it was put.
 - Disconnect / rename `V:` → tracks grey out, none disappear; restore → they
   come back.
-- Second panel open is fast (durations cached).
+- First scan finishes in ~1.3 min with the panel usable throughout; second panel
+  open is instant (durations cached).
 
 ---
 

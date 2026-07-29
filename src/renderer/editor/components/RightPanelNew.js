@@ -867,6 +867,8 @@ function AudioPanel() {
   const [status, setStatus] = useState(null); // { text, error } — import/delete feedback
   const [playingId, setPlayingId] = useState(null);
   const [armedDeleteId, setArmedDeleteId] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set());
+  const [scan, setScan] = useState(null); // { done, total } while durations are read
   const audioRef = useRef(null);
   const statusTimer = useRef(null);
 
@@ -877,6 +879,28 @@ function AudioPanel() {
     setLoaded(true);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // #208: a cold watched library spends a minute or two reading durations, and
+  // a track has no honest lane until its own is read. Re-list at most every 2s
+  // while that runs, so the panel fills in without re-rendering hundreds of
+  // rows on every batch, then once more when it finishes.
+  useEffect(() => {
+    let timer = null;
+    window.clipflow.onAssetsScanProgress((p) => {
+      setScan(p);
+      if (p.done >= p.total) {
+        clearTimeout(timer);
+        timer = null;
+        refresh();
+        return;
+      }
+      if (!timer) timer = setTimeout(() => { timer = null; refresh(); }, 2000);
+    });
+    return () => {
+      clearTimeout(timer);
+      window.clipflow.removeAssetsScanListeners();
+    };
+  }, [refresh]);
 
   // Unmount cleanup — stop preview audio and drop the element (standing rule).
   useEffect(() => () => {
@@ -961,12 +985,53 @@ function AudioPanel() {
       : `${track.name} added at ${at}`);
   }, [flashStatus]);
 
+  // #208: the duration rule is ~98% right on a real library; this is the escape
+  // hatch for the rest, and it survives every later rescan.
+  const moveToOtherLane = useCallback(async (track) => {
+    const dest = track.type === "music" ? "sfx" : "music";
+    const result = await window.clipflow.assetsSetType(track.id, dest);
+    if (result?.success) {
+      flashStatus(`${track.name} moved to ${dest === "music" ? "Music" : "Sound effects"}`);
+      refresh();
+    } else flashStatus(result?.error || "Move failed", true);
+  }, [flashStatus, refresh]);
+
   const filteredTracks = useMemo(() => {
     let t = assets.filter((a) => a.type === subTab);
     if (showFavorites) t = t.filter((a) => a.favorite);
     if (search) t = t.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
     return t;
   }, [assets, subTab, showFavorites, search]);
+
+  // Watched folders keep their own shape — Fega's mood folders ("Troll - Derpy
+  // - Funny", "Lowkey - Just Chatting") are the useful part of his library.
+  // Insertion order follows the scan, so a folder's tracks stay together.
+  const groups = useMemo(() => {
+    const byName = new Map();
+    for (const t of filteredTracks) {
+      const g = t.group || "Other";
+      if (!byName.has(g)) byName.set(g, []);
+      byName.get(g).push(t);
+    }
+    return [...byName.entries()].map(([name, tracks]) => ({ name, tracks }));
+  }, [filteredTracks]);
+
+  // Groups start collapsed — hundreds of open rows is a wall. Searching opens
+  // everything so nothing is buried behind a closed folder, and a lone group
+  // never collapses (a small uploaded library behaves exactly as before).
+  const searching = search.trim().length > 0;
+  const grouped = groups.length > 1;
+  const isOpen = useCallback(
+    (name) => searching || !grouped || expandedGroups.has(name),
+    [searching, grouped, expandedGroups],
+  );
+  const toggleGroup = useCallback((name) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -1004,6 +1069,13 @@ function AudioPanel() {
         <div className={`px-3 pb-1.5 text-[11px] ${status.error ? "text-red-400" : "text-emerald-400"}`}>{status.text}</div>
       )}
 
+      {/* First scan of a watched folder — tracks land in a lane as they're read */}
+      {scan && scan.done < scan.total && (
+        <div className="px-3 pb-1.5 text-[11px] text-muted-foreground">
+          Reading your audio folders — {scan.done} of {scan.total}. Tracks appear as they're sorted.
+        </div>
+      )}
+
       {/* Filter pills */}
       <div className="flex items-center gap-1.5 px-3 pb-2">
         {[false, true].map((fav) => (
@@ -1021,65 +1093,99 @@ function AudioPanel() {
       {/* Track list */}
       <ScrollArea className="flex-1">
         <div className="py-1">
-          {filteredTracks.map((track) => (
-            <div key={track.id}
-              onMouseEnter={() => setHoveredId(track.id)}
-              onMouseLeave={() => { setHoveredId(null); setArmedDeleteId(null); }}
-              className={`flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/30 transition-colors group ${track.missing ? "opacity-50" : ""}`}>
-              {/* Thumbnail — click to preview */}
-              <button onClick={() => !track.missing && togglePlay(track)}
-                className={`w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br ${gradientFor(track.id)} shrink-0 ${track.missing ? "cursor-default" : "cursor-pointer hover:brightness-110"}`}>
-                {playingId === track.id
-                  ? <Pause className="h-3.5 w-3.5 text-foreground/90" />
-                  : <Play className="h-3.5 w-3.5 text-foreground/70" />}
-              </button>
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-foreground font-medium truncate" title={track.path}>{track.name}</div>
-                <div className="text-[12px] text-muted-foreground">
-                  {fmtDur(track.durationSec)}
-                  {track.source === "folder" ? " · SFX folder" : ""}
-                  {track.missing ? " · file missing" : ""}
-                </div>
-              </div>
-              {/* Actions — favorite star stays visible once set */}
-              {(hoveredId === track.id || track.favorite) && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button onClick={() => toggleFavorite(track)}
-                          className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${track.favorite ? "text-amber-400" : "text-muted-foreground hover:text-foreground"}`}>
-                          <Star className="h-3 w-3" fill={track.favorite ? "currentColor" : "none"} />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-[12px]">{track.favorite ? "Unfavorite" : "Favorite"}</TooltipContent>
-                    </Tooltip>
-                    {hoveredId === track.id && track.source === "library" && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button onClick={() => handleDelete(track)}
-                            className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${armedDeleteId === track.id ? "text-red-400 bg-red-500/15" : "text-muted-foreground hover:text-foreground"}`}>
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-[12px]">{armedDeleteId === track.id ? "Click again to delete" : "Delete"}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {hoveredId === track.id && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button onClick={() => !track.missing && handleAddToTimeline(track)}
-                            className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${track.missing ? "bg-primary/30 text-primary-foreground/40 cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-[12px]">Add at playhead</TooltipContent>
-                      </Tooltip>
-                    )}
-                  </TooltipProvider>
-                </div>
+          {groups.map((g) => (
+            <div key={g.name}>
+              {grouped && (
+                <button onClick={() => toggleGroup(g.name)}
+                  className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/20 transition-colors">
+                  {isOpen(g.name)
+                    ? <ChevronDown className="h-3 w-3 shrink-0" />
+                    : <ChevronRight className="h-3 w-3 shrink-0" />}
+                  <span className="truncate" title={g.name}>{g.name}</span>
+                  <span className="ml-auto opacity-60">{g.tracks.length}</span>
+                </button>
               )}
+              {isOpen(g.name) && g.tracks.map((track) => {
+                // Offline = its whole folder is unreachable (drive unplugged);
+                // missing = deleted from a folder that reads fine. Either way
+                // the track stays listed, it just can't be played or placed.
+                const unavailable = track.offline || track.missing;
+                return (
+                  <div key={track.id}
+                    onMouseEnter={() => setHoveredId(track.id)}
+                    onMouseLeave={() => { setHoveredId(null); setArmedDeleteId(null); }}
+                    className={`flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/30 transition-colors group ${unavailable ? "opacity-50" : ""}`}>
+                    {/* Thumbnail — click to preview */}
+                    <button onClick={() => !unavailable && togglePlay(track)}
+                      className={`w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br ${gradientFor(track.id)} shrink-0 ${unavailable ? "cursor-default" : "cursor-pointer hover:brightness-110"}`}>
+                      {playingId === track.id
+                        ? <Pause className="h-3.5 w-3.5 text-foreground/90" />
+                        : <Play className="h-3.5 w-3.5 text-foreground/70" />}
+                    </button>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-foreground font-medium truncate" title={track.path}>{track.name}</div>
+                      <div className="text-[12px] text-muted-foreground">
+                        {fmtDur(track.durationSec)}
+                        {track.offline ? " · drive offline" : track.missing ? " · file missing" : ""}
+                      </div>
+                    </div>
+                    {/* Actions — favorite star stays visible once set */}
+                    {(hoveredId === track.id || track.favorite) && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button onClick={() => toggleFavorite(track)}
+                                className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${track.favorite ? "text-amber-400" : "text-muted-foreground hover:text-foreground"}`}>
+                                <Star className="h-3 w-3" fill={track.favorite ? "currentColor" : "none"} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-[12px]">{track.favorite ? "Unfavorite" : "Favorite"}</TooltipContent>
+                          </Tooltip>
+                          {hoveredId === track.id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button onClick={() => moveToOtherLane(track)}
+                                  className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  {subTab === "music"
+                                    ? <Volume2 className="h-3 w-3" />
+                                    : <Music className="h-3 w-3" />}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-[12px]">
+                                {subTab === "music" ? "This is a sound effect" : "This is music"}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {hoveredId === track.id && track.source === "library" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button onClick={() => handleDelete(track)}
+                                  className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${armedDeleteId === track.id ? "text-red-400 bg-red-500/15" : "text-muted-foreground hover:text-foreground"}`}>
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-[12px]">{armedDeleteId === track.id ? "Click again to delete" : "Delete"}</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {hoveredId === track.id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button onClick={() => !unavailable && handleAddToTimeline(track)}
+                                  className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${unavailable ? "bg-primary/30 text-primary-foreground/40 cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-[12px]">Add at playhead</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TooltipProvider>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
           {loaded && filteredTracks.length === 0 && (
@@ -1091,9 +1197,7 @@ function AudioPanel() {
               <div className="text-[12px] text-muted-foreground/60 mt-1">
                 {showFavorites
                   ? "Star a track to pin it here"
-                  : subTab === "music"
-                    ? "Upload audio files to add to your clips"
-                    : "Upload here, or set a Sound Effects folder in Settings — files there show up automatically"}
+                  : "Upload here, or add an audio folder in Settings — everything in it shows up automatically, subfolders included"}
               </div>
             </div>
           )}

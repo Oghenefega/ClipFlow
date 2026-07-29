@@ -249,7 +249,8 @@ export default function App() {
   const [testWatchFolder, setTestWatchFolder] = useState("");
   const [platforms, setPlatforms] = useState(PUBLISH_ORDER_INIT);
   const [outputFolder, setOutputFolder] = useState("");
-  const [sfxFolder, setSfxFolder] = useState("");
+  // #208 — folders whose audio is linked in place: [{ path, enabled }]
+  const [audioFolders, setAudioFolders] = useState([]);
 
   // Settings section collapse state — persists across tab switches, resets on app launch
   const [settingsCollapsed, setSettingsCollapsed] = useState({
@@ -373,7 +374,7 @@ export default function App() {
           if (folderResult?.folders) setProjectFolders(folderResult.folders);
         }
         if (all.outputFolder) setOutputFolder(all.outputFolder);
-        if (all.sfxFolder) setSfxFolder(all.sfxFolder);
+        if (Array.isArray(all.audioFolders)) setAudioFolders(all.audioFolders);
         if (all.renameHistory) {
           const reconciled = await reconcileRenameHistory(all.renameHistory, all.watchFolder, all.testWatchFolder);
           // Persist immediately when the pass corrected anything — the auto-save
@@ -474,7 +475,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("ytDescriptions", ytDescriptions); }, [ytDescriptions]);
   useEffect(() => { if (!hasLoaded.current) return; persist("localProjects", localProjects); }, [localProjects]);
   useEffect(() => { if (!hasLoaded.current) return; persist("outputFolder", outputFolder); }, [outputFolder]);
-  useEffect(() => { if (!hasLoaded.current) return; persist("sfxFolder", sfxFolder); }, [sfxFolder]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("audioFolders", audioFolders); }, [audioFolders]);
   useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("anthropicApiKey", anthropicApiKey); }, [anthropicApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("geminiApiKey", geminiApiKey); }, [geminiApiKey]);
@@ -876,8 +877,8 @@ export default function App() {
               setPlatforms={setPlatforms}
               outputFolder={outputFolder}
               setOutputFolder={setOutputFolder}
-              sfxFolder={sfxFolder}
-              setSfxFolder={setSfxFolder}
+              audioFolders={audioFolders}
+              setAudioFolders={setAudioFolders}
               anthropicApiKey={anthropicApiKey}
               setAnthropicApiKey={setAnthropicApiKey}
               geminiApiKey={geminiApiKey}

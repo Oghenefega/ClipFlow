@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 137) — Your real audio folders, linked instead of copied (#208)
+
+### Added
+- **Settings now takes a list of Audio Folders instead of one Sound Effects Folder, and scans them all the way down (#208).** Each folder can be switched On/Off or removed, subfolders are included at any depth, and every file stays exactly where it is — nothing is copied. That matters most for a library on a syncing drive: a copy quietly forks from the folder you actually maintain, and the stale copy is the one the app then uses. Pointed at Fega's `V:\AutoSync\Audio`, this surfaces all **760 tracks across 28 folders (12.6 GB)** with no bytes duplicated. Switching a folder Off hides its tracks but remembers their favorites and lane choices; only Remove forgets them. [SettingsView.js, App.js, main.js, assets.js]
+- **Music and sound effects are told apart by length, not by folder name.** Anything 60 seconds or longer is music. Folder names cannot do this job on a real library — Fega's root folder is named `Sound FX` and holds all ~510 of his songs, so any name-based rule mislabels every one of them. Measured against 105 sampled files from his own folders, the length rule is right 103 times; the live scan sorted his library into 512 music and 248 sound effects. Files from a watched folder used to be labelled sound effects unconditionally, which is why a three-minute song scanned from a folder landed in the SFX lane. [assets.js]
+- **A one-click lane override on every track, for the few the length rule gets wrong.** Hovering a track shows a button that moves it to the other tab, and the choice is pinned — it survives every later rescan and re-read of the file. [RightPanelNew.js, assets.js, main.js, preload.js]
+- **The Audio panel groups tracks by the folder they live in, collapsed by default with a count on each.** Fega's mood folders (`Lowkey - Just Chatting`, `Intense - Epic - Final Battle`, `Troll - Derpy - Funny`) are the useful part of his library and now survive into the app. Typing in the search box looks through every group, open or closed, so nothing is buried. Folders holding no audio never appear. [RightPanelNew.js]
+- **First scan of a big library reads durations in the background** with a "Reading your audio folders — 320 of 760" line in the panel; tracks drop into their lane as they are read, and the panel is usable throughout. Measured at 77 seconds for 760 files. Each result is cached on the track's index entry and only re-read if that file's size or timestamp changes, so every later open is instant (124ms for the full library). [assets.js, main.js, preload.js, RightPanelNew.js]
+
+### Fixed
+- **Unplugging the drive no longer empties the Audio panel.** Linked tracks whose file could not be found were deleted from the library index outright, so disconnecting `V:` silently wiped every track — and any clip already using one failed at render with no explanation. Tracks are now kept and marked: a folder that will not read at all means the drive is offline (the whole folder greys out and comes back by itself when the drive returns), while a file gone from a folder that reads fine is flagged as missing. A duration scan that runs while the drive is away no longer records zero-length results, which would otherwise have pinned an entire offline library into the SFX lane permanently. [assets.js]
+
+### Changed
+- **`sfxFolder` (single string) became `audioFolders` (list), with a migration.** An existing Sound Effects Folder becomes the first entry in the list and the old setting is blanked, so it cannot reappear after the folder is removed. Fresh installs start with an empty list. Verified on a seeded profile: the old path migrated and the setting cleared on first boot. [main.js]
+
 ## [Unreleased] — 2026-07-29 (session 136) — Queue row shortcuts, correct render filenames, tidy renders folder
 
 ### Added

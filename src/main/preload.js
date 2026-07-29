@@ -50,7 +50,15 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsImport: (filePaths, typeHint) => ipcRenderer.invoke("assets:import", filePaths, typeHint),
   assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
   assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
+  assetsSetType: (assetId, type) => ipcRenderer.invoke("assets:setType", assetId, type),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
+  // Background duration scan of watched audio folders (#208)
+  onAssetsScanProgress: (callback) => {
+    ipcRenderer.on("assets:scanProgress", (_, data) => callback(data));
+  },
+  removeAssetsScanListeners: () => {
+    ipcRenderer.removeAllListeners("assets:scanProgress");
+  },
 
   // Persistent store
   storeGet: (key) => ipcRenderer.invoke("store:get", key),
