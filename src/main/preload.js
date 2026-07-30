@@ -51,13 +51,14 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsDelete: (assetId) => ipcRenderer.invoke("assets:delete", assetId),
   assetsFavorite: (assetId) => ipcRenderer.invoke("assets:favorite", assetId),
   assetsSetType: (assetId, type) => ipcRenderer.invoke("assets:setType", assetId, type),
-  // #210: per-sound default volume; null clears it
-  assetsSetDefaultVolume: (assetId, volume) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume),
+  // #210: per-sound default volume; null clears it. #214: pass filePath when the
+  // id came off a clip — path is the identity that survives an index rebuild.
+  assetsSetDefaultVolume: (assetId, volume, filePath) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume, filePath),
   // #212: mood tags + "recently used"
   assetsMoods: () => ipcRenderer.invoke("assets:moods"),
   assetsSetTags: (assetId, tags) => ipcRenderer.invoke("assets:setTags", assetId, tags),
   assetsAddTagToMany: (assetIds, tag) => ipcRenderer.invoke("assets:addTagToMany", assetIds, tag),
-  assetsMarkUsed: (assetId) => ipcRenderer.invoke("assets:markUsed", assetId),
+  assetsMarkUsed: (assetId, filePath) => ipcRenderer.invoke("assets:markUsed", assetId, filePath),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
   // Background duration scan of watched audio folders (#208)
   onAssetsScanProgress: (callback) => {

@@ -301,6 +301,25 @@ function setAssetType(assetsRoot, assetId, type) {
 }
 
 /**
+ * Find the entry a reference SAVED ON A CLIP means. Path wins over id, because
+ * `assetId` is minted at scan time (generateAssetId) and any rebuild of the index
+ * re-mints every one of them, while the file path stays put. Measured: after one
+ * rebuild, 27 of 27 placements on real clips had a dangling `assetId` and all 27
+ * resolved by path (#214). Only lookups fed by the live panel list can trust an
+ * id; anything read back off a clip must come through here.
+ *
+ * Matching is case-insensitive — Windows paths are.
+ */
+function findAssetRef(assets, assetId, filePath) {
+  if (filePath) {
+    const want = String(filePath).toLowerCase();
+    const hit = assets.find((a) => a.path && String(a.path).toLowerCase() === want);
+    if (hit) return hit;
+  }
+  return assets.find((a) => a.id === assetId) || null;
+}
+
+/**
  * The level this sound should open at every time it's placed (#210). A library
  * one-shot is mastered to whatever the pack author felt like, so the per-kind
  * defaults (0.4 music / 0.6 SFX) are right on average and wrong on every
@@ -309,9 +328,9 @@ function setAssetType(assetsRoot, assetId, type) {
  * Pass null to clear it and fall back to the per-kind default. Placements
  * already on a clip are never touched: they carry their own `volume`.
  */
-function setAssetDefaultVolume(assetsRoot, assetId, volume) {
+function setAssetDefaultVolume(assetsRoot, assetId, volume, filePath) {
   const assets = loadIndex(assetsRoot);
-  const entry = assets.find((a) => a.id === assetId);
+  const entry = findAssetRef(assets, assetId, filePath);
   if (!entry) throw new Error("Asset not found");
   if (volume == null) {
     delete entry.defaultVolume;
@@ -428,9 +447,11 @@ function seedTagsFromFolders(assetsRoot) {
 }
 
 /** Stamp "I used this" — drives the Recent filter (#212). */
-function markAssetUsed(assetsRoot, assetId, whenISO) {
+function markAssetUsed(assetsRoot, assetId, whenISO, filePath) {
   const assets = loadIndex(assetsRoot);
-  const entry = assets.find((a) => a.id === assetId);
+  // Path-first for the same reason as setAssetDefaultVolume: a re-placed sound
+  // carries the id it was first placed with, which a rebuilt index no longer has.
+  const entry = findAssetRef(assets, assetId, filePath);
   if (!entry) return null;
   entry.lastUsedAt = whenISO || new Date().toISOString();
   entry.useCount = (entry.useCount || 0) + 1;

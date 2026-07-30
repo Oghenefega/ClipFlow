@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 139) — Three alpha.31 bugs from the Audio panel build
+
+### Fixed
+- **"Remember X% for this sound" no longer fails with "Asset not found" (#214).** Every sound in the library has an internal id, and that id is minted fresh whenever the library index is rebuilt — but the sounds already placed on your clips still carry the old one, so the save had nothing to write to. Measured on the real library: all 761 index entries were re-created in a single second on 2026-07-29, and all 27 sound placements across your clips pointed at ids that no longer existed, while all 27 still matched by file path. Saving now identifies a sound by its **file path first and its id second**, so existing placements work again without rewriting any project data — and the button now also works on older placements that were saved before ids existed at all. The same path-first lookup fixes "Recent", which had been quietly failing to stamp a use for the same reason.
+- **The row buttons in the Audio panel are visible again — favourite, tags, lane swap, delete and the "+" add button (#215).** They were never missing; they were rendering *outside* the panel's visible width. The waveform canvas sat in the layout with a hard pixel width, and the panel's scroll container sizes itself to its contents, so that width became a floor on how narrow a row could be instead of a result of how wide the row was. Rows are now clamped to the panel width and long track names truncate instead, so the buttons always sit inside the panel — verified at 300px, 380px and 560px panel widths, with all five buttons on screen at every one.
+- **Hovering tracks no longer stretches the waveforms wider and wider (#215).** Same root cause, compounding: the five buttons the hovered row adds widened the shared scroll container, every other row then measured itself wider and repainted its waveform wider, which widened the container again — about 138 pixels of growth per hover pass, with no upper bound, which is why ~200 waveform samples looked like they were zooming in. The canvas is now positioned out of the layout flow (exactly as the mini-player's scrubber already did), so it cannot widen its own row. Measured in the running app: waveform width identical after eight hover passes, zero horizontal overflow, and the scrubber still expands and seeks normally.
+
+### Known gap
+- The underlying cause of #214 is still there: folder asset ids are random and minted at scan time, so a rebuilt index detaches every reference a clip holds. The path-first lookup absorbs that, but the ids themselves should be derived from the file path so it can't happen at all — filed as #216, along with the reasoning for why it matters on a syncing drive.
+
 ## [Unreleased] — 2026-07-29 (session 138) — 0.3.0-alpha.31: the Audio panel round-two build
 
 ### Changed

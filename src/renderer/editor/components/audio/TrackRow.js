@@ -75,7 +75,18 @@ function useLazyPeaks(path, hostRef) {
   return { peaks, settled };
 }
 
-/** Canvas that redraws on resize — the drawer is user-resizable. */
+/**
+ * Canvas that redraws on resize — the drawer is user-resizable.
+ *
+ * The canvas is positioned ABSOLUTELY, exactly as Scrubber does below, and that
+ * is load-bearing (#215). drawPeaks writes a pixel width onto it; in flow, that
+ * width becomes a floor on the row's width instead of a result of it, because
+ * Radix's scroll viewport sizes its content box to its contents. Rows then
+ * ratchet: the ~130px of buttons the hovered row adds widens the shared box,
+ * every other row's wrapper measures wider, repaints wider, widens the box
+ * again. Measured at ~138px of growth per hover pass, unbounded, which both
+ * stretched the waveforms and pushed the action buttons out of sight.
+ */
 function Waveform({ peaks, kind, height, className }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -97,8 +108,8 @@ function Waveform({ peaks, kind, height, className }) {
   }, [peaks, kind, height]);
 
   return (
-    <div ref={wrapRef} className={className} style={{ height }}>
-      <canvas ref={canvasRef} className="block pointer-events-none" />
+    <div ref={wrapRef} className={`relative overflow-hidden ${className || ""}`} style={{ height }}>
+      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
     </div>
   );
 }

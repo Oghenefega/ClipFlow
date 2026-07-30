@@ -1024,10 +1024,11 @@ ipcMain.handle("assets:addTagToMany", async (_, assetIds, tag) => {
   }
 });
 
-// #212: stamp a use so the Recent filter has something to sort by.
-ipcMain.handle("assets:markUsed", async (_, assetId) => {
+// #212: stamp a use so the Recent filter has something to sort by. `filePath`
+// identifies the track when the id came off a clip (#214).
+ipcMain.handle("assets:markUsed", async (_, assetId, filePath) => {
   try {
-    return { success: true, lastUsedAt: assetLibrary.markAssetUsed(assetsRootOrThrow(), assetId) };
+    return { success: true, lastUsedAt: assetLibrary.markAssetUsed(assetsRootOrThrow(), assetId, null, filePath) };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -1066,9 +1067,11 @@ function runAssetCatchUp(root) {
 
 // #210: remember the level a sound should open at, so a hot master doesn't need
 // re-tuning on every clip. null clears it back to the per-kind default.
-ipcMain.handle("assets:setDefaultVolume", async (_, assetId, volume) => {
+// #214: `filePath` is how a placement saved on a clip identifies its track — the
+// `assetId` it carries predates any index rebuild and may no longer exist.
+ipcMain.handle("assets:setDefaultVolume", async (_, assetId, volume, filePath) => {
   try {
-    return { success: true, defaultVolume: assetLibrary.setAssetDefaultVolume(assetsRootOrThrow(), assetId, volume) };
+    return { success: true, defaultVolume: assetLibrary.setAssetDefaultVolume(assetsRootOrThrow(), assetId, volume, filePath) };
   } catch (err) {
     return { success: false, error: err.message };
   }

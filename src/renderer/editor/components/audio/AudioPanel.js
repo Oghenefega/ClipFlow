@@ -224,7 +224,7 @@ export default function AudioPanel() {
     // #212: the single chokepoint for placing a sound, so this is the one place
     // Recent needs stamping. Fire-and-forget — a failed stamp must not block the
     // placement that already happened.
-    window.clipflow.assetsMarkUsed(track.id).then((r) => {
+    window.clipflow.assetsMarkUsed(track.id, track.path).then((r) => {
       if (r?.success) setAssets((prev) => prev.map((a) => (a.id === track.id ? { ...a, lastUsedAt: r.lastUsedAt } : a)));
     }).catch(() => {});
   }, [flashStatus]);
@@ -528,8 +528,15 @@ export default function AudioPanel() {
 
       <Separator />
 
-      {/* Track list */}
-      <ScrollArea className="flex-1">
+      {/* Track list.
+          The arbitrary variant clamps rows to the panel width: Radix wraps the
+          viewport's children in a `display: table` div, which sizes to its
+          CONTENT, so a row wide enough (the track name is nowrap, and the hovered
+          row adds five buttons) simply extended past the right edge — and only a
+          vertical scrollbar exists, so nothing revealed it. Flipping that wrapper
+          to `block` makes the name truncate instead (#215). Scoped here, not in
+          ui/scroll-area.tsx, so no other panel changes shape. */}
+      <ScrollArea className="flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
         <div className="py-1">
           {groups.map((g) => (
             <div key={g.name || "__all__"}>

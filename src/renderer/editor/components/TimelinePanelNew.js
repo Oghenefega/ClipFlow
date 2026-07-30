@@ -1377,13 +1377,15 @@ export default function TimelinePanelNew() {
                 <Slider value={[Math.round((p.volume ?? 1) * 100)]} min={0} max={100} step={1}
                   onValueChange={([v]) => setProps({ volume: v / 100 })} />
                 {/* #210: pin this level to the SOUND, so every future placement
-                    of it opens here. Legacy placements predate assetId — without
-                    one there's nothing in the library to write to. */}
-                {p.assetId && (
+                    of it opens here. #214: the path goes too and is what actually
+                    resolves it — the `assetId` copied onto this placement dies with
+                    the next index rebuild. That also makes the button work on
+                    legacy placements, which predate assetId entirely. */}
+                {(p.assetId || p.path) && (
                   <button
                     onClick={async () => {
                       const v = p.volume ?? 1;
-                      const r = await window.clipflow.assetsSetDefaultVolume(p.assetId, v);
+                      const r = await window.clipflow.assetsSetDefaultVolume(p.assetId, v, p.path);
                       // The Audio panel holds its own copy of the library; tell it
                       // to re-list or it keeps placing at the old default.
                       if (r?.success) useEditorStore.getState().bumpAssetsRevision();
