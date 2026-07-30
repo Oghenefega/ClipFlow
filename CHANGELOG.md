@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 139) — 0.3.0-alpha.33: the Rename button build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.33`**, carrying one change: the "Rename All N Files" button no longer sits inside a silver-lined box. Cut on its own rather than batched because alpha.32 was already installed, and the in-app update notifier only offers a build whose version differs from the running one.
+
 ## [Unreleased] — 2026-07-30 (session 139) — The halo around the Rename button
 
 ### Fixed
