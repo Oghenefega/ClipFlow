@@ -807,7 +807,7 @@ export default function App() {
               setPendingRenames={setPendingRenames}
               renameHistory={renameHistory}
               setRenameHistory={setRenameHistory}
-              onAddGame={(entryType) => setShowAddGame(entryType || "game")}
+              onAddGame={(entryType) => setShowAddGame(typeof entryType === "string" ? entryType : "game")}
               onGameDayUpdate={handleGameDayUpdate}
               watchFolder={watchFolder}
               testWatchFolder={testWatchFolder}
@@ -896,7 +896,7 @@ export default function App() {
               gamesDb={gamesDb}
               setGamesDb={setGamesDb}
               onEditGame={handleEditGame}
-              onAddGame={(entryType) => setShowAddGame(entryType || "game")}
+              onAddGame={(entryType) => setShowAddGame(typeof entryType === "string" ? entryType : "game")}
               watchFolder={watchFolder}
               setWatchFolder={setWatchFolder}
               testWatchFolder={testWatchFolder}

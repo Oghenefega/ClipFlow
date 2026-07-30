@@ -1679,7 +1679,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <button onClick={refresh} disabled={refreshing} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${refreshing ? T.greenBorder : T.border}`, background: refreshing ? T.greenDim : "rgba(255,255,255,0.03)", color: refreshing ? T.green : T.textSecondary, fontSize: 12, fontWeight: 700, cursor: refreshing ? "default" : "pointer", fontFamily: T.font, transition: "all 0.3s ease" }}>{refreshing ? "✓ Refreshed" : "🔄 Refresh"}</button>
-            <button onClick={onAddGame} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
+            <button onClick={() => onAddGame("game")} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={`Watching ${watchFolder}`}>

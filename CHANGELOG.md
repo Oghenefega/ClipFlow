@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-07-30 (session 140) — 0.3.0-alpha.34: the subtitle actions + Tracker identity build
+## [Unreleased] — 2026-07-30 (session 141) — Adding a game from the Rename tab no longer crashes the app
+
+### Fixed
+- **"+ Add Game" in the Rename tab crashed ClipFlow to the error screen on save, and lost the game (#219).** The Rename tab's button handed the app the mouse click itself instead of the word "game", so the click object rode along inside the new game's record and the app died trying to write it to disk — the reported error was "An object could not be cloned". Nothing looked wrong until the very end: the modal rendered normally, so you filled in the name, tag, hashtag and colour and only hit the crash on **Done**, with the new game never saved. Settings' "+ Add Game" was always wired correctly and was unaffected. Fixed at the button, and the handler behind both buttons now ignores anything that isn't real text so no future button can reintroduce this. No existing data was affected.
 
 ### Changed
 - **Installer cut as `0.3.0-alpha.34`**, promoting two features to the daily driver: Split and Merge now appear on the subtitle line itself when you click a word (and Merge is greyed out wherever the line it would swallow isn't visible), and the Tracker's week log now shows the title of the clip that was posted, tinted in its game's colour, alongside dimmed amber previews of anything you've scheduled from the Queue.
