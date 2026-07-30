@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 140) — 0.3.0-alpha.34: the subtitle actions + Tracker identity build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.34`**, promoting two features to the daily driver: Split and Merge now appear on the subtitle line itself when you click a word (and Merge is greyed out wherever the line it would swallow isn't visible), and the Tracker's week log now shows the title of the clip that was posted, tinted in its game's colour, alongside dimmed amber previews of anything you've scheduled from the Queue.
+
 ## [Unreleased] — 2026-07-30 (session 140) — Subtitle line actions, and a Tracker that says what it posted
 
 ### Added
