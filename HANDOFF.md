@@ -1,89 +1,106 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-29 — Session 137 — **The audio library landed: ClipFlow now watches Fega's real folders instead of copying them (#208). 760 tracks, 12.6 GB, nothing duplicated. Shipped as alpha.29, then alpha.30 for two loudness fixes. Fega confirmed the library works ("Phenomenal"); he was testing the volume changes when the session wrapped.**_
+_Last updated: 2026-07-29 — Session 138 — **All eight of Fega's Audio-panel requests are built and verified on the dev build (#209–#212). None of it has reached his installed daily driver — no installer was cut. That's the first thing to decide next session.**_
 
 ---
 
 ## One-line TL;DR
 
-`sfxFolder` (one folder, top level only, everything labelled "sfx") became
-`audioFolders` (a list, recursive, music/SFX by duration, offline-safe), Fega
-pointed it at `V:\AutoSync\Audio` on the real installed app, and two follow-up
-installers fixed auditioning at full blast and effects landing at full level.
+The Audio panel got a refresh button, a search clear, fades on sound effects,
+per-sound saved volumes, a waveform on every row, a scrubbable mini player,
+Epidemic's 34 mood tags (274 tracks pre-tagged from folder names) and a Recently
+used list backfilled from real clips — then the panel moved into its own folder
+because it had outgrown `RightPanelNew.js`.
 
 ## Current State
 
-Version **0.3.0-alpha.30**, installed and running on Fega's daily driver.
+Version is still **0.3.0-alpha.30** — **no installer was cut this session.**
+Everything below is on `master` and verified only on the dev profile.
 
-- **#208 is confirmed working by Fega** on alpha.29 — he added the folder, it
-  scanned, he said "Phenomenal". Issue closed with `status: untested` because the
-  two loudness changes that followed are still unverified by him.
-- **Unverified by Fega and still open:** the two alpha.30 loudness changes
-  (preview at 35%, placed SFX at 60%), plus session 136's four — **#188**
-  (filename bug), **#204** (Queue row buttons), **#205** (thumbnail placement),
-  **#207** (Alt+scroll zoom). All four reached him in alpha.29; none confirmed.
+- **Fega has confirmed nothing from this session.** He picked the row layout from a
+  mock and supplied the tag vocabulary; he has not seen any of it running.
+- **Still unverified by him from earlier sessions:** the two alpha.30 loudness
+  changes, plus **#188**, **#204**, **#205**, **#207**.
 - **#206** (library hygiene — 23 orphan renders, ~1.37 GB) still awaiting his call.
+- **#213** filed: bulk tagging has no row multi-select yet.
 
-## What Was Built (session 137 — commits bfd4754, cd240d2, 5a8ba01, 69eb1da, 6417417, a4e51d6)
+## What Was Built (session 138 — commits 050b75f, a325623, f1366f4, 1a0433a)
 
-1. **Watched audio folders replace the single Sound Effects Folder (#208).**
-   Settings takes a list, each `{ path, enabled }`, scanned recursively and
-   linked in place. `sfxFolder` → `audioFolders` ships with a migration (old path
-   becomes entry one, old key blanked so it can't resurrect). Toggling a folder
-   Off hides its tracks but keeps their favorites and lane choices; only Remove
-   forgets them.
-2. **Music/SFX split on duration, not folder names.** `MUSIC_MIN_SECONDS = 60`
-   already existed and was already applied on the copy path — the folder path
-   hardcoded `type: "sfx"`, which is why a 3-minute song scanned from a folder
-   showed up as a sound effect. A per-track override (`typeLocked`) pins the
-   exceptions and survives every rescan and re-probe.
-3. **Linked tracks are flagged, not pruned.** A folder that won't read = the
-   whole folder offline (greys out, returns by itself); a file gone from a
-   readable folder = missing. Previously both were deleted from the index, so
-   unplugging `V:` silently emptied the panel and broke clips already using a
-   track.
-4. **Durations read in the background**, cached on the index entry and
-   invalidated only by size/mtime. 77s for 760 files cold, ~50ms warm.
-5. **Panel groups by folder**, collapsed with counts, search cuts through closed
-   groups. Sort by **Folder / Name / Length**; Length drops grouping and orders
-   each lane so its questionable end comes first.
-6. **Group headings stopped contradicting themselves.** A folder named with a
-   bare lane word borrows its parent — "Epidemic Sound › SFX", "Sound FX ›
-   Effects". Only 3 of Fega's 28 qualify. Headings now carry the real path on
-   hover.
-7. **Two loudness fixes (alpha.30).** Preview auditioned at 1.0 because
-   `togglePlay` never set `volume` at all; now a persisted setting
-   (`audioPreviewVolume`, default 0.35) with a speaker button beside Upload.
-   Placed SFX default dropped 1.0 → 0.6.
+1. **#209 — refresh, search clear, SFX fades.** The library already re-walked every
+   watched folder on each `assets:list`; it just had no visible trigger and no
+   feedback, which is indistinguishable from being blind. Fades were never
+   music-specific — four `kind === "music"` gates removed. Fade sliders now cap at
+   the block's own length (fixed 0–3s before, and fade-*in* had no length guard
+   anywhere, so an over-long fade ramped through a whole one-shot without reaching
+   full level).
+2. **#210 — per-sound default volume.** `defaultVolume` on the index entry, set
+   from the timeline right-click popover, shown as a badge on the library row,
+   cleared by clicking it. Motivated by his own clips: `Cinematic Boom Soft` was
+   hand-set to 0.29/0.32/0.32/0.32 across four clips, `OOF Sound Effect` to 0.53
+   twice.
+3. **#211 — waveform rows + scrubber.** Row layout A, his pick from three mocked
+   options (`tasks/mocks/audio-row-redesign.html`). Waveforms load lazily as rows
+   near the viewport, max 3 concurrent decodes — 761 files eagerly is ~5 min of
+   FFmpeg. Playing a row expands it into a scrubbable waveform. `AudioPanel` moved
+   to `components/audio/` with `TrackRow`, `TagPicker` and a shared `audioPeaks`
+   module that `SoundBlock` now uses too.
+4. **#212 — mood tags + Recent.** Epidemic Sound's own 34 moods (from his
+   screenshot). 274 of 761 tracks seeded from folder names; Recent backfilled 13
+   tracks from saved clips with accurate counts. Views: All / Favorites / Recent /
+   Untagged, plus a mood filter strip listing only moods present in the lane.
 
 ## Key Decisions
 
-- **Link, never copy, for watched folders.** `V:\AutoSync\` syncs itself; a copy
-  forks and the stale side is the one the app uses. Copying stays the default for
-  the Upload drawer — a file dragged off a Desktop must survive a Downloads clear.
-- **The per-folder role dropdown from the session-136 draft was cut.** At 98%
-  measured accuracy it earns nothing: every folder it would let Fega label is
-  already labelled correctly by duration. Add it only if duration disappoints.
-- **The index entry IS the duration cache** — no separate cache file. Same
-  `path + mtime + size` invalidation rule `getPeaks` uses.
-- **A failed probe records `0`, not `null`,** so a broken file lands in SFX
-  instead of being retried forever — but a probe is SKIPPED entirely when the
-  file isn't readable, or a drive that dropped mid-scan would pin a whole library
-  into SFX permanently.
-- **Retention is checked against ALL configured folders, listing against enabled
-  ones only.** That's what makes Off ≠ Remove.
-- **Group labels: leaf name, parent only when the leaf is a lane word.** Two-
-  segment labels were generated and rejected — 11 of 28 groups would have gained
-  the same `Game Music - Jazz ›` prefix and truncated away the mood name, which
-  is the useful part. Fixes 4 labels, damages 11.
-- **Length sort orders per tab** (shortest first in Music, longest first in SFX)
-  rather than offering a direction toggle. One rule, and it always puts the
-  suspicious end on top.
-- **Placed SFX 0.6, not 0.4.** Effects should sit above the 0.4 music bed, just
-  not peak the mix. Only the default changed; the `?? 1` fallbacks in preview,
-  timeline and render are deliberately untouched so placements saved before
-  sounds had a volume field sound exactly as they did.
+- **Mood vocabulary is Epidemic's, not invented.** Most of the library IS Epidemic,
+  so that's the wording already shown next to these tracks. 34 moods.
+- **Tags always visible on the row**, not hover-only — Fega's call.
+- **Seeding matches the IMMEDIATE parent folder only.** The mood folders sit under a
+  parent named "Game Music - Jazz"; matching the full path would stamp Smooth onto
+  ~150 unrelated tracks.
+- **The scrubber's playhead is LOCAL to the playing row.** Lifting it into the panel
+  would re-render 761 rows 60×/sec.
+- **Epidemic wavs carry no embedded metadata** (no ID3, no RIFF INFO, no genre) —
+  verified by `ffprobe` + a raw `strings` pass. Metadata-based tagging is impossible
+  offline; the filename's numeric Epidemic id can't be resolved without their API.
+  Don't re-investigate.
+- **No installer cut**, per the batch-versions rule and because #213 leaves the
+  tagging story incomplete.
 
+## Next Steps
+
+1. **Decide on an installer.** Fega tests on the installed exe, so none of this
+   reaches him until one is cut (`/clipflow-update-launcher`, bump to **alpha.31** —
+   tick the alpha counter, never the minor version).
+2. **#213 — row multi-select for bulk tagging.** 487 tracks still untagged, and the
+   Epidemic/generic-SFX folders carry no mood in their names. The main-process half
+   (`addAssetTagToMany`, `assets:addTagToMany`, `TagPicker`'s `bulkCount`) is built
+   and unused.
+3. Chase confirmation on the unverified backlog (#188, #204, #205, #207, alpha.30
+   loudness pair).
+
+## Watch Out For
+
+- **The asset index is SHARED between dev and prod.** `.clipflow/assets/assets.json`
+  lives under `projectsRoot`, and the dev profile points at Fega's real `W:` drive.
+  Tag/volume writes from a dev test land in his real library — clean up after tests,
+  and never restore an old backup over it (session 137's lesson).
+- **`IntersectionObserver` intersection is clipped by ancestors.** Lazy loading
+  inside a ScrollArea MUST pass the viewport as `root`; the default root silently
+  never fires for scrolled-out rows, and `rootMargin` expands the window rect so it
+  cannot compensate. Cost a full diagnosis cycle this session.
+- **`projects.listProjects()` returns `{ projects: [...] }`, not an array.** It does
+  include `clips` (minus `subtitles`/`transcription`), so `sfx` is readable.
+- **Never hand-escape Windows backslashes through a bash → JS boundary.** It ate
+  path separators twice this session, once silently emptying the dev library
+  (761 → 0). Use forward slashes or `String.fromCharCode(92)`, and echo the value
+  back (ideally `charCodeAt`) before trusting any conclusion. See `tasks/lessons.md`.
+- **A "drawn" canvas is not a painted one.** `canvas.width > 0` only proves it was
+  sized; `drawPeaks` sizes then returns early with no peaks. Check alpha pixels via
+  `getImageData` before concluding a waveform rendered.
+- **The one-time seeding flags live in the profile store under `assetCatchUp`**
+  (`{ tagsSeeded, lastUsedSeeded }`) — clear them to re-run a pass.
+- **There are 2+ Radix scroll viewports in the editor.** `document.querySelector('[data-radix-scroll-area-viewport]')`
+  grabs the transcript panel, not the Audio panel; scope via a row's `.closest()`.
 ## Measured facts worth not re-deriving
 
 - `V:\AutoSync\Audio` = **760 audio files, 12.59 GB, 38 folders (10 hold no
@@ -97,21 +114,7 @@ Version **0.3.0-alpha.30**, installed and running on Fega's daily driver.
   ten rows of each tab.
 - Probe cost **99ms/file**; cold pass 77s, warm list ~50ms.
 
-## Next Steps
-
-1. **Ask Fega how the volumes feel.** 35% preview and 60% placed SFX are both
-   single numbers, trivially changed. He was mid-test at wrap.
-2. **Close #188 / #204 / #205 / #207** once he confirms them — all four have been
-   on his machine since alpha.29 and none are verified.
-3. **#206 — library hygiene.** 23 orphan MP4s (~1.37 GB) listed; his call.
-4. **#203 — pictures on clips**, the last phase of the #201 epic, not started.
-5. Optional, only if the duration rule annoys him in practice: the filename
-   tiebreak (`OST`/`Soundtrack` → music, `sound effect`/`SFX` + immediate folder
-   → effect) applied ONLY inside a 40–90s band. Checked against the 26 band
-   files, it'd get ~20 right. Deliberately not built — a keyword engine to save a
-   dozen one-time clicks, and keyword rules rot.
-
-## Watch Out For
+## Watch Out For — carried over from earlier sessions
 
 - **The asset index is SHARED between profiles.** It lives at
   `<projectsRoot>\.clipflow\assets\assets.json`, not under `userData` — so the
@@ -169,3 +172,19 @@ Version **0.3.0-alpha.30**, installed and running on Fega's daily driver.
   `test-scan.js` (full listAssets/backfill drive), `test-offline.js` (drive
   offline / Off toggle / delete / swap on a small copied tree), `cdp.js`,
   `shot.js`, `labels.js` (leaf vs two-segment group labels).
+- **Session-138 additions.** The catch-up pass logs `Seeded mood tags from folder
+  names: N of M tracks` and `Seeded Recent from existing clips: N tracks matched`;
+  its failures are `Asset catch-up failed: <reason>` — that line is what caught the
+  `listProjects` wrapper bug, so read it before concluding a seeding pass "found
+  nothing".
+- Session-138 scratchpad (`981e7826…`): `cdp.js` — a ~40-line CDP client over
+  Node's built-in `WebSocket` (`node cdp.js "<expression>"`, evaluates in the
+  renderer and prints JSON). Re-create it if the scratchpad is gone; it's the whole
+  verification harness for this session.
+- **Proving a waveform rendered:** `canvas.width > 0` is NOT proof — `drawPeaks`
+  sizes the canvas then returns early when peaks are absent. Scan alpha bytes:
+  `getImageData(0,0,w,h).data` and look for any `data[i+3] > 0`.
+- **Distinguishing "no data" from "never asked":** monkey-patch
+  `window.clipflow.assetsPeaks` to log calls, then force new rows to mount. Zero
+  calls means the trigger is broken, not the data — that's what localised the
+  IntersectionObserver bug in one step after two wrong theories.

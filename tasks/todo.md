@@ -6,7 +6,32 @@
 
 ---
 
-## 📋 PLAN (session 138) — Audio panel round 2: eight requests — **awaiting approval**
+## ✅ DONE (session 138) — Audio panel round 2: eight requests — **all 8 built + verified on the dev build; NOT yet on Fega's installed daily driver**
+
+All four issues closed out in source: **#209** (refresh, search X, SFX fades),
+**#210** (per-sound default volume), **#211** (waveform rows + scrubber, panel
+extracted to `components/audio/`), **#212** (Epidemic's 34 mood tags, seeding,
+Untagged queue, Recent + backfill). Commits 050b75f, a325623, f1366f4, 1a0433a.
+
+**One gap, filed as #213:** tagging is one track at a time in the UI. The bulk
+path (`addAssetTagToMany` + `assets:addTagToMany` + `TagPicker`'s `bulkCount`) is
+built and wired, but there's no row multi-select yet — and 487 tracks are still
+untagged, so that's what makes 34 moods practical.
+
+**Bugs found and fixed during verification** (both mine, both caught by
+measurement rather than reasoning):
+1. The lazy waveform loader used `IntersectionObserver`'s default root, but
+   intersection is clipped by ancestors — rows scrolled out of the ScrollArea
+   could never fire, and `rootMargin` expands the window rect so it couldn't
+   compensate. Exactly the rows inside the visible box had painted while
+   `assets:peaks` returned 200 peaks for all 11.
+2. `projects.listProjects()` returns `{ projects: [...] }`, not an array, so the
+   Recent backfill threw and the catch-up's handler swallowed it — the feature
+   looked like it had run and matched nothing. The log line named the cause.
+
+**Original plan below, kept for the reasoning and the liveness proofs.**
+
+## 📋 PLAN (session 138) — Audio panel round 2: eight requests
 
 Follow-on to #208. All eight items live in the Audio panel and the placed-sound
 popover. Nothing here touches detection, the pipeline, or publishing.
