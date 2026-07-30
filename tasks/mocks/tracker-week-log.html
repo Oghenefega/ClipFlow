@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClipFlow — Tracker week log + subtitle row actions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --t2:rgba(255,255,255,0.55); --t3:rgba(255,255,255,0.32); --t4:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.25);
+    --yellow:#fbbf24; --cyan:#22d3ee; --red:#f87171; --green:#34d399;
+    --rl:#00b4d8; --eo:#ffd23f; --jc:#9b5de5;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;padding:36px 44px 100px;}
+  h1{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px;}
+  .sub{font-size:12px;color:var(--t2);margin-bottom:30px;line-height:1.55;max-width:760px;}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);font-weight:700;margin:38px 0 6px;}
+  .note{font-size:11.5px;color:var(--t2);margin:0 0 16px;line-height:1.5;max-width:780px;}
+  .note b{color:var(--text);font-weight:600;}
+  .rule{height:1px;background:var(--border);margin:34px 0 0;}
+
+  /* ---------- shared card bits ---------- */
+  .col{width:142px;padding:0 8px;}
+  .tag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#0a0b10;flex-shrink:0;line-height:1.5;}
+  .time{font-size:9px;color:var(--t3);}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot.pub{background:var(--cyan);box-shadow:0 0 6px rgba(34,211,238,.53);}
+  .dot.man{background:#fff;box-shadow:0 0 5px rgba(255,255,255,.35);}
+  .dot.sch{background:var(--yellow);box-shadow:0 0 6px rgba(251,191,36,.55);}
+  .head{display:flex;align-items:center;gap:6px;}
+  .title{font-size:10px;line-height:1.35;color:rgba(255,255,255,.78);font-weight:500;
+         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .title.one{-webkit-line-clamp:1;}
+
+  /* A — flat tint */
+  .cardA{border:1px solid var(--border);border-radius:6px;padding:5px 7px;margin-bottom:5px;cursor:pointer;
+         display:flex;flex-direction:column;gap:4px;transition:.15s;}
+  .cardA:hover{border-color:var(--borderHover);}
+  /* B — edge glow */
+  .cardB{position:relative;border:1px solid var(--border);border-radius:6px;padding:5px 7px;margin-bottom:5px;cursor:pointer;
+         display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,.03);overflow:hidden;transition:.15s;}
+  .cardB:hover{border-color:var(--borderHover);}
+  .cardB .glow{position:absolute;inset:0;pointer-events:none;}
+  /* C — tint + glow */
+  .cardC{position:relative;border-radius:6px;padding:5px 7px;margin-bottom:5px;cursor:pointer;
+         display:flex;flex-direction:column;gap:4px;overflow:hidden;transition:.15s;}
+
+  /* ghost (scheduled) */
+  .ghost{border-style:dashed !important;opacity:.62;}
+  .ghost .title{color:rgba(255,255,255,.55);}
+  .slot{display:flex;align-items:center;gap:5px;border:1px dashed rgba(255,255,255,.08);border-radius:6px;
+        padding:5px 7px;margin-bottom:5px;cursor:pointer;color:var(--t4);min-height:25px;font-size:9px;}
+  .slot:hover{border-color:var(--rl);color:var(--rl);background:rgba(0,180,216,.1);}
+  .slot .plus{font-size:13px;line-height:1;}
+  .slot .st{margin-left:auto;}
+
+  .variants{display:flex;gap:34px;align-items:flex-start;margin-top:14px;}
+  .vlabel{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .vdesc{font-size:10.5px;color:var(--t2);line-height:1.45;margin-bottom:10px;height:44px;}
+
+  /* ---------- week grid ---------- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-top:16px;}
+  .phead{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0;}
+  .plabel{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);font-weight:700;}
+  .ghostbtn{background:none;border:1px solid var(--border);color:var(--t2);font-family:inherit;font-size:11px;
+            font-weight:600;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);padding:14px 12px 18px;}
+  .day{padding:0 8px;border-right:1px solid var(--border);min-height:150px;}
+  .day:last-child{border-right:none;}
+  .day.today{background:linear-gradient(180deg,rgba(139,92,246,.12),transparent 60%);border-radius:6px;}
+  .dhead{display:flex;align-items:baseline;justify-content:space-between;padding:4px 4px 10px;}
+  .dname{font-size:11px;font-weight:600;}
+  .ddate{font-size:10px;color:var(--t3);}
+  .upcoming{font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);font-weight:600;display:block;padding:0 4px 8px;}
+
+  .legend{display:flex;align-items:center;gap:16px;padding:14px 4px 0;font-size:10px;color:var(--t3);font-weight:500;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+
+  /* ---------- popovers ---------- */
+  .pops{display:flex;gap:26px;align-items:flex-start;margin-top:16px;flex-wrap:wrap;}
+  .pop{width:248px;background:#0d0e15;border-radius:14px;padding:14px;border:1px solid var(--borderHover);
+       box-shadow:0 20px 60px rgba(0,0,0,.7);}
+  .pop .gname{font-size:14px;font-weight:700;}
+  .pop .gsub{font-size:11px;color:var(--t3);}
+  .pop .ptitle{font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin:2px 0 10px;}
+  .thumb{width:100%;aspect-ratio:9/16;max-height:132px;border-radius:8px;border:1px solid var(--border);
+         background:linear-gradient(135deg,rgba(0,180,216,.22),rgba(139,92,246,.12));display:flex;align-items:center;
+         justify-content:center;font-size:10px;color:var(--t3);margin-bottom:10px;}
+  .picons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .pic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;
+       font-weight:700;background:var(--accentDim);border:1px solid var(--accentBorder);color:var(--accentLight);position:relative;}
+  .pic.dead{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--t3);opacity:.6;}
+  .pic i{position:absolute;bottom:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#0d0e15;
+         font-size:8px;font-style:normal;display:flex;align-items:center;justify-content:center;}
+  .srcline{display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:11px;font-weight:600;}
+  .btnrow{display:flex;gap:8px;}
+  .btn{flex:1;padding:8px 0;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;}
+  .btn.rm{border:1px solid rgba(248,113,113,.18);background:rgba(248,113,113,.08);color:var(--red);}
+  .btn.q{border:1px solid var(--accentBorder);background:var(--accentDim);color:var(--accentLight);}
+
+  /* ---------- subtitle row ---------- */
+  .subpanel{width:430px;background:#0b0c11;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:16px;}
+  .srow{border-bottom:1px solid rgba(255,255,255,.05);padding:10px 12px;position:relative;}
+  .srow.active{background:rgba(139,92,246,.08);}
+  .srow.active:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:0 2px 2px 0;}
+  .stc{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px;color:var(--t3);}
+  .stc .dur{margin-left:auto;}
+  .aa{font-size:9px;font-weight:700;color:rgba(255,255,255,.28);border:1px solid transparent;padding:1px 5px;border-radius:4px;}
+  .stext{font-size:13px;color:rgba(255,255,255,.9);line-height:1.5;}
+  .word{padding:0 2px;border-radius:3px;}
+  .word.sel{background:rgba(139,92,246,.2);color:var(--accentLight);font-weight:600;}
+  .acts{display:flex;gap:6px;margin-top:8px;}
+  .act{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--t2);
+       border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:5px;padding:3px 8px;cursor:pointer;}
+  .act:hover{border-color:var(--borderHover);color:var(--text);background:rgba(255,255,255,.06);}
+  .act svg{width:11px;height:11px;}
+  .act.dis{opacity:.32;cursor:default;}
+  .cap{font-size:10.5px;color:var(--t3);margin-top:8px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<h1>Tracker week log + subtitle row actions</h1>
+<div class="sub">
+  Everything below is rendered at the <b>real width the app gives it</b> — each day column is 142px, cards get 126px of usable
+  space. Titles, game colours and times are your actual data from this week. Pick a card treatment and I'll build it.
+</div>
+
+<!-- ══════════════ 1. CARD TREATMENTS ══════════════ -->
+<h2>1 · Card treatment — pick one</h2>
+<p class="note">
+  All three show the same thing: game tag, time, status dot, and the published title on a second line (2 lines max, full title on hover).
+  The trailing <b>#rocketleague</b> is stripped — the tag pill already says the game. They differ only in how the game colour lands on the card.
+</p>
+
+<div class="variants">
+
+  <!-- A -->
+  <div>
+    <div class="vlabel">A · Flat tint</div>
+    <div class="vdesc">Card background is the game colour at low opacity, border picks up a hint of it. Calm, very even down a column.</div>
+    <div class="col">
+      <div class="cardA" style="background:rgba(0,180,216,.10);border-color:rgba(0,180,216,.22)">
+        <div class="head"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title">The MOST CLUTCH Player EVER</div>
+      </div>
+      <div class="cardA" style="background:rgba(255,210,63,.10);border-color:rgba(255,210,63,.22)">
+        <div class="head"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title">This egg is so UNCONTROLLABLE</div>
+      </div>
+      <div class="cardA ghost" style="background:rgba(0,180,216,.06);border-color:rgba(251,191,36,.28)">
+        <div class="head"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot sch"></span></div>
+        <div class="title">I only 1v1 GOOD Players</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div>
+    <div class="vlabel">B · Edge glow</div>
+    <div class="vdesc">Card stays neutral; the game colour bleeds in from the left corner as a soft glow. Subtler, title reads cleanest.</div>
+    <div class="col">
+      <div class="cardB">
+        <span class="glow" style="background:radial-gradient(120px 60px at 0% 0%, rgba(0,180,216,.30), transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">The MOST CLUTCH Player EVER</div>
+      </div>
+      <div class="cardB">
+        <span class="glow" style="background:radial-gradient(120px 60px at 0% 0%, rgba(255,210,63,.28), transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">This egg is so UNCONTROLLABLE</div>
+      </div>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)">
+        <span class="glow" style="background:radial-gradient(120px 60px at 0% 0%, rgba(0,180,216,.16), transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">I only 1v1 GOOD Players</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div>
+    <div class="vlabel">C · Tint + glow</div>
+    <div class="vdesc">Both: a low tint across the card <i>and</i> a brighter glow at the top-left. Boldest — the column reads as game colour first.</div>
+    <div class="col">
+      <div class="cardC" style="background:rgba(0,180,216,.09);box-shadow:inset 0 0 0 1px rgba(0,180,216,.26)">
+        <span class="glow" style="position:absolute;inset:0;background:radial-gradient(90px 50px at 0% 0%, rgba(0,180,216,.34), transparent 72%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">The MOST CLUTCH Player EVER</div>
+      </div>
+      <div class="cardC" style="background:rgba(255,210,63,.09);box-shadow:inset 0 0 0 1px rgba(255,210,63,.26)">
+        <span class="glow" style="position:absolute;inset:0;background:radial-gradient(90px 50px at 0% 0%, rgba(255,210,63,.32), transparent 72%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">This egg is so UNCONTROLLABLE</div>
+      </div>
+      <div class="cardC ghost" style="background:rgba(0,180,216,.05);box-shadow:inset 0 0 0 1px rgba(251,191,36,.3);border:1px dashed rgba(251,191,36,.3)">
+        <span class="glow" style="position:absolute;inset:0;background:radial-gradient(90px 50px at 0% 0%, rgba(0,180,216,.14), transparent 72%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">I only 1v1 GOOD Players</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="rule"></div>
+
+<!-- ══════════════ 2. FULL WEEK ══════════════ -->
+<h2>2 · The full week, built with treatment B</h2>
+<p class="note">
+  Your real week. <b>Fri and Sat now have content</b> — amber-dot ghost cards for what you've scheduled from the Queue, plus the
+  open <b>+</b> slots so you can see what's still unbooked. Scheduled clips do <b>not</b> count toward the 18/20 number or XP —
+  they're a preview until they actually publish.
+</p>
+
+<div class="panel">
+  <div class="phead">
+    <span class="plabel">This week's log</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:11px;color:var(--t3);font-weight:500">Click a slot to log · click a clip for detail</span>
+      <button class="ghostbtn">Edit slots</button>
+    </div>
+  </div>
+  <div class="grid">
+
+    <!-- MON -->
+    <div class="day">
+      <div class="dhead"><span class="dname">Mon</span><span class="ddate">Jul 27</span></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">ANKLES BROKEN</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">He COOKED me completely</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">He BAITED me into playing him</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(155,93,229,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--jc)">JC</span><span class="time" style="margin-left:auto">3·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">Hate watching Argentina PAID OFF</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">4·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">This shortcut is INSANE</div></div>
+    </div>
+
+    <!-- TUE -->
+    <div class="day">
+      <div class="dhead"><span class="dname">Tue</span><span class="ddate">Jul 28</span></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">I got TOO COCKY</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">I finally made this IMPOSSIBLE jump</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">How do you mess up that badly</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">3·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">Rocket League has the worst kickoffs</div></div>
+      <div class="slot"><span class="plus">+</span><span class="st">4·30p</span></div>
+    </div>
+
+    <!-- WED -->
+    <div class="day">
+      <div class="dhead"><span class="dname">Wed</span><span class="ddate">Jul 29</span></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">NO ONE gets past me</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">I was ONE jump away</div></div>
+      <div class="slot"><span class="plus">+</span><span class="st">2·30p</span></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">3·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">Things kept getting WORSE</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.28),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">4·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">This egg is so UNCONTROLLABLE</div></div>
+    </div>
+
+    <!-- THU (today) -->
+    <div class="day today">
+      <div class="dhead"><span class="dname" style="color:var(--accentLight)">Thu</span><span class="ddate">Jul 30</span></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">The MOST CLUTCH Player EVER</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">I jinxed myself in 4k</div></div>
+      <div class="cardB"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.30),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">2·30p</span><span class="dot pub"></span></div>
+        <div class="title" style="position:relative">The MOST embarrassing throw</div></div>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.16),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">3·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">I only 1v1 GOOD Players</div></div>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.16),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">4·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">I'm gonna REPORT this guy</div></div>
+    </div>
+
+    <!-- FRI -->
+    <div class="day" style="opacity:.72">
+      <div class="dhead"><span class="dname">Fri</span><span class="ddate">Jul 31</span></div>
+      <span class="upcoming">Upcoming</span>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(255,210,63,.14),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--eo)">EO</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">The egg went FLYING off the map</div></div>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.16),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">1·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">He rage quit after ONE goal</div></div>
+      <div class="slot"><span class="plus">+</span><span class="st">2·30p</span></div>
+      <div class="slot"><span class="plus">+</span><span class="st">3·30p</span></div>
+      <div class="slot"><span class="plus">+</span><span class="st">4·30p</span></div>
+    </div>
+
+    <!-- SAT -->
+    <div class="day" style="opacity:.72">
+      <div class="dhead"><span class="dname">Sat</span><span class="ddate">Aug 1</span></div>
+      <span class="upcoming">Upcoming</span>
+      <div class="cardB ghost" style="border-color:rgba(251,191,36,.28)"><span class="glow" style="background:radial-gradient(120px 60px at 0% 0%,rgba(0,180,216,.16),transparent 70%)"></span>
+        <div class="head" style="position:relative"><span class="tag" style="background:var(--rl)">RL</span><span class="time" style="margin-left:auto">12·30p</span><span class="dot sch"></span></div>
+        <div class="title" style="position:relative">This save should NOT be possible</div></div>
+      <div class="slot"><span class="plus">+</span><span class="st">1·30p</span></div>
+      <div class="slot"><span class="plus">+</span><span class="st">2·30p</span></div>
+      <div class="slot"><span class="plus">+</span><span class="st">3·30p</span></div>
+      <div class="slot"><span class="plus">+</span><span class="st">4·30p</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="dot pub"></i> Posted via ClipFlow</span>
+  <span><i class="dot man"></i> Logged manually</span>
+  <span><i class="dot sch"></i> Scheduled — not posted yet</span>
+</div>
+
+<div class="rule"></div>
+
+<!-- ══════════════ 3. POPOVERS ══════════════ -->
+<h2>3 · The click-through detail</h2>
+<p class="note">
+  Left: a posted clip — now leads with the title and shows the frame, so you never have to open YouTube to know which clip it was.
+  The thumbnail falls back to a plain colour block when <b>W:</b> is unplugged. Right: a scheduled clip, with a jump straight to the
+  Queue so you can move or cancel it.
+</p>
+
+<div class="pops">
+  <!-- posted -->
+  <div class="pop">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(0,180,216,.2);color:var(--rl);font-size:11px;font-weight:800">RL</div>
+      <div><div class="gname">Rocket League</div><div class="gsub">Thu · 2:30 PM</div></div>
+    </div>
+    <div class="ptitle">The MOST embarrassing throw</div>
+    <div class="thumb">clip frame</div>
+    <div class="picons">
+      <div class="pic">FB<i>↗</i></div><div class="pic dead">TT</div><div class="pic">IG<i>↗</i></div><div class="pic">YT<i>↗</i></div>
+    </div>
+    <div class="srcline"><span class="dot pub"></span><span style="color:var(--cyan)">Published via ClipFlow</span></div>
+    <div class="btnrow"><div class="btn rm">Remove</div></div>
+  </div>
+
+  <!-- scheduled -->
+  <div class="pop">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(0,180,216,.2);color:var(--rl);font-size:11px;font-weight:800">RL</div>
+      <div><div class="gname">Rocket League</div><div class="gsub">Fri · 1:30 PM</div></div>
+    </div>
+    <div class="ptitle">He rage quit after ONE goal</div>
+    <div class="thumb">clip frame</div>
+    <div class="picons">
+      <div class="pic dead">FB</div><div class="pic dead">TT</div><div class="pic dead">IG</div><div class="pic dead">YT</div>
+    </div>
+    <div class="srcline"><span class="dot sch"></span><span style="color:var(--yellow)">Scheduled · publishes in 21h</span></div>
+    <div class="btnrow"><div class="btn q">Open in Queue</div></div>
+  </div>
+</div>
+
+<div class="rule"></div>
+
+<!-- ══════════════ 4. SUBTITLE ROW ══════════════ -->
+<h2>4 · Subtitle line — actions under the text</h2>
+<p class="note">
+  Click a word and a small action row appears <b>under that line only</b>. Split cuts the line just before the word you clicked;
+  the two merge buttons fold this line into the one above or below. The toolbar buttons at the top stay exactly as they are.
+  Greyed out = not possible here (nothing above the first line, can't split before the first word).
+</p>
+
+<div class="subpanel">
+  <div class="srow">
+    <div class="stc"><span>00:00.9 — 00:01.7</span><span class="dur">0.7s</span><span class="aa">AA</span></div>
+    <div class="stext"><span class="word">can</span> <span class="word">we</span> <span class="word">1v1?</span></div>
+  </div>
+
+  <div class="srow active">
+    <div class="stc"><span>00:01.7 — 00:02.2</span><span class="dur">0.6s</span><span class="aa">AA</span></div>
+    <div class="stext"><span class="word">I'm</span> <span class="word sel">champ</span> <span class="word">3</span></div>
+    <div class="acts">
+      <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg>Split here</div>
+      <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6 4-4 4 4M12 2v10M20 22H4"/></svg>Merge up</div>
+      <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 18 4 4 4-4M12 22V12M20 2H4"/></svg>Merge down</div>
+    </div>
+  </div>
+
+  <div class="srow">
+    <div class="stc"><span>00:02.2 — 00:02.8</span><span class="dur">0.6s</span><span class="aa">AA</span></div>
+    <div class="stext"><span class="word">in</span> <span class="word">2s</span></div>
+  </div>
+
+  <div class="srow">
+    <div class="stc"><span>00:02.8 — 00:04.5</span><span class="dur">1.7s</span><span class="aa">AA</span></div>
+    <div class="stext"><span class="word">with</span> <span class="word">561</span> <span class="word">hours,</span></div>
+  </div>
+</div>
+
+<p class="cap">
+  The action row only exists on the line you're working in, so the list doesn't get taller everywhere — one line grows by about 24px
+  while it's selected.
+</p>
+
+</body>
+</html>

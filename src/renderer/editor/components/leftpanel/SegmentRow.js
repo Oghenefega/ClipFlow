@@ -145,6 +145,32 @@ function TimecodePopover({ segment, children }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+//  ROW ACTION — icon-only button + hover tooltip for the split/merge row
+// ════════════════════════════════════════════════════════════════
+function RowAction({ icon, label, disabled, onClick }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            disabled={disabled}
+            // preventDefault holds focus where it is. Without it, clicking here blurs
+            // an open InlineWordEditor, whose onBlur commits the word and re-renders
+            // the row mid-click.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            {icon}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="text-xs">{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 //  SEGMENT ROW (#57 Phase D2)
 //  One row of the Edit Subtitles list, wrapped in React.memo so that during
 //  playback only the row whose active word changed re-renders — the other ~199
@@ -163,11 +189,16 @@ function TimecodePopover({ segment, children }) {
 //                       playback highlight everywhere — preserves the original rule)
 //    editing          — this row's editingWord slice ({wordIdx,selectAll,isNew}) or null
 //    setEditingWord   — parent useState setter (stable across renders)
+//    canSplit / canMergeUp / canMergeDown — action-row guards, computed by the parent
+//                       against the RAW store list (#217). They can't be derived here:
+//                       `seg` is the trim-FILTERED timeline copy, so its neighbours and
+//                       word count are not the ones split/merge actually operate on.
 //  ref is forwarded to the root div; the parent attaches it only to the active row
 //  for its auto-scroll-into-view effect.
 // ════════════════════════════════════════════════════════════════
 const SegmentRow = React.memo(forwardRef(function SegmentRow(
-  { seg, isActive, activeWordInSeg, selectedWordIdx, anySelected, editing, setEditingWord },
+  { seg, isActive, activeWordInSeg, selectedWordIdx, anySelected, editing, setEditingWord,
+    canSplit, canMergeUp, canMergeDown },
   ref
 ) {
   // Right-click word menu — { wordIdx, x, y, canSplit, canMergePrev, canMergeNext }.
@@ -204,6 +235,31 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
       canMergeNext: idx < editSegments.length - 1,
     });
   };
+  // Split/merge, shared by the right-click menu and the inline action row (#217).
+  // mergeSegment always folds activeSegId into its NEXT, so "merge up" has to be
+  // driven from the PREVIOUS segment's side.
+  const doSplit = (wordIdx) => {
+    const sub = useSubtitleStore.getState();
+    sub.setActiveSegId(seg.id);
+    // splitSegment's selectedWordInfo branch splits at this word's start
+    sub.setSelectedWordInfo({ segId: seg.id, wordIdx });
+    sub.splitSegment();
+  };
+  const doMergeUp = () => {
+    const sub = useSubtitleStore.getState();
+    const segs = sub.editSegments;
+    const idx = segs.findIndex((s) => s.id === seg.id);
+    if (idx > 0) {
+      sub.setActiveSegId(segs[idx - 1].id);
+      sub.mergeSegment();
+    }
+  };
+  const doMergeDown = () => {
+    const sub = useSubtitleStore.getState();
+    sub.setActiveSegId(seg.id);
+    sub.mergeSegment();
+  };
+
   // Store actions are read via getState() inside handlers (event-time, never render
   // path) so they don't need to be threaded as props — keeps the prop set small and
   // stable so React.memo can bail on inactive rows.
@@ -414,6 +470,26 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
           )}
         </div>
 
+        {/* Action row — split/merge where the words are, instead of a round trip to
+            the panel toolbar (#217). Keyed on SELECTION, not on isActive, so it shows
+            on click and clears itself the moment playback reclaims the highlight. */}
+        {selectedWordIdx >= 0 && (
+          <div className="flex items-center gap-1 mt-1.5">
+            <RowAction
+              icon={<Scissors className="h-3.5 w-3.5" />} label="Split here" disabled={!canSplit}
+              onClick={() => { setEditingWord(null); doSplit(selectedWordIdx); }}
+            />
+            <RowAction
+              icon={<Merge className="h-3.5 w-3.5 rotate-180" />} label="Merge up" disabled={!canMergeUp}
+              onClick={() => { setEditingWord(null); doMergeUp(); }}
+            />
+            <RowAction
+              icon={<Merge className="h-3.5 w-3.5" />} label="Merge down" disabled={!canMergeDown}
+              onClick={() => { setEditingWord(null); doMergeDown(); }}
+            />
+          </div>
+        )}
+
         {isActive && seg.warning && (
           <div className="mt-1"><span className="text-xs text-amber-500/70">{seg.warning}</span></div>
         )}
@@ -430,44 +506,21 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
           <button
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
             disabled={!wordMenu.canSplit}
-            onClick={() => {
-              const sub = useSubtitleStore.getState();
-              sub.setActiveSegId(seg.id);
-              // splitSegment's selectedWordInfo branch splits at this word's start
-              sub.setSelectedWordInfo({ segId: seg.id, wordIdx: wordMenu.wordIdx });
-              sub.splitSegment();
-              setWordMenu(null);
-            }}
+            onClick={() => { doSplit(wordMenu.wordIdx); setWordMenu(null); }}
           >
             <Scissors className="h-3.5 w-3.5" /> Split segment before this word
           </button>
           <button
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
             disabled={!wordMenu.canMergePrev}
-            onClick={() => {
-              const sub = useSubtitleStore.getState();
-              const segs = sub.editSegments;
-              const idx = segs.findIndex((s) => s.id === seg.id);
-              if (idx > 0) {
-                // mergeSegment merges activeSegId with its NEXT — so merging
-                // "with previous" = merge from the previous segment's side.
-                sub.setActiveSegId(segs[idx - 1].id);
-                sub.mergeSegment();
-              }
-              setWordMenu(null);
-            }}
+            onClick={() => { doMergeUp(); setWordMenu(null); }}
           >
             <Merge className="h-3.5 w-3.5 rotate-180" /> Merge with previous segment
           </button>
           <button
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30 disabled:cursor-default"
             disabled={!wordMenu.canMergeNext}
-            onClick={() => {
-              const sub = useSubtitleStore.getState();
-              sub.setActiveSegId(seg.id);
-              sub.mergeSegment();
-              setWordMenu(null);
-            }}
+            onClick={() => { doMergeDown(); setWordMenu(null); }}
           >
             <Merge className="h-3.5 w-3.5" /> Merge with next segment
           </button>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
+import { toFileUrl } from "../components/shared";
 import TrackerCalendar from "./TrackerCalendar";
 import {
   ledgerTotal, rankForXp, weekEntries, paceInfo, computeRecap, localISO, addDaysISO,
@@ -41,6 +42,21 @@ const parseTimeToMinutes = (s) => {
 
 const shortSlot = (s) => (s || "").replace(" PM", "p").replace(" AM", "a").replace(":30", "·30");
 
+// Game colours in gamesDb are 6-digit hex, but the unknown-game fallback is already an
+// rgba() string — so alpha can't just be appended. Falls back to plain white at the same
+// alpha, which is what an untagged clip should look like anyway.
+const rgba = (c, a) => {
+  if (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)) {
+    const n = parseInt(c.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  return `rgba(255,255,255,${a})`;
+};
+
+// The card already wears the game's tag pill and colour, so the title's trailing
+// #rocketleague is pure noise at 10px. Keep the raw title if it was ONLY hashtags.
+const cleanTitle = (t) => (t || "").replace(/\s*#[A-Za-z0-9_]+/g, "").trim() || (t || "");
+
 // Sort a template's time slots chronologically, reordering grid columns to match
 const sortTemplateByTime = (tmpl) => {
   const indices = tmpl.timeSlots.map((s, i) => ({ s, i, m: parseTimeToMinutes(s) }));
@@ -63,6 +79,9 @@ export default function TrackerView({
   xpLedger, awardXp,
   streakState,
   scheduledClips,
+  clipIndex,
+  onOpenInEditor,
+  onOpenQueue,
 }) {
   // Tracker sub-view: Phase 1 "This week" vs Phase 2 read-only "Calendar".
   const [subView, setSubView] = useState("week");
@@ -88,6 +107,17 @@ export default function TrackerView({
 
   const thisWeekEntries = useMemo(() => weekEntries(trackerData, monday), [trackerData, monday]);
   const posted = thisWeekEntries.length;
+  // #218: scheduled clips are a PREVIEW — deliberately not folded into thisWeekEntries,
+  // so they never touch `posted`, the pace ring, the streak or XP. Nothing is banked
+  // until the scheduler actually publishes and QueueView's logPost writes the entry.
+  const schedByDate = useMemo(() => {
+    const m = new Map();
+    for (const c of scheduledClips || []) {
+      if (!m.has(c.date)) m.set(c.date, []);
+      m.get(c.date).push(c);
+    }
+    return m;
+  }, [scheduledClips]);
   // Main vs variety is computed live against the current Now Playing game (not the
   // stored write-time `type`), so switching games mid-week re-buckets the whole week.
   // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
@@ -261,20 +291,33 @@ export default function TrackerView({
     if (!popover || !popoverRef.current) { setPopPos(null); return; }
     const el = popoverRef.current;
     const pr = popover.rect;
-    const { width: popW, height: popH } = el.getBoundingClientRect();
-    const viewH = window.innerHeight;
-    const viewW = window.innerWidth;
-    const showAbove = pr.bottom + popH + 8 > viewH;
-    const left = Math.max(8, Math.min(pr.left + pr.width / 2 - popW / 2, viewW - popW - 8));
-    const top = showAbove ? Math.max(8, pr.top - popH - 6) : pr.bottom + 6;
-    setPopPos({ left, top });
+    const place = () => {
+      const { width: popW, height: popH } = el.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      const viewW = window.innerWidth;
+      const showAbove = pr.bottom + popH + 8 > viewH;
+      const left = Math.max(8, Math.min(pr.left + pr.width / 2 - popW / 2, viewW - popW - 8));
+      // Clamp into the viewport either way. The detail popover grew ~2.5× when it gained
+      // the title and clip frame (#218), and flipping alone let the bottom edge hang off
+      // the window when the card sat low in the week log.
+      const top = Math.max(8, Math.min(showAbove ? pr.top - popH - 6 : pr.bottom + 6, viewH - popH - 8));
+      setPopPos({ left, top });
+    };
+    place();
+    // Content settles after mount (font swap, image decode), so re-place on any resize
+    // of the popover rather than trusting the first measurement.
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [popover]);
 
   const openLogPopover = (dayIso, dayName, slotTime, rect) => {
     setLogSelectedPlatforms([]);
     setPopover({ type: "log", dayIso, dayName, slotTime, rect });
   };
-  const openDetailPopover = (entry, rect) => setPopover({ type: "detail", entry, rect });
+  // One popover for both card kinds; `isSched` swaps the source line and the footer
+  // action (Remove makes no sense for something that hasn't posted yet).
+  const openDetailPopover = (entry, isSched, rect) => setPopover({ type: "detail", entry, isSched, rect });
 
   const togglePlatform = (key) => {
     setLogSelectedPlatforms((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -730,22 +773,31 @@ export default function TrackerView({
             const safeMinutes = (t) => { const m = parseTimeToMinutes(t || "12:00 AM"); return isNaN(m) ? 0 : m; };
             const templateSlots = effectiveTemplate.timeSlots || [];
             const sortedSlots = templateSlots.slice().sort((a, b) => safeMinutes(a) - safeMinutes(b));
-            const canLog = isToday || !isFuture;
             const slotTimesNorm = new Set(sortedSlots.map(norm));
+            // #218: clips scheduled from the Queue. They live on the clip as `scheduledAt`
+            // and never reach trackerData until the scheduler fires, so this list is the
+            // ONLY way the week log can show what's coming.
+            const daySched = schedByDate.get(d.iso) || [];
 
-            // Merge template slots (filled by a matching entry, or an open "+" tile) with any
-            // entries whose time doesn't land on a template slot, into one time-ordered list.
+            // Merge template slots (filled by an entry or a scheduled clip, else an open
+            // "+" tile) with anything whose time doesn't land on a template slot, into one
+            // time-ordered list. Open slots now render on future days too — an empty
+            // Fri/Sat column said nothing about what was still unbooked.
             const dayRows = [];
             sortedSlots.forEach((slot) => {
               const matches = dayEntries.filter((e) => norm(e.time) === norm(slot));
-              if (matches.length > 0) {
-                matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
-              } else if (canLog) {
+              const schedMatches = daySched.filter((s) => norm(s.time) === norm(slot));
+              matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
+              schedMatches.forEach((sched) => dayRows.push({ type: "sched", sched, minutes: safeMinutes(slot) }));
+              if (matches.length === 0 && schedMatches.length === 0) {
                 dayRows.push({ type: "slot", time: slot, minutes: safeMinutes(slot) });
               }
             });
             dayEntries.filter((e) => !slotTimesNorm.has(norm(e.time))).forEach((entry) => {
               dayRows.push({ type: "entry", entry, minutes: safeMinutes(entry.time) });
+            });
+            daySched.filter((s) => !slotTimesNorm.has(norm(s.time))).forEach((sched) => {
+              dayRows.push({ type: "sched", sched, minutes: safeMinutes(sched.time) });
             });
             dayRows.sort((a, b) => a.minutes - b.minutes);
 
@@ -753,7 +805,10 @@ export default function TrackerView({
               <div key={d.iso} style={{
                 padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 150,
                 background: isToday ? `linear-gradient(180deg, ${T.accentDim}, transparent 60%)` : "transparent",
-                borderRadius: isToday ? 6 : 0, opacity: isFuture ? 0.4 : 1,
+                // Future days used to be empty, so 0.4 cost nothing. They now carry
+                // scheduled clips and open slots, and at 0.4 the ghost cards (already
+                // 0.62 themselves) were unreadable (#218).
+                borderRadius: isToday ? 6 : 0, opacity: isFuture ? 0.72 : 1,
               }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: isToday ? T.accentLight : T.text }}>{DAY_SHORT[di]}</span>
@@ -762,20 +817,44 @@ export default function TrackerView({
                 {isFuture && <span style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textTertiary, fontWeight: 600, display: "block", padding: "0 4px 8px" }}>Upcoming</span>}
 
                 {dayRows.map((row, i) => {
-                  if (row.type === "entry") {
-                    const entry = row.entry;
-                    const gd = resolveGameDisplay(entry.game);
-                    const isAuto = entry.source === "clipflow";
+                  // Posted and scheduled share one card: same shape, same game tint and
+                  // corner glow, differing only in dot colour and border (#218). The
+                  // published title is what actually tells Fega which clip this was —
+                  // it has been stored on every entry since logPost, just never shown.
+                  if (row.type === "entry" || row.type === "sched") {
+                    const isSched = row.type === "sched";
+                    const item = isSched ? row.sched : row.entry;
+                    const gd = resolveGameDisplay(item.game);
+                    const isAuto = !isSched && item.source === "clipflow";
+                    const dotColor = isSched ? T.yellow : (isAuto ? T.cyan : "#fff");
+                    const ring = isSched ? T.yellowBorder : rgba(gd.color, 0.26);
                     return (
-                      <div key={entry.id || `${entry.date}-${entry.time}-${i}`}
-                        onClick={(e) => openDetailPopover(entry, e.currentTarget.getBoundingClientRect())}
-                        style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer" }}
-                        onMouseEnter={(ev) => { ev.currentTarget.style.background = T.surfaceHover; ev.currentTarget.style.borderColor = T.borderHover; }}
-                        onMouseLeave={(ev) => { ev.currentTarget.style.background = "rgba(255,255,255,0.03)"; ev.currentTarget.style.borderColor = T.border; }}
+                      <div key={(isSched ? "s" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
+                        title={item.title || ""}
+                        onClick={(e) => openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect())}
+                        style={{
+                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 4,
+                          background: rgba(gd.color, isSched ? 0.05 : 0.09),
+                          border: `1px ${isSched ? "dashed" : "solid"} ${ring}`,
+                          borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer",
+                          opacity: isSched ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
+                        }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = rgba(gd.color, 0.5); }}
+                        onMouseLeave={(ev) => { ev.currentTarget.style.opacity = isSched ? 0.62 : 1; ev.currentTarget.style.borderColor = ring; }}
                       >
-                        <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
-                        <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(entry.time)}</span>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: isAuto ? T.cyan : "#fff", boxShadow: isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.35)" }} />
+                        <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
+                        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
+                          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(255,255,255,0.35)")}` }} />
+                        </div>
+                        {item.title && (
+                          <div style={{
+                            position: "relative", fontSize: 10, lineHeight: 1.35, fontWeight: 500,
+                            color: "rgba(255,255,255,0.78)", display: "-webkit-box", WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word",
+                          }}>{cleanTitle(item.title)}</div>
+                        )}
                       </div>
                     );
                   }
@@ -804,6 +883,9 @@ export default function TrackerView({
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Logged manually
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled {"·"} not posted yet
         </span>
       </div>
 
@@ -852,18 +934,43 @@ export default function TrackerView({
           ) : (
             (() => {
               const entry = popover.entry;
+              const isSched = !!popover.isSched;
               const gd = resolveGameDisplay(entry.game);
-              const isAuto = entry.source === "clipflow";
-              const srcLabel = isAuto ? (entry.scheduled ? "Scheduled via ClipFlow" : "Published via ClipFlow") : "Logged manually";
+              const isAuto = !isSched && entry.source === "clipflow";
+              const srcLabel = isSched
+                ? "Scheduled — not posted yet"
+                : (isAuto ? (entry.scheduled ? "Scheduled via ClipFlow" : "Published via ClipFlow") : "Logged manually");
+              // A scheduled clip carries its own paths; a posted one is looked up by the
+              // clipId logPost stored. Either can come back empty — the project may be
+              // deleted or the clip drive unplugged — so every clip action is optional.
+              const link = isSched ? entry : (entry.clipId ? clipIndex?.get(entry.clipId) : null);
               return (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                     <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: `${gd.color}33`, color: gd.color, fontSize: 11, fontWeight: 800, fontFamily: T.mono }}>{gd.tag}</div>
                     <div>
                       <div style={{ color: T.text, fontSize: 14, fontWeight: 700 }}>{gd.name}</div>
                       <div style={{ color: T.textTertiary, fontSize: 11, fontFamily: T.mono }}>{DAY_SHORT[wd.findIndex((d) => d.iso === entry.date)] || entry.day} {"·"} {entry.time}</div>
                     </div>
                   </div>
+                  {entry.title && (
+                    <div style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.4, margin: "2px 0 10px" }}>{cleanTitle(entry.title)}</div>
+                  )}
+                  {link?.thumbnailPath && (
+                    // Fixed-height box, NOT a bare <img>: the popover measures itself in a
+                    // layout effect to decide whether to flip above the card, and an image
+                    // that only gains height once decoded made it grow off the bottom of
+                    // the window after positioning. The box also doubles as the fallback —
+                    // the clip library is on an external drive, so when it's unplugged the
+                    // frame is simply a tinted block instead of a broken-image glyph.
+                    <div style={{ width: "100%", height: 132, borderRadius: 8, border: `1px solid ${T.border}`, marginBottom: 10, overflow: "hidden", background: rgba(gd.color, 0.16) }}>
+                      <img
+                        src={toFileUrl(link.thumbnailPath)} alt=""
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
+                    </div>
+                  )}
                   {entry.platformResults && entry.platformResults.length > 0 ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                       {entry.platformResults.map((row, i) => {
@@ -892,13 +999,31 @@ export default function TrackerView({
                     <div style={{ color: T.textTertiary, fontSize: 11, marginBottom: 10 }}>{entry.platforms}</div>
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isAuto ? T.cyan : "rgba(255,255,255,0.6)", boxShadow: isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.2)" }} />
-                    <span style={{ color: isAuto ? T.cyan : T.textTertiary, fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSched ? T.yellow : (isAuto ? T.cyan : "rgba(255,255,255,0.6)"), boxShadow: isSched ? "0 0 6px rgba(251,191,36,0.55)" : (isAuto ? `0 0 6px ${T.cyan}88` : "0 0 5px rgba(255,255,255,0.2)") }} />
+                    <span style={{ color: isSched ? T.yellow : (isAuto ? T.cyan : T.textTertiary), fontSize: 11, fontWeight: 600 }}>{srcLabel}</span>
                   </div>
-                  <button onClick={() => removeEntry(entry)} style={{ width: "100%", padding: "8px 0", borderRadius: 8, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
-                  >Remove</button>
+                  {(link?.projectId || link?.renderPath) && (
+                    <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                      {link.projectId && (
+                        <button onClick={() => { closePopover(); onOpenInEditor?.(link.projectId, entry.clipId); }} style={popBtn(T.accentBorder, T.accentDim, T.accentLight)}>
+                          Open in editor
+                        </button>
+                      )}
+                      {link.renderPath && (
+                        <button title="Show in Explorer" onClick={() => window.clipflow?.revealInFolder?.(link.renderPath)} style={{ ...popBtn(T.border, "rgba(255,255,255,0.04)", T.textSecondary), flex: "0 0 34px", padding: "8px 0" }}>
+                          {"📁"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {isSched ? (
+                    <button onClick={() => { closePopover(); onOpenQueue?.(); }} style={popBtn(T.yellowBorder, T.yellowDim, T.yellow)}>Manage in Queue</button>
+                  ) : (
+                    <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
+                    >Remove</button>
+                  )}
                 </>
               );
             })()
@@ -1150,3 +1275,10 @@ const ghostBtnStyle = {
   padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
   color: T.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
 };
+
+// Footer buttons in the clip-detail popover (#218). width covers the standalone
+// buttons (Remove / Manage in Queue); flex-basis 0 wins over it inside the action row.
+const popBtn = (border, bg, color) => ({
+  flex: 1, width: "100%", padding: "8px 0", borderRadius: 8, border: `1px solid ${border}`, background: bg,
+  color, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, textAlign: "center",
+});

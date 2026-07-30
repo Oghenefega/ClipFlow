@@ -598,6 +598,11 @@ export default function App() {
     handleOpenInEditor(projectId, clipId, "queue");
   }, [handleOpenInEditor]);
 
+  // #218: opened from a Tracker week-log card — Back returns to the Tracker.
+  const handleOpenTrackerClipInEditor = useCallback((projectId, clipId) => {
+    handleOpenInEditor(projectId, clipId, "tracker");
+  }, [handleOpenInEditor]);
+
   // #125: open a raw recording in the editor (watch-only source-preview, no project/clip)
   const handleOpenSourcePreview = useCallback((path, label) => {
     setEditorContext({ sourcePreviewPath: path, label });
@@ -658,15 +663,35 @@ export default function App() {
       const h12 = h % 12 === 0 ? 12 : h % 12;
       return `${h12}:${String(m).padStart(2, "0")} ${ap}`;
     };
-    return Object.values(allClips).flat()
-      .filter((c) => c.scheduledAt)
-      .map((c) => ({
+    // clipId/projectId/paths ride along so the Tracker's week log can show the frame
+    // and offer "open in editor" / "show in Explorer" on a not-yet-published clip (#218).
+    return Object.entries(allClips).flatMap(([projectId, clips]) =>
+      clips.filter((c) => c.scheduledAt).map((c) => ({
         date: c.scheduledAt.slice(0, 10),
         time: to12h(c.scheduledAt.slice(11, 16)),
         title: c.title,
         // Lowercased to match gamesDb hashtags, same as QueueView's logPost does at publish.
         game: (c.gameTag || "").toLowerCase() || null,
-      }));
+        clipId: c.id,
+        projectId,
+        thumbnailPath: c.thumbnailPath || null,
+        renderPath: c.renderPath || null,
+      }))
+    );
+  }, [allClips]);
+
+  // clipId → what the Tracker needs to identify a POSTED clip (#218). Tracker entries
+  // store title + clipId at publish time (QueueView logPost); the frame and the file
+  // path live on the clip, so they're resolved live and simply absent once a project
+  // is deleted or its drive is offline.
+  const trackerClipIndex = React.useMemo(() => {
+    const m = new Map();
+    for (const [projectId, clips] of Object.entries(allClips)) {
+      for (const c of clips) {
+        m.set(c.id, { projectId, thumbnailPath: c.thumbnailPath || null, renderPath: c.renderPath || null });
+      }
+    }
+    return m;
   }, [allClips]);
 
   // Queue badge count: show unscheduled count (needs attention) — Phase 5 badge distinction.
@@ -855,6 +880,9 @@ export default function App() {
               awardXp={awardXp}
               streakState={streakState}
               scheduledClips={scheduledClips}
+              clipIndex={trackerClipIndex}
+              onOpenInEditor={handleOpenTrackerClipInEditor}
+              onOpenQueue={() => setView("queue")}
             />
           </div>
         </div>

@@ -466,6 +466,13 @@ function EditSubtitlesTab() {
     () => useSubtitleStore.getState().getTimelineMappedSegments(),
     [rawEditSegments, nleSegments]
   );
+  // id → index in the RAW list, so each row's split/merge guards can be resolved
+  // without scanning the array per row (#217).
+  const rawIdxById = useMemo(() => {
+    const m = new Map();
+    rawEditSegments.forEach((s, i) => m.set(s.id, i));
+    return m;
+  }, [rawEditSegments]);
   const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
@@ -694,6 +701,13 @@ function EditSubtitlesTab() {
             const editing =
               editingWord && editingWord.segId === seg.id ? editingWord : null;
 
+            // Action-row guards (#217). Split/merge operate on the RAW store list, so
+            // the neighbours and word count have to come from there — `seg` is the
+            // trim-filtered timeline copy and can be missing rows either side.
+            const rawI = rawIdxById.get(seg.id) ?? -1;
+            const rawSeg = rawI >= 0 ? rawEditSegments[rawI] : null;
+            const rawWordCount = rawSeg ? (rawSeg.text || "").split(/\s+/).filter(Boolean).length : 0;
+
             return (
               <SegmentRow
                 key={seg.id}
@@ -705,6 +719,9 @@ function EditSubtitlesTab() {
                 anySelected={!!selectedWordInfo}
                 editing={editing}
                 setEditingWord={setEditingWord}
+                canSplit={selectedWordIdx > 0 && rawWordCount >= 2}
+                canMergeUp={rawI > 0}
+                canMergeDown={rawI >= 0 && rawI < rawEditSegments.length - 1}
               />
             );
           })}

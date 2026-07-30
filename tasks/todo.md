@@ -6,6 +6,97 @@
 
 ---
 
+## 📋 PLAN (session 140) — Subtitle row actions + tracker week log identity & scheduled preview
+
+Two unrelated quality-of-life asks from Fega, both awaiting approval before code.
+Mockup: `tasks/mocks/tracker-week-log.html` (opened in browser).
+
+### What I verified first (liveness proofs)
+
+| Claim | Proof |
+|---|---|
+| Split/merge exist ONLY in the panel toolbar as visible controls | `LeftPanelNew.js:641-660` — the two `<Tooltip>` buttons calling `splitSegment()` / `mergeSegment()`, both `disabled={!activeSegId}` |
+| A hidden word-level path already exists | `SegmentRow.js:191-206` opens `wordMenu` on right-click; `SegmentRow.js:422-475` renders Split-before-word / Merge-prev / Merge-next with `canSplit` / `canMergePrev` / `canMergeNext` guards |
+| "Merge with previous" = merge from the previous segment's side | `SegmentRow.js:451-456` — sets `activeSegId` to `segs[idx-1]`, then `mergeSegment()`; the store action only ever merges `activeSegId` with its NEXT (`useSubtitleStore.js:864-871`) |
+| Split honours the selected word | `useSubtitleStore.js:798-805` — the `selectedWordInfo` branch splits at `seg.words[wordIdx].start` |
+| `SegmentRow` is `React.memo`'d and prop-stable on purpose | `SegmentRow.js:169-171` + `LeftPanelNew.js:685-709` — parent computes `activeWordInSeg` / `selectedWordIdx` so only the changed row re-renders during playback |
+| Every tracker entry already stores the published title | prod `clipflow-settings.json` → `trackerData`: **83/83 have `title`**, 57/83 also have `clipId`, 53 are `source: "clipflow"` |
+| The week log shows none of it | `TrackerView.js:769-780` — the entry card renders game tag + `shortSlot(entry.time)` + source dot, nothing else |
+| The detail popover shows none of it either | `TrackerView.js:858-901` — game name, day·time, platform icons, source label, Remove |
+| Queue-scheduled clips never reach the week log | `scheduleClipOnly` (`QueueView.js:964-982`) only writes `clip.scheduledAt`; the tracker entry is created at fire time by `logPost` (`QueueView.js:1248-1269`). `TrackerView` receives `scheduledClips` but forwards it **only** to the Calendar (`TrackerView.js:513`) |
+| The Calendar already renders them | `TrackerCalendar.js:76-80` `scheduledByDate`, hollow segments `:106-109`, dashed drawer rows `:346-358` |
+| Scheduled clip shape available today | `App.js:654-670` — `{date, time, title, game}` only; no `clipId`, no `thumbnailPath` |
+| XP is awarded at publish time, not at schedule time | `QueueView.js:1280` `awardXp(...)` inside `logPost` |
+| Platform-scheduled entries (`scheduled: true`) already count | 3 exist in prod data; they're real `trackerData` rows, so `weekEntries` (`trackerEngine.js:84-88`) and the XP ledger already include them |
+
+### Decisions locked (Fega, this session)
+
+1. **Three buttons on the line:** Split here / Merge up / Merge down.
+2. **Placement:** a new action row *under the line's text*, only on the selected line.
+3. **Tracker card:** title on the card, plus the game's colour as tint/glow, keeping the tag pill. Card may grow.
+4. **Scheduled clips:** dimmed ghost card + amber dot, **and** future days show their open `+` slots.
+
+### Assumptions (say the word if any is wrong)
+
+- Scheduled clips do **not** count toward posted / the ring / XP — they're a preview until they publish.
+- Existing `scheduled: true` tracker rows keep counting exactly as they do today (XP already banked; changing it would rewrite streak history). They gain the amber dot for visual consistency only.
+- The trailing `#rocketleague` is stripped from titles on the card — the tag pill already says the game.
+- The toolbar's split/merge buttons stay.
+
+### Part A — subtitle line actions (`area: subtitles`)
+
+**Files:** `src/renderer/editor/components/leftpanel/SegmentRow.js` only.
+
+1. Render an action row under `renderWords()` when this row has a selected word
+   (`selectedWordIdx >= 0`) — not merely when the row is active, so it appears on click and
+   disappears when playback takes the highlight back.
+2. Three buttons reusing the store calls the right-click menu already proves out:
+   - **Split here** → `setSelectedWordInfo({segId, wordIdx})` + `splitSegment()`; disabled when `wordIdx === 0` or the line has <2 words.
+   - **Merge up** → `setActiveSegId(prev.id)` + `mergeSegment()`; disabled on the first line.
+   - **Merge down** → `setActiveSegId(seg.id)` + `mergeSegment()`; disabled on the last line.
+3. Guard flags come from the raw store (`useSubtitleStore.getState().editSegments`), matching
+   `handleWordContextMenu` — the `seg` prop is the trim-filtered timeline copy.
+4. Keep the right-click menu (no behaviour change, zero-risk, still faster for power use).
+5. `stopPropagation` on the row so clicking a button doesn't re-seek via `handleSegClick`.
+
+**Re-render risk:** the action row reads only props the row already receives, so `React.memo`'s
+bail-out is untouched. No new props, no new subscriptions.
+
+### Part B — tracker week log (`area: tracker`)
+
+**Files:** `src/renderer/views/TrackerView.js`, `src/renderer/App.js`.
+
+1. **`App.js`** — extend the `scheduledClips` memo to also carry `clipId`, `thumbnailPath`,
+   and the clip's `_projectId` so the tracker can show a frame and offer a jump back to the Queue.
+2. **`TrackerView.js`** — `dayRows` builder (`:738-750`): merge `scheduledClips` for that date into
+   the same time-ordered list. A scheduled clip landing on a template slot **replaces** that slot's
+   `+` tile rather than stacking with it (same rule the posted-entry branch already uses).
+3. **Future days** (`canLog === false`, `:733`): allow the `+` slots to render again, so Fri/Sat
+   stop being blank. Clicking one still opens the manual-log popover; that already works for any date.
+4. **Card** (`:769-780`): add a 2-line clamped title under the header row, tint/glow from
+   `resolveGameDisplay(entry.game).color`, `title` attribute carries the untruncated text.
+5. **Ghost card:** same shape, dashed border, `opacity ~.62`, amber dot (`T.yellow`).
+6. **Detail popover** (`:852-905`): lead with the title, add the clip frame (falls back to a colour
+   block when `W:` is offline), keep platforms/source/Remove. Scheduled variant swaps Remove for
+   **Open in Queue** (needs a `onOpenQueue` callback threaded from `App.js`'s `setView`).
+7. **Legend** (`:800-808`): third entry — amber = scheduled, not posted yet.
+8. **Counting is untouched** — `posted`, `pace`, `weekXp` all still derive from `thisWeekEntries`.
+
+### Verification
+
+- `npm run build:renderer` clean, `npm start`, Tracker tab: Mon–Thu cards show this week's real
+  titles with the right game colour; Fri/Sat show ghosts + open slots.
+- Schedule a clip from the Queue for tomorrow → it appears as an amber ghost within a render;
+  unschedule → it disappears.
+- The header number stays **18/20** (or whatever it is at the time) with ghosts on screen —
+  proof they don't count.
+- Editor: click a word mid-line → action row appears; Split here cuts before that word;
+  Merge up/down fold the right neighbours; first line's Merge up and word 0's Split are greyed.
+- Playback: let it run — the action row disappears when the highlight returns to playback,
+  and no other row re-renders (spot-check with React DevTools' highlight).
+
+---
+
 ## ✅ DONE (session 138) — Audio panel round 2: eight requests — **all 8 built + verified on the dev build; NOT yet on Fega's installed daily driver**
 
 All four issues closed out in source: **#209** (refresh, search X, SFX fades),

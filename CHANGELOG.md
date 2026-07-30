@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 140) — Subtitle line actions, and a Tracker that says what it posted
+
+### Added
+- **Split and Merge now appear on the subtitle line itself when you click a word (#217).** Previously the only visible way to split or merge was the toolbar at the top of the panel, so every edit meant a round trip up and back — there was a right-click menu on each word, but it was invisible and Fega had never found it. Clicking any word now shows three icon buttons under that line only: split the line just before the word you clicked, merge this line into the one above, merge it with the one below. Icon-only to stay compact, with the action named on hover. The buttons grey out where the action isn't possible (no line above the first, nothing to split before the first word). The row is tied to the *selection*, so it clears itself the moment playback takes the highlight back, and the toolbar buttons and right-click menu are unchanged.
+- **The Tracker's week log now shows which clip was posted, not just which game (#218).** Each card previously carried a game tag, a time and a coloured dot — enough to count clips, useless for recognising them, so answering "what went out at 2:30?" meant opening YouTube. The published title now sits on the card (two lines, full text on hover), and the card wears its game's colour as a soft tint plus a corner glow, keeping the tag pill. No new data was needed: the title has been stored on every logged clip since publishing was built — all 83 entries have one — it was simply never displayed. The trailing `#rocketleague` is stripped, since the tag pill already says the game.
+- **Clips scheduled for the future now appear in the week log (#218).** Scheduling from the Queue only stamps a time onto the clip; the tracker entry isn't written until it actually publishes, so a clip scheduled for Friday was invisible until Friday afternoon — the Calendar sub-tab showed it, the week log never did. Scheduled clips now render as dimmed, dashed cards with an amber dot instead of the blue "posted" one, and future days show their open `+` slots again so an empty Friday tells you what's still unbooked rather than nothing at all. **They deliberately do not count** toward the weekly number, the pace ring, the streak or XP — nothing is banked until the clip actually publishes.
+- **Clicking a clip in the week log opens a fuller detail card.** It now leads with the title and shows the clip's own frame, plus buttons to open the clip in the editor or reveal the rendered file in Explorer. Scheduled clips get "Manage in Queue" in place of "Remove". The frame is resolved live from the clip, so it degrades to a tinted block — never a broken image — when the clip drive is unplugged or the project has been deleted.
+
+### Changed
+- **Future days in the week log are no longer dimmed to 40%.** That was free when those columns were always empty; now that they carry scheduled clips and open slots, the ghost cards (already dimmed themselves) were unreadable through it. Raised to 72%.
+
+### Fixed
+- **The clip-detail popover no longer hangs off the bottom of the window.** It measures itself to decide whether to open above or below the card, and it grew about 2.5× when it gained the title and clip frame — enough that a card low in a column pushed the bottom edge past the window. It now clamps into the viewport either way and re-positions if its own content settles after opening (font swap, image decode). Checked on cards across every column, including the lowest in a column and the rightmost day.
+
 ## [Unreleased] — 2026-07-30 (session 139) — 0.3.0-alpha.33: the Rename button build
 
 ### Changed
