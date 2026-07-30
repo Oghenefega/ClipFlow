@@ -6,6 +6,18 @@
 
 ---
 
+## ✅ DONE (session 140) — Subtitle row actions + tracker week log identity & scheduled preview — **both built, verified in the running app, shipped as 0.3.0-alpha.34; NOT yet confirmed by Fega**
+
+Filed as #217 and #218, both commits ecf0273 + fe2fbf6, installer 05a0dd0.
+One addition on top of the plan: Fega approved greying Merge up/down wherever the
+line it would swallow is not visible — applied to the row buttons, the right-click
+word menu AND the panel toolbar Merge button.
+Two bugs of mine caught during verification and fixed before commit: the detail
+popover hung off the bottom of the window once it grew, and popBtn used flex:1 only
+so the standalone Remove button rendered as a narrow stub.
+
+**Original plan below, kept for the reasoning and the liveness proofs.**
+
 ## 📋 PLAN (session 140) — Subtitle row actions + tracker week log identity & scheduled preview
 
 Two unrelated quality-of-life asks from Fega, both awaiting approval before code.
