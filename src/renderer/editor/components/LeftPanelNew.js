@@ -473,6 +473,25 @@ function EditSubtitlesTab() {
     rawEditSegments.forEach((s, i) => m.set(s.id, i));
     return m;
   }, [rawEditSegments]);
+  const visibleIds = useMemo(() => new Set(editSegments.map((s) => s.id)), [editSegments]);
+
+  // A merge is offered only when the RAW neighbour it would swallow is one the user
+  // can actually see (#217). editSegments is source-wide while this list renders just
+  // the trimmed window, so merging at the top of the list used to pull in subtitle
+  // text from before the clip's in-point — invisible here, and it looked like the
+  // line had corrupted itself. Testing the neighbour's visibility (rather than
+  // "is this row first/last") also covers a line whose neighbour was cut out
+  // mid-clip, and it keeps mergeSegment untouched: when the button is enabled, the
+  // raw neighbour IS the visible one.
+  const mergeGuards = useCallback((segId) => {
+    const i = rawIdxById.get(segId) ?? -1;
+    const prev = i > 0 ? rawEditSegments[i - 1] : null;
+    const next = i >= 0 && i < rawEditSegments.length - 1 ? rawEditSegments[i + 1] : null;
+    return {
+      up: !!prev && visibleIds.has(prev.id),
+      down: !!next && visibleIds.has(next.id),
+    };
+  }, [rawIdxById, rawEditSegments, visibleIds]);
   const activeSegId = useSubtitleStore((s) => s.activeSegId);
   const setActiveSegId = useSubtitleStore((s) => s.setActiveSegId);
   const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
@@ -658,7 +677,7 @@ function EditSubtitlesTab() {
             <TooltipTrigger asChild>
               <button
                 className="h-8 w-8 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-30"
-                onClick={() => mergeSegment()} disabled={!activeSegId}
+                onClick={() => mergeSegment()} disabled={!activeSegId || !mergeGuards(activeSegId).down}
               >
                 <Merge className="h-4 w-4" />
               </button>
@@ -707,6 +726,7 @@ function EditSubtitlesTab() {
             const rawI = rawIdxById.get(seg.id) ?? -1;
             const rawSeg = rawI >= 0 ? rawEditSegments[rawI] : null;
             const rawWordCount = rawSeg ? (rawSeg.text || "").split(/\s+/).filter(Boolean).length : 0;
+            const merge = mergeGuards(seg.id);
 
             return (
               <SegmentRow
@@ -720,8 +740,8 @@ function EditSubtitlesTab() {
                 editing={editing}
                 setEditingWord={setEditingWord}
                 canSplit={selectedWordIdx > 0 && rawWordCount >= 2}
-                canMergeUp={rawI > 0}
-                canMergeDown={rawI >= 0 && rawI < rawEditSegments.length - 1}
+                canMergeUp={merge.up}
+                canMergeDown={merge.down}
               />
             );
           })}

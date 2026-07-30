@@ -231,8 +231,11 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
       x: Math.min(e.clientX, window.innerWidth - 210),
       y: Math.min(e.clientY, window.innerHeight - 130),
       canSplit: wordIdx > 0 && textWords.length >= 2,
-      canMergePrev: idx > 0,
-      canMergeNext: idx < editSegments.length - 1,
+      // Same visible-neighbour guards as the action row — the menu offers the same
+      // three actions on the same words, so it must not stay enabled where the
+      // buttons are greyed out.
+      canMergePrev: canMergeUp,
+      canMergeNext: canMergeDown,
     });
   };
   // Split/merge, shared by the right-click menu and the inline action row (#217).
