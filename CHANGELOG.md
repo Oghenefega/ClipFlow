@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 139) — The halo around the Rename button
+
+### Fixed
+- **The "Rename All N Files" button no longer sits inside a silver-lined box.** The outline wasn't on the button — it was the floating bar the button lives in, which carries a dark glass fill and a 12%-white border. That bar exists to hold the multi-select cluster ("N selected", Set Game, Hide Selected, Clear, Rename N Selected), and with nothing selected it shrink-wrapped the single purple button, so its border read as a halo. It arrived on 2026-07-21 with the pending-tab rebuild (#172); before that the button was a plain full-width button in the page flow, with no container at all. Now the glass is applied only when the bar is holding the selection cluster — on its own, the button is bare purple with a soft purple glow and a drop shadow to lift it off the list, and slightly larger to make up for the padding the box used to add. The multi-select bar is unchanged.
+
 ## [Unreleased] — 2026-07-30 (session 139) — 0.3.0-alpha.32: the Audio panel bug-fix build
 
 ### Changed

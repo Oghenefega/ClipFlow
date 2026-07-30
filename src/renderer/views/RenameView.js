@@ -50,10 +50,16 @@ const BAR_SHELL = {
   position: "fixed", left: "50%", bottom: 72, zIndex: 90,
   transform: "translateX(-50%)",
   display: "flex", alignItems: "center", gap: 10,
+  animation: "cfrBarUp 0.18s ease-out",
+};
+// The glass, applied ONLY when the bar holds the selection cluster. Wrapped
+// around the lone "Rename All" button it shrink-wrapped it, and its 12%-white
+// border read as a silver halo around the purple — never the intent, and not
+// how the button looked before it moved into this bar in #172.
+const BAR_GLASS = {
   padding: "9px 12px", borderRadius: T.radius.lg,
   background: "rgba(22,23,31,0.92)", backdropFilter: "blur(14px)",
   border: `1px solid ${T.borderHover}`, boxShadow: "0 10px 32px rgba(0,0,0,0.5)",
-  animation: "cfrBarUp 0.18s ease-out",
 };
 const BAR_BTN = { fontFamily: T.font, fontSize: 12, fontWeight: 700, borderRadius: 9, padding: "8px 16px", cursor: "pointer", border: "1px solid transparent", whiteSpace: "nowrap" };
 
@@ -1985,12 +1991,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       {/* #172: floating batch bar — "Rename All" with no selection, selection
           tools once rows are ticked. Same glass shell as Recordings (#123). */}
       {subTab === "pending" && pendingRenames.length > 0 && (
-        <div style={BAR_SHELL}>
+        <div style={{ ...BAR_SHELL, ...(selectedIds.size === 0 ? null : BAR_GLASS) }}>
           {selectedIds.size === 0 ? (
             <button
               onClick={() => renameFiles(pendingRenames)}
               disabled={renaming}
-              style={{ ...BAR_BTN, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
+              // Standing alone it carries its own lift: the purple glow is
+              // PrimaryButton's (the treatment this button had before #172), and
+              // the dark shadow replaces the one the shell used to cast.
+              style={{ ...BAR_BTN, padding: "11px 22px", fontSize: 13, borderRadius: T.radius.md, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer", boxShadow: renaming ? "none" : "0 4px 24px rgba(139,92,246,0.35), 0 6px 18px rgba(0,0,0,0.45)" }}
             >{renaming ? (splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
           ) : (
             <>
