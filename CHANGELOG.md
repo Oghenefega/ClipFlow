@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 138) — See the shape of a track, and scrub to the drop (#211)
+
+### Added
+- **Every track in the Audio panel now shows its waveform, and the one you're auditioning turns into a scrubber (#211).** The row carries the name on one line and the waveform underneath, and clicking play expands it into a full-width waveform you can click or drag anywhere on — so finding the drop in a three-minute song is one gesture instead of waiting through it. Layout picked from three mocked options. Verified on a 2:23 track: dragging to three-quarters along jumped playback to 1:47.
+- **Waveforms load as you scroll, never all at once.** Each one is an FFmpeg decode, and the library is 761 files across 12.6 GB — doing them up front would be about five minutes of grinding on first run. Rows ask only once they're near the visible area, at most three at a time, and the result is cached to disk so every later visit is instant. Measured: 7 of 11 rows drawn on opening a folder, the remaining 4 filling in on scroll.
+
+### Changed
+- **The Audio panel moved into its own file** (`components/audio/`), along with a shared waveform module the timeline sound blocks now use too. It was the largest component in a 2,900-line file and the row has grown a canvas, a lazy loader and its own playhead. No behaviour change from the move itself; the timeline's own waveforms were re-verified afterwards.
+
+### Fixed
+- **A waveform that would never have loaded for most of the library.** The lazy loader watched for rows entering the *browser window*, but visibility is also clipped by the scrolling panel around them — so any row scrolled out of view never registered as visible and its waveform never loaded, no matter how long you waited. Caught by measurement: exactly the rows inside the panel's visible box had drawn, and every file's peaks were confirmed present and readable. Now watches the panel's own scroll container. [TrackRow.js]
+
 ## [Unreleased] — 2026-07-29 (session 138) — Remember a sound's volume once instead of every clip (#210)
 
 ### Added

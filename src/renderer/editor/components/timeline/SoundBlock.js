@@ -1,33 +1,22 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Music, Volume2 } from "lucide-react";
 import { SEGMENT_RADIUS, SOUND_COLORS } from "./timelineConstants";
+import { getCachedPeaks, hasTriedPeaks, requestPeaks } from "../audio/audioPeaks";
 
-// ── Peaks cache (#202b) ──
-// Waveform shape per sound FILE, fetched once per session and shared by every
-// block that uses it (the same sound placed five times draws five waveforms
-// from one extraction). Module-level so it survives clip switches.
-const peaksCache = new Map(); // path → { peaks } | { error }
-const peaksPending = new Map(); // path → Promise
-
+// ── Peaks (#202b) ──
+// The cache, de-duping and concurrency cap now live in ../audio/audioPeaks.js so
+// the Audio panel rows and the timeline blocks share one implementation and one
+// queue (#211). A placed block asks with priority: it's already on screen and
+// visibly missing its shape, unlike a library row scrolling past.
 function useAssetPeaks(filePath) {
   const [, bump] = useState(0);
   useEffect(() => {
-    if (!filePath || peaksCache.has(filePath)) return;
+    if (!filePath || hasTriedPeaks(filePath)) return;
     let alive = true;
-    if (!peaksPending.has(filePath)) {
-      const req = window.clipflow?.assetsPeaks?.(filePath);
-      const p = (req && typeof req.then === "function" ? req : Promise.resolve(null))
-        .then((r) => {
-          peaksCache.set(filePath, r?.peaks?.length ? { peaks: r.peaks } : { error: r?.error || "no peaks" });
-        })
-        .catch(() => { peaksCache.set(filePath, { error: "failed" }); })
-        .finally(() => { peaksPending.delete(filePath); });
-      peaksPending.set(filePath, p);
-    }
-    peaksPending.get(filePath)?.then(() => { if (alive) bump((n) => n + 1); });
+    requestPeaks(filePath, { priority: true }).then(() => { if (alive) bump((n) => n + 1); });
     return () => { alive = false; };
   }, [filePath]);
-  return peaksCache.get(filePath)?.peaks || null;
+  return getCachedPeaks(filePath);
 }
 
 /**
