@@ -323,6 +323,166 @@ function setAssetDefaultVolume(assetsRoot, assetId, volume) {
   return entry.defaultVolume ?? null;
 }
 
+// ── Mood tags (#212) ──
+// Epidemic Sound's own mood vocabulary, supplied by Fega. Most of the library IS
+// Epidemic, so this is the wording he already reads next to these tracks — no
+// reason to invent a parallel taxonomy he'd have to translate in his head.
+const MOODS = [
+  "Angry", "Busy & Frantic", "Changing Tempo", "Chasing", "Dark", "Dreamy",
+  "Eccentric", "Elegant", "Epic", "Euphoric", "Fear", "Floating", "Funny",
+  "Glamorous", "Happy", "Heavy & Ponderous", "Hopeful", "Laid Back", "Marching",
+  "Mysterious", "Peaceful", "Quirky", "Relaxing", "Restless", "Romantic",
+  "Running", "Sad", "Scary", "Sentimental", "Sexy", "Smooth", "Sneaking",
+  "Suspense", "Weird",
+];
+
+/**
+ * Keyword → moods, matched against a track's IMMEDIATE parent folder name only.
+ *
+ * Deliberately not the whole path: Fega's mood folders sit under a parent called
+ * "Game Music - Jazz", so matching the full path would stamp Smooth onto all ~150
+ * tracks beneath it. The measured coverage (≈151 tracks confidently tagged, ≈490
+ * left) is based on immediate-folder names, and this keeps it honest.
+ */
+const FOLDER_MOOD_HINTS = [
+  [/\bchill\b/i, ["Laid Back", "Relaxing"]],
+  [/\blowkey\b/i, ["Laid Back"]],
+  [/\bupbeat\b/i, ["Happy"]],
+  [/\bhappy\b/i, ["Happy"]],
+  [/\bepic\b|final battle|world ending/i, ["Epic"]],
+  [/\bintense\b/i, ["Restless"]],
+  [/\btroll\b|\bderpy\b|\bfunny\b|\bmeme\b/i, ["Funny", "Quirky"]],
+  [/\bgloomy\b|\bsad\b|\bdepressed\b/i, ["Sad"]],
+  [/\bdark\b/i, ["Dark"]],
+  [/suspense/i, ["Suspense"]],
+  [/\bsneak/i, ["Sneaking"]],
+  [/myster/i, ["Mysterious"]],
+  [/\bangelic\b|\bredeemed\b/i, ["Hopeful"]],
+  [/\bhype\b|hype tracks/i, ["Euphoric"]],
+  [/\bclassical\b/i, ["Elegant"]],
+  [/\bscary\b|\bhorror\b/i, ["Scary"]],
+  [/\bromantic\b|\blove\b/i, ["Romantic"]],
+  [/\bpeaceful\b|\bcalm\b/i, ["Peaceful"]],
+  [/\bdreamy\b/i, ["Dreamy"]],
+];
+
+/** Moods implied by the folder a file sits directly in. May be empty. */
+function moodsFromFolder(dir) {
+  const name = path.basename(dir || "");
+  const out = new Set();
+  for (const [re, moods] of FOLDER_MOOD_HINTS) {
+    if (re.test(name)) moods.forEach((m) => out.add(m));
+  }
+  return [...out];
+}
+
+/** Replace a track's tags. Free text is allowed alongside the preset moods. */
+function setAssetTags(assetsRoot, assetId, tags) {
+  if (!Array.isArray(tags)) throw new Error("Tags must be a list");
+  const clean = [...new Set(tags.map((t) => String(t).trim()).filter(Boolean))].slice(0, 24);
+  const assets = loadIndex(assetsRoot);
+  const entry = assets.find((a) => a.id === assetId);
+  if (!entry) throw new Error("Asset not found");
+  entry.tags = clean;
+  saveIndex(assetsRoot, assets);
+  return clean;
+}
+
+/** Add one mood to many tracks at once — the bulk path (#212). */
+function addAssetTagToMany(assetsRoot, assetIds, tag) {
+  const t = String(tag || "").trim();
+  if (!t) throw new Error("No tag given");
+  const ids = new Set(assetIds || []);
+  const assets = loadIndex(assetsRoot);
+  let changed = 0;
+  for (const a of assets) {
+    if (!ids.has(a.id)) continue;
+    const tags = Array.isArray(a.tags) ? a.tags : [];
+    if (tags.includes(t)) continue;
+    a.tags = [...tags, t].slice(0, 24);
+    changed++;
+  }
+  if (changed) saveIndex(assetsRoot, assets);
+  return changed;
+}
+
+/**
+ * One-time pass turning folder names into starting tags. Non-destructive: a track
+ * that already has tags is skipped entirely, so a hand-set tag is never
+ * overwritten, and `tagsSeeded` on the index means it can't run twice.
+ */
+function seedTagsFromFolders(assetsRoot) {
+  const assets = loadIndex(assetsRoot);
+  let tagged = 0;
+  for (const a of assets) {
+    if (a.source !== "folder") continue;
+    if (Array.isArray(a.tags) && a.tags.length > 0) continue;
+    const moods = moodsFromFolder(path.dirname(a.path || ""));
+    if (!moods.length) continue;
+    a.tags = moods;
+    a.tagsSeeded = true;
+    tagged++;
+  }
+  if (tagged) saveIndex(assetsRoot, assets);
+  return { tagged, total: assets.length };
+}
+
+/** Stamp "I used this" — drives the Recent filter (#212). */
+function markAssetUsed(assetsRoot, assetId, whenISO) {
+  const assets = loadIndex(assetsRoot);
+  const entry = assets.find((a) => a.id === assetId);
+  if (!entry) return null;
+  entry.lastUsedAt = whenISO || new Date().toISOString();
+  entry.useCount = (entry.useCount || 0) + 1;
+  saveIndex(assetsRoot, assets);
+  return entry.lastUsedAt;
+}
+
+/**
+ * Seed `lastUsedAt` from clips already saved, so Recent is useful the first time
+ * it's opened rather than empty — the complaint was about sounds used in a PRIOR
+ * clip. Placements persist on the clip as `sfx` and carry both `path` and
+ * `assetId`; match on path FIRST because `assetId` is generated at scan time, so a
+ * rebuilt index invalidates old ids while the file path stays stable.
+ *
+ * `listProjects` is injected rather than required, to keep assets.js free of a
+ * dependency on the project store.
+ */
+function backfillLastUsed(assetsRoot, projects) {
+  const assets = loadIndex(assetsRoot);
+  const byPath = new Map();
+  const byId = new Map();
+  for (const a of assets) {
+    if (a.path) byPath.set(String(a.path).toLowerCase(), a);
+    byId.set(a.id, a);
+  }
+
+  const newest = new Map(); // asset -> ISO string
+  const counts = new Map();
+  for (const proj of projects || []) {
+    for (const clip of proj.clips || []) {
+      const when = clip.updatedAt || clip.createdAt || proj.updatedAt || proj.createdAt;
+      for (const p of clip.sfx || []) {
+        const hit = (p.path && byPath.get(String(p.path).toLowerCase())) || byId.get(p.assetId);
+        if (!hit) continue;
+        counts.set(hit, (counts.get(hit) || 0) + 1);
+        if (when && (!newest.get(hit) || when > newest.get(hit))) newest.set(hit, when);
+      }
+    }
+  }
+
+  let stamped = 0;
+  for (const [entry, when] of newest) {
+    // Never move a real use backwards — a sound placed since this shipped wins.
+    if (entry.lastUsedAt && entry.lastUsedAt >= when) continue;
+    entry.lastUsedAt = when;
+    entry.useCount = Math.max(entry.useCount || 0, counts.get(entry) || 1);
+    stamped++;
+  }
+  if (stamped) saveIndex(assetsRoot, assets);
+  return { stamped, matched: newest.size };
+}
+
 /**
  * Import files into the library (copy + index). `typeHint` is "music"/"sfx"
  * when the import came from that sub-tab, null to infer. Images always
@@ -438,6 +598,12 @@ module.exports = {
   backfillDurations,
   setAssetType,
   setAssetDefaultVolume,
+  MOODS,
+  setAssetTags,
+  addAssetTagToMany,
+  seedTagsFromFolders,
+  markAssetUsed,
+  backfillLastUsed,
   importAssets,
   deleteAsset,
   toggleFavorite,

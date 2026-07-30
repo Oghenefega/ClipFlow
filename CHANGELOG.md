@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 138) — Mood tags and a Recently used list (#212)
+
+### Added
+- **Tracks can now carry mood tags, using Epidemic Sound's own vocabulary (#212).** The 34 moods are Epidemic's list — Angry, Dark, Dreamy, Epic, Euphoric, Funny, Laid Back, Suspense, Sneaking and so on — because most of the library is Epidemic and that's the wording already shown next to these tracks. Tags sit visibly on each row, and clicking one filters the panel to it. The picker is searchable (34 chips is too many to scan), pins the moods you've reached for recently, and takes free text for anything the list misses.
+- **274 of your 761 tracks arrived already tagged, read from your folder names.** `Lowkey - Just Chatting - Lobby - Chill` became Laid Back + Relaxing, `Intense - Epic - Final Battle` became Epic, `Troll - Derpy - Funny` became Funny + Quirky, `Gloomy - Sad - Depressed` became Sad, and so on. Matched against the folder a file sits *directly* in, never the whole path — the mood folders live under a parent called "Game Music - Jazz", and matching that would have stamped Smooth onto 150 unrelated tracks. Runs once, never overwrites a tag you set yourself.
+- **An "Untagged" filter with a live count**, so the ~490 tracks with no mood are a shrinking queue rather than an invisible backlog. Your Epidemic and generic-SFX folders carry no mood in their names, so they're the bulk of it.
+- **A "Recent" filter showing sounds you've already used on a clip**, newest first — and it was populated from your existing clips on first run rather than starting empty, since the whole point was reusing a sound from a *prior* clip. Found 13 tracks across your saved clips, with accurate counts (Love Hour and Bonk both used twice). Matched on file path first and asset id second, because ids are regenerated when the library index is rebuilt while paths stay put.
+
+### Fixed
+- **The Recent backfill silently found nothing on the first attempt.** The project list returns a wrapper object rather than a plain array, so the loop over it threw and was swallowed by the catch-up's error handler — leaving the feature looking like it had run and found no matches. The error handler did its job and named the cause in the log (`(projects || []) is not iterable`), which is how it was caught. [main.js]
+
+### Known gap
+- Tagging is still one track at a time in the UI. The bulk path (select several rows, apply one mood to all) is built and wired in the main process but has no row multi-select yet — filed separately. With ~490 tracks untagged, that's the piece that makes the 34-mood vocabulary practical at scale.
+
 ## [Unreleased] — 2026-07-29 (session 138) — See the shape of a track, and scrub to the drop (#211)
 
 ### Added

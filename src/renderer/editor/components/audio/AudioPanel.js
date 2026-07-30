@@ -13,6 +13,7 @@ import useEditorStore from "../../stores/useEditorStore";
 import usePlaybackStore from "../../stores/usePlaybackStore";
 import { timelineToSource, getTimelineDuration } from "../../models/timeMapping";
 import TrackRow, { AUDIO_EXTENSIONS, fmtDur } from "./TrackRow";
+import TagPicker from "./TagPicker";
 
 export { AUDIO_EXTENSIONS };
 
@@ -27,7 +28,14 @@ export { AUDIO_EXTENSIONS };
 export default function AudioPanel() {
   const [subTab, setSubTab] = useState("music");
   const [search, setSearch] = useState("");
-  const [showFavorites, setShowFavorites] = useState(false);
+  // #212: All / Favorites / Recent / Untagged. Recent answers "the sound I used on
+  // a prior clip"; Untagged turns 490 unlabelled tracks into a shrinking queue
+  // instead of an invisible backlog.
+  const [view, setView] = useState("all");
+  const [tagFilter, setTagFilter] = useState(null);
+  const [moods, setMoods] = useState([]);
+  const [recentTags, setRecentTags] = useState([]);
+  const [tagEditor, setTagEditor] = useState(null); // { track, x, y }
   const [hoveredId, setHoveredId] = useState(null);
   const [assets, setAssets] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -83,6 +91,20 @@ export default function AudioPanel() {
   useEffect(() => {
     window.clipflow.storeGet("audioPreviewVolume").then((v) => {
       if (typeof v === "number" && v >= 0 && v <= 1) setPreviewVolume(v);
+    });
+    window.clipflow.assetsMoods().then((r) => { if (r?.moods) setMoods(r.moods); });
+    window.clipflow.storeGet("audioRecentTags").then((v) => {
+      if (Array.isArray(v)) setRecentTags(v);
+    });
+  }, []);
+
+  // Moods reached for recently get pinned in the picker — with 34 to choose from,
+  // the handful actually in rotation shouldn't need hunting for each time.
+  const noteTagUsed = useCallback((tag) => {
+    setRecentTags((prev) => {
+      const next = [tag, ...prev.filter((t) => t !== tag)].slice(0, 8);
+      window.clipflow.storeSet("audioRecentTags", next);
+      return next;
     });
   }, []);
 
@@ -199,6 +221,27 @@ export default function AudioPanel() {
     flashStatus(res.clampedName
       ? `${track.name} plays from ${at} · ${res.clampedName} now ends there`
       : `${track.name} added at ${at}`);
+    // #212: the single chokepoint for placing a sound, so this is the one place
+    // Recent needs stamping. Fire-and-forget — a failed stamp must not block the
+    // placement that already happened.
+    window.clipflow.assetsMarkUsed(track.id).then((r) => {
+      if (r?.success) setAssets((prev) => prev.map((a) => (a.id === track.id ? { ...a, lastUsedAt: r.lastUsedAt } : a)));
+    }).catch(() => {});
+  }, [flashStatus]);
+
+  // #212: tags. The picker edits one track, or the whole selection when several
+  // rows are picked.
+  const openTagEditor = useCallback((track, e) => {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    setTagEditor({ track, x: Math.min(r.left, window.innerWidth - 260), y: r.top - 6 });
+  }, []);
+
+  const applyTags = useCallback(async (track, tags) => {
+    const result = await window.clipflow.assetsSetTags(track.id, tags);
+    if (!result?.success) { flashStatus(result?.error || "Couldn't save tags", true); return; }
+    setAssets((prev) => prev.map((a) => (a.id === track.id ? { ...a, tags: result.tags } : a)));
+    setTagEditor((t) => (t && t.track.id === track.id ? { ...t, track: { ...t.track, tags: result.tags } } : t));
   }, [flashStatus]);
 
   // #208: the duration rule is ~98% right on a real library; this is the escape
@@ -222,12 +265,61 @@ export default function AudioPanel() {
     } else flashStatus(result?.error || "Couldn't clear", true);
   }, [flashStatus, refresh]);
 
+  // Tags render always-visible on the row (Fega's call over hover-only). Two fit a
+  // narrow panel; the rest collapse into a count. Clicking one filters by it —
+  // the fastest way to go from "this worked" to "what else is like it".
+  // useCallback keeps TrackRow's memo intact.
+  const renderTags = useCallback((track) => {
+    const tags = track.tags || [];
+    if (!tags.length) return null;
+    const shown = tags.slice(0, 2);
+    const extra = tags.length - shown.length;
+    return (
+      <div className="flex items-center gap-1 shrink-0 max-w-[52%]">
+        {shown.map((t) => (
+          <button
+            key={t}
+            onClick={(e) => { e.stopPropagation(); setTagFilter((cur) => (cur === t ? null : t)); }}
+            title={tags.join(", ")}
+            className={`h-[15px] px-1.5 rounded text-[9.5px] font-medium truncate max-w-[68px] transition-colors ${
+              tagFilter === t ? "bg-primary/25 text-violet-200" : "bg-white/[0.07] text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+        {extra > 0 && (
+          <span className="text-[9.5px] text-muted-foreground/70" title={tags.join(", ")}>+{extra}</span>
+        )}
+      </div>
+    );
+  }, [tagFilter]);
+
   const filteredTracks = useMemo(() => {
     let t = assets.filter((a) => a.type === subTab);
-    if (showFavorites) t = t.filter((a) => a.favorite);
+    if (view === "favorites") t = t.filter((a) => a.favorite);
+    else if (view === "recent") t = t.filter((a) => a.lastUsedAt);
+    else if (view === "untagged") t = t.filter((a) => !(a.tags || []).length);
+    if (tagFilter) t = t.filter((a) => (a.tags || []).includes(tagFilter));
     if (search) t = t.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
     return t;
-  }, [assets, subTab, showFavorites, search]);
+  }, [assets, subTab, view, tagFilter, search]);
+
+  // Every mood actually in use in this lane, most-used first — the filter strip
+  // only offers tags that would return something.
+  const tagCounts = useMemo(() => {
+    const counts = new Map();
+    for (const a of assets) {
+      if (a.type !== subTab) continue;
+      for (const t of a.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [assets, subTab]);
+
+  const untaggedCount = useMemo(
+    () => assets.filter((a) => a.type === subTab && !(a.tags || []).length).length,
+    [assets, subTab],
+  );
 
   // Watched folders keep their own shape — Fega's mood folders ("Troll - Derpy
   // - Funny", "Lowkey - Just Chatting") are the useful part of his library.
@@ -235,6 +327,14 @@ export default function AudioPanel() {
   // Sorting by length drops the folders instead: the point of that view is to
   // compare across the whole lane, which grouping would hide.
   const groups = useMemo(() => {
+    // #212: Recent is an ordering, not a folder view — newest use first, grouping
+    // dropped, capped so it stays a shortlist rather than a second library.
+    if (view === "recent") {
+      const sorted = [...filteredTracks]
+        .sort((a, b) => String(b.lastUsedAt || "").localeCompare(String(a.lastUsedAt || "")))
+        .slice(0, 30);
+      return [{ name: null, path: null, tracks: sorted }];
+    }
     if (sortMode === "length") {
       // The end nearest the OTHER lane comes first — a song that is suspiciously
       // short and an effect that is suspiciously long are the two shapes the
@@ -256,13 +356,13 @@ export default function AudioPanel() {
         .sort((a, b) => a.name.localeCompare(b.name));
     }
     return out;
-  }, [filteredTracks, sortMode, subTab]);
+  }, [filteredTracks, sortMode, subTab, view]);
 
   // Groups start collapsed — hundreds of open rows is a wall. Searching opens
   // everything so nothing is buried behind a closed folder, and a lone group
   // never collapses (a small uploaded library behaves exactly as before).
   const searching = search.trim().length > 0;
-  const grouped = sortMode !== "length" && groups.length > 1;
+  const grouped = sortMode !== "length" && view !== "recent" && groups.length > 1;
   const isOpen = useCallback(
     (name) => searching || !grouped || expandedGroups.has(name),
     [searching, grouped, expandedGroups],
@@ -373,12 +473,16 @@ export default function AudioPanel() {
 
       {/* Filter pills + sort */}
       <div className="flex items-center gap-1.5 px-3 pb-2">
-        {[false, true].map((fav) => (
-          <button key={String(fav)} onClick={() => setShowFavorites(fav)}
-            className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-medium transition-colors ${
-              showFavorites === fav ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
+        {[["all", "All", null],
+          ["favorites", "Favorites", null],
+          ["recent", "Recent", null],
+          ["untagged", "Untagged", untaggedCount]].map(([id, label, n]) => (
+          <button key={id} onClick={() => setView(id)}
+            className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 ${
+              view === id ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground border border-border/40 hover:border-border/60 hover:text-foreground"
             }`}>
-            {fav ? "Favorites" : "All"}
+            {label}
+            {n ? <span className="opacity-55 text-[10px]">{n}</span> : null}
           </button>
         ))}
         <TooltipProvider delayDuration={200}>
@@ -402,6 +506,25 @@ export default function AudioPanel() {
           </div>
         </TooltipProvider>
       </div>
+
+      {/* #212: mood filter — only moods that actually exist in this lane, so the
+          strip can never offer a filter that returns nothing. */}
+      {tagCounts.length > 0 && (
+        <div className="flex items-center gap-1 px-3 pb-2 overflow-x-auto">
+          {tagFilter && (
+            <button onClick={() => setTagFilter(null)}
+              className="shrink-0 h-[22px] px-2 rounded text-[10.5px] font-medium bg-primary/20 text-violet-200 border border-primary/45 flex items-center gap-1">
+              {tagFilter} <X className="h-2.5 w-2.5" />
+            </button>
+          )}
+          {tagCounts.filter(([t]) => t !== tagFilter).slice(0, 12).map(([t, n]) => (
+            <button key={t} onClick={() => setTagFilter(t)}
+              className="shrink-0 h-[22px] px-2 rounded text-[10.5px] font-medium border border-border text-muted-foreground hover:text-foreground hover:border-border/70 transition-colors flex items-center gap-1">
+              {t} <span className="opacity-50 text-[9.5px]">{n}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <Separator />
 
@@ -437,6 +560,8 @@ export default function AudioPanel() {
                   onDelete={handleDelete}
                   onAdd={handleAddToTimeline}
                   onClearDefaultVolume={clearDefaultVolume}
+                  onEditTags={openTagEditor}
+                  renderTags={renderTags}
                 />
               ))}
             </div>
@@ -445,17 +570,47 @@ export default function AudioPanel() {
             <div className="py-12 text-center px-4">
               <Music className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
               <div className="text-xs text-muted-foreground">
-                {showFavorites ? "No favorites yet" : subTab === "music" ? "No music yet" : "No sound effects yet"}
+                {tagFilter ? `Nothing tagged “${tagFilter}” here`
+                  : view === "favorites" ? "No favorites yet"
+                  : view === "recent" ? "Nothing used yet"
+                  : view === "untagged" ? "Everything here is tagged"
+                  : subTab === "music" ? "No music yet" : "No sound effects yet"}
               </div>
               <div className="text-[12px] text-muted-foreground/60 mt-1">
-                {showFavorites
-                  ? "Star a track to pin it here"
+                {tagFilter ? "Clear the mood filter, or tag some tracks with it"
+                  : view === "favorites" ? "Star a track to pin it here"
+                  : view === "recent" ? "Sounds you add to a clip show up here so you can reuse them"
+                  : view === "untagged" ? "Nice — every track in this tab has a mood"
                   : "Upload here, or add an audio folder in Settings — everything in it shows up automatically, subfolders included"}
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
+
+      {tagEditor && (
+        <TagPicker
+          moods={moods}
+          selected={tagEditor.track.tags || []}
+          recentTags={recentTags}
+          x={tagEditor.x}
+          y={tagEditor.y}
+          bulkCount={1}
+          onToggle={(m) => {
+            const cur = tagEditor.track.tags || [];
+            const next = cur.includes(m) ? cur.filter((t) => t !== m) : [...cur, m];
+            if (!cur.includes(m)) noteTagUsed(m);
+            applyTags(tagEditor.track, next);
+          }}
+          onAddFree={(t) => {
+            const cur = tagEditor.track.tags || [];
+            if (cur.includes(t)) return;
+            noteTagUsed(t);
+            applyTags(tagEditor.track, [...cur, t]);
+          }}
+          onClose={() => setTagEditor(null)}
+        />
+      )}
     </div>
   );
 }

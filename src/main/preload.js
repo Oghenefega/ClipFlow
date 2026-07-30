@@ -53,6 +53,11 @@ contextBridge.exposeInMainWorld("clipflow", {
   assetsSetType: (assetId, type) => ipcRenderer.invoke("assets:setType", assetId, type),
   // #210: per-sound default volume; null clears it
   assetsSetDefaultVolume: (assetId, volume) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume),
+  // #212: mood tags + "recently used"
+  assetsMoods: () => ipcRenderer.invoke("assets:moods"),
+  assetsSetTags: (assetId, tags) => ipcRenderer.invoke("assets:setTags", assetId, tags),
+  assetsAddTagToMany: (assetIds, tag) => ipcRenderer.invoke("assets:addTagToMany", assetIds, tag),
+  assetsMarkUsed: (assetId) => ipcRenderer.invoke("assets:markUsed", assetId),
   assetsPeaks: (filePath) => ipcRenderer.invoke("assets:peaks", filePath),
   // Background duration scan of watched audio folders (#208)
   onAssetsScanProgress: (callback) => {

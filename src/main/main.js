@@ -984,6 +984,10 @@ ipcMain.handle("assets:list", async () => {
     assetLibrary.backfillDurations(root, (p) => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("assets:scanProgress", p);
     }).catch((err) => logger.error(logger.MODULES.system, `Asset duration scan failed: ${err.message}`));
+    // #212: seed mood tags and Recent once per library, after the list is built so
+    // every folder entry exists to be stamped. The panel re-lists as scanning
+    // progresses, so the seeded values appear without another trigger.
+    runAssetCatchUp(root);
     return { success: true, assets };
   } catch (err) {
     return { success: false, error: err.message };
@@ -998,6 +1002,67 @@ ipcMain.handle("assets:setType", async (_, assetId, type) => {
     return { success: false, error: err.message };
   }
 });
+
+// #212: mood tags. The vocabulary is Epidemic Sound's own (assets.js MOODS).
+ipcMain.handle("assets:moods", async () => ({ success: true, moods: assetLibrary.MOODS }));
+
+ipcMain.handle("assets:setTags", async (_, assetId, tags) => {
+  try {
+    return { success: true, tags: assetLibrary.setAssetTags(assetsRootOrThrow(), assetId, tags) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Bulk path — one mood onto a whole selection, because 34 moods over 761 tracks
+// is unusable if every tag costs a popover.
+ipcMain.handle("assets:addTagToMany", async (_, assetIds, tag) => {
+  try {
+    return { success: true, changed: assetLibrary.addAssetTagToMany(assetsRootOrThrow(), assetIds, tag) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// #212: stamp a use so the Recent filter has something to sort by.
+ipcMain.handle("assets:markUsed", async (_, assetId) => {
+  try {
+    return { success: true, lastUsedAt: assetLibrary.markAssetUsed(assetsRootOrThrow(), assetId) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+/**
+ * One-time catch-up run behind the panel (#212): seed tags from folder names, and
+ * seed Recent from clips already saved so the tab isn't empty on first open. Both
+ * are non-destructive and guarded by a marker so they run once per library.
+ */
+function runAssetCatchUp(root) {
+  try {
+    const flags = store.get("assetCatchUp") || {};
+    const next = { ...flags };
+    if (!flags.tagsSeeded) {
+      const r = assetLibrary.seedTagsFromFolders(root);
+      logger.info(logger.MODULES.system, `Seeded mood tags from folder names: ${r.tagged} of ${r.total} tracks`);
+      next.tagsSeeded = true;
+    }
+    if (!flags.lastUsedSeeded) {
+      const lib = libraryRoot();
+      // listProjects returns { projects: [...] }, not an array — clips are
+      // included (minus subtitles/transcription), so `sfx` is there to read.
+      const projList = lib ? (projects.listProjects(lib).projects || []) : [];
+      const r = assetLibrary.backfillLastUsed(root, projList);
+      logger.info(logger.MODULES.system, `Seeded Recent from existing clips: ${r.stamped} tracks matched`);
+      next.lastUsedSeeded = true;
+    }
+    if (next.tagsSeeded !== flags.tagsSeeded || next.lastUsedSeeded !== flags.lastUsedSeeded) {
+      store.set("assetCatchUp", next);
+    }
+  } catch (err) {
+    logger.error(logger.MODULES.system, `Asset catch-up failed: ${err.message}`);
+  }
+}
 
 // #210: remember the level a sound should open at, so a hot master doesn't need
 // re-tuning on every clip. null clears it back to the per-kind default.
