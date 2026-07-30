@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 139) — 0.3.0-alpha.32: the Audio panel bug-fix build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.32`**, carrying the three fixes to the problems found in alpha.31: "Remember X% for this sound" now saves instead of answering "Asset not found" (#214), the row buttons in the Audio panel — favourite, tags, lane swap, delete and "+" — are back inside the panel where they can be seen, and hovering tracks no longer stretches their waveforms wider on every pass (#215).
+
 ## [Unreleased] — 2026-07-30 (session 139) — Three alpha.31 bugs from the Audio panel build
 
 ### Fixed
