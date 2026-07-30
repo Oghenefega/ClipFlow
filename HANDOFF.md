@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-29 — Session 138 — **All eight of Fega's Audio-panel requests are built and verified on the dev build (#209–#212). None of it has reached his installed daily driver — no installer was cut. That's the first thing to decide next session.**_
+_Last updated: 2026-07-29 — Session 138 — **All eight Audio-panel requests shipped as `0.3.0-alpha.31` (#209–#212). Fega installed it and reports there ARE issues, but wrapped the session before describing them. START NEXT SESSION BY ASKING WHAT'S BROKEN — do not assume the features work.**_
 
 ---
 
@@ -14,15 +14,29 @@ because it had outgrown `RightPanelNew.js`.
 
 ## Current State
 
-Version is still **0.3.0-alpha.30** — **no installer was cut this session.**
-Everything below is on `master` and verified only on the dev profile.
+**`0.3.0-alpha.31` is built (`dist\ClipFlow Setup 0.3.0-alpha.31.exe`, 124 MB) and
+Fega installed it.** Commit 7f0dc1f. All eight requests are in it.
 
-- **Fega has confirmed nothing from this session.** He picked the row layout from a
-  mock and supplied the tag vocabulary; he has not seen any of it running.
-- **Still unverified by him from earlier sessions:** the two alpha.30 loudness
-  changes, plus **#188**, **#204**, **#205**, **#207**.
+- 🔴 **FEGA REPORTS ISSUES WITH alpha.31 AND HAS NOT SAID WHAT THEY ARE.** He ended
+  the session with "There are some issues but let's end this session and we will fix
+  them in the next one." **First action next session: ask him what's broken, before
+  touching anything.** Everything below passed my own CDP verification, so whatever
+  he hit is something that verification did not cover — do not re-run the same
+  checks and conclude it's fine.
+- **#209–#212 are closed and labelled `status: untested`.** Given the above, expect
+  to reopen at least one. Don't remove the label from any of them until he confirms
+  that specific feature.
+- Most likely suspects, given they're the parts I could NOT verify by assertion —
+  the *look* and *feel* rather than the behaviour: row height/density now that the
+  row carries a waveform + tags + badge (52px vs the old 40px), whether the seeded
+  tags are actually right (`100 Thieves Hype Tracks` → *Euphoric* was my judgement
+  call; "Hype" isn't one of Epidemic's 34), waveform load latency while scrolling a
+  cold folder, and the scrubber on very short one-shots (it flashes for the length
+  of the sound).
+- **Still unverified from earlier sessions:** the two alpha.30 loudness changes,
+  plus **#188**, **#204**, **#205**, **#207**.
 - **#206** (library hygiene — 23 orphan renders, ~1.37 GB) still awaiting his call.
-- **#213** filed: bulk tagging has no row multi-select yet.
+- **#213** filed: bulk tagging has no row multi-select yet — 487 tracks untagged.
 
 ## What Was Built (session 138 — commits 050b75f, a325623, f1366f4, 1a0433a)
 
@@ -68,15 +82,21 @@ Everything below is on `master` and verified only on the dev profile.
 
 ## Next Steps
 
-1. **Decide on an installer.** Fega tests on the installed exe, so none of this
-   reaches him until one is cut (`/clipflow-update-launcher`, bump to **alpha.31** —
-   tick the alpha counter, never the minor version).
+1. 🔴 **Ask Fega what's wrong with alpha.31 and fix that first.** Get the symptoms
+   in his words before forming any theory, and reopen whichever of #209–#212 they
+   belong to. A screenshot is worth asking for — the parts I couldn't assert against
+   are visual (row density, tag correctness, load feel), and those are exactly where
+   an unverified assumption would be hiding.
 2. **#213 — row multi-select for bulk tagging.** 487 tracks still untagged, and the
    Epidemic/generic-SFX folders carry no mood in their names. The main-process half
    (`addAssetTagToMany`, `assets:addTagToMany`, `TagPicker`'s `bulkCount`) is built
    and unused.
-3. Chase confirmation on the unverified backlog (#188, #204, #205, #207, alpha.30
-   loudness pair).
+3. Chase confirmation on the older unverified backlog (#188, #204, #205, #207,
+   alpha.30 loudness pair) — but only after alpha.31's problems are settled, or the
+   two sets of unknowns will tangle.
+
+**Do not cut another installer until his alpha.31 issues are fixed** — batch them
+into one alpha.32 rather than shipping a build per fix ([[feedback_batch_versions]]).
 
 ## Watch Out For
 
