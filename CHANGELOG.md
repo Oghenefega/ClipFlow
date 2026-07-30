@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-29 (session 138) — 0.3.0-alpha.31: the Audio panel round-two build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.31`**, promoting all eight of the Audio panel requests raised after the library landed: the library refresh button, the search clear button, and fade in/out on sound effects (#209); per-sound saved volumes (#210); a waveform on every track plus the scrubbable mini player (#211); and Epidemic's mood tags with the Untagged queue and the Recently used list (#212). Tagging is still one track at a time — bulk multi-select is filed as #213 and not in this build.
+
 ## [Unreleased] — 2026-07-29 (session 138) — Mood tags and a Recently used list (#212)
 
 ### Added
