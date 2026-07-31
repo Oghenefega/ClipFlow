@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-31 (session 142) — Clip status ladder, and seamless splits in the preview
+
+### Added
+- **One color ladder for every clip on the Projects tab (#221).** Each clip's dash and tags now show how far it has traveled through the whole pipeline, not just review: untouched (faint ghost) → approved (green) → rendered-and-waiting-in-queue (orange, a new color) → scheduled (yellow) → published (cyan), with rejected (red) off to the side. Yellow and cyan deliberately match the Tracker tab's existing "scheduled" and "posted via ClipFlow" dots, so the same color means the same thing everywhere. The project cards' dash strips use the full ladder, making them a real progress bar for publishing, not just for reviewing.
+- **"Removed from queue" tag (#221).** Removing a clip from the Queue tab used to make it invisible — it looked identical to a clip never reviewed. It now carries a small neutral tag on its clip row, counts as needing a fresh decision, and keeps its project from reading Done until it's re-approved or rejected.
+
+### Fixed
+- **The Scheduled tag never appeared on the Projects tab (#221).** The tag existed in code but its condition required the clip to appear in the Tracker's history — which is only written *after* a clip publishes. So while a clip sat scheduled and waiting, the tag could never show, which is why clips only ever displayed Approved/Rendered/Published. It now reads the clip's own scheduled date directly and finally shows up (with the date and time on it).
+- **The felt pause when playback crosses a deleted middle (#222).** The editor preview plays your original recording in a single video player, and at every cut it told the player to jump ahead — a jump that measured 190–1100ms of frozen picture and silent audio on a real recording. The preview now keeps a second, hidden player already parked on the next section's first frame and swaps the two instantly at the cut: measured handoff is ~8ms, with the playhead continuous and playback speed carried across. Exports were never affected — this was preview-only.
+
+### Changed
+- **A project is now Done only when every clip is rejected, scheduled with an actual date, or published (#221).** A rendered clip still waiting for a time slot keeps the project at "To schedule" — Fega's call: if there's still work to do anywhere, the project shouldn't read Done.
+
 ## [Unreleased] — 2026-07-30 (session 141) — 0.3.0-alpha.35: the editor keyboard build
 
 ### Changed

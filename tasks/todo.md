@@ -6,6 +6,54 @@
 
 ---
 
+## ✅ DONE (session 142) — Clip status ladder (#221) + seamless split playback (#222) — **built and machine-verified in the dev app; committed; NOT yet confirmed by Fega, NOT yet in an installer**
+
+Ladder verified live over real data (all colors render; "To schedule"/"Done" follow the strict rule). Split fix verified with numbers: old in-place seek at a real cut = 190–1100ms frozen (probe on the actual recording); new double-buffer handoff = ~8ms, zero visible seeking, playhead continuous, 1.5× shuttle speed carried across the swap, undo intact. Incident during verification: `S` (trim, NOT split — split is `U`) cut a real clip; restored exactly (single segment 733.1377→747.8186, verified on disk). Lessons in tasks/lessons.md + memory gotchas 28-30.
+
+Approved by Fega (explainer: `tasks/mocks/clip-status-and-split-gap.html`).
+Decisions locked: **strict Done** (rendered-but-undated blocks), **dequeued gets
+a "Removed from queue" tag + blocks Done**.
+
+### A. Unified clip status ladder (ProjectsView + theme)
+Ladder (furthest rung wins): Untouched (ghost) → Approved (green) →
+Rendered/queued (orange, NEW `T.orange` #f97316) → Scheduled (yellow) →
+Published (cyan). Rejected (red) off-ladder. Dequeued = ghost dash + tag.
+
+- [ ] `theme.js`: add `orange` (+ dim/border variants)
+- [ ] `ProjectsView.js` `makePublishState`: `isScheduled = !!c.scheduledAt`
+      (drop dead tracker-entry requirement — tracker rows are only written at
+      publish time, so the old check could never fire pre-publish)
+- [ ] Project-card pip strip: 6-color ladder
+- [ ] Clip row badges: Rendered cyan→orange, Published green→cyan, Scheduled
+      accent→yellow (now actually shows), add ghost "Removed from queue" badge
+      for `status === "dequeued"`
+- [ ] `getProjectStatus`: done = all reviewed AND every non-rejected clip has
+      `scheduledAt` or is published; dequeued blocks
+- [ ] Fix stale comment at ProjectsView.js:56-58 (claims scheduling writes a
+      tracker entry — it doesn't)
+
+Verify: build renderer + dev-profile boot, eyeball Projects tab states via CDP.
+
+### B. Split playback gap (editor preview)
+Root cause: single-`<video>` seek at each cut boundary (rAF loop
+PreviewPanelNew.js:1323-1371 → mapSourceTime usePlaybackStore.js:159-215 →
+seek at :1357). Seek = hunt + decode in a big HEVC file → frozen frame +
+silent audio ≈ 0.1-0.3s. Render output unaffected.
+
+- [ ] Probe: measure real seeking→seeked latency on one of Fega's actual
+      recordings (standalone HTML probe, mid-playback jumps) BEFORE building
+- [ ] Double-buffer: hidden standby `<video>` pre-parked at next segment
+      start; instant swap at boundary; active-element ref keeps playback
+      store / rAF / compositor / audio sync working; legacy seek as fallback
+      when standby not ready (scrub, reorder, rewind excluded)
+- [ ] Verify: CDP — play across a cut, visible element must fire no `seeking`
+      at the boundary; measure before/after gap
+
+### C. Wrap
+- [ ] CHANGELOG.md, commit + push (batch, no installer per batching rule)
+
+---
+
 ## ✅ DONE (session 141) — Editor keyboard layer: reliable Space, five new edit keys, rebindable shortcuts overlay — **built and verified in the running app; filed as #220; NOT yet confirmed by Fega, and NOT yet in an installer**
 
 All 11 verification criteria met except one partial (see below). Highlights:

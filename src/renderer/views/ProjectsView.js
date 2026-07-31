@@ -52,33 +52,41 @@ const getGameColor = (p, gamesDb) => {
 };
 
 // Pure helper — determine project status
-// Publish-pipeline state, derived from trackerData (zero new persisted state).
-// Scheduling on the Queue tab creates a tracker entry (clipId/title) AND sets
-// clip.scheduledAt; the scheduler clears scheduledAt at fire time. So:
-// entry + scheduledAt = Scheduled (pending), entry without = Published.
-// Same id/title matching App.js uses for the Queue badge.
+// Publish-pipeline state. Scheduled reads the clip's own scheduledAt directly:
+// scheduleClipOnly (QueueView) stamps scheduledAt WITHOUT writing a tracker
+// entry — tracker rows only appear at publish time (logPost), so gating
+// Scheduled on a tracker entry meant the badge could never fire pre-publish
+// (the "3 tags" bug). Published still needs the tracker entry (same id/title
+// matching App.js uses for the Queue badge); the scheduler clears scheduledAt
+// at fire time, so entry + no pending scheduledAt = Published.
 const makePublishState = (trackerData) => {
   const ids = new Set((trackerData || []).map((t) => t.clipId).filter(Boolean));
   const titles = new Set((trackerData || []).map((t) => t.title).filter(Boolean));
   const tracked = (c) => ids.has(c.id) || titles.has(c.title);
   return {
-    isScheduled: (c) => tracked(c) && !!c.scheduledAt,
+    isScheduled: (c) => !!c.scheduledAt,
     isPublished: (c) => tracked(c) && !c.scheduledAt,
   };
 };
 
 const isClipApproved = (c) => c.status === "approved" || c.status === "ready";
 
-// "done" is honest (session 124): a project is only DONE when every clip is
-// reviewed AND every approved clip is scheduled or published — review alone
-// now yields "schedule" (all reviewed, approved clips still need queueing).
+// Dequeued clips (Queue tab "Remove") need a fresh decision — they count as
+// pending review everywhere in this view, so they block Done and resurface in
+// the review flow instead of silently looking identical to untouched clips.
+const isClipUndecided = (c) => !c.status || c.status === "none" || c.status === "dequeued";
+
+// "done" is honest (session 124, tightened session 142): a project is only
+// DONE when every clip is decided AND every approved clip has an actual
+// scheduled date or a completed publish. Strict by Fega's call — a rendered
+// clip waiting in the queue without a slot still blocks Done.
 // Without a pub state (no trackerData in scope) it falls back to the old
 // done-when-reviewed behavior.
 const getProjectStatus = (p, pub) => {
   if (p.status === "processing") return "processing";
   if (p.status === "error") return "error";
   if (p.clips && p.clips.length > 0) {
-    const allReviewed = p.clips.filter((c) => c.status === "none").length === 0;
+    const allReviewed = p.clips.filter(isClipUndecided).length === 0;
     if (!allReviewed) return "ready";
     if (pub) {
       const unscheduled = p.clips.filter((c) =>
@@ -91,9 +99,9 @@ const getProjectStatus = (p, pub) => {
 };
 
 // --- Launch-pad helpers (Projects list redesign) ---
-// Clips still awaiting a review decision (status "none") — drives "N to review",
+// Clips still awaiting a review decision (undecided incl. dequeued) — drives "N to review",
 // the pip strip, and the "Most to review" sort.
-const clipsPending = (p) => (p.clips || []).filter((c) => !c.status || c.status === "none").length;
+const clipsPending = (p) => (p.clips || []).filter(isClipUndecided).length;
 
 // Recording date parsed from the project name ("2026-01-23 ..."); falls back to
 // createdAt. Local parts only — never toISOString.
@@ -968,10 +976,11 @@ function ClipRow({ clip, project, onUpdateClip, onUpdateClipFields, onEditClipTi
           )}
           {ca && <Badge color={T.green}>Approved</Badge>}
           {rej && <Badge color={T.red}>Rejected</Badge>}
-          {clip.renderStatus === "rendered" && <Badge color={T.cyan}>Rendered</Badge>}
+          {clip.status === "dequeued" && <Badge color={T.textSecondary} bg="rgba(255,255,255,0.05)">Removed from queue</Badge>}
+          {clip.renderStatus === "rendered" && <Badge color={T.orange} bg={T.orangeDim}>Rendered</Badge>}
           {clip.renderStatus === "rendering" && <Badge color={T.yellow}>Rendering</Badge>}
-          {pub?.isScheduled(clip) && <Badge color={T.accent}>{`Scheduled · ${fmtScheduledAt(clip.scheduledAt)}`}</Badge>}
-          {pub?.isPublished(clip) && <Badge color={T.green}>Published</Badge>}
+          {pub?.isScheduled(clip) && <Badge color={T.yellow}>{`Scheduled · ${fmtScheduledAt(clip.scheduledAt)}`}</Badge>}
+          {pub?.isPublished(clip) && <Badge color={T.cyan} bg={T.cyanDim}>Published</Badge>}
         </div>
 
         {/* Flowing transcript: reads like the editor, no [mm:ss] stamps */}
@@ -1497,7 +1506,7 @@ export function ProjectsListView({
             const pColor = getGameColor(p, gamesDb);
             const clips = p.clips || [];
             const clipCount = clips.length || p.clipCount || 0;
-            const reviewed = clips.filter((c) => c.status && c.status !== "none").length;
+            const reviewed = clips.filter((c) => !isClipUndecided(c)).length;
             const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
             const leftToReview = Math.max(0, clipCount - reviewed);
             const toSchedule = clips.filter((c) => isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
@@ -1551,10 +1560,16 @@ export function ProjectsListView({
                   ) : clipCount > 0 ? (
                     <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
                       {clips.slice(0, 40).map((c, i) => {
-                        // Purple = scheduled/published (handled beyond approval) — the
-                        // card shows publish progress, not just review progress.
-                        const cc = (pub.isScheduled(c) || pub.isPublished(c)) ? T.accent
-                          : (c.status === "approved" || c.status === "ready") ? T.green
+                        // Clip ladder (session 142) — furthest stage wins: published
+                        // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
+                        // scheduled (yellow, matches the Tracker's scheduled dots) >
+                        // rendered/waiting-in-queue (orange) > approved (green) >
+                        // rejected (red). Dequeued falls through to the untouched
+                        // ghost — it needs a fresh decision.
+                        const cc = pub.isPublished(c) ? T.cyan
+                          : pub.isScheduled(c) ? T.yellow
+                          : isClipApproved(c) && c.renderStatus === "rendered" ? T.orange
+                          : isClipApproved(c) ? T.green
                           : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
                         return <span key={i} style={{ width: 14, height: 6, borderRadius: 2, background: cc }} />;
                       })}
@@ -1877,9 +1892,9 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
 
   const clips = project.clips || [];
   const isApproved = (c) => c.status === "approved" || c.status === "ready";
-  const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? c.status === "none" : true);
+  const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? isClipUndecided(c) : true);
   const approved = clips.filter(isApproved).length;
-  const pending = clips.filter((c) => c.status === "none").length;
+  const pending = clips.filter(isClipUndecided).length;
   const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
   const renderableApproved = clips.filter((c) => isApproved(c) && c.renderStatus !== "rendered").length;
   const scheduledCount = clips.filter((c) => pub.isScheduled(c)).length;

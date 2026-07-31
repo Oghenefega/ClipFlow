@@ -6,6 +6,7 @@ import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
 import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
+import { sourceToTimeline } from "../models/timeMapping";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
@@ -901,7 +902,21 @@ export default function PreviewPanelNew() {
   const [editingCaption, setEditingCaption] = useState(false);
 
   const canvasRef = useRef(null);
-  const videoRef = useRef(null);
+  // ── Double-buffered playback (split-gap fix) ──
+  // Two <video> elements decode the same source file. videoRef is a POINTER to
+  // whichever is ACTIVE (visible, audible, the store's clock) — everything that
+  // reads videoRef.current / getVideoRef().current at call time follows the
+  // swap for free. standbyRef points at the hidden element, pre-seeked to the
+  // next section's first frame so crossing a cut is an instant swap instead of
+  // a 200-1100ms in-place seek (measured on a real recording, session 142).
+  const videoRef = useRef(null); // ACTIVE element (never bound in JSX)
+  const videoElARef = useRef(null);
+  const videoElBRef = useRef(null);
+  const standbyRef = useRef(null);
+  // Which segment index the standby is parked for, and whether its seek landed.
+  const parkRef = useRef({ idx: -1, ready: false });
+  // Bumped on every swap so effects holding the old element re-anchor.
+  const [swapTick, setSwapTick] = useState(0);
   const containerRef = useRef(null);
   const captionInputRef = useRef(null);
   const capOverlayRef = useRef(null);
@@ -979,14 +994,16 @@ export default function PreviewPanelNew() {
   }, [initVideoRef]);
 
   // Abort video fetch on unmount — prevents Chromium renderer crash
-  // (blink::DOMDataStore::GetWrapper null deref when stream outlives element)
+  // (blink::DOMDataStore::GetWrapper null deref when stream outlives element).
+  // Both buffers, not just the active one.
   useEffect(() => {
     return () => {
-      const vid = videoRef.current;
-      if (vid) {
-        vid.pause();
-        vid.removeAttribute("src");
-        vid.load();
+      for (const vid of [videoElARef.current, videoElBRef.current]) {
+        if (vid) {
+          vid.pause();
+          vid.removeAttribute("src");
+          vid.load();
+        }
       }
     };
   }, []);
@@ -1018,17 +1035,38 @@ export default function PreviewPanelNew() {
   // can trip blink::DOMDataStore::GetWrapper and crash the renderer with
   // ACCESS_VIOLATION (0xC0000005). Tearing down fully first eliminates
   // the race.
+  // Runs after render, so the element refs are bound. Every src change also
+  // resets the buffer roles: A active/visible, B standby/hidden, park cleared.
   useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-    // Stop any in-flight fetch from the previous src (no-op on first run)
-    vid.pause();
-    vid.removeAttribute("src");
-    vid.load();
-    if (videoSrc) {
-      vid.src = videoSrc;
+    const a = videoElARef.current;
+    const b = videoElBRef.current;
+    videoRef.current = a;
+    standbyRef.current = b;
+    parkRef.current = { idx: -1, ready: false };
+    if (a) { a.style.opacity = "1"; a.style.pointerEvents = ""; }
+    if (b) { b.style.opacity = "0"; b.style.pointerEvents = "none"; }
+    for (const vid of [a, b]) {
+      if (!vid) continue;
+      // Stop any in-flight fetch from the previous src (no-op on first run)
+      vid.pause();
+      vid.removeAttribute("src");
       vid.load();
+      if (videoSrc) {
+        vid.src = videoSrc;
+        vid.load();
+      }
     }
+    // Parking is the only seek ever issued on a standby element; its `seeked`
+    // marks the park as landed. Active-element seeks are filtered by target.
+    const onParkSeeked = (e) => {
+      if (e.target === standbyRef.current) parkRef.current.ready = true;
+    };
+    a?.addEventListener("seeked", onParkSeeked);
+    b?.addEventListener("seeked", onParkSeeked);
+    return () => {
+      a?.removeEventListener("seeked", onParkSeeked);
+      b?.removeEventListener("seeked", onParkSeeked);
+    };
   }, [videoSrc]);
 
   // ── #164 B4: first-recording auto-offer ──
@@ -1324,6 +1362,8 @@ export default function PreviewPanelNew() {
   // Video element plays source file; we map source time → timeline time via NLE segments
   useEffect(() => {
     if (!playing) return;
+    // Segments (or play state) changed — any parked position may be stale.
+    parkRef.current = { idx: -1, ready: false };
     let rafId;
     const tick = () => {
       const video = videoRef.current;
@@ -1354,9 +1394,55 @@ export default function PreviewPanelNew() {
         return;
       }
 
-      if (result.needsSeek) {
-        // Don't spam the seek: skip if video is still seeking, or if already at target.
-        if (!video.seeking && Math.abs(video.currentTime - result.seekToSource) > 0.05) {
+      // Keep the standby parked at the head of the NEXT section, so the cut
+      // crossing below can swap instead of seeking. Reads fresh store state
+      // (long-lived handler rule) — segment edits mid-playback repark here.
+      const ps = usePlaybackStore.getState();
+      const segs = ps.nleSegments;
+      const standby = standbyRef.current;
+      if (standby && segs.length > 1) {
+        const here = sourceToTimeline(sourceTime + ps.clipFileOffset, segs);
+        const nextIdx = here.found ? here.segmentIndex + 1 : -1;
+        if (nextIdx > 0 && nextIdx < segs.length && parkRef.current.idx !== nextIdx) {
+          parkRef.current = { idx: nextIdx, ready: false };
+          standby.currentTime = Math.max(0, segs[nextIdx].sourceStart - ps.clipFileOffset);
+        }
+      }
+
+      // Adjacent sections (a split with nothing deleted) map to a ~0 jump —
+      // the element just plays through, no seek OR swap needed.
+      if (result.needsSeek && Math.abs(video.currentTime - result.seekToSource) > 0.05) {
+        const park = parkRef.current;
+        const target = result.seekToIndex >= 0 ? segs[result.seekToIndex] : null;
+        if (
+          standby && target &&
+          park.idx === result.seekToIndex && park.ready &&
+          !standby.seeking && standby.readyState >= 2 &&
+          // Position check hardens against a superseded park whose `seeked`
+          // landed after the retarget.
+          Math.abs((standby.currentTime + ps.clipFileOffset) - target.sourceStart) < 0.25
+        ) {
+          // Standby holds the next section's first frame, already decoded —
+          // swap the players. This is the split-gap fix: the in-place seek
+          // this replaces measured 200-1100ms of frozen frame on a real
+          // recording (session 142 probe).
+          const old = video;
+          standby.playbackRate = old.playbackRate;
+          standby.muted = old.muted;
+          standby.volume = old.volume;
+          videoRef.current = standby; // re-point BEFORE pausing old, so the
+          standbyRef.current = old;   // guarded onPause ignores the old element
+          parkRef.current = { idx: -1, ready: false };
+          standby.style.opacity = "1";
+          standby.style.pointerEvents = "";
+          old.style.opacity = "0";
+          old.style.pointerEvents = "none";
+          standby.play().catch(() => {});
+          old.pause();
+          setSwapTick((t) => t + 1); // re-anchor element-bound effects (rVFC paint)
+        } else {
+          // Fallback: standby not ready (rapid cuts, scrub landed close to a
+          // boundary, src still loading) — legacy in-place seek.
           video.currentTime = result.seekToSource;
         }
       }
@@ -1370,8 +1456,11 @@ export default function PreviewPanelNew() {
     return () => cancelAnimationFrame(rafId);
   }, [playing, setCurrentTime, setPlaying, mapSourceTime, nleSegments, syncAssetAudio]);
 
-  // Video event handlers — only enforce bounds when paused (seek while paused)
-  const onTimeUpdate = useCallback(() => {
+  // Video event handlers — only enforce bounds when paused (seek while paused).
+  // All of them ignore events from the hidden standby buffer (parking seeks
+  // fire timeupdate/seeked there; it must never steer the store).
+  const onTimeUpdate = useCallback((e) => {
+    if (e && e.target !== videoRef.current) return;
     const video = videoRef.current;
     if (!video || !video.paused) return; // rAF handles playback — only act when paused
 
@@ -1387,7 +1476,11 @@ export default function PreviewPanelNew() {
     }
   }, [setCurrentTime, mapSourceTime]);
 
-  const onLoadedMetadata = useCallback(() => {
+  const onLoadedMetadata = useCallback((e) => {
+    // Standby buffer loads the same src and fires its own loadedmetadata —
+    // the one-time seeding below (duration, segments, waveform) must run
+    // only for the active element.
+    if (e && e.target !== videoRef.current) return;
     // #164: decoded dimensions anchor the calibration boxes' coordinate mapping.
     if (videoRef.current && videoRef.current.videoWidth > 0) {
       setVideoDims({ w: videoRef.current.videoWidth, h: videoRef.current.videoHeight });
@@ -1453,7 +1546,8 @@ export default function PreviewPanelNew() {
     }
   }, [setDuration, initNleSegments, clip?.filePath, setWaveformPeaks, setWaveformError]);
 
-  const onVideoEnd = useCallback(() => {
+  const onVideoEnd = useCallback((e) => {
+    if (e && e.target !== videoRef.current) return;
     setPlaying(false);
   }, [setPlaying]);
 
@@ -1462,11 +1556,15 @@ export default function PreviewPanelNew() {
   // on lying. That's what made Space need two or three presses — a press would
   // read `playing: true`, "pause" an already-paused video, and look dead. These
   // two handlers make the element the one telling us what it's doing.
-  const onVideoPlay = useCallback(() => {
+  // Target-guarded: at a buffer swap the OLD element pauses while playback
+  // continues on the new active — its pause event must not flip the flag.
+  const onVideoPlay = useCallback((e) => {
+    if (e && e.target !== videoRef.current) return;
     if (!usePlaybackStore.getState().playing) setPlaying(true);
   }, [setPlaying]);
 
-  const onVideoPause = useCallback(() => {
+  const onVideoPause = useCallback((e) => {
+    if (e && e.target !== videoRef.current) return;
     if (usePlaybackStore.getState().playing) setPlaying(false);
   }, [setPlaying]);
 
@@ -1655,7 +1753,9 @@ export default function PreviewPanelNew() {
   // Paint on every presented video frame. requestVideoFrameCallback fires
   // during playback AND after seeks; rAF is the fallback for environments
   // without it. 'seeked'/'loadeddata' cover paused frame-stepping and the
-  // first frame after a src swap.
+  // first frame after a src swap. swapTick re-runs this on a buffer swap so
+  // the frame callback re-registers on the NEW active element (the old one
+  // is paused and stops presenting frames).
   useEffect(() => {
     if (!reframeActive && !calibrating) return;
     const video = videoRef.current;
@@ -1682,7 +1782,7 @@ export default function PreviewPanelNew() {
       video.removeEventListener("seeked", onSeeked);
       video.removeEventListener("loadeddata", onSeeked);
     };
-  }, [reframeActive, calibrating, paintActive]);
+  }, [reframeActive, calibrating, paintActive, swapTick]);
 
   // Repaint when geometry changes while paused (zoom, panel resize, rect edits,
   // calibration drags).
@@ -1874,17 +1974,34 @@ export default function PreviewPanelNew() {
               </Button>
             </div>
           ) : videoSrc ? (
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-contain rounded-lg"
-              onTimeUpdate={onTimeUpdate}
-              onLoadedMetadata={onLoadedMetadata}
-              onEnded={onVideoEnd}
-              onPlay={onVideoPlay}
-              onPause={onVideoPause}
-              preload="metadata"
-              data-canvas-bg="true"
-            />
+            <>
+              {/* Double buffer: A starts active, B standby. Roles swap at cut
+                  boundaries (rAF loop); visibility is driven imperatively via
+                  style.opacity so a swap never waits on a React render. */}
+              <video
+                ref={videoElARef}
+                className="absolute inset-0 w-full h-full object-contain rounded-lg"
+                onTimeUpdate={onTimeUpdate}
+                onLoadedMetadata={onLoadedMetadata}
+                onEnded={onVideoEnd}
+                onPlay={onVideoPlay}
+                onPause={onVideoPause}
+                preload="metadata"
+                data-canvas-bg="true"
+              />
+              <video
+                ref={videoElBRef}
+                className="absolute inset-0 w-full h-full object-contain rounded-lg"
+                onTimeUpdate={onTimeUpdate}
+                onLoadedMetadata={onLoadedMetadata}
+                onEnded={onVideoEnd}
+                onPlay={onVideoPlay}
+                onPause={onVideoPause}
+                preload="metadata"
+                data-canvas-bg="true"
+                style={{ opacity: 0, pointerEvents: "none" }}
+              />
+            </>
           ) : (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground"

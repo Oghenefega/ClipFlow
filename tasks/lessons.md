@@ -1030,3 +1030,31 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 - **Rule:** Session names are `S<N> · alpha.<X> — <plain summary>` (no date); `S<N> · <summary>`
   when no installer was cut. Re-read `feedback_session_name` at wrap rather than recalling it —
   it has been corrected three times, so memory of it is reliably stale.
+
+## Session 142 (2026-07-31) — split-gap fix + status ladder verification
+
+- **Read the shortcut registry BEFORE dispatching destructive keys.** I sent `S`
+  believing it was "split" (it's "End to playhead" — a trim; split is `U`) and
+  cut a real 14.7s clip to 0.6s. The registry line was one grep away
+  (`shortcuts/registry.js`), and session 141's lessons had already warned about
+  S. Rule: before ANY synthetic keypress in the editor, grep `registry.js` for
+  the binding and read its `hint`.
+- **The editor autosaves ~800ms after every edit — there is no "memory-only"
+  editing session.** I killed the app assuming unsaved edits would vanish; the
+  next launch showed them persisted (dev shares projectsRoot → real JSON).
+  Rule: treat every CDP editor edit as already-on-disk, capture the pre-test
+  `nleSegments` values FIRST (they are the restore recipe), and prefer a
+  sacrificial duplicate clip when one can be created.
+- **A probe's own assumptions are part of the trace.** Clicking a section canvas
+  SEEKS to the click point (select+seek in one gesture), so my cuts landed at
+  ~9.9s, my 0–6s sampler never crossed them, and I built a whole false "stale
+  playback store" theory on top. The debug tap showed both stores in perfect
+  sync. Rule: when a probe contradicts code you just wrote, re-derive the
+  probe's own coordinates (where IS the cut?) before theorizing about the code.
+- **`--disable-features=CalculateNativeWinOcclusion` beats window-fronting for
+  rAF-dependent CDP verification.** user32 ShowWindow/SetForegroundWindow did
+  NOT flip `visibilityState` back to visible; relaunching Electron with the
+  occlusion feature disabled (+ `--disable-renderer-backgrounding
+  --disable-background-timer-throttling`) made rAF fire regardless of
+  occlusion. Use it for any dev-profile verification run that needs the
+  playback/animation loops alive.

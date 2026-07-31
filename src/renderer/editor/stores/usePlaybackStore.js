@@ -177,6 +177,9 @@ const usePlaybackStore = create((set, get) => ({
             timelineTime: mapped.timelineTime,
             needsSeek: true,
             seekToSource: toVid(nleSegments[nextIdx].sourceStart),
+            // Which segment the seek lands in — lets the preview's
+            // double-buffer swap validate its pre-parked standby element.
+            seekToIndex: nextIdx,
           };
         } else {
           return {
@@ -203,6 +206,7 @@ const usePlaybackStore = create((set, get) => ({
         timelineTime: tlNow,
         needsSeek: true,
         seekToSource: toVid(nleSegments[nextIdx].sourceStart),
+        seekToIndex: nextIdx,
       };
     }
 

@@ -30,7 +30,15 @@ const theme = {
   redDim: "rgba(248,113,113,0.08)",
   redBorder: "rgba(248,113,113,0.18)",
 
+  // Clip-ladder "rendered / waiting in queue" stage. Deep orange on purpose —
+  // at 14x6px dash size a soft orange is indistinguishable from yellow.
+  orange: "#f97316",
+  orangeDim: "rgba(249,115,22,0.10)",
+  orangeBorder: "rgba(249,115,22,0.22)",
+
   cyan: "#22d3ee",
+  cyanDim: "rgba(34,211,238,0.10)",
+  cyanBorder: "rgba(34,211,238,0.22)",
 
   tiers: {
     Bronze: "#cd7f44",
