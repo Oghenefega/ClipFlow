@@ -1018,3 +1018,15 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
   count that was really the timeline's two timecode readouts, and a split test
   asserting on video-section count when the split had (correctly) hit a subtitle.
   Rule: before concluding from a DOM count, print what it actually matched.
+
+## 2026-07-31 (session 141) — Session name: had the style, dropped the anchors
+
+- **What went wrong:** Suggested "Editor keyboard layer + Add Game crash" at wrap. Plain wording
+  was right, but the session number and the shipped alpha version were both missing — the two
+  anchors that make a name *findable*.
+- **Why:** I recalled the s115 "plain, not clever" correction and stopped there, never re-reading
+  the memory that also carries the s133/s127 refinement adding the anchors and the exact format.
+  Half-remembering a multi-part convention is the same failure as narrating code from memory.
+- **Rule:** Session names are `S<N> · alpha.<X> — <plain summary>` (no date); `S<N> · <summary>`
+  when no installer was cut. Re-read `feedback_session_name` at wrap rather than recalling it —
+  it has been corrected three times, so memory of it is reliably stale.
