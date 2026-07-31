@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-30 (session 141) — 0.3.0-alpha.35: the editor keyboard build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.35`**, promoting the session's two pieces of work to the daily driver: the editor's new keyboard layer (a spacebar that responds on the first press, the new U/M/S/R/E editing and shuttle keys, and a rebindable shortcuts panel on `?`), and the fix for the Rename tab's "+ Add Game" button crashing the app on save. Also carries the repair to timeline undo, which had never actually restored a split, trim or deleted section.
+
 ## [Unreleased] — 2026-07-30 (session 141) — Editor keyboard layer, and the Rename tab's Add Game crash
 
 ### Added
