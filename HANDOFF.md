@@ -1,150 +1,157 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-30 — Session 140 — **Two quality-of-life features Fega asked for are built, verified against his real data, and shipped as `0.3.0-alpha.34`. He installed it and said "I'll check it later" — nothing is confirmed.**_
+_Last updated: 2026-07-30 — Session 141 — **A crash fix and an editor keyboard layer, both verified in the running app and shipped as `0.3.0-alpha.35`. Fega is installing it now; nothing is confirmed.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega asked for split/merge on the subtitle line itself, and for the Tracker's week
-log to stop being "vague and bare"; both were mocked, approved, built, verified in
-the running app over CDP, and cut as alpha.34 — plus a follow-up he approved
-mid-session that greys out Merge wherever the line it would swallow isn't visible.
+Fega hit a crash adding a game from the Rename tab (Sentry had it), then asked for
+a responsive spacebar plus five new edit keys and a shortcuts popup; all of it is
+built, verified over CDP down to a rendered MP4, and cut as alpha.35 — plus a
+pre-existing bug found on the way: timeline edits were never actually undoable.
 
 ## Current State
 
-**`0.3.0-alpha.34` is built (`dist\ClipFlow Setup 0.3.0-alpha.34.exe`, 124 MB,
-commit 05a0dd0) and Fega has INSTALLED it.**
+Healthy. Master clean at `562b722`. Two issues — [#219](https://github.com/Oghenefega/ClipFlow/issues/219)
+and [#220](https://github.com/Oghenefega/ClipFlow/issues/220) — deliberately left **open**
+pending Fega's test on the daily driver.
 
-- 🟡 **Nothing this session has his confirmation.** #217 and #218 are OPEN with
-  `status: untested`. He installed and will look later.
-- 🟡 **Still unconfirmed from session 139:** #214 and #215 (alpha.32 — Audio panel),
-  and the Rename-button halo (alpha.33). He never confirmed alpha.33 was installed
-  before alpha.34 replaced it.
-- **#216** (root cause behind #214 — scan-time asset ids) open and unstarted.
-- **#206** (library hygiene — 23 orphan renders, ~1.37 GB) still awaiting his call.
-- **#213** — bulk tagging still has no row multi-select; 487 tracks untagged.
-- **Still unverified from earlier sessions:** #209–#212 (closed, `status: untested`),
-  the two alpha.30 loudness changes, plus **#188**, **#204**, **#205**, **#207**.
-- Working tree clean apart from the perpetually-dirty `data/clipflow.db` and the
-  pre-existing untracked `.agents/`, `.codex/`, `AGENTS.md`, `tasks/mocks/bb*.md`.
+---
 
 ## What Was Just Built
 
-### #217 — Split/Merge on the subtitle line
+### 1. Add Game crash from the Rename tab (#219, `fb7e264`)
 
-- Clicking any word shows three icon-only buttons **under that line**: Split here /
-  Merge up / Merge down, each named on hover. Fega picked icons-only for
-  compactness, and the under-the-text row over a floating pill.
-- The only *visible* control before was the panel toolbar. A per-word right-click
-  menu already existed in `SegmentRow.js` but was undiscoverable — Fega had never
-  found it. It still works, and now shares the same three extracted handlers.
-- **Merge is greyed wherever the line it would swallow isn't visible.** Found during
-  verification: `editSegments` is source-wide while the panel renders only the
-  trimmed window, so Merge up on the top line pulled in `"he's going to be pissed
-  man"` from before the clip's in-point. Fega approved the fix mid-session. The
-  guard is *"is the raw neighbour in the visible set"* — which also covers a line
-  whose neighbour was cut out mid-clip, and leaves `mergeSegment` untouched, because
-  when the control is enabled the raw neighbour IS the visible one. Applied to all
-  three surfaces: row buttons, right-click menu, toolbar Merge button.
+`RenameView.js:1682` passed `onAddGame` **directly** as the click handler, so React called it with
+the `SyntheticMouseEvent`. That object became `showAddGame`, flowed through `AddGameModal` as
+`entryType`, landed in `gamesDb`, and threw `An object could not be cloned` at
+`persist("gamesDb")` → `storeSet` — killing the app to the error boundary with the new game unsaved.
+Settings' button was always correct (`onAddGame("game")`).
 
-### #218 — Tracker week log: clip identity + scheduled preview
+No visible symptom until the end: `isContent = entryType === "content"` is false for an event, so the
+modal rendered normally and the crash only landed on **Done**.
 
-- Cards carry the **published title** over a game-coloured tint plus a corner glow
-  ("treatment C" of three mocked options), keeping the tag pill. **No new data was
-  needed** — all 83 tracker entries already had `title`, written by `logPost` at
-  publish time and never displayed. Trailing `#rocketleague` is stripped.
-- **Clips scheduled from the Queue now appear**, as dimmed dashed cards with an
-  amber dot, replacing (not stacking on) their template slot. Future days show their
-  open `+` slots again, so Fri/Sat aren't blank.
-- **Scheduled clips deliberately do not count** toward posted / pace ring / streak /
-  XP. Verified: XP stayed at +180 with ghosts on screen.
-- The detail popover leads with the title, shows the clip's frame, and gains **Open
-  in editor** / **📁 Show in Explorer**; scheduled clips get **Manage in Queue**
-  instead of Remove.
-- Future-day column opacity raised 0.4 → 0.72 (those columns hold real content now).
+Fixed at the button, plus both `onAddGame` props in `App.js` now reject any non-string argument.
+Sentry issue `7643312624`; the minified crash frame decoded to the `persist` helper and column
+`766:8392` landed exactly on `Xr("gamesDb", y)`.
+
+### 2. Editor keyboard layer (#220, `e5e400d`)
+
+**Spacebar reliability.** `playing` was write-only toward the `<video>`: `PreviewPanelNew` pushed the
+flag at the element and swallowed the result with `play().catch(() => {})`, and nothing read the
+element's real state back (the `<video>` carried only `onEnded`). A failed start left the flag lying,
+so the next Space "paused" an already-paused video and looked dead. Now the element reports itself
+via `onPlay`/`onPause`, and a rejected `play()` drops the flag and `console.warn`s the reason.
+**The trigger for the failed start was never reproduced** — this fixes the class, not a guess.
+
+**One always-mounted key layer.** Every shortcut previously lived in an effect inside
+`TimelinePanelNew.js:790-820`, which unmounts when the timeline is collapsed — so Space, Split and
+Delete simply ceased to exist there. All keys now live in `shortcuts/useEditorShortcuts.js`, mounted
+by `EditorLayout`. Undo/redo moved in too, so one registry drives both the keys and the cheat sheet.
+
+**New keys:** `U` split (moved off `S`), `M`/`S` start/end-to-playhead, `R` forward shuttle
+(1.5×/2×/4×/normal), `E` rewind at the same rungs.
+
+**Rebindable overlay:** `ShortcutsDialog.js`, opened by `?` or the toolbar key icon, rendered off
+`shortcuts/registry.js`. Rebinds persist to `editorShortcuts` in electron-store; conflicts name the
+holding action instead of silently applying.
+
+### 3. Timeline undo repair (inside `e5e400d`) — scope beyond the approved plan
+
+`useEditorStore._pushNleUndo()` delegates to `useSubtitleStore._pushUndo()`, whose snapshot only ever
+held `editSegments` + `styling` — **never `nleSegments`**. So split / delete-section / trim / reorder
+have **never** been restorable with Ctrl+Z, despite all of them recording an undo step. Fixed by
+adding `nleSegments` to the snapshot (`_snapshotNle` / `_restoreNle`).
+
+Done deliberately and flagged to Fega, not buried: M and S destroy footage, and the approved plan
+promised they'd be undoable. This fixes undo for every timeline operation, not just the new keys.
+
+---
 
 ## Key Decisions
 
-1. **Cards show the title as TEXT; thumbnails live only in the popover.** Fega's
-   clips are on `W:` (external). A thumbnail per card would blank out whenever that
-   drive is unplugged; the popover degrades to a tinted block instead.
-2. **Scheduled ≠ posted, but existing `scheduled: true` entries keep counting.**
-   Three such rows exist (platform-native scheduling via the publish modal). Their
-   XP is already banked; re-classifying them would rewrite streak history. They get
-   the amber dot for consistency and nothing else.
-3. **Merge guard is neighbour-visibility, not first/last row.** Strictly better, and
-   it required no change to the shared `mergeSegment` action.
-4. **Action row keyed on SELECTION, not `isActive`** — it appears on click and
-   clears itself when playback reclaims the highlight.
-5. **Guards computed in the parent against the RAW store list.** The `seg` prop is
-   the trim-filtered timeline copy; its neighbours and word count are not the ones
-   split/merge actually operate on.
+- **Fixed the class, not the trigger, for the Space bug.** A plausible root-cause story was available
+  but unreproduced. Making the element the source of truth removes the failure mode regardless of
+  cause, and the warn log means a recurrence names its own trigger.
+- **Split/Delete stay owned by the timeline panel.** They read its local `selectedTrack` /
+  `selectedSegIds`. Hoisting that into a store is the "right" architecture but far wider than this
+  request; instead the panel publishes those two handlers via `shortcuts/timelineHandlers.js` while
+  mounted. Consequence by design: **U and Delete no-op while the timeline is collapsed.**
+- **`playbackRate` moved from `TimelinePanelNew` to `PreviewPanelNew`** — the timeline unmounts when
+  collapsed, which would have left `R` unable to change speed there.
+- **M/S act on the section under the playhead, selection ignored** (Fega's choice). Sitting exactly on
+  a join resolves to the *later* section, or M would shave the previous one to the 50ms minimum
+  instead of dropping it.
+- **`E` is silent by design** — `<video>` has no reverse gear, so rewind is a rAF walking the playhead
+  back through `seekTo` with the element paused. Agreed with Fega before building.
+- **Shift folds into printable characters but is recorded alongside Ctrl/Alt** — so `?` stores as `"?"`
+  (not `shift+?`) while `Ctrl+Shift+Z` stays distinct from `Ctrl+Z`. `altKeys` in the registry
+  preserves the historic `Backspace` (delete) and `Ctrl+Shift+Z` (redo) bindings.
+- **Version ticked alpha.34 → alpha.35.** Never move the minor number without Fega saying so.
+
+---
 
 ## Next Steps
 
-1. **Ask Fega whether alpha.34 works** — #217/#218 are `status: untested`, as are
-   #214/#215 and the Rename halo from session 139.
-2. He noted the merge-up / merge-down **icons read similarly** at that size (same
-   lucide `Merge` glyph, one rotated 180°). Tooltips cover it; offer clearer icons
-   if he raises it again.
-3. **#216** — derive folder asset ids from the file path so a rebuilt index can't
-   detach clip references.
-4. **#213** — row multi-select for bulk tagging (487 tracks untagged).
+1. **Wait for Fega's verdict on alpha.35.** Close #219 and #220 on confirmation; both are open
+   precisely because he hasn't tested yet.
+2. **Manually poke the typing guard in the clip-title field.** Verified on the AI-context textarea;
+   the title input is the same `INPUT`/`TEXTAREA`/`contentEditable` branch but was never directly
+   observed (a synthetic click wouldn't swap that node to an input).
+3. **Watch how `E` feels at 4× on real footage.** Measured accurate; never judged for feel. If it
+   stutters, the first lever is throttling the element seek — the store's `currentTime` should stay
+   at 60fps regardless.
+4. Backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"'`.
+
+---
 
 ## Watch Out For
 
-- **`textContent` omits an open inline editor's value.** A subtitle row reads as
-  `"what takes"` while the store holds `"what it takes"` whenever that word is being
-  edited. This cost real time this session — see Logs/Debugging.
-- **Editor autosave is real.** Any split/merge driven during verification persists
-  unless the window is reloaded before the timer fires. `location.reload()` discards
-  in-memory editor state; then re-read the project JSON to confirm.
-- **Never leave a test `scheduledAt` behind** — the Queue scheduler auto-publishes
-  once the time passes. Two were set this session (Fri/Sat), both removed, disk
-  re-checked afterwards: zero remain.
-- **`data/clipflow.db` must never be staged.** Always dirty; stage files explicitly.
-- `App.js`'s `scheduledClips` memo now also carries `clipId`, `projectId`,
-  `thumbnailPath`, `renderPath`. `TrackerCalendar` still consumes only
-  `date`/`time`/`title`/`game` — verified unbroken, but it's a shared shape now.
+- **`CLIPFLOW_PROFILE=dev` does NOT sandbox project data.** Dev and prod share `projectsRoot`
+  (`W:\…\Vertical Recordings Onwards`); only `userData` and `outputFolder` differ. A destructive
+  verification this session trimmed a **real** clip (`2026-07-21 EO Day4 Pt1` →
+  "This shortcut is INSANE #eggingon") from 27.3s to 5s, and autosave persisted it in under a second.
+  Restored via in-app undo + Save and confirmed on disk at `sourceEnd: 749.8674`. **Check
+  `projectsRoot` on both profiles and record pre-state before any destructive test.**
+- **Undo snapshots are shared across subtitles and the timeline**, with a 300ms debounce and a
+  `_dragging` no-op. Rapid successive edits merge into one undo entry — expected, but surprising.
+- **U and Delete are inert with the timeline collapsed** (see Key Decisions). Not a bug.
+- **`_pushNleUndo` is a misleading name** — it pushes a *subtitle-store* snapshot that now also
+  carries `nleSegments`. There is one stack, not two.
+- The clip-title input didn't respond to a synthetic `.click()` during verification — if you need to
+  drive it, use trusted `Input.dispatchMouseEvent`.
 
-## Logs/Debugging
+---
 
-**Verification harness** (reusable; scripts in this session's scratchpad):
+## Logs / Debugging
 
-```bash
-npx electron . --remote-debugging-port=9222
-```
-
-Then drive it with a tiny CDP client (`ws` is already a dependency): connect to the
-`index.html` page target and `Runtime.evaluate` with `returnByValue` +
-`awaitPromise`. `Page.captureScreenshot` gives PNGs. Run
-`taskkill /F /IM electron.exe` before packaging, or `electron-builder` trips over
-the running instance.
-
-**Two false alarms, both mine, both worth remembering:**
-
-1. **"A word was deleted."** It wasn't. The row read `"what takes"` because that
-   word was an `<input>` at the time. Disk was intact on the first check and said
-   so. The four Ctrl+Z presses that "failed to restore it" were no-ops against an
-   *empty* undo stack — which was itself the evidence that nothing had changed.
-   → Check for `input`/`textarea` in the node and read `.value` before ever
-   reporting corruption.
-2. **"The action row didn't render."** It did. The `.click()` and the assertion sat
-   in the same synchronous block, so React hadn't flushed — all six loop passes
-   measured the pre-gesture DOM and returned a uniform, confident, wrong `[]`.
-   → `await new Promise(r => setTimeout(r, 300))` between gesture and measurement,
-   **inside** the loop body.
-
-Both routed into `clipflow-trace-verify`; the marker in `tasks/lessons.md` is
-advanced to s140.
-
-**Real bugs caught by verification (fixed before commit):**
-
-- The detail popover measures itself to decide whether to flip above the card, and
-  grew ~2.5× once it gained the title + frame — the bottom edge hung off the window
-  for cards low in a column. It now clamps into the viewport both ways and re-places
-  via `ResizeObserver` when content settles (font swap, image decode). Re-checked on
-  cards in every column.
-- `popBtn` used `flex: 1` only, which does nothing on the standalone Remove button —
-  it rendered as a narrow stub. `width: 100%` added.
+- **Sentry** — token at `C:\Users\IAmAbsolute\.claude\sentry_token.txt`, org `flowve`, project
+  `clipflow`:
+  `curl -H "Authorization: Bearer <token>" "https://sentry.io/api/0/projects/flowve/clipflow/issues/?query=is:unresolved&sort=date&limit=10"`.
+  WebFetch can't pass auth headers — use curl. Latest event:
+  `https://sentry.io/api/0/issues/<id>/events/latest/`. This session's crash decoded cleanly by
+  reading `build/assets/index-*.js` at the reported line/column, because that exact bundle was still
+  in `build/`. Breadcrumbs also identify the view — the `.cfr-*` class names in the click trail are
+  Rename-view only, which is how the wrong button was identified.
+- **New:** `console.warn("[ClipFlow] video.play() rejected:", name, message)` fires if playback ever
+  fails to start. If Fega reports a dead spacebar again, that line names the real trigger — it is the
+  whole reason it exists. Remove once we've seen it, or after a few quiet sessions.
+- **`requestAnimationFrame` fires ZERO times in an occluded Electron window.** Cost three probe
+  rounds this session: the rewind loop looked totally broken while `document.visibilityState` was
+  `"hidden"`. Video playback, seeks, store writes and DOM updates all keep working, so only the
+  rAF-driven feature appears dead — which reads as "I wrote a bug". Fix: `Page.enable` →
+  `Page.bringToFront` before evaluating. After fronting: 121 frames/500ms.
+- **CDP toolkit** in the session scratchpad
+  (`…\claude\C--Users-IAmAbsolute-Desktop-ClipFlow\69384ec0…\scratchpad`): `cdp.js` (plain evaluator),
+  `cdp2.js` (fronts the window first — **use this one**), `lib.js` (shared helpers: `times()`,
+  `durationSec()`, `speedLabel()`, `press()`), plus the `test_*.js` suite.
+- Launch for verification: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`.
+  Kill with `taskkill //F //IM electron.exe` — never TaskStop (orphans hold port 9222 and the next
+  CDP session silently attaches to the stale bundle).
+- Useful editor DOM handles: `.segment-block` (timeline subtitle/caption blocks — a real segment
+  count), `.pl-row` (left-panel rows). Timecode readouts matching `/^\d{2}:\d{2}\.\d$/` are
+  `[currentTime, duration]` — **not** subtitle rows; mistaking them produced a false negative here.
+- Verify what actually shipped by grepping the asar directly
+  (`grep -c "<string>" dist/win-unpacked/resources/app.asar`) — never `asar extract-file` from the
+  repo root, it overwrites `package.json` with the stripped packaged copy.

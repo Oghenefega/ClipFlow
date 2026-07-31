@@ -110,6 +110,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **Verify the LOOP, not one pass on fresh data (session 139).** Three bugs shipped past a green CDP run because the checks only ever did each gesture once, on records created seconds earlier, and asked whether elements *existed*. For any interactive change assert: (1) the gesture **repeated** 5+ times with the measurement **unchanged** (hover/toggle/open-close — one pass is stable in a ratchet); (2) behaviour on data **a previous session wrote to disk**, not only on a record just created in this run — a stale stored reference is the class that breaks, so it must be the class you test; (3) **position, not existence** — `el.getBoundingClientRect().right <= container.getBoundingClientRect().right` for anything that can be pushed out of view. An element sitting 1230px off-screen passes every `querySelector` check ever written.
 
+- **`CLIPFLOW_PROFILE=dev` sandboxes settings, NOT project data (session 141).** Both profiles read the same `projectsRoot`, so a destructive dev-profile verification writes to Fega's real library — pressing the new "End to playhead" key trimmed a genuine 27.3s clip to 5s, and autosave persisted it within the second. Before any destructive test: diff `projectsRoot` across both `clipflow-settings.json` files, record the pre-state (`nleSegments`, etc.), and restore through the app's own undo + Save, then confirm on disk. Only `userData` and `outputFolder` are actually isolated.
+
 ## Lesson Capture
 
 After ANY correction from the user:
