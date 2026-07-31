@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-31 (session 142) — 0.3.0-alpha.36: status ladder + seamless splits build
+
+### Changed
+- **Installer cut as `0.3.0-alpha.36`**, promoting session 142's two pieces of work to the daily driver: the Projects tab's unified clip status ladder (six colors from unreviewed through published, the Scheduled tag that finally appears, the stricter Done rule, and the "Removed from queue" tag), and the seamless-split preview playback (the ~half-second freeze when crossing a deleted middle is now an ~8ms handoff between two players).
+
 ## [Unreleased] — 2026-07-31 (session 142) — Clip status ladder, and seamless splits in the preview
 
 ### Added
