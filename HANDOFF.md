@@ -1,157 +1,121 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-30 — Session 141 — **A crash fix and an editor keyboard layer, both verified in the running app and shipped as `0.3.0-alpha.35`. Fega is installing it now; nothing is confirmed.**_
+_Last updated: 2026-07-31 — Session 142 (S142 · alpha.36 — Status ladder & seamless splits) — **both features verified by Fega on the installed build; #221 and #222 closed.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega hit a crash adding a game from the Rename tab (Sentry had it), then asked for
-a responsive spacebar plus five new edit keys and a shortcuts popup; all of it is
-built, verified over CDP down to a rendered MP4, and cut as alpha.35 — plus a
-pre-existing bug found on the way: timeline edits were never actually undoable.
+Fega reported the felt gap when playback crosses a deleted middle and asked for a
+unified clip-status color system; both shipped as `0.3.0-alpha.36`, he tested the
+installed build the same session and confirmed both work.
 
 ## Current State
 
-Healthy. Master clean at `562b722`. Two issues — [#219](https://github.com/Oghenefega/ClipFlow/issues/219)
-and [#220](https://github.com/Oghenefega/ClipFlow/issues/220) — deliberately left **open**
-pending Fega's test on the daily driver.
+Healthy. Master clean at `753d6c8`. [#221](https://github.com/Oghenefega/ClipFlow/issues/221)
+and [#222](https://github.com/Oghenefega/ClipFlow/issues/222) filed, shipped, verified
+by Fega on the daily driver, and **closed**. His installed app is on alpha.36.
 
 ---
 
 ## What Was Just Built
 
-### 1. Add Game crash from the Rename tab (#219, `fb7e264`)
+### 1. Unified clip status ladder on the Projects tab (#221, `ddf0b77`)
 
-`RenameView.js:1682` passed `onAddGame` **directly** as the click handler, so React called it with
-the `SyntheticMouseEvent`. That object became `showAddGame`, flowed through `AddGameModal` as
-`entryType`, landed in `gamesDb`, and threw `An object could not be cloned` at
-`persist("gamesDb")` → `storeSet` — killing the app to the error boundary with the new game unsaved.
-Settings' button was always correct (`onAddGame("game")`).
+One six-color ladder everywhere, furthest stage wins: untouched (ghost) → approved
+(green) → rendered/waiting-in-queue (orange, new `T.orange` #f97316) → scheduled
+(yellow) → published (cyan) — rejected (red) off-ladder. Yellow/cyan deliberately
+match the Tracker's existing scheduled/posted dots.
 
-No visible symptom until the end: `isContent = entryType === "content"` is false for an event, so the
-modal rendered normally and the crash only landed on **Done**.
+- **Root-cause fix:** the Scheduled badge existed but required a Tracker entry, and
+  Tracker entries are only written at publish time (`logPost`) — `scheduleClipOnly`
+  sets only `clip.scheduledAt`. `makePublishState` (ProjectsView.js) now reads
+  `isScheduled = !!c.scheduledAt`; `isPublished` still requires the tracker entry.
+- **Strict Done (Fega's call):** a project is Done only when every clip is Rejected,
+  Scheduled with an actual date, or Published. Rendered-but-undated blocks.
+- **Dequeued** (Queue "Remove", `status: "dequeued"`) gets a ghost "Removed from
+  queue" badge, counts as pending review via the new `isClipUndecided` helper, and
+  blocks Done. Previously indistinguishable from never-reviewed.
+- After install, Fega's Done count went 2 → 17 — that's the fixed logic finally
+  counting dated clips, not a bug.
 
-Fixed at the button, plus both `onAddGame` props in `App.js` now reject any non-string argument.
-Sentry issue `7643312624`; the minified crash frame decoded to the `persist` helper and column
-`766:8392` landed exactly on `Xr("gamesDb", y)`.
+### 2. Seamless split playback in the editor preview (#222, `ddf0b77`)
 
-### 2. Editor keyboard layer (#220, `e5e400d`)
+Fega's "slight space between both clips" after deleting a middle segment.
+Root cause: single `<video>` on the full source recording; each cut boundary did an
+in-place `currentTime` seek — measured **190–1100ms (avg ~450ms)** of frozen frame +
+silent audio on a real 2560×2880 HEVC recording (probe in session scratchpad).
 
-**Spacebar reliability.** `playing` was write-only toward the `<video>`: `PreviewPanelNew` pushed the
-flag at the element and swallowed the result with `play().catch(() => {})`, and nothing read the
-element's real state back (the `<video>` carried only `onEnded`). A failed start left the flag lying,
-so the next Space "paused" an already-paused video and looked dead. Now the element reports itself
-via `onPlay`/`onPause`, and a rejected `play()` drops the flag and `console.warn`s the reason.
-**The trigger for the failed start was never reproduced** — this fixes the class, not a guess.
+Fix — double-buffered playback in `PreviewPanelNew.js` + `usePlaybackStore.js`:
 
-**One always-mounted key layer.** Every shortcut previously lived in an effect inside
-`TimelinePanelNew.js:790-820`, which unmounts when the timeline is collapsed — so Space, Split and
-Delete simply ceased to exist there. All keys now live in `shortcuts/useEditorShortcuts.js`, mounted
-by `EditorLayout`. Undo/redo moved in too, so one registry drives both the keys and the cheat sheet.
+- `videoRef` is now a **pointer** to the active of two `<video>` elements
+  (`videoElARef`/`videoElBRef`). Every consumer (store actions, rAF loop,
+  compositor, audio sync, external `getVideoRef()` callers) reads `.current` at
+  call time, so swaps needed zero changes elsewhere.
+- The hidden standby is **parked** on the next section's first frame while playing;
+  at the boundary the elements swap (opacity flip, play/pause, rate/volume copy)
+  and the old one re-parks at the section after that. Measured handoff: **~8ms**,
+  zero visible `seeking`, 1.5× shuttle speed carried across.
+- `mapSourceTime` gained an additive `seekToIndex` so the swap validates its park;
+  legacy in-place seek remains the fallback; adjacent (nothing-deleted) split
+  boundaries still play straight through (distance gate).
+- All media events are target-guarded so standby parking never steers the store;
+  both buffers get the #90 src teardown + unmount cleanup; `swapTick` re-anchors
+  the reframe compositor's rVFC loop after each swap.
 
-**New keys:** `U` split (moved off `S`), `M`/`S` start/end-to-playhead, `R` forward shuttle
-(1.5×/2×/4×/normal), `E` rewind at the same rungs.
+### 3. Explainer artifact
 
-**Rebindable overlay:** `ShortcutsDialog.js`, opened by `?` or the toolbar key icon, rendered off
-`shortcuts/registry.js`. Rebinds persist to `editorShortcuts` in electron-store; conflicts name the
-holding action instead of silently applying.
-
-### 3. Timeline undo repair (inside `e5e400d`) — scope beyond the approved plan
-
-`useEditorStore._pushNleUndo()` delegates to `useSubtitleStore._pushUndo()`, whose snapshot only ever
-held `editSegments` + `styling` — **never `nleSegments`**. So split / delete-section / trim / reorder
-have **never** been restorable with Ctrl+Z, despite all of them recording an undo step. Fixed by
-adding `nleSegments` to the snapshot (`_snapshotNle` / `_restoreNle`).
-
-Done deliberately and flagged to Fega, not buried: M and S destroy footage, and the approved plan
-promised they'd be undoable. This fixes undo for every timeline operation, not just the new keys.
-
----
+`tasks/mocks/clip-status-and-split-gap.html` — the visual explainer Fega approved
+the design from (ladder colors, Done rule table, dequeued proposal).
 
 ## Key Decisions
 
-- **Fixed the class, not the trigger, for the Space bug.** A plausible root-cause story was available
-  but unreproduced. Making the element the source of truth removes the failure mode regardless of
-  cause, and the warn log means a recurrence names its own trigger.
-- **Split/Delete stay owned by the timeline panel.** They read its local `selectedTrack` /
-  `selectedSegIds`. Hoisting that into a store is the "right" architecture but far wider than this
-  request; instead the panel publishes those two handlers via `shortcuts/timelineHandlers.js` while
-  mounted. Consequence by design: **U and Delete no-op while the timeline is collapsed.**
-- **`playbackRate` moved from `TimelinePanelNew` to `PreviewPanelNew`** — the timeline unmounts when
-  collapsed, which would have left `R` unable to change speed there.
-- **M/S act on the section under the playhead, selection ignored** (Fega's choice). Sitting exactly on
-  a join resolves to the *later* section, or M would shave the previous one to the 50ms minimum
-  instead of dropping it.
-- **`E` is silent by design** — `<video>` has no reverse gear, so rewind is a rAF walking the playhead
-  back through `seekTo` with the element paused. Agreed with Fega before building.
-- **Shift folds into printable characters but is recorded alongside Ctrl/Alt** — so `?` stores as `"?"`
-  (not `shift+?`) while `Ctrl+Shift+Z` stays distinct from `Ctrl+Z`. `altKeys` in the registry
-  preserves the historic `Backspace` (delete) and `Ctrl+Shift+Z` (redo) bindings.
-- **Version ticked alpha.34 → alpha.35.** Never move the minor number without Fega saying so.
-
----
+- **Strict Done** over "queued is enough" — Fega: if a clip is approved but not
+  rendered/queued, or rendered but slotless, there's still work to do there.
+- **Queue ≠ a state.** Every approved unpublished clip is automatically on the
+  Queue tab, so "Rendered" doubles as "waiting in queue" — no separate queue color.
+- **Double-buffer over alternatives** for the seam: only approach that hides HEVC
+  seek latency with one decoder file; MSE/frame-pipelines rejected as too heavy.
+- **NEW STANDING RULE (memory `feedback_test_on_rejected_clips`):** every in-app
+  test runs on a clip with rejected status — never approved ones.
 
 ## Next Steps
 
-1. **Wait for Fega's verdict on alpha.35.** Close #219 and #220 on confirmation; both are open
-   precisely because he hasn't tested yet.
-2. **Manually poke the typing guard in the clip-title field.** Verified on the AI-context textarea;
-   the title input is the same `INPUT`/`TEXTAREA`/`contentEditable` branch but was never directly
-   observed (a synthetic click wouldn't swap that node to an input).
-3. **Watch how `E` feels at 4× on real footage.** Measured accurate; never judged for feel. If it
-   stutters, the first lever is throttling the element seek — the store's `currentTime` should stay
-   at 60fps regardless.
-4. Backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"'`.
-
----
+1. Watch for seam edge cases in real editing: rapid cuts close together (standby
+   may not park in time → falls back to the old seek — expected, not a bug),
+   reordered sections, reframe-active clips.
+2. #220 (session 141 keyboard layer) — Fega has alpha.36 now which includes it;
+   still open pending his explicit confirmation of the keyboard work.
+3. Queue tab could adopt the same ladder colors for its status chips (not asked
+   yet — surface as an option, don't just do it).
 
 ## Watch Out For
 
-- **`CLIPFLOW_PROFILE=dev` does NOT sandbox project data.** Dev and prod share `projectsRoot`
-  (`W:\…\Vertical Recordings Onwards`); only `userData` and `outputFolder` differ. A destructive
-  verification this session trimmed a **real** clip (`2026-07-21 EO Day4 Pt1` →
-  "This shortcut is INSANE #eggingon") from 27.3s to 5s, and autosave persisted it in under a second.
-  Restored via in-app undo + Save and confirmed on disk at `sourceEnd: 749.8674`. **Check
-  `projectsRoot` on both profiles and record pre-state before any destructive test.**
-- **Undo snapshots are shared across subtitles and the timeline**, with a 300ms debounce and a
-  `_dragging` no-op. Rapid successive edits merge into one undo entry — expected, but surprising.
-- **U and Delete are inert with the timeline collapsed** (see Key Decisions). Not a bug.
-- **`_pushNleUndo` is a misleading name** — it pushes a *subtitle-store* snapshot that now also
-  carries `nleSegments`. There is one stack, not two.
-- The clip-title input didn't respond to a synthetic `.click()` during verification — if you need to
-  drive it, use trusted `Input.dispatchMouseEvent`.
+- **Editor autosave fires ~800ms after every edit** — there is NO memory-only
+  editing session; killing the app does not discard edits (CDP gotcha 29).
+- **Dev profile shares `projectsRoot` with prod** — dev editor edits hit real
+  project JSON (gotcha 27). Session incident: `S` (trim-end, NOT split — split is
+  `U`) cut a real clip; restored exactly (single segment 733.1377→747.8186,
+  verified on disk; backup in session scratchpad).
+- **`isClipUndecided` includes `"dequeued"`** — any new review-count consumer in
+  ProjectsView should use it, not `status === "none"`.
+- The two `<video>` buffers must stay behaviorally identical — new media event
+  handlers in PreviewPanelNew need the `e.target !== videoRef.current` guard, and
+  any new element-bound effect (like rVFC) needs `swapTick` in its deps.
+- Badge `bg` prop: non-green/yellow/red badge colors need an explicit `bg`
+  (orange/cyan use `T.orangeDim`/`T.cyanDim`) or they fall back to purple dim.
 
----
+## Logs/Debugging
 
-## Logs / Debugging
-
-- **Sentry** — token at `C:\Users\IAmAbsolute\.claude\sentry_token.txt`, org `flowve`, project
-  `clipflow`:
-  `curl -H "Authorization: Bearer <token>" "https://sentry.io/api/0/projects/flowve/clipflow/issues/?query=is:unresolved&sort=date&limit=10"`.
-  WebFetch can't pass auth headers — use curl. Latest event:
-  `https://sentry.io/api/0/issues/<id>/events/latest/`. This session's crash decoded cleanly by
-  reading `build/assets/index-*.js` at the reported line/column, because that exact bundle was still
-  in `build/`. Breadcrumbs also identify the view — the `.cfr-*` class names in the click trail are
-  Rename-view only, which is how the wrong button was identified.
-- **New:** `console.warn("[ClipFlow] video.play() rejected:", name, message)` fires if playback ever
-  fails to start. If Fega reports a dead spacebar again, that line names the real trigger — it is the
-  whole reason it exists. Remove once we've seen it, or after a few quiet sessions.
-- **`requestAnimationFrame` fires ZERO times in an occluded Electron window.** Cost three probe
-  rounds this session: the rewind loop looked totally broken while `document.visibilityState` was
-  `"hidden"`. Video playback, seeks, store writes and DOM updates all keep working, so only the
-  rAF-driven feature appears dead — which reads as "I wrote a bug". Fix: `Page.enable` →
-  `Page.bringToFront` before evaluating. After fronting: 121 frames/500ms.
-- **CDP toolkit** in the session scratchpad
-  (`…\claude\C--Users-IAmAbsolute-Desktop-ClipFlow\69384ec0…\scratchpad`): `cdp.js` (plain evaluator),
-  `cdp2.js` (fronts the window first — **use this one**), `lib.js` (shared helpers: `times()`,
-  `durationSec()`, `speedLabel()`, `press()`), plus the `test_*.js` suite.
-- Launch for verification: `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`.
-  Kill with `taskkill //F //IM electron.exe` — never TaskStop (orphans hold port 9222 and the next
-  CDP session silently attaches to the stale bundle).
-- Useful editor DOM handles: `.segment-block` (timeline subtitle/caption blocks — a real segment
-  count), `.pl-row` (left-panel rows). Timecode readouts matching `/^\d{2}:\d{2}\.\d$/` are
-  `[currentTime, duration]` — **not** subtitle rows; mistaking them produced a false negative here.
-- Verify what actually shipped by grepping the asar directly
-  (`grep -c "<string>" dist/win-unpacked/resources/app.asar`) — never `asar extract-file` from the
-  repo root, it overwrites `package.json` with the stripped packaged copy.
+- **Seek-latency probe** (`scratchpad/seek-probe.html` + `probe-main.js`): headless
+  Electron, real recording — small +4s jumps: 410/466/228/1099/192ms; +45s jumps:
+  807/188/197ms. This is the "before" baseline for the seam fix.
+- **Crossing measurement**: sampler at ~120Hz over a real deleted-middle cut —
+  one visible-element flip, 8.2ms sample gap, `seeking` count 0, playhead
+  continuous, playback ran to clip end and stopped (atEnd path intact).
+- **CDP driving**: window occlusion kills rAF (and the playback loop) — relaunch
+  with `--disable-features=CalculateNativeWinOcclusion --disable-renderer-backgrounding
+  --disable-background-timer-throttling` (gotcha 28); `Page.bringToFront` and
+  user32 ShowWindow both failed to flip `visibilityState`.
+- No new Sentry errors introduced; renderer builds clean (chunk-size warning is
+  the known benign one).
