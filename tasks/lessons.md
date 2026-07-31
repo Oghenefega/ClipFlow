@@ -997,3 +997,24 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 
 **Session 140 — a synthetic `.click()` has not rendered when the next line runs.** Two CDP checks reported the action row as absent (`btn undefined`, then `rowsShowingActions: []` on all six passes) because the click and the assertion sat in the same synchronous block; React had not flushed. The first one threw mid-script and left the app in a half-driven state that fed straight into the false data-loss reading above.
   **Rule:** every CDP verification that drives React must `await` a tick between the gesture and the measurement (`await new Promise(r => setTimeout(r, 300))`), and loop bodies must await per iteration — a whole loop in one tick measures the pre-gesture DOM every pass and reports a confident, uniform, wrong result. Pair with the s139 rule: repeat the gesture, and assert position, not existence.
+
+## Session 141 — editor keyboard layer (#220)
+
+- **rAF is dead in an occluded Electron window.** The rewind loop measured as
+  completely broken for three probe rounds — frozen playhead, zero frames
+  scheduled, no errors — while `document.visibilityState` was `"hidden"`. What
+  made it convincing was the asymmetry: video playback, seeks, store writes and
+  DOM updates all kept working, so only the new code looked broken. Rule: before
+  any CDP verification of an animation/rAF feature, `Page.bringToFront` and
+  confirm rAF actually ticks; if a brand-new feature is the *only* thing that
+  looks dead, suspect the harness before the code.
+- **`CLIPFLOW_PROFILE=dev` does not sandbox project data.** Dev and prod share
+  `projectsRoot`, so a destructive test wrote a real 27.3s clip down to 5s.
+  Rule: check `projectsRoot` on both profiles and record the pre-state before any
+  destructive verification; restore via the app's own undo + Save and confirm on
+  disk.
+- **Assert on the thing, not on a proxy for it.** Two probes reported false
+  results because the selector was wrong, not the feature — a "subtitle row"
+  count that was really the timeline's two timecode readouts, and a split test
+  asserting on video-section count when the split had (correctly) hit a subtitle.
+  Rule: before concluding from a DOM count, print what it actually matched.
