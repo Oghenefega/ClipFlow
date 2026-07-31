@@ -1058,3 +1058,8 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
   --disable-background-timer-throttling`) made rAF fire regardless of
   occlusion. Use it for any dev-profile verification run that needs the
   playback/animation loops alive.
+- **Fega's standing rule (2026-07-31): every in-app test runs on a REJECTED
+  clip, never an approved one.** Approved clips are real work product; rejected
+  clips are the sacrificial pool. Check `status` before opening a clip for any
+  verification; if no rejected clip exists, borrow one from another project or
+  ask — never fall back to approved.
