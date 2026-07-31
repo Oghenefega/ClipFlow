@@ -8,7 +8,7 @@ import useLayoutStore from "./useLayoutStore";
 import useAIStore from "./useAIStore";
 import { BUILTIN_TEMPLATE, applyTemplate } from "../utils/templateUtils";
 import { createSegment, createInitialSegments, cloneSegments } from "../models/segmentModel";
-import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange } from "../models/timeMapping";
+import { getTimelineDuration, sourceToTimeline, sourceToTimelineClamped, getSegmentTimelineRange, timelineToSource } from "../models/timeMapping";
 import { normalizePlacements, resolvePlacements } from "../models/audioPlacements";
 import { splitAtTimeline, deleteSegment, moveSegment, trimSegmentLeft, trimSegmentRight, extendSegmentLeft, extendSegmentRight } from "../models/segmentOps";
 import { resolveReframeStyle } from "../utils/reframeStyle";
@@ -413,6 +413,66 @@ const useEditorStore = create((set, get) => ({
     const newSegs = trimSegmentRight(get().nleSegments, segmentId, newSourceEnd);
     set({ nleSegments: newSegs });
     usePlaybackStore.getState().setNleSegments(newSegs);
+    get().markDirty();
+  },
+
+  /**
+   * The M / S keys: make the playhead the start (or the end) of the section it
+   * currently sits inside. The rest of that section on the far side of the
+   * playhead is trimmed off, and any whole section beyond it is removed.
+   *
+   * Selection is deliberately ignored — the section under the playhead is the
+   * target, so the keys behave the same whatever happens to be highlighted.
+   *
+   * Timeline position is the ordered concatenation of the sections, so removing
+   * and trimming closes the gap on its own; there is no ripple step. The whole
+   * operation is ONE undo entry, not one per section removed.
+   *
+   * @param {"start"|"end"} side
+   */
+  trimTimelineToPlayhead: (side) => {
+    const segs = get().nleSegments;
+    if (segs.length === 0) return;
+
+    const timelineTime = usePlaybackStore.getState().currentTime;
+    let { sourceTime, found, segmentIndex } = timelineToSource(timelineTime, segs);
+    if (!found) return;
+
+    // Sitting exactly on a join, timelineToSource resolves to the EARLIER
+    // section (its offset equals its full duration). On screen the playhead is
+    // at the head of the next one, so treat it that way — otherwise M would
+    // shave the previous section down to the 50ms minimum instead of dropping
+    // it, which looks like the key half-worked.
+    if (sourceTime >= segs[segmentIndex].sourceEnd - 1e-6 && segmentIndex + 1 < segs.length) {
+      segmentIndex += 1;
+      sourceTime = segs[segmentIndex].sourceStart;
+    }
+
+    const target = segs[segmentIndex];
+    const trimmed = side === "start"
+      ? trimSegmentLeft(segs, target.id, sourceTime)
+      : trimSegmentRight(segs, target.id, sourceTime);
+
+    // Drop the sections wholly on the far side of the playhead.
+    const kept = side === "start"
+      ? trimmed.slice(segmentIndex)
+      : trimmed.slice(0, segmentIndex + 1);
+
+    // Playhead already sat on that edge (or the trim clamped to nothing) —
+    // don't burn an undo entry on a no-op. Compared by value because
+    // trimSegment* rebuilds the target object either way.
+    const unchanged = kept.length === segs.length &&
+      kept.every((s, i) => s.sourceStart === segs[i].sourceStart && s.sourceEnd === segs[i].sourceEnd);
+    if (unchanged) return;
+
+    get()._pushNleUndo();
+    set({ nleSegments: kept });
+    usePlaybackStore.getState().setNleSegments(kept);
+
+    // Park the playhead on the same frame it was on: that frame is now either
+    // the first or the last on the timeline. Set explicitly rather than letting
+    // setNleSegments infer it from the element's position, which lags a seek.
+    usePlaybackStore.getState().seekTo(side === "start" ? 0 : getTimelineDuration(kept));
     get().markDirty();
   },
 

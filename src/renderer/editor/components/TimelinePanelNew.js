@@ -25,6 +25,7 @@ import {
   SOUND_TRACK_H, SOUND_ROW_H, SOUND_STACK_ROW_H,
   CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
+import { registerTimelineHandlers } from "../shortcuts/timelineHandlers";
 import SpeedDropdown from "./timeline/SpeedDropdown";
 import TrackContextMenu from "./timeline/TrackContextMenu";
 import SegmentBlock from "./timeline/SegmentBlock";
@@ -786,38 +787,26 @@ export default function TimelinePanelNew() {
     toDelete.forEach(s => handleDelete(isRipple, selectedTrack, s.id));
   }, [selectedSegIds, selectedTrack, editSegments, captionSegs, nleSegments, handleDelete]);
 
-  // ── Keyboard shortcuts ──
-  useEffect(() => {
-    const handler = (e) => {
-      const isInput = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA";
+  // ── Keyboard: Split + Delete ──
+  // Every editor shortcut now lives in one always-mounted layer (EditorLayout →
+  // useEditorShortcuts) so the keys survive collapsing the timeline. These two
+  // are the exception: they read this panel's local selection, so the panel
+  // publishes them while it's mounted and the layer calls through.
+  const handleKeyboardDelete = useCallback((e) => {
+    if (selectedSegIds.size === 0) return;
+    // Ripple delete only for audio track; sub/cap always regular delete
+    const isRipple = selectedTrack === "audio" ? !e.ctrlKey : false;
+    if (selectedSegIds.size > 1) {
+      handleBatchDelete(isRipple);
+    } else {
+      handleDelete(isRipple, selectedTrack, selectedSegId);
+    }
+  }, [selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
 
-      if (e.key === " " && !e.ctrlKey && !e.metaKey) {
-        if (isInput) return;
-        e.preventDefault();
-        togglePlay();
-      } else if (e.key === "s" && !e.ctrlKey && !e.metaKey) {
-        if (isInput) return;
-        e.preventDefault();
-        handleSplit();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === ".") {
-        e.preventDefault();
-        toggleTlCollapse();
-      } else if (e.key === "Delete" || e.key === "Backspace") {
-        if (isInput) return;
-        if (selectedSegIds.size === 0) return;
-        e.preventDefault();
-        // Ripple delete only for audio track; sub/cap always regular delete
-        const isRipple = selectedTrack === "audio" ? !e.ctrlKey : false;
-        if (selectedSegIds.size > 1) {
-          handleBatchDelete(isRipple);
-        } else {
-          handleDelete(isRipple, selectedTrack, selectedSegId);
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [togglePlay, handleSplit, toggleTlCollapse, selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
+  useEffect(
+    () => registerTimelineHandlers({ split: handleSplit, deleteSelected: handleKeyboardDelete }),
+    [handleSplit, handleKeyboardDelete]
+  );
 
   // ── Zoom anchored to PLAYHEAD — gently slides playhead toward center ──
   // Uses zoom ratio to scale scroll position, then smoothly drifts toward centering.
@@ -857,11 +846,9 @@ export default function TimelinePanelNew() {
 
   // Smooth auto-scroll during playback now lives in <TimelinePlayhead> (#57).
 
-  // ── Apply playback speed ──
-  useEffect(() => {
-    const videoRef = usePlaybackStore.getState().getVideoRef();
-    if (videoRef?.current) videoRef.current.playbackRate = parseFloat(tlSpeed) || 1;
-  }, [tlSpeed]);
+  // Playback speed is applied in PreviewPanel, which owns the video element and
+  // stays mounted when the timeline is collapsed. The dropdown below still
+  // reads and writes tlSpeed here.
 
   // Collapsed mode is handled by EditorLayout — this component is unmounted when collapsed
 

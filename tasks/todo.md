@@ -6,6 +6,198 @@
 
 ---
 
+## ✅ DONE (session 141) — Editor keyboard layer: reliable Space, five new edit keys, rebindable shortcuts overlay — **built and verified in the running app; filed as #220; NOT yet confirmed by Fega, and NOT yet in an installer**
+
+All 11 verification criteria met except one partial (see below). Highlights:
+Space started on the FIRST press in 20/20 presses and after every gesture type
+(seek, rapid scrub, split, rewind, fast forward, timeline-block click); `M` at 8s
+took 27.28s → 19.28s with the section's `sourceStart` moving exactly +8s and
+Ctrl+Z restoring the list byte-identically; `S` at 5s → 5.00s; rewinding across a
+cut jumped source 740.1 → 727.48 exactly at the boundary with zero samples in
+deleted footage; and **the rendered MP4 after `S` at 5s measured exactly 5.000s**,
+proving the keys agree with the export and not just the preview.
+
+**Partial:** criterion 3 was proven on the AI-context textarea (typing "same u r"
+changed nothing) but NOT specifically on the clip-title input — a synthetic click
+wouldn't swap that node to an input. Both go through the same single
+`INPUT`/`TEXTAREA`/`contentEditable` branch, so it's covered by mechanism, not by
+direct observation. Worth a manual poke.
+
+**Scope added beyond the approved plan (flagged, not silent):** timeline edits
+turned out never to have been undoable — `_pushNleUndo()` delegates to the
+subtitle store, whose snapshot only carried `editSegments` + `styling`, never
+`nleSegments`. Split / delete-section / trim / reorder have all silently failed to
+restore since they were built. The approved plan promised M and S would be
+undoable, and they destroy footage, so the snapshot now carries `nleSegments`.
+This fixes undo for every timeline operation, not just the new keys.
+
+**Two verification lessons worth keeping:**
+1. `requestAnimationFrame` fires **zero** times in an occluded Electron window.
+   The rewind loop measured as completely broken for three probes until
+   `document.visibilityState` came back `"hidden"`. Any rAF-dependent CDP
+   verification must `Page.bringToFront` first — see `cdp2.js`.
+2. Dev and prod share `projectsRoot`, so a dev-profile edit writes to Fega's REAL
+   project JSON. The `S` test trimmed a real clip to 5s; restored via in-app undo
+   + Save and verified on disk. Check `projectsRoot` before destructive testing.
+
+**Original plan below, kept for the reasoning and the liveness proofs.**
+
+## 📋 PLAN (session 141) — Editor keyboard layer: reliable Space, five new edit keys, rebindable shortcuts overlay
+
+Fega's ask: spacebar sometimes needs 2–3 presses before the timeline plays; he wants
+"butter smooth" keyboard control. Plus five new keys (M/S/U/R/E) and a shortcuts
+popup opened from the editor.
+
+### What I verified first (liveness proofs)
+
+| Claim | Proof |
+|---|---|
+| Every playback/edit shortcut lives in ONE effect inside the timeline panel | `TimelinePanelNew.js:790-820` — Space→`togglePlay`, `s`→`handleSplit`, `Ctrl+.`→collapse, Del/Backspace→delete |
+| That component is unmounted whenever the timeline is collapsed, so all of those keys cease to exist | `EditorLayout.js:1172-1183` (`{!tlCollapsed && (…<TimelinePanelNew />…)}`); confirmed by the source comment at `TimelinePanelNew.js:866` "this component is unmounted when collapsed". Collapsed shows `MiniPlayerBar` (`EditorLayout.js:1169`), which registers no keys |
+| **`S` is already Split today** — Fega's layout reassigns it | `TimelinePanelNew.js:798-801` |
+| The only other editor-wide key handler is undo/redo, and it IS always mounted | `EditorLayout.js:1076-1102` (`document` keydown, `[]` deps) — so `EditorLayout` is the correct home for a global key layer |
+| Space flips a store boolean; it never touches the video element directly | `usePlaybackStore.js:38-54` `togglePlay` → `seekTo(currentTime)` then `set({playing: !playing})` |
+| A separate effect pushes that boolean at the element, and **swallows failure silently** | `PreviewPanelNew.js:1458-1465` — `videoRef.current.play().catch(() => {})` |
+| **Nothing ever reconciles `playing` back FROM the element.** The `<video>` has only `onEnded`; there is no `onPlay`/`onPause` | `PreviewPanelNew.js:1828` is the sole element handler; `setPlaying` is called from exactly two places, both end-of-timeline (`:1350` rAF `atEnd`, `:1455` `onVideoEnd`) |
+| Playback speed already exists end-to-end and is wired to the element | `usePlaybackStore.js:12` `tlSpeed:"1x"` + `:202` `setTlSpeed`; applied at `TimelinePanelNew.js:861-864` → `videoRef.current.playbackRate`; UI dropdown at `TimelinePanelNew.js:1055-1066` |
+| Every primitive M/S/U need already exists as a store action, each with undo + dirty-marking | `useEditorStore.js:370` `splitAtTimeline`, `:395` `deleteNleSegment`, `:403` `trimNleSegmentLeft`, `:411` `trimNleSegmentRight` — all call `_pushNleUndo()` then `setNleSegments()` then `markDirty()` |
+| Timeline↔source conversion for the playhead is a solved, shared path | `usePlaybackStore.js:112-135` `seekTo`; `models/timeMapping` `timelineToSource` / `sourceToTimeline` |
+| There is no shortcuts UI of any kind today | grep for `shortcut`/`hotkey` across `src/renderer/editor` returns only 4 code comments |
+
+### Decisions from Fega (answered before planning)
+
+1. **M / S act on the section under the playhead.** Selection is ignored.
+2. **E = smooth reverse scrub**, silent, ramping 1.5x → 2x → 4x.
+3. **Shortcuts overlay is rebindable**, and remembers changes between sessions.
+4. **U keeps today's smart split** (subtitle / caption / video section, auto-detected) — key change only.
+
+---
+
+### Part 1 — Make Space reliable
+
+**Status of the root cause: NOT reproduced.** I can prove the state *can* desync but not
+which gesture triggers it, so I am fixing the class, not guessing at one trigger.
+
+The failure mode the code permits: `playing` is the single source of truth, and it is
+write-only toward the element. If `play()` ever rejects (`PreviewPanelNew.js:1461`), the
+catch discards it, the store still says "playing", and the video is paused. The next
+Space press then reads `playing === true` and *pauses* — a press that looks like it did
+nothing. The press after that plays. That is exactly the "two or three presses" symptom,
+and nothing in the code can currently correct it.
+
+1. **Reconcile the flag from the element.** Add `onPlay` / `onPause` handlers to the
+   `<video>` (`PreviewPanelNew.js:1828`) that call `setPlaying(true/false)`. The store
+   can then never disagree with reality for more than a frame, whatever caused the drift.
+2. **Stop swallowing the rejection.** `play().catch()` sets `playing: false` instead of
+   discarding, so a failed start leaves the button and the flag honest and the very next
+   Space press starts playback.
+3. **Log the rejection reason** (`console.warn`) so if it ever recurs we learn the actual
+   trigger instead of guessing again. Temporary; removed once we've seen it or gone a
+   few sessions without.
+4. **Space keeps working when the timeline is collapsed** — falls out of Part 2.
+
+I am deliberately NOT rewriting the rAF loop, the seek-on-play in `togglePlay`, or the
+gap-crossing logic. All three are load-bearing and none is implicated.
+
+### Part 2 — One always-mounted keyboard layer
+
+New: `src/renderer/editor/shortcuts/registry.js` + `useEditorShortcuts.js`, mounted once
+in `EditorLayout` (always mounted, next to the existing undo/redo handler).
+
+Registry entry = `{ id, defaultKey, label, group }`. The layer resolves a pressed key
+through the registry (respecting saved rebinds) and dispatches. One list drives the
+behaviour AND the overlay, so the popup can never drift from what the keys actually do.
+
+**Which shortcuts move, and why it's split:**
+
+- **Space, R, E, M, S** need only `usePlaybackStore` + `useEditorStore` → they live
+  entirely in the global layer and work whether or not the timeline is collapsed.
+- **U (split) and Delete** depend on the timeline's local selection (`selectedTrack`,
+  `selectedSegIds`). Rather than hoist that state into a store — a much wider refactor
+  than this request warrants — `TimelinePanelNew` **registers its two handlers with the
+  layer on mount and unregisters on unmount**. Collapsed, those two no-op; everything
+  else still works. Tradeoff stated so it's a choice, not an accident.
+
+**Guard on every shortcut:** skip when focus is in an `INPUT`, `TEXTAREA`, or anything
+`contentEditable`. Today's guard checks the first two only — with five new single-letter
+keys, typing "same" into a title field must not trim the timeline.
+
+**New key behaviours:**
+
+| Key | Behaviour |
+|---|---|
+| `U` | Split — today's `handleSplit`, unchanged, rebound from `S` |
+| `M` | Start to playhead — trims the **section under the playhead** so it begins there (`trimNleSegmentLeft`), and deletes any section lying entirely before it (`deleteNleSegment`). Timeline closes up automatically; sections are contiguous by construction |
+| `S` | End to playhead — mirror: `trimNleSegmentRight`, deletes sections entirely after |
+| `R` | Fast forward. Press 1 → 1.5x, 2 → 2x, 3 → 4x, 4 → back to 1x. Starts playback if paused. Drives the existing `tlSpeed`, so the on-screen speed dropdown stays truthful for free |
+| `E` | Rewind — rAF loop stepping the playhead backwards at 1.5x/2x/4x via `seekTo`, so it walks section boundaries correctly. Video is paused during it (silent, as agreed). Stops at 0 |
+
+Ramp resets to 1x on Space, on reaching either end, and when reversing direction.
+No-ops are silent no-ops (M at 0:00, E at 0:00) — never an error.
+
+Both M and S go through the existing store actions, so **both are undoable with Ctrl+Z**
+and both mark the project dirty for autosave. No new undo machinery.
+
+### Part 3 — Rebindable shortcuts overlay
+
+New: `src/renderer/editor/components/ShortcutsDialog.js`.
+
+- Opens from a keyboard icon in the editor header **and** from `?`.
+- Renders straight off the registry, grouped (Playback / Editing / View), so a new
+  shortcut shows up here the day it's added.
+- Click a row → "press a key…" → captures the next keypress and rebinds.
+- **Conflict handling:** if the key is taken, name the action holding it and offer to
+  reassign (the old one becomes unbound and is flagged in the list, not silently lost).
+- "Reset to defaults" button.
+- Persisted via `window.clipflow.storeSet("editorShortcuts", {…})` — the same store
+  path every other editor preference uses. Rebinds survive restart.
+- Esc / click-outside closes.
+
+### File impact
+
+| File | Change |
+|---|---|
+| `src/renderer/editor/shortcuts/registry.js` | **NEW** — the one list of shortcuts + defaults |
+| `src/renderer/editor/shortcuts/useEditorShortcuts.js` | **NEW** — global key layer, rebind resolution, handler registration |
+| `src/renderer/editor/components/ShortcutsDialog.js` | **NEW** — the overlay |
+| `src/renderer/editor/components/EditorLayout.js` | Mount the layer + the dialog; header button |
+| `src/renderer/editor/components/TimelinePanelNew.js` | Remove the local shortcut effect (`:790-820`); register split/delete with the layer instead |
+| `src/renderer/editor/components/PreviewPanelNew.js` | `onPlay`/`onPause` reconciliation; honest `play()` catch |
+| `src/renderer/editor/stores/usePlaybackStore.js` | Rewind state + FF/RW ramp actions |
+| `src/renderer/editor/stores/useEditorStore.js` | `trimTimelineToPlayhead(side)` — the M/S action, built on the existing trim/delete primitives |
+
+### Verification criteria (all checked in the running app before I call it done)
+
+1. Space plays/pauses on the **first** press, 20 presses in a row, including immediately
+   after: scrubbing, clicking a timeline section, a split, and switching clips.
+2. Space still works with the timeline **collapsed**.
+3. Typing a title containing "s", "m", "u", "r", "e" into a text field edits **nothing**
+   on the timeline.
+4. `U` splits exactly where `S` used to, in all three cases (subtitle selected, caption
+   selected, nothing selected).
+5. `M` at 0:12 inside section 2 → section 2 starts at 0:12, sections entirely before it
+   are gone, timeline duration drops by the right amount, playhead stays on the same
+   frame. `Ctrl+Z` restores it exactly.
+6. `S` — same, mirrored.
+7. `R` ramps 1.5→2→4→1 and the speed dropdown shows the same value at each step.
+8. `E` glides backwards at each of the three speeds and stops cleanly at 0.
+9. `E` across a cut lands on the correct frame (walks the section boundary, doesn't jump
+   into deleted footage).
+10. Overlay: opens from icon and `?`, rebinding U→K works and survives an app restart,
+    a conflicting bind is reported rather than silently applied, reset restores defaults.
+11. Full clip render after an M+S+U session produces the expected cut — the keys must
+    agree with the render path, not just the preview.
+
+### Risks / open
+
+- **Reverse audio is impossible** — E is silent by design, agreed with Fega up front.
+- Moving Split off `S` breaks existing muscle memory. Flagged; Fega chose the layout
+  knowing this (and it's rebindable).
+- `U`/`Delete` are inert while the timeline is collapsed (see Part 2 tradeoff).
+- I'll file this as a GitHub issue once approved, per the repo's issue policy.
+
+---
+
 ## ✅ DONE (session 140) — Subtitle row actions + tracker week log identity & scheduled preview — **both built, verified in the running app, shipped as 0.3.0-alpha.34; NOT yet confirmed by Fega**
 
 Filed as #217 and #218, both commits ecf0273 + fe2fbf6, installer 05a0dd0.

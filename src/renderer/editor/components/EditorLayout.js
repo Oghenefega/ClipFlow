@@ -9,6 +9,8 @@ import LeftPanelNew from "./LeftPanelNew";
 import RightPanelNew from "./RightPanelNew";
 import PreviewPanelNew from "./PreviewPanelNew";
 import TimelinePanelNew from "./TimelinePanelNew";
+import ShortcutsDialog from "./ShortcutsDialog";
+import useEditorShortcuts from "../shortcuts/useEditorShortcuts";
 import useEditorStore from "../stores/useEditorStore";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import usePlaybackStore from "../stores/usePlaybackStore";
@@ -35,6 +37,7 @@ import {
   FolderOpen,
   X,
   Trash2,
+  Keyboard,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -238,7 +241,7 @@ function ClipNavigator({ clips, currentClipId, onSelect, onDelete, onClose, chev
 }
 
 // ── Topbar ──
-function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
+function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob, onShowShortcuts }) {
   const clipTitle = useEditorStore((s) => s.clipTitle);
   const editingTitle = useEditorStore((s) => s.editingTitle);
   const dirty = useEditorStore((s) => s.dirty);
@@ -659,6 +662,18 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
             </TooltipTrigger>
             <TooltipContent className="text-xs">Redo (Ctrl+Y)</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost" size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={onShowShortcuts}
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Keyboard shortcuts (?)</TooltipContent>
+          </Tooltip>
         </TooltipProvider>
 
         {/* Last saved indicator */}
@@ -1072,34 +1087,15 @@ function MiniPlayerBar({ onShowTimeline }) {
 // ── Main Layout Shell ──
 export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  // Global undo/redo keyboard shortcuts
-  useEffect(() => {
-    const handler = (e) => {
-      // Skip if user is typing in an input/textarea
-      const tag = e.target.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
-        e.preventDefault();
-        const store = useSubtitleStore.getState();
-        if (store._undoStack.length > 0) {
-          store.undo();
-          useEditorStore.getState().markDirty();
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z") || (e.shiftKey && e.key === "z"))) {
-        e.preventDefault();
-        const store = useSubtitleStore.getState();
-        if (store._redoStack.length > 0) {
-          store.redo();
-          useEditorStore.getState().markDirty();
-        }
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+  // The editor's one keyboard layer. It lives here because this shell is
+  // mounted for the whole session — the shortcuts used to sit inside the
+  // timeline panel, which is unmounted while the timeline is collapsed, so
+  // every key (including Space) went dead there. Undo/redo moved in too, so a
+  // single registry drives both the keys and the cheat sheet.
+  const showShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  useEditorShortcuts({ onShowShortcuts: showShortcuts, enabled: !shortcutsOpen });
 
   // ── Autosave: subscribe to all persistable editor stores, debounced save on changes. ──
   // Goal: renderer crashes (see #35) no longer wipe unsaved edits. Every store mutation
@@ -1138,7 +1134,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
     <div className="dark flex flex-col h-full w-full overflow-hidden bg-background text-foreground"
       style={{ fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Top toolbar */}
-      <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} renderJob={renderJob} onCancelRenderJob={onCancelRenderJob} />
+      <Topbar onBack={onBack} requireHashtagInTitle={requireHashtagInTitle} onClipRendered={onClipRendered} renderJob={renderJob} onCancelRenderJob={onCancelRenderJob} onShowShortcuts={showShortcuts} />
 
       {/* Body + Timeline — timeline fully collapses/expands */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -1184,6 +1180,8 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
           </div>
         )}
       </div>
+
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

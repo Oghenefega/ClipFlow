@@ -83,6 +83,22 @@ const SUB_STYLE_KEYS = [
   "animateOn", "animateScale", "animateGrowFrom", "animateSpeed",
 ];
 
+// Timeline sections ride the same undo stack as subtitles: useEditorStore's
+// _pushNleUndo() has always delegated here, but the snapshot only ever carried
+// editSegments + styling, so split / delete / trim of a section was silently
+// NOT undoable. Captured here so every timeline edit — including the M and S
+// keys, which destroy footage — can be taken back with Ctrl+Z.
+function _snapshotNle() {
+  return JSON.parse(JSON.stringify(useEditorStore.getState().nleSegments || []));
+}
+
+function _restoreNle(segs) {
+  // Older entries in a stack built before this existed have no sections —
+  // leave the timeline alone rather than blanking it.
+  if (!segs) return;
+  useEditorStore.getState().setNleSegments(segs);
+}
+
 // Snapshot/restore helpers for cross-store undo
 function _snapshotStyling(subState) {
   const sub = {};
@@ -436,6 +452,7 @@ const useSubtitleStore = create((set, get) => ({
     const snapshot = {
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
+      nleSegments: _snapshotNle(),
     };
     set({ _undoStack: [...state._undoStack.slice(-50), snapshot], _redoStack: [], _lastUndoPushTime: now });
   },
@@ -446,6 +463,7 @@ const useSubtitleStore = create((set, get) => ({
     const current = {
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
+      nleSegments: _snapshotNle(),
     };
     set({
       _undoStack: state._undoStack.slice(0, -1),
@@ -453,6 +471,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: prev.editSegments,
     });
     _restoreStyling(prev.styling, set);
+    _restoreNle(prev.nleSegments);
   },
   redo: () => {
     const state = get();
@@ -461,6 +480,7 @@ const useSubtitleStore = create((set, get) => ({
     const current = {
       editSegments: JSON.parse(JSON.stringify(state.editSegments)),
       styling: _snapshotStyling(state),
+      nleSegments: _snapshotNle(),
     };
     set({
       _redoStack: state._redoStack.slice(0, -1),
@@ -468,6 +488,7 @@ const useSubtitleStore = create((set, get) => ({
       editSegments: next.editSegments,
     });
     _restoreStyling(next.styling, set);
+    _restoreNle(next.nleSegments);
   },
   canUndo: () => get()._undoStack.length > 0,
   canRedo: () => get()._redoStack.length > 0,

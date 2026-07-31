@@ -708,6 +708,8 @@ export default function PreviewPanelNew() {
   const setDuration = usePlaybackStore((s) => s.setDuration);
   const setPlaying = usePlaybackStore((s) => s.setPlaying);
   const initVideoRef = usePlaybackStore((s) => s.initVideoRef);
+  const tlSpeed = usePlaybackStore((s) => s.tlSpeed);
+  const shuttleDir = usePlaybackStore((s) => s.shuttleDir);
   const setWaveformPeaks = useEditorStore((s) => s.setWaveformPeaks);
   const setWaveformError = useEditorStore((s) => s.setWaveformError);
   const initNleSegments = useEditorStore((s) => s.initNleSegments);
@@ -1455,14 +1457,66 @@ export default function PreviewPanelNew() {
     setPlaying(false);
   }, [setPlaying]);
 
+  // The `playing` flag used to be write-only toward the element: if the element
+  // ever ended up in a different state, nothing corrected it, and the flag went
+  // on lying. That's what made Space need two or three presses — a press would
+  // read `playing: true`, "pause" an already-paused video, and look dead. These
+  // two handlers make the element the one telling us what it's doing.
+  const onVideoPlay = useCallback(() => {
+    if (!usePlaybackStore.getState().playing) setPlaying(true);
+  }, [setPlaying]);
+
+  const onVideoPause = useCallback(() => {
+    if (usePlaybackStore.getState().playing) setPlaying(false);
+  }, [setPlaying]);
+
   useEffect(() => {
     if (!videoRef.current) return;
     if (playing) {
-      videoRef.current.play().catch(() => {});
+      // Never swallow the rejection: leaving the flag on after a failed start is
+      // exactly the desync above. Drop it back so the next Space press plays
+      // rather than being spent on a pause nobody can see.
+      videoRef.current.play().catch((err) => {
+        console.warn("[ClipFlow] video.play() rejected:", err?.name, err?.message);
+        setPlaying(false);
+      });
     } else {
       videoRef.current.pause();
     }
-  }, [playing]);
+  }, [playing, setPlaying]);
+
+  // Playback speed. Lives here rather than in the timeline panel because that
+  // panel is unmounted while the timeline is collapsed, which would leave the
+  // R key silently unable to change speed.
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = parseFloat(tlSpeed) || 1;
+  }, [tlSpeed]);
+
+  // ── Rewind (E) ──
+  // <video> has no reverse gear — a negative playbackRate is not supported — so
+  // rewind walks the playhead back through seekTo, which maps timeline time to
+  // source and therefore steps across cuts correctly. The element stays paused,
+  // which is why rewind is silent.
+  useEffect(() => {
+    if (shuttleDir !== -1) return;
+    let rafId;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      const st = usePlaybackStore.getState();
+      const next = st.currentTime - st.shuttleRate * dt;
+      if (next <= 0) {
+        st.seekTo(0);
+        st.resetShuttle();
+        return;
+      }
+      st.seekTo(next);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [shuttleDir]);
 
   // ── #164 Reframe compositor ──
   // When project.reframe is set, this canvas covers the <video> and paints the
@@ -1826,6 +1880,8 @@ export default function PreviewPanelNew() {
               onTimeUpdate={onTimeUpdate}
               onLoadedMetadata={onLoadedMetadata}
               onEnded={onVideoEnd}
+              onPlay={onVideoPlay}
+              onPause={onVideoPause}
               preload="metadata"
               data-canvas-bg="true"
             />
