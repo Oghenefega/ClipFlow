@@ -342,6 +342,16 @@ function setAssetDefaultVolume(assetsRoot, assetId, volume, filePath) {
   return entry.defaultVolume ?? null;
 }
 
+/**
+ * Read back the remembered level for one sound (#226). Index-only on purpose:
+ * the popover asks on every right-click, and listAssets re-walks the audio
+ * folders per call. Returns null when nothing is remembered (or unknown asset).
+ */
+function getAssetDefaultVolume(assetsRoot, assetId, filePath) {
+  const entry = findAssetRef(loadIndex(assetsRoot), assetId, filePath);
+  return entry?.defaultVolume ?? null;
+}
+
 // ── Mood tags (#212) ──
 // Epidemic Sound's own mood vocabulary, supplied by Fega. Most of the library IS
 // Epidemic, so this is the wording he already reads next to these tracks — no
@@ -619,6 +629,7 @@ module.exports = {
   backfillDurations,
   setAssetType,
   setAssetDefaultVolume,
+  getAssetDefaultVolume,
   MOODS,
   setAssetTags,
   addAssetTagToMany,

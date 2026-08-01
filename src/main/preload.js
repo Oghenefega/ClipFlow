@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   // #210: per-sound default volume; null clears it. #214: pass filePath when the
   // id came off a clip — path is the identity that survives an index rebuild.
   assetsSetDefaultVolume: (assetId, volume, filePath) => ipcRenderer.invoke("assets:setDefaultVolume", assetId, volume, filePath),
+  assetsGetDefaultVolume: (assetId, filePath) => ipcRenderer.invoke("assets:getDefaultVolume", assetId, filePath),
   // #212: mood tags + "recently used"
   assetsMoods: () => ipcRenderer.invoke("assets:moods"),
   assetsSetTags: (assetId, tags) => ipcRenderer.invoke("assets:setTags", assetId, tags),

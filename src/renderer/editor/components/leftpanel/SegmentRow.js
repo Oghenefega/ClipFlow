@@ -164,7 +164,9 @@ function RowAction({ icon, label, disabled, onClick }) {
             {icon}
           </button>
         </TooltipTrigger>
-        <TooltipContent className="text-xs">{label}</TooltipContent>
+        {/* #227: below the button — the default (top) sat right on the subtitle
+            text being edited. Radix still flips it up when there's no room. */}
+        <TooltipContent side="bottom" className="text-xs">{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

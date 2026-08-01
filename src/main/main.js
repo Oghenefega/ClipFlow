@@ -1077,6 +1077,16 @@ ipcMain.handle("assets:setDefaultVolume", async (_, assetId, volume, filePath) =
   }
 });
 
+// #226: read the remembered level back so the sound popover can show it on
+// reopen instead of offering to remember a level that's already saved.
+ipcMain.handle("assets:getDefaultVolume", async (_, assetId, filePath) => {
+  try {
+    return { success: true, defaultVolume: assetLibrary.getAssetDefaultVolume(assetsRootOrThrow(), assetId, filePath) };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle("assets:import", async (_, filePaths, typeHint) => {
   try {
     const result = await assetLibrary.importAssets(assetsRootOrThrow(), filePaths, typeHint);
