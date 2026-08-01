@@ -1014,6 +1014,7 @@ export default function QueueView({
         }
       }
     });
+    const now = new Date();
     for (const d of dates) {
       for (const slot of tmpl.timeSlots) {
         const m = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -1023,6 +1024,9 @@ export default function QueueView({
         if (ap === "PM" && h !== 12) h += 12;
         if (ap === "AM" && h === 12) h = 0;
         const key = `${d.iso}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+        // #228: upcoming dates start TODAY, so today's already-passed template
+        // slots kept being suggested all evening. The string parses as LOCAL time.
+        if (new Date(`${key}:00`) <= now) continue;
         if (!takenSlots.has(key)) {
           return { date: d.iso, hour: String(h).padStart(2, "0"), min: String(min).padStart(2, "0"), label: `${d.label} at ${slot}` };
         }
@@ -2153,7 +2157,12 @@ export default function QueueView({
                             )}
                           </div>
                           {/* Phase 3: Schedule picker with auto-suggest */}
-                          {schedAction === "schedule" && (
+                          {schedAction === "schedule" && (() => {
+                            // #228: a picked time in the past greys the save —
+                            // the scheduler would fire it immediately.
+                            const schedPast = !!schedDate && new Date(`${schedDate}T${schedHour}:${schedMin}:00`) <= new Date();
+                            const canSave = !!schedDate && !schedPast;
+                            return (
                             <div style={{ marginTop: 10 }}>
                               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                                 <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
@@ -2162,12 +2171,14 @@ export default function QueueView({
                                   <span style={{ color: T.textMuted, fontSize: 14, fontWeight: 700 }}>:</span>
                                   <Select value={schedMin} onChange={setSchedMin} options={MINUTE_OPTIONS} style={{ padding: "8px 8px", fontSize: 12, minWidth: 56 }} />
                                 </div>
-                                <button onClick={() => { scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!schedDate} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: schedDate ? T.accent : "rgba(255,255,255,0.04)", color: schedDate ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: schedDate ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
+                                <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(255,255,255,0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
                                 <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                               </div>
+                              {schedPast && <div style={{ fontSize: 10, color: T.red, marginTop: 6 }}>That time has already passed — pick a future time.</div>}
                               {(() => { const sug = autoSuggestSlot(); return sug ? <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 6 }}>Suggested: {sug.label}</div> : null; })()}
                             </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
