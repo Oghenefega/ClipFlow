@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-07-31 (session 143) — Real game hashtags, an honest play-style diff, and two editor annoyances
 
+### Added
+- **The Queue's schedule time is now a scroll wheel instead of two dropdowns (#229).** Hour and minute sit in snapping wheel columns right in the row — mouse wheel moves one notch per tick, dragging scrolls freely and snaps to the nearest value, and clicking any visible value jumps to it. On today's date, hours that have already passed fade to ghosts, and landing on one greys Save Schedule with the usual note. Built from the approved variant A mock (tasks/mocks/queue-time-wheel.html).
+
 ### Fixed
 - **The Queue's Schedule picker no longer suggests times that have already passed (#228).** The auto-suggestion walked the weekly template starting from today but never looked at the clock, so at 10 PM it still proposed today's 12:30 PM slot — and pre-filled the pickers with it. Suggestions now skip any slot that's already behind the current time and move straight to the next real opening.
 - **Save Schedule greys out when the picked time is in the past (#228).** Nothing stopped a past date+time from being saved, which would make the scheduler fire the publish immediately. The button now disables with a short "that time has already passed" note until a future time is picked.

@@ -101,6 +101,109 @@ const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => {
   const m = i * 5;
   return { value: String(m).padStart(2, "0"), label: String(m).padStart(2, "0") };
 });
+
+// #229: iOS-style snapping wheel — replaces the hour/minute dropdowns on the
+// schedule row (mock: tasks/mocks/queue-time-wheel.html, variant A). One
+// column of values; the centered row is the selection. Controlled: external
+// value changes (the auto-suggest seed) scroll the wheel, user scrolling
+// calls onChange with the newly centered value.
+const WHEEL_ROW_H = 26;
+const WHEEL_VISIBLE = 3;
+
+function WheelColumn({ options, value, onChange, width, isPast }) {
+  const scRef = useRef(null);
+  const idxRef = useRef(-1);
+  const settleRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const [selIdx, setSelIdx] = useState(() => Math.max(0, options.findIndex((o) => o.value === value)));
+
+  // Seed / external value change → jump the scroller there. idxRef guards the
+  // loop: a scroll the user just made already updated idxRef before onChange
+  // reached the parent, so the echo of our own change never re-scrolls.
+  useEffect(() => {
+    const i = options.findIndex((o) => o.value === value);
+    if (i >= 0 && i !== idxRef.current && scRef.current) {
+      idxRef.current = i;
+      setSelIdx(i);
+      scRef.current.scrollTop = i * WHEEL_ROW_H;
+    }
+  }, [value, options]);
+
+  // Mouse wheel = exactly one notch per tick. Native listener because React's
+  // root-attached wheel handlers are passive — preventDefault would be ignored.
+  useEffect(() => {
+    const el = scRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const target = Math.max(0, Math.min(options.length - 1, idxRef.current + (e.deltaY > 0 ? 1 : -1)));
+      el.scrollTo({ top: target * WHEEL_ROW_H, behavior: "smooth" });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [options.length]);
+
+  const handleScroll = () => {
+    const el = scRef.current;
+    if (!el) return;
+    const i = Math.max(0, Math.min(options.length - 1, Math.round(el.scrollTop / WHEEL_ROW_H)));
+    if (i !== idxRef.current) {
+      idxRef.current = i;
+      setSelIdx(i);
+      onChangeRef.current(options[i].value);
+    }
+    // Drag/momentum settle → snap the nearest row to center.
+    clearTimeout(settleRef.current);
+    settleRef.current = setTimeout(() => {
+      if (scRef.current) scRef.current.scrollTo({ top: idxRef.current * WHEEL_ROW_H, behavior: "smooth" });
+    }, 90);
+  };
+
+  const pad = (WHEEL_ROW_H * (WHEEL_VISIBLE - 1)) / 2;
+  return (
+    <div style={{ position: "relative", overflow: "hidden", width, height: WHEEL_ROW_H * WHEEL_VISIBLE }}>
+      <div
+        ref={scRef}
+        onScroll={handleScroll}
+        style={{ height: "100%", overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none", paddingTop: pad, paddingBottom: pad }}
+      >
+        {options.map((o, i) => (
+          <div
+            key={o.value}
+            onClick={() => scRef.current?.scrollTo({ top: i * WHEEL_ROW_H, behavior: "smooth" })}
+            style={{
+              height: WHEEL_ROW_H, display: "flex", alignItems: "center", justifyContent: "center",
+              scrollSnapAlign: "center", fontSize: 12, cursor: "pointer", userSelect: "none", fontFamily: T.font,
+              color: i === selIdx ? T.text : T.textTertiary, fontWeight: i === selIdx ? 700 : 400,
+              opacity: isPast && isPast(o.value) ? 0.22 : 1, transition: "color 0.12s, opacity 0.12s",
+            }}
+          >
+            {o.label}
+          </div>
+        ))}
+      </div>
+      {/* Center selection band */}
+      <div style={{ position: "absolute", left: 2, right: 2, top: "50%", height: WHEEL_ROW_H, transform: "translateY(-50%)", borderRadius: 5, background: T.accentDim, border: `1px solid ${T.accentBorder}`, pointerEvents: "none" }} />
+      {/* Fade the off-center rows into the wrap background */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(to bottom, ${T.bg} 0%, transparent 32%, transparent 68%, ${T.bg} 100%)` }} />
+    </div>
+  );
+}
+
+function TimeWheel({ hour, min, onHour, onMin, date }) {
+  // Ghost hours already behind the clock on the selected day. ":55" so an hour
+  // fades only once ALL its pickable minutes are gone — matches the #228 save
+  // gate, where "00" on today's date is start-of-today and long past.
+  const isPastHour = (hv) => !!date && new Date(`${date}T${hv}:55:00`) <= new Date();
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 2, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "0 6px" }}>
+      <WheelColumn options={HOUR_OPTIONS} value={hour} onChange={onHour} width={62} isPast={isPastHour} />
+      <span style={{ color: T.textTertiary, fontSize: 13, fontWeight: 700, padding: "0 1px" }}>:</span>
+      <WheelColumn options={MINUTE_OPTIONS} value={min} onChange={onMin} width={44} />
+    </div>
+  );
+}
 // Legacy TIME_OPTIONS for display/lookup (used in tracker logging)
 const genTimeOptions = () => {
   const o = [];
@@ -2166,11 +2269,7 @@ export default function QueueView({
                             <div style={{ marginTop: 10 }}>
                               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                                 <Select value={schedDate} onChange={setSchedDate} options={[{ value: "", label: "Pick date..." }, ...dates.map((d) => ({ value: d.iso, label: d.label }))]} style={{ padding: "8px 12px", fontSize: 12 }} />
-                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                  <Select value={schedHour} onChange={setSchedHour} options={HOUR_OPTIONS} style={{ padding: "8px 8px", fontSize: 12, minWidth: 70 }} />
-                                  <span style={{ color: T.textMuted, fontSize: 14, fontWeight: 700 }}>:</span>
-                                  <Select value={schedMin} onChange={setSchedMin} options={MINUTE_OPTIONS} style={{ padding: "8px 8px", fontSize: 12, minWidth: 56 }} />
-                                </div>
+                                <TimeWheel hour={schedHour} min={schedMin} onHour={setSchedHour} onMin={setSchedMin} date={schedDate} />
                                 <button onClick={() => { if (canSave) scheduleClipOnly(clip, schedDate, `${schedHour}:${schedMin}`); }} disabled={!canSave} title={schedPast ? "That time has already passed" : undefined} style={{ padding: "8px 16px", borderRadius: 7, border: "none", background: canSave ? T.accent : "rgba(255,255,255,0.04)", color: canSave ? "#fff" : T.textMuted, fontSize: 11, fontWeight: 700, cursor: canSave ? "pointer" : "default", fontFamily: T.font }}>Save Schedule</button>
                                 <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                               </div>
