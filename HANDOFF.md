@@ -1,121 +1,52 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-07-31 — Session 142 (S142 · alpha.36 — Status ladder & seamless splits) — **both features verified by Fega on the installed build; #221 and #222 closed.**_
+_Last updated: 2026-08-01 — Session 143 (S143 · alpha.37 — Seven-fix batch) — **installer cut, all seven closes await Fega's hands-on pass.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega reported the felt gap when playback crosses a deleted middle and asked for a
-unified clip-status color system; both shipped as `0.3.0-alpha.36`, he tested the
-installed build the same session and confirmed both work.
+Fega reported four annoyances across two days (generic `#gaming` hashtags, a misleading Play Style diff, a forgetful sound popover, tooltips covering subtitle text) and then three more (past-time schedule suggestions, dropdown time picker, vanishing reject-reason chips); all seven shipped and were promoted to the daily driver as `0.3.0-alpha.37`.
 
 ## Current State
 
-Healthy. Master clean at `753d6c8`. [#221](https://github.com/Oghenefega/ClipFlow/issues/221)
-and [#222](https://github.com/Oghenefega/ClipFlow/issues/222) filed, shipped, verified
-by Fega on the daily driver, and **closed**. His installed app is on alpha.36.
-
----
+Healthy on `0.3.0-alpha.37` — installer in `dist/`, in-app banner will surface it; Fega told to install. Master clean at `ed7d731`. Seven issues closed `status: untested`: [#223](https://github.com/Oghenefega/ClipFlow/issues/223), [#224](https://github.com/Oghenefega/ClipFlow/issues/224), [#226](https://github.com/Oghenefega/ClipFlow/issues/226), [#227](https://github.com/Oghenefega/ClipFlow/issues/227), [#228](https://github.com/Oghenefega/ClipFlow/issues/228), [#229](https://github.com/Oghenefega/ClipFlow/issues/229), [#230](https://github.com/Oghenefega/ClipFlow/issues/230).
 
 ## What Was Just Built
 
-### 1. Unified clip status ladder on the Projects tab (#221, `ddf0b77`)
-
-One six-color ladder everywhere, furthest stage wins: untouched (ghost) → approved
-(green) → rendered/waiting-in-queue (orange, new `T.orange` #f97316) → scheduled
-(yellow) → published (cyan) — rejected (red) off-ladder. Yellow/cyan deliberately
-match the Tracker's existing scheduled/posted dots.
-
-- **Root-cause fix:** the Scheduled badge existed but required a Tracker entry, and
-  Tracker entries are only written at publish time (`logPost`) — `scheduleClipOnly`
-  sets only `clip.scheduledAt`. `makePublishState` (ProjectsView.js) now reads
-  `isScheduled = !!c.scheduledAt`; `isPublished` still requires the tracker entry.
-- **Strict Done (Fega's call):** a project is Done only when every clip is Rejected,
-  Scheduled with an actual date, or Published. Rendered-but-undated blocks.
-- **Dequeued** (Queue "Remove", `status: "dequeued"`) gets a ghost "Removed from
-  queue" badge, counts as pending review via the new `isClipUndecided` helper, and
-  blocks Done. Previously indistinguishable from never-reviewed.
-- After install, Fega's Done count went 2 → 17 — that's the fixed logic finally
-  counting dated clips, not a bug.
-
-### 2. Seamless split playback in the editor preview (#222, `ddf0b77`)
-
-Fega's "slight space between both clips" after deleting a middle segment.
-Root cause: single `<video>` on the full source recording; each cut boundary did an
-in-place `currentTime` seek — measured **190–1100ms (avg ~450ms)** of frozen frame +
-silent audio on a real 2560×2880 HEVC recording (probe in session scratchpad).
-
-Fix — double-buffered playback in `PreviewPanelNew.js` + `usePlaybackStore.js`:
-
-- `videoRef` is now a **pointer** to the active of two `<video>` elements
-  (`videoElARef`/`videoElBRef`). Every consumer (store actions, rAF loop,
-  compositor, audio sync, external `getVideoRef()` callers) reads `.current` at
-  call time, so swaps needed zero changes elsewhere.
-- The hidden standby is **parked** on the next section's first frame while playing;
-  at the boundary the elements swap (opacity flip, play/pause, rate/volume copy)
-  and the old one re-parks at the section after that. Measured handoff: **~8ms**,
-  zero visible `seeking`, 1.5× shuttle speed carried across.
-- `mapSourceTime` gained an additive `seekToIndex` so the swap validates its park;
-  legacy in-place seek remains the fallback; adjacent (nothing-deleted) split
-  boundaries still play straight through (distance gate).
-- All media events are target-guarded so standby parking never steers the store;
-  both buffers get the #90 src teardown + unmount cleanup; `swapTick` re-anchors
-  the reframe compositor's rVFC loop after each swap.
-
-### 3. Explainer artifact
-
-`tasks/mocks/clip-status-and-split-gap.html` — the visual explainer Fega approved
-the design from (ladder colors, Done rule table, dequeued proposal).
+- **#223 — real game hashtags in AI titles.** `gamesDb`'s `hashtag` + game name now reach every title/caption prompt (batch, single-card rephrase/regenerate, Gemini video path) via `buildTitleCaptionStoreContext` → `title-caption-prompt.js`. Previously the model guessed; new games (Deadline Delivery) fell back to `#gaming`.
+- **#224 — honest Play Style diff.** Update prompt now requires verbatim copies of unchanged lines; `ProfileDiffModal` (modals.js) classifies each line unchanged / reworded (amber, word-overlap ≥0.6 vs the shorter line) / added-removed (green/red); legend rewritten.
+- **#226 — sound popover remembers it remembered.** New `assets:getDefaultVolume` IPC (index-only read, path-first per #214); `openSoundPopover` (TimelinePanelNew.js) fetches it; the button shows the green check whenever the slider sits at the remembered level.
+- **#227 — Edit Subtitles row tooltips** open below the buttons (`side="bottom"` on RowAction's TooltipContent, SegmentRow.js).
+- **#228 — Queue schedule past-time guards.** `autoSuggestSlot` skips slots at/behind the local clock; Save Schedule greys with a note on a past pick.
+- **#229 — inline snapping time wheel** (Fega picked variant A of `tasks/mocks/queue-time-wheel.html`). `WheelColumn`/`TimeWheel` in QueueView replace the hour/minute dropdowns; one notch per wheel tick, drag + settle-snap, click-to-jump; past hours ghost on today's date. CDP-verified live: seed correctly landed on Saturday's slot (proving #228 too), ghosting and save-gate flip correct on today.
+- **#230 — sticky rejected cards on Pending.** `ClipBrowser` (ProjectsView.js) remembers ids rejected while the Pending filter is active so the card lingers and the WHY? reason chips stay reachable; clears on tab/project change; approvals never linger. CDP-verified end-to-end including a reason-chip toggle.
 
 ## Key Decisions
 
-- **Strict Done** over "queued is enough" — Fega: if a clip is approved but not
-  rendered/queued, or rendered but slotless, there's still work to do there.
-- **Queue ≠ a state.** Every approved unpublished clip is automatically on the
-  Queue tab, so "Rendered" doubles as "waiting in queue" — no separate queue color.
-- **Double-buffer over alternatives** for the seam: only approach that hides HEVC
-  seek latency with one decoder file; MSE/frame-pipelines rejected as too heavy.
-- **NEW STANDING RULE (memory `feedback_test_on_rejected_clips`):** every in-app
-  test runs on a clip with rejected status — never approved ones.
+- **Hashtag stated outright** in the prompt's hard rules + output format (replacing the `#gamehashtag` placeholder), resolved once in the shared store-context builder — covers both IPC handlers.
+- **Reworded-line detection:** word-overlap relative to the SHORTER line (containment-friendly so merged bullets read as reworded), threshold 0.6, no diff library.
+- **Sound popover read-back is a dedicated tiny IPC** — `assetsList` re-walks the audio folders per call, too heavy for a right-click.
+- **Time wheel is variant A** (inline, 3 rows) — chosen over the compact chip+popover variant B.
+- **Sticky reject scope:** rejections only, Pending filter only, component-local state — nothing persisted.
 
 ## Next Steps
 
-1. Watch for seam edge cases in real editing: rapid cuts close together (standby
-   may not park in time → falls back to the old seek — expected, not a bug),
-   reordered sections, reframe-active clips.
-2. #220 (session 141 keyboard layer) — Fega has alpha.36 now which includes it;
-   still open pending his explicit confirmation of the keyboard work.
-3. Queue tab could adopt the same ladder colors for its status chips (not asked
-   yet — surface as an option, don't just do it).
+1. Fega installs `dist/ClipFlow Setup 0.3.0-alpha.37.exe` and verifies the seven untested closes — clear `status: untested` as he confirms.
+2. #224's amber tier gets its real judgment when the next playstyle proposal fires (needs pipeline runs to reach the threshold).
+3. Optional #223 follow-up: Deadline Delivery has no `aiContextAuto` — auto-research would give the model actual game knowledge (hashtag fix works regardless).
+4. Run the start-session issue backlog next session; nothing else was left mid-flight.
 
 ## Watch Out For
 
-- **Editor autosave fires ~800ms after every edit** — there is NO memory-only
-  editing session; killing the app does not discard edits (CDP gotcha 29).
-- **Dev profile shares `projectsRoot` with prod** — dev editor edits hit real
-  project JSON (gotcha 27). Session incident: `S` (trim-end, NOT split — split is
-  `U`) cut a real clip; restored exactly (single segment 733.1377→747.8186,
-  verified on disk; backup in session scratchpad).
-- **`isClipUndecided` includes `"dequeued"`** — any new review-count consumer in
-  ProjectsView should use it, not `status === "none"`.
-- The two `<video>` buffers must stay behaviorally identical — new media event
-  handlers in PreviewPanelNew need the `e.target !== videoRef.current` guard, and
-  any new element-bound effect (like rVFC) needs `swapTick` in its deps.
-- Badge `bg` prop: non-green/yellow/red badge colors need an explicit `bg`
-  (orange/cyan use `T.orangeDim`/`T.cyanDim`) or they fall back to purple dim.
+- **Dev profile shares the REAL `projectsRoot`** — both profiles point at `W:\…\Vertical Recordings Onwards`. Any UI-driving test that writes through the app touches Fega's real project JSON. Mandatory harness: snapshot `project.json` before, field-diff after, restore byte-identical with the app closed. This session's probe un-rejected a REAL rejection in `2026-01-23 AR Day16 Pt3` (first-match button targeting across the card list); the snapshot restore made recovery exact. See memory `project_cdp_verification_gotchas` traps 31–33.
+- **TimeWheel controlled-sync:** external seeds scroll the wheel via an effect guarded by `idxRef` — if the wheel ever fights user scrolls, that guard is the suspect (QueueView.js `WheelColumn`).
+- **`schedHour` values are 24h strings** (`"08"`–`"23"`, `"00"`); `"00"` on today's date = start-of-today = past, by design — the wheel's ghosting and the #228 save gate agree.
+- **Playstyle verbatim rule** depends on the model honoring it; the amber tier catches rewording either way (belt and suspenders).
+- The Play Style diff helpers (`wordSetOf`/`overlapOf`, modals.js) are shared by both panes — keep them module-level.
 
 ## Logs/Debugging
 
-- **Seek-latency probe** (`scratchpad/seek-probe.html` + `probe-main.js`): headless
-  Electron, real recording — small +4s jumps: 410/466/228/1099/192ms; +45s jumps:
-  807/188/197ms. This is the "before" baseline for the seam fix.
-- **Crossing measurement**: sampler at ~120Hz over a real deleted-middle cut —
-  one visible-element flip, 8.2ms sample gap, `seeking` count 0, playhead
-  continuous, playback ran to clip end and stopped (atEnd path intact).
-- **CDP driving**: window occlusion kills rAF (and the playback loop) — relaunch
-  with `--disable-features=CalculateNativeWinOcclusion --disable-renderer-backgrounding
-  --disable-background-timer-throttling` (gotcha 28); `Page.bringToFront` and
-  user32 ShowWindow both failed to flip `visibilityState`.
-- No new Sentry errors introduced; renderer builds clean (chunk-size warning is
-  the known benign one).
+- No new Sentry-relevant errors; dev boots clean (schema v8, single-instance lock respected).
+- Test residue from #230 verification: two feedback rows + a rejected/approved posthog event pair went to the ISOLATED dev DB/analytics; prod DB untouched; test project JSON restored byte-identical (verified by comparison).
+- CDP drivers live in the `5051f2b7…` scratchpad: `cdp-eval.js` (one-shot evaluator using repo `ws`), `cdp-sticky-check3.js` (visibility-scoped #230 driver — the pattern to copy), `cdp-wheel-check.js` (#229), `expr-*.js` probe expressions. Remember: visibility-scope EVERY DOM query (hidden mounted views host lookalike buttons/tabs), and assert DOM text ("Rejected"), not the CSS-uppercased rendering ("REJECTED").
