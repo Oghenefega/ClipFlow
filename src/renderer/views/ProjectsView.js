@@ -1892,7 +1892,24 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
 
   const clips = project.clips || [];
   const isApproved = (c) => c.status === "approved" || c.status === "ready";
-  const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? isClipUndecided(c) : true);
+
+  // #230: a clip rejected while the Pending filter shows it stops matching and
+  // unmounts instantly — stealing the WHY? reason chips before they can be
+  // used. Remember which clips were rejected right here so their card lingers
+  // (red, chips live) until the tab or project changes; re-deciding one clears
+  // it. Approvals never linger — they need no follow-up.
+  const [stickyRejected, setStickyRejected] = useState(() => new Set());
+  useEffect(() => { setStickyRejected(new Set()); }, [filter, project?.id]);
+  const updateClipSticky = (pid, cid, status) => {
+    setStickyRejected((prev) => {
+      const next = new Set(prev);
+      if (status === "rejected" && filter === "pending") next.add(cid); else next.delete(cid);
+      return next;
+    });
+    onUpdateClip(pid, cid, status);
+  };
+
+  const filtered = clips.filter((c) => filter === "approved" ? isApproved(c) : filter === "pending" ? (isClipUndecided(c) || stickyRejected.has(c.id)) : true);
   const approved = clips.filter(isApproved).length;
   const pending = clips.filter(isClipUndecided).length;
   const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
@@ -1971,7 +1988,7 @@ export function ClipBrowser({ project, onBack, onUpdateClip, onUpdateClipFields,
               clip={clip}
               project={project}
               pub={pub}
-              onUpdateClip={onUpdateClip}
+              onUpdateClip={updateClipSticky}
               onUpdateClipFields={onUpdateClipFields}
               onEditClipTitle={onEditClipTitle}
               onOpenInEditor={onOpenInEditor}
