@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-01 (session 143) — 0.3.0-alpha.37: seven-fix batch
+
+### Changed
+- **Installer cut as `0.3.0-alpha.37`**, promoting session 143's seven changes to the daily driver: AI titles carry the game's real hashtag from Settings instead of guessing (#223), the Play Style Update card gets verbatim-preserving proposals and an amber "reworded" diff state (#224), the sound popover shows its remembered volume on reopen (#226), Edit Subtitles row tooltips sit below the buttons (#227), the Queue schedule never suggests or accepts past times (#228), the schedule's hour/minute dropdowns are replaced by the inline snapping time wheel (#229), and rejecting a clip on the Pending tab keeps the card around so reject reasons can be given (#230).
+
 ## [Unreleased] — 2026-07-31 (session 143) — Real game hashtags, an honest play-style diff, and two editor annoyances
 
 ### Added
