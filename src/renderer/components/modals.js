@@ -296,19 +296,35 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
 
 // ============ PROFILE DIFF MODAL ============
 // Line-level diff helpers: lines are compared whitespace/case-insensitively so
-// cosmetic tweaks don't light up as "new". A changed line counts as new (green
-// in Proposed) AND dropped (red tint in Current) — that's what a reviewer wants
-// to read on both sides.
+// cosmetic tweaks don't light up as "new". Three states per line (#224):
+//   (none)    — the exact line exists on the other side
+//   reworded  — no exact match, but a line over there shares most of its words
+//               (amber on BOTH sides; covers rephrased and merged bullets)
+//   added/dropped — no exact match and nothing similar (green in Proposed /
+//               red tint in Current)
 const normLine = (l) => l.replace(/\s+/g, " ").trim().toLowerCase();
 const lineSetOf = (text) => new Set((text || "").split("\n").map(normLine).filter(Boolean));
 const wordCountOf = (text) => (text || "").trim().split(/\s+/).filter(Boolean).length;
+const wordSetOf = (l) => new Set(normLine(l).split(" ").filter(Boolean));
+// Overlap relative to the SHORTER line, so a bullet merged into a longer one
+// still reads as "reworded" rather than dropped+new.
+const overlapOf = (a, b) => {
+  if (a.size === 0 || b.size === 0) return 0;
+  let hit = 0;
+  for (const w of a) if (b.has(w)) hit++;
+  return hit / Math.min(a.size, b.size);
+};
+const REWORD_THRESHOLD = 0.6;
+const REWORD_TINT = "rgba(251,191,36,0.14)";
 
 // One diff pane: highlighted read view with an Edit pencil that swaps in an
 // auto-sized textarea; blur returns to the highlighted view with edits kept.
-function ProfilePane({ label, dotColor, tint, text, onChange, otherLineSet, highlightColor, emptyLabel }) {
+function ProfilePane({ label, dotColor, tint, text, onChange, otherText, highlightColor, emptyLabel }) {
   const [editing, setEditing] = useState(false);
   const words = wordCountOf(text);
   const lines = (text || "").split("\n");
+  const otherLineSet = lineSetOf(otherText);
+  const otherWordSets = (otherText || "").split("\n").map(wordSetOf).filter((s) => s.size > 0);
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
@@ -347,9 +363,15 @@ function ProfilePane({ label, dotColor, tint, text, onChange, otherLineSet, high
         >
           {text
             ? lines.map((line, i) => {
-                const changed = normLine(line) && !otherLineSet.has(normLine(line));
+                const n = normLine(line);
+                let lineColor = null;
+                if (n && !otherLineSet.has(n)) {
+                  const ws = wordSetOf(line);
+                  const reworded = otherWordSets.some((o) => overlapOf(ws, o) >= REWORD_THRESHOLD);
+                  lineColor = reworded ? REWORD_TINT : highlightColor;
+                }
                 return (
-                  <div key={i} style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", ...(changed ? { background: highlightColor, borderRadius: 4, padding: "1px 4px", margin: "1px -4px" } : {}) }}>
+                  <div key={i} style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", ...(lineColor ? { background: lineColor, borderRadius: 4, padding: "1px 4px", margin: "1px -4px" } : {}) }}>
                     {line || " "}
                   </div>
                 );
@@ -366,8 +388,6 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
   // Both panes are editable; the button you press saves THAT pane's text.
   const [curText, setCurText] = useState(oldProfile || "");
   const [newText, setNewText] = useState(newProfile || "");
-  const curSet = lineSetOf(curText);
-  const newSet = lineSetOf(newText);
 
   const handleAccept = async () => {
     setAccepting(true);
@@ -407,7 +427,7 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
             <div style={{ width: 32, height: 32, borderRadius: 8, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🧠</div>
             <div>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>Play Style Update — {gameName}</div>
-              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>Green = newly added in the proposal · red tint = dropped from current · both sides editable</div>
+              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>Green = added · red = removed · amber = reworded, same content on both sides · both sides editable</div>
             </div>
           </div>
         </div>
@@ -421,7 +441,7 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
               tint={{ bg: "rgba(248,113,113,0.04)", border: "rgba(248,113,113,0.15)" }}
               text={curText}
               onChange={setCurText}
-              otherLineSet={newSet}
+              otherText={newText}
               highlightColor="rgba(248,113,113,0.14)"
               emptyLabel="(empty)"
             />
@@ -431,7 +451,7 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
               tint={{ bg: "rgba(52,211,153,0.04)", border: "rgba(52,211,153,0.15)" }}
               text={newText}
               onChange={setNewText}
-              otherLineSet={curSet}
+              otherText={curText}
               highlightColor="rgba(52,211,153,0.18)"
               emptyLabel="(empty)"
             />

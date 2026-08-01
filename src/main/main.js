@@ -2621,7 +2621,13 @@ function buildTitleCaptionStoreContext(params = {}) {
     .getVoiceExamples(20)
     .map((e) => ({ ...e, game: resolveGameName(e.game) }));
 
-  return { styleGuide, styleHistory, gameContext, voiceExamples };
+  // #223: the per-game hashtag lives in gamesDb but never reached the prompt —
+  // the model was guessing, and fell back to "#gaming" for games it couldn't
+  // infer from context (no research, no publish history).
+  const activeGame = gamesDb.find((g) => g.name === params.gameName);
+  const gameHashtag = activeGame?.hashtag || "";
+
+  return { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag };
 }
 
 // #183 Phase 1: give the title/caption model actual stills from the clip.
@@ -2716,6 +2722,7 @@ async function generateTitlesWithGeminiVideo({ params, systemPrompt }) {
     // Same user message as the frames path, minus frames — the video replaces them.
     const baseText = titleCaptionPrompt.buildUserContent({
       transcript: params.transcript,
+      gameName: params.gameName,
       projectName: params.projectName,
       userContext: params.userContext,
       energyLevel: params.energyLevel,
@@ -2763,7 +2770,7 @@ async function generateTitlesWithGeminiVideo({ params, systemPrompt }) {
 // Generate titles & captions for a clip
 ipcMain.handle("anthropic:generate", async (_, params) => {
   try {
-    const { styleGuide, styleHistory, gameContext, voiceExamples } = buildTitleCaptionStoreContext(params);
+    const { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag } = buildTitleCaptionStoreContext(params);
 
     // Voice-led prompt (#183 — replaces the #85 pillars/drivers framework).
     // Reasoning in src/main/data/caption-frameworks.md; rules and cold-start
@@ -2774,6 +2781,7 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
       gameContext,
       styleHistory,
       voiceExamples,
+      gameHashtag,
     });
 
     // #193: Gemini sees the clip video when a key is configured; the frames
@@ -2796,6 +2804,7 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
 
       const userMessage = titleCaptionPrompt.buildUserContent({
         transcript: params.transcript,
+        gameName: params.gameName,
         projectName: params.projectName,
         userContext: params.userContext,
         energyLevel: params.energyLevel,
@@ -2948,16 +2957,17 @@ ipcMain.handle("titleCaptionLog:getExamples", async (_, limit) => {
 async function handleSingleCard(mode, params) {
   try {
     const kind = params.kind === "caption" ? "caption" : "title";
-    const { styleGuide, styleHistory, gameContext, voiceExamples } = buildTitleCaptionStoreContext(params);
+    const { styleGuide, styleHistory, gameContext, voiceExamples, gameHashtag } = buildTitleCaptionStoreContext(params);
 
     const systemPrompt = titleCaptionPrompt.buildSingleSystemPrompt({
-      mode, kind, styleGuide, gameContext, styleHistory, voiceExamples,
+      mode, kind, styleGuide, gameContext, styleHistory, voiceExamples, gameHashtag,
     });
     const userMessage = titleCaptionPrompt.buildSingleUserContent({
       kind,
       currentText: params.currentText,
       otherOptions: params.otherOptions,
       transcript: params.transcript,
+      gameName: params.gameName,
       projectName: params.projectName,
       userContext: params.userContext,
     });

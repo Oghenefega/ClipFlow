@@ -173,6 +173,7 @@ Rules:
 - Write in third person ("${name} does X", not "You do X")
 - Note gameplay style (aggressive, cautious, chaotic, etc.) and content style (comedic, competitive, educational, etc.) where the kept clips support it
 - Keep it concise but thorough — 150-300 words. If merging new patterns with the current profile would exceed that, consolidate and cut the weakest lines — never just append
+- Copy every line you are NOT changing verbatim, character for character, from the current profile. The reviewer reads a line-level diff of your output against the current profile — needless rewording shows up as false churn. Only reword a line when its meaning actually changes
 - If the current profile is good and the kept clips don't reveal anything new, return the current profile unchanged
 - Output ONLY the profile text, no headers or explanations`;
 

@@ -111,8 +111,16 @@ from that.
 - If the transcript doesn't tell you what happened, write about the REACTION, not the event.
 - The caption opens the loop; the footage closes it. Never put the outcome in the caption.`;
 
-const HARD_RULES = `**Titles**
-- 3-7 words, then one #gamehashtag at the end.
+// #223: the games DB stores each game's hashtag, but it never reached the
+// prompt — the model had to guess, and guessed "#gaming" for any game it
+// couldn't infer from context. When we know the tag, state it outright.
+function hashtagText(gameHashtag) {
+  const clean = String(gameHashtag || "").trim().replace(/^#/, "");
+  return clean ? `#${clean}` : "one #gamehashtag";
+}
+
+const hardRules = (tag) => `**Titles**
+- 3-7 words, then ${tag} at the end.
 - Sentence case. Never Title Case.
 - **A fragment beats a sentence.** Stop at the interesting part. Do not add a
   second clause that explains or twists it. "The pass was PERFECT" lands.
@@ -140,9 +148,11 @@ The viewer reads it while the footage plays, in roughly two short lines.
  * @param {string} [opts.gameContext]    Pre-formatted game context section.
  * @param {string} [opts.styleHistory]   Pre-formatted rejection history section.
  * @param {Array}  [opts.voiceExamples]  Published examples from title-caption-log.
+ * @param {string} [opts.gameHashtag]    The game's hashtag from gamesDb (#223).
  * @returns {string}
  */
-function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [] } = {}) {
+function buildSystemPrompt({ styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "" } = {}) {
+  const tag = hashtagText(gameHashtag);
   return `# TASK
 
 You write the two pieces of copy that sell a short-form gaming clip:
@@ -169,7 +179,7 @@ ${formatVoice(voiceExamples)}
 
 # 3. HARD RULES
 
-${HARD_RULES}
+${hardRules(tag)}
 
 ---
 
@@ -197,7 +207,7 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 \`\`\`json
 {
   "titles": [
-    { "title": "<3-7 words, sentence case, ends with one #gamehashtag>", "chip": "<2-6 words>" },
+    { "title": "<3-7 words, sentence case, ends with ${tag}>", "chip": "<2-6 words>" },
     { "title": "...", "chip": "..." },
     { "title": "...", "chip": "..." }
   ],
@@ -224,6 +234,7 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
  *
  * @param {object} opts
  * @param {string} [opts.transcript]
+ * @param {string} [opts.gameName]      The game's display name (#223).
  * @param {string} [opts.projectName]
  * @param {string} [opts.userContext]
  * @param {string} [opts.energyLevel]   Detection's energy read (LOW|MED|HIGH|EXPLOSIVE).
@@ -232,10 +243,11 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
  * @param {Array}  [opts.frames]        [{ base64, label }] stills from the clip (#183 Phase 1).
  * @returns {string|Array}
  */
-function buildUserContent({ transcript, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames } = {}) {
+function buildUserContent({ transcript, gameName, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames } = {}) {
   let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
   out += formatClipSignals(energyLevel, confidence);
-  if (projectName) out += `\n\n## Project/Game: ${projectName}`;
+  if (gameName) out += `\n\n## Game: ${gameName}`;
+  if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
   if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   if (Array.isArray(rejectedSuggestions) && rejectedSuggestions.length > 0) {
     out += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;
@@ -302,13 +314,15 @@ function singleModeInstruction(mode, kind) {
  * @param {string} [opts.gameContext]
  * @param {string} [opts.styleHistory]
  * @param {Array}  [opts.voiceExamples]
+ * @param {string} [opts.gameHashtag]   The game's hashtag from gamesDb (#223).
  * @returns {string}
  */
-function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [] } = {}) {
+function buildSingleSystemPrompt({ mode, kind, styleGuide = "", gameContext = "", styleHistory = "", voiceExamples = [], gameHashtag = "" } = {}) {
   const isTitle = kind === "title";
   const outputField = isTitle ? "title" : "caption";
+  const tag = hashtagText(gameHashtag);
   const outputDesc = isTitle
-    ? "3-7 words, sentence case, ends with one #gamehashtag"
+    ? `3-7 words, sentence case, ends with ${tag}`
     : "4-9 words, first person, no hashtags";
 
   return `# ROLE
@@ -336,7 +350,7 @@ ${formatVoice(voiceExamples)}
 
 # HARD RULES
 
-${HARD_RULES}
+${hardRules(tag)}
 
 ---
 
@@ -368,13 +382,15 @@ Return ONLY valid JSON parseable by \`JSON.parse()\` with zero modifications:
  * @param {string} opts.currentText        The card being changed.
  * @param {string[]} [opts.otherOptions]   Sibling cards' text (regenerate: avoid their angles).
  * @param {string} [opts.transcript]
+ * @param {string} [opts.gameName]         The game's display name (#223).
  * @param {string} [opts.projectName]
  * @param {string} [opts.userContext]
  * @returns {string}
  */
-function buildSingleUserContent({ kind, currentText, otherOptions, transcript, projectName, userContext } = {}) {
+function buildSingleUserContent({ kind, currentText, otherOptions, transcript, gameName, projectName, userContext } = {}) {
   let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
-  if (projectName) out += `\n\n## Project/Game: ${projectName}`;
+  if (gameName) out += `\n\n## Game: ${gameName}`;
+  if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
   if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   out += `\n\n## The current ${kind} to act on:\n"${currentText || ""}"`;
   if (Array.isArray(otherOptions) && otherOptions.length > 0) {

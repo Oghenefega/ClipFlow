@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-07-31 (session 143) — Real game hashtags, and an honest play-style diff
+
+### Fixed
+- **AI titles now end with the game's real hashtag instead of a guess (#223).** The hashtag typed into Settings → Games was never actually given to the AI — the prompt just said "end with a game hashtag" and left the model to figure out which one. Known games got lucky guesses; a new game with no research and no publish history (Deadline Delivery) got generic `#gaming`. The prompt now states the exact hashtag from the games database outright, and also names the game itself, so every game — including brand-new ones — gets its configured hashtag from the first clip.
+- **The Play Style Update card no longer paints reworded lines as dropped-and-readded (#224).** The comparison only recognized *identical* lines, so when the proposal merged or rephrased a bullet, the old wording lit red ("dropped") and the new wording lit green ("newly added") — which read as content being deleted when nothing was lost. Reworded lines (mostly the same words on both sides) now show in amber on both panes; green is reserved for genuinely new lines and red for genuinely removed ones, and the legend says so. The proposal AI is also now told to copy bullets it isn't changing word-for-word, so unchanged lines stop lighting up at all.
+
 ## [Unreleased] — 2026-07-31 (session 142) — 0.3.0-alpha.36: status ladder + seamless splits build
 
 ### Changed
