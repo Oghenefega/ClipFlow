@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Queue time wheel — two variants (#229)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b10; --surface: #111218; --surface-hover: #16171f;
+    --border: rgba(255,255,255,0.06); --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2; --text-secondary: rgba(255,255,255,0.55);
+    --text-tertiary: rgba(255,255,255,0.32); --text-muted: rgba(255,255,255,0.16);
+    --accent: #8b5cf6; --accent-light: #a78bfa; --accent-dim: rgba(139,92,246,0.12);
+    --accent-border: rgba(139,92,246,0.25); --red: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, sans-serif; padding: 36px 40px 60px; }
+  h1 { font-size: 18px; font-weight: 700; }
+  .sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; max-width: 640px; line-height: 1.55; }
+  .note { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  section { margin-top: 34px; }
+  h2 { font-size: 13px; font-weight: 700; color: var(--accent-light); letter-spacing: 0.3px; }
+  .caption { font-size: 11.5px; color: var(--text-secondary); margin: 4px 0 12px; max-width: 640px; line-height: 1.55; }
+
+  /* ── mock queue card shell ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; max-width: 640px; }
+  .cardtop { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .thumb { width: 34px; height: 60px; border-radius: 6px; background: linear-gradient(160deg, #1d2432, #10141d); border: 1px solid var(--border); }
+  .cliptitle { font-size: 13px; font-weight: 600; }
+  .clipmeta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .schedrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+
+  .select { appearance: none; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 8px 26px 8px 12px; font-size: 12px; font-family: inherit; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path d='M0 0l4 5 4-5z' fill='rgba(255,255,255,0.32)'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; }
+  .btn { border: none; border-radius: 7px; padding: 8px 16px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; }
+  .btn.save { background: var(--accent); color: #fff; }
+  .btn.save.disabled { background: rgba(255,255,255,0.04); color: var(--text-muted); cursor: default; }
+  .btn.cancel { background: transparent; border: 1px solid var(--border); color: var(--text-tertiary); font-weight: 600; }
+  .hintline { font-size: 10px; color: var(--text-tertiary); margin-top: 8px; }
+  .warnline { font-size: 10px; color: var(--red); margin-top: 8px; display: none; }
+
+  /* ── the wheel ── */
+  .wheelwrap { display: flex; align-items: center; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; position: relative; }
+  .wheelwrap .colon { color: var(--text-tertiary); font-size: 13px; font-weight: 700; padding: 0 1px; }
+  .wheel { position: relative; overflow: hidden; }
+  .wheel .scroller { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; }
+  .wheel .scroller::-webkit-scrollbar { display: none; }
+  .wheel .opt { scroll-snap-align: center; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-tertiary); cursor: pointer; user-select: none; transition: color 0.12s, opacity 0.12s; }
+  .wheel .opt.sel { color: var(--text); font-weight: 700; }
+  .wheel .opt.past { opacity: 0.22; }
+  /* center band + fade masks */
+  .wheel::before { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: var(--rowh); transform: translateY(-50%); border-radius: 5px; background: var(--accent-dim); border: 1px solid var(--accent-border); pointer-events: none; }
+  .wheel::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, var(--bg) 0%, transparent 32%, transparent 68%, var(--bg) 100%); }
+
+  /* variant B chip + popover */
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 12px; cursor: pointer; font-family: inherit; color: var(--text); }
+  .chip:hover { border-color: var(--border-hover); }
+  .chip svg { opacity: 0.4; }
+  .popwrap { position: relative; display: inline-block; }
+  .pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; background: var(--surface); border: 1px solid var(--border-hover); border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55); padding: 10px; display: none; }
+  .pop.open { display: block; }
+  .pop .done { margin-top: 8px; width: 100%; }
+
+  .footer { margin-top: 40px; font-size: 11.5px; color: var(--text-tertiary); max-width: 640px; line-height: 1.6; }
+  kbd { background: var(--surface-hover); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10px; font-family: inherit; }
+</style>
+</head>
+<body>
+
+<h1>Queue schedule — time wheel picker <span style="color:var(--text-tertiary);font-weight:400;">(#229)</span></h1>
+<div class="sub">Both versions below are live — scroll them with the mouse wheel, drag them, or click a value. The pretend clock is <b id="nowlabel"></b>: on today's date, hours already behind it fade out, and picking one greys Save Schedule (that part shipped as #228 — the mock shows how the wheel wears it).</div>
+
+<!-- ════════ VARIANT A ════════ -->
+<section>
+  <h2>Variant A — wheels sit right in the row</h2>
+  <div class="caption">The two dropdowns are replaced in place. Three rows visible, so the row gets a little taller than today, but the time is always one flick away — no clicks to open anything.</div>
+  <div class="card">
+    <div class="cardtop">
+      <div class="thumb"></div>
+      <div><div class="cliptitle">This shortcut almost KILLED me</div><div class="clipmeta">Deadline Delivery · 0:42 · rendered</div></div>
+    </div>
+    <div class="schedrow">
+      <select class="select" id="dateA"></select>
+      <div class="wheelwrap" id="wrapA"></div>
+      <button class="btn save" id="saveA">Save Schedule</button>
+      <button class="btn cancel">Cancel</button>
+    </div>
+    <div class="warnline" id="warnA">That time has already passed — pick a future time.</div>
+    <div class="hintline">Suggested: Friday Jul 31 at 10:30 PM</div>
+  </div>
+</section>
+
+<!-- ════════ VARIANT B ════════ -->
+<section>
+  <h2>Variant B — compact chip, wheel opens on click</h2>
+  <div class="caption">The row stays exactly as slim as today. The time reads as one chip; clicking it drops a bigger five-row wheel. One click more than A, but roomier to scroll and the card never grows.</div>
+  <div class="card">
+    <div class="cardtop">
+      <div class="thumb"></div>
+      <div><div class="cliptitle">I accidentally found a shortcut</div><div class="clipmeta">Deadline Delivery · 0:38 · rendered</div></div>
+    </div>
+    <div class="schedrow">
+      <select class="select" id="dateB"></select>
+      <div class="popwrap">
+        <button class="chip" id="chipB">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span id="chiplabelB">10:30 PM</span>
+        </button>
+        <div class="pop" id="popB">
+          <div class="wheelwrap" id="wrapB" style="border:none;background:transparent;padding:0;"></div>
+          <button class="btn save done" id="doneB">Done</button>
+        </div>
+      </div>
+      <button class="btn save" id="saveB">Save Schedule</button>
+      <button class="btn cancel">Cancel</button>
+    </div>
+    <div class="warnline" id="warnB">That time has already passed — pick a future time.</div>
+    <div class="hintline">Suggested: Friday Jul 31 at 10:30 PM</div>
+  </div>
+</section>
+
+<div class="footer">
+  Interactions both variants share: mouse wheel moves exactly one notch per tick · drag scrolls freely and snaps to the nearest value · clicking any visible value jumps to it · past hours on today's date fade to ghosts.<br><br>
+  Tell me A or B (or what to change) and I'll build it into the Queue tab for real.
+</div>
+
+<script>
+(() => {
+  // Pretend clock, pinned so the demo reads the same whenever it's opened.
+  const NOW = new Date(); NOW.setMinutes(4);
+  document.getElementById("nowlabel").textContent =
+    NOW.toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
+
+  // Same option lists as the app (QueueView HOUR_OPTIONS / MINUTE_OPTIONS).
+  const HOURS = [];
+  for (let h = 8; h < 24; h++) HOURS.push({ v: h, label: (h % 12 || 12) + " " + (h < 12 ? "AM" : "PM") });
+  HOURS.push({ v: 0, label: "12 AM" });
+  const MINS = Array.from({ length: 12 }, (_, i) => ({ v: i * 5, label: String(i * 5).padStart(2, "0") }));
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(NOW); d.setDate(NOW.getDate() + i);
+    if (d.getDay() === 0) continue;
+    dates.push({ off: i, label: d.toLocaleString("en-US", { weekday: "long", month: "short", day: "numeric" }) });
+  }
+  for (const id of ["dateA", "dateB"]) {
+    const sel = document.getElementById(id);
+    dates.forEach((d) => { const o = document.createElement("option"); o.value = d.off; o.textContent = d.label; sel.appendChild(o); });
+  }
+
+  // ── wheel factory ──
+  function makeWheel({ options, rowH, visible, width, initial, onChange }) {
+    const wheel = document.createElement("div");
+    wheel.className = "wheel";
+    wheel.style.setProperty("--rowh", rowH + "px");
+    wheel.style.height = rowH * visible + "px";
+    wheel.style.width = width + "px";
+    const sc = document.createElement("div");
+    sc.className = "scroller";
+    const pad = (rowH * (visible - 1)) / 2;
+    sc.style.paddingTop = pad + "px"; sc.style.paddingBottom = pad + "px";
+    const els = options.map((o, i) => {
+      const el = document.createElement("div");
+      el.className = "opt"; el.style.height = rowH + "px"; el.textContent = o.label;
+      el.addEventListener("click", () => setIndex(i, true));
+      sc.appendChild(el); return el;
+    });
+    wheel.appendChild(sc);
+
+    let idx = -1, settle;
+    function paint() { els.forEach((el, i) => el.classList.toggle("sel", i === idx)); }
+    function setIndex(i, smooth) {
+      i = Math.max(0, Math.min(options.length - 1, i));
+      sc.scrollTo({ top: i * rowH, behavior: smooth ? "smooth" : "auto" });
+      if (i !== idx) { idx = i; paint(); onChange(options[i]); }
+    }
+    sc.addEventListener("scroll", () => {
+      const i = Math.round(sc.scrollTop / rowH);
+      if (i !== idx && i >= 0 && i < options.length) { idx = i; paint(); onChange(options[i]); }
+      clearTimeout(settle);
+      settle = setTimeout(() => sc.scrollTo({ top: idx * rowH, behavior: "smooth" }), 90);
+    });
+    wheel.addEventListener("wheel", (e) => { e.preventDefault(); setIndex(idx + (e.deltaY > 0 ? 1 : -1), true); }, { passive: false });
+    setTimeout(() => setIndex(initial, false), 0);
+    return { el: wheel, get: () => options[idx], markPast: (fn) => els.forEach((el, i) => el.classList.toggle("past", fn(options[i]))) };
+  }
+
+  // ── one variant = date select + hour/min wheels + save gate ──
+  function variant({ wrapId, dateId, saveId, warnId, rowH, visible, chipLabel }) {
+    const wrap = document.getElementById(wrapId);
+    const dateSel = document.getElementById(dateId);
+    const save = document.getElementById(saveId);
+    const warn = document.getElementById(warnId);
+    let hourW, minW;
+    const startH = (NOW.getHours() + 1) % 24;
+
+    function refresh() {
+      const off = Number(dateSel.value);
+      const today = off === 0;
+      hourW.markPast((o) => today && o.v !== 0 && o.v < NOW.getHours());
+      const h = hourW.get(), m = minW.get();
+      if (!h || !m) return;
+      const picked = new Date(NOW); picked.setDate(NOW.getDate() + off);
+      picked.setHours(h.v, m.v, 0, 0);
+      if (h.v === 0) picked.setDate(picked.getDate() + 1); // midnight belongs to the next morning
+      const past = picked <= NOW;
+      save.classList.toggle("disabled", past);
+      warn.style.display = past ? "block" : "none";
+      if (chipLabel) document.getElementById(chipLabel).textContent = h.label.replace(" ", ":" + m.label + " ");
+    }
+    hourW = makeWheel({ options: HOURS, rowH, visible, width: 62, initial: HOURS.findIndex((o) => o.v === (startH < 8 ? 8 : startH)), onChange: refresh });
+    minW = makeWheel({ options: MINS, rowH, visible, width: 44, initial: 6, onChange: refresh });
+    wrap.appendChild(hourW.el);
+    const colon = document.createElement("span"); colon.className = "colon"; colon.textContent = ":";
+    wrap.appendChild(colon); wrap.appendChild(minW.el);
+    dateSel.addEventListener("change", refresh);
+    setTimeout(refresh, 60);
+  }
+
+  variant({ wrapId: "wrapA", dateId: "dateA", saveId: "saveA", warnId: "warnA", rowH: 26, visible: 3 });
+  variant({ wrapId: "wrapB", dateId: "dateB", saveId: "saveB", warnId: "warnB", rowH: 26, visible: 5, chipLabel: "chiplabelB" });
+
+  // variant B popover open/close
+  const pop = document.getElementById("popB");
+  document.getElementById("chipB").addEventListener("click", (e) => { e.stopPropagation(); pop.classList.toggle("open"); });
+  document.getElementById("doneB").addEventListener("click", () => pop.classList.remove("open"));
+  document.addEventListener("click", (e) => { if (!pop.contains(e.target)) pop.classList.remove("open"); });
+})();
+</script>
+</body>
+</html>
