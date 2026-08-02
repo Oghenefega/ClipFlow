@@ -1,0 +1,131 @@
+{
+  "videoName": "2026-07-20 RL Day9 Pt1",
+  "gameTag": "RL",
+  "label": "f0",
+  "variant": {
+    "frames": 0,
+    "rejected": true,
+    "approved": true,
+    "playstyle": true
+  },
+  "run": 1,
+  "promptChars": 15236,
+  "transcriptChars": 7088,
+  "frameCount": 0,
+  "usage": {
+    "inputTokens": 8363,
+    "outputTokens": 483
+  },
+  "cost": 0.032334,
+  "picks": [
+    {
+      "clip_number": 1,
+      "start": "00:01:41",
+      "end": "00:02:05",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.82
+    },
+    {
+      "clip_number": 2,
+      "start": "00:00:00",
+      "end": "00:00:58",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.78
+    },
+    {
+      "clip_number": 3,
+      "start": "00:00:26",
+      "end": "00:01:07",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.73
+    },
+    {
+      "clip_number": 4,
+      "start": "00:02:23",
+      "end": "00:02:57",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.68
+    },
+    {
+      "clip_number": 5,
+      "start": "00:03:40",
+      "end": "00:03:50",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.65
+    },
+    {
+      "clip_number": 6,
+      "start": "00:01:07",
+      "end": "00:01:41",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.61
+    },
+    {
+      "clip_number": 7,
+      "start": "00:02:58",
+      "end": "00:03:32",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.54
+    }
+  ],
+  "score": {
+    "approvedTotal": 4,
+    "approvedMatched": 4,
+    "approvedRecall": 1,
+    "rejectedHits": 3,
+    "rejectedHitRate": 0.42857142857142855,
+    "unreviewed": 1,
+    "perPick": [
+      {
+        "start": 101,
+        "end": 125,
+        "confidence": 0.82,
+        "verdict": "rejected"
+      },
+      {
+        "start": 0,
+        "end": 58,
+        "confidence": 0.78,
+        "verdict": "approved"
+      },
+      {
+        "start": 26,
+        "end": 67,
+        "confidence": 0.73,
+        "verdict": "approved"
+      },
+      {
+        "start": 143,
+        "end": 177,
+        "confidence": 0.68,
+        "verdict": "approved"
+      },
+      {
+        "start": 220,
+        "end": 230,
+        "confidence": 0.65,
+        "verdict": "rejected"
+      },
+      {
+        "start": 67,
+        "end": 101,
+        "confidence": 0.61,
+        "verdict": "rejected"
+      },
+      {
+        "start": 178,
+        "end": 212,
+        "confidence": 0.54,
+        "verdict": "unreviewed"
+      }
+    ]
+  },
+  "scoredAt": "2026-08-02T20:08:06.225Z"
+}

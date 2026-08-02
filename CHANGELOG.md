@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-02 (session 144) — Detection science: sharper rejection teaching + the measuring stick
+
+### Added
+- **Four new rejection-reason chips: Setup / tech talk, Chat banter, Flat delivery, Too similar (#232).** The old six chips forced everything into "not funny" or "nothing happens" (67 uses each, constantly co-tagged), which taught the clip AI almost nothing specific. The new vocabulary matches the actual patterns in past rejections — headphone-troubleshooting talk now has its own chip instead of masquerading as an unfunny joke. "Too similar" counts as mechanical (a good moment that's redundant), so it never trains the AI to avoid good moments.
+- **Replay-and-score harness (#233): the engine can now be graded against real history.** `tasks/spikes/replay-score/harness.js` re-runs clip detection on a past recording from its saved pipeline artifacts and scores the picks against every approve/reject decision ever made on that video. Baseline across 6 recordings: the engine re-finds 92% of approved moments, but ~half of all picks land on historically rejected ones — precision, not recall, is the frontier.
+- **First ablation results (#234), measured instead of felt.** Cutting screenshots from 20 to 10 loses nothing (identical 92% recall) while trimming ~28% off each generation's cost; cutting to 0 drops recall to 81% — so the screenshots genuinely earn their keep, but half of them are enough. Removing the rejected-examples section changed nothing measurable yet — expected, since most historical rejections carry no reason tags; re-test once tagged rejections accumulate.
+
+### Changed
+- **The prompt's rejected-moments section now groups by reason, tagged rows first (#232).** Instead of a flat list where untagged legacy rejections crowded the budget, the AI now reads "Rejected because: nothing happens / not funny / …" groups built from reason-tagged rows, with untagged ones only filling leftover space. The fetch window widened from 30 to 50 rejections so tagged rows from slightly older sessions can reach the prompt.
+
 ## [Unreleased] — 2026-08-01 (session 143) — 0.3.0-alpha.37: seven-fix batch
 
 ### Changed

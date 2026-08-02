@@ -1,0 +1,257 @@
+{
+  "videoName": "2026-07-21 EO Day4 Pt1",
+  "gameTag": "EO",
+  "label": "baseline",
+  "variant": {
+    "frames": 20,
+    "rejected": true,
+    "approved": true,
+    "playstyle": true
+  },
+  "run": 1,
+  "promptChars": 15195,
+  "transcriptChars": 35136,
+  "frameCount": 20,
+  "usage": {
+    "inputTokens": 45525,
+    "outputTokens": 1098
+  },
+  "cost": 0.15304500000000001,
+  "picks": [
+    {
+      "clip_number": 1,
+      "start": "00:12:06",
+      "end": "00:12:42",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.95
+    },
+    {
+      "clip_number": 2,
+      "start": "00:15:52",
+      "end": "00:16:19",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.93
+    },
+    {
+      "clip_number": 3,
+      "start": "00:21:36",
+      "end": "00:22:09",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.91
+    },
+    {
+      "clip_number": 4,
+      "start": "00:08:44",
+      "end": "00:09:00",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": false,
+      "confidence": 0.89
+    },
+    {
+      "clip_number": 5,
+      "start": "00:07:00",
+      "end": "00:07:57",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.87
+    },
+    {
+      "clip_number": 6,
+      "start": "00:25:34",
+      "end": "00:25:57",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.84
+    },
+    {
+      "clip_number": 7,
+      "start": "00:04:35",
+      "end": "00:04:58",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.82
+    },
+    {
+      "clip_number": 8,
+      "start": "00:13:03",
+      "end": "00:13:42",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.8
+    },
+    {
+      "clip_number": 9,
+      "start": "00:18:48",
+      "end": "00:19:01",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.78
+    },
+    {
+      "clip_number": 10,
+      "start": "00:20:36",
+      "end": "00:21:00",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.76
+    },
+    {
+      "clip_number": 11,
+      "start": "00:09:43",
+      "end": "00:10:04",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.74
+    },
+    {
+      "clip_number": 12,
+      "start": "00:01:08",
+      "end": "00:01:37",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.72
+    },
+    {
+      "clip_number": 13,
+      "start": "00:27:09",
+      "end": "00:27:28",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.7
+    },
+    {
+      "clip_number": 14,
+      "start": "00:10:44",
+      "end": "00:11:03",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.67
+    },
+    {
+      "clip_number": 15,
+      "start": "00:17:31",
+      "end": "00:17:57",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.65
+    },
+    {
+      "clip_number": 16,
+      "start": "00:28:46",
+      "end": "00:28:52",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.6
+    }
+  ],
+  "score": {
+    "approvedTotal": 6,
+    "approvedMatched": 5,
+    "approvedRecall": 0.8333333333333334,
+    "rejectedHits": 8,
+    "rejectedHitRate": 0.5,
+    "unreviewed": 3,
+    "perPick": [
+      {
+        "start": 726,
+        "end": 762,
+        "confidence": 0.95,
+        "verdict": "approved"
+      },
+      {
+        "start": 952,
+        "end": 979,
+        "confidence": 0.93,
+        "verdict": "rejected"
+      },
+      {
+        "start": 1296,
+        "end": 1329,
+        "confidence": 0.91,
+        "verdict": "approved"
+      },
+      {
+        "start": 524,
+        "end": 540,
+        "confidence": 0.89,
+        "verdict": "approved"
+      },
+      {
+        "start": 420,
+        "end": 477,
+        "confidence": 0.87,
+        "verdict": "rejected"
+      },
+      {
+        "start": 1534,
+        "end": 1557,
+        "confidence": 0.84,
+        "verdict": "rejected"
+      },
+      {
+        "start": 275,
+        "end": 298,
+        "confidence": 0.82,
+        "verdict": "rejected"
+      },
+      {
+        "start": 783,
+        "end": 822,
+        "confidence": 0.8,
+        "verdict": "approved"
+      },
+      {
+        "start": 1128,
+        "end": 1141,
+        "confidence": 0.78,
+        "verdict": "rejected"
+      },
+      {
+        "start": 1236,
+        "end": 1260,
+        "confidence": 0.76,
+        "verdict": "rejected"
+      },
+      {
+        "start": 583,
+        "end": 604,
+        "confidence": 0.74,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 68,
+        "end": 97,
+        "confidence": 0.72,
+        "verdict": "rejected"
+      },
+      {
+        "start": 1629,
+        "end": 1648,
+        "confidence": 0.7,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 644,
+        "end": 663,
+        "confidence": 0.67,
+        "verdict": "rejected"
+      },
+      {
+        "start": 1051,
+        "end": 1077,
+        "confidence": 0.65,
+        "verdict": "approved"
+      },
+      {
+        "start": 1726,
+        "end": 1732,
+        "confidence": 0.6,
+        "verdict": "unreviewed"
+      }
+    ]
+  },
+  "scoredAt": "2026-08-02T20:05:48.221Z"
+}

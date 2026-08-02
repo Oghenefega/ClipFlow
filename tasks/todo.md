@@ -6,38 +6,38 @@
 
 ---
 
-## 🔄 ACTIVE (session 144) — Detection input science: feedback that teaches + measurable experiments
+## ✅ DONE (session 144) — Detection input science — steps 1-2 complete + first ablations; frames-10 decision pending Fega
 
 Fega's ask: make the clip-detection inputs *measurably* useful — sharper rejection
 reasons, a numeric way to judge screenshots (not vibes), and explore Gemini
 watching full recordings. Plan approved in chat 2026-08-02.
 
 ### Step 1 — Rejection reasons v2 (implement now)
-- [ ] `ProjectsView.js` REJECT_REASON_CHIPS: append 4 chips — Setup / tech talk,
+- [x] `ProjectsView.js` REJECT_REASON_CHIPS: append 4 chips — Setup / tech talk,
       Chat banter, Flat delivery, Too similar (keys: setup-talk, chat-banter,
       flat-delivery, repetitive). Existing 6 keep position (muscle memory).
-- [ ] `ai-prompt.js`: labels for new keys; `repetitive` joins EXCLUDED list
+- [x] `ai-prompt.js`: labels for new keys; `repetitive` joins EXCLUDED list
       (good-but-redundant ≠ taste); rebuild `buildRejectedSection` — tagged rows
       fill the 3k budget FIRST, grouped by reason ("## Rejected because: …"),
       untagged legacy rows last under "no stated reason".
-- [ ] `feedback.js` MECHANICAL_REJECT_REASONS: add `repetitive` (stats mirror).
-- [ ] `ai-pipeline.js`: rejected fetch 30 → 50 so tagged rows from older
+- [x] `feedback.js` MECHANICAL_REJECT_REASONS: add `repetitive` (stats mirror).
+- [x] `ai-pipeline.js`: rejected fetch 30 → 50 so tagged rows from older
       windows can reach the budget.
-- [ ] Update + extend `ai-prompt.test.js` (grouping, tagged-first, repetitive
+- [x] Update + extend `ai-prompt.test.js` (grouping, tagged-first, repetitive
       exclusion). All tests green.
 - Verify: tests pass, build renderer, dev-profile boot, chips render in reject
   flow, prompt snapshot from builder shows grouped section.
 
 ### Step 2 — Replay-and-score harness (this session if room)
-- [ ] `tasks/spikes/replay-score/` harness: rebuild the detection call from
+- [x] `tasks/spikes/replay-score/` harness: rebuild the detection call from
       saved artifacts (processing/claude claude_ready.txt, energy/, signals/,
       frames re-extracted from source), current DB feedback, current prompt
       code; call LLM; score picks vs feedback history (approved-recall +
       rejected-hit-rate, overlap = midpoint containment).
-- [ ] Baseline current config on the RL recordings with richest feedback.
+- [x] Baseline current config on the RL recordings with richest feedback.
 - Verify: baseline numbers reproducible run-to-run within noise (2 runs).
 
-### Step 3 — Ablations (next): frames 0/10/20; no-rejected; no-playstyle. ~$2-3 API.
+### Step 3 — Ablations: frames + no-rejected cells DONE (results on #234); no-approved / no-playstyle / post-#232 no-rejected re-run remain.
 ### Step 4 — Gemini full-watch prototype as event-timeline signal (after 3).
 
 ---

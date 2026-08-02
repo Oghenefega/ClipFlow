@@ -1,52 +1,57 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-01 — Session 143 (S143 · alpha.37 — Seven-fix batch) — **installer cut, all seven closes await Fega's hands-on pass.**_
+_Last updated: 2026-08-02 — Session 144 (S144 · Detection science: chips v2 + replay harness + first ablations) — **no installer cut; chips v2 rides the next batch.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega reported four annoyances across two days (generic `#gaming` hashtags, a misleading Play Style diff, a forgetful sound popover, tooltips covering subtitle text) and then three more (past-time schedule suggestions, dropdown time picker, vanishing reject-reason chips); all seven shipped and were promoted to the daily driver as `0.3.0-alpha.37`.
+Fega asked whether the clip AI's inputs (play style, transcript, approved/rejected feedback, screenshots) are actually useful or just noise; we measured instead of guessed — shipped sharper rejection chips + a grouped teaching section (#232), built a replay-and-score harness that grades the engine against his own historical decisions (#233), and ran the first ablations (#234): 10 screenshots do the work of 20, recall is near-ceiling at 92%, and precision (~half of picks land on rejected-type moments) is the real frontier.
 
 ## Current State
 
-Healthy on `0.3.0-alpha.37` — installer in `dist/`, in-app banner will surface it; Fega told to install. Master clean at `ed7d731`. Seven issues closed `status: untested`: [#223](https://github.com/Oghenefega/ClipFlow/issues/223), [#224](https://github.com/Oghenefega/ClipFlow/issues/224), [#226](https://github.com/Oghenefega/ClipFlow/issues/226), [#227](https://github.com/Oghenefega/ClipFlow/issues/227), [#228](https://github.com/Oghenefega/ClipFlow/issues/228), [#229](https://github.com/Oghenefega/ClipFlow/issues/229), [#230](https://github.com/Oghenefega/ClipFlow/issues/230).
+Master clean, pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open with 4 children: [#232](https://github.com/Oghenefega/ClipFlow/issues/232) chips v2 (closed `status: untested`), [#233](https://github.com/Oghenefega/ClipFlow/issues/233) harness (closed `status: untested`), [#234](https://github.com/Oghenefega/ClipFlow/issues/234) ablations (open — 3 of ~6 cells run, results in comments), [#235](https://github.com/Oghenefega/ClipFlow/issues/235) Gemini full-watch prototype (open, not started). No installer cut this session — chips v2 is renderer+main code that rides the next batched build (batching rule).
 
 ## What Was Just Built
 
-- **#223 — real game hashtags in AI titles.** `gamesDb`'s `hashtag` + game name now reach every title/caption prompt (batch, single-card rephrase/regenerate, Gemini video path) via `buildTitleCaptionStoreContext` → `title-caption-prompt.js`. Previously the model guessed; new games (Deadline Delivery) fell back to `#gaming`.
-- **#224 — honest Play Style diff.** Update prompt now requires verbatim copies of unchanged lines; `ProfileDiffModal` (modals.js) classifies each line unchanged / reworded (amber, word-overlap ≥0.6 vs the shorter line) / added-removed (green/red); legend rewritten.
-- **#226 — sound popover remembers it remembered.** New `assets:getDefaultVolume` IPC (index-only read, path-first per #214); `openSoundPopover` (TimelinePanelNew.js) fetches it; the button shows the green check whenever the slider sits at the remembered level.
-- **#227 — Edit Subtitles row tooltips** open below the buttons (`side="bottom"` on RowAction's TooltipContent, SegmentRow.js).
-- **#228 — Queue schedule past-time guards.** `autoSuggestSlot` skips slots at/behind the local clock; Save Schedule greys with a note on a past pick.
-- **#229 — inline snapping time wheel** (Fega picked variant A of `tasks/mocks/queue-time-wheel.html`). `WheelColumn`/`TimeWheel` in QueueView replace the hour/minute dropdowns; one notch per wheel tick, drag + settle-snap, click-to-jump; past hours ghost on today's date. CDP-verified live: seed correctly landed on Saturday's slot (proving #228 too), ghosting and save-gate flip correct on today.
-- **#230 — sticky rejected cards on Pending.** `ClipBrowser` (ProjectsView.js) remembers ids rejected while the Pending filter is active so the card lingers and the WHY? reason chips stay reachable; clears on tab/project change; approvals never linger. CDP-verified end-to-end including a reason-chip toggle.
+- **#232 — rejection reasons v2.** Four new chips in `ProjectsView.js` (`setup-talk`, `chat-banter`, `flat-delivery`, `repetitive`); `repetitive` ("Too similar") is mechanical — excluded from negative calibration (`ai-prompt.js` EXCLUDED_REJECT_REASONS) and from quality-rate stats (`feedback.js` MECHANICAL_REJECT_REASONS). `buildRejectedSection` rebuilt: tagged rows fill the 3k-char budget first, grouped under `## Rejected because: <reason>` headers (canonical order in REJECT_GROUP_ORDER), untagged legacy rows last under "no stated reason". Rejected fetch window 30→50 (`ai-pipeline.js`). 50/50 unit tests green; real-DB RL section verified grouped and note-carrying; renderer bundle + dev-profile boot verified.
+- **#233 — replay-and-score harness.** `tasks/spikes/replay-score/harness.js`: rebuilds the detection LLM call from saved artifacts (`processing/claude|energy|signals|frames`), current prompt code, prod settings (`clipflow-settings.json`), prod game profiles, and a read-only DB copy; scores picks against that video's feedback rows (match = midpoint containment either direction). Leakage guard: few-shot pools exclude the replayed video. Variant flags: `--frames N`, `--no-rejected`, `--no-approved`, `--no-playstyle`, `--runs N`, `--dry`. Results in `results/*.json` + `_summary.json`.
+- **#234 — first ablation cells** (6 recordings: RL Day9 Pt1, Day8 Pt8, Day10 Pt1; EO Day3 Pt2, Day4 Pt1; DD Day2 Pt1; ~$2.75 total):
+
+  | variant | recall | rej-hit rate | $/run |
+  |---|---|---|---|
+  | baseline (20 frames) | 24/26 = 92% | 49% | $0.133 |
+  | 10 frames | 24/26 = 92% | 48% | $0.096 |
+  | 0 frames | 21/26 = 81% | 49% | $0.059 |
+  | no rejected section | 24/26 = 92% | 48% | $0.131 |
 
 ## Key Decisions
 
-- **Hashtag stated outright** in the prompt's hard rules + output format (replacing the `#gamehashtag` placeholder), resolved once in the shared store-context builder — covers both IPC handlers.
-- **Reworded-line detection:** word-overlap relative to the SHORTER line (containment-friendly so merged bullets read as reworded), threshold 0.6, no diff library.
-- **Sound popover read-back is a dedicated tiny IPC** — `assetsList` re-walks the audio folders per call, too heavy for a right-click.
-- **Time wheel is variant A** (inline, 3 rows) — chosen over the compact chip+popover variant B.
-- **Sticky reject scope:** rejections only, Pending filter only, component-local state — nothing persisted.
+- **Measured, not vibed:** every input's value is judged by replaying past recordings against Fega's own approve/reject history. His eye is the ground truth, not the measuring instrument.
+- **`repetitive` is mechanical, not taste** — "good moment, too similar" must never teach the AI to avoid good moments.
+- **Grouped-by-reason beats flat list** for negative calibration; untagged rows are last-class citizens in the budget.
+- **Gemini full-watch (#235) will be a timeline SIGNAL, not a detection replacement** — grounded cost from Fega's own titlegen logs: ~100-110 tokens/sec → ~190k tokens ≈ $0.28-0.30 per 30-min recording (fits one Flash call).
+- **Frames 20→10 default change is PROPOSED, not shipped** — awaiting Fega's sign-off (comment on #234). It halves image cost with zero measured recall loss.
 
 ## Next Steps
 
-1. Fega installs `dist/ClipFlow Setup 0.3.0-alpha.37.exe` and verifies the seven untested closes — clear `status: untested` as he confirms.
-2. #224's amber tier gets its real judgment when the next playstyle proposal fires (needs pipeline runs to reach the threshold).
-3. Optional #223 follow-up: Deadline Delivery has no `aiContextAuto` — auto-research would give the model actual game knowledge (hashtag fix works regardless).
-4. Run the start-session issue backlog next session; nothing else was left mid-flight.
+1. **Fega decision:** ship frames 20→10 in `ai-pipeline.js` Stage 5 (`extractTopFrames(..., 20, ...)` → 10)? If yes: one-line change + verify with 1-2 replays (the tested f10 cell had no game-event reserved frames; the real change keeps reservation min(4,10)).
+2. **Remaining ablation cells (#234):** `--no-approved`, `--no-playstyle`; re-run `--no-rejected` after a few generations of v2-tagged rejections accumulate.
+3. **#235 Gemini prototype** — proxy transcode + Files API upload + visual events into the event timeline, validated as harness variant D.
+4. Fega's hands-on pass on chips v2 (next generation session: reject a clip on Pending, check the 10 chips render and read well).
+5. Watch the #194 rolling approval stats as tagged data grows — that's the live metric the harness complements.
 
 ## Watch Out For
 
-- **Dev profile shares the REAL `projectsRoot`** — both profiles point at `W:\…\Vertical Recordings Onwards`. Any UI-driving test that writes through the app touches Fega's real project JSON. Mandatory harness: snapshot `project.json` before, field-diff after, restore byte-identical with the app closed. This session's probe un-rejected a REAL rejection in `2026-01-23 AR Day16 Pt3` (first-match button targeting across the card list); the snapshot restore made recovery exact. See memory `project_cdp_verification_gotchas` traps 31–33.
-- **TimeWheel controlled-sync:** external seeds scroll the wheel via an effect guarded by `idxRef` — if the wheel ever fights user scrolls, that guard is the suspect (QueueView.js `WheelColumn`).
-- **`schedHour` values are 24h strings** (`"08"`–`"23"`, `"00"`); `"00"` on today's date = start-of-today = past, by design — the wheel's ghosting and the #228 save gate agree.
-- **Playstyle verbatim rule** depends on the model honoring it; the amber tier catches rewording either way (belt and suspenders).
-- The Play Style diff helpers (`wordSetOf`/`overlapOf`, modals.js) are shared by both panes — keep them module-level.
+- **Harness fidelity caveats:** frame timestamps re-derived by replicating `extractTopFrames` ordering — if that ordering code changes, pairing with on-disk jpgs drifts (noted in harness header). Feedback ground truth only covers moments past runs surfaced; "unreviewed" picks are not necessarily bad.
+- **Noise band:** ±1 pick per recording per run (rejected-hit 25%→38% on an 8-pick recording across 2 identical runs). Compare variants on the POOLED 6-recording numbers only.
+- **Old rejected rows can now re-enter the prompt**: fetch window is 50, so heavily-rejected games (RL: 200 rows) reach further back; all still filtered to taste-only and budget-capped at 3k chars.
+- **`results/*.json` are committed as the baseline record** — don't regenerate over them casually; new experiments get new labels.
+- The `Also tagged:` line replaced `Reason:` inside grouped entries — anything downstream parsing the prompt text (nothing known) would need updating.
 
-## Logs/Debugging
+## Logs & Debugging
 
-- No new Sentry-relevant errors; dev boots clean (schema v8, single-instance lock respected).
-- Test residue from #230 verification: two feedback rows + a rejected/approved posthog event pair went to the ISOLATED dev DB/analytics; prod DB untouched; test project JSON restored byte-identical (verified by comparison).
-- CDP drivers live in the `5051f2b7…` scratchpad: `cdp-eval.js` (one-shot evaluator using repo `ws`), `cdp-sticky-check3.js` (visibility-scoped #230 driver — the pattern to copy), `cdp-wheel-check.js` (#229), `expr-*.js` probe expressions. Remember: visibility-scope EVERY DOM query (hidden mounted views host lookalike buttons/tabs), and assert DOM text ("Rejected"), not the CSS-uppercased rendering ("REJECTED").
+- **Harness:** `cd tasks/spikes/replay-score && node harness.js "<videoName>" --dry` (free, prints section sizes) or without `--dry` for a live scored run (~$0.10-0.15). Results: `tasks/spikes/replay-score/results/`, pooled table: `_summary.json`. DB copy lands in `_tmp/` (gitignored).
+- **Real prompts per generation:** `%APPDATA%\clipflow\processing\claude\<video>.system_prompt.txt` (+ `.claude_ready.txt`); token/cost lines in `%APPDATA%\clipflow\processing\logs\<video>_<ts>.log`.
+- **Feedback DB queries:** `%APPDATA%\clipflow\data\clipflow.db` (repo `data/` copy is STALE — never measure against it).
+- Unit tests: `node src/main/ai-prompt.test.js` (50 tests).
