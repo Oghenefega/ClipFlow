@@ -254,7 +254,8 @@ test("row with empty segment but a note is still included", () => {
 test("rejected section respects its character budget", () => {
   const clips = Array.from({ length: 40 }, (_, i) => rejectedRow({ transcript_segment: LONG_TEXT, title: `Rej ${i}` }));
   const section = buildRejectedSection(clips);
-  expect(section.length).toBeLessThan(3500);
+  // 3000 chars of entries + intro framing + group headers (#232)
+  expect(section.length).toBeLessThan(3600);
 });
 
 // ── buildRejectedSection: reason filtering (#198) ──
@@ -274,19 +275,27 @@ test("any excluded reason wins over a taste reason on the same row", () => {
   expect(buildRejectedSection([rejectedRow({ reject_reasons: "duplicate,not-funny" })])).toBeNull();
 });
 
-test("taste rejections stay and render a Reason line", () => {
+test("taste rejections land under a reason group header (#232)", () => {
   const section = buildRejectedSection([rejectedRow({ reject_reasons: "not-funny" })]);
-  expect(section).toContain("Reason: not funny");
+  expect(section).toContain("## Rejected because: not funny");
 });
 
-test("multiple taste reasons render as a joined list", () => {
+test("extra reasons beyond the group's own render as Also tagged (#232)", () => {
   const section = buildRejectedSection([rejectedRow({ reject_reasons: "nothing-happens,needs-context" })]);
-  expect(section).toContain("Reason: nothing happens, needs context a viewer wouldn't have");
+  expect(section).toContain("## Rejected because: nothing happens");
+  expect(section).toContain("Also tagged: needs context a viewer wouldn't have");
 });
 
-test("reason-less rows remain generic negatives with no Reason line", () => {
+test("single-reason rows carry no redundant reason line inside their group (#232)", () => {
+  const section = buildRejectedSection([rejectedRow({ reject_reasons: "not-funny" })]);
+  expect(section).notToContain("Also tagged:");
+  expect(section).notToContain("Reason:");
+});
+
+test("reason-less rows group under the no-stated-reason header (#232)", () => {
   const section = buildRejectedSection([rejectedRow()]);
   expect(section).toContain("# MOMENTS THIS CREATOR REJECTED");
+  expect(section).toContain("## Rejected without a stated reason");
   expect(section).notToContain("Reason:");
 });
 
@@ -299,9 +308,60 @@ test("excluded rows are filtered while taste rows survive in the same batch", ()
   expect(section).toContain("the unfunny moment snippet");
 });
 
-test("unknown reason keys pass through as raw text", () => {
+test("unknown reason keys pass through as a raw group header", () => {
   const section = buildRejectedSection([rejectedRow({ reject_reasons: "some-future-reason" })]);
-  expect(section).toContain("Reason: some-future-reason");
+  expect(section).toContain("## Rejected because: some-future-reason");
+});
+
+// ── #232: new chips, tagged-first ordering, grouping ──
+
+console.log("\nbuildRejectedSection #232 grouping:");
+
+test("repetitive (too similar) is excluded as mechanical, like duplicate", () => {
+  expect(buildRejectedSection([rejectedRow({ reject_reasons: "repetitive" })])).toBeNull();
+});
+
+test("new taste chips render their own groups", () => {
+  const section = buildRejectedSection([
+    rejectedRow({ reject_reasons: "setup-talk", transcript_segment: "my headphones are not working today bro" }),
+    rejectedRow({ reject_reasons: "flat-delivery", transcript_segment: "yeah that happened i guess okay" }),
+  ]);
+  expect(section).toContain("## Rejected because: stream setup / tech talk, not content");
+  expect(section).toContain("## Rejected because: flat delivery — the reaction didn't carry it");
+});
+
+test("tagged rows outrank more-recent untagged rows for the budget (#232)", () => {
+  // Untagged row listed first = more recent in the DB fetch, but the tagged
+  // row must appear first in the section.
+  const section = buildRejectedSection([
+    rejectedRow({ transcript_segment: "untagged recent moment snippet" }),
+    rejectedRow({ reject_reasons: "not-funny", transcript_segment: "tagged older moment snippet" }),
+  ]);
+  const taggedIdx = section.indexOf("tagged older moment snippet");
+  const untaggedIdx = section.indexOf("untagged recent moment snippet");
+  expect(taggedIdx >= 0).toBeTruthy();
+  expect(untaggedIdx >= 0).toBeTruthy();
+  expect(taggedIdx < untaggedIdx).toBeTruthy();
+});
+
+test("untagged rows are dropped when tagged rows exhaust the budget (#232)", () => {
+  const tagged = Array.from({ length: 40 }, (_, i) =>
+    rejectedRow({ reject_reasons: "not-funny", transcript_segment: LONG_TEXT, title: `Tagged ${i}` })
+  );
+  // Straggler is full-length too, so the leftover budget genuinely can't fit it.
+  const section = buildRejectedSection([rejectedRow({ transcript_segment: LONG_TEXT }), ...tagged]);
+  expect(section).notToContain("## Rejected without a stated reason");
+});
+
+test("rows sharing a first reason collapse into one group", () => {
+  const section = buildRejectedSection([
+    rejectedRow({ reject_reasons: "not-funny", transcript_segment: "first unfunny snippet" }),
+    rejectedRow({ reject_reasons: "not-funny,needs-context", transcript_segment: "second unfunny snippet" }),
+  ]);
+  const occurrences = section.split("## Rejected because: not funny").length - 1;
+  expect(occurrences).toBe(1);
+  expect(section).toContain("first unfunny snippet");
+  expect(section).toContain("second unfunny snippet");
 });
 
 // ── buildSystemPrompt end-to-end ──

@@ -706,10 +706,11 @@ async function runAIPipeline({
 
     // Get few-shot examples from feedback DB — approved for taste calibration,
     // rejected for negative calibration (#191). Fetch extra rejected rows:
-    // reason-tagged non-taste rejections (#198) are filtered out by the
-    // builder, and the section's char budget caps what is actually shown.
+    // non-taste rejections (#198) are filtered out by the builder, tagged rows
+    // outrank untagged ones (#232), and the section's char budget caps what is
+    // actually shown — a deeper window lets tagged rows reach the budget.
     const approvedClips = feedback.getApprovedClips(gameData.gameTag, 20);
-    const rejectedClips = feedback.getRejectedClips(gameData.gameTag, 30);
+    const rejectedClips = feedback.getRejectedClips(gameData.gameTag, 50);
 
     const systemPrompt = aiPrompt.buildSystemPrompt({
       gameTag: gameData.gameTag,

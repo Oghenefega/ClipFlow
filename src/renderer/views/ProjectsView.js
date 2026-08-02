@@ -697,6 +697,12 @@ const REJECT_REASON_CHIPS = [
   { key: "nothing-happens", label: "Nothing happens", hint: "Energy without a payoff — nothing actually happens" },
   { key: "needs-context", label: "Needs context", hint: "A cold viewer wouldn't get it without prior context" },
   { key: "wrong-content", label: "Wrong content", hint: "Off-topic for this game's channel and hashtags" },
+  // #232: sharper taste vocabulary — the two catch-alls above were carrying
+  // too many meanings to teach the engine anything specific.
+  { key: "setup-talk", label: "Setup / tech talk", hint: "Stream housekeeping or technical trouble — not content" },
+  { key: "chat-banter", label: "Chat banter", hint: "Only lands if you could see chat — doesn't stand alone" },
+  { key: "flat-delivery", label: "Flat delivery", hint: "Something happened but the reaction didn't carry it" },
+  { key: "repetitive", label: "Too similar", hint: "Good moment, but too much like clips already kept" },
 ];
 
 // ── #197: clip content tag control — the game badge opens a menu of library

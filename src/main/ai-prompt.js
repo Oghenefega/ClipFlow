@@ -196,11 +196,12 @@ function getArchetypePersonality(archetype) {
 const SNIPPET_MAX_CHARS = 180;
 const SECTION_CHAR_BUDGET = 3000; // per section; two sections ≈ 6k combined
 
-// ── Rejection reasons (#198) ──
+// ── Rejection reasons (#198, expanded #232) ──
 // Reasons that say nothing about taste: the moment was good (duplicate of a
-// kept pick), or only the boundaries/bucket were wrong. Rows carrying any of
-// these never enter the negative-calibration set.
-const EXCLUDED_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content"];
+// kept pick, or too similar to clips already kept), or only the
+// boundaries/bucket were wrong. Rows carrying any of these never enter the
+// negative-calibration set.
+const EXCLUDED_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content", "repetitive"];
 const REJECT_REASON_LABELS = {
   duplicate: "duplicate of a kept clip",
   "bad-cut": "bad cut",
@@ -208,7 +209,16 @@ const REJECT_REASON_LABELS = {
   "nothing-happens": "nothing happens",
   "needs-context": "needs context a viewer wouldn't have",
   "wrong-content": "wrong content for this game",
+  "setup-talk": "stream setup / tech talk, not content",
+  "chat-banter": "chat banter that doesn't stand alone",
+  "flat-delivery": "flat delivery — the reaction didn't carry it",
+  repetitive: "too similar to clips already kept",
 };
+
+// Canonical group order for the rejected section (#232) — reasons that teach
+// the strongest patterns first. Unknown/future keys group after these in
+// first-seen order.
+const REJECT_GROUP_ORDER = ["nothing-happens", "not-funny", "flat-delivery", "setup-talk", "chat-banter", "needs-context"];
 
 /** Parse the CSV reject_reasons column into an array of keys. */
 function parseRejectReasons(row) {
@@ -229,7 +239,7 @@ function truncateSnippet(text, max = SNIPPET_MAX_CHARS) {
  * Format one real feedback row as a snippet entry. Returns "" when the row
  * has nothing usable (legacy rows with empty transcript_segment and no note).
  */
-function formatRealClipEntry(clip, { withNote = false, withReasons = false } = {}) {
+function formatRealClipEntry(clip, { withNote = false, withReasons = false, skipReason = null } = {}) {
   const snippet = truncateSnippet(clip.transcript_segment);
   const note = withNote ? String(clip.user_note || "").trim() : "";
   if (!snippet && !note) return "";
@@ -239,8 +249,12 @@ function formatRealClipEntry(clip, { withNote = false, withReasons = false } = {
   if (snippet) entry += `\n  Title: ${clip.title || "(untitled)"}`;
   entry += `\n  Energy: ${clip.energy_level || "unknown"}`;
   if (withReasons) {
-    const labels = parseRejectReasons(clip).map((k) => REJECT_REASON_LABELS[k] || k);
-    if (labels.length > 0) entry += `\n  Reason: ${labels.join(", ")}`;
+    // #232: inside a grouped section the group header already states the
+    // primary reason — skip it and surface only the extra tags.
+    const labels = parseRejectReasons(clip)
+      .filter((k) => k !== skipReason)
+      .map((k) => REJECT_REASON_LABELS[k] || k);
+    if (labels.length > 0) entry += `\n  ${skipReason ? "Also tagged" : "Reason"}: ${labels.join(", ")}`;
   }
   if (note) entry += `\n  Creator's note: ${note}`;
   return entry;
@@ -334,15 +348,59 @@ Each example quotes what was being said during a clip this creator approved. Use
  */
 function buildRejectedSection(rejectedClips) {
   // #198: rejections whose reason says nothing about taste (duplicate of a
-  // kept clip, bad cut, wrong content) are not negative signal — drop them.
+  // kept clip, bad cut, wrong content, too-similar) are not negative signal —
+  // drop them.
   const tasteRejections = (rejectedClips || []).filter(
     (clip) => !parseRejectReasons(clip).some((k) => EXCLUDED_REJECT_REASONS.includes(k))
   );
-  const entries = formatEntriesWithinBudget(tasteRejections, { withNote: true, withReasons: true });
-  if (entries.length === 0) return null;
+  if (tasteRejections.length === 0) return null;
+
+  // #232: tagged rows teach the most, so they fill the budget first — grouped
+  // by the first reason the creator tapped. Untagged rows (pre-#198 history)
+  // come last, only if budget remains.
+  const groups = new Map();
+  const untagged = [];
+  for (const clip of tasteRejections) {
+    const reasons = parseRejectReasons(clip);
+    if (reasons.length === 0) { untagged.push(clip); continue; }
+    const key = reasons[0];
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(clip);
+  }
+
+  const orderedKeys = [
+    ...REJECT_GROUP_ORDER.filter((k) => groups.has(k)),
+    ...[...groups.keys()].filter((k) => !REJECT_GROUP_ORDER.includes(k)),
+  ];
+
+  let used = 0;
+  let body = "";
+  for (const key of orderedKeys) {
+    let groupBody = "";
+    for (const clip of groups.get(key)) {
+      const entry = formatRealClipEntry(clip, { withNote: true, withReasons: true, skipReason: key });
+      if (!entry) continue;
+      if (used + entry.length > SECTION_CHAR_BUDGET) break;
+      groupBody += entry;
+      used += entry.length;
+    }
+    if (groupBody) body += `\n\n## Rejected because: ${REJECT_REASON_LABELS[key] || key}` + groupBody;
+  }
+
+  let untaggedBody = "";
+  for (const clip of untagged) {
+    const entry = formatRealClipEntry(clip, { withNote: true });
+    if (!entry) continue;
+    if (used + entry.length > SECTION_CHAR_BUDGET) break;
+    untaggedBody += entry;
+    used += entry.length;
+  }
+  if (untaggedBody) body += `\n\n## Rejected without a stated reason` + untaggedBody;
+
+  if (!body) return null;
   return `# MOMENTS THIS CREATOR REJECTED
 
-These moments were picked by a previous run and this creator rejected them. Treat them as negative calibration — do NOT pick moments like these. Where a creator's note is present, it is the rejection reason in their own words. These examples teach WHICH kinds of moments to skip, not HOW MANY clips to return — they must never push you toward returning fewer moments than the recording genuinely holds.\n` + entries.join("");
+These moments were picked by a previous run and this creator rejected them, grouped by the reason they gave. Treat them as negative calibration — do NOT pick moments like these. Where a creator's note is present, it is the rejection reason in their own words. These examples teach WHICH kinds of moments to skip, not HOW MANY clips to return — they must never push you toward returning fewer moments than the recording genuinely holds.` + body;
 }
 
 /**

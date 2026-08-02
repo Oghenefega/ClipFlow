@@ -6,6 +6,42 @@
 
 ---
 
+## 🔄 ACTIVE (session 144) — Detection input science: feedback that teaches + measurable experiments
+
+Fega's ask: make the clip-detection inputs *measurably* useful — sharper rejection
+reasons, a numeric way to judge screenshots (not vibes), and explore Gemini
+watching full recordings. Plan approved in chat 2026-08-02.
+
+### Step 1 — Rejection reasons v2 (implement now)
+- [ ] `ProjectsView.js` REJECT_REASON_CHIPS: append 4 chips — Setup / tech talk,
+      Chat banter, Flat delivery, Too similar (keys: setup-talk, chat-banter,
+      flat-delivery, repetitive). Existing 6 keep position (muscle memory).
+- [ ] `ai-prompt.js`: labels for new keys; `repetitive` joins EXCLUDED list
+      (good-but-redundant ≠ taste); rebuild `buildRejectedSection` — tagged rows
+      fill the 3k budget FIRST, grouped by reason ("## Rejected because: …"),
+      untagged legacy rows last under "no stated reason".
+- [ ] `feedback.js` MECHANICAL_REJECT_REASONS: add `repetitive` (stats mirror).
+- [ ] `ai-pipeline.js`: rejected fetch 30 → 50 so tagged rows from older
+      windows can reach the budget.
+- [ ] Update + extend `ai-prompt.test.js` (grouping, tagged-first, repetitive
+      exclusion). All tests green.
+- Verify: tests pass, build renderer, dev-profile boot, chips render in reject
+  flow, prompt snapshot from builder shows grouped section.
+
+### Step 2 — Replay-and-score harness (this session if room)
+- [ ] `tasks/spikes/replay-score/` harness: rebuild the detection call from
+      saved artifacts (processing/claude claude_ready.txt, energy/, signals/,
+      frames re-extracted from source), current DB feedback, current prompt
+      code; call LLM; score picks vs feedback history (approved-recall +
+      rejected-hit-rate, overlap = midpoint containment).
+- [ ] Baseline current config on the RL recordings with richest feedback.
+- Verify: baseline numbers reproducible run-to-run within noise (2 runs).
+
+### Step 3 — Ablations (next): frames 0/10/20; no-rejected; no-playstyle. ~$2-3 API.
+### Step 4 — Gemini full-watch prototype as event-timeline signal (after 3).
+
+---
+
 ## ✅ DONE (session 142) — Clip status ladder (#221) + seamless split playback (#222) — **built and machine-verified in the dev app; committed; NOT yet confirmed by Fega, NOT yet in an installer**
 
 Ladder verified live over real data (all colors render; "To schedule"/"Done" follow the strict rule). Split fix verified with numbers: old in-place seek at a real cut = 190–1100ms frozen (probe on the actual recording); new double-buffer handoff = ~8ms, zero visible seeking, playhead continuous, 1.5× shuttle speed carried across the swap, undo intact. Incident during verification: `S` (trim, NOT split — split is `U`) cut a real clip; restored exactly (single segment 733.1377→747.8186, verified on disk). Lessons in tasks/lessons.md + memory gotchas 28-30.

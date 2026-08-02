@@ -112,7 +112,7 @@ function getFeedbackCounts(gameTag) {
 // no taste verdict. A reject counts as "mechanical" for the quality rate only
 // when ALL its reasons are on this list — a mixed row like "duplicate,not-funny"
 // still contains a taste verdict and stays in the denominator.
-const MECHANICAL_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content"];
+const MECHANICAL_REJECT_REASONS = ["duplicate", "bad-cut", "wrong-content", "repetitive"];
 // Quality rate = picks at or above this confidence (#200: below-the-bar fills
 // are expected rejects and must not drag the headline number).
 const QUALITY_CONFIDENCE = 0.7;
