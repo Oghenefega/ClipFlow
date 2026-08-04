@@ -1,12 +1,12 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-02 — Session 144 (S144 · Detection science: chips v2 + replay harness + first ablations) — **no installer cut; chips v2 rides the next batch.**_
+_Last updated: 2026-08-03 — Sessions 144-145 (Detection science: chips v2, replay harness, ablations, spec locked + routed to Wick) — **no installer cut; chips v2 rides the next batch.**_
 
 ---
 
 ## One-line TL;DR
 
-Fega asked whether the clip AI's inputs (play style, transcript, approved/rejected feedback, screenshots) are actually useful or just noise; we measured instead of guessed — shipped sharper rejection chips + a grouped teaching section (#232), built a replay-and-score harness that grades the engine against his own historical decisions (#233), and ran the first ablations (#234): 10 screenshots do the work of 20, recall is near-ceiling at 92%, and precision (~half of picks land on rejected-type moments) is the real frontier.
+Fega asked whether the clip AI's inputs (play style, transcript, approved/rejected feedback, screenshots) are actually useful or just noise; we measured instead of guessed — shipped sharper rejection chips + a grouped teaching section (#232), built a replay-and-score harness that grades the engine against his own historical decisions (#233), and ran the first ablations (#234): 10 screenshots do the work of 20, recall is near-ceiling at 92%, and precision (~half of picks land on rejected-type moments) is the real frontier. The whole program now lives in a canonical spec (`tasks/specs/detection-input-science.md`) routed to Wick's inbox; a spec audit caught and filed the dropped placeholder-title fix (#236).
 
 ## Current State
 
@@ -33,9 +33,17 @@ Master clean, pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/
 - **Gemini full-watch (#235) will be a timeline SIGNAL, not a detection replacement** — grounded cost from Fega's own titlegen logs: ~100-110 tokens/sec → ~190k tokens ≈ $0.28-0.30 per 30-min recording (fits one Flash call).
 - **Frames 20→10 default change is PROPOSED, not shipped** — awaiting Fega's sign-off (comment on #234). It halves image cost with zero measured recall loss.
 
+## Session 145 additions (2026-08-03)
+
+- **Canonical spec** at `tasks/specs/detection-input-science.md` (commits `73255b7`, `debb6a0`) — standalone program doc: question, measured inputs, all 4 steps with status, scorecards, locked + open decisions, Fega's standing roles. READ IT before touching detection prompt/frames/feedback.
+- **Routed to Wick** (GM agent): briefing entry in `Obsidian Vault\The Lab\Businesses\ClipFlow\Wick\inbox.md` pointing at the spec. Memory saved: Wick's location + inbox mechanism (use forward slashes in paths — doubled backslashes mangle to tabs via Bash heredocs).
+- **Spec audit vs the approved plan** caught two gaps, both closed: the session-144 placeholder-title fix was never filed (now [#236](https://github.com/Oghenefega/ClipFlow/issues/236)); Fega's standing roles (tag ≥1 chip per rejection, eyeball unreviewed picks per experiment) are now written into the spec.
+- Memory entries added: `detection-science-program` (auto-loads every session), `wick-gm-agent`.
+
 ## Next Steps
 
 1. **Fega decision:** ship frames 20→10 in `ai-pipeline.js` Stage 5 (`extractTopFrames(..., 20, ...)` → 10)? If yes: one-line change + verify with 1-2 replays (the tested f10 cell had no game-event reserved frames; the real change keeps reservation min(4,10)).
+1b. **#236 quick fix:** suppress placeholder `Title: Clip N` lines in few-shot examples (one function + one test) — pairs naturally with the frames change in the next batch.
 2. **Remaining ablation cells (#234):** `--no-approved`, `--no-playstyle`; re-run `--no-rejected` after a few generations of v2-tagged rejections accumulate.
 3. **#235 Gemini prototype** — proxy transcode + Files API upload + visual events into the event timeline, validated as harness variant D.
 4. Fega's hands-on pass on chips v2 (next generation session: reject a clip on Pending, check the 10 chips render and read well).

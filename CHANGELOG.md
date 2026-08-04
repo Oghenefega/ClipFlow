@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-03 (session 145) — Detection science program locked into a spec and routed to Wick
+
+### Added
+- **Canonical program spec: `tasks/specs/detection-input-science.md` (#231).** The full detection-science plan — the original question, measured input anatomy, all four steps with shipped/pending status, ablation scorecards, locked decisions, and the open frames-20→10 decision — now lives as a standalone git-tracked document instead of only in session context, GitHub comments, and HANDOFF. A briefing entry pointing at it was delivered to Wick (the GM agent) via his vault inbox.
+- **Filed #236 after a spec audit caught a dropped finding.** Session 144 spotted that approved few-shot examples inject meaningless placeholder titles ("Clip 1") into the detection prompt, but the fix was never filed. The audit against the approved plan surfaced it; it's now tracked, alongside newly-written-down standing roles for Fega (tag every rejection with at least one reason chip; eyeball each experiment's unreviewed picks).
+
 ## [Unreleased] — 2026-08-02 (session 144) — Detection science: sharper rejection teaching + the measuring stick
 
 ### Added
