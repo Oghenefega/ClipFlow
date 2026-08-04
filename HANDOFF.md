@@ -1,55 +1,55 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-04 — Session 147 (#235 actor-aware iteration D3: success criterion met, new eyeball list posted; rejection-era naming corrected per Fega) — **no installer cut; the pending batch still carries the v3 reason chips (#232), frames 10, #236.**_
+_Last updated: 2026-08-04 — Session 148 (#237 event-timeline de-saturation shipped + gated; #235 integration gate CLEARED) — **no installer cut; the pending batch still carries the v3 reason chips (#232), frames 10, #236, and now the #237 selection change.**_
 
 ---
 
 ## One-line TL;DR
 
-The #235 actor-aware iteration ran end-to-end and met its success criterion: the Gemini watch prompt (v2-actor) now targets Fega's OWN plays/fails and excludes spectator moments, the harness merge classifies events by actor and drops spectator ones, and the `f10-gemD3` replay on the same 3 recordings held recall at 11/12 = 92% while eliminating both rejected spectator picks and keeping both soft-yes windows with tighter cuts — every Gemini-driven new pick is now player-authored. Fega's same-day verdicts on all 9 picks: 4/9 usable, Gemini-driven 3/4 (vs 1/5 last round) — actor-aware weighting validated; integration now gated on #237 only.
+The prompt's top-50 event list was decided by a giant score tie (three mic signals pin hundreds of events at exactly 1.00; pitch_spike "won" by array insertion order). New `selectTimelineEvents` in ai-prompt.js caps each signal at 10 lines, collapses same-signal windows within 10 s, and backfills when few signals exist — verified on all six harness recordings (pooled recall 24/26 → **25/26**, precision flat), 60 unit tests green, and the harness's Gemini score-ceiling hack is retired (all 9 RL Day10 visual events land at raw 0.72–0.88 confidence). #237 closed `status: untested`; #235 pipeline integration is now unblocked.
 
 ## Current State
 
-Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open. [#235](https://github.com/Oghenefega/ClipFlow/issues/235) open — D3 results + Fega's verdicts on all 9 picks recorded in comments (actor-aware validated). [#237](https://github.com/Oghenefega/ClipFlow/issues/237) open — still the integration gate (untouched this session, deliberately). [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open — only the queued post-#232 no-rejected re-test remains. No installer cut (batching rule).
+Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open. [#237](https://github.com/Oghenefega/ClipFlow/issues/237) **CLOSED** (`status: untested`) — full results in its closing comment. [#235](https://github.com/Oghenefega/ClipFlow/issues/235) open — integration gate cleared, next step is real pipeline wiring behind its own ablation cell. [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open — only the queued post-#232 no-rejected re-test remains. No installer cut (batching rule).
 
-## What Was Just Built (session 147)
+## What Was Just Built (session 148)
 
-- **`gemini-watch.js` watch prompt → v2-actor (#235):** recording framed as the creator's own POV capture; targets = the player's own plays and *especially own fails*; teammate/opponent spectacle and talk-without-action are explicit non-targets; `what` must start by naming the actor ("The player…" / "Teammate…" / "Opponent…" / "Unclear actor:"), bare gamertags banned. Output JSON now records `promptVersion: "v2-actor"`.
-- **`harness.js --gemini` merge → actor-aware:** classifies each event from its `what` sentence (sentence-start check is authoritative, keyword scan is the v1-file fallback); spectator events dropped pre-merge + logged; player/unclear events merge at the ceiling as before. Actor counts saved into results JSON (`geminiActors`).
-- **Classifier bug found & fixed mid-run:** `\bopponent\b` matched the possessive in "…into the opponent's net" and dropped a real player goal. Fix = anchor classification to the sentence start; RL cell re-run clean (10-case classifier test passed).
-- **Re-watch results (v2 prompt, $0.60):** RL Day10 18→9 events (11 spectator → **0**), DD Day2 9→14, EO Day4 9→10 — 100% player-authored across all three; v2 surfaces own-fails v1 never marked (own goal at 24:08, whiffed defensive clear, backflip fail).
-- **Replay `f10-gemD3` ($0.39 Claude):** pooled recall 11/12 = 92% (= D2); rejected RL spectator picks 18:29 + 25:30 GONE; DD soft-yes windows persist re-cut (6:22→6:55 vs D2's →7:06; 1:41→2:04 covering the 1:55 crash); EO checkpoint-talk pick gone, the 28:46 region re-anchored on the botched-rock-jump fail. Gemini-driven new-territory picks: 4/4 player-authored (D2: 4 of 5 Gemini-driven verdicted picks were NOs). `_summary.json` now has the pooled `f10-gemD3` row.
+- **`selectTimelineEvents` (src/main/ai-prompt.js) — #237:** best-score-first walk with a 10-line-per-signal cap, same-signal midpoint dedup at 10 s (mirrors the #190 frame-reservation rule), backfill past caps when slots stay open. Selection-only: score formulas, composite segment scores, and frame selection untouched. Section header now reads "max 10 per signal, nearby duplicates collapsed". Exported for tests + harness.
+- **Diagnosis recorded (spec §Step 5):** saturation is 3 signals, not 1 — RL Day10 has pitch_spike 167 / reaction_words 250 / transcript_density **781 of 781** events at exactly 1.00. The old top-50 was "the 50 earliest pitch windows", ordered by accident.
+- **Harness ceiling hack retired:** `--gemini` merges visual events at raw Gemini confidence; merge log prints how many land in the section.
+- **8 new unit tests** (`node src/main/ai-prompt.test.js` — 60 green): caps, dedup, cross-signal non-collapse, backfill, sub-1.0 signals landing through tie walls, buildUserContent mix.
+- **Harness cells:** `f10-mix` on the six standard recordings — pooled recall 25/26 = 96% (f10 record: 24/26), rejected-hit 41/83 = 49% (f10: 48%). `f10-gemD4` on the three gemD3 recordings — 10/12 pooled; the delta vs gemD3's 11/12 is entirely RL Day10's single approved row (22:14), caught 1 of 3 runs (see Watch Out For). EO Day4's persistent miss is the same row in gemD3/gemD4/mix; old f10 was worse there (4/6).
+- Pooled rows `f10-mix` + `f10-gemD4` added to `results/_summary.json`. Dev-profile boot verified after the main-process change.
 
 ## Key Decisions
 
-- Actor policy in the merge: **spectator = dropped**, not downweighted — mic signals already cover "Fega reacts loudly to someone else's play", and any score below 1.0 is invisible anyway while #237's saturation stands.
-- **"Unclear" actors are kept at full weight** — v2's mandatory actor-first phrasing makes them rare, and v1-style avatar phrasing ("the egg…", "the mail truck…") is player-controlled and must not be dropped.
-- v1 visual-event files were overwritten by the v2 re-watch — git history keeps them; `f10-gemD2` results files remain on disk for comparison. New event files carry `promptVersion` (absent = v1).
-- #237 untouched this session on purpose — it still gates integration and gets its own de-saturation fix + harness cell.
+- **Cap+collapse over rescaling:** rescaling score formulas would move composite scores and frame selection too (re-litigates locked #190 behavior); the fix stays inside prompt-line selection.
+- **Backfill ignores caps** once every signal got its top-10 — mic-only recordings keep ~50 informative lines instead of rendering 22.
+- **RL Day10 gemD4 flakiness is a #235 integration watch item, not a #237 blocker:** the missed row's timeline line (game_energy 0.73 @ 22:01) IS in the selection; gemini displaced only junk lines (redundant 1.00 pitch duplicates, 0.33–0.41 game_yamnet). Mechanism = pick-budget competition — the model returns 15 picks, the row ranked #11–13 whenever caught, and gemini's new-territory picks (incl. two Fega verdicted usable in D3) outrank it.
+- Known limitation (documented, not fixed): within a 1.00 tie block the capped picks are the earliest distinct windows → saturated signals' lines lean toward the video start. Baseline had the same bias on all 50 lines.
 
 ## Next Steps
 
-1. **DONE same-day — Fega's D3 verdicts are in (#235 comment): 4/9 usable (+1 borderline), Gemini-driven picks 3/4 usable vs D2's 1/5 — actor-aware weighting VALIDATED.** New finding: the precision frontier is cut boundaries (payoff trimmed off DD 1:41's end, cause missing from EO 9:43's start) — candidate future experiment on window extension. Eyeball delivery upgraded: picks now ship as proxy-cut videos in a Desktop folder ("ClipFlow eyeball - 235 D3"), not timestamp lists — do this for every future experiment.
-2. **#237** — de-saturate / interleave the top-50 event selection (per-signal caps?), verified by its own harness cell. This unblocks real #235 integration (and retires the ceiling hack).
-3. **Cut the batched installer** when Fega asks (carries the #232 v3 reason chips, frames 10, #236) — then his hands-on check (reject a clip on Pending, 10 chips render).
-4. **Queued:** post-#232 `--no-rejected` re-test once v3-tagged rejections are a meaningful share of the 50-row window (can't move until the installer ships). NOTE (Fega correction, 2026-08-04): rejection feedback has three eras — v1 untagged, v2 = the INSTALLED six chips (recent windows are majority v2-tagged: RL 38/50, DD 7/9, EO 20/45), v3 = the unshipped #232 chips. The no-rejected cell already contained v2 tags; the re-test measures the vocabulary upgrade, not tags-vs-none. Never say "no way to know why he rejected".
-5. Design the real #235 pipeline integration (verdicts landed well): lift the long Files-API poll into the prod Gemini provider, proxy transcode stage, actor filter in the pipeline merge — all after #237, behind its own ablation cell. Candidate follow-on experiment: cut-boundary extension (include cause + payoff in pick windows).
+1. **#235 pipeline integration** (now unblocked): lift the long Files-API poll into the prod Gemini provider, proxy transcode stage, actor filter in the pipeline merge — behind its own ablation cell, carrying the RL-knife-edge watch item. Candidate follow-on: cut-boundary extension (include cause + payoff in pick windows).
+2. **Cut the batched installer** when Fega asks (carries #232 v3 chips, frames 10, #236, #237 selection) — then his hands-on check (reject a clip on Pending, 10 chips render).
+3. **Queued:** post-#232 `--no-rejected` re-test once v3-tagged rejections are a meaningful share of the 50-row window (blocked on the installer shipping).
 
 ## Watch Out For
 
-- **Truth counts shift when Fega reviews clips mid-session** — re-pull truth before comparing cells (today RL showed 13 rejected rows vs 9 at D2 time; recall comparisons stand, rejected-hit rates across cells don't).
-- **`f10-gemD3` results came from two harness code states:** DD + EO cells ran before the classifier fix, RL after — but DD/EO had 0 spectator matches under either classifier, so their merged inputs are identical; only RL needed (and got) the re-run.
-- **v1 vs v2 event files:** anything comparing `gemini/*.visual_events.json` across sessions must check `promptVersion` (absent = v1). Event timestamps also shifted between v1 and v2 watches — they are different observations, not the same events re-labeled.
-- `_summary.json` pools `__run1` files only; the bugged first RL D3 run was overwritten by the re-run, so no stale file remains.
-- **Proxy cache:** `tasks/spikes/replay-score/_tmp/proxy/*.proxy.mp4` (gitignored, ~380MB) — transcodes are atomic (tmp→rename), safe to delete.
-- **gemini-watch.js is spike-only** — deliberately re-implements Files API upload (prod provider's 90s processing poll is too short for 30-min proxies and `uploadFile` isn't exported). Lift properly at integration time.
+- **RL Day10 has exactly 1 approved row** — recall on that recording is binary and demonstrably flaky under the gemini merge (0/1, 0/1, 1/1 across three gemD4 calls). Never read a single RL Day10 run as signal; pooled numbers only.
+- **`--runs N` overwrites run1**: re-running a cell with `--runs 2` replaced the original gemD4 run1 file (same 0/1 verdict, so no record lost — but remember before re-running cells whose run1 you want to keep).
+- **`_summary.json` pools `__run1` files only** and is hand-maintained (no generator script) — update it when adding cells.
+- **Truth counts shift when Fega reviews clips mid-session** — re-pull truth before comparing cells (RL Day10 now 13 rejected rows vs 9 at D2 time; recall comparisons stand, cross-time rejected-hit comparisons don't).
+- **v1 vs v2 Gemini event files:** check `promptVersion` (absent = v1); v1 and v2 watches are different observations, not relabeled events.
+- **Proxy cache:** `tasks/spikes/replay-score/_tmp/proxy/*.proxy.mp4` (gitignored, ~380MB) — safe to delete.
+- **gemini-watch.js is spike-only** — lift the Files API upload properly at integration time (prod provider's 90 s poll is too short for 30-min proxies).
 - Harness fidelity caveats from session 144 still apply (ground truth only covers surfaced moments; ±1 pick noise; pooled comparisons only).
 
 ## Logs & Debugging
 
-- **Harness:** `cd tasks/spikes/replay-score && node harness.js "<videoName>" --dry` (free) · live run ~$0.08-0.15 · variant D: `node gemini-watch.js "<vid>"` first (Gemini $0.03-0.25/recording), then `node harness.js "<vid>" --frames 10 --gemini --label <cell>`. The merge log prints actor classification ("N player + N unclear merged, N spectator dropped" plus each dropped event's `what` line).
+- **Harness:** `cd tasks/spikes/replay-score && node harness.js "<videoName>" --dry` (free) · live ~$0.08–0.12 · gemini variant: `node harness.js "<vid>" --frames 10 --gemini --label <cell>` — merge log prints actor counts AND how many gemini lines land in the event section (raw scores, no ceiling).
 - Results: `tasks/spikes/replay-score/results/`, pooled: `results/_summary.json`, Gemini events: `gemini/*.visual_events.json` (check `promptVersion`).
+- Unit tests: `node src/main/ai-prompt.test.js` (60 tests).
 - **Real prompts per generation:** `%APPDATA%\clipflow\processing\claude\<video>.system_prompt.txt`; token/cost lines in `%APPDATA%\clipflow\processing\logs\`.
 - **Feedback DB:** `%APPDATA%\clipflow\data\clipflow.db` (repo `data/` copy is STALE). Reject-reason tags are comma-separated in `reject_reasons` (not JSON).
-- Unit tests: `node src/main/ai-prompt.test.js` (52 tests).
 - Boot-verify after main-process changes: `CLIPFLOW_PROFILE=dev npx electron .` (daily driver's single-instance lock makes plain `npm start` exit 0 silently).

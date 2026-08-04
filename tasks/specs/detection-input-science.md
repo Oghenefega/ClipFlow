@@ -16,6 +16,9 @@
 > holds with reserved frames). All six single-factor ablation cells now recorded
 > (--no-approved and --no-playstyle added). #236 title-noise fix shipped. #235
 > prototype run as harness variant D — results in §Step 4.**
+> **2026-08-04 (session 148): #237 event-timeline de-saturation SHIPPED + gated
+> (§Step 5) — per-signal caps + duplicate collapse in the prompt's top-50
+> selection; harness ceiling hack retired. #235 integration gate CLEARED.**
 
 ## The question this answers
 
@@ -219,6 +222,11 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > upgraded: picks now ship as proxy-cut video files in a Desktop folder, not
 > timestamp lists. Integration order: **#237 first**, then pipeline wiring
 > behind its own ablation cell.
+>
+> **2026-08-04 (session 148): #237 LANDED (§Step 5) — integration gate cleared,
+> ceiling hack retired. Next: pipeline wiring behind its own ablation cell,
+> carrying Step 5's watch item (RL Day10's knife-edge approved row under the
+> raw-score merge).**
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this
@@ -236,6 +244,37 @@ events into the existing event timeline; Claude keeps final picks with taste
 calibration. Needs: proxy transcode step, Files API upload, timestamp-drift mitigation
 (snap to transcript, as the pipeline already does). Validate as harness variant D on
 2-3 recordings BEFORE deciding whether it joins the pipeline.
+
+## Step 5 — Event-timeline de-saturation · SHIPPED 2026-08-04 (#237, session 148)
+
+Found during variant D (#235): the prompt's top-50 event list was 100% pitch_spike.
+Diagnosis on the six harness recordings' real timelines showed THREE saturated
+signals, not one — per-signal score formulas clamp at 1.0 and real gameplay blows
+past the clamp constantly (RL Day10: pitch_spike 167 events at exactly 1.00,
+reaction_words 250, transcript_density **781 of 781**). The plain top-50 sort
+resolved the huge 1.00 tie block by array insertion order; pitch_spike "won" only
+because signals.js pushes it first. game/gemini signals (which top out below 1.0
+by design) could mathematically never render.
+
+Fix — `selectTimelineEvents` (src/main/ai-prompt.js), selection-only; score
+formulas, composite scores, and frame selection untouched:
+- Best-score-first walk, **cap 10 lines per signal**, same-signal near-duplicates
+  collapsed (midpoints within 10 s — the #190 frame-reservation rule), backfill
+  with best leftovers when few signals are present. 8 new unit tests (60 green).
+- Harness `--gemini` merge now uses **raw Gemini confidence** (0.72–0.95); the
+  score-1.0 ceiling hack is retired.
+
+Gate (pooled, run1 per cell): **f10-mix 25/26 = 96% recall** (f10 record: 24/26),
+rejected-hit rate 49% (f10: 48%) — recall holds, done per the locked rule. RL
+Day10's mix went `{pitch_spike: 50}` → `pitch 10, density 10, reaction 10,
+game_energy 9–10, game_yamnet 2`; with --gemini all 9 visual events land at raw
+scores. f10-gemD4 (3 recordings) pooled 10/12 vs gemD3's 11/12 — the delta is
+RL Day10's single approved row (22:14), caught 1 of 3 runs. Diagnosed as
+pick-budget competition from gemini's new-territory picks (the row's timeline
+line IS in the selection; gemini displaced only junk lines) — recorded as a
+**#235 integration-cell watch item**, not a #237 regression. Known limitation:
+within a 1.00 tie block the capped picks are the earliest distinct windows
+(video-start lean; baseline had the same bias on all 50 lines).
 
 ## Decisions locked (do not re-litigate without flagging Fega)
 

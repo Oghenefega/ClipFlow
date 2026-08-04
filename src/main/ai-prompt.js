@@ -479,6 +479,47 @@ function buildPickCriteria(priorities) {
 }
 
 /**
+ * Select which timeline events render in the prompt's event section (#237).
+ *
+ * Per-signal score formulas clamp at 1.0 and real recordings blow past the
+ * clamp constantly — pitch_spike / transcript_density / reaction_words each
+ * pin hundreds of events at exactly 1.0, so a plain top-50 sort degenerates
+ * into one signal's earliest windows (tie order = array insertion order) and
+ * game / gemini signals (which top out below 1.0 by design) can never render.
+ *
+ * Selection: walk events best-score-first, cap each signal at `cap` lines and
+ * skip events whose signal already has a line within `gapSec` (overlapping
+ * windows of the same scream). If caps leave slots open (few signals present),
+ * backfill with the best leftovers, still collapsing near-duplicates.
+ *
+ * @param {Array} events - Timeline events ({t_start, t_end, signal, score, label})
+ * @param {object} [opts]
+ * @returns {Array} Selected events, sorted by score descending
+ */
+function selectTimelineEvents(events, { cap = 10, gapSec = 10, limit = 50 } = {}) {
+  const sorted = [...events].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const mid = (e) => (e.t_start + (e.t_end ?? e.t_start)) / 2;
+  const picked = [];
+  const perSignal = {};
+  const tooClose = (e) => picked.some((p) => p.signal === e.signal && Math.abs(mid(p) - mid(e)) < gapSec);
+  for (const e of sorted) {
+    if (picked.length >= limit) break;
+    if ((perSignal[e.signal] || 0) >= cap) continue;
+    if (tooClose(e)) continue;
+    picked.push(e);
+    perSignal[e.signal] = (perSignal[e.signal] || 0) + 1;
+  }
+  if (picked.length < limit) {
+    for (const e of sorted) {
+      if (picked.length >= limit) break;
+      if (picked.includes(e) || tooClose(e)) continue;
+      picked.push(e);
+    }
+  }
+  return picked.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+}
+
+/**
  * Build the user message content array for the API call.
  * Includes the full transcript text, multi-signal event timeline, and frame images.
  *
@@ -497,11 +538,9 @@ function buildUserContent({ claudeReadyText, frames, eventTimeline }) {
     text: `## Full Transcript with Energy Labels:\n\n${claudeReadyText}`,
   });
 
-  // Add multi-signal event timeline (top 50 events by score)
+  // Add multi-signal event timeline (top 50 events, capped per signal — #237)
   if (eventTimeline && Array.isArray(eventTimeline.events) && eventTimeline.events.length > 0) {
-    const top = [...eventTimeline.events]
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, 50)
+    const top = selectTimelineEvents(eventTimeline.events)
       .map((e) => `${formatTimestamp(e.t_start)} [${e.signal}] ${e.label} (${(e.score ?? 0).toFixed(2)})`)
       .join("\n");
 
@@ -520,7 +559,7 @@ function buildUserContent({ claudeReadyText, frames, eventTimeline }) {
 
     content.push({
       type: "text",
-      text: `\n## Multi-Signal Event Timeline (${used}${failed}):\n${gameNote}\nTop events by confidence:\n${top}`,
+      text: `\n## Multi-Signal Event Timeline (${used}${failed}):\n${gameNote}\nTop events by confidence (max 10 per signal, nearby duplicates collapsed):\n${top}`,
     });
   }
 
@@ -621,8 +660,9 @@ module.exports = {
   parseTimestamp,
   formatTimestamp,
   DEFAULT_CREATOR_PROFILE,
-  // exported for unit tests (#191)
+  // exported for unit tests (#191) and the replay harness (#237)
   buildFewShotSection,
   buildRejectedSection,
   truncateSnippet,
+  selectTimelineEvents,
 };

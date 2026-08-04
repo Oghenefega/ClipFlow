@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-04 (session 148) — The event timeline stops being 50 copies of the same signal
+
+### Fixed
+- **The detection prompt's event timeline now shows every signal, not just pitch spikes (#237).** Diagnosis showed the problem was bigger than filed: three of the mic signals (pitch spikes, reaction words, talk-speed) all pin hundreds of events at the maximum score, and the old "top 50 by score" list resolved the giant tie by accident of code ordering — so the engine literally never saw a game-audio or reaction-word timeline line, and the note explaining game events described lines that didn't exist. Selection now caps each signal at 10 of the 50 lines, collapses overlapping windows of the same scream into one line, and backfills with the best remaining events when a recording only has a few signals. Nothing else moved — scores, screenshots, and frame selection are untouched. Verified against the replay harness on all six standard recordings: kept-moment recall went 24/26 → 25/26 with precision flat, and 8 new unit tests lock the behavior in (60 green).
+
+### Changed
+- **The Gemini experiment no longer needs its score-inflation hack (#235, #237).** Gemini's visual events used to be forced to the maximum score just to survive the saturated timeline; they now merge at their real confidence values and land in the prompt on their own merit (all 9 on the Rocket League test recording). One watch item recorded for the integration step: with Gemini's picks competing for the engine's limited pick budget, the single approved clip on that recording became a coin flip (caught 1 of 3 runs) — traced to pick competition, not the new selection, since the moment's timeline line is still present and Gemini only displaced junk lines.
+
 ## [Unreleased] — 2026-08-04 (session 147) — Gemini learns whose plays matter
 
 ### Changed

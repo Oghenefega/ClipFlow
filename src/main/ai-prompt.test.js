@@ -495,6 +495,89 @@ test("real snippets from both sections appear with no timestamps anywhere in the
   expect(feedbackPart).notToContain("01:02:00");
 });
 
+// ── selectTimelineEvents (#237) ──
+
+// n same-signal events tied at `score`, spaced 60s apart (no gap collapsing)
+function evts(signal, n, score, { t0 = 0, step = 60 } = {}) {
+  return Array.from({ length: n }, (_, i) => ({
+    t_start: t0 + i * step, t_end: t0 + i * step + 3, signal, score, label: signal,
+  }));
+}
+
+test("saturated signal is capped while slots contend (#237)", () => {
+  const events = [...evts("pitch_spike", 200, 1.0), ...evts("game_energy", 8, 0.6)];
+  const picked = aiPrompt.selectTimelineEvents(events, { limit: 18 });
+  expect(picked.filter((e) => e.signal === "pitch_spike").length).toBe(10);
+  expect(picked.filter((e) => e.signal === "game_energy").length).toBe(8);
+});
+
+test("sub-1.0 signals land despite hundreds of 1.0 ties (#237)", () => {
+  const events = [
+    ...evts("pitch_spike", 200, 1.0),
+    ...evts("transcript_density", 200, 1.0),
+    ...evts("reaction_words", 200, 1.0),
+    ...evts("gemini_visual", 9, 0.75),
+  ];
+  const picked = aiPrompt.selectTimelineEvents(events);
+  expect(picked.filter((e) => e.signal === "gemini_visual").length).toBe(9);
+});
+
+test("same-signal events within 10s collapse to one line (#237)", () => {
+  // 10 overlapping windows of one scream (1s apart, midpoints span 9s) + one distinct burst later
+  const events = [...evts("pitch_spike", 10, 1.0, { step: 1 }), ...evts("pitch_spike", 1, 0.9, { t0: 300 })];
+  const picked = aiPrompt.selectTimelineEvents(events);
+  expect(picked.length).toBe(2);
+  expect(picked[0].t_start).toBe(0);
+  expect(picked[1].t_start).toBe(300);
+});
+
+test("near-duplicates of DIFFERENT signals both keep their line (#237)", () => {
+  const events = [...evts("pitch_spike", 1, 1.0), ...evts("reaction_words", 1, 0.9)];
+  expect(aiPrompt.selectTimelineEvents(events).length).toBe(2);
+});
+
+test("backfill past the cap when few signals are present (#237)", () => {
+  const events = [...evts("pitch_spike", 100, 1.0), ...evts("reaction_words", 20, 0.8)];
+  const picked = aiPrompt.selectTimelineEvents(events);
+  expect(picked.length).toBe(50);
+  // capped pass: 10 + 10; backfill fills the rest best-score-first (pitch 1.0 > reaction 0.8)
+  expect(picked.filter((e) => e.signal === "pitch_spike").length).toBe(40);
+  expect(picked.filter((e) => e.signal === "reaction_words").length).toBe(10);
+});
+
+test("fewer events than the limit — all render, none invented (#237)", () => {
+  const picked = aiPrompt.selectTimelineEvents(evts("pitch_spike", 5, 0.7));
+  expect(picked.length).toBe(5);
+});
+
+test("result is sorted by score descending (#237)", () => {
+  const events = [...evts("game_energy", 3, 0.5), ...evts("gemini_visual", 3, 0.9), ...evts("pitch_spike", 3, 1.0)];
+  const picked = aiPrompt.selectTimelineEvents(events);
+  const scores = picked.map((e) => e.score);
+  expect(scores.every((s, i) => i === 0 || s <= scores[i - 1])).toBe(true);
+});
+
+test("buildUserContent timeline section shows a signal mix, not one signal (#237)", () => {
+  // 5 signals x 10+ events fill the 50 slots exactly — no backfill, caps visible
+  const eventTimeline = {
+    events: [
+      ...evts("pitch_spike", 200, 1.0),
+      ...evts("transcript_density", 200, 1.0),
+      ...evts("reaction_words", 200, 1.0),
+      ...evts("game_energy", 10, 0.6),
+      ...evts("game_yamnet", 10, 0.5),
+    ],
+    signals_computed: ["pitch_spike", "transcript_density", "reaction_words", "game_energy", "game_yamnet"],
+    signals_failed: [],
+  };
+  const content = aiPrompt.buildUserContent({ claudeReadyText: "transcript", frames: [], eventTimeline });
+  const section = content.find((c) => c.text && c.text.includes("Multi-Signal Event Timeline")).text;
+  expect((section.match(/\[pitch_spike\]/g) || []).length).toBe(10);
+  expect((section.match(/\[game_energy\]/g) || []).length).toBe(10);
+  expect((section.match(/\[game_yamnet\]/g) || []).length).toBe(10);
+  expect(section).toContain("max 10 per signal");
+});
+
 // ── Summary ──
 
 console.log(`\n${passed} passed, ${failed} failed (${passed + failed} total)`);

@@ -272,19 +272,18 @@ function score(picks, truth) {
     const byActor = { player: [], spectator: [], unclear: [] };
     for (const e of gv.events) byActor[actorOf(e.what)].push(e);
     geminiActors = { player: byActor.player.length, spectator: byActor.spectator.length, unclear: byActor.unclear.length };
-    // The timeline's score scale is saturated: 50+ pitch_spike events sit at
-    // exactly 1.0, so any score below that never reaches the prompt's top-50
-    // (#237). Merge kept events AT the ceiling and PREPEND them —
-    // buildUserContent's sort is stable, so ties break toward gemini lines.
-    // Gemini's own confidence ordering is preserved by pre-sorting.
+    // Merge kept events at their RAW Gemini confidence (0.7-0.95 in practice).
+    // The old score-1.0 ceiling hack is retired: selectTimelineEvents (#237)
+    // caps each signal at 10 prompt lines, so saturated mic signals can no
+    // longer crowd sub-1.0 scores out of the section.
     eventTimeline.events = [
-      ...[...byActor.player, ...byActor.unclear].sort((a, b) => b.score - a.score)
-        .map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: 1.0, label: e.label })),
       ...eventTimeline.events,
+      ...[...byActor.player, ...byActor.unclear]
+        .map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: e.score, label: e.label })),
     ];
     eventTimeline.signals_computed = [...(eventTimeline.signals_computed || []), "gemini_visual"];
-    const top50 = [...eventTimeline.events].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 50);
-    console.log(`gemini variant D: ${geminiActors.player} player + ${geminiActors.unclear} unclear merged, ${geminiActors.spectator} spectator dropped, ${top50.filter((e) => e.signal === "gemini_visual").length} land in the prompt's top-50`);
+    const selected = aiPrompt.selectTimelineEvents(eventTimeline.events);
+    console.log(`gemini variant D: ${geminiActors.player} player + ${geminiActors.unclear} unclear merged, ${geminiActors.spectator} spectator dropped, ${selected.filter((e) => e.signal === "gemini_visual").length} land in the prompt's event section (raw scores, no ceiling)`);
     for (const e of byActor.spectator) console.log(`  dropped: ${aiPrompt.formatTimestamp(e.t_start_s)} ${e.label} — ${e.what}`);
   }
 
