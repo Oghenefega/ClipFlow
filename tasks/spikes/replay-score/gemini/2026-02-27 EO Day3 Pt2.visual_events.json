@@ -1,0 +1,66 @@
+{
+  "videoName": "2026-02-27 EO Day3 Pt2",
+  "model": "gemini-3.6-flash",
+  "promptVersion": "v2-actor",
+  "usage": {
+    "inputTokens": 150453,
+    "outputTokens": 2301
+  },
+  "cost": 0.24293700000000001,
+  "events": [
+    {
+      "t_start_s": 255,
+      "t_end_s": 267,
+      "score": 0.85,
+      "label": "botched_jump_shatter",
+      "what": "The player attempts a risky jump onto cinder blocks, tumbles all the way to the ground, and shatters the egg."
+    },
+    {
+      "t_start_s": 357,
+      "t_end_s": 366,
+      "score": 0.75,
+      "label": "platforming_timing_fall",
+      "what": "The player miscounts the trap timer, getting knocked off the wooden beam and rolling down to a lower section."
+    },
+    {
+      "t_start_s": 502,
+      "t_end_s": 512,
+      "score": 0.7,
+      "label": "accidental_edge_fall",
+      "what": "The player loses control while navigating narrow planks and falls onto the glass structure below."
+    },
+    {
+      "t_start_s": 622,
+      "t_end_s": 632,
+      "score": 0.8,
+      "label": "clutch_hazard_jump",
+      "what": "The player executes a well-timed jump over a trap and celebrates the successful maneuver."
+    },
+    {
+      "t_start_s": 1080,
+      "t_end_s": 1090,
+      "score": 0.75,
+      "label": "botched_beam_jump",
+      "what": "The player attempts to jump across the wooden beams but gets flung sideways onto the glass roof."
+    },
+    {
+      "t_start_s": 1408,
+      "t_end_s": 1425,
+      "score": 0.9,
+      "label": "successful_climb_celebration",
+      "what": "The player carefully times a series of jumps to reach the upper red platform and celebrates passionately."
+    },
+    {
+      "t_start_s": 1577,
+      "t_end_s": 1588,
+      "score": 0.95,
+      "label": "dramatic_shatter_fail",
+      "what": "The player misses a crucial jump at high elevation, causing the egg to shatter on impact and triggering a rage quit."
+    }
+  ],
+  "proxy": {
+    "sizeMB": 133.4,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T23:49:37.038Z"
+}

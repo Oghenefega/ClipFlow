@@ -53,6 +53,7 @@ Module._load = function (request, parent, isMain) {
 
 const REPO = path.join(__dirname, "..", "..", "..");
 const aiPrompt = require(path.join(REPO, "src", "main", "ai-prompt"));
+const geminiWatchProd = require(path.join(REPO, "src", "main", "gemini-watch"));
 const gameProfiles = require(path.join(REPO, "src", "main", "game-profiles"));
 const llmProvider = require(path.join(REPO, "src", "main", "ai", "llm-provider"));
 require(path.join(REPO, "src", "main", "ai", "providers", "anthropic")); // self-registers
@@ -240,51 +241,26 @@ function score(picks, truth) {
 
   const { claudeReadyText, energyJson, eventTimeline } = loadArtifacts(videoName);
 
-  // #235 variant D: merge Gemini full-watch visual events into the timeline.
-  // Signal name `gemini_visual` doesn't touch deriveFrames (only game_energy /
+  // #235: merge Gemini full-watch visual events into the timeline via the
+  // PROD merge code (src/main/gemini-watch.js) — actor classification,
+  // spectator-drop, and raw-confidence merge are the shipped implementation,
+  // so integration cells measure exactly what the pipeline runs. Signal name
+  // `gemini_visual` doesn't touch deriveFrames (only game_energy /
   // game_yamnet reserve slots), so frames stay identical across the ablation.
   let geminiActors = null;
   if (variant.gemini) {
-    const gvPath = path.join(__dirname, "gemini", `${videoName}.visual_events.json`);
-    if (!fs.existsSync(gvPath)) {
+    // Spike gemini/ dir first (validated cell inputs); prod artifact location
+    // second (recordings processed by the integrated pipeline).
+    const gvPath = [
+      path.join(__dirname, "gemini", `${videoName}.visual_events.json`),
+      path.join(PROCESSING, "signals", `${videoName}.visual_events.json`),
+    ].find((p) => fs.existsSync(p));
+    if (!gvPath) {
       console.error(`--gemini: no visual events for "${videoName}" — run gemini-watch.js first.`);
       process.exit(1);
     }
     const gv = JSON.parse(fs.readFileSync(gvPath, "utf-8"));
-    // Actor-aware merge (D3): Fega's eyeball verdicts on D2 showed the
-    // discriminator is creator authorship — both keeps were his own fails, all
-    // rejects teammate/opponent plays he spectates. The `what` sentence names
-    // the actor (v2 watch prompt makes actor-first phrasing mandatory), so
-    // classify on it: spectator events are dropped before the merge; player-
-    // authored and unclear events merge at full weight.
-    const actorOf = (what) => {
-      const w = String(what || "").toLowerCase().trim();
-      // v2 phrasing is actor-first, so the sentence start is authoritative —
-      // keyword scan is only a fallback for v1-style files ("opponent's net"
-      // mid-sentence is a location, not an actor).
-      if (/^(the player|the creator)\b/.test(w)) return "player";
-      if (/^(a |an |the )?(teammate|team-mate|opponent|enemy|another player|other player|rival)\b/.test(w)) return "spectator";
-      if (/^unclear actor/.test(w)) return "unclear";
-      if (/\b(teammate|team-mate|opponent|enemy|another player|other player|rival)(?!'s)\b/.test(w)) return "spectator";
-      if (/\bthe player\b|\bplayer's\b|\bthe creator\b/.test(w)) return "player";
-      return "unclear";
-    };
-    const byActor = { player: [], spectator: [], unclear: [] };
-    for (const e of gv.events) byActor[actorOf(e.what)].push(e);
-    geminiActors = { player: byActor.player.length, spectator: byActor.spectator.length, unclear: byActor.unclear.length };
-    // Merge kept events at their RAW Gemini confidence (0.7-0.95 in practice).
-    // The old score-1.0 ceiling hack is retired: selectTimelineEvents (#237)
-    // caps each signal at 10 prompt lines, so saturated mic signals can no
-    // longer crowd sub-1.0 scores out of the section.
-    eventTimeline.events = [
-      ...eventTimeline.events,
-      ...[...byActor.player, ...byActor.unclear]
-        .map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: e.score, label: e.label })),
-    ];
-    eventTimeline.signals_computed = [...(eventTimeline.signals_computed || []), "gemini_visual"];
-    const selected = aiPrompt.selectTimelineEvents(eventTimeline.events);
-    console.log(`gemini variant D: ${geminiActors.player} player + ${geminiActors.unclear} unclear merged, ${geminiActors.spectator} spectator dropped, ${selected.filter((e) => e.signal === "gemini_visual").length} land in the prompt's event section (raw scores, no ceiling)`);
-    for (const e of byActor.spectator) console.log(`  dropped: ${aiPrompt.formatTimestamp(e.t_start_s)} ${e.label} — ${e.what}`);
+    geminiActors = geminiWatchProd.mergeVisualEvents(eventTimeline, gv.events, { info: console.log, warn: console.warn });
   }
 
   // Game identity from the timeline's video name prefix is unreliable — pull

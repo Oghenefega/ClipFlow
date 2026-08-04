@@ -58,9 +58,17 @@ async function fetchJson(url, options, timeout) {
 
 /**
  * Upload a local file via the resumable Files API and wait until it is ACTIVE.
+ * Timeouts are tuned for titlegen clips by default; the #235 full-recording
+ * watch passes much longer ones (a ~140MB proxy uploads and processes in
+ * minutes, not seconds).
+ * @param {object} [opts]
+ * @param {number} [opts.uploadTimeoutMs] - Byte upload timeout (default 3 min)
+ * @param {number} [opts.pollTimeoutMs] - PROCESSING→ACTIVE poll timeout (default 90s)
  * @returns {Promise<{ uri: string, name: string, mimeType: string }>}
  */
-async function uploadFile(apiKey, filePath, mimeType) {
+async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
+  const uploadTimeoutMs = opts.uploadTimeoutMs || DEFAULT_TIMEOUT;
+  const pollTimeoutMs = opts.pollTimeoutMs || FILE_POLL_TIMEOUT_MS;
   const bytes = fs.readFileSync(filePath);
 
   // 1. Start a resumable session — the upload URL comes back in a header.
@@ -92,7 +100,7 @@ async function uploadFile(apiKey, filePath, mimeType) {
 
   // 2. Upload the bytes and finalize in one shot.
   const upController = new AbortController();
-  const upTimer = setTimeout(() => upController.abort(), DEFAULT_TIMEOUT);
+  const upTimer = setTimeout(() => upController.abort(), uploadTimeoutMs);
   let fileInfo;
   try {
     const upRes = await fetch(uploadUrl, {
@@ -115,7 +123,7 @@ async function uploadFile(apiKey, filePath, mimeType) {
   if (!fileInfo?.name) throw new Error("Files API upload returned no file name");
 
   // 3. Poll until processed — video stays in PROCESSING for a few seconds.
-  const deadline = Date.now() + FILE_POLL_TIMEOUT_MS;
+  const deadline = Date.now() + pollTimeoutMs;
   let state = fileInfo.state;
   while (state === "PROCESSING") {
     if (Date.now() > deadline) throw new Error("Files API processing timed out");
@@ -159,6 +167,10 @@ async function buildParts(apiKey, content) {
       if (block.text) parts.push({ text: block.text });
     } else if (block.type === "image" && block.source?.data) {
       parts.push({ inlineData: { mimeType: block.source.media_type || "image/jpeg", data: block.source.data } });
+    } else if (block.type === "video_ref" && block.uri) {
+      // #235: video already uploaded by the caller (gemini-watch.js owns the
+      // upload + cleanup) — reference it, never re-upload or delete it here.
+      parts.push({ fileData: { mimeType: block.mimeType || "video/mp4", fileUri: block.uri } });
     } else if (block.type === "video" && block.path) {
       const mimeType = block.mimeType || "video/mp4";
       const size = fs.statSync(block.path).size;
@@ -261,3 +273,6 @@ const provider = {
 registerProvider("gemini", provider);
 
 module.exports = provider;
+// Files API helpers for callers that manage their own upload lifecycle (#235)
+module.exports.uploadFile = uploadFile;
+module.exports.deleteFile = deleteFile;

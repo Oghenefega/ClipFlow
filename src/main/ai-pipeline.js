@@ -9,6 +9,7 @@ const gameProfiles = require("./game-profiles");
 const feedback = require("./feedback");
 const database = require("./database");
 const signals = require("./signals");
+const geminiWatch = require("./gemini-watch");
 const { PipelineLogger } = require("./pipeline-logger");
 const { getProvider } = require("./ai/llm-provider");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
@@ -484,6 +485,29 @@ async function runAIPipeline({
     if (probeResult.error) throw new Error(`Probe failed: ${probeResult.error}`);
     logger.endStep("Probe", `${probeResult.duration.toFixed(1)}s, ${probeResult.width}x${probeResult.height}`);
 
+    // ============ Stage 0.5: Gemini full-watch (background, #235) ============
+    // Gemini watches a 720p proxy of the whole recording while transcription /
+    // energy / signals run, and its visual events merge into the event
+    // timeline just before the Claude call. Failure only ever costs the
+    // signal, never the pipeline (detection must always return clips).
+    let watchPromise = null;
+    const geminiKey = String(store.get("geminiApiKey") || "").trim();
+    if (gameData.isTest) {
+      logger.info("Gemini watch: test mode — skipped");
+    } else if (!geminiKey) {
+      logger.info("Gemini watch: no Gemini API key — skipped");
+    } else if (store.get("geminiWatchEnabled") === false) {
+      logger.info("Gemini watch: disabled in settings — skipped");
+    } else {
+      logger.info("Gemini watch: started in background (#235)");
+      watchPromise = geminiWatch
+        .watchRecording({ sourceFile, videoName, processingDir, store, logger })
+        .catch((e) => {
+          logger.warn(`Gemini watch failed: ${e.message} — continuing without visual events`);
+          return null;
+        });
+    }
+
     // ============ Stage 1: Create project ============
     sendProgress("creating", 3, "Creating project...");
     logger.startStep("Create Project");
@@ -729,6 +753,27 @@ async function runAIPipeline({
       fs.writeFileSync(path.join(processingDir, "claude", `${videoName}.system_prompt.txt`), systemPrompt, "utf-8");
     } catch (e) {
       logger.info(`Could not write system prompt file: ${e.message}`);
+    }
+
+    // #235: fold the Gemini watch's visual events into the timeline before the
+    // prompt is assembled. Spectator events drop, the rest merge at raw
+    // confidence; #237's per-signal caps handle selection. gemini_visual never
+    // reserves frames (Stage 5 already ran — matches every harness cell).
+    if (watchPromise) {
+      sendProgress("claude", 65, "Waiting for Gemini's full-recording watch...");
+      const watch = await watchPromise;
+      if (watch && watch.usage) {
+        logger.logApiUsage(watch.usage.inputTokens, watch.usage.outputTokens, geminiWatch.MODEL);
+      }
+      if (watch && Array.isArray(watch.events) && watch.events.length > 0) {
+        if (eventTimeline) {
+          geminiWatch.mergeVisualEvents(eventTimeline, watch.events, logger);
+        } else {
+          logger.info("Gemini watch: no event timeline to merge into (energy-only fallback) — visual events unused");
+        }
+      } else if (watch) {
+        logger.info("Gemini watch: 0 visual events — nothing to merge");
+      }
     }
 
     const userContent = aiPrompt.buildUserContent({

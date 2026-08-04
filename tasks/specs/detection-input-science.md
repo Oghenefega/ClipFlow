@@ -19,6 +19,12 @@
 > **2026-08-04 (session 148): #237 event-timeline de-saturation SHIPPED + gated
 > (§Step 5) — per-signal caps + duplicate collapse in the prompt's top-50
 > selection; harness ceiling hack retired. #235 integration gate CLEARED.**
+> **2026-08-04 (session 149): #235 pipeline integration SHIPPED (§Step 4 —
+> prod watch module, background stage in ai-pipeline, default ON with a key).
+> Integration cell f10-gemInt: pooled 22/26 = 85% vs f10-mix 25/26 — gate NOT
+> held on run1s; diagnosis = cut-boundary tightening + tail-budget
+> displacement, NOT bad moment selection (rej-hit improved 49%→46%).
+> Noise-check re-runs + gate decision BLOCKED on Anthropic API credits.**
 
 ## The question this answers
 
@@ -227,6 +233,30 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > ceiling hack retired. Next: pipeline wiring behind its own ablation cell,
 > carrying Step 5's watch item (RL Day10's knife-edge approved row under the
 > raw-score merge).**
+>
+> **2026-08-04 (session 149): PIPELINE INTEGRATION SHIPPED (full detail in
+> #235).** `src/main/gemini-watch.js` (v2-actor prompt FROZEN verbatim,
+> actor-aware spectator-drop merge at raw confidence) + background stage in
+> ai-pipeline.js (starts after probe, awaited before the Claude call — adds
+> ~0-3 min wall time; failure never aborts the pipeline; skips on no key /
+> `geminiWatchEnabled: false` / test mode; ~$0.15-0.25 per recording).
+> Harness `--gemini` now requires the prod merge functions, so cells measure
+> shipped code. New v2 watches: RL Day8 (13 events), EO Day3 (7), RL Day9
+> re-watch (**0 events** — no-hallucination holds on v2). **Integration cell
+> `f10-gemInt` (six recordings): pooled 22/26 = 85% vs f10-mix 25/26 — gate
+> NOT held as measured.** The 4 lost rows: RL Day10 22:14 knife-edge
+> reproduced exactly (1 of 3 runs, same as gemD4); DD 10:26 boundary-shaved
+> by 4s (gemD4 hit it); EO Day3 8:36 lost to pick-window tightening (gemini's
+> tight 7-17s events pull Claude's cuts in) and 6:33 to tail-budget
+> displacement (was mix's rank-14 conf-0.63 pick). Rejected-hit rate
+> IMPROVED (49% → 46%) and displacing picks include D3-verdicted keeps — the
+> loss axis is cut boundaries + fixed ~15-pick budget under midpoint scoring,
+> exactly the precision frontier Fega's D3 verdicts named. 13-pick eyeball
+> list (mostly mic-driven fresh territory) shipped as proxy cuts to
+> `Desktop\ClipFlow Eyeball f10-gemInt\`. **Queued, blocked on Anthropic API
+> credits: 2×2 noise-check runs on EO Day3 + DD Day2 (~$0.40), then Fega's
+> gate decision** (hold behind flag / accept documented edge-loss + run the
+> cut-boundary experiment next / revert default-on).
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

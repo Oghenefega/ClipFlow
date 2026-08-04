@@ -1,0 +1,108 @@
+{
+  "videoName": "2026-07-17 RL Day8 Pt8",
+  "model": "gemini-3.6-flash",
+  "promptVersion": "v2-actor",
+  "usage": {
+    "inputTokens": 100846,
+    "outputTokens": 3179
+  },
+  "cost": 0.1751115,
+  "events": [
+    {
+      "t_start_s": 84,
+      "t_end_s": 91,
+      "score": 0.8,
+      "label": "dribble_goal_score",
+      "what": "The player dribbles past the defender and scores a goal."
+    },
+    {
+      "t_start_s": 121,
+      "t_end_s": 127,
+      "score": 0.75,
+      "label": "clutch_line_save",
+      "what": "The player flips backwards to clear the ball right off the goal line."
+    },
+    {
+      "t_start_s": 285,
+      "t_end_s": 292,
+      "score": 0.8,
+      "label": "fast_break_goal",
+      "what": "The player drives the ball downfield into the open net."
+    },
+    {
+      "t_start_s": 327,
+      "t_end_s": 332,
+      "score": 0.7,
+      "label": "opponent_demolition",
+      "what": "The player rams into the opponent car at full speed, causing a demolition."
+    },
+    {
+      "t_start_s": 362,
+      "t_end_s": 369,
+      "score": 0.8,
+      "label": "open_net_goal",
+      "what": "The player capitalizes on an opponent mistake to score an easy goal."
+    },
+    {
+      "t_start_s": 406,
+      "t_end_s": 413,
+      "score": 0.8,
+      "label": "power_shot_goal",
+      "what": "The player hits a high-velocity shot straight into the opponent net."
+    },
+    {
+      "t_start_s": 576,
+      "t_end_s": 583,
+      "score": 0.85,
+      "label": "clutch_demolition_goal",
+      "what": "The player demolishes the opponent and scores into the empty net."
+    },
+    {
+      "t_start_s": 648,
+      "t_end_s": 655,
+      "score": 0.85,
+      "label": "funny_own_goal",
+      "what": "The player panics and accidentally hits the ball directly into their own net."
+    },
+    {
+      "t_start_s": 824,
+      "t_end_s": 831,
+      "score": 0.8,
+      "label": "long_range_shot",
+      "what": "The player launches a long-range shot into the opponent's goal."
+    },
+    {
+      "t_start_s": 846,
+      "t_end_s": 853,
+      "score": 0.8,
+      "label": "kickoff_counter_goal",
+      "what": "The player takes advantage off the kickoff and scores a quick goal."
+    },
+    {
+      "t_start_s": 925,
+      "t_end_s": 933,
+      "score": 0.8,
+      "label": "aerial_wall_shot",
+      "what": "The player hits the ball off the wall and scores a clean goal."
+    },
+    {
+      "t_start_s": 952,
+      "t_end_s": 960,
+      "score": 0.85,
+      "label": "ground_pinch_goal",
+      "what": "The player pinches the ball off the ground into the top corner of the net."
+    },
+    {
+      "t_start_s": 1035,
+      "t_end_s": 1042,
+      "score": 0.8,
+      "label": "match_point_goal",
+      "what": "The player hits a final shot past the opponent to score."
+    }
+  ],
+  "proxy": {
+    "sizeMB": 99.2,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T23:45:31.172Z"
+}

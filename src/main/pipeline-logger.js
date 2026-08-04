@@ -64,12 +64,14 @@ class PipelineLogger {
     }
   }
 
-  /** Log LLM API usage (provider-aware pricing via cost-tracker) */
+  /** Log LLM API usage (provider-aware pricing via cost-tracker).
+   *  Accumulates across calls — a pipeline run can bill more than one model
+   *  (#235: Gemini watch + Claude detection land in one cost line). */
   logApiUsage(inputTokens, outputTokens, model) {
-    this.apiTokens.input = inputTokens;
-    this.apiTokens.output = outputTokens;
+    this.apiTokens.input += inputTokens;
+    this.apiTokens.output += outputTokens;
     const { inputCost, outputCost, totalCost, known } = getCost(model, inputTokens, outputTokens);
-    this.apiCost = totalCost;
+    this.apiCost += totalCost;
     this._append(`[API]   Model: ${model}${known ? "" : " (pricing unknown)"}`);
     this._append(`        Input: ${inputTokens} tokens ($${inputCost.toFixed(4)})`);
     this._append(`        Output: ${outputTokens} tokens ($${outputCost.toFixed(4)})`);

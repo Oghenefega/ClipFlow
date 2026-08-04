@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-04 (session 149) — Gemini's full-recording watch joins the real pipeline
+
+### Added
+- **The Gemini full-recording watch is now a real pipeline stage, not an experiment (#235).** When a recording starts processing, the app quietly builds a small 720p proxy, uploads it, and has gemini-3.6-flash watch the whole video and flag the creator's own plays and fails (the actor-aware prompt validated last session, unchanged). Those visual moments merge into the event timeline the detection engine reads — Claude still makes every pick. The watch runs in the background alongside transcription, so it adds roughly 0-3 minutes instead of the ~10-15 a separate stage would; if it fails for any reason (no Gemini key, network trouble, timeouts), the pipeline logs one line and continues exactly as before — detection never comes back empty because of it. On by default whenever a Gemini key is configured (~$0.15-0.25 per recording); it can be turned off with a `geminiWatchEnabled: false` settings entry, and test-mode runs never spend the money. The per-recording cost line in the logs now shows Gemini + Claude combined.
+- **The experiment harness now measures the exact shipped code.** The replay harness's Gemini merge logic was deleted and replaced with imports from the new pipeline module, and the standalone watch script became a thin wrapper over it — so every future ablation cell exercises what production actually runs. 14 new unit tests cover the actor classifier (including the "opponent's net" possessive bug caught in session 147) and the merge; 74 total green.
+
+### Changed
+- **First integration verdict: recall gate not met as measured, and the diagnosis is about clip edges, not bad picks (#235).** With the signal live on all six standard recordings, pooled kept-moment recall came in at 22/26 (85%) versus 25/26 for the same setup without Gemini. The four lost rows break down as: the known Rocket League coin-flip row reproduced exactly (caught 1 of 3 runs, same as before integration); one row missed by 4 seconds of window placement; one lost because Gemini's tight event windows pull Claude's cuts narrower; one weakest-in-budget tail pick displaced. Meanwhile picks landed on *rejected* moments slightly less often, and several of the "displacing" picks are moments Fega already verdicted as usable. Follow-up noise-check runs and the ship/hold decision are blocked: the Anthropic API credit balance ran out mid-session. A fresh 13-clip eyeball folder is on the Desktop.
+
 ## [Unreleased] — 2026-08-04 (session 148) — The event timeline stops being 50 copies of the same signal
 
 ### Fixed

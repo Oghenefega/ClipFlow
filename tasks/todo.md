@@ -6,6 +6,107 @@
 
 ---
 
+## ⏳ ACTIVE (session 149) — #235 pipeline integration: Gemini full-watch becomes a real detection signal — SHIPPED; cell run; gate 22/26 vs 25/26 (diagnosis: cut-boundary + tail-budget, NOT bad picks); noise-check runs + Fega's gate decision BLOCKED on Anthropic API credits
+
+Status: all code steps below DONE (74 tests green, boot verified, watches run
+$0.45, cell run $0.67, results on #235, spec + changelog updated). Remaining:
+top up Anthropic credits → 2×2 noise runs on EO Day3 + DD Day2 (~$0.40) →
+Fega gate decision (hold behind flag / accept edge-loss + cut-boundary
+experiment next / revert default-on). Eyeball folder on Desktop (13 clips).
+
+Gate cleared by #237 (session 148). Wire the validated Gemini watch (v2-actor
+prompt, actor-aware spectator-drop, raw-confidence merge) into the real
+pipeline, verified by its own harness ablation cell. **Watch prompt is frozen
+at v2-actor — no prompt changes this session.** Cut-boundary extension is a
+separate future experiment.
+
+### File impact
+
+1. **NEW `src/main/gemini-watch.js`** — prod watch module, lifted from the
+   spike: proxy transcode (720p h264 600k + mono aac, NVDEC/NVENC, .tmp-rename
+   guard), Files-API upload + long processing poll, one gemini-3.6-flash call
+   with the v2-actor SYSTEM prompt VERBATIM, event validation, artifact write
+   to `processing/signals/<vid>.visual_events.json` (same schema as spike:
+   promptVersion/usage/cost/events). Exports `watchRecording()`,
+   `classifyActor()`, `mergeVisualEvents()` (actor classification +
+   spectator-drop + raw-score merge + signals_computed append) so the harness
+   measures the SAME shipped code. Configurable proxy/out paths so the spike
+   CLI can reuse it.
+2. **`src/main/ai/providers/gemini.js`** — export `uploadFile`/`deleteFile`;
+   `uploadFile` gains an opts param `{uploadTimeoutMs, pollTimeoutMs}`
+   defaulting to current values (titlegen path byte-identical). `buildParts`
+   accepts a new block `{type: "video_ref", uri, mimeType}` → fileData part
+   (video already uploaded; chat() must not re-upload or delete it).
+3. **`src/main/ai-pipeline.js`** — kick off `watchRecording()` as a background
+   promise right after Stage 0 probe (overlaps transcription/energy/signals →
+   adds ~0-3 min wall time instead of ~10-15 sequential); await it just before
+   Stage 6 prompt build; merge via `mergeVisualEvents` (player+unclear at raw
+   confidence, spectator dropped + logged, actor counts + lines-landed logged
+   like the harness). Skip conditions (one log line each): no `geminiApiKey`,
+   `store.get("geminiWatchEnabled") === false` (new key, read-with-default —
+   no migration needed), or `gameData.isTest`. ANY watch failure → log +
+   continue without the signal (never-empty detection). Proxy deleted after
+   the watch (success or fail); remote file deleted best-effort. Frames stage
+   untouched (gemini_visual reserves no frames — matches every harness cell).
+   Progress = detail-text update on the existing analysis stage; NO renderer
+   changes.
+4. **`src/main/pipeline-logger.js`** — `logApiUsage` accumulates (`+=`) so
+   detection + gemini both land in the per-recording cost line (single-call
+   callers unchanged; main.js:2768 titlegen logger unaffected).
+5. **`tasks/spikes/replay-score/harness.js`** — `--gemini` merge switches to
+   requiring `mergeVisualEvents`/`classifyActor` from the prod module (deletes
+   the inline copy); keeps its gemini/ dir + merge log output.
+6. **`tasks/spikes/replay-score/gemini-watch.js`** — becomes a thin CLI over
+   the prod module (electron stub like harness.js), writing to spike gemini/ +
+   cached _tmp/proxy — new watches exercise prod transcode/upload/poll code.
+7. **NEW `src/main/gemini-watch.test.js`** — classifier tests (actor-first
+   phrasing, "opponent's net" possessive regression, unclear fallback) +
+   merge tests (spectator dropped, raw scores kept, signals_computed).
+   Existing `ai-prompt.test.js` 60 tests stay green.
+
+### Cost per recording (live pipeline, once shipped)
+
+Gemini ≈ $0.005-0.008/min of footage: 16-min ≈ $0.14, 30-min ≈ $0.23,
+44-min ≈ $0.22 (measured D2/D3 numbers). Claude detection unchanged ~$0.10.
+Total detection ≈ **$0.25-0.35/recording** + a few minutes of local GPU for
+the proxy (free, overlapped with transcription).
+
+### Ablation cell + gate (per program rules)
+
+- New v2-actor watches for the 3 standard recordings lacking them (via the
+  refactored spike CLI = prod code path): EO Day3 Pt2 (27.5 min ≈ $0.21),
+  RL Day8 Pt8 (20.6 min ≈ $0.16), RL Day9 Pt1 re-watch (3.8 min ≈ $0.03;
+  v1 gave 0 events — re-checks no-hallucination on v2). ≈ $0.40 Gemini.
+- Re-pull truth counts before scoring (Fega reviews shift windows).
+- Cell **`f10-gemInt`**: all six standard recordings, 1 run each (≈ $0.60);
+  RL Day10 gets 3 runs total (+≈ $0.20) for the #237 knife-edge watch item.
+- **Gate:** pooled recall (run1s) holds vs f10-mix 25/26; rejected-hit ~flat.
+  If the ONLY miss is RL Day10's 22:14 row → watch item REPRODUCED → decision
+  point for Fega (ship as-is vs follow-up mitigation experiment), not a silent
+  pass/fail. Mitigation is NOT a watch-prompt tweak (frozen).
+- Pooled row into `results/_summary.json`. Session API spend ≈ **$1.20-1.40**.
+
+### Verify
+
+Unit tests green → harness `--dry` sanity → cell runs → dev-profile boot
+(`CLIPFLOW_PROFILE=dev npx electron .`) after main-process changes.
+
+### Wrap
+
+Results comment on #235, spec §Step 4 update (+ integration section),
+CHANGELOG, commit + push. No installer (batching rule — this joins the
+pending batch: #232 v3 chips, frames 10, #236, #237).
+
+### Fega's part
+
+Approve the plan. If the cell surfaces new-territory picks, they ship as
+proxy-cut clips in a Desktop folder for the ~2-min eyeball pass (established
+delivery). Decision embedded in plan: watch defaults ON whenever a Gemini key
+is configured — daily driver starts paying ~$0.15-0.25/recording once this
+rides the next installer.
+
+---
+
 ## ✅ DONE (session 144) — Detection input science — steps 1-2 complete + first ablations; frames-10 APPROVED by Fega 2026-08-04 (build it: Stage 5 default 20 → 10, keep min(4,10) reservation, 1-2 verification replays)
 
 Fega's ask: make the clip-detection inputs *measurably* useful — sharper rejection
