@@ -113,6 +113,20 @@ Findings:
 Remaining cells: `--no-approved`, `--no-playstyle`, and the post-#232 `--no-rejected`
 re-run once tagged rows dominate the 50-row window.
 
+**Fega's two standing roles in the program** (the plan fails silently without them):
+1. **Tag at least one reason chip on every rejection.** The negative-calibration
+   re-test — the whole bet behind #232 — only has data if rejections keep arriving
+   tagged. Rejected cards linger on the Pending tab precisely for this (#230).
+2. **The ~2-minute eyeball pass per experiment:** picks scored "unreviewed" overlap no
+   historical decision, so the harness cannot judge them. Each experiment ends with a
+   short list of those (timestamps in the results JSON + issue comments) for Fega to
+   skim — new-territory picks can be genuinely good, and his verdicts turn into new
+   ground truth.
+
+**Small dangling item:** [#236](https://github.com/Oghenefega/ClipFlow/issues/236) —
+approved few-shot examples inject placeholder `Title: Clip N` lines as noise (7 of 12
+in the real RL prompt); suppress when the title is the auto-generated default.
+
 ## Step 4 — Gemini full-recording watch · NOT STARTED (#235)
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
