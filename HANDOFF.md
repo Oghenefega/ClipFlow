@@ -31,7 +31,7 @@ Master pushed (session commits: `f19165d` + the wrap commit). Epic [#231](https:
 
 ## Next Steps
 
-1. **Fega's ~2-min eyeball pass (#235 comment has the list):** RL Day10 18:29→19:10 + 25:30→26:01; DD 01:55→02:15 + 06:22→07:06; EO Day4 27:09→27:28 + 28:46→28:52. His verdicts decide whether the Gemini signal earns pipeline integration.
+1. **DONE same-day — Fega's eyeball verdicts are in (#235 comment): 2/6 soft-yes.** The discriminator is creator authorship + mic energy, not visual spectacle (keeps = his own crashes; rejects = teammate/opponent plays, talk-without-action). **Next #235 iteration:** actor-aware weighting of `gemini_visual` events using the `what` field + a watch prompt targeting the creator's own plays; re-run variant D on the same 3 recordings (proxies are cached — only the Gemini calls + replays cost, ~$1).
 2. **#237** — de-saturate / interleave the top-50 event selection (per-signal caps?), gated by its own harness cell. This unblocks real #235 integration.
 3. **Cut the batched installer** when Fega asks (~carries #232 chips v2, frames 10, #236) — then his chips-v2 hands-on check (reject a clip on Pending, 10 chips render).
 4. **Queued:** post-#232 `--no-rejected` re-test once v2-tagged rejections dominate the 50-row window (2026-08-04: 0 of 50 RL rows carry v2 chips — they can't until the installer ships).
