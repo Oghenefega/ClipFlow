@@ -40,3 +40,7 @@ Stage HANDOFF.md, the distilled skill changes, and any uncommitted work, commit 
 ## 5. Report cost
 
 Run /cost to show session spend.
+
+## 6. Suggest the session name (template-locked)
+
+A name suggestion that does not START with `S<number> ·` is INVALID — check before emitting (3 violations: s143, s145, s146). Template: `S<N> · alpha.<X> — <plain summary>` when an installer was cut this session; `S<N> · <plain summary>` when not. Copy the anchor from HANDOFF's header. Offer 2-3 alternatives, all in-template.
