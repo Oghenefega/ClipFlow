@@ -156,8 +156,18 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > snap-to-transcript needed. **Integration blocker: #237** — the prompt's top-50
 > event list is saturated (100% pitch_spike at score 1.0; game/reaction signals
 > never render), so variant D only worked via a ceiling-merge hack in the
-> harness. Fix #237 first, then decide pipeline integration on Fega's eyeball
-> verdicts.
+> harness.
+>
+> **Fega's eyeball verdicts (2026-08-04, full table in #235): 2/6 soft-yes.**
+> The discriminator is NOT visual spectacle — it's **creator authorship + mic
+> energy**: both keeps are his own crashes/fails; all rejects are teammate/
+> opponent plays he spectates or talk-without-action. Gemini's `what` field
+> already names the actor ("Teammate … scores" vs "The player …"), so the next
+> prototype iteration is actor-aware weighting (player-authored full weight,
+> spectator moments dropped/downweighted) + a watch prompt that targets the
+> creator's own plays. Re-run variant D on the same 3 recordings; success =
+> new-territory picks skew toward the DD (self-authored fail) class. Pipeline
+> integration decision waits on that + #237.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this
