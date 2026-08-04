@@ -4,7 +4,7 @@
 > cells run and recorded. Produced by Fable (ClipFlow dev), session 144; full plan
 > approved by Fega in chat 2026-08-02.
 > GitHub: epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) · children
-> [#232](https://github.com/Oghenefega/ClipFlow/issues/232) (chips v2, closed
+> [#232](https://github.com/Oghenefega/ClipFlow/issues/232) (v3 reason chips, closed
 > `status: untested`), [#233](https://github.com/Oghenefega/ClipFlow/issues/233)
 > (harness, closed `status: untested`), [#234](https://github.com/Oghenefega/ClipFlow/issues/234)
 > (ablations, OPEN — results in comments), [#235](https://github.com/Oghenefega/ClipFlow/issues/235)
@@ -49,11 +49,20 @@ Key structural facts (src/main/ai-prompt.js, ai-pipeline.js Stage 6):
 - Mechanical rejections (duplicate / bad-cut / wrong-content / repetitive) never enter
   negative calibration (#198, #232) and are excluded from #194 quality stats.
 
-## Step 1 — Rejection reasons v2 · SHIPPED (#232, commit `90f0313`)
+## Step 1 — Rejection reasons v3 · SHIPPED (#232, commit `90f0313`)
 
-Why: "not funny" (67 uses) and "nothing happens" (67) dominated and were constantly
-co-tagged — a vocabulary too coarse to teach. 140 of RL's 200 rejections predate
-tagging entirely and injected as bare quotes.
+**Era naming (per Fega, 2026-08-04 — use his numbering everywhere):** **v1** = the
+untagged era, reject button only. **v2** = the CURRENTLY INSTALLED system — six chips
+(duplicate, bad-cut, not-funny, nothing-happens, needs-context, wrong-content) +
+optional note; Fega has tagged with these for months (live DB 2026-08-04: 109 of 288
+rejections tagged; RL's 50-row window 38/50, DD 7/9, EO 20/45, MC 8/10). **v3** = the
+four sharper #232 chips below, built but NOT yet in an installer. Earlier drafts of
+this spec called v3 "chips v2" (second version of the chip *system*) — corrected;
+never phrase v1's absence of reasons as "no way to know why Fega rejects".
+
+Why v3: "not funny" (75 uses) and "nothing happens" (77) dominate v2 tagging and are
+constantly co-tagged — a vocabulary too coarse to teach. 140 of RL's 200+ rejections
+predate tagging entirely (v1 era) and inject as bare quotes.
 
 Shipped:
 - Four new chips (ProjectsView.js): **Setup / tech talk** (`setup-talk`), **Chat
@@ -114,9 +123,14 @@ Findings:
    historically-rejected-type moments in every variant. (This aligns with Mushu's
    2026-07-31 render-review note about weak cold opens — the engine finds the moments,
    it's the *judgment* layer that needs work.)
-3. **The rejected section moves nothing measurable yet** (49% → 48% without it, within
-   noise) — expected, since the pool was mostly untagged legacy rows. Keep it (~800
-   tokens); RE-TEST after a few generations of v2-tagged rejections accumulate.
+3. **The rejected section moves nothing measurable** (49% → 48% without it, within
+   noise) — and note (corrected 2026-08-04 after Fega's pushback): this cell already
+   INCLUDED his v2 reason tags, grouped tagged-first per Step 1 — the recent windows
+   are majority v2-tagged, not reason-less. So the honest read is not "no tags yet";
+   it's that the v2 vocabulary (dominated by the not-funny/nothing-happens catch-alls)
+   doesn't measurably steer picks. Keep the section (~800 tokens); RE-TEST once
+   v3-tagged rejections accumulate — the #232 bet is that the sharper vocabulary is
+   what changes this, and that bet is still unmeasured.
 4. **The approved section earns its keep on both axes** (2026-08-04): dropping it
    loses 2 kept moments AND worsens precision ~6 pts — the only input measured so far
    that moves recall other than frames.
@@ -124,9 +138,11 @@ Findings:
    the worst of any cell (57%); recall dip within noise. It teaches what Fega's play
    looks like when it's NOT clip-worthy.
 
-Remaining cells: only the post-#232 `--no-rejected` re-run, once v2-tagged rows
-dominate the 50-row window. Checked 2026-08-04: **0 of 50** recent RL rejections carry
-v2 chips (#232 hasn't ridden an installer yet) — stays queued.
+Remaining cells: only the post-#232 `--no-rejected` re-run, once v3-tagged rows are a
+meaningful share of the 50-row window. Checked 2026-08-04: **0 of 50** recent RL
+rejections carry v3 chips (#232 hasn't ridden an installer yet) — stays queued. The
+window is already 38/50 v2-tagged, so this re-test measures the vocabulary upgrade,
+not tags-vs-none.
 
 **Fega's two standing roles in the program** (the plan fails silently without them):
 1. **Tag at least one reason chip on every rejection.** The negative-calibration
@@ -227,5 +243,5 @@ calibration. Needs: proxy transcode step, Files API upload, timestamp-drift miti
 ## Live metric
 
 `#194` rolling per-game approval stats (Feedback → approval rates, quality = conf ≥0.7
-excluding mechanical rejects) is the production complement to the harness — if v2
+excluding mechanical rejects) is the production complement to the harness — if v3
 tagging works, RL's rolling quality rate climbs over the next generations.

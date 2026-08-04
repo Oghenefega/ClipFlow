@@ -1081,3 +1081,13 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 **Rule:** A name suggestion that does not START with "S<number> ·" is invalid — check the first two characters before emitting. Copy the anchor prefix from HANDOFF's header line verbatim. Offer 2-3 alternatives, all in-template.
 
 **s146 addendum (3rd offense, self-caught at distillation):** "Frames ship + Gemini's first watch" — free-form again, suggested mid-session before the wrap ritual. Memory reinforcement alone has now failed three times; routed to a new step 6 in `.claude/commands/session-end.md` so the template check fires INSIDE the wrap ritual where names are emitted.
+
+**s147 addendum (4th offense):** "Gemini learns whose plays matter (#235 D3)" — free-form again, suggested at the end of an autonomous run (no wrap ritual invoked, so the session-end step never fired). Rule stands: ANY name suggestion, wrap ritual or not, starts with "S<number> · ".
+
+## Session 147 (2026-08-04) — "No way to know why you rejected" is false; version naming collided with Fega's
+
+**What went wrong:** Sessions kept telling Fega "there's no way to know why you rejected clips" / "rejections carry no reasons yet". Fega corrected: rejection feedback has THREE eras — v1 = no reasons existed (pre-chips), v2 = the six reason chips + note CURRENTLY INSTALLED (duplicate, bad cut, not funny, nothing happens, needs context, wrong content), v3 = the four sharper #232 chips (setup talk, chat banter, flat delivery, too similar) built but NOT yet installed. He has been tagging with v2 for months: 109 of 288 total rejections are tagged; the RL few-shot window is 38/50 tagged (76%), EO 20/45, DD 7/9. Repo docs called his v3 "chips v2" (v2-of-the-chip-system), which collided with his numbering and produced nonsense claims like "0 of 50 rows carry v2 chips".
+
+**Why:** Internal shorthand ("chips v2") was named from the code's perspective, not the user's, and "mostly untagged" (true of ALL-history: 140/200 RL rejections predate chips) got flattened into "no reasons exist" (false for the recent windows the prompt actually reads).
+
+**Rule:** Use Fega's era numbering in all chat/docs: v1 = untagged era, v2 = installed six chips, v3 = #232 four new chips (not yet shipped). Never say "no way to know why" — say which era a row belongs to. When claiming data coverage, state the window numbers from the live DB, not the all-history ratio.

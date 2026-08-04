@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-04 — Session 147 (#235 actor-aware iteration D3: success criterion met, new eyeball list posted) — **no installer cut; the pending batch still carries chips v2 (#232), frames 10, #236.**_
+_Last updated: 2026-08-04 — Session 147 (#235 actor-aware iteration D3: success criterion met, new eyeball list posted; rejection-era naming corrected per Fega) — **no installer cut; the pending batch still carries the v3 reason chips (#232), frames 10, #236.**_
 
 ---
 
@@ -31,8 +31,8 @@ Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) op
 
 1. **Fega:** ~2-min eyeball pass on the 9 D3 picks (list in the #235 comment) — especially whether the re-cut DD windows (1:41→2:04, 6:22→6:55) are closer to keepable, and the re-framed EO 28:06→28:52.
 2. **#237** — de-saturate / interleave the top-50 event selection (per-signal caps?), verified by its own harness cell. This unblocks real #235 integration (and retires the ceiling hack).
-3. **Cut the batched installer** when Fega asks (carries #232 chips v2, frames 10, #236) — then his chips-v2 hands-on check (reject a clip on Pending, 10 chips render).
-4. **Queued:** post-#232 `--no-rejected` re-test once v2-tagged rejections dominate the 50-row window (can't move until the installer ships).
+3. **Cut the batched installer** when Fega asks (carries the #232 v3 reason chips, frames 10, #236) — then his hands-on check (reject a clip on Pending, 10 chips render).
+4. **Queued:** post-#232 `--no-rejected` re-test once v3-tagged rejections are a meaningful share of the 50-row window (can't move until the installer ships). NOTE (Fega correction, 2026-08-04): rejection feedback has three eras — v1 untagged, v2 = the INSTALLED six chips (recent windows are majority v2-tagged: RL 38/50, DD 7/9, EO 20/45), v3 = the unshipped #232 chips. The no-rejected cell already contained v2 tags; the re-test measures the vocabulary upgrade, not tags-vs-none. Never say "no way to know why he rejected".
 5. If Fega's D3 verdicts land well → design the real pipeline integration (lift the long Files-API poll into the prod Gemini provider, proxy transcode stage, actor filter in the pipeline merge — all after #237).
 
 ## Watch Out For
