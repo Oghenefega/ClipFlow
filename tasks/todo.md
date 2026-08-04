@@ -6,7 +6,7 @@
 
 ---
 
-## ✅ DONE (session 144) — Detection input science — steps 1-2 complete + first ablations; frames-10 decision pending Fega
+## ✅ DONE (session 144) — Detection input science — steps 1-2 complete + first ablations; frames-10 APPROVED by Fega 2026-08-04 (build it: Stage 5 default 20 → 10, keep min(4,10) reservation, 1-2 verification replays)
 
 Fega's ask: make the clip-detection inputs *measurably* useful — sharper rejection
 reasons, a numeric way to judge screenshots (not vibes), and explore Gemini

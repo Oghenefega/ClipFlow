@@ -9,7 +9,8 @@
 > (harness, closed `status: untested`), [#234](https://github.com/Oghenefega/ClipFlow/issues/234)
 > (ablations, OPEN — results in comments), [#235](https://github.com/Oghenefega/ClipFlow/issues/235)
 > (Gemini full-watch, OPEN — not started).
-> **One open decision for Fega: screenshots 20 → 10 default (see §Open Decisions).**
+> **2026-08-04: Fega APPROVED frames 20 → 10 default (routed via Wick). Remaining open
+> decision: Gemini billing flip timing (see §Open Decisions).**
 
 ## The question this answers
 
@@ -156,10 +157,11 @@ calibration. Needs: proxy transcode step, Files API upload, timestamp-drift miti
 
 ## Open decisions (Fega)
 
-1. **Frames 20 → 10 default** in ai-pipeline.js Stage 5 — data says free money (same
-   recall, −28% cost). Caveat: the tested f10 cell had no #190 game-event reserved
-   frames; the real change keeps reservation min(4,10) — verify with replays after.
-2. Gemini billing flip timing (prereq for #235 at real volume).
+1. **Frames 20 → 10 default — APPROVED by Fega 2026-08-04** (in Wick session; routed
+   here + comment on #231). Ship the default change in ai-pipeline.js Stage 5, keep
+   the #190 game-event reservation min(4,10), and run 1-2 verification replays after
+   per the locked rule. Caveat stands: the tested f10 cell had no reserved frames.
+2. Gemini billing flip timing (prereq for #235 at real volume). Still open.
 
 ## Live metric
 
