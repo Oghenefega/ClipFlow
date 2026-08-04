@@ -9,8 +9,9 @@
 > (harness, closed `status: untested`), [#234](https://github.com/Oghenefega/ClipFlow/issues/234)
 > (ablations, OPEN — results in comments), [#235](https://github.com/Oghenefega/ClipFlow/issues/235)
 > (Gemini full-watch, OPEN — not started).
-> **2026-08-04: Fega APPROVED frames 20 → 10 default (routed via Wick). Remaining open
-> decision: Gemini billing flip timing (see §Open Decisions).**
+> **2026-08-04: Fega APPROVED frames 20 → 10 default AND flipped Gemini billing to paid
+> on flowveapp@gmail.com (routed via Wick). NO open Fega decisions remain (see §Open
+> Decisions). #235 fully unblocked.**
 
 ## The question this answers
 
@@ -161,7 +162,9 @@ calibration. Needs: proxy transcode step, Files API upload, timestamp-drift miti
    here + comment on #231). Ship the default change in ai-pipeline.js Stage 5, keep
    the #190 game-event reservation min(4,10), and run 1-2 verification replays after
    per the locked rule. Caveat stands: the tested f10 cell had no reserved frames.
-2. Gemini billing flip timing (prereq for #235 at real volume). Still open.
+2. Gemini billing flip — **DONE 2026-08-04.** Fega flipped flowveapp@gmail.com to
+   pay-as-you-go (individual billing profile). #235 unblocked at real volume; paid
+   tier also means prompts are not used for Google product improvement.
 
 ## Live metric
 
