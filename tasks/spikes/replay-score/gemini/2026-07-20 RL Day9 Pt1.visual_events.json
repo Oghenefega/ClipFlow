@@ -1,0 +1,15 @@
+{
+  "videoName": "2026-07-20 RL Day9 Pt1",
+  "model": "gemini-3.6-flash",
+  "usage": {
+    "inputTokens": 18999,
+    "outputTokens": 260
+  },
+  "cost": 0.0304485,
+  "events": [],
+  "proxy": {
+    "sizeMB": 18.9,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T17:56:28.993Z"
+}

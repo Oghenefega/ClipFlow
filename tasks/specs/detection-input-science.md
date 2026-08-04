@@ -144,7 +144,20 @@ v2 chips (#232 hasn't ridden an installer yet) — stays queued.
 rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 `status: untested`.
 
-## Step 4 — Gemini full-recording watch · NOT STARTED (#235)
+## Step 4 — Gemini full-recording watch · PROTOTYPE RUN 2026-08-04 (#235)
+
+> **Session 146 results (full detail in #235 comment):** `gemini-watch.js` +
+> `harness.js --gemini` ran variant D end-to-end on 4 recordings (~$0.63 Gemini
+> total). Pooled recall 11/12 = 92% vs 10/12 for baseline AND f10 on the same
+> recordings; several new high-confidence picks land exactly on Gemini-flagged
+> visual moments (RL overtime winner, DD finish-line crash) — now on Fega's
+> eyeball list. 0 events on the quiet 4-min RL Day9 recording (no hallucination
+> pressure). Timestamp drift ~10-20s, absorbed by midpoint matching — no
+> snap-to-transcript needed. **Integration blocker: #237** — the prompt's top-50
+> event list is saturated (100% pitch_spike at score 1.0; game/reaction signals
+> never render), so variant D only worked via a ceiling-merge hack in the
+> harness. Fix #237 first, then decide pipeline integration on Fega's eyeball
+> verdicts.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

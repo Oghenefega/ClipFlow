@@ -250,9 +250,15 @@ function score(picks, truth) {
       process.exit(1);
     }
     const gv = JSON.parse(fs.readFileSync(gvPath, "utf-8"));
+    // The timeline's score scale is saturated: 50+ pitch_spike events sit at
+    // exactly 1.0, so any score below that never reaches the prompt's top-50
+    // (filed as its own issue). Merge visual events AT the ceiling and PREPEND
+    // them — buildUserContent's sort is stable, so ties break toward gemini
+    // lines. Gemini's own confidence ordering is preserved by pre-sorting.
     eventTimeline.events = [
+      ...[...gv.events].sort((a, b) => b.score - a.score)
+        .map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: 1.0, label: e.label })),
       ...eventTimeline.events,
-      ...gv.events.map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: e.score, label: e.label })),
     ];
     eventTimeline.signals_computed = [...(eventTimeline.signals_computed || []), "gemini_visual"];
     const top50 = [...eventTimeline.events].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 50);

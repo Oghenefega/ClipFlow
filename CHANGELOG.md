@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-04 (session 146) — Fewer screenshots ship, Gemini watches its first recordings
+
+### Changed
+- **The clip engine now takes 10 screenshots per recording instead of 20 (#231).** Fega approved the change after the ablation showed 10 frames re-find exactly as many kept moments as 20 at ~28% lower cost per generation. The game-audio frame reservation (#190) is unchanged — up to 4 of the 10 slots still go to big game moments the mic missed. Verified with two replay runs on the recordings where those reserved slots actually kick in: every historically kept moment was still found on both.
+
+### Added
+- **Gemini watched its first full recordings, and the experiment worked (#235).** The prototype pipeline — shrink the recording to a small 720p proxy, upload it, have gemini-3.6-flash mark the visually spectacular moments — ran on four real recordings for about $0.63 total. Fed into the detection engine as an extra signal (Claude still makes the picks), kept-moment recall stayed at its ceiling AND the engine started picking new, never-reviewed moments that sit exactly on Gemini's flagged plays — an overtime winner and a finish-line crash among them. Those new picks are on Fega's eyeball list in #235; his verdicts decide whether this joins the pipeline. Encouragingly, Gemini marked zero moments on a quiet 4-minute recording instead of inventing some.
+- **The last two single-input ablations are in: both remaining inputs earn their keep (#234).** Removing the approved-clip examples drops kept-moment recall from 92% to 85% and makes picks measurably worse; removing the play-style summary produces the worst precision of any variant tested (57% of picks land on rejected-type moments vs 49% baseline). Every input the engine is fed has now been measured except the rejected-examples re-test, which stays queued until Fega's new-vocabulary rejection tags accumulate (checked today: none in the window yet — the chips haven't shipped in an installer).
+- **Filed #237: the prompt's event timeline turns out to be all pitch spikes.** Discovered while wiring in the Gemini signal — the "top 50 events" list the engine reads is 100% mic pitch-spike entries pinned at the maximum score, so the game-audio and reaction-word events never actually appear as timeline lines. Fixing that is now the gating item before the Gemini signal can be integrated for real.
+
+### Fixed
+- **Approved example clips no longer present "Clip 1" as a title worth learning from (#236).** Clips Fega approved but never renamed carried their auto-generated placeholder titles straight into the detection prompt as if they were real titles — 7 of the 12 examples in the live Rocket League prompt. Placeholder and empty titles are now suppressed; genuinely written titles still show.
+
 ## [Unreleased] — 2026-08-03 (session 145) — Detection science program locked into a spec and routed to Wick
 
 ### Added

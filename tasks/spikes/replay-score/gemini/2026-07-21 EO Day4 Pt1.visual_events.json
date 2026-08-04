@@ -1,0 +1,79 @@
+{
+  "videoName": "2026-07-21 EO Day4 Pt1",
+  "model": "gemini-3.6-flash",
+  "usage": {
+    "inputTokens": 140661,
+    "outputTokens": 940
+  },
+  "cost": 0.2180415,
+  "events": [
+    {
+      "t_start_s": 322,
+      "t_end_s": 328,
+      "score": 0.65,
+      "label": "egg_fall_fail",
+      "what": "The egg misses its jump on the narrow plank and rolls all the way back down to lower platforms."
+    },
+    {
+      "t_start_s": 575,
+      "t_end_s": 582,
+      "score": 0.7,
+      "label": "egg_fall_fail",
+      "what": "The egg slides off the high platform and tumbles all the way down to a lower level."
+    },
+    {
+      "t_start_s": 577,
+      "t_end_s": 583,
+      "score": 0.75,
+      "label": "egg_cracks_fall",
+      "what": "The egg loses balance on the top edge and tumbles down the wooden slope."
+    },
+    {
+      "t_start_s": 936,
+      "t_end_s": 943,
+      "score": 0.85,
+      "label": "egg_shatters_crack",
+      "what": "The egg drops from a high ledge and shatters completely on the glass roof."
+    },
+    {
+      "t_start_s": 1205,
+      "t_end_s": 1225,
+      "score": 0.9,
+      "label": "epic_shortcut_skip",
+      "what": "The egg bounces off a moving mechanical lever, launching high into the air and skipping an entire section."
+    },
+    {
+      "t_start_s": 1598,
+      "t_end_s": 1606,
+      "score": 0.85,
+      "label": "checkpoint_reached",
+      "what": "The egg carefully rolls onto the helipad platform, triggering a major checkpoint."
+    },
+    {
+      "t_start_s": 1718,
+      "t_end_s": 1724,
+      "score": 0.75,
+      "label": "egg_shatters_fall",
+      "what": "The egg misses its landing on the floating rock and shatters against the frame below."
+    },
+    {
+      "t_start_s": 1801,
+      "t_end_s": 1808,
+      "score": 0.8,
+      "label": "fatal_fall_grass",
+      "what": "The egg falls off the high structure, cracking open as it hits the ground in the tall grass."
+    },
+    {
+      "t_start_s": 2522,
+      "t_end_s": 2532,
+      "score": 0.95,
+      "label": "disastrous_long_fall",
+      "what": "The egg slips off the top rock, falling all the way down through the entire tower to the very bottom."
+    }
+  ],
+  "proxy": {
+    "sizeMB": 139.2,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T18:07:48.791Z"
+}

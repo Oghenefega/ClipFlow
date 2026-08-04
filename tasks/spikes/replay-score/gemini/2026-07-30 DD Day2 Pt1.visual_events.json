@@ -1,0 +1,79 @@
+{
+  "videoName": "2026-07-30 DD Day2 Pt1",
+  "model": "gemini-3.6-flash",
+  "usage": {
+    "inputTokens": 79167,
+    "outputTokens": 2444
+  },
+  "cost": 0.1370805,
+  "events": [
+    {
+      "t_start_s": 78,
+      "t_end_s": 83,
+      "score": 0.75,
+      "label": "truck_crash_ragdoll",
+      "what": "The mail truck swerves off the mountain road and crashes into bushes, flinging the driver."
+    },
+    {
+      "t_start_s": 111,
+      "t_end_s": 117,
+      "score": 0.8,
+      "label": "finish_line_crash",
+      "what": "The mail truck flies towards the finish line at high speed and crashes straight into the finish barrier."
+    },
+    {
+      "t_start_s": 125,
+      "t_end_s": 131,
+      "score": 0.85,
+      "label": "high_speed_explosion",
+      "what": "The truck slams into a roadside wall at full speed and explodes, launching the driver into the air."
+    },
+    {
+      "t_start_s": 288,
+      "t_end_s": 297,
+      "score": 0.85,
+      "label": "successful_fast_delivery",
+      "what": "The player executes a fast boost run through the postal level and jumps to complete the delivery in gold time."
+    },
+    {
+      "t_start_s": 435,
+      "t_end_s": 442,
+      "score": 0.8,
+      "label": "mountain_wall_crash",
+      "what": "The vehicle fails to make a sharp turn on the cliff road and explodes on impact with the rock wall."
+    },
+    {
+      "t_start_s": 580,
+      "t_end_s": 588,
+      "score": 0.8,
+      "label": "cliff_shortcut_finish",
+      "what": "The mail truck launches off a hillside shortcut, lands back on the highway, and speeds across the finish line."
+    },
+    {
+      "t_start_s": 738,
+      "t_end_s": 751,
+      "score": 0.9,
+      "label": "wild_offroad_finish",
+      "what": "The truck tumbles off the road and rolls down a steep forest hill, barely crossing the finish line down below."
+    },
+    {
+      "t_start_s": 820,
+      "t_end_s": 828,
+      "score": 0.85,
+      "label": "gold_run_completion",
+      "what": "The player navigates the forest turns at full speed and leaps across the finish banner for a gold medal run."
+    },
+    {
+      "t_start_s": 864,
+      "t_end_s": 868,
+      "score": 0.7,
+      "label": "unexpected_street_explosion",
+      "what": "The mail truck abruptly detonates on the city street while the player is alt-tabbed in the menu."
+    }
+  ],
+  "proxy": {
+    "sizeMB": 76.7,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T17:55:04.315Z"
+}

@@ -1,0 +1,142 @@
+{
+  "videoName": "2026-07-22 RL Day10 Pt1",
+  "model": "gemini-3.6-flash",
+  "usage": {
+    "inputTokens": 146407,
+    "outputTokens": 3404
+  },
+  "cost": 0.2451405,
+  "events": [
+    {
+      "t_start_s": 102,
+      "t_end_s": 109,
+      "score": 0.75,
+      "label": "opponent_goal_scored",
+      "what": "An opponent takes control of the ball and scores a clean shot into the net."
+    },
+    {
+      "t_start_s": 143,
+      "t_end_s": 150,
+      "score": 0.7,
+      "label": "powerful_tank_goal",
+      "what": "An opponent in a heavy vehicle generates massive power to score."
+    },
+    {
+      "t_start_s": 191,
+      "t_end_s": 197,
+      "score": 0.75,
+      "label": "player_equalizer_goal",
+      "what": "The player drives past defenders and scores a goal into the open net."
+    },
+    {
+      "t_start_s": 250,
+      "t_end_s": 257,
+      "score": 0.8,
+      "label": "unusual_backflip_goal",
+      "what": "An opponent scores with a sudden out-of-nowhere backflip shot."
+    },
+    {
+      "t_start_s": 298,
+      "t_end_s": 305,
+      "score": 0.7,
+      "label": "aerial_tap_goal",
+      "what": "The opponent scores off a smooth aerial sequence into the top corner."
+    },
+    {
+      "t_start_s": 327,
+      "t_end_s": 334,
+      "score": 0.75,
+      "label": "tight_angle_goal",
+      "what": "The player scores a comeback goal into the net from a tight side angle."
+    },
+    {
+      "t_start_s": 431,
+      "t_end_s": 437,
+      "score": 0.7,
+      "label": "kickoff_fast_goal",
+      "what": "The player quickly capitalizes right off the kickoff to score."
+    },
+    {
+      "t_start_s": 461,
+      "t_end_s": 467,
+      "score": 0.75,
+      "label": "wall_rebound_goal",
+      "what": "The opponent executes a precise rebound shot off the side wall."
+    },
+    {
+      "t_start_s": 485,
+      "t_end_s": 491,
+      "score": 0.7,
+      "label": "open_net_goal",
+      "what": "The player takes advantage of an open net to score smoothly."
+    },
+    {
+      "t_start_s": 545,
+      "t_end_s": 552,
+      "score": 0.8,
+      "label": "flip_reset_goal",
+      "what": "An opponent performs an impressive aerial flip reset to score."
+    },
+    {
+      "t_start_s": 800,
+      "t_end_s": 807,
+      "score": 0.85,
+      "label": "stylish_flip_reset",
+      "what": "Teammate Monkey D Fried executes a flashy flip reset goal."
+    },
+    {
+      "t_start_s": 961,
+      "t_end_s": 968,
+      "score": 0.75,
+      "label": "demolition_goal_chaos",
+      "what": "A chaotic goal sequence featuring a demolition near the goal line."
+    },
+    {
+      "t_start_s": 1028,
+      "t_end_s": 1035,
+      "score": 0.8,
+      "label": "clutch_buzzer_equalizer",
+      "what": "Opponent scores an equalizer right in the final seconds before overtime."
+    },
+    {
+      "t_start_s": 1121,
+      "t_end_s": 1128,
+      "score": 0.85,
+      "label": "overtime_winner_goal",
+      "what": "Monkey D Fried scores the overtime winning goal with a powerful strike."
+    },
+    {
+      "t_start_s": 1227,
+      "t_end_s": 1234,
+      "score": 0.85,
+      "label": "double_touch_aerial",
+      "what": "Monkey D Fried scores another high-level aerial flip reset goal."
+    },
+    {
+      "t_start_s": 1318,
+      "t_end_s": 1325,
+      "score": 0.75,
+      "label": "aerial_rebound_finish",
+      "what": "Teammate scores off an aerial rebound play over defenders."
+    },
+    {
+      "t_start_s": 1457,
+      "t_end_s": 1464,
+      "score": 0.75,
+      "label": "pinch_shot_goal",
+      "what": "Teammate scores off a high-velocity pinch shot near the wall."
+    },
+    {
+      "t_start_s": 1558,
+      "t_end_s": 1565,
+      "score": 0.75,
+      "label": "clutch_game_sealer",
+      "what": "Teammate scores a late goal to secure victory for the team."
+    }
+  ],
+  "proxy": {
+    "sizeMB": 145.5,
+    "settings": "720p h264 600k + aac 64k mono"
+  },
+  "generatedAt": "2026-08-04T17:49:32.629Z"
+}
