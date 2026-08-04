@@ -84,6 +84,7 @@ const variant = {
   rejected: !flag("no-rejected"),
   approved: !flag("no-approved"),
   playstyle: !flag("no-playstyle"),
+  gemini: flag("gemini"), // #235 variant D: merge gemini-watch.js visual events
 };
 const runs = parseInt(opt("runs", "1"), 10);
 const label = opt("label", [
@@ -91,6 +92,7 @@ const label = opt("label", [
   variant.approved ? "" : "noappr",
   variant.rejected ? "" : "norej",
   variant.playstyle ? "" : "nops",
+  variant.gemini ? "gemD" : "",
 ].filter(Boolean).join("-") || "baseline");
 const dry = flag("dry");
 
@@ -103,33 +105,51 @@ function loadArtifacts(vid) {
 }
 
 // Mirror of extractTopFrames ordering (ai-pipeline.js) — selection only.
+// Rebuilds the disk-order list at the topN the original run used (auto-detected
+// from the jpg count), then RE-SELECTS as the current pipeline would at the
+// requested topN: top (topN − R) composite + the same #190 reserved game
+// events. So --frames 10 now includes reserved frames, matching the shipped
+// 20 → 10 default. (Pre-2026-08-04 f10 cells were top-10 composite only.)
 function deriveFrames(vid, energyJson, eventTimeline, topN) {
-  let sorted;
+  const diskN = fs.readdirSync(path.join(PROCESSING, "frames"))
+    .filter((f) => f.startsWith(`${vid}_frame_`) && f.endsWith(".jpg")).length || 20;
+  let selection; // [{seg, idx}] — idx pairs with the jpg written at that disk position
   if (eventTimeline && Array.isArray(eventTimeline.segments) && eventTimeline.segments.length > 0) {
-    sorted = [...eventTimeline.segments]
+    const composite = [...eventTimeline.segments]
       .filter((seg) => typeof seg.composite_score === "number")
       .sort((a, b) => b.composite_score - a.composite_score)
-      .slice(0, 20); // jpgs on disk were cut at the pipeline's topN=20
+      .slice(0, diskN);
     const gameEvents = (eventTimeline.events || [])
       .filter((e) => e.signal === "game_energy" || e.signal === "game_yamnet")
       .filter((e) => !eventTimeline.segments.some((s) => !(s.end < e.t_start - 1 || s.start > e.t_end + 1)))
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const reserved = [];
     for (const e of gameEvents) {
-      if (reserved.length >= Math.min(4, 20)) break;
+      if (reserved.length >= Math.min(4, diskN)) break;
       const mid = e.t_start + (e.t_end - e.t_start) / 2;
       if (reserved.some((r) => Math.abs((r.start + (r.end - r.start) / 2) - mid) < 10)) continue;
       reserved.push({ start: e.t_start, end: e.t_end });
     }
-    if (reserved.length > 0) sorted = [...sorted.slice(0, 20 - reserved.length), ...reserved];
+    const diskList = reserved.length > 0
+      ? [...composite.slice(0, diskN - reserved.length), ...reserved]
+      : composite;
+    const disk = diskList.map((seg, i) => ({ seg, idx: i + 1 }));
+    const nReserved = Math.min(reserved.length, Math.min(4, topN));
+    const nComposite = Math.max(0, topN - nReserved);
+    selection = [
+      ...disk.slice(0, Math.min(nComposite, diskList.length - reserved.length)),
+      ...disk.slice(diskList.length - reserved.length).slice(0, nReserved),
+    ];
   } else {
-    sorted = [...energyJson].filter((s) => s.peak_energy != null).sort((a, b) => b.peak_energy - a.peak_energy).slice(0, 20);
+    selection = [...energyJson].filter((s) => s.peak_energy != null)
+      .sort((a, b) => b.peak_energy - a.peak_energy).slice(0, diskN)
+      .map((seg, i) => ({ seg, idx: i + 1 })).slice(0, topN);
   }
   const frames = [];
-  for (let i = 0; i < sorted.length && frames.length < topN; i++) {
-    const seg = sorted[i];
+  for (const { seg, idx } of selection) {
+    if (frames.length >= topN) break;
     const mid = (seg.start || 0) + ((seg.end || seg.start || 0) - (seg.start || 0)) / 2;
-    const p = path.join(PROCESSING, "frames", `${vid}_frame_${String(i + 1).padStart(2, "0")}.jpg`);
+    const p = path.join(PROCESSING, "frames", `${vid}_frame_${String(idx).padStart(2, "0")}.jpg`);
     if (!fs.existsSync(p)) continue;
     frames.push({ path: p, timestamp: seg.start_timestamp || aiPrompt.formatTimestamp(mid) });
   }
@@ -219,6 +239,25 @@ function score(picks, truth) {
   llmProvider.init(store);
 
   const { claudeReadyText, energyJson, eventTimeline } = loadArtifacts(videoName);
+
+  // #235 variant D: merge Gemini full-watch visual events into the timeline.
+  // Signal name `gemini_visual` doesn't touch deriveFrames (only game_energy /
+  // game_yamnet reserve slots), so frames stay identical across the ablation.
+  if (variant.gemini) {
+    const gvPath = path.join(__dirname, "gemini", `${videoName}.visual_events.json`);
+    if (!fs.existsSync(gvPath)) {
+      console.error(`--gemini: no visual events for "${videoName}" — run gemini-watch.js first.`);
+      process.exit(1);
+    }
+    const gv = JSON.parse(fs.readFileSync(gvPath, "utf-8"));
+    eventTimeline.events = [
+      ...eventTimeline.events,
+      ...gv.events.map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: e.score, label: e.label })),
+    ];
+    eventTimeline.signals_computed = [...(eventTimeline.signals_computed || []), "gemini_visual"];
+    const top50 = [...eventTimeline.events].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 50);
+    console.log(`gemini variant D: ${gv.events.length} visual events merged, ${top50.filter((e) => e.signal === "gemini_visual").length} land in the prompt's top-50`);
+  }
 
   // Game identity from the timeline's video name prefix is unreliable — pull
   // the tag from the feedback rows themselves (every scored video has rows).

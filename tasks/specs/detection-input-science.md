@@ -12,6 +12,10 @@
 > **2026-08-04: Fega APPROVED frames 20 → 10 default AND flipped Gemini billing to paid
 > on flowveapp@gmail.com (routed via Wick). NO open Fega decisions remain (see §Open
 > Decisions). #235 fully unblocked.**
+> **2026-08-04 (session 146): frames 20 → 10 SHIPPED + verified (2 replays, recall
+> holds with reserved frames). All six single-factor ablation cells now recorded
+> (--no-approved and --no-playstyle added). #236 title-noise fix shipped. #235
+> prototype run as harness variant D — results in §Step 4.**
 
 ## The question this answers
 
@@ -100,6 +104,8 @@ Pt1), single run per cell, ~$2.75 total including baseline:
 | 10 frames | 24/26 = **92%** | 39/81 = 48% | **$0.096** | 27.3k |
 | 0 frames | 21/26 = **81%** | 37/76 = 49% | $0.059 | 15.2k |
 | no rejected section | 24/26 = 92% | 43/90 = 48% | $0.131 | 38.6k |
+| no approved section | 22/26 = 85% | 44/80 = **55%** | $0.131 | 38.9k |
+| no play style | 23/26 = 88% | 48/84 = **57%** | $0.132 | 39.0k |
 
 Findings:
 1. **Screenshots earn their keep; 10 do the work of 20.** Zero frames loses 3 of 26
@@ -111,9 +117,16 @@ Findings:
 3. **The rejected section moves nothing measurable yet** (49% → 48% without it, within
    noise) — expected, since the pool was mostly untagged legacy rows. Keep it (~800
    tokens); RE-TEST after a few generations of v2-tagged rejections accumulate.
+4. **The approved section earns its keep on both axes** (2026-08-04): dropping it
+   loses 2 kept moments AND worsens precision ~6 pts — the only input measured so far
+   that moves recall other than frames.
+5. **Play style is a precision guard** (2026-08-04): without it, rejected-hit rate is
+   the worst of any cell (57%); recall dip within noise. It teaches what Fega's play
+   looks like when it's NOT clip-worthy.
 
-Remaining cells: `--no-approved`, `--no-playstyle`, and the post-#232 `--no-rejected`
-re-run once tagged rows dominate the 50-row window.
+Remaining cells: only the post-#232 `--no-rejected` re-run, once v2-tagged rows
+dominate the 50-row window. Checked 2026-08-04: **0 of 50** recent RL rejections carry
+v2 chips (#232 hasn't ridden an installer yet) — stays queued.
 
 **Fega's two standing roles in the program** (the plan fails silently without them):
 1. **Tag at least one reason chip on every rejection.** The negative-calibration
@@ -126,8 +139,10 @@ re-run once tagged rows dominate the 50-row window.
    ground truth.
 
 **Small dangling item:** [#236](https://github.com/Oghenefega/ClipFlow/issues/236) —
-approved few-shot examples inject placeholder `Title: Clip N` lines as noise (7 of 12
-in the real RL prompt); suppress when the title is the auto-generated default.
+~~approved few-shot examples inject placeholder `Title: Clip N` lines as noise~~
+**FIXED 2026-08-04** (session 146): `Title:` line now emitted only for real titles;
+rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
+`status: untested`.
 
 ## Step 4 — Gemini full-recording watch · NOT STARTED (#235)
 
@@ -158,10 +173,14 @@ calibration. Needs: proxy transcode step, Files API upload, timestamp-drift miti
 
 ## Open decisions (Fega)
 
-1. **Frames 20 → 10 default — APPROVED by Fega 2026-08-04** (in Wick session; routed
-   here + comment on #231). Ship the default change in ai-pipeline.js Stage 5, keep
-   the #190 game-event reservation min(4,10), and run 1-2 verification replays after
-   per the locked rule. Caveat stands: the tested f10 cell had no reserved frames.
+1. **Frames 20 → 10 default — APPROVED by Fega 2026-08-04, SHIPPED + VERIFIED same
+   day** (session 146). ai-pipeline.js Stage 5 now passes topN=10; #190 reservation
+   stays `min(4, topN)`. Harness `deriveFrames` updated to mirror the new selection
+   (top N−R composite + R reserved), closing the no-reserved-frames caveat.
+   Verification replays (`f10-verify`) on the two recordings where reservation fires:
+   RL Day10 Pt1 recall 1/1 (rej hits 6/15, = baseline), DD Day2 Pt1 recall 5/5
+   (beats baseline's 4/5; rej hits 7/15 vs 8/15). Recall holds — done per the
+   locked rule.
 2. Gemini billing flip — **DONE 2026-08-04.** Fega flipped flowveapp@gmail.com to
    pay-as-you-go (individual billing profile). #235 unblocked at real volume; paid
    tier also means prompts are not used for Google product improvement.

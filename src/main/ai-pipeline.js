@@ -278,7 +278,7 @@ function formatSrtTime(seconds) {
  * @param {Array} energyJson - Parsed energy.json (merged with transcript)
  * @param {string} framesDir - Output directory
  * @param {string} videoName - Base video name (for filenames)
- * @param {number} topN - Max frames to extract (default 20)
+ * @param {number} topN - Max frames to extract (default 10)
  * @param {PipelineLogger} logger
  * @param {object|null} [eventTimeline] - Signal extraction output (optional)
  * @returns {Promise<Array<{path: string, timestamp: string, peakEnergy: number}>>}
@@ -685,11 +685,12 @@ async function runAIPipeline({
       logger.info(`User approved degraded run despite failed signals: ${failedSignals.join(", ")}`);
     }
 
-    // ============ Stage 5: Frame Extraction (top 20 composite-score peaks) ============
+    // ============ Stage 5: Frame Extraction (top 10 composite-score peaks) ============
+    // 20 → 10 per #231 ablation: identical 92% approved recall at −28% cost.
     sendProgress("frames", 55, "Extracting peak energy frames...");
     logger.startStep("Frame Extraction");
     const framesDir = path.join(processingDir, "frames");
-    const frames = await extractTopFrames(sourceFile, energyJson, framesDir, videoName, 20, logger, eventTimeline);
+    const frames = await extractTopFrames(sourceFile, energyJson, framesDir, videoName, 10, logger, eventTimeline);
     logger.endStep("Frame Extraction", `${frames.length} frames extracted`);
 
     // ============ Stage 6: Claude API Call ============

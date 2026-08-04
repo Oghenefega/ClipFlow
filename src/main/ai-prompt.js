@@ -246,7 +246,10 @@ function formatRealClipEntry(clip, { withNote = false, withReasons = false, skip
   let entry = "";
   if (snippet) entry += `\n- "${snippet}"`;
   else entry += `\n- ${clip.title || "(untitled)"}`;
-  if (snippet) entry += `\n  Title: ${clip.title || "(untitled)"}`;
+  // #236: approved-but-never-renamed clips carry the auto "Clip N" title —
+  // noise presented as signal. Only a real title earns the line.
+  const realTitle = String(clip.title || "").trim();
+  if (snippet && realTitle && !/^Clip \d+$/.test(realTitle)) entry += `\n  Title: ${realTitle}`;
   entry += `\n  Energy: ${clip.energy_level || "unknown"}`;
   if (withReasons) {
     // #232: inside a grouped section the group header already states the

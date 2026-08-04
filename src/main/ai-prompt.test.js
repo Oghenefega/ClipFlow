@@ -182,6 +182,21 @@ test("energy level shown per entry", () => {
   expect(section).toContain("Energy: EXPLOSIVE");
 });
 
+test("#236: placeholder 'Clip N' titles suppressed, real titles kept", () => {
+  const section = buildFewShotSection(
+    [approvedRow({ title: "Clip 15" }), approvedRow({ title: "Actual Banger" })],
+    "variety"
+  );
+  expect(section).notToContain("Title: Clip 15");
+  expect(section).toContain("Title: Actual Banger");
+});
+
+test("#236: empty title emits no Title line when snippet exists", () => {
+  const section = buildFewShotSection([approvedRow({ title: "" })], "variety");
+  const realPart = section.split("## Additional Reference Examples")[0];
+  expect(realPart).notToContain("Title:");
+});
+
 // ── buildFewShotSection: legacy rows & budget ──
 
 console.log("\nbuildFewShotSection edge cases:");
