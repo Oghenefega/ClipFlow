@@ -243,6 +243,7 @@ function score(picks, truth) {
   // #235 variant D: merge Gemini full-watch visual events into the timeline.
   // Signal name `gemini_visual` doesn't touch deriveFrames (only game_energy /
   // game_yamnet reserve slots), so frames stay identical across the ablation.
+  let geminiActors = null;
   if (variant.gemini) {
     const gvPath = path.join(__dirname, "gemini", `${videoName}.visual_events.json`);
     if (!fs.existsSync(gvPath)) {
@@ -250,19 +251,41 @@ function score(picks, truth) {
       process.exit(1);
     }
     const gv = JSON.parse(fs.readFileSync(gvPath, "utf-8"));
+    // Actor-aware merge (D3): Fega's eyeball verdicts on D2 showed the
+    // discriminator is creator authorship — both keeps were his own fails, all
+    // rejects teammate/opponent plays he spectates. The `what` sentence names
+    // the actor (v2 watch prompt makes actor-first phrasing mandatory), so
+    // classify on it: spectator events are dropped before the merge; player-
+    // authored and unclear events merge at full weight.
+    const actorOf = (what) => {
+      const w = String(what || "").toLowerCase().trim();
+      // v2 phrasing is actor-first, so the sentence start is authoritative —
+      // keyword scan is only a fallback for v1-style files ("opponent's net"
+      // mid-sentence is a location, not an actor).
+      if (/^(the player|the creator)\b/.test(w)) return "player";
+      if (/^(a |an |the )?(teammate|team-mate|opponent|enemy|another player|other player|rival)\b/.test(w)) return "spectator";
+      if (/^unclear actor/.test(w)) return "unclear";
+      if (/\b(teammate|team-mate|opponent|enemy|another player|other player|rival)(?!'s)\b/.test(w)) return "spectator";
+      if (/\bthe player\b|\bplayer's\b|\bthe creator\b/.test(w)) return "player";
+      return "unclear";
+    };
+    const byActor = { player: [], spectator: [], unclear: [] };
+    for (const e of gv.events) byActor[actorOf(e.what)].push(e);
+    geminiActors = { player: byActor.player.length, spectator: byActor.spectator.length, unclear: byActor.unclear.length };
     // The timeline's score scale is saturated: 50+ pitch_spike events sit at
     // exactly 1.0, so any score below that never reaches the prompt's top-50
-    // (filed as its own issue). Merge visual events AT the ceiling and PREPEND
-    // them — buildUserContent's sort is stable, so ties break toward gemini
-    // lines. Gemini's own confidence ordering is preserved by pre-sorting.
+    // (#237). Merge kept events AT the ceiling and PREPEND them —
+    // buildUserContent's sort is stable, so ties break toward gemini lines.
+    // Gemini's own confidence ordering is preserved by pre-sorting.
     eventTimeline.events = [
-      ...[...gv.events].sort((a, b) => b.score - a.score)
+      ...[...byActor.player, ...byActor.unclear].sort((a, b) => b.score - a.score)
         .map((e) => ({ t_start: e.t_start_s, t_end: e.t_end_s, signal: "gemini_visual", score: 1.0, label: e.label })),
       ...eventTimeline.events,
     ];
     eventTimeline.signals_computed = [...(eventTimeline.signals_computed || []), "gemini_visual"];
     const top50 = [...eventTimeline.events].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 50);
-    console.log(`gemini variant D: ${gv.events.length} visual events merged, ${top50.filter((e) => e.signal === "gemini_visual").length} land in the prompt's top-50`);
+    console.log(`gemini variant D: ${geminiActors.player} player + ${geminiActors.unclear} unclear merged, ${geminiActors.spectator} spectator dropped, ${top50.filter((e) => e.signal === "gemini_visual").length} land in the prompt's top-50`);
+    for (const e of byActor.spectator) console.log(`  dropped: ${aiPrompt.formatTimestamp(e.t_start_s)} ${e.label} — ${e.what}`);
   }
 
   // Game identity from the timeline's video name prefix is unreliable — pull
@@ -332,7 +355,7 @@ function score(picks, truth) {
 
     const outPath = path.join(RESULTS_DIR, `${videoName}__${label}__run${run}.json`);
     fs.writeFileSync(outPath, JSON.stringify({
-      videoName, gameTag, label, variant, run,
+      videoName, gameTag, label, variant, geminiActors, run,
       promptChars: systemPrompt.length, transcriptChars: claudeReadyText.length, frameCount: frames.length,
       usage, cost, picks, score: s,
       scoredAt: new Date().toISOString(),

@@ -159,16 +159,25 @@ async function uploadFile(apiKey, filePath) {
   return fileInfo;
 }
 
-const SYSTEM = `You are a visual-moment scout for gaming highlight detection. You watch a full gameplay recording and mark the moments that are VISUALLY notable — the things a viewer would rewind for even with the sound off.
+// v2 (actor-aware, #235): Fega's eyeball verdicts on the v1 picks showed the
+// discriminator is creator AUTHORSHIP — his own crashes/fails keep, teammate/
+// opponent spectacle he merely watches rejects, talk-without-action rejects.
+const SYSTEM = `You are a visual-moment scout for a gaming content creator's highlight detection. The recording is captured from the CREATOR's own point of view — exactly one person is playing and recording; call them "the player". They may control a character or vehicle (a car, a truck, an egg); its actions are the player's actions.
 
-Mark moments like: spectacular plays (goals, saves, aerial shots, clutch kills, wild dodges), dramatic fails or crashes, sudden on-screen chaos, big score/killfeed swings, rare in-game events, physically funny glitches or ragdolls.
+TARGET: moments the player AUTHORS — their own plays and especially their own fails. Mark: the player's crashes, falls, deaths, botched jumps, blown leads, and the player's own spectacular goals, saves, aerial shots, clutch kills, wild dodges, funny glitches or ragdolls. A dramatic fail by the player is a top-tier moment.
 
-Do NOT mark moments that are only interesting because of what the player SAYS or how loud they react — commentary and mic audio are scored by other systems. Your job is what the GAME shows.
+NOT targets — do not mark:
+- Spectator moments: plays performed by a teammate or opponent that the player merely watches (their goals, flip resets, kills, saves), no matter how impressive.
+- Talk-without-action: menus, downtime, or stretches where nothing notable happens in the game itself.
+- Moments only interesting because of what the player SAYS or how loud they react — commentary and mic audio are scored by other systems. Your job is what the GAME shows the player DOING.
 
 Return ONLY a JSON array (no prose) of at most 25 objects, each:
-{"t_start_s": <number, seconds from video start>, "t_end_s": <number>, "score": <0.0-1.0 how visually spectacular>, "label": "<snake_case, 2-4 words, e.g. aerial_double_save>", "what": "<one short sentence of what happens on screen>"}
+{"t_start_s": <number, seconds from video start>, "t_end_s": <number>, "score": <0.0-1.0 how strong the moment is>, "label": "<snake_case, 2-4 words, e.g. aerial_double_save>", "what": "<one short sentence of what happens on screen>"}
+
+The "what" sentence MUST begin by naming the actor: start with "The player" for the player's own actions. If you cannot tell who authored the action, start with "Unclear actor:". If a teammate or opponent moment is somehow essential, start with "Teammate" or "Opponent" — never a bare gamertag — so it can be downweighted.
 
 Timestamps must be accurate to within a couple of seconds. Only include moments you actually saw. Fewer, higher-confidence moments beat exhaustive lists.`;
+const PROMPT_VERSION = "v2-actor";
 
 (async () => {
   const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf-8"));
@@ -255,7 +264,7 @@ Timestamps must be accurate to within a couple of seconds. Only include moments 
 
     const outPath = path.join(OUT_DIR, `${videoName}.visual_events.json`);
     fs.writeFileSync(outPath, JSON.stringify({
-      videoName, model: MODEL, usage, cost, events,
+      videoName, model: MODEL, promptVersion: PROMPT_VERSION, usage, cost, events,
       proxy: { sizeMB: +(fs.statSync(proxyPath).size / 1024 / 1024).toFixed(1), settings: "720p h264 600k + aac 64k mono" },
       generatedAt: new Date().toISOString(),
     }, null, 2));

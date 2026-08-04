@@ -168,6 +168,22 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > creator's own plays. Re-run variant D on the same 3 recordings; success =
 > new-territory picks skew toward the DD (self-authored fail) class. Pipeline
 > integration decision waits on that + #237.
+>
+> **Actor-aware iteration (D3) RUN 2026-08-04, session 147 — success criterion
+> met (full detail in #235).** Watch prompt v2-actor (creator-POV framing, own
+> plays/fails are the target, spectator + talk-without-action excluded,
+> actor-first `what` phrasing mandatory, bare gamertags banned) + actor-aware
+> harness merge (events classified from `what`; spectator dropped pre-merge).
+> Re-watch of the same 3 recordings ($0.60): RL's spectator events went
+> 11 → **0**, every v2 event is player-authored, and v2 surfaces own-fails v1
+> never marked (own goal, whiffed clear, backflip fail). Replay `f10-gemD3`:
+> pooled recall 11/12 = 92% (unchanged); both rejected RL spectator picks
+> GONE; both DD soft-yes windows persist and moved toward Fega's cuts (6:22
+> trimmed toward first-fail-only); EO checkpoint-talk pick gone; every
+> Gemini-driven new-territory pick is player-authored (4/4, vs D2 where 4 of 5
+> Gemini-driven verdicted picks were NOs). New 9-pick eyeball list posted in
+> #235. **Pipeline integration still gated on #237** (merge still rides the
+> harness ceiling hack) plus Fega's verdicts on the D3 eyeball list.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

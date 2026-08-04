@@ -1,79 +1,87 @@
 {
   "videoName": "2026-07-21 EO Day4 Pt1",
   "model": "gemini-3.6-flash",
+  "promptVersion": "v2-actor",
   "usage": {
-    "inputTokens": 140661,
-    "outputTokens": 940
+    "inputTokens": 140861,
+    "outputTokens": 1749
   },
-  "cost": 0.2180415,
+  "cost": 0.224409,
   "events": [
     {
-      "t_start_s": 322,
-      "t_end_s": 328,
-      "score": 0.65,
-      "label": "egg_fall_fail",
-      "what": "The egg misses its jump on the narrow plank and rolls all the way back down to lower platforms."
-    },
-    {
-      "t_start_s": 575,
-      "t_end_s": 582,
+      "t_start_s": 5,
+      "t_end_s": 10,
       "score": 0.7,
-      "label": "egg_fall_fail",
-      "what": "The egg slides off the high platform and tumbles all the way down to a lower level."
+      "label": "player_slips_down",
+      "what": "The player misjudges a jump and rolls backwards down a steep ramp."
     },
     {
-      "t_start_s": 577,
-      "t_end_s": 583,
+      "t_start_s": 521,
+      "t_end_s": 528,
       "score": 0.75,
-      "label": "egg_cracks_fall",
-      "what": "The egg loses balance on the top edge and tumbles down the wooden slope."
+      "label": "player_falls_ramp",
+      "what": "The player loses balance near the top edge and rolls all the way down the wooden slope."
     },
     {
-      "t_start_s": 936,
-      "t_end_s": 943,
+      "t_start_s": 744,
+      "t_end_s": 753,
+      "score": 0.8,
+      "label": "player_falls_structure",
+      "what": "The player attempts a jump across wooden beams but loses control and falls down."
+    },
+    {
+      "t_start_s": 934,
+      "t_end_s": 942,
       "score": 0.85,
-      "label": "egg_shatters_crack",
-      "what": "The egg drops from a high ledge and shatters completely on the glass roof."
+      "label": "player_egg_cracks",
+      "what": "The player falls through a glass roof and cracks open."
     },
     {
-      "t_start_s": 1205,
-      "t_end_s": 1225,
-      "score": 0.9,
+      "t_start_s": 1204,
+      "t_end_s": 1235,
+      "score": 0.95,
       "label": "epic_shortcut_skip",
-      "what": "The egg bounces off a moving mechanical lever, launching high into the air and skipping an entire section."
+      "what": "The player accidentally bounces off a wooden ledge to pull off a massive obstacle skip."
     },
     {
-      "t_start_s": 1598,
-      "t_end_s": 1606,
+      "t_start_s": 1600,
+      "t_end_s": 1608,
       "score": 0.85,
-      "label": "checkpoint_reached",
-      "what": "The egg carefully rolls onto the helipad platform, triggering a major checkpoint."
+      "label": "reaches_checkpoint",
+      "what": "The player successfully lands on the helicopter pad and reaches a checkpoint."
     },
     {
       "t_start_s": 1718,
       "t_end_s": 1724,
       "score": 0.75,
-      "label": "egg_shatters_fall",
-      "what": "The egg misses its landing on the floating rock and shatters against the frame below."
+      "label": "botched_rock_jump",
+      "what": "The player tries to hop onto a rock block, misses, and cracks open."
     },
     {
-      "t_start_s": 1801,
-      "t_end_s": 1808,
+      "t_start_s": 1800,
+      "t_end_s": 1807,
       "score": 0.8,
-      "label": "fatal_fall_grass",
-      "what": "The egg falls off the high structure, cracking open as it hits the ground in the tall grass."
+      "label": "long_fall_death",
+      "what": "The player falls from a high platform, tumbling through structures to the ground."
     },
     {
-      "t_start_s": 2522,
-      "t_end_s": 2532,
-      "score": 0.95,
-      "label": "disastrous_long_fall",
-      "what": "The egg slips off the top rock, falling all the way down through the entire tower to the very bottom."
+      "t_start_s": 2145,
+      "t_end_s": 2159,
+      "score": 0.85,
+      "label": "clutch_rock_parkour",
+      "what": "The player carefully hops across several floating rock platforms without falling."
+    },
+    {
+      "t_start_s": 2521,
+      "t_end_s": 2533,
+      "score": 0.9,
+      "label": "massive_fall_crack",
+      "what": "The player misses a rock jump and falls all the way down to the base level."
     }
   ],
   "proxy": {
     "sizeMB": 139.2,
     "settings": "720p h264 600k + aac 64k mono"
   },
-  "generatedAt": "2026-08-04T18:07:48.791Z"
+  "generatedAt": "2026-08-04T19:52:06.961Z"
 }

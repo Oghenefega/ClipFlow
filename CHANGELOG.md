@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-04 (session 147) — Gemini learns whose plays matter
+
+### Changed
+- **Gemini's recording-watch now hunts the creator's own plays and fails instead of raw spectacle (#235).** Fega's verdicts on the first batch of never-reviewed picks revealed the real filter: he keeps moments he authored himself (his own crashes and fails), and rejects teammate/opponent highlights he merely watches — however impressive. The watch prompt was rewritten around that (own plays and fails are the target; spectator moments and talk-without-action are explicitly not; every event description must name who did it), and the experiment harness now classifies each Gemini event by actor and drops spectator moments before they reach the detection engine. Re-run on the same 3 recordings (~$1): kept-moment recall held at its 92% ceiling, both spectator picks Fega rejected disappeared, both picks he soft-liked survived with cuts closer to what he said he'd keep, and every new Gemini-driven pick is now one of his own moments. A fresh 9-pick eyeball list is on #235; pipeline integration still waits on #237 (the saturated event list).
+- **Fixed mid-run: the actor classifier misread "the opponent's net" as an opponent's play.** A player-scored goal was briefly dropped because the word "opponent" appeared as a location, not an actor. Classification is now anchored to who the sentence says acted, and the affected cell was re-run clean.
+
 ## [Unreleased] — 2026-08-04 (session 146) — Fewer screenshots ship, Gemini watches its first recordings
 
 ### Changed
