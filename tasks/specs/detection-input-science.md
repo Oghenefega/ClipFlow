@@ -200,6 +200,25 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > Gemini-driven verdicted picks were NOs). New 9-pick eyeball list posted in
 > #235. **Pipeline integration still gated on #237** (merge still rides the
 > harness ceiling hack) plus Fega's verdicts on the D3 eyeball list.
+>
+> **Fega's D3 verdicts (same day, all 9 picks — full table in #235): 4/9 usable
+> (+1 borderline) vs D2's 2/6; Gemini-driven picks specifically 3/4 usable vs
+> D2's 1/5. Actor-aware weighting VALIDATED.** Keeps: DD 6:22 (yes — first-fail
+> trim landed), RL 2:25 (yes — scored ON + his sarcasm; transcript-driven), DD
+> 1:41 (soft yes — end trimmed the controller-crash punchline), RL 5:31 (soft
+> yes — starts at the goal, energy + stakes carry it). The one Gemini-driven NO
+> (EO 28:06) fails on attempt-without-payoff, an axis the actor field can't
+> see. Also validated: v2 correctly dropped the 2:25 opponent goal as spectator
+> and the pick survived via mic/transcript — no signal lost (nuance recorded:
+> opponent-acts-ON-him = his moment-as-victim, not pure spectating). **New
+> finding — the precision frontier is cut BOUNDARIES:** both imperfect keeps
+> fail at the edges (payoff cut off the end / cause cut off the start);
+> candidate future experiment: window extension to include cause + payoff.
+> Talk-driven new territory stays weak (1 yes of 5 — complaining, bland
+> gameplay, chat drama all NO, matching the v3 chip classes). Eyeball delivery
+> upgraded: picks now ship as proxy-cut video files in a Desktop folder, not
+> timestamp lists. Integration order: **#237 first**, then pipeline wiring
+> behind its own ablation cell.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

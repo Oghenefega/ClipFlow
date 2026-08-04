@@ -6,11 +6,11 @@ _Last updated: 2026-08-04 — Session 147 (#235 actor-aware iteration D3: succes
 
 ## One-line TL;DR
 
-The #235 actor-aware iteration ran end-to-end and met its success criterion: the Gemini watch prompt (v2-actor) now targets Fega's OWN plays/fails and excludes spectator moments, the harness merge classifies events by actor and drops spectator ones, and the `f10-gemD3` replay on the same 3 recordings held recall at 11/12 = 92% while eliminating both rejected spectator picks and keeping both soft-yes windows with tighter cuts — every Gemini-driven new pick is now player-authored. Fresh 9-pick eyeball list posted to #235; integration still gated on #237 + Fega's verdicts.
+The #235 actor-aware iteration ran end-to-end and met its success criterion: the Gemini watch prompt (v2-actor) now targets Fega's OWN plays/fails and excludes spectator moments, the harness merge classifies events by actor and drops spectator ones, and the `f10-gemD3` replay on the same 3 recordings held recall at 11/12 = 92% while eliminating both rejected spectator picks and keeping both soft-yes windows with tighter cuts — every Gemini-driven new pick is now player-authored. Fega's same-day verdicts on all 9 picks: 4/9 usable, Gemini-driven 3/4 (vs 1/5 last round) — actor-aware weighting validated; integration now gated on #237 only.
 
 ## Current State
 
-Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open. [#235](https://github.com/Oghenefega/ClipFlow/issues/235) open — D3 results + new eyeball list in the latest comment; waiting on Fega's verdicts. [#237](https://github.com/Oghenefega/ClipFlow/issues/237) open — still the integration gate (untouched this session, deliberately). [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open — only the queued post-#232 no-rejected re-test remains. No installer cut (batching rule).
+Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open. [#235](https://github.com/Oghenefega/ClipFlow/issues/235) open — D3 results + Fega's verdicts on all 9 picks recorded in comments (actor-aware validated). [#237](https://github.com/Oghenefega/ClipFlow/issues/237) open — still the integration gate (untouched this session, deliberately). [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open — only the queued post-#232 no-rejected re-test remains. No installer cut (batching rule).
 
 ## What Was Just Built (session 147)
 
@@ -29,11 +29,11 @@ Master pushed. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) op
 
 ## Next Steps
 
-1. **Fega:** ~2-min eyeball pass on the 9 D3 picks (list in the #235 comment) — especially whether the re-cut DD windows (1:41→2:04, 6:22→6:55) are closer to keepable, and the re-framed EO 28:06→28:52.
+1. **DONE same-day — Fega's D3 verdicts are in (#235 comment): 4/9 usable (+1 borderline), Gemini-driven picks 3/4 usable vs D2's 1/5 — actor-aware weighting VALIDATED.** New finding: the precision frontier is cut boundaries (payoff trimmed off DD 1:41's end, cause missing from EO 9:43's start) — candidate future experiment on window extension. Eyeball delivery upgraded: picks now ship as proxy-cut videos in a Desktop folder ("ClipFlow eyeball - 235 D3"), not timestamp lists — do this for every future experiment.
 2. **#237** — de-saturate / interleave the top-50 event selection (per-signal caps?), verified by its own harness cell. This unblocks real #235 integration (and retires the ceiling hack).
 3. **Cut the batched installer** when Fega asks (carries the #232 v3 reason chips, frames 10, #236) — then his hands-on check (reject a clip on Pending, 10 chips render).
 4. **Queued:** post-#232 `--no-rejected` re-test once v3-tagged rejections are a meaningful share of the 50-row window (can't move until the installer ships). NOTE (Fega correction, 2026-08-04): rejection feedback has three eras — v1 untagged, v2 = the INSTALLED six chips (recent windows are majority v2-tagged: RL 38/50, DD 7/9, EO 20/45), v3 = the unshipped #232 chips. The no-rejected cell already contained v2 tags; the re-test measures the vocabulary upgrade, not tags-vs-none. Never say "no way to know why he rejected".
-5. If Fega's D3 verdicts land well → design the real pipeline integration (lift the long Files-API poll into the prod Gemini provider, proxy transcode stage, actor filter in the pipeline merge — all after #237).
+5. Design the real #235 pipeline integration (verdicts landed well): lift the long Files-API poll into the prod Gemini provider, proxy transcode stage, actor filter in the pipeline merge — all after #237, behind its own ablation cell. Candidate follow-on experiment: cut-boundary extension (include cause + payoff in pick windows).
 
 ## Watch Out For
 
