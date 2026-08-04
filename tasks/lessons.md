@@ -1071,3 +1071,11 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
   clips are the sacrificial pool. Check `status` before opening a clip for any
   verification; if no rejected clip exists, borrow one from another project or
   ask — never fall back to approved.
+
+## Session 145 (2026-08-03) — Session-name formula ignored AGAIN (2nd offense)
+
+**What went wrong:** Suggested "Detection science: measured, specced, routed to Wick" as the session name — free-form, no S-number anchor. The formula ("S<N> · alpha.<X> — <summary>"; no installer: "S<N> · <summary>") is recorded in memory feedback_session_name WITH an s143 reinforcement for this exact failure, and was still ignored.
+
+**Why:** The name was composed from the session's content, then emitted without checking it against the template. The memory was recalled (used for "suggest a name at wrap") but only its trigger, not its format constraint.
+
+**Rule:** A name suggestion that does not START with "S<number> ·" is invalid — check the first two characters before emitting. Copy the anchor prefix from HANDOFF's header line verbatim. Offer 2-3 alternatives, all in-template.
