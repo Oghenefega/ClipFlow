@@ -1091,3 +1091,11 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 **Why:** Internal shorthand ("chips v2") was named from the code's perspective, not the user's, and "mostly untagged" (true of ALL-history: 140/200 RL rejections predate chips) got flattened into "no reasons exist" (false for the recent windows the prompt actually reads).
 
 **Rule:** Use Fega's era numbering in all chat/docs: v1 = untagged era, v2 = installed six chips, v3 = #232 four new chips (not yet shipped). Never say "no way to know why" — say which era a row belongs to. When claiming data coverage, state the window numbers from the live DB, not the all-history ratio.
+
+## Session 147 (2026-08-04) — Invented game-name expansions instead of reading gamesDb
+
+**What went wrong:** Chat messages expanded the game tags from imagination: "EO" became "Eggy Out" (real: **Egging On**), "DD" became "Devil's Delivery" (real: **Deadline Delivery**), "MC" became "Minecraft" (real: **Meccha Chameleon**). Fega corrected two; the third was caught on checking.
+
+**Why:** The tags looked guessable and the canonical mapping was never loaded, even though it sits in `%APPDATA%\clipflow\clipflow-settings.json` → `gamesDb` (tag + name) — one read away.
+
+**Rule:** Never expand a game tag from memory. Use the bare tag, or read `gamesDb` first. Full mapping as of 2026-08-04: AR=Arc Raiders, RL=Rocket League, Val=Valorant, EO=Egging On, DD=Deadline Delivery, PoP=Prince of Persia, SCoG=Slackers: Carts of Glory, Pico=Pico Park, JC=Just Chatting, MC=Meccha Chameleon.
