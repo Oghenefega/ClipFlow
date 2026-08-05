@@ -6,7 +6,80 @@
 
 ---
 
-## ⏳ ACTIVE (session 149) — #235 pipeline integration: Gemini full-watch becomes a real detection signal — SHIPPED; cell run; gate 22/26 vs 25/26 (diagnosis: cut-boundary + tail-budget, NOT bad picks); noise-check runs + Fega's gate decision BLOCKED on Anthropic API credits
+## ⏳ ACTIVE (session 151) — #238 pick-budget scaling + cut-boundary extension — baseline RUN, plan AWAITING FEGA'S APPROVAL
+
+### Fresh post-#239 baseline (f10-mix-rebase, run 2026-08-05, $0.57)
+
+Ground truth grew 26 → 29 pooled approved rows after the #239 backfill
+(RL Day8 Pt8 +2, EO Day4 Pt1 +1). New baseline on the six standard
+recordings, single run each, current shipped prompt code (frames=10, #237
+selection, no gemini):
+
+| recording | recall | rej hits |
+|---|---|---|
+| EO Day3 Pt2 | 7/8 | 4/14 |
+| RL Day8 Pt8 | 4/4 (both backfill rows hit) | 10/14 |
+| RL Day9 Pt1 | 4/4 | 2/7 |
+| EO Day4 Pt1 | 5/7 (new 9:24 row hit) | 8/15 |
+| RL Day10 Pt1 | 1/1 | 8/15 |
+| DD Day2 Pt1 | 5/5 | 5/14 |
+| **pooled** | **26/29 = 90%** | **37/79 = 47%** |
+
+The three missed rows, characterized against the old f10-mix run:
+- **EO Day4 17:31→18:11** — STABLE miss (old run missed it too; the old
+  25/26 gap). Nearest pick 18:48.
+- **EO Day3 6:33→7:12** — rotating tail-budget marginal; THE row that was
+  systematically displaced in f10-gemInt. Now coin-flips even without
+  gemini. Nearest pick 25s away, same signature.
+- **EO Day4 26:13→26:52** — rotating marginal (old run caught it 26:38).
+
+Pick counts: 14-15 on every 20-30-min recording (7 on the 4-min RL Day9)
+— the model self-caps near 15 despite the prompt allowing 10-20. This IS
+the fixed-budget mechanism #238 names.
+
+### Cells (single-factor each; six recordings; compare pooled vs 26/29 / 47%)
+
+- **Cell A — pick-budget scaling** (~$0.60): rewrite the count constraint
+  (ai-prompt.js:144) to scale with recording length: "aim for roughly one
+  clip per 90 seconds of recording, minimum 10, maximum 25" + explicit
+  "do not stop at 14-15 out of habit" push. Nothing else changes.
+  Pass: recall ≥ 26/29 with the two rotating marginals expected back;
+  watch rej-hit drift (more picks = more rejected hits is acceptable —
+  Fega is the precision filter — but log it).
+- **Cell B — cut-boundary extension** (~$0.60): rewrite CLIP BOUNDARY
+  RULES 2-4 (ai-prompt.js:117-125): start at the CAUSE (the jump before
+  the fall, the shot before the goal), end after the PAYOFF completes
+  (finish the sentence/punchline, extend to natural speech boundary),
+  plus a one-moment-one-clip anti-split rule (RL9 2:36+3:06 class).
+  Pass: recall holds ≥ baseline; secondary metric = boundary coverage
+  (per-hit overlap fraction + start/end deltas vs approved rows, computed
+  post-hoc from result JSONs — no harness change); Fega eyeballs
+  new-territory picks as proxy cuts.
+- **Cell C — A+B combined** (~$0.60): only if A and B each hold recall.
+- **Stretch — f10-gemInt re-run on the winner** (~$0.60, gemini events
+  cached): the named re-earn path for the gemini watch slot. Pass:
+  pooled ≥ 26/29 with the signal ON (it scored 22/26-equiv pre-#238).
+
+Noise protocol: any contested delta on EO Day3 Pt2 gets 2 extra runs on
+that recording only (~$0.12 each), per session-149 precedent.
+
+Mechanics: each cell is a temporary edit to src/main/ai-prompt.js →
+six harness runs → revert. Results JSONs committed under cell labels
+(a25-scale / bCut / abComb / gemInt-238). The WINNING change ships as
+real code only after Fega's sign-off + ai-prompt.test.js green (60
+tests; count/boundary tests updated to match). Watch prompt v2-actor
+stays frozen. Total program ≈ $2.40-3.00.
+
+### Fega's part
+
+1. Approve/adjust this plan (cells A, B, C, stretch — or a subset).
+2. After the cells: the usual ~2-min eyeball pass on new-territory picks
+   (proxy cuts land in a Desktop folder). For Cell B your verdicts on
+   the cut edges ARE the success measure the harness can't see.
+
+---
+
+## CLOSED (session 149) — #235 pipeline integration: Gemini full-watch becomes a real detection signal — SHIPPED; cell run; gate 22/26 vs 25/26 (diagnosis: cut-boundary + tail-budget, NOT bad picks); noise-check runs + Fega's gate decision BLOCKED on Anthropic API credits
 
 CLOSED 2026-08-05: integration shipped, cell + noise runs + Fega's 13
 verdicts done ($1.51). Cross-check showed every keeper is mix-found too
