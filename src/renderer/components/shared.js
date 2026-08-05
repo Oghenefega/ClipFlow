@@ -281,6 +281,23 @@ export const PillSpinbox = ({ value, onChange, min = 1, max = 999, label, color 
   );
 };
 
+// #242: game colors must be 6-digit hex — GamePill and the game-hue gradients
+// build tints by suffixing alpha onto the hex (`${color}18`), which silently
+// produces invalid CSS for any other format (the old hue wheel emitted hsl()).
+export const hslToHex = (h, s, l) => {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+  return "#" + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("");
+};
+
+export const normalizeHexColor = (color) => {
+  if (typeof color !== "string" || /^#[0-9a-fA-F]{6}$/.test(color)) return color;
+  const m = color.match(/^hsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)$/i);
+  return m ? hslToHex(parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])) : color;
+};
+
 export const ColorPicker = ({ value, onChange }) => {
   const presets = ["#ff6b35", "#00b4d8", "#ff4655", "#ffd23f", "#fca311", "#06d6a0", "#9b5de5", "#ef476f", "#00ff88", "#e0e0e0"];
   const [showWheel, setShowWheel] = useState(false);
@@ -302,7 +319,7 @@ export const ColorPicker = ({ value, onChange }) => {
       {showWheel && (
         <div style={{ marginTop: 12, padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: T.radius.md, border: `1px solid ${T.border}` }}>
           <SectionLabel>Hue</SectionLabel>
-          <input type="range" min="0" max="360" value={hue} onChange={(e) => { setHue(e.target.value); const c = `hsl(${e.target.value},80%,55%)`; onChange(c); setHex(c); }} style={{ width: "100%", cursor: "pointer", marginTop: 8, marginBottom: 12 }} />
+          <input type="range" min="0" max="360" value={hue} onChange={(e) => { setHue(e.target.value); const c = hslToHex(parseInt(e.target.value, 10), 80, 55); onChange(c); setHex(c); }} style={{ width: "100%", cursor: "pointer", marginTop: 8, marginBottom: 12 }} />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <SectionLabel>Hex</SectionLabel>
             <input value={hex} onChange={(e) => setHex(e.target.value)} onBlur={commitHex} onKeyDown={(e) => e.key === "Enter" && commitHex()} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 12px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none" }} />

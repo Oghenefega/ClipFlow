@@ -436,33 +436,98 @@ export default function TrackerView({
   const deletePreset = (idx) => setSavedTemplates((prev) => prev.filter((_, i) => i !== idx));
 
   // ---------- CSV export/import ----------
+  // #225 Part A: readable report columns. Real game names, Main/Variety,
+  // Yes/No scheduled, one URL column per platform (stored url first, else
+  // derivable postId patterns — never fabricated). PlatformResults JSON stays
+  // last: it is the import round-trip payload; the human columns are derived
+  // views of it.
   const fileRef = useRef(null);
+  const SOURCE_LABELS = { clipflow: "ClipFlow", import: "Imported", manual: "Manual", vizard: "Vizard" };
+  const csvQuote = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+  const platformUrl = (e, platform) => {
+    const r = (e.platformResults || []).find((x) => (x.platform || "").toLowerCase() === platform);
+    if (!r) return "";
+    if (r.url) return r.url;
+    if (r.postId) {
+      if (platform === "youtube") return `https://www.youtube.com/watch?v=${r.postId}`;
+      // Legacy pre-Reels Facebook rows: pageId = accountId minus the fb_ prefix.
+      if (platform === "facebook" && r.accountId) return `https://www.facebook.com/${String(r.accountId).replace(/^fb_/, "")}/videos/${r.postId}`;
+    }
+    return "";
+  };
   const exportCSV = () => {
-    const h = "Date,Day,Time,Title,Game,Type,Platforms,MainGame,Source,PlatformResults\n";
-    const r = trackerData.map((e) => {
-      const pr = JSON.stringify(e.platformResults || []).replace(/"/g, '""');
-      return `${e.date},${e.day},${e.time},"${(e.title || "").replace(/"/g, '""')}",${e.game},${e.type},"${e.platforms || ""}",${e.mainGameAtTime || ""},${e.source || "unknown"},"${pr}"`;
-    }).join("\n");
+    const h = "Date,Day,Time,Title,Game,Type,Scheduled,Source,MainGame,YouTube,TikTok,Instagram,Facebook,PlatformResults\n";
+    const r = trackerData.map((e) => [
+      e.date, e.day, e.time,
+      csvQuote(e.title || ""),
+      csvQuote(resolveGameDisplay(e.game).name),
+      e.type === "main" ? "Main" : "Variety",
+      e.scheduled ? "Yes" : "No",
+      SOURCE_LABELS[e.source] || e.source || "Unknown",
+      csvQuote(e.mainGameAtTime || ""),
+      csvQuote(platformUrl(e, "youtube")),
+      csvQuote(platformUrl(e, "tiktok")),
+      csvQuote(platformUrl(e, "instagram")),
+      csvQuote(platformUrl(e, "facebook")),
+      csvQuote(JSON.stringify(e.platformResults || [])),
+    ].join(",")).join("\n");
     const b = new Blob([h + r], { type: "text/csv" });
     downloadBlob(b, `clipflow-tracker-${todayIso}.csv`);
   };
 
+  // Header-aware import (#225): maps columns by header name so BOTH the legacy
+  // 10-column layout and the new layout load cleanly. URL columns are ignored —
+  // PlatformResults is the source of truth. Locked rule: CSV imports earn no XP.
+  const splitCsvLine = (line) => {
+    const out = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ",") { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  };
   const importCSV = (e) => {
     const f = e.target.files[0];
     if (!f) return;
     const rd = new FileReader();
     rd.onload = (ev) => {
-      const lines = ev.target.result.split("\n").slice(1).filter((l) => l.trim());
-      const entries = lines.map((l) => {
-        const p = l.match(/(".*?"|[^,]+)/g) || [];
-        const c = (s) => (s || "").replace(/^"|"$/g, "").replace(/""/g, '"').trim();
+      const lines = ev.target.result.split(/\r?\n/).filter((l) => l.trim());
+      if (!lines.length) { toast("Imported 0 entries"); return; }
+      const header = splitCsvLine(lines[0]).map((s) => s.toLowerCase());
+      const col = (row, name) => { const i = header.indexOf(name); return i >= 0 ? (row[i] || "") : ""; };
+      const SOURCE_RAW = { clipflow: "clipflow", imported: "import", manual: "manual", vizard: "vizard" };
+      const entries = lines.slice(1).map((l) => {
+        const row = splitCsvLine(l);
         let platformResults = [];
-        try { platformResults = JSON.parse(c(p[9]) || "[]"); } catch (err) { platformResults = []; }
-        return {
+        try { platformResults = JSON.parse(col(row, "platformresults") || "[]"); } catch (err) { platformResults = []; }
+        if (!Array.isArray(platformResults)) platformResults = [];
+        // New-layout Game holds the display name; store the hashtag key the
+        // per-game math matches on. Legacy tags resolve through the same lookup.
+        const rawGame = col(row, "game");
+        const g = gamesDb.find((x) => [x.name, x.hashtag, x.tag].some((v) => (v || "").toLowerCase() === rawGame.toLowerCase()));
+        const rawType = col(row, "type").toLowerCase();
+        const rawSource = col(row, "source");
+        const entry = {
           id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-          date: c(p[0]), day: c(p[1]), time: c(p[2]), title: c(p[3]), game: c(p[4]), type: c(p[5]),
-          platforms: c(p[6]), mainGameAtTime: c(p[7]), source: c(p[8]) || "unknown", platformResults,
+          date: col(row, "date"), day: col(row, "day"), time: col(row, "time"), title: col(row, "title"),
+          game: g ? (g.hashtag || g.tag) : rawGame,
+          type: rawType === "variety" ? "other" : (rawType || "other"),
+          platforms: col(row, "platforms") || platformResults.map((x) => (x.platform || "").replace(/^./, (c0) => c0.toUpperCase())).filter(Boolean).join(", "),
+          mainGameAtTime: col(row, "maingame"),
+          source: SOURCE_RAW[rawSource.toLowerCase()] || rawSource || "unknown",
+          platformResults,
         };
+        const sched = col(row, "scheduled").toLowerCase();
+        if (sched === "yes") entry.scheduled = true;
+        else if (sched === "no") entry.scheduled = false;
+        return entry;
       }).filter((x) => x.date && x.time);
       setTrackerData((p) => [...p, ...entries]);
       toast(`Imported ${entries.length} entries`);

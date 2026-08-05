@@ -1158,17 +1158,14 @@ export default function QueueView({
     } catch (e) { console.error("Unschedule failed:", e); }
   };
 
-  // Phase 3: Auto-suggest next available time slot from weekly template
-  const autoSuggestSlot = () => {
-    const dates = getUpcomingDates();
-    const wd = getWeekDates(new Date());
-    const mondayIso = wd[0].iso;
-    const tmpl = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
-    if (!tmpl?.timeSlots?.length || !dates.length) return null;
-    // Find existing scheduled times for each date
-    const takenSlots = new Set();
+  // #243: every slot already claimed, keyed "YYYY-MM-DDTHH:MM" → occupant.
+  // Two sources: approved clips' scheduledAt (all projects) and tracker entries
+  // (auto-published and manual logs). Shared by auto-suggest and the schedule
+  // picker's conflict warning.
+  const getTakenSlots = () => {
+    const taken = new Map();
     approved.forEach((c) => {
-      if (c.scheduledAt) takenSlots.add(c.scheduledAt.slice(0, 16)); // "YYYY-MM-DDTHH:MM"
+      if (c.scheduledAt) taken.set(c.scheduledAt.slice(0, 16), { title: c.title, kind: "scheduled" });
     });
     trackerData.forEach((t) => {
       if (t.date && t.time) {
@@ -1178,10 +1175,22 @@ export default function QueueView({
           const ap = m[3].toUpperCase();
           if (ap === "PM" && h !== 12) h += 12;
           if (ap === "AM" && h === 12) h = 0;
-          takenSlots.add(`${t.date}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
+          const key = `${t.date}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+          if (!taken.has(key)) taken.set(key, { title: t.title || t.game, kind: "published" });
         }
       }
     });
+    return taken;
+  };
+
+  // Phase 3: Auto-suggest next available time slot from weekly template
+  const autoSuggestSlot = () => {
+    const dates = getUpcomingDates();
+    const wd = getWeekDates(new Date());
+    const mondayIso = wd[0].iso;
+    const tmpl = weekTemplateOverrides?.[mondayIso] || weeklyTemplate;
+    if (!tmpl?.timeSlots?.length || !dates.length) return null;
+    const takenSlots = getTakenSlots();
     const now = new Date();
     for (const d of dates) {
       for (const slot of tmpl.timeSlots) {
@@ -2389,6 +2398,9 @@ export default function QueueView({
                             // the scheduler would fire it immediately.
                             const schedPast = !!schedDate && new Date(`${schedDate}T${schedHour}:${schedMin}:00`) <= new Date();
                             const canSave = !!schedDate && !schedPast;
+                            // #243: warn (don't block) when the picked time is
+                            // already held by a scheduled clip or a tracker entry.
+                            const conflict = schedDate ? getTakenSlots().get(`${schedDate}T${schedHour}:${schedMin}`) : null;
                             return (
                             <div style={{ marginTop: 10 }}>
                               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -2398,6 +2410,11 @@ export default function QueueView({
                                 <button onClick={() => setSchedAction(null)} style={{ padding: "8px 12px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
                               </div>
                               {schedPast && <div style={{ fontSize: 10, color: T.red, marginTop: 6 }}>That time has already passed — pick a future time.</div>}
+                              {!schedPast && conflict && (
+                                <div style={{ fontSize: 10, color: T.yellow, marginTop: 6 }}>
+                                  {"⚠ "}{conflict.kind === "scheduled" ? `Another clip is already scheduled for this time: "${conflict.title}"` : `A post already went out at this time: "${conflict.title}"`}
+                                </div>
+                              )}
                               {(() => { const sug = autoSuggestSlot(); return sug ? <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 6 }}>Suggested: {sug.label}</div> : null; })()}
                             </div>
                             );

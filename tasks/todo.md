@@ -6,6 +6,68 @@
 
 ---
 
+## ✅ BUILT (session 154) — #242 + #243 + #225 Part A — CDP-verified, awaiting Fega on next installer
+
+Approved and built same session. All three verified live over CDP on the dev
+profile (isolated scratch projectsRoot; dev settings restored byte-identical
+after). Evidence: scratchpad qa-242-pill.png / qa-243-conflict.png; 16/16
+assertions passed across the two drive runs. Batch into the next installer.
+
+Harness traps hit and documented: stale cached `localProjects` fallback masked
+the fixture project (session-130 trap — cleared the cache key from seeded dev
+settings); Settings "Content Library" group persisted collapsed (expand before
+asserting chips); custom Select trigger is a BUTTON inside the root div (click
+the button, not the wrapper); an expanded Queue row toggles closed on re-click.
+
+### 1. #242 — Bionic Bay pill bug (root cause confirmed)
+
+Stored color is `hsl(80,80%,55%)` (hue-wheel output, `shared.js:305`); `GamePill`'s
+`${color}18`/`${color}44` hex-suffix tint (`shared.js:44`) is invalid CSS for hsl
+strings → transparent pill, valid text color. Fix: (a) hue slider converts to hex
+before `onChange` (hslToHex helper in shared.js), (b) normalize non-hex gamesDb
+colors on load (`App.js:318`) so Bionic Bay self-heals next launch.
+
+- Files: `src/renderer/components/shared.js`, `src/renderer/App.js`
+- Verify: dev profile — add a game via hue wheel → pill renders everywhere
+  (Settings chip, Queue solid pill); seeded hsl color heals on boot.
+
+### 2. #243 — Queue schedule-conflict warning
+
+Extract `autoSuggestSlot`'s taken-slot builder (`QueueView.js:1162-1204`) into a
+helper returning Map `"YYYY-MM-DDTHH:MM"` → occupant label (scheduled clip title
+or tracker entry). Schedule picker (`QueueView.js:2387-2404`) looks up the picked
+time; on hit shows inline amber warning naming the occupant (same pattern as the
+`schedPast` line at :2400). Warn, don't block — Save stays enabled.
+
+- Files: `src/renderer/views/QueueView.js` only
+- Verify: dev profile — schedule A at time T, open B's picker at T → warning
+  names A; tracker-logged time → warning; free time → nothing; auto-suggest
+  unchanged.
+
+### 3. #225 Part A — Tracker CSV readable report (formatting + header-aware import)
+
+Per the locked spec in #225. New layout:
+`Date, Day, Time, Title, Game, Type, Scheduled, Source, MainGame, YouTube, TikTok, Instagram, Facebook, PlatformResults`.
+Game resolved to display name (`TrackerView.js:359` lookup), Type spelled out
+(Main/Variety), Scheduled Yes/No, per-platform URL columns derived from
+`platformResults` (never fabricate), JSON blob last. Import becomes header-aware,
+accepts BOTH legacy 10-col and new layout; CSV imports earn no XP (locked rule).
+
+**#240 interaction (Fega's question):** no new column needed — `QueueView.js:1441`
+already stamps tracker rows `source: "import"` vs `"clipflow"` at publish time.
+Part A spells the Source column out: `clipflow` → "ClipFlow", `import` →
+"Imported", `manual` → "Manual", `vizard` → "Vizard" (real data: 68/25/5).
+Optional 1-line extra if wanted: explicit "Edited with ClipFlow" Yes/No column.
+
+Part B (IG permalink fetch + TikTok post-id chase) deferred — needs a real
+publish to verify; ships separately.
+
+- Files: `src/renderer/views/TrackerView.js` only (Part A)
+- Verify: export with real tracker data → opens readable in Excel; re-import
+  both a legacy CSV and a new CSV → entries land, no XP awarded.
+
+---
+
 ## ✅ BUILT (session 153) — #240 Queue imports — code complete, awaiting Fega's 6-step verification
 
 Spec locked: `tasks/specs/queue-imports.md`. Greenlit; this is the working plan.

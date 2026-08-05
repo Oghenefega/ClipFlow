@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 154) — The scheduler learns what's already booked
+
+### Fixed
+- **Game colors picked with the hue wheel now render pills correctly (#242).** Bionic Bay's chip in Settings showed bare green text with no pill around its "BB" tag because the color wheel's hue slider saved colors as `hsl(...)` strings while every pill and game-hue gradient in the app builds its tint by appending transparency to a 6-digit hex — producing invalid CSS that silently dropped the background and border. The slider now emits hex like the preset swatches, and any previously saved hsl color is normalized to hex when the app loads, so the existing Bionic Bay entry heals itself on next launch with no re-picking. Verified live: the healed pill renders with the exact expected tint, and the fix covers every surface that derives styling from the game color (Settings chips, Queue pills, project posters).
+
+### Added
+- **The schedule picker now warns when a time is already taken (#243).** Picking a date/time in the Queue's schedule picker that collides with another scheduled clip — or with a post already logged in the Tracker — shows an amber warning naming what's there ("Another clip is already scheduled for this time: …" / "A post already went out at this time: …"). No more memorizing scheduled times or checking the Tracker tab before scheduling. The warning is advisory: Save stays enabled so a deliberate double-post is still possible. Built on the same taken-slot logic the "Suggested:" line already used, now shared between auto-suggest and the conflict check. Verified live: the warning appears at a taken slot, names the occupant, and clears when the time is changed.
+- **Tracker CSV export is now a readable report (#225 Part A).** The export gains real game names instead of tag codes, Type spelled out as Main/Variety, a Yes/No Scheduled column, a readable Source column (ClipFlow / Imported / Manual — answering "was this edited with ClipFlow?" per row, which the queue-imports work already records at publish time), and one clickable URL column per platform (YouTube, TikTok, Instagram, Facebook). URLs use the stored link when present and derive YouTube/legacy-Facebook links from the post id when possible — never fabricated; unknown stays blank. The raw PlatformResults JSON moves to the last column as the round-trip payload. Import is now header-aware: both legacy 10-column files and new-layout files load cleanly (the old positional parser also silently collapsed empty fields — fixed by a real CSV parser), readable labels map back to internal values, and CSV imports still earn no XP. Part B of #225 (capturing Instagram permalinks and TikTok post ids at publish time) remains open — it needs a real publish to verify.
+
 ## [0.3.0-alpha.39] — 2026-08-05 (session 153) — Installer: the four-change batch ships
 
 ### Changed

@@ -4,6 +4,7 @@ import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
 import UpdateBanner from "./components/UpdateBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
+import { normalizeHexColor } from "./components/shared";
 import AudioCalibrationModal from "./components/AudioCalibrationModal";
 import RenameView from "./views/RenameView";
 import RecordingsView from "./views/UploadView";
@@ -315,7 +316,13 @@ export default function App() {
         if (all.testWatchFolder !== undefined) setTestWatchFolder(all.testWatchFolder || "");
         if (all.mainGame) setMainGame(all.mainGame);
         if (all.mainPool) setMainPool(all.mainPool);
-        if (all.gamesDb) setGamesDb(all.gamesDb);
+        // #242 heal: the pre-fix hue wheel stored hsl() color strings, which
+        // break every `${color}NN` hex-alpha tint (GamePill etc.). Normalize
+        // to 6-digit hex on every load.
+        const storedGames = all.gamesDb
+          ? all.gamesDb.map((g) => (g.color ? { ...g, color: normalizeHexColor(g.color) } : g))
+          : null;
+        if (storedGames) setGamesDb(storedGames);
         if (all.ignoredProcesses) setIgnoredProcesses(all.ignoredProcesses);
         // Load platforms: merge stored manual platforms with OAuth-connected accounts
         if (all.platforms) setPlatforms(all.platforms);
@@ -407,7 +414,7 @@ export default function App() {
 
         // dayCount migration: initialize from SQLite file_metadata for games with dayCount 0
         if (window.clipflow.fileMetadataSearch) {
-          const games = all.gamesDb || INITIAL_GAMES;
+          const games = storedGames || INITIAL_GAMES;
           const needsMigration = games.filter((g) => !g.dayCount || g.dayCount === 0);
           if (needsMigration.length > 0) {
             const allFiles = await window.clipflow.fileMetadataSearch({ type: "allRenamed" });
