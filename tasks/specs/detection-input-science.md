@@ -270,6 +270,23 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > keep default ON + run the pick-budget/cut-boundary cell next, or flip
 > default OFF until a cell passes. No live exposure either way until the
 > next installer ships (batching rule).**
+>
+> **Fega's 13 eyeball verdicts (2026-08-05, full table in #235): 4 solid + 2
+> qualified keeps — but the cross-check flipped the analysis: EVERY keeper
+> is also found by f10-mix (no gemini), and mix now surfaces the D2/D3
+> "gemini-unique" DD keeps (6:22, 1:41) on its own. Gemini's apparent
+> uniqueness was an artifact of the pre-#237 saturated timeline. Measured
+> net effect of the signal post-#237 on these six recordings: −2 systematic
+> recall (EO Day3) + RL Day10 knife-edge, −3pts rej-hit (small win),
+> ~$0.15-0.25/recording, no unique usable territory. Gemini-driven picks
+> 0/2 this round (cumulative 4/11). NOT refuted: the quiet-spectacular
+> niche the signal was designed for — unsampled by all six mic-heavy test
+> recordings. RECOMMENDATION posted: default OFF until a cell re-earns the
+> slot (pick-budget/cut-boundary next; re-test on a quiet-spectacular
+> recording when one exists). New taste classes recorded: cut-boundary ×2
+> more (cause at start / sentence at end), adjacent-pick split (RL9),
+> time-sensitivity (World Cup), chat-talk keeps-when-it-frames-his-
+> predicament nuance.**
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this
