@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 151) — The engine stops rationing its picks
+
+### Changed
+- **Clip detection now scales its pick count to the recording instead of always stopping near 15 (#238).** The prompt's "return 10 to 20 clips" constraint became "roughly one clip per 90 seconds, minimum 10, maximum 25" after harness cells showed the engine self-capped at 14-15 picks on every 20-30 minute recording, squeezing out the weakest genuinely-kept moments on dense sessions. The winning cell re-found **all 29** of Fega's historically kept moments (baseline: 26/29) — including one clip no prior engine version had ever surfaced — with the rejected-type pick rate unchanged, and it produced one brand-new Fega-verdicted keeper (the EO Day3 jump-fail arc). Side discovery: the fixed budget was also causing bad cut edges — pick windows now cover 93% of Fega's hand-cut clip windows, up from 87%, with no boundary instructions added. An explicit cause/payoff boundary rewrite was tested as its own cell, moved nothing measurable, and was shelved.
+
+### Fixed
+- **Fresh post-backfill harness baseline recorded (#238).** The #239 backfill grew the six-recording answer key from 26 to 29 kept moments; the baseline was re-run before any experiment cell so all #238 comparisons use the new truth (old 24/26-era numbers are retired).
+
 ## [Unreleased] — 2026-08-05 (session 150) — Every approval teaches the engine now
 
 ### Fixed

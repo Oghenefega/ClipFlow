@@ -295,6 +295,28 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > `geminiWatchEnabled: true` + a key. All code + harness machinery kept;
 > re-earn path = pick-budget/cut-boundary cell, and/or a re-test on a
 > recording with a known quiet-spectacular moment.
+>
+> **2026-08-05 (session 151): #238 RUN + WINNER SHIPPED (full tables in #238).**
+> Post-#239 re-baseline first (`f10-mix-rebase`): truth 26 → 29 pooled rows,
+> baseline 26/29 = 90% recall / 47% rej-hit / 87% boundary coverage (new
+> metric: fraction of each hit approved row's window covered by its best
+> pick). Cells, single-factor: **A pick-budget scaling ("~1 clip per 90s,
+> min 10, max 25") = 29/29 recall, rej-hit flat, coverage 93% — SHIPPED**
+> (ai-prompt.js count constraint; Fega's call same day). Headline mechanism:
+> the fixed ~15-pick budget was itself causing bad edges — coverage improved
+> with ZERO boundary language. **B cut-boundary rewrite (cause/payoff +
+> anti-split): no recall gain, coverage worse solo (83%) — SHELVED**; the
+> RL9 adjacent-split still occurred and EO Day3 14:28 still started at the
+> reaction. C (A+B): best precision (44%) + coverage (94%) but coin-flips
+> the RL Day8 ANKLES BROKEN cold-open start (2/3 runs start at the reaction)
+> — deltas vs A within noise, not shipped. Gemini stretch cell SKIPPED
+> (default OFF stands; A removes the displacement mechanism, so a future
+> re-audition inherits the fix). Eyeball round: only 4 never-judged picks;
+> 1 keep (EO Day3 17:41 jump-fail, "I would use it" — A-only territory),
+> 3 NOs all on payoff-not-visible-on-screen (mic-driven picks about unseen
+> action remain the weakest class — candidate future cell). Watch items:
+> short-tail pick counts scale DOWN (RL Day9 7 → 4, recall held), one 5s
+> pick below the 7s minimum observed on DD.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

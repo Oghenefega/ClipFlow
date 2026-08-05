@@ -443,7 +443,7 @@ test("short recording states its length; floor fills with distinct clips, never 
     approvedClips: [], creatorProfile: null, sourceDuration: 69,
   });
   expect(prompt).toContain("This recording is ~1 minute long.");
-  expect(prompt).toContain("Return 10 to 20 clips.");
+  expect(prompt).toContain("one clip per 90 seconds of recording, minimum 10, maximum 25");
   expect(prompt).toContain("as many non-overlapping clips as it can physically hold");
   expect(prompt).notToContain("10-20 clip recommendations");
   expect(prompt).notToContain("Do not return fewer than 10");
@@ -461,7 +461,7 @@ test("long recording rounds to minutes and keeps the overlap ban (#200)", () => 
 test("sourceDuration omitted — no length line, floor still present (#200)", () => {
   const prompt = buildFullPrompt();
   expect(prompt).notToContain("This recording is ~");
-  expect(prompt).toContain("Return 10 to 20 clips.");
+  expect(prompt).toContain("one clip per 90 seconds of recording, minimum 10, maximum 25");
 });
 
 test("borderline moments fill slots at low confidence; empty array banned (#200)", () => {
