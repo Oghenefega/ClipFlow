@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.38] — 2026-08-05 (session 149) — The detection-science build
+
+### Changed
+- **Version bump to 0.3.0-alpha.38 and installer cut.** Promotes the whole detection-science batch (sessions 144-149) to the installed app: the four sharper rejection chips — Setup / tech talk, Chat banter, Flat delivery, Too similar — with grouped-by-reason prompt injection (#232); 10 screenshots per generation instead of 20 at equal recall (#231); real titles only in the AI's approved examples (#236); the de-saturated event timeline that shows every signal instead of 50 pitch spikes (#237); and the Gemini full-recording watch, shipped but dormant by default after its gate (#235 — enable with `geminiWatchEnabled: true`). First priority after installing: tag rejections with the new chips — that data unblocks the queued negative-calibration re-test (#234).
+
 ## [Unreleased] — 2026-08-04 (session 149) — Gemini's full-recording watch joins the real pipeline
 
 ### Added
