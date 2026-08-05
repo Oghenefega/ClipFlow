@@ -1099,3 +1099,4 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 **Why:** The tags looked guessable and the canonical mapping was never loaded, even though it sits in `%APPDATA%\clipflow\clipflow-settings.json` → `gamesDb` (tag + name) — one read away.
 
 **Rule:** Never expand a game tag from memory. Use the bare tag, or read `gamesDb` first. Full mapping as of 2026-08-04: AR=Arc Raiders, RL=Rocket League, Val=Valorant, EO=Egging On, DD=Deadline Delivery, PoP=Prince of Persia, SCoG=Slackers: Carts of Glory, Pico=Pico Park, JC=Just Chatting, MC=Meccha Chameleon.
+Marker advanced to 2026-08-05 (s149) — no user corrections this session; the self-caught trade-framing error (crediting gemini for picks both variants find) is recorded in tasks/specs/detection-input-science.md + #235, not lesson-routed.

@@ -4,6 +4,12 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 149, post-build) — The verdicted keepers become real clips
+
+### Added
+- **Four of Fega's verdicted keeper moments now exist as real clips in their projects.** The #235 eyeball keepers were only Desktop proxy files until now; they were injected into the existing EO Day3 Pt2 and RL Day8 Pt8 projects as untouched clips (with thumbnails and starter subtitles sliced from the recording transcript) so they flow through the normal editor → approve → render → publish pipeline. The fifth keeper turned out to already exist — "ANKLES BROKEN #rocketleague" was made and published back on July 23.
+- **Filed #239: a published clip never entered the feedback database.** That already-published "ANKLES BROKEN" clip has no feedback row, so the engine has never learned from one of Fega's actual published clips — approval paths outside the Pending tab don't write training data. Needs an audit of every approve path plus a one-off backfill.
+
 ## [0.3.0-alpha.38] — 2026-08-05 (session 149) — The detection-science build
 
 ### Changed
