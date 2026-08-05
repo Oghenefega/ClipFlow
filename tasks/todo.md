@@ -8,13 +8,12 @@
 
 ## ⏳ ACTIVE (session 149) — #235 pipeline integration: Gemini full-watch becomes a real detection signal — SHIPPED; cell run; gate 22/26 vs 25/26 (diagnosis: cut-boundary + tail-budget, NOT bad picks); noise-check runs + Fega's gate decision BLOCKED on Anthropic API credits
 
-Status: all code steps DONE (74 tests green, boot verified); watches + cell +
-noise runs DONE ($1.51 total), results on #235, spec + changelog updated.
-Noise verdict: DD loss = noise (5/5 ×2 re-runs); EO Day3 loss = SYSTEMATIC
-(6/8 all 3 runs, pick-budget squeeze). Expected pooled ≈ 23/26 vs 25/26.
-Remaining: Fega eyeballs the 13 Desktop clips → gate decision (keep ON +
-pick-budget/cut-boundary cell next / flip default OFF). No live exposure
-until the next installer.
+CLOSED 2026-08-05: integration shipped, cell + noise runs + Fega's 13
+verdicts done ($1.51). Cross-check showed every keeper is mix-found too
+(post-#237, gemini adds no unique territory on mic-heavy recordings).
+**Fega's gate call: default OFF** (geminiWatchEnabled: true re-enables).
+Re-earn path filed as #238 (pick-budget scaling + cut-boundary extension).
+Quiet-spectacular niche unsampled — re-test when such a recording exists.
 
 Gate cleared by #237 (session 148). Wire the validated Gemini watch (v2-actor
 prompt, actor-aware spectator-drop, raw-confidence merge) into the real

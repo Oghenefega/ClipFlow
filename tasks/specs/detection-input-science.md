@@ -19,8 +19,10 @@
 > **2026-08-04 (session 148): #237 event-timeline de-saturation SHIPPED + gated
 > (§Step 5) — per-signal caps + duplicate collapse in the prompt's top-50
 > selection; harness ceiling hack retired. #235 integration gate CLEARED.**
-> **2026-08-04 (session 149): #235 pipeline integration SHIPPED (§Step 4 —
-> prod watch module, background stage in ai-pipeline, default ON with a key).
+> **2026-08-04/05 (session 149): #235 pipeline integration SHIPPED (§Step 4 —
+> prod watch module, background stage in ai-pipeline), then gated to
+> **default OFF** (Fega's call 2026-08-05 after verdicts: no unique territory
+> post-#237; `geminiWatchEnabled: true` re-enables).
 > Integration cell f10-gemInt: pooled 22/26 = 85% vs f10-mix 25/26 — gate NOT
 > held on run1s; diagnosis = cut-boundary tightening + tail-budget
 > displacement, NOT bad moment selection (rej-hit improved 49%→46%).
@@ -287,6 +289,12 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > more (cause at start / sentence at end), adjacent-pick split (RL9),
 > time-sensitivity (World Cup), chat-talk keeps-when-it-frames-his-
 > predicament nuance.**
+>
+> **GATE DECISION (Fega, 2026-08-05): default OFF, per the recommendation.**
+> One-line change in ai-pipeline.js — the watch runs only with
+> `geminiWatchEnabled: true` + a key. All code + harness machinery kept;
+> re-earn path = pick-budget/cut-boundary cell, and/or a re-test on a
+> recording with a known quiet-spectacular moment.
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

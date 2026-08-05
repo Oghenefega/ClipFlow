@@ -496,8 +496,12 @@ async function runAIPipeline({
       logger.info("Gemini watch: test mode — skipped");
     } else if (!geminiKey) {
       logger.info("Gemini watch: no Gemini API key — skipped");
-    } else if (store.get("geminiWatchEnabled") === false) {
-      logger.info("Gemini watch: disabled in settings — skipped");
+    } else if (store.get("geminiWatchEnabled") !== true) {
+      // Default OFF per the #235 integration gate (2026-08-05): post-#237 the
+      // signal found no unique territory on the six test recordings and cost
+      // ~2 kept moments on the densest one. Set geminiWatchEnabled: true to
+      // re-enable once a harness cell re-earns the slot.
+      logger.info("Gemini watch: not enabled (geminiWatchEnabled) — skipped");
     } else {
       logger.info("Gemini watch: started in background (#235)");
       watchPromise = geminiWatch
