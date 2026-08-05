@@ -35,6 +35,20 @@ CLIP TRUTH  →  VOICE EXAMPLES  →  HARD RULES  →  3 cards
 Never invent a detail the transcript or frames don't support. If the transcript is
 uninformative, write about the reaction rather than the event.
 
+Since 2026-08-05 the gate also carries the Clip Standard's two general principles
+(distilled from the creator-side quality gate, greenlit on #183): **a hook is a
+promise the footage pays off** — title AND caption open a loop, never a summary —
+and **honesty**: a line the footage can't cash is banned. The batch section adds
+the third: **the strongest line takes both surfaces** (title #1 = caption #1,
+reformatted), never saved for one while the other gets a weaker line. On the
+Gemini video path the user message adds a payoff check — the model can see how
+the clip ends, so it verifies the footage delivers what each line promises.
+
+Per-creator signature formats (e.g. Fega's "claim the footage disproves") are
+deliberately NOT here — they live in the creator's own Style Guide setting
+(`styleGuide`, injected as the `# CREATOR'S STYLE GUIDE` section). General
+principles in the engine; signature moves in the per-creator layer.
+
 **Voice examples** are the target and carry most of the weight. They are read live
 from the `title_caption_rounds` table (`src/main/title-caption-log.js`) — real
 published copy, best-performing first, hand-written and edited titles ranked above
@@ -84,7 +98,8 @@ not derived from theory:
 
 - Title Case — the clearest single tell of AI short-form copy.
 - The second clause — writing the hook, then explaining or twisting it.
-- Spoiling the payoff in the caption.
+- Spoiling the payoff in the title or caption (generalized 2026-08-05 — a
+  summary line closes the loop the hook exists to open).
 - Hallucinated detail the clip doesn't support.
 - Crutch words ("crazy", "insane", "yikes") carrying the hook or repeating.
 - Filler openers ("hey guys", "ok so").

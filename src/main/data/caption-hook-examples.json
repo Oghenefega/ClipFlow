@@ -1,10 +1,10 @@
 {
   "_comment": "Knowledge base for src/main/ai/title-caption-prompt.js. Rewritten in #183. The previous version carried a 3-pillar / 4-driver / worked-example framework that pushed the system prompt to ~14k chars; stacking that many constraints collapsed output variety and produced averaged, generic copy — the creator accepted 3 of 31 published titles. What replaced it: a short rule set plus REAL published examples pulled from the title_caption_rounds table at call time (src/main/title-caption-log.js). The cold_start set below is used only until a creator has published enough of their own. Human-readable reasoning lives in caption-frameworks.md — update both together.",
-  "version": 3,
+  "version": 4,
   "anti_patterns": [
     "Title Case. The single clearest tell of AI short-form copy. Sentence case only.",
     "The second clause. Writing the hook, then explaining or twisting it. Stop at the interesting part.",
-    "Spoiling the payoff in the caption. The caption opens the loop; the footage closes it.",
+    "Spoiling the payoff in the title or caption. The hook opens the loop; the footage closes it. A line that tells the viewer how it ends removes the reason to watch.",
     "Hallucinated detail: a game term, player name, or event the transcript doesn't support.",
     "Crutch words: 'crazy', 'insane', 'yikes' carrying the hook, or repeating across the batch.",
     "Filler openers: 'hey guys', 'ok so', 'welcome back'.",

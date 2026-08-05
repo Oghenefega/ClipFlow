@@ -109,7 +109,12 @@ from that.
 
 - Never invent a detail, game term, player name, or event the clip doesn't support.
 - If the transcript doesn't tell you what happened, write about the REACTION, not the event.
-- The caption opens the loop; the footage closes it. Never put the outcome in the caption.`;
+- **A hook is a promise; the clip is the payoff.** Title and caption must OPEN a
+  loop the footage has to close — a claim, stakes, or a tease that demands
+  resolution. A line that summarizes the moment closes the loop before the
+  viewer arrives, and with it the reason to watch.
+- **Promise only what the footage delivers.** If the clip can't cash the line,
+  the line is banned. No fake bait, ever.`;
 
 // #223: the games DB stores each game's hashtag, but it never reached the
 // prompt — the model had to guess, and guessed "#gaming" for any game it
@@ -123,8 +128,9 @@ const hardRules = (tag) => `**Titles**
 - 3-7 words, then ${tag} at the end.
 - Sentence case. Never Title Case.
 - **A fragment beats a sentence.** Stop at the interesting part. Do not add a
-  second clause that explains or twists it. "The pass was PERFECT" lands.
-  "The pass was PERFECT and I still blew it" is the same hook with the air let out.
+  second clause that explains or twists it. "NO ONE gets past me" lands — the
+  footage supplies the twist. "NO ONE gets past me and then he did" is the
+  same hook with the air let out.
 - One idea. If it needs a comma, it's probably two ideas.
 
 **Captions — this is text burned ON SCREEN over the opening seconds of the clip.**
@@ -191,8 +197,16 @@ ${formatAntiPatterns()}
 
 # 5. THE 3-CARD BATCH
 
-Three genuinely different angles, not three phrasings of one. If two cards could
-swap their chips without anyone noticing, one of them is wasted.
+**Find the strongest line first** — the single line that opens the loop hardest.
+That line is BOTH title #1 and caption #1, reformatted to each surface's rules.
+Never split the surfaces: the best line does not get saved for one surface while
+a weaker line goes on the other.
+
+The remaining cards are genuinely different angles, not three phrasings of one.
+Angles that work on gaming clips: stakes declared before an attempt · an
+arguable claim · opening mid-emotion · a comeback · an anomaly the viewer has to
+explain. Use only what THIS clip supports. If two cards could swap their chips
+without anyone noticing, one of them is wasted.
 
 Each card carries a **chip**: a 2-6 word plain-language label for its angle
 ("leads with the fail", "asks a question"). Vary the grammatical shape of the
@@ -207,12 +221,12 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
 \`\`\`json
 {
   "titles": [
-    { "title": "<3-7 words, sentence case, ends with ${tag}>", "chip": "<2-6 words>" },
+    { "title": "<the strongest line — 3-7 words, sentence case, ends with ${tag}>", "chip": "<2-6 words>" },
     { "title": "...", "chip": "..." },
     { "title": "...", "chip": "..." }
   ],
   "captions": [
-    { "caption": "<4-9 words, first person, no hashtags>", "chip": "<2-6 words>" },
+    { "caption": "<the SAME strongest line as title 1, reformatted — 4-9 words, first person, no hashtags>", "chip": "<2-6 words>" },
     { "caption": "...", "chip": "..." },
     { "caption": "...", "chip": "..." }
   ]
@@ -241,13 +255,17 @@ Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` wi
  * @param {number} [opts.confidence]    Detection confidence 0-1.
  * @param {Array}  [opts.rejectedSuggestions]  Strings or { text|title|caption } objects.
  * @param {Array}  [opts.frames]        [{ base64, label }] stills from the clip (#183 Phase 1).
+ * @param {string} [opts.titleAnchor]   The creator's own past name for this clip (#240 imports).
  * @returns {string|Array}
  */
-function buildUserContent({ transcript, gameName, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames } = {}) {
+function buildUserContent({ transcript, gameName, projectName, userContext, energyLevel, confidence, rejectedSuggestions, frames, titleAnchor } = {}) {
   let out = `## Clip Transcript:\n${transcript || "(no transcript available)"}`;
   out += formatClipSignals(energyLevel, confidence);
   if (gameName) out += `\n\n## Game: ${gameName}`;
   if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
+  if (titleAnchor) {
+    out += `\n\n## The creator's own name for this clip (intent anchor):\n"${String(titleAnchor).trim()}"\nThey named this moment themselves — the name carries their intent and voice. Keep that intent: improve wording, casing, and format only where clearly better. Do not pivot to a different moment or angle than the one they named.`;
+  }
   if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   if (Array.isArray(rejectedSuggestions) && rejectedSuggestions.length > 0) {
     out += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;
