@@ -78,6 +78,7 @@ const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
 const titleCaptionPrompt = require("./ai/title-caption-prompt");
 const titleCaptionLog = require("./title-caption-log");
+const queueImports = require("./queue-imports");
 const transcriptionProvider = require("./ai/transcription-provider");
 // Load provider adapters (self-register on require)
 require("./ai/providers/anthropic");
@@ -233,6 +234,10 @@ const STORE_DEFAULTS = {
   audioPreviewVolume: 0.35,
   whisperModel: "large-v3-turbo",
   whisperPythonPath: "",
+  // #240 queue imports: content-fingerprint → { status: "imported"|"skipped",
+  // at, file, targetPath? }. Main-process-owned only — the renderer never
+  // loads or persists this key (keeps it clear of the App.js auto-save loop).
+  importMemory: {},
   localProjects: [],
   renameHistory: [],
   anthropicApiKey: "",
@@ -1643,6 +1648,57 @@ ipcMain.handle("import:clearSuppression", async (_, filename, sizeBytes) => {
     }
   }
   return { success: true }; // Already cleared
+});
+
+// ============ QUEUE IMPORTS (#240) ============
+// Bulk-import finished pre-ClipFlow clips into the Queue. Logic lives in
+// queue-imports.js; these are thin wrappers threading main.js-owned deps.
+const queueImportsProgress = (data) => mainWindow?.webContents.send("queueImports:progress", data);
+
+ipcMain.handle("queueImports:inspect", async (_, paths) => {
+  try {
+    return await queueImports.inspect({ store, paths });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("queueImports:generate", async (_, rows) => {
+  try {
+    return await queueImports.generate({
+      store,
+      rows: rows || [],
+      // Reuses the titlegen voice context (style guide + published examples) —
+      // reads only; imports never WRITE into voice training (see the fences).
+      voiceContext: buildTitleCaptionStoreContext({}),
+      sendProgress: queueImportsProgress,
+      getProcessingDir: () => store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR,
+    });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("queueImports:cancelGenerate", async () => {
+  try {
+    return queueImports.cancelGenerate();
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("queueImports:confirm", async (_, payload) => {
+  try {
+    return await queueImports.confirm({
+      store,
+      watchFolder: libraryRoot(),
+      items: payload?.items || [],
+      skips: payload?.skips || [],
+      sendProgress: queueImportsProgress,
+    });
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // ============ WHISPER (BetterWhisperX) ============

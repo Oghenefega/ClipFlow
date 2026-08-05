@@ -706,7 +706,9 @@ export default function App() {
       (c.status === "approved" || c.status === "ready")
       && !c.scheduledAt
       && !trackedIds.has(c.id)
-      && !trackedTitles.has(c.title)
+      // #240: imports dedupe by id only — mirrors QueueView's list filter
+      // (OpusClip-era titles repeat; title-matching would hide siblings).
+      && (c.source === "import" || !trackedTitles.has(c.title))
     ).length;
   }, [allClips, trackerData]);
 
@@ -854,6 +856,7 @@ export default function App() {
               gamesDb={gamesDb}
               awardXp={awardXp}
               onOpenInEditor={handleOpenQueueClipInEditor}
+              onCreateGame={handleNewGame}
             />
           </div>
         </div>
@@ -944,7 +947,9 @@ export default function App() {
         <div style={tabPaneStyle(showProjectsList)}>
           <div style={{ padding: "32px 40px", maxWidth: 860, margin: "0 auto" }}>
             <ProjectsListView
-              localProjects={localProjects}
+              // #240: synthetic per-game import containers are queue plumbing,
+              // not review targets — 300 imported clips must not flood this tab.
+              localProjects={localProjects.filter((p) => p.kind !== "import")}
               setLocalProjects={setLocalProjects}
               projectFolders={projectFolders}
               activeFolder={activeFolder}

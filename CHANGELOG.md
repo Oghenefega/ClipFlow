@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 153) — The queue opens its front door to the back catalog
+
+### Added
+- **Queue imports: ClipFlow can now post finished clips it didn't make (#240).** The Queue tab gains an "Import clips" button and a drop-anywhere drag target for finished vertical videos (the 300+ OpusClip/Resolve-era shorts, or any creator's pre-existing library). Selected files land in a review grid: each row gets a thumbnail, its old filename with the `#N ` prefix stripped, an AI-proposed title anchored on that old name (the intent-anchor path built last session), and a game guess from the games list — one Gemini video call per clip, streamed in per row, degrading to the plain filename if a call fails. The grid supports bulk game assignment, per-row platform toggles (all on by default; untick YouTube for clips already posted there), inline creation of brand-new games (which become real games-list entries with tag, hashtag, color, and YouTube description template), and per-row skip. Confirmed clips are **copied** — originals never touched — into a `ClipFlow Imports\<Game>\` folder next to the renders root, and become normal queue entries: schedulable through the existing slot flow, published through the existing per-platform path, counted by the tracker toward the weekly target and streak.
+- **Import memory: nothing is ever offered twice.** Every imported and every skipped file is remembered by a content fingerprint (survives renames and moves of the original), so re-selecting the same folder in a later wave only offers what's genuinely new. Low-confidence game guesses land as unassigned rather than silently wrong, and rows without a game stay out — re-offered next time instead of being imported blind. Horizontal files are flagged and excluded with Auto-Reframe named as the future path.
+- **Hard fences: imports never teach.** Imported clips are marked at birth (`source: "import"`, distinct id prefix) and are excluded from every learning surface: no taste-calibration feedback rows (the #239 choke point already refuses them), no voice-training rows at publish time, no startup backfill into the title/caption training table, and no editor path (a clip posts as-is or gets culled in review). They also dedupe in the queue by id only, since OpusClip-era titles repeat — the legacy title-matching knockout would have silently eaten sibling imports. The synthetic per-game "Imports" containers that hold them are hidden from the Projects tab.
+
 ## [Unreleased] — 2026-08-05 (session 152) — Titles learn to make promises the footage keeps
 
 ### Changed

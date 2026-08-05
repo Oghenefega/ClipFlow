@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, extractGameTag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
+import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
 import { localISO } from "../utils/trackerEngine";
@@ -69,7 +70,8 @@ function RowActions({ clip, onOpenInEditor }) {
           onMouseLeave={(e) => hover(e, false)}
         ><FolderIcon /></button>
       )}
-      {clip._projectId && onOpenInEditor && (
+      {/* #240: imports have no editing path — a clip posts as-is or gets culled. */}
+      {clip._projectId && clip.source !== "import" && onOpenInEditor && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenInEditor(clip._projectId, clip.id); }}
           title="Open this clip in the editor"
@@ -666,7 +668,7 @@ export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
-  platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor,
+  platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor, onCreateGame,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -710,7 +712,10 @@ export default function QueueView({
       // and a title #hashtag is unrelated to a clip's game/"Just Chatting" tag (#139).
       .filter((c) => (c.status === "approved" || c.status === "ready")
         && !scheduledClipIds.has(c.id)
-        && !scheduledTitles.has(c.title));
+        // #240: imports dedupe by id only. The title knockout exists for legacy
+        // clips that changed ids across re-renders; OpusClip-era names repeat,
+        // so title-matching would silently eat sibling imports.
+        && (c.source === "import" || !scheduledTitles.has(c.title)));
   }).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
   const isClipTest = (clip) => !!(clip && clip._projectId && projectInfo[clip._projectId]?.testMode);
   // Game pill color — the clip's real game hue (parent project first, then
@@ -863,6 +868,66 @@ export default function QueueView({
   const [filterGame, setFilterGame] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all"); // all, unscheduled, scheduled, published, failed, unrendered
   const [sortBy, setSortBy] = useState("queue"); // queue, date, game, scheduled
+
+  // ── Queue imports (#240) — bring finished pre-ClipFlow clips into the queue ──
+  const [importReview, setImportReview] = useState(null); // { rows, excluded } | { error }
+  const [importDragOver, setImportDragOver] = useState(false);
+  // dragenter/dragleave fire for every child crossed — a depth counter is the
+  // standard fix so the overlay doesn't flicker while dragging across rows.
+  const importDragDepth = useRef(0);
+
+  const startImport = async (paths) => {
+    const clean = (paths || []).filter(Boolean);
+    if (clean.length === 0) return;
+    const res = await window.clipflow?.queueImportsInspect?.(clean);
+    if (!res || res.error) { setImportReview({ error: res?.error || "Import inspection failed" }); return; }
+    setImportReview({
+      rows: res.rows.filter((r) => r.verdict === "ok"),
+      excluded: res.rows.filter((r) => r.verdict !== "ok"),
+    });
+  };
+
+  const pickImportFiles = async () => {
+    const picked = await window.clipflow?.openFileDialog?.({
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "Videos", extensions: ["mp4", "mov"] }],
+    });
+    if (!picked) return;
+    startImport(Array.isArray(picked) ? picked : [picked]);
+  };
+
+  const handleImportDragEnter = (e) => {
+    if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+    e.preventDefault();
+    importDragDepth.current += 1;
+    setImportDragOver(true);
+  };
+  const handleImportDragOver = (e) => {
+    if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+    e.preventDefault(); // without this the browser navigates to the file
+  };
+  const handleImportDragLeave = () => {
+    importDragDepth.current = Math.max(0, importDragDepth.current - 1);
+    if (importDragDepth.current === 0) setImportDragOver(false);
+  };
+  const handleImportDrop = (e) => {
+    e.preventDefault();
+    importDragDepth.current = 0;
+    setImportDragOver(false);
+    const paths = Array.from(e.dataTransfer?.files || []).map((f) => {
+      try { return window.clipflow.getPathForFile(f); } catch (_) { return null; }
+    }).filter(Boolean);
+    startImport(paths);
+  };
+
+  // Re-read the project list after a confirm so the fresh import projects and
+  // clips land in state in the same shape App.js loads at boot.
+  const refreshProjectsAfterImport = async () => {
+    try {
+      const r = await window.clipflow?.projectList?.();
+      if (r?.projects && setLocalProjects) setLocalProjects(r.projects);
+    } catch (_) { /* next app launch picks them up regardless */ }
+  };
 
   // Dequeue a clip (set status to "dequeued" so it leaves the queue but can be re-approved)
   const dequeueClip = async (clip) => {
@@ -1373,17 +1438,21 @@ export default function QueueView({
       const k = accountToPlatformKey(p);
       return captured[k] || { platform: k, accountId: p.key };
     });
-    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: "clipflow", scheduled: !!isScheduled }]);
+    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled }]);
     // #183: the title/caption that actually shipped is voice training data —
     // especially when it was hand-written and never matched a suggestion.
     // Fire-and-forget; a logging failure must never affect the publish result.
-    window.clipflow?.titleCaptionRecordPublish?.({
-      clipId: clip.id,
-      projectId: clip._projectId,
-      game: clip.game || gt,
-      title: clip.title || "",
-      caption: clip.caption || "",
-    }).catch(() => {});
+    // #240 fence: imported clips still COUNT for the tracker (that's the point)
+    // but their titles are another era's copy — never voice training data.
+    if (clip.source !== "import") {
+      window.clipflow?.titleCaptionRecordPublish?.({
+        clipId: clip.id,
+        projectId: clip._projectId,
+        game: clip.game || gt,
+        title: clip.title || "",
+        caption: clip.caption || "",
+      }).catch(() => {});
+    }
     awardXp(`clip:${id}`, 10, "clip", date);
     delete publishResultsRef.current[clip.id];
   };
@@ -1647,8 +1716,44 @@ export default function QueueView({
   };
 
   return (
-    <div>
+    <div onDragEnter={handleImportDragEnter} onDragOver={handleImportDragOver} onDragLeave={handleImportDragLeave} onDrop={handleImportDrop}>
       <PageHeader title="Queue & Schedule" subtitle={`${approved.length} clips ready`} />
+
+      {/* #240: drop-anywhere import target. pointerEvents:none keeps the
+          overlay from stealing the drop — the root div handles it. */}
+      {importDragOver && (
+        <div style={{ position: "fixed", inset: 12, zIndex: 9998, borderRadius: 14, background: "rgba(139,92,246,0.08)", border: `2px dashed ${T.accent}`, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{ background: T.surface, border: `1px solid ${T.accentBorder}`, borderRadius: 10, padding: "14px 22px", fontSize: 14, fontWeight: 700, color: T.accentLight }}>
+            Drop videos to import into the queue
+          </div>
+        </div>
+      )}
+
+      {/* #240: review grid — nothing is copied or queued until Confirm */}
+      {importReview && !importReview.error && (
+        <ImportReviewModal
+          initialRows={importReview.rows}
+          excluded={importReview.excluded}
+          gamesDb={gamesDb}
+          onCreateGame={onCreateGame}
+          onClose={() => setImportReview(null)}
+          onDone={async (res) => {
+            await refreshProjectsAfterImport();
+            if (!res?.partial) setImportReview(null);
+          }}
+        />
+      )}
+      {importReview?.error && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setImportReview(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: "20px 24px", maxWidth: 440 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 8 }}>Can't import yet</div>
+            <div style={{ fontSize: 12, color: T.textSecondary, lineHeight: 1.5, marginBottom: 14 }}>{importReview.error}</div>
+            <div style={{ textAlign: "right" }}>
+              <button onClick={() => setImportReview(null)} style={{ padding: "7px 16px", borderRadius: 7, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
@@ -1770,7 +1875,11 @@ export default function QueueView({
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>Remove from queue</div>
-            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Clip and files stay — re-queue it from the editor anytime.</div>
+            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
+              {deleteAsk.clip.source === "import"
+                ? "The imported copy stays in ClipFlow Imports; it won't be offered for import again."
+                : "Clip and files stay — re-queue it from the editor anytime."}
+            </div>
           </button>
           <button
             onClick={() => { removeAndDeleteRender(deleteAsk.clip); setDeleteAsk(null); }}
@@ -1778,8 +1887,12 @@ export default function QueueView({
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.10)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>Remove + delete rendered video</div>
-            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>Takes it off the queue and deletes the rendered MP4 from disk. The clip and your edits stay in Projects.</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.red }}>{deleteAsk.clip.source === "import" ? "Remove + delete imported copy" : "Remove + delete rendered video"}</div>
+            <div style={{ fontSize: 10, color: T.textTertiary, marginTop: 2 }}>
+              {deleteAsk.clip.source === "import"
+                ? "Takes it off the queue and deletes the copy in ClipFlow Imports. Your original file is never touched."
+                : "Takes it off the queue and deletes the rendered MP4 from disk. The clip and your edits stay in Projects."}
+            </div>
           </button>
         </div>
       )}
@@ -1797,6 +1910,17 @@ export default function QueueView({
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: T.accentLight }}>Unscheduled</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted }}>{filteredUnscheduled.length} clip{filteredUnscheduled.length !== 1 ? "s" : ""}</span>
           </div>
+          {/* #240: entry point for finished clips made outside ClipFlow */}
+          <button
+            onClick={pickImportFiles}
+            title="Import finished vertical clips made outside ClipFlow — they become schedulable queue entries. You can also drag files anywhere onto this tab."
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5" /><path d="m5 12 7-7 7 7" />
+            </svg>
+            Import clips
+          </button>
         </div>
         {/* Table header */}
         <div style={{ display: "grid", gridTemplateColumns: "28px 48px 1fr 70px 110px 90px 160px", gap: 0, padding: "8px 14px", borderBottom: `1px solid ${T.border}` }}>
@@ -1807,7 +1931,7 @@ export default function QueueView({
 
         {filteredUnscheduled.length === 0 && (
           <div style={{ padding: 30, textAlign: "center" }}>
-            <div style={{ color: T.textTertiary, fontSize: 13 }}>{approved.length === 0 ? "No clips queued — approve clips in the Projects tab." : "No unscheduled clips matching filter."}</div>
+            <div style={{ color: T.textTertiary, fontSize: 13 }}>{approved.length === 0 ? "No clips queued — approve clips in the Projects tab, or drop finished videos here to import them." : "No unscheduled clips matching filter."}</div>
           </div>
         )}
 

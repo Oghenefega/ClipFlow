@@ -6,6 +6,84 @@
 
 ---
 
+## ✅ BUILT (session 153) — #240 Queue imports — code complete, awaiting Fega's 6-step verification
+
+Spec locked: `tasks/specs/queue-imports.md`. Greenlit; this is the working plan.
+
+### Architecture (open coder calls resolved)
+
+1. **Container = synthetic import project per game** (`kind: "import"`, one per
+   game, named "Imports — <Game>"). Every `_projectId`-coupled path (queue list,
+   auto-fire scheduler, claim, publish, tracker) then works unchanged. Hidden
+   from the Projects tab by prop filter.
+2. **Skip/imported memory = content fingerprint** (sha1 of size + first/last
+   256KB), stored main-side only in electron-store `importMemory`
+   `{ [fp]: { status: "imported"|"skipped", at, file } }`. Rename-proof, fast.
+3. **Titlegen = one Gemini video call per clip** via new import prompt builders
+   in `title-caption-prompt.js` (reuses CLIP_TRUTH/voice/hardRules + titleAnchor;
+   candidates list w/ hashtags injected). Output `{ title, game, gameIsNew,
+   confidence }`. No caption (imports never get on-screen text; social captions
+   come from templates via game assignment — #223 path). No transcript.
+   Failure → stripped filename as title, never blocks the batch.
+4. **Review grid = full-screen modal** from the Queue tab
+   (`ImportReviewModal.js`, T-theme). Rows appear instantly; AI results stream
+   in per-row. Bulk game assign, inline new game, per-row platform toggles,
+   skip. Unassigned-game rows are held back (not imported, not remembered).
+
+### Import clip shape
+
+`clip_import_<ts>_<rand>` id (prefix = greppable fence), `source: "import"`,
+`status: "approved"` at creation (no status transition ever fires),
+`renderStatus: "rendered"`, `renderPath` = copy in `ClipFlow Imports\<Game>\`
+(sibling of outputFolder), `duration`/`startTime: 0`/`endTime`, `gameTag`,
+`thumbnailPath` = `<clipId>_renderthumb.jpg` in project clips dir.
+
+### Fence set (imports NEVER teach)
+
+- `feedback.js:136` — already live (`clip.source === "import"`).
+- `QueueView.logPost` — skip `titleCaptionRecordPublish`, tracker row
+  `source: "import"`.
+- `title-caption-log.js backfill` — skip `clip_import_` ids + import tracker rows.
+- Queue title-knockout (`scheduledTitles`) — id-only dedup for imports.
+- RowActions editor button + popover copy — no editing path for imports.
+
+### File impact
+
+- NEW `src/main/imports.js` — inspect / generate / cancel / confirm + memory
+- NEW `src/renderer/components/ImportReviewModal.js` — review grid
+- `src/main/ai/title-caption-prompt.js` — import prompt builders
+- `src/main/main.js` — `importMemory` default, register handlers, deps
+- `src/main/title-caption-log.js` — backfill fence
+- `src/main/preload.js` — `queueImports*` bridge
+- `src/main/projects.js` — `kind` passthrough in create/list
+- `src/renderer/views/QueueView.js` — Import button, drop target, modal, fences
+- `src/renderer/App.js` — badge knockout parity, `onCreateGame`, ProjectsView filter
+
+### Steps
+
+- [x] 1. Main: queue-imports.js (inspect/fingerprint/thumbs/aspect gate/memory)
+- [x] 2. Main: import prompt builders + Gemini generate queue (concurrency 2)
+- [x] 3. Main: confirm (copy w/ progress, project find-or-create, clips, memory)
+- [x] 4. Fences: backfill + logPost + knockout + RowActions
+- [x] 5. Preload bridge + main.js registration
+- [x] 6. Renderer: ImportReviewModal + QueueView entry points + App.js wiring
+- [x] 7. Verify: renderer build green; dev-profile boot clean (schema v8,
+      renderer alive); headless electron harness ALL-PASS — inspect verdicts
+      (strip/vertical/unsupported), confirm (copy, original untouched,
+      kind:"import" project, fence fields, YT untick, all-on omitted),
+      memory (already-imported/already-skipped), wave-2 project reuse,
+      listProjects kind+source passthrough
+- [x] 8. CHANGELOG + HANDOFF + commit/push + #240 comment
+
+NOT machine-verified (needs the real app / Fega): the review-grid UI flow
+end-to-end, the live Gemini title/game pass (no API call was made this
+session), and the 6-step script on the real OpusClip folder.
+
+Verification bar = Fega's 6-step script in the spec (his part, on his real
+OpusClip folder).
+
+---
+
 ## ✅ CLOSED (session 151) — #238 pick-budget scaling + cut-boundary extension — Cell A SHIPPED (`d3a79ee`), B shelved, #238 closed `status: untested`
 
 Fega's verdicts: 1 keep of 4 new-territory picks (EO Day3 17:41 — A-only

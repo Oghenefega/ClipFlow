@@ -92,6 +92,9 @@ function createProject(watchFolder, data) {
 
   const project = {
     id,
+    // #240: "import" marks a synthetic per-game container for imported clips —
+    // hidden from the Projects tab, but a full citizen of queue/publish paths.
+    kind: data.kind ?? null,
     name: data.name || path.basename(data.sourceFile, path.extname(data.sourceFile)),
     sourceFile: data.sourceFile,
     sourceDuration: data.sourceDuration || 0,
@@ -180,6 +183,7 @@ function listProjects(watchFolder) {
       // project still swaps in the full data via loadProject.
       projects.push({
         id: proj.id,
+        kind: proj.kind ?? null,
         name: proj.name,
         sourceFile: proj.sourceFile,
         sourceDuration: proj.sourceDuration,

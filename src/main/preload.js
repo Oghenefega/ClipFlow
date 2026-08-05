@@ -199,6 +199,18 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("import:progress");
   },
 
+  // Queue imports (#240) — bulk-import finished pre-ClipFlow clips into the Queue
+  queueImportsInspect: (paths) => ipcRenderer.invoke("queueImports:inspect", paths),
+  queueImportsGenerate: (rows) => ipcRenderer.invoke("queueImports:generate", rows),
+  queueImportsCancelGenerate: () => ipcRenderer.invoke("queueImports:cancelGenerate"),
+  queueImportsConfirm: (payload) => ipcRenderer.invoke("queueImports:confirm", payload),
+  // Returns an unsubscribe fn — the review modal mounts/unmounts per wave.
+  onQueueImportsProgress: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("queueImports:progress", handler);
+    return () => ipcRenderer.removeListener("queueImports:progress", handler);
+  },
+
   // File metadata (Rename system)
   fileMetadataCreate: (data) => ipcRenderer.invoke("metadata:create", data),
   fileMetadataUpdate: (fileId, data) => ipcRenderer.invoke("metadata:update", fileId, data),

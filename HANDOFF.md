@@ -1,50 +1,62 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-05 — Session 152 (#241 cell run → NO SHIP; #183 title/card rebuild on Clip Standard formulas SHIPPED; #240 titleAnchor groundwork laid)._
+_Last updated: 2026-08-05 — Session 153 (#240 queue imports BUILT; awaiting Fega's 6-step verification on his real OpusClip folder)._
 
 ---
 
 ## One-line TL;DR
 
-The Clip Standard's selection rules taught detection nothing (recall 29/29 both ways, rej-hit 47%→45% = one pick) and its "enter late" rule systematically shaved a kept clip's reaction tail — so #241 closed NO-SHIP, and the standard's real leverage landed where it belongs: the #183 titlegen rebuild. The title engine now carries the general formulas (hook = promise the footage pays off, one best line takes both surfaces, honesty rule, hook-angle menu), Fega's signature formats live as data in his Style Guide setting (live on alpha.38 at next launch, no installer needed), and the prompt accepts an intent-anchor for #240's imports.
+The Queue tab can now import finished pre-ClipFlow clips: drag-and-drop or an Import button → review grid (AI title anchored on the old filename + game guess via one Gemini video call per clip) → copy-and-keep into `ClipFlow Imports\<Game>\` → normal scheduling/publish/tracker. Imports are hard-fenced out of every learning surface. Code complete and machine-verified headlessly; Fega's 6-step script in the spec is the remaining gate before closing #240.
 
 ## Current State
 
-Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **3 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild). The styleGuide seed is the exception: it's settings data, active on the installed app immediately. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (checked at session start: **0 of 50** recent RL rejections carry v3 chips — the chips ARE live on alpha.38, but the 50-row window is still dominated by pre-install rejections; needs Fega rejecting + tagging on the new build). [#241](https://github.com/Oghenefega/ClipFlow/issues/241) CLOSED with full results. [#183](https://github.com/Oghenefega/ClipFlow/issues/183) stays open — its success bar is longitudinal (hand-written share of published titles drops).
+Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **4 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild), **#240 (queue imports — needs the new installer to reach the daily driver; it is NOT usable on alpha.38)**. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (0/50 v3 chips at session-152 check; moves at the pace of Fega's post-install rejection tagging). [#183](https://github.com/Oghenefega/ClipFlow/issues/183) open, longitudinal. [#240](https://github.com/Oghenefega/ClipFlow/issues/240) open until Fega's verification passes.
 
-## What Was Just Built (session 152)
+## What Was Just Built (session 153) — #240 queue imports
 
-- **#241 cell (`clipStd`, $0.79):** four distilled Clip Standard selection rules as a delimited detection-prompt section vs the shipped config (baseline = #238's `a25-scale` replays, shared per the issue's own suggestion). Recall 29/29 = identical; rej-hit 42/93 = 45% vs 43/92 = 47% (one pick, noise); boundary coverage **regressed** 93.5% → 90.4%, driver = RL Day10's single approved row (22:14→22:52) end-shaved 89% → 61% coverage, reproduced 2/2 stability runs (EO Day3's dip was noise — 97% on re-run). Verdict: taste calibration already carries the standard's content; boundary language hurts edges (third independent proof after Cells B and C). Prompt reverted, results committed, issue closed.
-- **#183 rebuild (engine, all general):** `title-caption-prompt.js` — CLIP_TRUTH gains the loop principle (title AND caption open a loop, never a summary) + honesty rule (line the footage can't cash is banned); batch section gains "find the strongest line first — it takes BOTH title #1 and caption #1" (schema annotated to match) + a general hook-angle menu (stakes declared / arguable claim / mid-emotion open / comeback / anomaly); the fragment rule's example swapped off "The pass was PERFECT" (the standard names it a loop-killer) to "NO ONE gets past me". `main.js` Gemini video block gains a payoff check (it can SEE the ending — verify the footage cashes each line). KB json v4 (spoiler anti-pattern generalized to both surfaces) + frameworks doc updated in lockstep.
-- **Per-creator layer:** Fega's signature formats ("claim the footage disproves", "setup + tease") seeded as TEXT into `styleGuide` in prod AND dev settings (backups: `clipflow-settings.json.bak-20260805-pre183` in both profiles). Zero Fega-specific text in engine code — a deliberate fence; a migration was considered and rejected (would seed Fega's voice into every future install).
-- **#240 groundwork:** `buildUserContent` accepts `titleAnchor` — renders an intent-anchor section (keep the creator's old filename's intent/voice, improve only where clearly better). Next session passes stripped OpusClip filenames through it.
-- Verified: smoke-render probes all new prompt content (batch ~5.1k chars — far from the 14k overconstraint zone), 60/60 detection tests green after revert, dev-profile boot clean.
+Spec `tasks/specs/queue-imports.md` implemented in full; working plan + verification detail in `tasks/todo.md`.
+
+- **Main process, new `src/main/queue-imports.js`:** `inspect` (extension gate, content fingerprint = sha1 of size+head+tail 256KB, import-memory check, ffprobe dims/duration, vertical-only gate, fingerprint-cached thumbnails), `generate` (one Gemini video call per clip, concurrency 2, cancellable, cost-logged, per-row progress events), `confirm` (stream-copy with progress into `ClipFlow Imports\<Game>\` — sibling of the renders root, originals never touched — then a fully-formed clip into a per-game synthetic project `kind:"import"`, found-or-created, saved once per game per wave), memory writes for imported AND skipped fingerprints. IPC: 4 thin handlers in main.js (`queueImports:*`), bridge methods in preload.js, `importMemory: {}` in STORE_DEFAULTS (main-owned key — deliberately NOT in the App.js persist loop).
+- **Prompt layer (`title-caption-prompt.js`):** `buildImportSystemPrompt` (CLIP_TRUTH + voice examples + title-only rules + games-candidates list with hashtags + JSON schema `{title, game, confidence}`) and `buildImportUserContent`; the intent-anchor wording is now a shared `titleAnchorSection()` used by both the batch path and imports so it can't drift. No caption generated — social captions ride the per-platform templates once a game is assigned (#223 path).
+- **Renderer:** new `src/renderer/components/ImportReviewModal.js` (T-theme review grid: rows appear instantly with stripped filenames, AI results stream in, bulk game assign, inline new-game creation with derived tag/hashtag/color + collision handling, per-row platform toggles, skip, unassigned rows held back and re-offered later); QueueView gains the Import button (Unscheduled header), drop-anywhere overlay (depth-counted dragenter/leave), the modal mount, and a projects re-read after confirm. New games route through App's `handleNewGame` (so YouTube description templates are seeded exactly like manual adds).
+- **Clip identity:** `clip_import_<ts>_<rand>` id, `source:"import"`, born `status:"approved"` + `renderStatus:"rendered"`, `renderPath` = the imported copy, real `duration`/`endTime`, lowercased `gameTag`, `<clipId>_renderthumb.jpg` thumbnail — every `_projectId`-coupled downstream path (queue list, auto-fire scheduler, claim, publish, tracker, Tracker-calendar preview) works unchanged.
+- **Fences (imports NEVER teach):** feedback.js choke point was already live (#239); added — logPost skips `titleCaptionRecordPublish` and stamps tracker rows `source:"import"`; title-caption-log `backfill` skips `clip_import_` ids and import tracker rows (both merge inputs); queue + sidebar-badge title-knockout is id-only for imports (OpusClip titles repeat — title matching would eat siblings); RowActions hides the editor button; delete-popover copy rewritten for imports; import projects hidden from the Projects tab by prop filter.
+- `projects.js` passes `kind` through create/list (one line each).
+
+## Verification status
+
+- **Machine-verified:** renderer build green; dev-profile boot clean (schema v8, backfill 0-inserted, renderer alive); headless electron harness (scratchpad, stub store, fixture videos) ALL-PASS across inspect verdicts, confirm side-effects, fence fields, memory, wave-2 project reuse, and list passthrough.
+- **NOT yet verified:** the grid UI end-to-end in the running app; a LIVE Gemini call on the import path (zero API spend this session — the call body mirrors the proven #193 path but has never executed); Fega's 6-step script (spec bottom) on the real OpusClip folder. That script is the close gate for #240.
 
 ## Key Decisions
 
-- **#241 NO-SHIP** is the recorded answer to the cell's question — do not re-propose Clip Standard rules in the detection prompt without new evidence. The named pattern now has three data points: boundary/selection *instructions* tighten windows; *room* (pick budget) relaxes them.
-- **Signature formats are data, not code.** Delivery = styleGuide setting (Settings-editable). If Fega wants them changed, he edits Settings — no build needed.
-- **First title + first caption now intentionally carry the same line.** If Fega reports the pairs feeling redundant, that's the one-best-line formula working as designed — the other two cards carry the variety. Don't "fix" it without his say-so.
+- **Synthetic per-game import projects** (`kind:"import"`) over a parallel store — everything downstream stays untouched; the Projects tab just filters them out.
+- **Fingerprint memory over path memory** — skip/imported survives the original being renamed or moved; stored main-side only.
+- **Game guesses only auto-fill at high confidence**; low confidence lands unassigned with a one-click hint chip (spec: "never silently wrong"). Unassigned rows are never imported and never remembered.
+- **No caption from the import AI pass** — clip.caption stays empty; platform captions come from templates + game assignment. One less surface to review in a 50-row grid.
+- **Title knockout exemption** (id-only dedup for imports) — a deliberate behavior fork from legacy clips, mirrored in QueueView and the App.js badge count.
 
 ## Next Steps (priority order)
 
-1. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session. Title pass: reuse `buildSystemPrompt` + `buildUserContent({titleAnchor})`; open coder calls listed in the spec.
-2. **Next installer** (batch of 3 now, or on Fega's ask): carries #239 + #238 + #183 prompt code. In-app checks: approval stats move on editor-Queue approvals (#239); dense recording yields ~18-20 picks (#238); title/caption drafts open loops + card 1 title/caption share a line (#183).
-3. ~~Fega's eyeball on the 3 #241 picks~~ **DONE same day (verdicts on #241): 1 qualified keep / 2 NO.** RL Day10 11:44 = keep ("gameplay gets interesting" in a quiet stretch — soft data point for the quiet-spectacular re-audition trigger); EO Day4 22:32 = no as-is (confusion-wandering; his own reframe idea didn't clear his bar); RL Day8 17:52 = no, same class as the adjacent verdicted 18:13 week-plans NO — **the adjacency flag held; adjacent-to-NO ≈ NO unless content visibly changes.** Eyeball folder now disposable.
-4. **#234 v3 re-test trigger check at session start** (standing): count v3 tags in RL's 50-row rejected window; fire at ≥15. Still 0/50 — the chips shipped with alpha.38, so this now moves at the pace of Fega's post-install rejection tagging.
-5. **#183 measurement continues on its own:** every publish logs `title_caption_rounds`; the bar is `title_source` shifting away from `self` over the coming weeks. Check `SELECT title_source, COUNT(*) FROM title_caption_rounds GROUP BY title_source` after a batch of posts on the new build.
+1. **Cut the next installer** (batch of 4: #239, #238, #183, #240) — #240 is untestable by Fega until this ships to the daily driver. Then Fega runs the 6-step script (drag 5 mixed files → grid; bulk-fix a game + add Baby Steps inline; skip 1, confirm 4; re-select → nothing offered; schedule 1 → publishes + tracker +1; horizontal file → flagged with Auto-Reframe message). Close #240 (`status: untested` off) only on his pass.
+2. **First real wave watch-fors:** Gemini JSON schema in the wild (title/game/confidence), upload times on his connection (50MB-class files via Files API), and whether high-confidence game guesses are trustworthy on OpusClip-era footage.
+3. **#234 v3 re-test trigger check at session start** (standing): count v3 chips in RL's 50-row rejected window; fire at ≥15.
+4. **#183 measurement continues:** `SELECT title_source, COUNT(*) FROM title_caption_rounds GROUP BY title_source` after a batch of posts on the new build.
 
 ## Watch Out For
 
-- **styleGuide is now non-empty in BOTH profiles** — any future "seed if empty" logic will correctly skip. Backups exist if the seed needs reverting (`%APPDATA%\clipflow\clipflow-settings.json.bak-20260805-pre183`, same in `clipflow-dev`).
-- The seeded signature text reaches the CURRENT installed app's prompts at next launch (alpha.38 already injects the styleGuide section) — so title output may shift for Fega BEFORE the installer with the engine rebuild lands. If he reports title changes "already", that's why, not a mystery.
-- The title prompt has NO unit tests (only smoke-rendered) — detection's 60 tests don't cover it. If regressions bite here, a small pinned-probe test file is the fix.
-- `Desktop\ClipFlow Eyeball 238-A\` (verdicted, disposable) and `Desktop\ClipFlow Eyeball 241-clipStd\` (awaiting verdicts) both exist; `_tmp/proxy/*.proxy.mp4` (~640MB) stays while the program is active.
-- Pre-#239 DB backup still exists: `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239` (delete when Fega's comfortable).
+- **`ClipFlow Imports` lands next to the renders root** (`path.dirname(outputFolder)`) — if Fega ever moves his Output Folder, new imports follow it; old copies stay put (paths on clips remain valid).
+- **Retitling an imported clip in the queue renames the MP4** inside `ClipFlow Imports\<Game>\` (existing #188 behavior inherited on purpose).
+- **Removing an import from the queue is permanent-ish:** status→dequeued with no editor to re-approve from, and its fingerprint stays remembered, so it can't be re-imported either. The grid's Skip (before confirm) is the intended cull point. If Fega wants an "un-remember" tool later, it's a small Settings action on `importMemory`.
+- **`importMemory` is main-owned** — never load it into App.js state or add it to the persist loop (two-writers clobber, session-113 lesson).
+- **Import projects are invisible in the Projects tab by design** — if Fega asks "where did my imports go", the answer is the Queue (and `ClipFlow Imports\` on disk).
+- The title prompt layer still has no unit tests; the import builders were only exercised via require + harness, not against live Gemini.
+- `Desktop\ClipFlow Eyeball 238-A\` and `241-clipStd\` are verdicted/disposable; `_tmp/proxy/*.proxy.mp4` (~640MB) stays while the #231 program is active; pre-#239 DB backup `clipflow.db.bak-20260805-pre239` still exists.
 
 ## Logs / Debugging
 
-- #241 runs: Anthropic gateway (BYOK via Cloudflare) HTTP 200s throughout; per-run $0.065-0.122, 6-22s. Session API spend ≈ **$0.79** (6 cell runs $0.59 + 2 stability $0.20). Boundary-coverage script validated by reproducing the recorded 87%/93% baselines before scoring the new cell; methodology in the #241 closing comment.
-- Boot-verify: `CLIPFLOW_PROFILE=dev npm start` — clean start, schema v8, migrations skipped as expected; killed via `taskkill //F //IM electron.exe`.
-- sql.js reminder: feedback table column is `transcript_segment`; settings live at `%APPDATA%\clipflow\clipflow-settings.json` (electron-store, tab-indented JSON — external writes only while the app is closed).
+- Headless harness: `scratchpad/qi-harness/harness.js` (run `npx electron <path>`) — stub store + fixture videos; prints INSPECT/CONFIRM/CLIP JSON and `HARNESS-ALL-PASS`. Pattern: queue-imports.js takes `store` as an argument precisely so this works.
+- Boot-verify: `CLIPFLOW_PROFILE=dev npm start` — clean, schema v8, `Backfill complete: 0 inserted`; killed via `taskkill //F //IM electron.exe`.
+- Import progress events ride one channel (`queueImports:progress`, `type: "ai" | "copy" | "imported" | "failed"`); copy events throttled to ~4/s per file.
+- Gemini import calls: maxTokens 4000 (thinking spends output budget), timeout 300s, one 503/429 retry inside the provider; cost rides PipelineLogger like #193.
 - gh CLI: comment bodies with backticks/parens go through `--body-file` from the scratchpad, not inline `--body`.

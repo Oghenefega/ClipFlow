@@ -144,6 +144,13 @@ The viewer reads it while the footage plays, in roughly two short lines.
 - Plain words. If a word would make someone ask "who talks like that", cut it.
 - Never repeat a crutch word across the batch.`;
 
+// The intent-anchor block (#240 imports). Shared by buildUserContent and
+// buildImportUserContent so the wording can't drift between the two paths.
+function titleAnchorSection(titleAnchor) {
+  if (!titleAnchor) return "";
+  return `\n\n## The creator's own name for this clip (intent anchor):\n"${String(titleAnchor).trim()}"\nThey named this moment themselves — the name carries their intent and voice. Keep that intent: improve wording, casing, and format only where clearly better. Do not pivot to a different moment or angle than the one they named.`;
+}
+
 // ─── Public API ───────────────────────────────────────────────────
 
 /**
@@ -263,9 +270,7 @@ function buildUserContent({ transcript, gameName, projectName, userContext, ener
   out += formatClipSignals(energyLevel, confidence);
   if (gameName) out += `\n\n## Game: ${gameName}`;
   if (projectName) out += `\n\n## ${gameName ? "Project" : "Project/Game"}: ${projectName}`;
-  if (titleAnchor) {
-    out += `\n\n## The creator's own name for this clip (intent anchor):\n"${String(titleAnchor).trim()}"\nThey named this moment themselves — the name carries their intent and voice. Keep that intent: improve wording, casing, and format only where clearly better. Do not pivot to a different moment or angle than the one they named.`;
-  }
+  out += titleAnchorSection(titleAnchor);
   if (userContext) out += `\n\n## Additional Context from Creator:\n${userContext}`;
   if (Array.isArray(rejectedSuggestions) && rejectedSuggestions.length > 0) {
     out += `\n\n## Previously Rejected Suggestions (avoid similar patterns):\n`;
@@ -294,6 +299,124 @@ function buildUserContent({ transcript, gameName, projectName, userContext, ener
     });
   }
   return content;
+}
+
+// ─── Import builders (#240 queue imports) ──────────────────────────
+//
+// One call per imported clip: ONE title (anchored on the creator's old
+// filename) + a game identification from the known games list. Imports have
+// no transcript — they never enter the pipeline — so the model watches the
+// attached video. No caption: imports get no on-screen text, and the social
+// captions come from the per-platform templates once a game is assigned
+// (QueueView.resolveCaption, the #223 path).
+
+/**
+ * @param {object} opts
+ * @param {string} [opts.styleGuide]     Creator's free-text style guide.
+ * @param {Array}  [opts.voiceExamples]  Published examples from title-caption-log.
+ * @param {Array<{name: string, hashtag: string}>} [opts.games]  Candidates from gamesDb.
+ * @returns {string}
+ */
+function buildImportSystemPrompt({ styleGuide = "", voiceExamples = [], games = [] } = {}) {
+  const gameRows = games
+    .filter((g) => g && g.name)
+    .map((g) => {
+      const tag = String(g.hashtag || "").trim().replace(/^#/, "");
+      return `- ${g.name}${tag ? `  (hashtag: #${tag})` : ""}`;
+    })
+    .join("\n");
+
+  return `# TASK
+
+You are handed a FINISHED short-form gaming clip a creator made in the past
+with an older editing tool, now being imported to post. Watch the attached
+video (with sound) and produce:
+
+1. **One title** for the post.
+2. **The game being played.**
+
+---
+
+# 1. FIND THE CLIP TRUTH FIRST
+
+${CLIP_TRUTH}
+
+---
+
+# 2. WRITE THE WAY THIS CREATOR WRITES
+
+${formatVoice(voiceExamples)}
+
+---
+
+# 3. TITLE RULES
+
+- 3-7 words, then the game's hashtag at the end. Use the hashtag from the
+  candidates list below; for a game not in the list, use its natural #hashtag;
+  if the game is unknown, end with no hashtag at all.
+- Sentence case. Never Title Case.
+- **A fragment beats a sentence.** Stop at the interesting part. Do not add a
+  second clause that explains or twists it.
+- One idea. If it needs a comma, it's probably two ideas.
+- Plain words. If a word would make someone ask "who talks like that", cut it.
+
+---
+
+# 4. ANTI-PATTERNS
+
+${formatAntiPatterns()}
+
+---
+
+# 5. THE GAME
+
+Games this creator already tracks:
+
+${gameRows || "(none yet)"}
+
+- If the footage matches one of these, return its name EXACTLY as written above.
+- If it is clearly some other game, return that game's common name.
+- If you cannot tell, return "unknown". Never guess a candidate on a hunch —
+  a wrong game poisons hashtags and descriptions; "unknown" is always safer.
+- confidence is "high" only when the on-screen evidence is unambiguous (HUD,
+  menus, characters, a visible game title). Otherwise "low".${styleGuide ? `\n\n---\n\n# CREATOR'S STYLE GUIDE\n\n${styleGuide}` : ""}
+
+---
+
+# OUTPUT FORMAT
+
+Return ONLY valid JSON. Your entire response must parse with \`JSON.parse()\` with zero modifications.
+
+\`\`\`json
+{
+  "title": "<3-7 words, sentence case, game hashtag at the end>",
+  "game": "<exact candidate name, or the game's common name, or unknown>",
+  "confidence": "high | low"
+}
+\`\`\`
+
+## DO NOT
+- Wrap the JSON in code fences, or add any text around it
+- Use Title Case or emojis in the title
+- Add a second clause to a title that already landed`;
+}
+
+/**
+ * Per-clip user message for the import pass. The stripped old filename is the
+ * anchor (#240) — same wording as the batch path via titleAnchorSection.
+ *
+ * @param {object} opts
+ * @param {string} [opts.titleAnchor]  The creator's old filename, "#N " stripped.
+ * @returns {string}
+ */
+function buildImportUserContent({ titleAnchor } = {}) {
+  let out = `## The clip is attached as video, with sound.
+Watch it to know what happened — what is on screen, what the moment looks and
+sounds like. Do not describe the video; use it to write the title and name the game.
+Perspective check: the gameplay is recorded from the creator's own point of view, and any facecam is their reaction. Before writing, decide WHO made the play — the creator, a teammate, or an opponent. Never credit the creator with someone else's play; when it happened to them, the hook is the reaction.
+Payoff check: you can SEE how the clip ends — before keeping the line, confirm the footage actually delivers what it promises. A promise the footage doesn't cash is banned.`;
+  out += titleAnchorSection(titleAnchor);
+  return out;
 }
 
 // ─── Single-card builders (Rephrase / Regenerate, #85 Chunk A) ─────
@@ -423,4 +546,6 @@ module.exports = {
   buildUserContent,
   buildSingleSystemPrompt,
   buildSingleUserContent,
+  buildImportSystemPrompt,
+  buildImportUserContent,
 };

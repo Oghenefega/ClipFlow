@@ -362,6 +362,9 @@ function backfill({ publishLogEntries = [], trackerData = [], titleCaptionHistor
 
   for (const e of publishLogEntries) {
     if (!e || e.status !== "success" || !e.clipId || !e.clipTitle) continue;
+    // #240 fence: imported clips are not this creator's copy — their titles
+    // must never become voice-training rows, including via this backfill.
+    if (String(e.clipId).startsWith("clip_import_")) continue;
     const prev = byClip.get(e.clipId);
     if (!prev || (e.timestamp && e.timestamp < prev.publishedAt)) {
       byClip.set(e.clipId, {
@@ -374,6 +377,8 @@ function backfill({ publishLogEntries = [], trackerData = [], titleCaptionHistor
 
   for (const t of trackerData) {
     if (!t || !t.clipId || !t.title) continue;
+    // #240 fence: same as above — tracker rows for imports carry source: "import".
+    if (t.source === "import" || String(t.clipId).startsWith("clip_import_")) continue;
     const prev = byClip.get(t.clipId);
     byClip.set(t.clipId, {
       title: prev?.title || t.title,
