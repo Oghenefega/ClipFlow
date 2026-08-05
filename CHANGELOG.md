@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.40] — 2026-08-05 (session 154) — Installer: session 154's three fixes ship
+
+### Changed
+- **Version bumped to 0.3.0-alpha.40 and a fresh installer cut.** Promotes session 154's batch at Fega's request: hue-wheel game colors fixed and self-healing so Bionic Bay gets its pill back (#242), the schedule picker's already-taken-time warning (#243), and the readable Tracker CSV export with header-aware import (#225 Part A).
+
 ## [Unreleased] — 2026-08-05 (session 154) — The scheduler learns what's already booked
 
 ### Fixed
