@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.39] — 2026-08-05 (session 153) — Installer: the four-change batch ships
+
+### Changed
+- **Version bumped to 0.3.0-alpha.39 and a fresh installer cut.** Promotes the batch riding since alpha.38: every approval now teaches the engine regardless of where it happens (#239), detection scales its pick count to the recording instead of stopping near 15 (#238), title/caption generation rebuilt on the Clip Standard's hook formulas (#183), and the new queue-imports front door for pre-ClipFlow clips (#240) — which only exists on this build and unblocks Fega's 6-step verification.
+
 ## [Unreleased] — 2026-08-05 (session 153) — The queue opens its front door to the back catalog
 
 ### Added
