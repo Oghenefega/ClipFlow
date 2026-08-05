@@ -10,7 +10,7 @@ The Clip Standard's selection rules taught detection nothing (recall 29/29 both 
 
 ## Current State
 
-Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **3 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild). The styleGuide seed is the exception: it's settings data, active on the installed app immediately. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (checked at session start: **0 of 50** recent RL rejections carry v3 chips — expected, #232 hasn't reached an installer). [#241](https://github.com/Oghenefega/ClipFlow/issues/241) CLOSED with full results. [#183](https://github.com/Oghenefega/ClipFlow/issues/183) stays open — its success bar is longitudinal (hand-written share of published titles drops).
+Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **3 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild). The styleGuide seed is the exception: it's settings data, active on the installed app immediately. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (checked at session start: **0 of 50** recent RL rejections carry v3 chips — the chips ARE live on alpha.38, but the 50-row window is still dominated by pre-install rejections; needs Fega rejecting + tagging on the new build). [#241](https://github.com/Oghenefega/ClipFlow/issues/241) CLOSED with full results. [#183](https://github.com/Oghenefega/ClipFlow/issues/183) stays open — its success bar is longitudinal (hand-written share of published titles drops).
 
 ## What Was Just Built (session 152)
 
@@ -31,7 +31,7 @@ Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next insta
 1. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session. Title pass: reuse `buildSystemPrompt` + `buildUserContent({titleAnchor})`; open coder calls listed in the spec.
 2. **Next installer** (batch of 3 now, or on Fega's ask): carries #239 + #238 + #183 prompt code. In-app checks: approval stats move on editor-Queue approvals (#239); dense recording yields ~18-20 picks (#238); title/caption drafts open loops + card 1 title/caption share a line (#183).
 3. **Fega's eyeball, ~2 min:** 3 proxy cuts in `Desktop\ClipFlow Eyeball 241-clipStd\` (EO Day4 22:32, RL Day10 11:44, RL Day8 17:52 — last one flagged as adjacent to a verdicted NO). Verdicts → comment on closed #241 as usual.
-4. **#234 v3 re-test trigger check at session start** (standing): count v3 tags in RL's 50-row rejected window; fire at ≥15. Still 0/50 — will stay 0 until an installer ships #232's chips and Fega tags a while.
+4. **#234 v3 re-test trigger check at session start** (standing): count v3 tags in RL's 50-row rejected window; fire at ≥15. Still 0/50 — the chips shipped with alpha.38, so this now moves at the pace of Fega's post-install rejection tagging.
 5. **#183 measurement continues on its own:** every publish logs `title_caption_rounds`; the bar is `title_source` shifting away from `self` over the coming weeks. Check `SELECT title_source, COUNT(*) FROM title_caption_rounds GROUP BY title_source` after a batch of posts on the new build.
 
 ## Watch Out For
