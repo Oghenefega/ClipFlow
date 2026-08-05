@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 152) — Titles learn to make promises the footage keeps
+
+### Changed
+- **Title and caption generation rebuilt around the Clip Standard's hook formulas (#183).** The general principles from the creator-side quality gate are now in the prompt engine: a hook is a promise the footage pays off — both the title and the on-screen caption must open a loop, never summarize the moment; a line the clip can't cash is banned outright; and the single strongest line now takes BOTH the first title and the first caption instead of being saved for one surface while the other gets a weaker line. The batch's other options draw from a general hook-angle menu (stakes declared before an attempt, an arguable claim, a mid-emotion open, a comeback, an anomaly). On the Gemini path — which watches the actual clip — the model is now told to verify the footage delivers what each line promises before keeping it. The old prompt's showcase example ("The pass was PERFECT") was replaced because the standard names it a loop-killer: it tells the viewer how the story ends. The goal is unchanged from this issue's start: drafts good enough that Fega picks and edits instead of writing from scratch.
+- **Fega's signature title formats moved into his Style Guide setting, not the product.** The formats that are personal to him ("the claim the footage disproves", "setup + tease") were seeded into the Style Guide field in Settings (editable there any time; settings files backed up first). The engine carries only the general principles — a future creator's signature moves live in their own style guide, exactly like Fega's. Because the shipped app already injects this field, the signature layer is live on the installed alpha.38 at his next launch, before any new installer.
+
+### Added
+- **Imported clips can now anchor their titles on the creator's own old filenames (#240 groundwork).** The title prompt accepts an "intent anchor" — the name the creator gave the clip in a past life — and instructs the model to keep that intent and voice, improving wording only where clearly better. Next session's queue-imports build passes each old OpusClip filename through this.
+- **Harness cell #241: the Clip Standard's selection rules were measured in detection — and kept out of it.** Injecting the standard's four distilled selection rules into the detection prompt moved nothing: recall stayed a perfect 29/29 and the rejected-type pick rate change was literally one pick (47% → 45%), because the taste calibration already teaches everything the written standard says. Worse, the "enter late" rule systematically shaved the reaction tail off a known kept clip (2 of 2 runs) — the third independent piece of evidence that boundary instructions tighten cut windows away from Fega's hand cuts. The rules were reverted from detection; the standard's leverage is the title/card layer above. Three new never-judged picks await Fega's eyeball in `Desktop\ClipFlow Eyeball 241-clipStd\`.
+
 ## [Unreleased] — 2026-08-05 (session 151) — The engine stops rationing its picks
 
 ### Changed

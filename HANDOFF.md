@@ -1,50 +1,50 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-05 — Session 151 (#238 run end-to-end: fresh baseline → cells A/B/C → Fega's verdicts → Cell A SHIPPED; #238 closed `status: untested`)._
+_Last updated: 2026-08-05 — Session 152 (#241 cell run → NO SHIP; #183 title/card rebuild on Clip Standard formulas SHIPPED; #240 titleAnchor groundwork laid)._
 
 ---
 
 ## One-line TL;DR
 
-The detection engine's fixed ~15-pick habit was the root of BOTH open quality problems — it squeezed marginal keepers off dense recordings AND caused bad cut edges. Cell A (count scales with length: "~1 clip per 90s, min 10, max 25") re-found **all 29** of Fega's kept moments (baseline 26/29), improved edge alignment 87%→93% with zero boundary language, kept precision flat, and surfaced one brand-new Fega-verdicted keeper. Shipped to master (`d3a79ee`), [#238](https://github.com/Oghenefega/ClipFlow/issues/238) closed `status: untested`. The explicit cause/payoff boundary rewrite (Cell B) measured useless solo and is SHELVED.
+The Clip Standard's selection rules taught detection nothing (recall 29/29 both ways, rej-hit 47%→45% = one pick) and its "enter late" rule systematically shaved a kept clip's reaction tail — so #241 closed NO-SHIP, and the standard's real leverage landed where it belongs: the #183 titlegen rebuild. The title engine now carries the general formulas (hook = promise the footage pays off, one best line takes both surfaces, honesty rule, hook-angle menu), Fega's signature formats live as data in his Style Guide setting (live on alpha.38 at next launch, no installer needed), and the prompt accepts an intent-anchor for #240's imports.
 
 ## Current State
 
-Master pushed (`d3a79ee`). Daily driver = **0.3.0-alpha.38** — does NOT contain #239 (feedback choke point) or #238 (pick-budget scaling); both are source-only, riding the next batched installer (2 substantive changes in the batch so far). Prompt code + tests clean: 60/60 unit tests green. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open, still data-blocked (needs ≥15 v3-tagged rejections in RL's 50-row window). Gemini watch stays default OFF (Fega reaffirmed this session; stretch re-audition cell deliberately skipped).
+Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **3 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild). The styleGuide seed is the exception: it's settings data, active on the installed app immediately. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (checked at session start: **0 of 50** recent RL rejections carry v3 chips — expected, #232 hasn't reached an installer). [#241](https://github.com/Oghenefega/ClipFlow/issues/241) CLOSED with full results. [#183](https://github.com/Oghenefega/ClipFlow/issues/183) stays open — its success bar is longitudinal (hand-written share of published titles drops).
 
-## What Was Just Built (session 151)
+## What Was Just Built (session 152)
 
-- **Fresh post-#239 baseline** (`f10-mix-rebase`, $0.57): truth grew 26 → 29 pooled approved rows; baseline scored 26/29 = 90% recall, 47% rej-hit, 87% boundary coverage (new post-hoc metric: fraction of each hit approved row's window covered by its best pick — Fega's hand cuts are edge ground truth). Old cell numbers formally retired on #238.
-- **Cells A/B/C run single-factor** (six standard recordings each + stability re-runs, $2.32): A (pick-budget) 29/29 / 47% / 93%; B (cause/payoff boundary rewrite) 26/29 / 51% / 83% — worse edges SOLO; C (A+B) 28/29 / 44% / 94% but coin-flips RL Day8's ANKLES BROKEN cold-open start (2/3 runs start at the reaction, not Fega's 0:19 cause). All results committed under `tasks/spikes/replay-score/results/`, full tables in #238 comments.
-- **Fega's eyeball round:** only 4 never-judged picks survived the cross-reference against #235's 28 verdicted moments. 1 KEEP (EO Day3 17:41 jump-fail — "I would use it", A-only territory), 3 NOs, all failing on **payoff-not-visible-on-screen** (new named taste class; candidate future cell).
-- **Cell A shipped:** ai-prompt.js count constraint (the cell's exact text), 2 pinned tests updated in ai-prompt.test.js, CHANGELOG entry, spec status block updated (tasks/specs/detection-input-science.md), #238 closed with comment + `status: untested`.
+- **#241 cell (`clipStd`, $0.79):** four distilled Clip Standard selection rules as a delimited detection-prompt section vs the shipped config (baseline = #238's `a25-scale` replays, shared per the issue's own suggestion). Recall 29/29 = identical; rej-hit 42/93 = 45% vs 43/92 = 47% (one pick, noise); boundary coverage **regressed** 93.5% → 90.4%, driver = RL Day10's single approved row (22:14→22:52) end-shaved 89% → 61% coverage, reproduced 2/2 stability runs (EO Day3's dip was noise — 97% on re-run). Verdict: taste calibration already carries the standard's content; boundary language hurts edges (third independent proof after Cells B and C). Prompt reverted, results committed, issue closed.
+- **#183 rebuild (engine, all general):** `title-caption-prompt.js` — CLIP_TRUTH gains the loop principle (title AND caption open a loop, never a summary) + honesty rule (line the footage can't cash is banned); batch section gains "find the strongest line first — it takes BOTH title #1 and caption #1" (schema annotated to match) + a general hook-angle menu (stakes declared / arguable claim / mid-emotion open / comeback / anomaly); the fragment rule's example swapped off "The pass was PERFECT" (the standard names it a loop-killer) to "NO ONE gets past me". `main.js` Gemini video block gains a payoff check (it can SEE the ending — verify the footage cashes each line). KB json v4 (spoiler anti-pattern generalized to both surfaces) + frameworks doc updated in lockstep.
+- **Per-creator layer:** Fega's signature formats ("claim the footage disproves", "setup + tease") seeded as TEXT into `styleGuide` in prod AND dev settings (backups: `clipflow-settings.json.bak-20260805-pre183` in both profiles). Zero Fega-specific text in engine code — a deliberate fence; a migration was considered and rejected (would seed Fega's voice into every future install).
+- **#240 groundwork:** `buildUserContent` accepts `titleAnchor` — renders an intent-anchor section (keep the creator's old filename's intent/voice, improve only where clearly better). Next session passes stripped OpusClip filenames through it.
+- Verified: smoke-render probes all new prompt content (batch ~5.1k chars — far from the 14k overconstraint zone), 60/60 detection tests green after revert, dev-profile boot clean.
 
 ## Key Decisions
 
-- **Ship A alone; SHELVE B** — single-factor evidence: B moved nothing measurable solo (and worsened edge coverage), so its language doesn't earn prompt space. Don't re-propose boundary language without new evidence (e.g., bad-cut rejections persisting under A in live use).
-- **C not shipped** despite best precision/coverage — its deltas vs A are inside the ±1/recording noise band and it introduces a real cold-open bad-cut risk.
-- **Gemini stretch cell skipped** (Fega): OFF stands; a future re-audition inherits A's fix automatically since the displacement mechanism A removes is exactly what sank the gemInt cell. Re-audition trigger = a recording with a known quiet-spectacular moment.
-- **Scoring caveat recorded on #238:** B's and C's single "losses" were midpoint-rule knife-edges on picks that OVERLAP the truth row (0.5s / 2.5s) — moments found, edges shifted. Keep in mind before reading future cell recall dips as real.
+- **#241 NO-SHIP** is the recorded answer to the cell's question — do not re-propose Clip Standard rules in the detection prompt without new evidence. The named pattern now has three data points: boundary/selection *instructions* tighten windows; *room* (pick budget) relaxes them.
+- **Signature formats are data, not code.** Delivery = styleGuide setting (Settings-editable). If Fega wants them changed, he edits Settings — no build needed.
+- **First title + first caption now intentionally carry the same line.** If Fega reports the pairs feeling redundant, that's the one-best-line formula working as designed — the other two cards carry the variety. Don't "fix" it without his say-so.
 
 ## Next Steps (priority order)
 
-1. **Next installer** (when the batch justifies it, or on Fega's ask) carries #239 + #238. Fega's in-app checks: editor-Queue approval bumps approval stats / un-approve drops it (#239); a dense 20-30 min recording yields ~18-20 picks (#238). Remove `status: untested` from both after confirmation.
-2. **#234 v3 re-test trigger check at session start:** count v3-tagged rows (`setup-talk`/`chat-banter`/`flat-delivery`) in RL's 50-row rejected window; fire at ≥15 (~$0.26). Fega keeps tagging rejections.
-3. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session.
-4. **Candidate future cell (not filed):** "payoff visible on screen" — all 3 eyeball NOs were mic-driven picks about action the viewer can't see. File only if the class keeps showing up in Fega's live rejections.
+1. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session. Title pass: reuse `buildSystemPrompt` + `buildUserContent({titleAnchor})`; open coder calls listed in the spec.
+2. **Next installer** (batch of 3 now, or on Fega's ask): carries #239 + #238 + #183 prompt code. In-app checks: approval stats move on editor-Queue approvals (#239); dense recording yields ~18-20 picks (#238); title/caption drafts open loops + card 1 title/caption share a line (#183).
+3. **Fega's eyeball, ~2 min:** 3 proxy cuts in `Desktop\ClipFlow Eyeball 241-clipStd\` (EO Day4 22:32, RL Day10 11:44, RL Day8 17:52 — last one flagged as adjacent to a verdicted NO). Verdicts → comment on closed #241 as usual.
+4. **#234 v3 re-test trigger check at session start** (standing): count v3 tags in RL's 50-row rejected window; fire at ≥15. Still 0/50 — will stay 0 until an installer ships #232's chips and Fega tags a while.
+5. **#183 measurement continues on its own:** every publish logs `title_caption_rounds`; the bar is `title_source` shifting away from `self` over the coming weeks. Check `SELECT title_source, COUNT(*) FROM title_caption_rounds GROUP BY title_source` after a batch of posts on the new build.
 
 ## Watch Out For
 
-- **A's short-tail behavior:** the density rule scales DOWN too — RL Day9 (4 min) went 7 → 4 picks (recall held 4/4, junk dropped). If Fega reports thin results on short tail recordings, this is why; the fix would be a floor tweak, not a revert.
-- **One 5s pick observed** (DD, 10:55→11:00) — below the 7-second minimum the schema states. Single occurrence; if the render/cut path ever chokes on a sub-7s pick, this is the source.
-- **Old truth numbers are gone:** any comparison must use the 29-row truth and `f10-mix-rebase` (26/29 / 47% / 87%) — never the retired 24/26 / 25/26 era numbers.
-- The pre-#239-backfill DB backup still exists: `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239` (delete when Fega's comfortable).
-- Eyeball proxy cuts live in `Desktop\ClipFlow Eyeball 238-A\` (4 clips, verdicted — safe to delete) and gemini-era folders from #235; all disposable.
-- `_tmp/proxy/*.proxy.mp4` (6 files, ~640MB) in the replay-score spike are the cut sources — keep while the program is active.
+- **styleGuide is now non-empty in BOTH profiles** — any future "seed if empty" logic will correctly skip. Backups exist if the seed needs reverting (`%APPDATA%\clipflow\clipflow-settings.json.bak-20260805-pre183`, same in `clipflow-dev`).
+- The seeded signature text reaches the CURRENT installed app's prompts at next launch (alpha.38 already injects the styleGuide section) — so title output may shift for Fega BEFORE the installer with the engine rebuild lands. If he reports title changes "already", that's why, not a mystery.
+- The title prompt has NO unit tests (only smoke-rendered) — detection's 60 tests don't cover it. If regressions bite here, a small pinned-probe test file is the fix.
+- `Desktop\ClipFlow Eyeball 238-A\` (verdicted, disposable) and `Desktop\ClipFlow Eyeball 241-clipStd\` (awaiting verdicts) both exist; `_tmp/proxy/*.proxy.mp4` (~640MB) stays while the program is active.
+- Pre-#239 DB backup still exists: `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239` (delete when Fega's comfortable).
 
 ## Logs / Debugging
 
-- Harness runs logged Anthropic gateway (BYOK via Cloudflare) HTTP 200s throughout; per-run cost $0.06-0.12, ~8-18s latency. Total session API spend ≈ **$2.89** (baseline $0.57, cells $2.32).
-- Boundary-coverage analysis is a post-hoc script over `results/*.json` + the prod DB (no harness changes) — re-derivable from this session's #238 comment if needed; not persisted as a file by design.
-- `sql.js` column note: feedback table has `transcript_segment` (NOT `transcript_text`) — a first analysis script died on this; schema via `PRAGMA table_info(feedback)`.
-- gh CLI: comment bodies with backticks/parens must go through `--body-file` (a scratchpad .md), not inline `--body` — bash eats them otherwise.
+- #241 runs: Anthropic gateway (BYOK via Cloudflare) HTTP 200s throughout; per-run $0.065-0.122, 6-22s. Session API spend ≈ **$0.79** (6 cell runs $0.59 + 2 stability $0.20). Boundary-coverage script validated by reproducing the recorded 87%/93% baselines before scoring the new cell; methodology in the #241 closing comment.
+- Boot-verify: `CLIPFLOW_PROFILE=dev npm start` — clean start, schema v8, migrations skipped as expected; killed via `taskkill //F //IM electron.exe`.
+- sql.js reminder: feedback table column is `transcript_segment`; settings live at `%APPDATA%\clipflow\clipflow-settings.json` (electron-store, tab-indented JSON — external writes only while the app is closed).
+- gh CLI: comment bodies with backticks/parens go through `--body-file` from the scratchpad, not inline `--body`.
