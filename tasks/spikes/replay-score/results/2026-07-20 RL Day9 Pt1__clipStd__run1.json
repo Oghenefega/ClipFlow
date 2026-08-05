@@ -1,0 +1,91 @@
+{
+  "videoName": "2026-07-20 RL Day9 Pt1",
+  "gameTag": "RL",
+  "label": "clipStd",
+  "variant": {
+    "frames": 10,
+    "rejected": true,
+    "approved": true,
+    "playstyle": true,
+    "gemini": false
+  },
+  "geminiActors": null,
+  "run": 1,
+  "promptChars": 16828,
+  "transcriptChars": 7088,
+  "frameCount": 10,
+  "usage": {
+    "inputTokens": 20275,
+    "outputTokens": 278
+  },
+  "cost": 0.064995,
+  "picks": [
+    {
+      "clip_number": 1,
+      "start": "00:00:00",
+      "end": "00:01:07",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.88
+    },
+    {
+      "clip_number": 2,
+      "start": "00:01:37",
+      "end": "00:02:36",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.75
+    },
+    {
+      "clip_number": 3,
+      "start": "00:02:23",
+      "end": "00:03:00",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.65
+    },
+    {
+      "clip_number": 4,
+      "start": "00:03:40",
+      "end": "00:03:50",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.62
+    }
+  ],
+  "score": {
+    "approvedTotal": 4,
+    "approvedMatched": 4,
+    "approvedRecall": 1,
+    "rejectedHits": 1,
+    "rejectedHitRate": 0.25,
+    "unreviewed": 0,
+    "perPick": [
+      {
+        "start": 0,
+        "end": 67,
+        "confidence": 0.88,
+        "verdict": "approved"
+      },
+      {
+        "start": 97,
+        "end": 156,
+        "confidence": 0.75,
+        "verdict": "approved"
+      },
+      {
+        "start": 143,
+        "end": 180,
+        "confidence": 0.65,
+        "verdict": "approved"
+      },
+      {
+        "start": 220,
+        "end": 230,
+        "confidence": 0.62,
+        "verdict": "rejected"
+      }
+    ]
+  },
+  "scoredAt": "2026-08-05T10:17:24.562Z"
+}
