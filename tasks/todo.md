@@ -6,7 +6,34 @@
 
 ---
 
-## ⏳ ACTIVE (session 151) — #238 pick-budget scaling + cut-boundary extension — baseline RUN, plan AWAITING FEGA'S APPROVAL
+## ⏳ ACTIVE (session 151) — #238 pick-budget scaling + cut-boundary extension — ALL CELLS RUN; recommendation = SHIP A; awaiting Fega's 4-clip eyeball + ship call
+
+### Results (2026-08-05, cells $2.32, full tables in #238 comment)
+
+| variant | pooled recall | rej-hit | boundary coverage |
+|---|---|---|---|
+| baseline (rebase) | 26/29 = 90% | 47% | 87% |
+| **A pick-budget** | **29/29 = 100%** | 47% | 93% |
+| B cut-boundary | 26/29 = 90% | 51% | 83% |
+| C = A+B | 28/29 = 97% | 44% | 94% |
+
+- A rescued ALL THREE baseline misses incl. the never-found EO Day4 17:31.
+  Stability: EO Day4 7/7 in 2/2 runs; EO Day3 8/8 in 2/3 (the 6:33 marginal
+  improved, not eliminated). Key finding: the fixed budget was CAUSING bad
+  edges — A improves boundary coverage with zero boundary language.
+- B alone: no recall gain, coverage WORSE (83%) — its language doesn't pull
+  weight solo. C ≈ A + noise; C coin-flips ANKLES BROKEN (starts at the
+  reaction 0:48, not Fega's 0:19 cause; 1/3 runs hit).
+- Both B/C "losses" are midpoint-rule knife-edges on found-but-shifted picks,
+  not lost moments.
+- A warts to watch: RL Day9 (4-min tail) pick count 7 → 4; one 5s pick on DD
+  (violates the 7s min).
+- Eyeball: only 4 never-judged picks (rest already verdicted in #235) —
+  cut to `Desktop\ClipFlow Eyeball 238-A\`. Several #235 YES keeps
+  re-surface in A's picks.
+
+**Next: Fega's 4-clip verdicts + approve shipping A (edit ai-prompt.js:144
+for real + update 2 pinned tests + CHANGELOG; rides next batched installer).**
 
 ### Fresh post-#239 baseline (f10-mix-rebase, run 2026-08-05, $0.57)
 
