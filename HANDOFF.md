@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-05 — Session 153 (#240 queue imports BUILT; awaiting Fega's 6-step verification on his real OpusClip folder)._
+_Last updated: 2026-08-05 — Session 153 (#240 queue imports BUILT; alpha.39 installer cut AND installed on the daily driver; Fega's 6-step verification deferred to next session)._
 
 ---
 
@@ -10,7 +10,7 @@ The Queue tab can now import finished pre-ClipFlow clips: drag-and-drop or an Im
 
 ## Current State
 
-Master pushed. Daily driver = **0.3.0-alpha.38** — batch riding the next installer is now **4 substantive changes**: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild), **#240 (queue imports — needs the new installer to reach the daily driver; it is NOT usable on alpha.38)**. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (0/50 v3 chips at session-152 check; moves at the pace of Fega's post-install rejection tagging). [#183](https://github.com/Oghenefega/ClipFlow/issues/183) open, longitudinal. [#240](https://github.com/Oghenefega/ClipFlow/issues/240) open until Fega's verification passes.
+Master pushed. Daily driver = **0.3.0-alpha.39, installed and confirmed by Fega this session** — it carries the 4-change batch: #239 (feedback choke point), #238 (pick-budget scaling), #183 (title formula rebuild), #240 (queue imports). The batch counter is reset; nothing is riding toward a next installer yet. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) still data-blocked (0/50 v3 chips at session-152 check; moves at the pace of Fega's post-install rejection tagging). [#183](https://github.com/Oghenefega/ClipFlow/issues/183) open, longitudinal. [#240](https://github.com/Oghenefega/ClipFlow/issues/240) open until Fega's verification passes.
 
 ## What Was Just Built (session 153) — #240 queue imports
 
@@ -38,7 +38,7 @@ Spec `tasks/specs/queue-imports.md` implemented in full; working plan + verifica
 
 ## Next Steps (priority order)
 
-1. **Cut the next installer** (batch of 4: #239, #238, #183, #240) — #240 is untestable by Fega until this ships to the daily driver. Then Fega runs the 6-step script (drag 5 mixed files → grid; bulk-fix a game + add Baby Steps inline; skip 1, confirm 4; re-select → nothing offered; schedule 1 → publishes + tracker +1; horizontal file → flagged with Auto-Reframe message). Close #240 (`status: untested` off) only on his pass.
+1. **Fega runs the 6-step script on alpha.39** (installed; he deferred it to next session): drag 5 mixed OpusClip files → grid; bulk-fix a game + add Baby Steps inline; skip 1, confirm 4 → files in `ClipFlow Imports\<Game>\` + 4 queue entries; re-select the same 5 → nothing offered; schedule 1 → publishes + tracker +1; horizontal file → flagged with the Auto-Reframe message. Close #240 only on his pass. Also expect his read on AI title/game-guess quality and per-clip Gemini pass time.
 2. **First real wave watch-fors:** Gemini JSON schema in the wild (title/game/confidence), upload times on his connection (50MB-class files via Files API), and whether high-confidence game guesses are trustworthy on OpusClip-era footage.
 3. **#234 v3 re-test trigger check at session start** (standing): count v3 chips in RL's 50-row rejected window; fire at ≥15.
 4. **#183 measurement continues:** `SELECT title_source, COUNT(*) FROM title_caption_rounds GROUP BY title_source` after a batch of posts on the new build.
