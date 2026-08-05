@@ -1,52 +1,50 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-05 — Session 150 (#239 feedback leak fixed at the source + 34 published clips backfilled; #234 status-checked: final cell data-blocked; #238 is next with a mandatory fresh baseline)._
+_Last updated: 2026-08-05 — Session 151 (#238 run end-to-end: fresh baseline → cells A/B/C → Fega's verdicts → Cell A SHIPPED; #238 closed `status: untested`)._
 
 ---
 
 ## One-line TL;DR
 
-More than half of Fega's published catalog (34 of 62 approved clips) had never entered the feedback DB because only the Pending tab's buttons wrote training rows — the editor's Queue button (his main daily flow) approved clips silently. Fixed at a single main-process choke point (`project:updateClip` → `feedback.handleStatusTransition`): every approve/reject teaches once, un-approve/un-reject DELETES the row, approve↔reject swaps, exact-window dedupe stops duplicates, and #240's imported clips are fenced out (`clip.source === "import"` never teaches — Fega: imports are post-only). All 34 missing rows backfilled with createdAt timestamps. Commit `55841bb`, [#239](https://github.com/Oghenefega/ClipFlow/issues/239) closed `status: untested`.
+The detection engine's fixed ~15-pick habit was the root of BOTH open quality problems — it squeezed marginal keepers off dense recordings AND caused bad cut edges. Cell A (count scales with length: "~1 clip per 90s, min 10, max 25") re-found **all 29** of Fega's kept moments (baseline 26/29), improved edge alignment 87%→93% with zero boundary language, kept precision flat, and surfaced one brand-new Fega-verdicted keeper. Shipped to master (`d3a79ee`), [#238](https://github.com/Oghenefega/ClipFlow/issues/238) closed `status: untested`. The explicit cause/payoff boundary rewrite (Cell B) measured useless solo and is SHELVED.
 
 ## Current State
 
-Master pushed (`55841bb`). Daily driver = **0.3.0-alpha.38** — does NOT contain the #239 fix (source-only until the next batched installer); on the installed build, Pending-tab approvals still log via the old renderer path, editor-Queue approvals still leak, un-approve doesn't delete. Feedback DB: backfilled + verified (audit: 0 missing), backup at `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239`. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open but data-blocked (0 v3-tagged rejections yet — re-arm trigger ≥15 v3 rows in RL's 50-row window, posted on the issue); [#238](https://github.com/Oghenefega/ClipFlow/issues/238) is the next runnable cell.
+Master pushed (`d3a79ee`). Daily driver = **0.3.0-alpha.38** — does NOT contain #239 (feedback choke point) or #238 (pick-budget scaling); both are source-only, riding the next batched installer (2 substantive changes in the batch so far). Prompt code + tests clean: 60/60 unit tests green. Epic [#231](https://github.com/Oghenefega/ClipFlow/issues/231) open; [#234](https://github.com/Oghenefega/ClipFlow/issues/234) open, still data-blocked (needs ≥15 v3-tagged rejections in RL's 50-row window). Gemini watch stays default OFF (Fega reaffirmed this session; stretch re-audition cell deliberately skipped).
 
-## What Was Just Built (session 150)
+## What Was Just Built (session 151)
 
-- **#239 root cause + audit:** only feedback writer was ProjectsView's approve/reject buttons; `EditorLayout.doRender(addToQueue)` set `status: "approved"` via `project:updateClip` without teaching. Read-only audit of live data: 34 of 62 approved/published clips missing rows (every one published to 3-4 platforms).
-- **Choke-point fix:** `feedback.handleStatusTransition` (feedback.js) called from the `project:updateClip` handler (main.js). Rules: gain approved/rejected → insert once (exact `HH:MM:SS`-window dedupe); clear to none/null → delete latest matching row; approve↔reject → swap; `"dequeued"` = scheduling, no action; `clip.source === "import"` → never teaches (#240 spec "Fences"). Renderer `feedbackLog` call, `feedback:log` IPC, and preload bridge removed.
-- **Backfill:** 34 rows inserted, timestamped by clip `createdAt` so history interleaves correctly in the DESC-ordered few-shot windows. Post-backfill audit: 0 missing.
-- **#234 status check:** v3 chips confirmed inside installed alpha.38 (commit ancestry + asar grep), but 0 rejections carry them — final cell (`--no-rejected` re-test) stays queued on data.
-- Session start also verified all detection-science ship claims live in code AND in the installed asar (frames=10 at ai-pipeline.js:721, gemini gate :499, grouped rejected section, #237 caps; 60 unit tests green).
+- **Fresh post-#239 baseline** (`f10-mix-rebase`, $0.57): truth grew 26 → 29 pooled approved rows; baseline scored 26/29 = 90% recall, 47% rej-hit, 87% boundary coverage (new post-hoc metric: fraction of each hit approved row's window covered by its best pick — Fega's hand cuts are edge ground truth). Old cell numbers formally retired on #238.
+- **Cells A/B/C run single-factor** (six standard recordings each + stability re-runs, $2.32): A (pick-budget) 29/29 / 47% / 93%; B (cause/payoff boundary rewrite) 26/29 / 51% / 83% — worse edges SOLO; C (A+B) 28/29 / 44% / 94% but coin-flips RL Day8's ANKLES BROKEN cold-open start (2/3 runs start at the reaction, not Fega's 0:19 cause). All results committed under `tasks/spikes/replay-score/results/`, full tables in #238 comments.
+- **Fega's eyeball round:** only 4 never-judged picks survived the cross-reference against #235's 28 verdicted moments. 1 KEEP (EO Day3 17:41 jump-fail — "I would use it", A-only territory), 3 NOs, all failing on **payoff-not-visible-on-screen** (new named taste class; candidate future cell).
+- **Cell A shipped:** ai-prompt.js count constraint (the cell's exact text), 2 pinned tests updated in ai-prompt.test.js, CHANGELOG entry, spec status block updated (tasks/specs/detection-input-science.md), #238 closed with comment + `status: untested`.
 
 ## Key Decisions
 
-- **Feedback writes live in the MAIN process at the status-transition choke point** — no per-surface renderer writes, so no current or future surface can approve without teaching.
-- **Un-approve/un-reject deletes the row** (Fega's explicit call) — the engine forgets retracted decisions. Dequeue is NOT a retraction.
-- **#240 imports never teach** (Fega + spec fence): they're OpusClip-era, post-only. Enforced in code now, before the feature exists.
-- **#239 sequenced before #238** because the backfill changes the harness answer key — old cell numbers are not comparable post-backfill.
+- **Ship A alone; SHELVE B** — single-factor evidence: B moved nothing measurable solo (and worsened edge coverage), so its language doesn't earn prompt space. Don't re-propose boundary language without new evidence (e.g., bad-cut rejections persisting under A in live use).
+- **C not shipped** despite best precision/coverage — its deltas vs A are inside the ±1/recording noise band and it introduces a real cold-open bad-cut risk.
+- **Gemini stretch cell skipped** (Fega): OFF stands; a future re-audition inherits A's fix automatically since the displacement mechanism A removes is exactly what sank the gemInt cell. Re-audition trigger = a recording with a known quiet-spectacular moment.
+- **Scoring caveat recorded on #238:** B's and C's single "losses" were midpoint-rule knife-edges on picks that OVERLAP the truth row (0.5s / 2.5s) — moments found, edges shifted. Keep in mind before reading future cell recall dips as real.
 
 ## Next Steps (priority order)
 
-1. **Run the fresh f10-mix baseline** on the six standard recordings (~$0.60, `tasks/spikes/replay-score/harness.js`). Truth grew 26 → ~29 pooled: RL Day8 Pt8 +2 (ANKLES BROKEN backfill @00:00:19 + organic "Clip 17" @00:11:45 approved 2026-08-05 ~2:24 AM EST), EO Day4 Pt1 +1 ("I was ONE jump away" @00:09:24). Harness copies the DB fresh per run — no manual truth step.
-2. **Design #238 cells against the new baseline** (pick-budget scaling + cause/payoff cut-boundary extension), get Fega's approval, run.
-3. **At session start, check the #234 trigger:** count v3-tagged rows (`setup-talk`/`chat-banter`/`flat-delivery`) in RL's 50-row rejected window; fire the re-test at ≥15 (~$0.26).
-4. **Next installer** (whenever the batch justifies it) carries the #239 fix to the daily driver. Fega's in-app check is on the issue: approve via editor Queue button → approval stats count it; un-approve → count drops.
-5. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session.
+1. **Next installer** (when the batch justifies it, or on Fega's ask) carries #239 + #238. Fega's in-app checks: editor-Queue approval bumps approval stats / un-approve drops it (#239); a dense 20-30 min recording yields ~18-20 picks (#238). Remove `status: untested` from both after confirmation.
+2. **#234 v3 re-test trigger check at session start:** count v3-tagged rows (`setup-talk`/`chat-banter`/`flat-delivery`) in RL's 50-row rejected window; fire at ≥15 (~$0.26). Fega keeps tagging rejections.
+3. **#240 queue imports build** — spec locked (`tasks/specs/queue-imports.md`), greenlit, its own session.
+4. **Candidate future cell (not filed):** "payoff visible on screen" — all 3 eyeball NOs were mic-driven picks about action the viewer can't see. File only if the class keeps showing up in Fega's live rejections.
 
 ## Watch Out For
 
-- **Pre-backfill harness numbers (24/26, 25/26…) are NOT comparable to any post-backfill run.** Re-baseline first — this is why step 1 exists.
-- `fmtHMS` now exists in BOTH ProjectsView.js and feedback.js and must stay byte-identical — reject-reason chips (`updateReasons`) and dedupe/delete all match rows by the exact `HH:MM:SS` strings.
-- Until the next installer, the installed app still runs the OLD feedback path (Pending-tab-only inserts, no deletes, possible re-approve dupes). Don't diagnose "the fix doesn't work" from the daily driver.
-- The audit counted 61 overlapping same-decision row pairs — an UPPER bound on legacy duplicates, not a clean count: adjacent published clips legitimately overlap (e.g. RL Day8 Pt3 1740-1774s vs 1761-1774s). Don't run a naive dedup sweep on midpoint overlap.
-- `listProjects` only scans `proj_*`-prefixed folders (projects.js:166) — a hand-written fixture folder with another name loads by id but never appears in lists.
-- Clip status `"ready"` has zero writers (legacy read-side only); clip creation paths (`addClip`/`duplicateClip`) hard-force `status: "none"`, which is what makes the choke point complete.
+- **A's short-tail behavior:** the density rule scales DOWN too — RL Day9 (4 min) went 7 → 4 picks (recall held 4/4, junk dropped). If Fega reports thin results on short tail recordings, this is why; the fix would be a floor tweak, not a revert.
+- **One 5s pick observed** (DD, 10:55→11:00) — below the 7-second minimum the schema states. Single occurrence; if the render/cut path ever chokes on a sub-7s pick, this is the source.
+- **Old truth numbers are gone:** any comparison must use the 29-row truth and `f10-mix-rebase` (26/29 / 47% / 87%) — never the retired 24/26 / 25/26 era numbers.
+- The pre-#239-backfill DB backup still exists: `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239` (delete when Fega's comfortable).
+- Eyeball proxy cuts live in `Desktop\ClipFlow Eyeball 238-A\` (4 clips, verdicted — safe to delete) and gemini-era folders from #235; all disposable.
+- `_tmp/proxy/*.proxy.mp4` (6 files, ~640MB) in the replay-score spike are the cut sources — keep while the program is active.
 
 ## Logs / Debugging
 
-- **Verification this session:** 14-case standalone transition test (electron stubbed via the harness's `Module._load` trick, scratch DB) — all pass; end-to-end CDP test on the dev profile (real `projectUpdateClip` IPC → row appears in `%APPDATA%\clipflow-dev\data\clipflow.db` with correct window → un-approve → row gone). Dev profile shares the REAL projects tree (`projectsRoot` = W:\ path) — test used a throwaway fixture project, deleted after.
-- **Scripts** (session scratchpad, not persisted): audit (34-missing finder), backfill, transition test, CDP driver. The audit/backfill logic is documented in [#239's comments](https://github.com/Oghenefega/ClipFlow/issues/239) if ever needed again.
-- Feedback transition failures log to main-process console as `[feedback] status transition failed:` — non-critical by design (never blocks the clip update).
-- DB backup from before the backfill: `%APPDATA%\clipflow\data\clipflow.db.bak-20260805-pre239` (delete whenever Fega's comfortable).
+- Harness runs logged Anthropic gateway (BYOK via Cloudflare) HTTP 200s throughout; per-run cost $0.06-0.12, ~8-18s latency. Total session API spend ≈ **$2.89** (baseline $0.57, cells $2.32).
+- Boundary-coverage analysis is a post-hoc script over `results/*.json` + the prod DB (no harness changes) — re-derivable from this session's #238 comment if needed; not persisted as a file by design.
+- `sql.js` column note: feedback table has `transcript_segment` (NOT `transcript_text`) — a first analysis script died on this; schema via `PRAGMA table_info(feedback)`.
+- gh CLI: comment bodies with backticks/parens must go through `--body-file` (a scratchpad .md), not inline `--body` — bash eats them otherwise.

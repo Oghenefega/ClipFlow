@@ -6,7 +6,11 @@
 
 ---
 
-## ⏳ ACTIVE (session 151) — #238 pick-budget scaling + cut-boundary extension — ALL CELLS RUN; recommendation = SHIP A; awaiting Fega's 4-clip eyeball + ship call
+## ✅ CLOSED (session 151) — #238 pick-budget scaling + cut-boundary extension — Cell A SHIPPED (`d3a79ee`), B shelved, #238 closed `status: untested`
+
+Fega's verdicts: 1 keep of 4 new-territory picks (EO Day3 17:41 — A-only
+territory); 3 NOs all payoff-not-visible-on-screen (new named class).
+Ship approved same session; rides next installer with #239.
 
 ### Results (2026-08-05, cells $2.32, full tables in #238 comment)
 
