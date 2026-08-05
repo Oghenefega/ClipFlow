@@ -1108,3 +1108,5 @@ Marker advanced to 2026-08-05 (s149) — no user corrections this session; the s
 **Why:** The implication was reasoned from the choke-point design's mechanics, not from #240's intent — and the spec that recorded that intent was sitting in the repo, one read away, referenced by the very commit at HEAD.
 
 **Rule:** Before claiming a change will "automatically cover/benefit" another feature, read that feature's spec or issue first — greenlit specs may fence exactly that interaction. A side effect on someone else's feature is a claim about THEIR requirements, not your mechanism.
+
+Marker advanced to 2026-08-05 (s154) — no user corrections this session; the four CDP harness traps found (stale localProjects fallback masking fixtures, collapsed Settings group unmounts the Games grid, Select trigger is a button inside the root div, queue row re-click collapses it) were routed to memory project_cdp_verification_gotchas (traps 34-37), not lesson-routed.
