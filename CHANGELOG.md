@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-05 (session 150) — Every approval teaches the engine now
+
+### Fixed
+- **Approving a clip now teaches the engine no matter where the approval happens (#239).** The feedback database write used to live only in the Pending tab's approve/reject buttons — so a clip cut in the editor and sent to the queue with the Queue button (Fega's main daily flow) was approved, rendered, and published without the engine ever learning from it. A live-data audit found 34 of 62 approved clips — more than half the published catalog, all posted to 3-4 platforms — had no feedback row. The write now happens in the main process at the single point every status change passes through, so the Pending tab, the editor's Queue button, and any future surface all teach identically. Imported pre-ClipFlow clips are explicitly fenced out per the #240 spec — they will post without ever influencing detection taste.
+- **Removing an approval or rejection now makes the engine forget it.** Previously the feedback row lived forever: un-approving a clip left it teaching the engine as a positive example, and re-approving wrote a duplicate row. Now clearing a decision deletes its row, flipping approve↔reject swaps the row, re-approving the same cut is a no-op, and dequeuing (a scheduling action, not a taste change) correctly leaves the row alone. Verified by a 14-case transition test plus a live end-to-end check through the real app.
+- **One-off backfill: the 34 missing published clips now teach the engine.** Each got a feedback row dated to when the clip was created, so history stays in order (the prod database was backed up first as `clipflow.db.bak-20260805-pre239`). Note for the #231 program: this changes the harness's answer key — ground truth must be re-pulled before the next experiment cell, which is why #239 was sequenced before #238.
+
 ## [Unreleased] — 2026-08-05 (session 149, post-build) — The verdicted keepers become real clips
 
 ### Added

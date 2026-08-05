@@ -224,7 +224,6 @@ contextBridge.exposeInMainWorld("clipflow", {
   presetRetroactiveRename: (existingFile, triggeringHistoryId) => ipcRenderer.invoke("preset:retroactiveRename", existingFile, triggeringHistoryId),
 
   // Feedback database
-  feedbackLog: (entry) => ipcRenderer.invoke("feedback:log", entry),
   feedbackUpdateReasons: (payload) => ipcRenderer.invoke("feedback:updateReasons", payload),
   feedbackApprovalStats: () => ipcRenderer.invoke("feedback:approvalStats"),
 

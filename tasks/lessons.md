@@ -1100,3 +1100,11 @@ Same principle applies to any other multi-step irreversible close-out (commit + 
 
 **Rule:** Never expand a game tag from memory. Use the bare tag, or read `gamesDb` first. Full mapping as of 2026-08-04: AR=Arc Raiders, RL=Rocket League, Val=Valorant, EO=Egging On, DD=Deadline Delivery, PoP=Prince of Persia, SCoG=Slackers: Carts of Glory, Pico=Pico Park, JC=Just Chatting, MC=Meccha Chameleon.
 Marker advanced to 2026-08-05 (s149) — no user corrections this session; the self-caught trade-framing error (crediting gemini for picks both variants find) is recorded in tasks/specs/detection-input-science.md + #235, not lesson-routed.
+
+## Session 150 (2026-08-05) — Sold a cross-feature side effect as a benefit without reading the other feature's spec
+
+**What went wrong:** The #239 fix proposal advertised "any future surface (like the #240 bulk imports) is covered automatically" — imported clips getting taste-calibration rows framed as a plus. Fega had to correct it: the OpusClip-era imports are post-only and must NEVER teach detection. The greenlit spec (`tasks/specs/queue-imports.md`) already said exactly that, in a section literally titled "Fences": "Imports NEVER enter taste calibration... enforce it explicitly."
+
+**Why:** The implication was reasoned from the choke-point design's mechanics, not from #240's intent — and the spec that recorded that intent was sitting in the repo, one read away, referenced by the very commit at HEAD.
+
+**Rule:** Before claiming a change will "automatically cover/benefit" another feature, read that feature's spec or issue first — greenlit specs may fence exactly that interaction. A side effect on someone else's feature is a claim about THEIR requirements, not your mechanism.

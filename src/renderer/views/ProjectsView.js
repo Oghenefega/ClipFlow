@@ -611,29 +611,9 @@ function ApproveRejectButtons({ clip, onUpdateClip, projectId, project }) {
     const newStatus = (decision === "approved" && ca) || (decision === "rejected" && rej) ? "none" : decision;
     if (newStatus === "approved") posthog.capture("clipflow_clip_approved");
     if (newStatus === "rejected") posthog.capture("clipflow_clip_rejected");
+    // #239: the feedback DB write now happens in the main process, inside
+    // project:updateClip — this call is the teach/unteach trigger.
     onUpdateClip(projectId, clip.id, newStatus);
-
-    // Log to feedback DB (only when actually approving/rejecting, not toggling off)
-    if (newStatus !== "none" && window.clipflow?.feedbackLog) {
-      try {
-        await window.clipflow.feedbackLog({
-          videoId: project?.name || "",
-          // #197: learning follows the clip's content tag, not the session's
-          gameTag: clip.gameTag || project?.gameTag || "",
-          clipStart: fmtHMS(clip.startTime),
-          clipEnd: fmtHMS(clip.endTime),
-          title: clip.title || "",
-          transcriptSegment: (clip.subtitles?.sub1 || []).map((s) => s.text).join(" ").substring(0, 500),
-          peakEnergy: (clip.confidence || clip.highlightScore / 100 || 0),
-          hasFrame: !!clip.hasFrame,
-          // claudeReason / peakQuote dropped (#71) — Claude no longer narrates clips.
-          energyLevel: clip.energyLevel || "",
-          confidence: clip.confidence || 0,
-          decision: newStatus,
-          userNote: "",
-        });
-      } catch (e) { /* non-critical */ }
-    }
   };
 
   return (

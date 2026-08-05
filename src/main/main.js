@@ -1998,7 +1998,22 @@ ipcMain.handle("project:delete", async (_, projectId) => {
 ipcMain.handle("project:updateClip", async (_, projectId, clipId, updates) => {
   try {
     const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
-    return projects.updateClip(watchFolder, projectId, clipId, updates);
+    // #239: a status change is a taste decision. Capture the prior status and
+    // let the feedback DB react at this single choke point — every surface that
+    // approves/rejects a clip funnels through this handler.
+    const isStatusChange = Object.prototype.hasOwnProperty.call(updates || {}, "status");
+    const before = isStatusChange ? projects.loadProject(watchFolder, projectId) : null;
+    const prevStatus = before?.clips?.find((c) => c.id === clipId)?.status;
+    const result = projects.updateClip(watchFolder, projectId, clipId, updates);
+    if (isStatusChange && before && result?.clip) {
+      try {
+        feedbackDb.handleStatusTransition(before, prevStatus, result.clip);
+      } catch (e) {
+        // Non-critical: never block the clip update on a feedback write.
+        console.error("[feedback] status transition failed:", e.message);
+      }
+    }
+    return result;
   } catch (err) { return { error: err.message }; }
 });
 
@@ -2119,12 +2134,6 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
 ipcMain.handle("feedback:updateReasons", async (_, payload) => {
   try {
     return feedbackDb.updateReasons(payload || {});
-  } catch (err) { return { error: err.message }; }
-});
-
-ipcMain.handle("feedback:log", async (_, entry) => {
-  try {
-    return feedbackDb.logFeedback(entry);
   } catch (err) { return { error: err.message }; }
 });
 

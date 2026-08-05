@@ -56,6 +56,117 @@ function updateReasons({ videoId, clipStart, clipEnd, reasons, userNote }) {
   return { success: true };
 }
 
+// ── #239: clip status transitions are the single source of feedback rows ────
+// Every surface that can approve/reject a clip (Pending tab, editor Queue
+// button, anything future) funnels through the project:updateClip IPC handler,
+// which calls handleStatusTransition after the merge. Teaching happens there —
+// no per-surface renderer writes, so no path can flip a decision silently.
+
+// Matches the renderer's fmtHMS exactly — reject-reason chips (#198) and the
+// replay harness (#233) match rows by these exact strings.
+function fmtHMS(sec) {
+  if (!sec || isNaN(sec)) return "00:00:00";
+  const h = Math.floor(sec / 3600).toString().padStart(2, "0");
+  const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+const isApprovedStatus = (s) => s === "approved" || s === "ready";
+const isClearedStatus = (s) => !s || s === "none";
+
+function decisionRowExists({ videoId, clipStart, clipEnd, decision }) {
+  const db = database.getDb();
+  if (!db) return false;
+  const result = db.exec(
+    `SELECT id FROM feedback WHERE video_id = ? AND clip_start = ? AND clip_end = ? AND decision = ? LIMIT 1`,
+    [videoId, clipStart, clipEnd, decision]
+  );
+  return database.toRows(result).length > 0;
+}
+
+/**
+ * Delete the latest row matching a clip's cut window + decision (mirror of
+ * updateReasons' identity matching). Used when a decision is retracted.
+ */
+function deleteDecision({ videoId, clipStart, clipEnd, decision }) {
+  const db = database.getDb();
+  if (!db) return { error: "Database not initialized" };
+
+  db.run(
+    `DELETE FROM feedback
+      WHERE id = (SELECT id FROM feedback
+                   WHERE video_id = ? AND clip_start = ? AND clip_end = ? AND decision = ?
+                   ORDER BY timestamp DESC, id DESC LIMIT 1)`,
+    [videoId, clipStart, clipEnd, decision]
+  );
+
+  database.save();
+  return { success: true };
+}
+
+function entryFromClip(project, clip, decision) {
+  return {
+    videoId: project?.name || "",
+    // #197: learning follows the clip's content tag, not the session's
+    gameTag: clip.gameTag || project?.gameTag || "",
+    clipStart: fmtHMS(clip.startTime),
+    clipEnd: fmtHMS(clip.endTime),
+    title: clip.title || "",
+    transcriptSegment: (clip.subtitles?.sub1 || []).map((s) => s.text).join(" ").substring(0, 500),
+    peakEnergy: clip.confidence || clip.highlightScore / 100 || 0,
+    hasFrame: !!clip.hasFrame,
+    energyLevel: clip.energyLevel || "",
+    confidence: clip.confidence || 0,
+    decision,
+    userNote: "",
+  };
+}
+
+/**
+ * React to a clip's status change with the right feedback writes (#239):
+ * gaining approved/rejected teaches once (dedupe on the exact cut window, so
+ * re-approving the same cut is a no-op while re-approving an edited cut records
+ * a decision on the new window); clearing back to none untaught it; flipping
+ * approve↔reject retracts the old row and writes the new one. "dequeued" and
+ * other statuses are scheduling state, not taste — no feedback action.
+ */
+function handleStatusTransition(project, prevStatus, clip) {
+  // #240 fence: imported (pre-ClipFlow) clips never enter taste calibration.
+  if (clip.source === "import") return { skipped: "import" };
+  const next = clip.status;
+  if (prevStatus === next) return { skipped: "no-change" };
+  const key = {
+    videoId: project?.name || "",
+    clipStart: fmtHMS(clip.startTime),
+    clipEnd: fmtHMS(clip.endTime),
+  };
+
+  if (isApprovedStatus(next) && !isApprovedStatus(prevStatus)) {
+    if (prevStatus === "rejected") deleteDecision({ ...key, decision: "rejected" });
+    if (!decisionRowExists({ ...key, decision: "approved" })) {
+      logFeedback(entryFromClip(project, clip, "approved"));
+    }
+    return { logged: "approved" };
+  }
+  if (next === "rejected" && prevStatus !== "rejected") {
+    if (isApprovedStatus(prevStatus)) deleteDecision({ ...key, decision: "approved" });
+    if (!decisionRowExists({ ...key, decision: "rejected" })) {
+      logFeedback(entryFromClip(project, clip, "rejected"));
+    }
+    return { logged: "rejected" };
+  }
+  if (isClearedStatus(next) && isApprovedStatus(prevStatus)) {
+    deleteDecision({ ...key, decision: "approved" });
+    return { deleted: "approved" };
+  }
+  if (isClearedStatus(next) && prevStatus === "rejected") {
+    deleteDecision({ ...key, decision: "rejected" });
+    return { deleted: "rejected" };
+  }
+  return { skipped: "not-a-decision" };
+}
+
 /**
  * Get the last N approved clips for a game tag (for few-shot injection).
  */
@@ -180,6 +291,7 @@ function getApprovalStats(rollingProjects = 10) {
 
 module.exports = {
   logFeedback,
+  handleStatusTransition,
   updateReasons,
   getApprovedClips,
   getRejectedClips,
