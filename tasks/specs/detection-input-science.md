@@ -24,7 +24,10 @@
 > Integration cell f10-gemInt: pooled 22/26 = 85% vs f10-mix 25/26 — gate NOT
 > held on run1s; diagnosis = cut-boundary tightening + tail-budget
 > displacement, NOT bad moment selection (rej-hit improved 49%→46%).
-> Noise-check re-runs + gate decision BLOCKED on Anthropic API credits.**
+> Noise checks (same session): DD's loss was noise, EO Day3's is SYSTEMATIC
+> (6/8 all 3 runs, pick-budget squeeze on the densest recording) — expected
+> pooled ≈ 23/26. Gate decision with Fega; pick-budget/cut-boundary cell is
+> the named follow-up.**
 
 ## The question this answers
 
@@ -253,10 +256,20 @@ rebuilt real-DB RL prompt has 0 placeholder lines (was 7 of 12). Closed
 > loss axis is cut boundaries + fixed ~15-pick budget under midpoint scoring,
 > exactly the precision frontier Fega's D3 verdicts named. 13-pick eyeball
 > list (mostly mic-driven fresh territory) shipped as proxy cuts to
-> `Desktop\ClipFlow Eyeball f10-gemInt\`. **Queued, blocked on Anthropic API
-> credits: 2×2 noise-check runs on EO Day3 + DD Day2 (~$0.40), then Fega's
-> gate decision** (hold behind flag / accept documented edge-loss + run the
-> cut-boundary experiment next / revert default-on).
+> `Desktop\ClipFlow Eyeball f10-gemInt\`.
+>
+> **Noise-check runs DONE same session (post credit top-up, $0.39): DD's
+> loss was NOISE (5/5, 5/5 on re-runs — the 10:26 miss was a 4s boundary
+> coin-flip); EO Day3's is SYSTEMATIC (6/8 in all 3 runs — 6:33→7:12
+> displaced every run, a second marginal row rotates). Expected pooled with
+> the signal ≈ 23/26 (88%) vs 25/26. Mechanism: densest approved recording
+> (8 rows) + 7 gemini events competing for a fixed ~15-pick budget; the two
+> weakest historical rows lose their slots. GATE DECISION WITH FEGA —
+> options: eyeball the 13 new picks first (the 4 displacing EO Day3 picks
+> are in the folder; ≥2 keepers arguably flips the trade net-positive),
+> keep default ON + run the pick-budget/cut-boundary cell next, or flip
+> default OFF until a cell passes. No live exposure either way until the
+> next installer ships (batching rule).**
 
 The engine has never *seen* gameplay — it reads words, hears audio events, looks at
 stills. Visually spectacular but quiet moments are near-invisible (#190 closes this

@@ -1,0 +1,250 @@
+{
+  "videoName": "2026-07-30 DD Day2 Pt1",
+  "gameTag": "DD",
+  "label": "f10-gemInt",
+  "variant": {
+    "frames": 10,
+    "rejected": true,
+    "approved": true,
+    "playstyle": true,
+    "gemini": true
+  },
+  "geminiActors": {
+    "player": 14,
+    "spectator": 0,
+    "unclear": 0,
+    "landed": 10
+  },
+  "run": 1,
+  "promptChars": 7995,
+  "transcriptChars": 14474,
+  "frameCount": 10,
+  "usage": {
+    "inputTokens": 22255,
+    "outputTokens": 1029
+  },
+  "cost": 0.08220000000000001,
+  "picks": [
+    {
+      "clip_number": 1,
+      "start": "00:12:04",
+      "end": "00:12:45",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.95
+    },
+    {
+      "clip_number": 2,
+      "start": "00:13:36",
+      "end": "00:13:59",
+      "energy_level": "EXPLOSIVE",
+      "has_frame": true,
+      "confidence": 0.93
+    },
+    {
+      "clip_number": 3,
+      "start": "00:04:27",
+      "end": "00:05:18",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.9
+    },
+    {
+      "clip_number": 4,
+      "start": "00:09:42",
+      "end": "00:10:05",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.88
+    },
+    {
+      "clip_number": 5,
+      "start": "00:05:28",
+      "end": "00:05:40",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.85
+    },
+    {
+      "clip_number": 6,
+      "start": "00:02:40",
+      "end": "00:03:32",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.83
+    },
+    {
+      "clip_number": 7,
+      "start": "00:10:27",
+      "end": "00:10:49",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.82
+    },
+    {
+      "clip_number": 8,
+      "start": "00:08:47",
+      "end": "00:09:03",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.8
+    },
+    {
+      "clip_number": 9,
+      "start": "00:06:22",
+      "end": "00:06:55",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.78
+    },
+    {
+      "clip_number": 10,
+      "start": "00:01:41",
+      "end": "00:02:04",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.75
+    },
+    {
+      "clip_number": 11,
+      "start": "00:07:36",
+      "end": "00:07:56",
+      "energy_level": "MED",
+      "has_frame": false,
+      "confidence": 0.68
+    },
+    {
+      "clip_number": 12,
+      "start": "00:11:17",
+      "end": "00:11:50",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.67
+    },
+    {
+      "clip_number": 13,
+      "start": "00:00:00",
+      "end": "00:00:56",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.62
+    },
+    {
+      "clip_number": 14,
+      "start": "00:03:45",
+      "end": "00:04:05",
+      "energy_level": "HIGH",
+      "has_frame": false,
+      "confidence": 0.6
+    },
+    {
+      "clip_number": 15,
+      "start": "00:09:14",
+      "end": "00:09:30",
+      "energy_level": "HIGH",
+      "has_frame": true,
+      "confidence": 0.58
+    }
+  ],
+  "score": {
+    "approvedTotal": 5,
+    "approvedMatched": 5,
+    "approvedRecall": 1,
+    "rejectedHits": 6,
+    "rejectedHitRate": 0.4,
+    "unreviewed": 4,
+    "perPick": [
+      {
+        "start": 724,
+        "end": 765,
+        "confidence": 0.95,
+        "verdict": "approved"
+      },
+      {
+        "start": 816,
+        "end": 839,
+        "confidence": 0.93,
+        "verdict": "approved"
+      },
+      {
+        "start": 267,
+        "end": 318,
+        "confidence": 0.9,
+        "verdict": "approved"
+      },
+      {
+        "start": 582,
+        "end": 605,
+        "confidence": 0.88,
+        "verdict": "rejected"
+      },
+      {
+        "start": 328,
+        "end": 340,
+        "confidence": 0.85,
+        "verdict": "approved"
+      },
+      {
+        "start": 160,
+        "end": 212,
+        "confidence": 0.83,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 627,
+        "end": 649,
+        "confidence": 0.82,
+        "verdict": "approved"
+      },
+      {
+        "start": 527,
+        "end": 543,
+        "confidence": 0.8,
+        "verdict": "rejected"
+      },
+      {
+        "start": 382,
+        "end": 415,
+        "confidence": 0.78,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 101,
+        "end": 124,
+        "confidence": 0.75,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 456,
+        "end": 476,
+        "confidence": 0.68,
+        "verdict": "rejected"
+      },
+      {
+        "start": 677,
+        "end": 710,
+        "confidence": 0.67,
+        "verdict": "unreviewed"
+      },
+      {
+        "start": 0,
+        "end": 56,
+        "confidence": 0.62,
+        "verdict": "rejected"
+      },
+      {
+        "start": 225,
+        "end": 245,
+        "confidence": 0.6,
+        "verdict": "rejected"
+      },
+      {
+        "start": 554,
+        "end": 570,
+        "confidence": 0.58,
+        "verdict": "rejected"
+      }
+    ]
+  },
+  "scoredAt": "2026-08-05T00:12:57.021Z"
+}
