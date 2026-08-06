@@ -3,19 +3,26 @@ import T from "../styles/theme";
 import { GamePill, Card, SectionLabel, ColorPicker } from "./shared";
 
 // ============ ADD GAME MODAL ============
-export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore }) => {
+export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, anthropicApiKey = "" }) => {
   const isContent = entryType === "content";
   const rawName = exe ? exe.replace(/\.exe$/i, "").replace(/[-_]/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Win64.*|Shipping.*/i, "").trim() : "";
   const [gameName, setGameName] = useState(rawName);
   const [tag, setTag] = useState(rawName ? rawName.split(" ").map((w) => w[0] || "").join("") : "");
   const [hashtag, setHashtag] = useState(rawName ? rawName.replace(/\s+/g, "").toLowerCase() : "");
   const [color, setColor] = useState(isContent ? "#9b5de5" : "#8b5cf6");
+  // #246: playStyle is collected on its own wizard step (games only) and lands
+  // in BOTH stores via the confirm payload + App's profile write-through.
+  const [playStyle, setPlayStyle] = useState("");
   const [step, setStep] = useState(1);
   const isFromExe = !!exe;
   const typeLabel = isContent ? "Content Type" : "Game";
+  // #246: research really happens after Done (App fires it in the background),
+  // so the interstitial only claims it when it will actually run.
+  const willResearch = !isContent && !!anthropicApiKey;
   const timerRef = useRef(null);
   // Clean up timeout on unmount to prevent state updates after unmount
   useEffect(() => () => clearTimeout(timerRef.current), []);
+  const advance = () => { setStep(3); timerRef.current = setTimeout(() => setStep(4), 2000); };
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
@@ -72,23 +79,46 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
                   <button onClick={() => onIgnore(exe)} style={{ padding: "14px 16px", borderRadius: T.radius.md, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Ignore</button>
                 )}
                 <button onClick={onDismiss} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                <button onClick={() => { setStep(2); timerRef.current = setTimeout(() => setStep(3), 2000); }} disabled={!gameName.trim() || !tag.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tag.trim()) ? 0.4 : 1 }}>Confirm & Generate</button>
+                <button onClick={() => { if (isContent) advance(); else setStep(2); }} disabled={!gameName.trim() || !tag.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: (!gameName.trim() || !tag.trim()) ? 0.4 : 1 }}>{isContent ? "Confirm & Generate" : "Continue"}</button>
               </div>
             </>
           )}
 
+          {/* #246: play-style step (games only) — skippable on purpose; skipping
+              still lets the evidence-based re-ask propose a draft later. */}
           {step === 2 && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>⚙️</div>
-              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>Generating for {gameName}...</div>
-            </div>
+            <>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>How do you play {gameName}?</div>
+              <div style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.5, marginTop: 4 }}>
+                Helps the AI pick clips and write titles that sound like you. Skip it and ClipFlow will ask again once it has seen a few of your sessions.
+              </div>
+              <textarea
+                value={playStyle}
+                onChange={(e) => setPlayStyle(e.target.value)}
+                autoFocus
+                placeholder={"e.g. \"I'm grinding ranked, trying to hit Diamond. Very competitive but I rage in a funny way.\""}
+                style={{ width: "100%", minHeight: 110, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "12px 16px", color: T.text, fontSize: 13, fontFamily: T.font, outline: "none", marginTop: 14, marginBottom: 18, boxSizing: "border-box", resize: "vertical", lineHeight: 1.5 }}
+              />
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => { setPlayStyle(""); advance(); }} style={{ flex: 1, padding: 14, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Skip for now</button>
+                <button onClick={advance} disabled={!playStyle.trim()} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: `linear-gradient(135deg, ${T.accent}, ${T.accentLight})`, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: !playStyle.trim() ? 0.4 : 1 }}>Save & Continue</button>
+              </div>
+            </>
           )}
 
           {step === 3 && (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>{willResearch ? "🔎" : "⚙️"}</div>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>{willResearch ? `Researching ${gameName} in the background` : `Setting up ${gameName}...`}</div>
+              {willResearch && <div style={{ color: T.textSecondary, fontSize: 12.5, marginTop: 8 }}>You can keep working — game knowledge lands on its own.</div>}
+            </div>
+          )}
+
+          {step === 4 && (
             <div style={{ textAlign: "center", padding: "10px 0" }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
               <div style={{ color: T.green, fontSize: 18, fontWeight: 800, marginBottom: 12 }}>{gameName} Added!</div>
-              <button onClick={() => onConfirm({ name: gameName, tag, hashtag, color, entryType, exe: exe ? [exe] : [] })} style={{ width: "100%", padding: 14, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Done</button>
+              <button onClick={() => onConfirm({ name: gameName, tag, hashtag, color, entryType, exe: exe ? [exe] : [], aiContextUser: playStyle.trim() })} style={{ width: "100%", padding: 14, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Done</button>
             </div>
           )}
         </div>
@@ -388,11 +418,16 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
   // Both panes are editable; the button you press saves THAT pane's text.
   const [curText, setCurText] = useState(oldProfile || "");
   const [newText, setNewText] = useState(newProfile || "");
+  // #246: no existing profile → this isn't an update, it's the first ask.
+  // Reframe as an evidence draft ("here's what we've noticed — confirm or
+  // tweak") instead of a diff against nothing.
+  const isFirstDraft = !(oldProfile || "").trim();
 
   const handleAccept = async () => {
     setAccepting(true);
     try {
-      await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, newText);
+      // gameName rides along so a profile created here gets its display name (#246)
+      await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, newText, gameName);
       await window.clipflow.gameProfilesResetCount(gameTag);
       onAccept(newText);
     } catch (err) {
@@ -407,13 +442,14 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
       // Honor edits made to the Current pane — "Keep Current" keeps what the
       // user sees there, not a stale copy from before their edits.
       if (curText !== (oldProfile || "")) {
-        await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, curText);
+        await window.clipflow.gameProfilesUpdatePlayStyle(gameTag, curText, gameName);
       }
       await window.clipflow.gameProfilesResetCount(gameTag);
     } catch (err) {
       console.error("Failed to save profile:", err);
     }
-    onDismiss();
+    // #246: callers write-through to gamesDb.aiContextUser when text was kept
+    onDismiss(curText !== (oldProfile || "") ? curText : null);
   };
 
   const curEdited = curText !== (oldProfile || "");
@@ -426,32 +462,35 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🧠</div>
             <div>
-              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>Play Style Update — {gameName}</div>
-              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>Green = added · red = removed · amber = reworded, same content on both sides · both sides editable</div>
+              <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>{isFirstDraft ? `How do you play ${gameName}?` : `Play Style Update — ${gameName}`}</div>
+              <div style={{ color: T.textTertiary, fontSize: 12, marginTop: 2 }}>{isFirstDraft ? "Based on your recent sessions, here's what we've noticed — accept it, or edit it to match how you actually play" : "Green = added · red = removed · amber = reworded, same content on both sides · both sides editable"}</div>
             </div>
           </div>
         </div>
 
-        {/* Diff content */}
+        {/* Diff content — first draft shows a single evidence pane (a diff
+            against an empty Current is all-green noise, #246) */}
         <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isFirstDraft ? "1fr" : "1fr 1fr", gap: 16 }}>
+            {!isFirstDraft && (
+              <ProfilePane
+                label="Current"
+                dotColor={T.red}
+                tint={{ bg: "rgba(248,113,113,0.04)", border: "rgba(248,113,113,0.15)" }}
+                text={curText}
+                onChange={setCurText}
+                otherText={newText}
+                highlightColor="rgba(248,113,113,0.14)"
+                emptyLabel="(empty)"
+              />
+            )}
             <ProfilePane
-              label="Current"
-              dotColor={T.red}
-              tint={{ bg: "rgba(248,113,113,0.04)", border: "rgba(248,113,113,0.15)" }}
-              text={curText}
-              onChange={setCurText}
-              otherText={newText}
-              highlightColor="rgba(248,113,113,0.14)"
-              emptyLabel="(empty)"
-            />
-            <ProfilePane
-              label="Proposed"
+              label={isFirstDraft ? "What we've noticed" : "Proposed"}
               dotColor={T.green}
               tint={{ bg: "rgba(52,211,153,0.04)", border: "rgba(52,211,153,0.15)" }}
               text={newText}
               onChange={setNewText}
-              otherText={curText}
+              otherText={isFirstDraft ? newText : curText}
               highlightColor="rgba(52,211,153,0.18)"
               emptyLabel="(empty)"
             />
@@ -460,8 +499,8 @@ export const ProfileDiffModal = ({ gameTag, gameName, oldProfile, newProfile, on
 
         {/* Actions */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={handleDismiss} style={{ flex: 1, padding: 12, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{curEdited ? "Keep Current (edited)" : "Keep Current"}</button>
-          <button onClick={handleAccept} disabled={accepting} style={{ flex: 2, padding: 12, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: accepting ? 0.6 : 1 }}>{accepting ? "Saving..." : "Accept Update"}</button>
+          <button onClick={handleDismiss} style={{ flex: 1, padding: 12, borderRadius: T.radius.md, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>{isFirstDraft ? "Not now" : curEdited ? "Keep Current (edited)" : "Keep Current"}</button>
+          <button onClick={handleAccept} disabled={accepting} style={{ flex: 2, padding: 12, borderRadius: T.radius.md, border: "none", background: T.green, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font, opacity: accepting ? 0.6 : 1 }}>{accepting ? "Saving..." : isFirstDraft ? "Save Play Style" : "Accept Update"}</button>
         </div>
       </div>
     </div>

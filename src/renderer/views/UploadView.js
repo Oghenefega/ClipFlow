@@ -132,7 +132,7 @@ const CLUSTER_SHELL = {
   animation: "clipflowClusterUp 0.18s ease-out",
 };
 
-export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, testWatchFolder = "", refreshKey = 0, isActive = false }) {
+export default function RecordingsView({ gamesDb = [], localProjects = [], onProjectCreated, onOpenSourcePreview, onPlayStyleSaved, testWatchFolder = "", refreshKey = 0, isActive = false }) {
   const [files, setFiles] = useState([]);
   // Rows that appeared since the user last looked at this tab wear a NEW chip.
   // Session-only; cleared when the tab is left. knownIdsRef is the id set from
@@ -1688,15 +1688,17 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         </div>
       ) : null}
 
-      {/* Profile Diff Modal — shown when play style update is suggested after pipeline */}
+      {/* Profile Diff Modal — shown when play style update is suggested after pipeline.
+          #246: saved text also write-throughs to gamesDb.aiContextUser via App,
+          so the editor-titles store stops diverging from game_profiles.json. */}
       {profileDiff && (
         <ProfileDiffModal
           gameTag={profileDiff.gameTag}
           gameName={profileDiff.gameName}
           oldProfile={profileDiff.oldProfile}
           newProfile={profileDiff.newProfile}
-          onAccept={() => setProfileDiff(null)}
-          onDismiss={() => setProfileDiff(null)}
+          onAccept={(text) => { if (text != null) onPlayStyleSaved?.(profileDiff.gameTag, text); setProfileDiff(null); }}
+          onDismiss={(text) => { if (text != null) onPlayStyleSaved?.(profileDiff.gameTag, text); setProfileDiff(null); }}
         />
       )}
 

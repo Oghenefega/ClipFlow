@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-06 (session 156) — Research reaches detection; the wizard asks how you play
+
+### Fixed
+- **Researched game knowledge finally reaches clip detection (#245).** Since March, the pipeline read a `aiContext` field that nothing ever wrote, while the research feature saved to `aiContextAuto` — so the "Research Game" knowledge only ever helped editor titles, never detection. The pipeline now reads the real field, capped at 1,500 characters inside the prompt builder (Pico Park's 8.4k research dump can't eat the budget the taste-calibration sections are tuned for). Shipped through a #234 ablation cell per the detection-science rules: recall 28/29 (the one miss is RL Day8's pre-existing ANKLES BROKEN mid-point knife-edge at its historical 1/3 hit rate — the moment is found every run, the edge shifts), rejected-hit rate flat at 47%. Boundary coverage read 86% vs the no-context 93% reference (single runs, possibly noise) — flagged in #234 as the post-ship watch metric. Ships ON in the next installer pending Fega's sign-off on the cell.
+
+### Added
+- **New games research themselves (#246).** Adding a game — from Settings or the new-game-detected prompt — now fires the AI game research automatically in the background once you hit Done: no more remembering to open Edit → AI Context → Research Game. A toast announces when the knowledge lands ("Celeste researched — clip detection now knows this game"), and with no Anthropic API key configured the step is silently skipped. Content types (Just Chatting) are excluded on purpose. The wizard's old fake 2-second "Generating..." screen now tells the truth: "Researching in the background — you can keep working."
+- **The Add Game wizard asks how you play (#246).** A new skippable step after the game details: "How do you play this game?" with a prominent "Skip for now". What you write lands in BOTH play-style stores at once — the one the detection pipeline reads (game_profiles) and the one editor titles read (AI Context → Your Play Style) — ending the silent divergence where the two features each saw half the picture. Saves from the post-session Play Style Update card now write through to both stores too.
+- **The play-style ask leads with evidence, not a blank box (#246).** When ClipFlow has watched enough sessions to propose a play style but you never wrote one, the update card stops pretending to be a diff against nothing: it reframes as "How do you play X? — based on your recent sessions, here's what we've noticed", showing a single editable draft with Save / Not now. Confirming a pre-written draft beats composing from scratch.
+
 ## [Unreleased] — 2026-08-06 (session 155) — Every game gets its knowledge; YouTube stops dying weekly
 
 ### Added

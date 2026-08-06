@@ -89,7 +89,7 @@ Content archetype: ${archetype}`;
 
 ${typeLabel}: ${gameName || gameTag}`;
   if (gameContext) {
-    gameSection += `\n\nAbout this ${isContent ? "content type" : "game"}:\n${gameContext}`;
+    gameSection += `\n\nAbout this ${isContent ? "content type" : "game"}:\n${capGameContext(gameContext)}`;
   }
   if (profile && profile.playStyle) {
     gameSection += `\n\nHow this creator plays ${gameName || gameTag}:\n${profile.playStyle}`;
@@ -196,6 +196,11 @@ function getArchetypePersonality(archetype) {
 const SNIPPET_MAX_CHARS = 180;
 const SECTION_CHAR_BUDGET = 3000; // per section; two sections ≈ 6k combined
 
+// #245: researched game context (aiContextAuto) gets its own cap — one game's
+// 8k research dump must not outweigh the few-shot sections (3k each) that the
+// taste calibration is built on.
+const GAME_CONTEXT_CHAR_BUDGET = 1500;
+
 // ── Rejection reasons (#198, expanded #232) ──
 // Reasons that say nothing about taste: the moment was good (duplicate of a
 // kept pick, or too similar to clips already kept), or only the
@@ -233,6 +238,17 @@ function truncateSnippet(text, max = SNIPPET_MAX_CHARS) {
   if (clean.length <= max) return clean;
   const cut = clean.lastIndexOf(" ", max);
   return (cut > 0 ? clean.slice(0, cut) : clean.slice(0, max)) + "…";
+}
+
+/**
+ * Cap researched game context at a word boundary (#245). Unlike
+ * truncateSnippet, paragraph structure is preserved when under the cap.
+ */
+function capGameContext(text) {
+  const clean = String(text || "").trim();
+  if (clean.length <= GAME_CONTEXT_CHAR_BUDGET) return clean;
+  const cut = clean.lastIndexOf(" ", GAME_CONTEXT_CHAR_BUDGET);
+  return (cut > 0 ? clean.slice(0, cut) : clean.slice(0, GAME_CONTEXT_CHAR_BUDGET)) + "…";
 }
 
 /**

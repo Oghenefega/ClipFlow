@@ -271,6 +271,9 @@ export default function App() {
 
   // AI Title & Caption Generator
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  // #246: transient app-level toast (background research completion etc.) —
+  // string message, auto-dismissed; not persisted.
+  const [toast, setToast] = useState(null);
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayAuthToken, setGatewayAuthToken] = useState("");
@@ -537,6 +540,13 @@ export default function App() {
     }
   }, [mainGame, loaded]);
 
+  // #246: toast auto-dismiss
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   // ============ HANDLERS ============
   const handleNewGame = (gd) => {
     setGamesDb((p) => [...p, { ...gd, entryType: gd.entryType || showAddGame || "game", dayCount: gd.entryType === "content" || showAddGame === "content" ? 0 : 1 }]);
@@ -547,8 +557,34 @@ export default function App() {
     setYtDescriptions((p) => ({ ...p, [gameName]: { desc: ytDesc } }));
     setNewGameExe(null);
     setShowAddGame(false);
+    const entryType = gd.entryType || showAddGame || "game";
+    // #246: play-style write-through — game_profiles.json is the store the
+    // detection pipeline reads; aiContextUser (already in the gamesDb entry
+    // via the payload) is the one editor titles read. Write both, always.
+    if (entryType === "game" && (gd.aiContextUser || "").trim()) {
+      window.clipflow.gameProfilesUpdatePlayStyle?.(gd.tag, gd.aiContextUser.trim(), gd.name)?.catch?.(() => {});
+    }
+    // #246: auto-research in the background. No API key → silent skip (the
+    // Edit modal's hint already points at Settings). Content types excluded
+    // on purpose (JC rule — content, not a game).
+    if (entryType === "game" && anthropicApiKey) {
+      window.clipflow.anthropicResearchGame(gd.name).then((result) => {
+        if (result?.success && result.data) {
+          setGamesDb((prev) => prev.map((g) => (g.name === gd.name ? { ...g, aiContextAuto: result.data, aiResearchedAt: new Date().toISOString() } : g)));
+          setToast(`${gd.name} researched — clip detection now knows this game`);
+        } else if (result?.error) {
+          console.warn(`Background game research failed for ${gd.name}:`, result.error);
+        }
+      }).catch((err) => console.warn(`Background game research failed for ${gd.name}:`, err?.message || err));
+    }
   };
   const handleEditGame = (u) => setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
+
+  // #246: gamesDb side of the play-style write-through for saves that happen
+  // inside ProfileDiffModal (which only writes game_profiles.json itself).
+  const handlePlayStyleSaved = useCallback((gameTag, text) => {
+    setGamesDb((prev) => prev.map((g) => (g.tag === gameTag ? { ...g, aiContextUser: text } : g)));
+  }, []);
 
   // Called by RenameView after a file is renamed — persists dayCount + lastDayDate per game
   const handleGameDayUpdate = useCallback((tag, dayCount, lastDayDate) => {
@@ -832,6 +868,7 @@ export default function App() {
               testWatchFolder={testWatchFolder}
               refreshKey={recordingsRefreshKey}
               isActive={view === "recordings"}
+              onPlayStyleSaved={handlePlayStyleSaved}
               onOpenSourcePreview={handleOpenSourcePreview}
               onProjectCreated={(projectId) => {
                 window.clipflow?.projectList().then((result) => {
@@ -1049,7 +1086,15 @@ export default function App() {
           onConfirm={handleNewGame}
           onDismiss={() => { setNewGameExe(null); setShowAddGame(null); }}
           onIgnore={newGameExe ? (exe) => { setIgnoredProcesses((p) => [...p, exe]); setNewGameExe(null); } : null}
+          anthropicApiKey={anthropicApiKey}
         />
+      )}
+      {/* #246: transient toast — sits above the render pill when both show */}
+      {toast && (
+        <div style={{ position: "fixed", bottom: renderJob && view !== "editor" ? 92 : 20, right: 24, zIndex: 951, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, background: T.surface, border: `1px solid ${T.greenBorder}`, boxShadow: "0 8px 24px rgba(0,0,0,0.45)", color: T.text, fontSize: 12.5, fontWeight: 600, fontFamily: T.font }}>
+          <span style={{ width: 7, height: 7, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}`, flexShrink: 0 }} />
+          {toast}
+        </div>
       )}
       {audioCalAsk && (
         <AudioCalibrationModal

@@ -404,6 +404,29 @@ test("core sections always present", () => {
   expect(prompt).toContain("# OUTPUT FORMAT");
 });
 
+test("game context under the cap passes through with structure intact (#245)", () => {
+  const prompt = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", entryType: "game",
+    gameContext: "First paragraph.\n\nSecond paragraph.",
+    approvedClips: [], creatorProfile: null,
+  });
+  expect(prompt).toContain("About this game:\nFirst paragraph.\n\nSecond paragraph.");
+});
+
+test("game context over 1,500 chars is capped at a word boundary (#245)", () => {
+  const long = ("word ".repeat(400)).trim() + " FINALMARKER"; // ~2,012 chars
+  const prompt = buildSystemPrompt({
+    gameTag: "ZZTEST", gameName: "Test Game", entryType: "game",
+    gameContext: long,
+    approvedClips: [], creatorProfile: null,
+  });
+  expect(prompt).notToContain("FINALMARKER");
+  const injected = prompt.split("About this game:\n")[1].split("\n\n")[0];
+  expect(injected.length).toBeLessThan(1502); // 1,500 + ellipsis
+  expect(injected.endsWith("…")).toBeTruthy();
+  expect(injected).notToContain("wor…"); // never mid-word
+});
+
 test("both feedback sections present when both datasets exist", () => {
   const prompt = buildFullPrompt({ approved: [approvedRow()], rejected: [rejectedRow()] });
   expect(prompt).toContain("# EXAMPLES OF CLIPS THIS CREATOR HAS APPROVED");

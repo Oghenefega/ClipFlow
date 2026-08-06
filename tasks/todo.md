@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 PLAN (session 155) — #246 auto-research + play style, #245 wiring — APPROVED; Step 1 DONE, Steps 2-4 next session
+## ✅ BUILT (sessions 155–156) — #246 auto-research + play style, #245 wiring — ALL STEPS DONE; cell PASSED; awaiting Fega sign-off, ships with next installer (alpha.41+)
 
 Approved direction from Fega 2026-08-06 chat: auto-research on add, play-style
 as an extra Add Game step (skippable), evidence-based re-ask ("here's what
@@ -32,7 +32,14 @@ scratchpad `backfill-research.js` / `research-cache.json` — the in-app sweep
 - Fega decision (2026-08-06): AddGameModal step-2 copy change APPROVED
   ("handle it now") — implement with Step 3a.
 
-### Step 2 — #245 wire + ablation cell (gated ship)
+### Step 2 — #245 wire + ablation cell (gated ship) — ✅ DONE 2026-08-06 s156
+
+Cell `gc245` PASSED the gate: recall 28/29 (miss = ANKLES BROKEN midpoint
+knife-edge, 1/3 hit across 3 samples — same rate as #238 Cell C), rej-hit flat
+47%. Boundary coverage 86% vs shipped-A's 93% (single runs; flagged in #234 as
+the post-ship watch metric — watch bad-cut chips). Cap lives in
+buildSystemPrompt so harness measures shipped code; 2 cap tests added (62/62
+green). Full tables in #234 comment; wire ships ON pending Fega sign-off.
 
 Code: [ai-pipeline.js:734](src/main/ai-pipeline.js) reads `aiContextAuto`
 (dead `aiContext` retired), injection capped ~1,500 chars (Pico Park's 8.4k
@@ -47,7 +54,14 @@ rebaseline (26/29 recall / 47% rej-hit / 87% coverage). ~$0.60-0.80.
   updated with the measured verdict, research stays editor-titles-only.
 - Either way: results posted to #234, Fega signs off before the installer.
 
-### Step 3 — #246 UI (all renderer)
+### Step 3 — #246 UI (all renderer) — ✅ DONE 2026-08-06 s156
+
+All three built + step-2 honest copy. CDP-drove both wizard flows on the dev
+profile: play-style Save landed in BOTH stores (profile got real gameName via
+ensureProfile), Skip left no profile entry, research auto-landed for both games
+in 10–15s with the toast, old fake "Generating..." copy gone. NOT live-driven:
+the first-draft ProfileDiffModal reframe (needs a real pipeline run on an
+empty-profile game — verify next time one fires naturally).
 
 a. **Auto-research on add** — App.js ([AddGameModal mount :1046](src/renderer/App.js)):
    after a game is confirmed, fire `anthropicResearchGame` in the background;
@@ -71,12 +85,13 @@ c. **Evidence-based re-ask** — existing #192 threshold machinery unchanged
   real, proposal: keep the flow speed but make the copy honest ("Researching in
   background — you can keep working"). Flag if you want it different.
 
-### Step 4 — Batch + verify
+### Step 4 — Batch + verify — ✅ DONE 2026-08-06 s156
 
-Build + `npm start`; add a throwaway game (API key present) → research
-populates without any button press; play-style step shows, Skip works, Save
-lands in both stores; CHANGELOG updated. Ships with the next batched
-installer (alpha.41+) alongside session 154's built items.
+Build green; dev-profile CDP drive covered the exact verification script
+(throwaway games Celeste + Stardew Valley, both flows, both stores, research
+without button press); dev settings/profiles restored after. CHANGELOG
+updated. Rides the next batched installer (alpha.41+) with session 154's
+items, after Fega signs off on the gc245 cell.
 
 ### Out of scope (parked)
 

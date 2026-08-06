@@ -241,7 +241,7 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Game profiles
   gameProfilesGet: (gameTag) => ipcRenderer.invoke("gameProfiles:get", gameTag),
-  gameProfilesUpdatePlayStyle: (gameTag, playStyle) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle),
+  gameProfilesUpdatePlayStyle: (gameTag, playStyle, gameName) => ipcRenderer.invoke("gameProfiles:updatePlayStyle", gameTag, playStyle, gameName),
   gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
   gameProfilesResetCount: (gameTag) => ipcRenderer.invoke("gameProfiles:resetCount", gameTag),
   gameProfilesGenerateUpdate: (gameTag) => ipcRenderer.invoke("gameProfiles:generateUpdate", gameTag),

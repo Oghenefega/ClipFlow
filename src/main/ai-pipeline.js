@@ -730,8 +730,10 @@ async function runAIPipeline({
       gameProfiles.ensureProfile(gameData.gameTag, gameData.game);
     }
 
-    // Get game context (AI-researched description from game library)
-    const gameContext = gameEntry?.aiContext || "";
+    // Get game context (AI-researched description from game library).
+    // #245: aiContextAuto is the field the Edit/Add Game modals actually write;
+    // aiContext was never written anywhere — research never reached detection.
+    const gameContext = gameEntry?.aiContextAuto || "";
 
     // Get few-shot examples from feedback DB — approved for taste calibration,
     // rejected for negative calibration (#191). Fetch extra rejected rows:

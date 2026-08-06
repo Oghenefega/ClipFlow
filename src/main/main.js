@@ -2518,7 +2518,11 @@ ipcMain.handle("gameProfiles:get", async (_, gameTag) => {
   return gameProfiles.getProfile(gameTag);
 });
 
-ipcMain.handle("gameProfiles:updatePlayStyle", async (_, gameTag, playStyle) => {
+ipcMain.handle("gameProfiles:updatePlayStyle", async (_, gameTag, playStyle, gameName) => {
+  // #246: callers that can precede any pipeline run (Add Game wizard, first-
+  // draft accept) pass the display name so a profile created here doesn't
+  // get gameName = tag.
+  if (gameName) gameProfiles.ensureProfile(gameTag, gameName);
   gameProfiles.updatePlayStyle(gameTag, playStyle);
   return { success: true };
 });

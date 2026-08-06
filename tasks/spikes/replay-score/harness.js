@@ -24,7 +24,7 @@
  *
  * Usage:
  *   node harness.js "<videoName>" [--frames N] [--no-rejected] [--no-approved]
- *                   [--no-playstyle] [--runs N] [--label name] [--dry]
+ *                   [--no-playstyle] [--no-gamecontext] [--runs N] [--label name] [--dry]
  *
  * Scoring (per run):
  *   approved recall  — approved rows matched by any pick / approved rows
@@ -72,7 +72,7 @@ const RATE_OUT = 15.0 / 1e6;
 const argv = process.argv.slice(2);
 const videoName = argv.find((a) => !a.startsWith("--"));
 if (!videoName) {
-  console.error('Usage: node harness.js "<videoName>" [--frames N] [--no-rejected] [--no-approved] [--no-playstyle] [--runs N] [--label name] [--dry]');
+  console.error('Usage: node harness.js "<videoName>" [--frames N] [--no-rejected] [--no-approved] [--no-playstyle] [--no-gamecontext] [--runs N] [--label name] [--dry]');
   process.exit(1);
 }
 const flag = (name) => argv.includes(`--${name}`);
@@ -85,6 +85,7 @@ const variant = {
   rejected: !flag("no-rejected"),
   approved: !flag("no-approved"),
   playstyle: !flag("no-playstyle"),
+  gamecontext: !flag("no-gamecontext"), // #245: researched game context injection
   gemini: flag("gemini"), // #235 variant D: merge gemini-watch.js visual events
 };
 const runs = parseInt(opt("runs", "1"), 10);
@@ -93,6 +94,7 @@ const label = opt("label", [
   variant.approved ? "" : "noappr",
   variant.rejected ? "" : "norej",
   variant.playstyle ? "" : "nops",
+  variant.gamecontext ? "" : "nogc",
   variant.gemini ? "gemD" : "",
 ].filter(Boolean).join("-") || "baseline");
 const dry = flag("dry");
@@ -282,7 +284,8 @@ function score(picks, truth) {
   const systemPrompt = aiPrompt.buildSystemPrompt({
     gameTag,
     gameName: gameEntry.name || gameTag,
-    gameContext: gameEntry.aiContext || "",
+    // #245: same field + cap as shipped code (buildSystemPrompt caps at 1,500)
+    gameContext: variant.gamecontext ? (gameEntry.aiContextAuto || "") : "",
     entryType: gameEntry.entryType || "game",
     approvedClips: variant.approved ? fewShotApproved : [],
     rejectedClips: variant.rejected ? fewShotRejected : [],
