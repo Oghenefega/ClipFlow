@@ -6,6 +6,83 @@
 
 ---
 
+## 📋 PLAN (session 155) — #246 auto-research + play style, #245 wiring — AWAITING FEGA APPROVAL
+
+Approved direction from Fega 2026-08-06 chat: auto-research on add, play-style
+as an extra Add Game step (skippable), evidence-based re-ask ("here's what
+we've noticed"), backfill the unresearched games. Execution order below is
+deliberate: the #245 wire only ships through a #234 ablation cell (spec
+`tasks/specs/detection-input-science.md`, "decisions locked" — replay scores,
+not vibes), and the cell needs the backfill first because the six harness
+recordings are RL/EO/DD games, none of which currently have research text.
+
+### Step 1 — Backfill research for the 7 unresearched games (data, no code)
+
+Script replicates `anthropic:researchGame` verbatim ([main.js:3074-3107](src/main/main.js)) —
+same model, same system prompt, web search — using Fega's key, for: RL, Val,
+EO, DD, PoP, SCoG, MC. **Just Chatting excluded** (entryType "content" — the
+research prompt is game-specific). Write `aiContextAuto` + `aiResearchedAt`
+into prod `clipflow-settings.json` **with the app closed**, after backing the
+file up. ~$1-2 on Fega's Anthropic key.
+
+- Fega: close ClipFlow for ~5 minutes when ready.
+- Verify: Settings → each game → AI Context shows Game Knowledge populated;
+  backup file retained until session end.
+
+### Step 2 — #245 wire + ablation cell (gated ship)
+
+Code: [ai-pipeline.js:734](src/main/ai-pipeline.js) reads `aiContextAuto`
+(dead `aiContext` retired), injection capped ~1,500 chars (Pico Park's 8.4k
+outlier must not eat prompt budget; approved/rejected sections cap at 3,000).
+Harness: add `--no-gamecontext` flag (mirrors `--no-playstyle`) so the cell is
+single-factor on shipped code.
+
+Cell: six standard recordings, 1 run each, `+gamecontext` vs the post-#238
+rebaseline (26/29 recall / 47% rej-hit / 87% coverage). ~$0.60-0.80.
+- Recall holds, precision not worse → wire ships ON in the next installer.
+- Recall/precision degrade → wire lands behind a setting default OFF, #245
+  updated with the measured verdict, research stays editor-titles-only.
+- Either way: results posted to #234, Fega signs off before the installer.
+
+### Step 3 — #246 UI (all renderer)
+
+a. **Auto-research on add** — App.js ([AddGameModal mount :1046](src/renderer/App.js)):
+   after a game is confirmed, fire `anthropicResearchGame` in the background;
+   on success persist `aiContextAuto`/`aiResearchedAt`. No API key → skip
+   silently (Edit-modal hint already covers it). Toast on completion.
+b. **Play-style step in Add Game wizard** ([modals.js:6-98](src/renderer/components/modals.js)):
+   new step after the details form — "How do you play this game?" textarea,
+   prominent **Skip for now**, Save. Save writes BOTH `aiContextUser` (editor
+   titles) and `game_profiles.json` playStyle via `ensureProfile` +
+   `updatePlayStyle` (pipeline reads this one) — the two stores stop diverging.
+c. **Evidence-based re-ask** — existing #192 threshold machinery unchanged
+   (5 runs + ≥5 kept datapoints). Change: when the current profile is EMPTY,
+   the Play Style Update card reframes as *"How do you play X? Here's what
+   we've noticed — confirm or tweak"* (accept/edit instead of compose-from-
+   scratch). Accepting writes both stores (same helper as b). Card component:
+   ProfileDiffModal ([modals.js:297+](src/renderer/components/modals.js)); its
+   caller located at implementation.
+- Note for Fega: AddGameModal step 2 today is a cosmetic 2-second
+  "Generating..." wait ([modals.js:75](src/renderer/components/modals.js) —
+  `setTimeout(() => setStep(3), 2000)`, no real work). With auto-research now
+  real, proposal: keep the flow speed but make the copy honest ("Researching in
+  background — you can keep working"). Flag if you want it different.
+
+### Step 4 — Batch + verify
+
+Build + `npm start`; add a throwaway game (API key present) → research
+populates without any button press; play-style step shows, Skip works, Save
+lands in both stores; CHANGELOG updated. Ships with the next batched
+installer (alpha.41+) alongside session 154's built items.
+
+### Out of scope (parked)
+
+- #163 error message + needsReconnect badge, #244 pre-flight/notifications —
+  separate approval.
+- Research reaching TITLE/caption prompts beyond current editor path — #85
+  Chunk D territory, deliberately deferred (memory: archetype re-introduces
+  generic copy).
+
 ## ✅ BUILT (session 154) — #242 + #243 + #225 Part A — CDP-verified, awaiting Fega on next installer
 
 Approved and built same session. All three verified live over CDP on the dev
