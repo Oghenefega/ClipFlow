@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 PLAN (session 155) — #246 auto-research + play style, #245 wiring — AWAITING FEGA APPROVAL
+## 📋 PLAN (session 155) — #246 auto-research + play style, #245 wiring — APPROVED; Step 1 DONE, Steps 2-4 next session
 
 Approved direction from Fega 2026-08-06 chat: auto-research on add, play-style
 as an extra Add Game step (skippable), evidence-based re-ask ("here's what
@@ -16,18 +16,21 @@ deliberate: the #245 wire only ships through a #234 ablation cell (spec
 not vibes), and the cell needs the backfill first because the six harness
 recordings are RL/EO/DD games, none of which currently have research text.
 
-### Step 1 — Backfill research for the 7 unresearched games (data, no code)
+### Step 1 — Backfill research for the 7 unresearched games — ✅ DONE 2026-08-06
 
-Script replicates `anthropic:researchGame` verbatim ([main.js:3074-3107](src/main/main.js)) —
-same model, same system prompt, web search — using Fega's key, for: RL, Val,
-EO, DD, PoP, SCoG, MC. **Just Chatting excluded** (entryType "content" — the
-research prompt is game-specific). Write `aiContextAuto` + `aiResearchedAt`
-into prod `clipflow-settings.json` **with the app closed**, after backing the
-file up. ~$1-2 on Fega's Anthropic key.
+Ran with app closed, settings backed up first
+(`%APPDATA%\clipflow\clipflow-settings.backup-2026-08-06.json` — keep until the
+new build is verified). All 7 games researched via the app's exact prompt +
+model (claude-opus-4-6 + web search, through the CF gateway): RL 1,017 chars ·
+Val 1,084 · EO 1,334 · DD 1,002 · PoP 1,294 · SCoG 975 · MC 1,122. Spot-checked
+EO/MC/SCoG — accurate, no hallucination (Yolk Mode, paint-yourself prop hunt,
+downhill carts all real). Citation-fragment line breaks flattened to prose.
+Just Chatting excluded (content type). Script + per-game cache in session
+scratchpad `backfill-research.js` / `research-cache.json` — the in-app sweep
+(Step 3) reuses nothing from it; it exists for any future re-run.
 
-- Fega: close ClipFlow for ~5 minutes when ready.
-- Verify: Settings → each game → AI Context shows Game Knowledge populated;
-  backup file retained until session end.
+- Fega decision (2026-08-06): AddGameModal step-2 copy change APPROVED
+  ("handle it now") — implement with Step 3a.
 
 ### Step 2 — #245 wire + ablation cell (gated ship)
 

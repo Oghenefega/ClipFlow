@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-06 (session 155) — Every game gets its knowledge; YouTube stops dying weekly
+
+### Added
+- **Game Knowledge backfilled for all 7 unresearched games.** Rocket League, Valorant, Egging On, Deadline Delivery, Prince of Persia, Slackers: Carts of Glory, and Meccha Chameleon now have AI-researched gameplay descriptions in Settings → game library → AI Context, generated through the app's own research prompt (previously only Arc Raiders, Pico Park, and Bionic Bay had ever been researched). Data-only change written directly to settings; benefits the editor's title generation immediately. Just Chatting is excluded — it's a content type, not a game. First step of the approved #246 plan (auto-research on add + skippable play-style prompt + evidence-based re-ask), which implements next session alongside the #245 wiring fix and its detection ablation cell.
+
+### Fixed
+- **The weekly "YouTube didn't post" failure is cured at the root (external fix, #163).** Diagnosis: every scheduled YouTube publish failure since July 14 (July 22, 29, August 5 — exact 7-day cadence) was Google invalidating the refresh token because the OAuth consent screen sat in "Testing" publishing status, where Google kills tokens after 7 days. Fega moved the consent screen to "In production" and reconnected YouTube, so the stored token is now long-lived like TikTok's and Meta's. App-side hardening remains tracked: #163 (plain-language reconnect error + account badge) and new #244 (pre-flight token check before scheduled slots + loud failure notifications + one-click retry after reconnect).
+
 ## [0.3.0-alpha.40] — 2026-08-05 (session 154) — Installer: session 154's three fixes ship
 
 ### Changed
