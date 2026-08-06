@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.41] — 2026-08-06 (session 156) — Installer: research-aware detection + the self-setting-up wizard ship
+
+### Changed
+- **Version bumped to 0.3.0-alpha.41 and a fresh installer cut.** Promotes session 156's batch (Fega signed off on the gc245 ablation cell same day): researched game knowledge wired into clip detection (#245), auto-research on game add + the skippable play-style wizard step + the evidence-based play-style re-ask (#246) — plus session 154's already-built trio riding along: hue-wheel game colors fixed and self-healing (#242), the schedule picker's already-taken-time warning (#243), and the readable Tracker CSV export with header-aware import (#225 Part A).
+
 ## [Unreleased] — 2026-08-06 (session 156) — Research reaches detection; the wizard asks how you play
 
 ### Fixed
