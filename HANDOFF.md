@@ -1,16 +1,16 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-06 — Session 156 (session-155 plan Steps 2–4 implemented: #245 wire shipped through a PASSING ablation cell, #246 auto-research + play-style wizard built and CDP-verified; everything awaits Fega's cell sign-off + the next batched installer)._
+_Last updated: 2026-08-06 — Session 156 (session-155 plan Steps 2–4 implemented; Fega signed off on the gc245 cell same day; **alpha.41 installer cut** — awaiting his reinstall; #245 + #246 closed `status: untested`)._
 
 ---
 
 ## One-line TL;DR
 
-The session-155 plan is fully implemented. Detection now reads the researched game knowledge (#245 — dead `aiContext` retired, `aiContextAuto` wired with a 1,500-char cap) and the wire PASSED its #234 ablation cell (recall 28/29 with the only miss being the known ANKLES BROKEN knife-edge at its historical 1/3 rate; precision flat 47%). The Add Game wizard now auto-researches new games in the background and asks "How do you play this game?" on a skippable step that writes BOTH play-style stores (#246). Nothing ships to the daily driver until Fega signs off on the cell and the alpha.41 installer is cut.
+The session-155 plan is fully implemented AND shipped. Detection now reads the researched game knowledge (#245 — dead `aiContext` retired, `aiContextAuto` wired with a 1,500-char cap), the wire PASSED its #234 ablation cell (recall 28/29, precision flat 47%; the one miss is the known ANKLES BROKEN knife-edge at its historical 1/3 rate), and Fega signed off ("ship it"). The Add Game wizard now auto-researches new games in the background and asks "How do you play this game?" on a skippable step that writes BOTH play-style stores (#246). The **0.3.0-alpha.41 installer is cut** (batches sessions 154 + 156) — Fega installs via the in-app "Install update" banner.
 
 ## Current State
 
-Master pushed. Daily driver = **0.3.0-alpha.40** unchanged — session 156's code is in source only, batched for **alpha.41** together with session 154's built items (#242, #243, #225 Part A). The gc245 cell verdict + full tables live in a [#234 comment](https://github.com/Oghenefega/ClipFlow/issues/234); #245 and #246 each carry a status comment. 62/62 ai-prompt unit tests green; renderer build green; both wizard flows CDP-driven end-to-end on the dev profile (dev settings/profiles restored byte-equivalent after).
+Master pushed (`07c56b6` work + `f79a10f` bump). Installer `dist\ClipFlow Setup 0.3.0-alpha.41.exe` built 2026-08-06 — **Fega has NOT yet confirmed installing it**; the daily driver is alpha.40 until Settings → bottom reads v0.3.0-alpha.41. #245 and #246 are CLOSED `status: untested` (clear on real-use confirmation). The gc245 cell verdict + sign-off are recorded on [#234](https://github.com/Oghenefega/ClipFlow/issues/234). 62/62 ai-prompt unit tests green; both wizard flows CDP-driven end-to-end on the dev profile (dev settings/profiles restored after).
 
 ## What Was Done (session 156)
 
@@ -29,12 +29,13 @@ Master pushed. Daily driver = **0.3.0-alpha.40** unchanged — session 156's cod
 
 ## Next Steps (priority order)
 
-1. **Fega: sign off (or veto) the gc245 cell** ([#234 comment](https://github.com/Oghenefega/ClipFlow/issues/234)) → then cut the **alpha.41 installer** batching sessions 154 + 156 (use the update-launcher flow).
-2. **Fega: #240 6-step import verification** (standing, four sessions now — runs fine on alpha.40).
-3. **Verify the first-draft play-style reframe live** the next time a Play Style Update fires for an empty-profile game — the ONE #246 surface not CDP-driven (needs a real pipeline run at threshold).
-4. **#243 untested label** — clears on a real-use schedule collision.
-5. **#225 Part B** when a real publish can verify.
-6. **Standing session-start check:** #234 v3 re-test trigger (≥15 v3 chips in RL's 50-row rejected window; today: 0 of 38 tagged rows — no new RL reviews since chips went live).
+1. **Confirm Fega installed alpha.41** (Settings → bottom reads v0.3.0-alpha.41). He acknowledged the backlog but hadn't reinstalled at session end. After a clean launch with games looking right, the prod settings backup (below) can go.
+2. **Fega: #240 6-step import verification** (standing, four sessions now — runs on alpha.40 or .41).
+3. **Watch cut-edge quality post-install** — the gc245 cell's one caution (coverage 86% vs 93%, late starts 5 vs 1). If Bad-cut chips tick up, the game-context injection is suspect #1; the firming option is 2 extra EO runs ≈ $0.25.
+4. **Verify the first-draft play-style reframe live** the next time a Play Style Update fires for an empty-profile game — the ONE #246 surface not CDP-driven (needs a real pipeline run at threshold). #246 untested label clears with this + general real use.
+5. **#243 + #245 untested labels** — clear on real-use confirmation.
+6. **#225 Part B** when a real publish can verify.
+7. **Standing session-start check:** #234 v3 re-test trigger (≥15 v3 chips in RL's 50-row rejected window; today: 0 of 38 tagged rows — no new RL reviews since chips went live).
 
 ## Watch Out For
 
