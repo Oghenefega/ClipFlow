@@ -1,53 +1,50 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-06 — Session 156 (session-155 plan Steps 2–4 implemented; Fega signed off on the gc245 cell same day; **alpha.41 installer cut** — awaiting his reinstall; #245 + #246 closed `status: untested`)._
+_Last updated: 2026-08-07 — Session 157 (no-code session: per-clip AI unit economics measured from real logs, handed to Wick for the pricing conversation)._
 
 ---
 
 ## One-line TL;DR
 
-The session-155 plan is fully implemented AND shipped. Detection now reads the researched game knowledge (#245 — dead `aiContext` retired, `aiContextAuto` wired with a 1,500-char cap), the wire PASSED its #234 ablation cell (recall 28/29, precision flat 47%; the one miss is the known ANKLES BROKEN knife-edge at its historical 1/3 rate), and Fega signed off ("ship it"). The Add Game wizard now auto-researches new games in the background and asks "How do you play this game?" on a skippable step that writes BOTH play-style stores (#246). The **0.3.0-alpha.41 installer is cut** (batches sessions 154 + 156) — Fega installs via the in-app "Install update" banner.
+Q&A session, zero code changes. Fega asked what a clip costs to run; I pulled the real numbers from the app's own pipeline cost logs (not estimates), Fega defined the heavy-user profile (10 clips/day, 7 days/week), and the whole thread — measured costs, heavy-user math ($17–30/mo API), BYOK-vs-bundled implications — is now a pending item in Wick's inbox for the pricing conversation. One stale-memory fix: Gemini billing has been PAID tier since 2026-08-04 (my memory still said "free tier, flip owed").
 
 ## Current State
 
-Master pushed (`07c56b6` work + `f79a10f` bump). Installer `dist\ClipFlow Setup 0.3.0-alpha.41.exe` built 2026-08-06 — **Fega has NOT yet confirmed installing it**; the daily driver is alpha.40 until Settings → bottom reads v0.3.0-alpha.41. #245 and #246 are CLOSED `status: untested` (clear on real-use confirmation). The gc245 cell verdict + sign-off are recorded on [#234](https://github.com/Oghenefega/ClipFlow/issues/234). 62/62 ai-prompt unit tests green; both wizard flows CDP-driven end-to-end on the dev profile (dev settings/profiles restored after).
+Unchanged from session 156: master at `c0ba219`, installer `dist\ClipFlow Setup 0.3.0-alpha.41.exe` cut — **Fega still has NOT confirmed installing it** (daily driver is alpha.40 until Settings → bottom reads v0.3.0-alpha.41). #245/#246 closed `status: untested`. No repo files touched this session.
 
-## What Was Done (session 156)
+## What Was Done (session 157)
 
-- **#245 wire:** [ai-pipeline.js](src/main/ai-pipeline.js) reads `aiContextAuto` (the field the modals actually write — `aiContext` was never written anywhere); injection capped at 1,500 chars at a word boundary INSIDE `buildSystemPrompt` ([ai-prompt.js](src/main/ai-prompt.js)) so the harness measures shipped code. Harness gained `--no-gamecontext` (mirrors `--no-playstyle`). 2 new cap tests.
-- **Cell `gc245`** (six standard recordings, 1 run each + noise protocol, $0.79): recall 28/29 = 97% (rebaseline 26/29; shipped-A reference 29/29), rej-hit 47% flat, boundary coverage 86% vs A's 93% (single runs — flagged as THE post-ship watch metric; my rebuilt coverage script reproduces #238's published numbers exactly, so columns are comparable). The one miss: ANKLES BROKEN (RL Day8), the pick starts at the reaction 0:48 not the 0:19 cause — midpoint rule miss by ~0.5s, hit 1/3 across samples, identical to #238 Cell C's record on this row. **Gate (recall holds, precision not worse): PASS → ships ON pending Fega's sign-off.**
-- **#246a auto-research on add:** `handleNewGame` ([App.js](src/renderer/App.js)) fires `anthropicResearchGame` in the background after Done; persists `aiContextAuto`/`aiResearchedAt`; success toast (new minimal app-level toast, auto-dismiss 5s, sits above the render pill); silent skip without an API key; content types excluded (JC rule).
-- **#246b play-style wizard step:** new step 2 in AddGameModal ([modals.js](src/renderer/components/modals.js)) — textarea + prominent "Skip for now" + "Save & Continue" (disabled while empty). Save writes BOTH stores: `aiContextUser` rides the confirm payload into gamesDb, and `gameProfiles:updatePlayStyle` (now takes an optional gameName → `ensureProfile` so a wizard-created profile gets the display name, not the tag).
-- **#246c evidence-based re-ask:** ProfileDiffModal reframes when the current profile is EMPTY — title "How do you play X?", single editable "What we've noticed" pane (no all-green diff against nothing), buttons "Save Play Style" / "Not now". Accept AND keep-current-edited now write through to gamesDb `aiContextUser` via a new `onPlayStyleSaved` callback (App → RecordingsView → modal).
-- **Honest interstitial:** the fake 2s "Generating for X..." now says "Researching X in the background — you can keep working" (only when research will actually run; "Setting up X..." otherwise). Fega pre-approved this copy change in session 155.
+- **Measured per-clip AI cost from real logs** (`%APPDATA%\clipflow\processing\logs\`, 2026-08-06 RL Day14 runs): detection $0.11–0.12 per ~30-min recording (20–23 clips found ≈ half a cent per detected clip, ~23¢/hour of footage); Gemini video titles ~$0.024 per generate; Whisper/FFmpeg local and free. **≈3¢ of AI spend per published clip. All 78 retained log runs total $5.13.**
+- **Heavy-user unit economics** (Fega's definition: 10 clips/day × 7 days ≈ 300 clips/month): titles ~$7–10/mo, detection ~$10–21/mo depending on 1.5–3h recorded daily → **$17–30/month total**. Key structural point: titles scale with clips published, detection scales with HOURS RECORDED.
+- **Handed the thread to Wick** — pending item in `Wick\inbox.md` (2026-08-07) with the numbers, the heavy-user profile, and the open pricing questions (BYOK vs bundled tier, bundled price floor, hours-vs-clips limits). Wick picks it up on his next session start.
+- **Memory correction:** `project_gemini_video_titles.md` + MEMORY.md index updated — Gemini billing flipped to paid 2026-08-04 (per Wick's inbox archive); the "free tier, billing flip owed" claim was stale.
 
 ## Key Decisions
 
-- **Coverage dip is a watch item, not a blocker.** The plan's gate was recall + precision; both pass. 86% vs 93% is single-run data on a secondary metric — the eyes on it post-ship are the bad-cut / #232 v3 chips. 2 extra EO runs (~$0.25) firm it up if Fega wants certainty before the installer.
-- **Play-style saves write both stores everywhere** (wizard, diff-modal accept, keep-current-edited) — the silent `aiContextUser` vs `game_profiles.json` divergence is closed at every write site.
-- **Research stays decoupled from the play-style step** — Skip still researches (verified: Stardew Valley skipped play style, research landed anyway).
+- **Heavy-user planning profile is Fega's call: 10 clips/day, 7 days/week.** Use this for any future pricing/capacity math, not the earlier casual "100 clips/month" figure.
+- **Pricing conversation belongs to Wick, not dev sessions** — continue it there; dev only builds what falls out (e.g. the optional cost-per-clip line below).
 
 ## Next Steps (priority order)
 
-1. **Confirm Fega installed alpha.41** (Settings → bottom reads v0.3.0-alpha.41). He acknowledged the backlog but hadn't reinstalled at session end. After a clean launch with games looking right, the prod settings backup (below) can go.
-2. **Fega: #240 6-step import verification** (standing, four sessions now — runs on alpha.40 or .41).
-3. **Watch cut-edge quality post-install** — the gc245 cell's one caution (coverage 86% vs 93%, late starts 5 vs 1). If Bad-cut chips tick up, the game-context injection is suspect #1; the firming option is 2 extra EO runs ≈ $0.25.
-4. **Verify the first-draft play-style reframe live** the next time a Play Style Update fires for an empty-profile game — the ONE #246 surface not CDP-driven (needs a real pipeline run at threshold). #246 untested label clears with this + general real use.
+1. **Confirm Fega installed alpha.41** (Settings → bottom reads v0.3.0-alpha.41). After a clean launch with games looking right, the prod settings backup (below) can go.
+2. **Fega: #240 6-step import verification** (standing, five sessions now).
+3. **Watch cut-edge quality post-install** — gc245's coverage caution (86% vs 93%, late starts 5 vs 1). Bad-cut chips ticking up → game-context injection is suspect #1; firming option ≈ $0.25 of EO runs.
+4. **Verify the first-draft play-style reframe live** next time a Play Style Update fires for an empty-profile game (the one #246 surface not CDP-driven).
 5. **#243 + #245 untested labels** — clear on real-use confirmation.
-6. **#225 Part B** when a real publish can verify.
-7. **Standing session-start check:** #234 v3 re-test trigger (≥15 v3 chips in RL's 50-row rejected window; today: 0 of 38 tagged rows — no new RL reviews since chips went live).
+6. **Possible from Wick:** a "cost per published clip" line in the in-app monthly cost view (`pipelineLogs:monthlyCost` already computes monthly totals) — build only if Wick/Fega ask.
+7. **#225 Part B** when a real publish can verify.
+8. **Standing session-start check:** #234 v3 re-test trigger (≥15 v3 chips in RL's 50-row rejected window; last known: 0 tagged).
 
 ## Watch Out For
 
-- **Boundary coverage is the metric to watch once #245 is live** — if Fega's bad-cut chips tick up after alpha.41, the game-context injection is suspect #1 (the cell showed 5 late-starts >5s vs the reference's 1).
-- **RL Day8's committed `gc245` run1 JSON is the 4/4 noise sample**, not the original 3/4 first sample (the re-run reused run numbers before I caught it). Pooled numbers in #234 use first samples; the original 3/4 per-pick detail survives only in the session log.
-- **Prod settings backup** `%APPDATA%\clipflow\clipflow-settings.backup-2026-08-06.json` (session 155's backfill) — keep until alpha.41 installs and games look right, then it can go.
-- **AddGameModal steps renumbered** (1 details → 2 play-style → 3 interstitial → 4 done; content types skip step 2). Any future reference to "step 2 = generating" is stale.
-- **`gameProfiles:updatePlayStyle` now takes an optional 3rd arg (gameName)** — old 2-arg callers still work; the arg only triggers `ensureProfile`.
+- **Boundary coverage is the metric to watch once #245 is live** — bad-cut chips after alpha.41 → game-context injection is suspect #1.
+- **Prod settings backup** `%APPDATA%\clipflow\clipflow-settings.backup-2026-08-06.json` — keep until alpha.41 installs and games look right, then it can go.
+- **Gemini titles bill real money now** (~$0.024/generate, paid tier since 2026-08-04) — regenerate loops in the editor are no longer free-tier phantoms.
+- **AddGameModal steps renumbered** (1 details → 2 play-style → 3 interstitial → 4 done; content types skip step 2). Any reference to "step 2 = generating" is stale.
+- **`gameProfiles:updatePlayStyle` takes an optional 3rd arg (gameName)** — old 2-arg callers still work.
 
 ## Logs/Debugging
 
-- **Cell + noise outputs:** session task logs; result JSONs committed under `tasks/spikes/replay-score/results/*__gc245__*.json`. Coverage script (reproduces #238's numbers): scratchpad `coverage-gc245.js`.
-- **CDP drive script** for the wizard: scratchpad `cdp-drive-246.js` (pattern: native WebSocket, `__t.byText` click helper, React-safe `setVal`; Settings → Content Library group persists collapsed — expand first).
-- **API spend this session:** ≈ $0.87 (cell $0.59 + noise $0.20 + 2 background research calls ≈ $0.08).
-- Dev profile throwaway games (Celeste ZZC, Stardew Valley ZZS) removed from dev settings + profiles after the drive; dev gamesDb back to its 8 entries.
+- **Cost evidence lives in** `%APPDATA%\clipflow\processing\logs\` — per-run `API cost:` lines (detection runs, `titlegen_*` for Gemini titles, `queue_imports_*` for #240 passes). Sum across all retained logs 2026-08-07: $5.13 over 78 runs.
+- **API spend this session:** $0 (no model calls made by the app; analysis only read logs).
+- Session 156's debug artifacts (gc245 result JSONs, coverage script, CDP drive script) unchanged — see `tasks/spikes/replay-score/results/` and prior handoff notes if needed.
