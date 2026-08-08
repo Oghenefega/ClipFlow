@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.42] — 2026-08-08 (session 158) — Installer: Gemini joins the gateway
+
+### Changed
+- **Version bumped to 0.3.0-alpha.42 and a fresh installer cut.** Promotes session 158's #249 gap-1 work: all Gemini calls routed through the Cloudflare AI Gateway with the key now optional, the stored gateway address migrated to the shared base, and the Settings gateway/Gemini panels updated to match. First launch after install runs the gateway-address cleanup automatically — nothing to re-enter.
+
 ## [Unreleased] — 2026-08-08 (session 158) — Gemini joins the gateway; installers need zero Google keys
 
 ### Changed
