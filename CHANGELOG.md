@@ -4,6 +4,13 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-08 (session 158) — Gemini joins the gateway; installers need zero Google keys
+
+### Changed
+- **All Gemini calls now route through the Cloudflare AI Gateway (#249 gap 1).** Title/caption generation from clip video, the large-clip file-upload path, and Queue import titles all go through the same gateway that clip detection already uses. With a gateway token set, Cloudflare injects the Google key on its own servers — no raw Gemini key needs to exist on the machine, which is the requirement for bundled-first beta installers. The middle step of large-file uploads (the byte transfer) intentionally still posts to the Google-issued upload URL, which carries its own authorization. Verified live with the key field empty: a small text call and a 54MB clip both returned real results through the gateway, and clip detection re-verified working on both the old and new stored gateway address shapes.
+- **The Gemini API key is now optional.** Every "is Gemini available?" check in the app (video-based titles, Queue import titles, the Settings status dot) now counts a gateway token as configured, mirroring how the Anthropic key already works. The Settings hint text no longer claims clearing the key reverts titles to stills — with the gateway active, video titles keep working keyless.
+- **The stored gateway address became the shared base.** Previously it ended in `/anthropic` and only detection could use it; now each provider appends its own segment. A startup migration cleans the old address on existing installs automatically (verified on the dev profile — nothing to re-enter), and both providers also tolerate the old shape defensively if one is ever pasted in by hand.
+
 ## [0.3.0-alpha.41] — 2026-08-06 (session 156) — Installer: research-aware detection + the self-setting-up wizard ship
 
 ### Changed

@@ -242,7 +242,9 @@ const STORE_DEFAULTS = {
   renameHistory: [],
   anthropicApiKey: "",
   geminiApiKey: "",
-  gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod/anthropic",
+  // #249: gateway BASE (no provider segment) — each provider appends its own
+  // (/anthropic, /google-ai-studio). Migration below strips the legacy suffix.
+  gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod",
   gatewayAuthToken: "",
   youtubeClientId: "",
   youtubeClientSecret: "",
@@ -454,6 +456,17 @@ function runStoreMigrations(store) {
     return { ...entry, style: resolved };
   });
   if (reframeLayoutsStyleChanged) store.set("reframeLayouts", migratedReframeLayouts);
+
+  // ── Migration (#249): gatewayUrl becomes the gateway BASE ──
+  // The Anthropic-specific /anthropic suffix moved into the provider so a
+  // second provider (google-ai-studio) can share one gateway URL. Strip the
+  // suffix from existing installs; idempotent (a base URL doesn't match),
+  // fresh installs get the base default and skip.
+  const legacyGatewayUrl = String(store.get("gatewayUrl") || "");
+  if (/\/anthropic\/*$/.test(legacyGatewayUrl)) {
+    store.set("gatewayUrl", legacyGatewayUrl.replace(/\/+$/, "").replace(/\/anthropic$/, ""));
+    logger.info(logger.MODULES.system, "Migrated gatewayUrl to gateway base (stripped /anthropic)");
+  }
 }
 
 let mainWindow;
@@ -2863,11 +2876,12 @@ ipcMain.handle("anthropic:generate", async (_, params) => {
       gameHashtag,
     });
 
-    // #193: Gemini sees the clip video when a key is configured; the frames
-    // path is the fallback for no-key, cut failure, or API failure.
+    // #193: Gemini sees the clip video when it can authenticate (raw key, or
+    // gateway BYOK per #249); the frames path is the fallback for
+    // no-credentials, cut failure, or API failure.
     let text = null;
     let genSource = "frames";
-    if (String(store.get("geminiApiKey") || "").trim()) {
+    if (geminiProvider.isConfigured()) {
       try {
         text = await generateTitlesWithGeminiVideo({ params, systemPrompt });
         genSource = "gemini-video";

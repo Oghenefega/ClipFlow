@@ -15,6 +15,8 @@
  * after the call).
  *
  * Key: `geminiApiKey` in electron-store (Settings → API Credentials → Gemini).
+ * #249: when a Cloudflare gateway token is set, the key is optional — calls
+ * route through the AI Gateway and Cloudflare injects the key server-side.
  */
 
 const fs = require("fs");
@@ -44,6 +46,10 @@ async function fetchJson(url, options, timeout) {
     let json = null;
     try { json = JSON.parse(body); } catch (_) { /* non-JSON error body */ }
     if (!res.ok) {
+      // Cloudflare gateway errors come back as arrays, not objects with .error
+      if (Array.isArray(json) && json[0]?.code) {
+        throw new Error(`Gateway error (HTTP ${res.status}): ${json[0].message || JSON.stringify(json)}`);
+      }
       const msg = json?.error?.message || body.substring(0, 300);
       throw new Error(`Gemini API error (HTTP ${res.status}): ${msg}`);
     }
@@ -54,6 +60,52 @@ async function fetchJson(url, options, timeout) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * #249: resolve where Gemini calls go and how they authenticate.
+ * Gateway URL configured → route through the Cloudflare AI Gateway; with a
+ * gateway token Cloudflare injects the provider key server-side (BYOK) and no
+ * Google key leaves the machine. No gateway → direct to Google with the raw
+ * key. Legacy installs stored the Anthropic-specific gateway URL — strip the
+ * trailing /anthropic to recover the base.
+ */
+function resolveRouting(apiKey) {
+  const store = getStore();
+  const gatewayUrl = store ? String(store.get("gatewayUrl") || "").trim() : "";
+  const authToken = store ? String(store.get("gatewayAuthToken") || "").trim() : "";
+  if (gatewayUrl) {
+    try {
+      const base = gatewayUrl.replace(/\/+$/, "").replace(/\/anthropic$/, "");
+      new URL(base); // validate before committing to the route
+      return {
+        base: `${base}/google-ai-studio`,
+        authHeaders: authToken
+          ? { "cf-aig-authorization": `Bearer ${authToken}` }
+          : { "x-goog-api-key": apiKey },
+        mode: authToken ? "Gateway (BYOK)" : "Gateway (passthrough)",
+        byok: Boolean(authToken),
+      };
+    } catch (e) {
+      log.warn("[gemini] Invalid gateway URL, falling back to direct:", gatewayUrl);
+    }
+  }
+  return { base: API_BASE, authHeaders: { "x-goog-api-key": apiKey }, mode: "Direct", byok: false };
+}
+
+/**
+ * #249: whether a Gemini call can authenticate — a raw key in Settings OR a
+ * gateway token (Cloudflare supplies the key). Feature gates use this instead
+ * of checking geminiApiKey directly.
+ */
+function isConfigured() {
+  const store = getStore();
+  if (!store) return false;
+  if (String(store.get("geminiApiKey") || "").trim()) return true;
+  return Boolean(
+    String(store.get("gatewayUrl") || "").trim() &&
+    String(store.get("gatewayAuthToken") || "").trim()
+  );
 }
 
 /**
@@ -69,6 +121,7 @@ async function fetchJson(url, options, timeout) {
 async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
   const uploadTimeoutMs = opts.uploadTimeoutMs || DEFAULT_TIMEOUT;
   const pollTimeoutMs = opts.pollTimeoutMs || FILE_POLL_TIMEOUT_MS;
+  const routing = resolveRouting(apiKey);
   const bytes = fs.readFileSync(filePath);
 
   // 1. Start a resumable session — the upload URL comes back in a header.
@@ -76,11 +129,11 @@ async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
   const startTimer = setTimeout(() => startController.abort(), DEFAULT_TIMEOUT);
   let uploadUrl;
   try {
-    const startRes = await fetch(`${API_BASE}/upload/v1beta/files`, {
+    const startRes = await fetch(`${routing.base}/upload/v1beta/files`, {
       method: "POST",
       signal: startController.signal,
       headers: {
-        "x-goog-api-key": apiKey,
+        ...routing.authHeaders,
         "X-Goog-Upload-Protocol": "resumable",
         "X-Goog-Upload-Command": "start",
         "X-Goog-Upload-Header-Content-Length": String(bytes.length),
@@ -98,7 +151,9 @@ async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
     clearTimeout(startTimer);
   }
 
-  // 2. Upload the bytes and finalize in one shot.
+  // 2. Upload the bytes and finalize in one shot. Goes to the Google-issued
+  // uploadUrl directly, NOT the gateway (#249) — that URL carries its own
+  // authorization and needs no key.
   const upController = new AbortController();
   const upTimer = setTimeout(() => upController.abort(), uploadTimeoutMs);
   let fileInfo;
@@ -128,8 +183,8 @@ async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
   while (state === "PROCESSING") {
     if (Date.now() > deadline) throw new Error("Files API processing timed out");
     await sleep(FILE_POLL_INTERVAL_MS);
-    const info = await fetchJson(`${API_BASE}/v1beta/${fileInfo.name}`, {
-      headers: { "x-goog-api-key": apiKey },
+    const info = await fetchJson(`${routing.base}/v1beta/${fileInfo.name}`, {
+      headers: { ...routing.authHeaders },
     });
     state = info.state;
     fileInfo = info;
@@ -141,10 +196,11 @@ async function uploadFile(apiKey, filePath, mimeType, opts = {}) {
 
 /** Best-effort remote cleanup — uploaded files expire in 48h anyway. */
 async function deleteFile(apiKey, name) {
+  const routing = resolveRouting(apiKey);
   try {
-    await fetch(`${API_BASE}/v1beta/${name}`, {
+    await fetch(`${routing.base}/v1beta/${name}`, {
       method: "DELETE",
-      headers: { "x-goog-api-key": apiKey },
+      headers: { ...routing.authHeaders },
     });
   } catch (e) {
     log.warn(`[gemini] Could not delete uploaded file ${name}: ${e.message}`);
@@ -201,7 +257,9 @@ const provider = {
   async chat({ model, system, messages, maxTokens, timeout }) {
     const store = getStore();
     const apiKey = store ? String(store.get("geminiApiKey") || "").trim() : "";
-    if (!apiKey) throw new Error("Gemini API key not configured. Go to Settings.");
+    const routing = resolveRouting(apiKey);
+    // BYOK: Gemini key not required when gateway handles auth via Provider Keys
+    if (!apiKey && !routing.byok) throw new Error("Gemini API key not configured. Go to Settings.");
 
     const contents = [];
     let uploadedFile = null;
@@ -220,12 +278,13 @@ const provider = {
     if (system) body.systemInstruction = { parts: [{ text: system }] };
 
     const useModel = model || DEFAULT_MODEL;
+    log.info(`[gemini] ${routing.mode} → ${routing.base}/v1beta/models/${useModel}:generateContent`);
     try {
       const doGenerate = () => fetchJson(
-        `${API_BASE}/v1beta/models/${useModel}:generateContent`,
+        `${routing.base}/v1beta/models/${useModel}:generateContent`,
         {
           method: "POST",
-          headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+          headers: { ...routing.authHeaders, "Content-Type": "application/json" },
           body: JSON.stringify(body),
         },
         timeout || DEFAULT_TIMEOUT
@@ -276,3 +335,5 @@ module.exports = provider;
 // Files API helpers for callers that manage their own upload lifecycle (#235)
 module.exports.uploadFile = uploadFile;
 module.exports.deleteFile = deleteFile;
+// #249: "can Gemini authenticate?" — raw key or gateway BYOK. For feature gates.
+module.exports.isConfigured = isConfigured;

@@ -195,8 +195,8 @@ function cancelGenerate() {
  */
 async function generate({ store, rows, voiceContext, sendProgress, getProcessingDir }) {
   const run = ++genRun;
-  const apiKey = String(store.get("geminiApiKey") || "").trim();
-  if (!apiKey) return { success: true, skipped: "no-key" };
+  // #249: gateway BYOK counts as configured — no raw key on tester installs
+  if (!geminiProvider.isConfigured()) return { success: true, skipped: "no-key" };
 
   const gamesDb = store.get("gamesDb") || [];
   const system = titleCaptionPrompt.buildImportSystemPrompt({

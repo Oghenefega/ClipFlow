@@ -31,7 +31,7 @@ const DIRECT_PATH = "/v1/messages";
  * @param {object} [opts]
  * @param {number} [opts.timeout=120000]
  * @param {object} [opts.gateway] - Cloudflare AI Gateway config
- * @param {string} opts.gateway.url - Gateway base URL (e.g. https://gateway.ai.cloudflare.com/v1/.../anthropic)
+ * @param {string} opts.gateway.url - Gateway base URL (e.g. https://gateway.ai.cloudflare.com/v1/.../clipflow-prod)
  * @param {string} opts.gateway.authToken - cf-aig-authorization bearer token
  * @returns {Promise<object>} Raw API response
  */
@@ -48,10 +48,14 @@ function anthropicRequest(apiKey, body, opts = {}) {
     // Route through gateway when URL is configured
     if (gateway && gateway.url) {
       try {
-        const parsed = new URL(gateway.url.replace(/\/+$/, ""));
+        // #249: gatewayUrl stores the gateway BASE (shared with Gemini) and
+        // this provider appends its own /anthropic segment. Legacy installs
+        // stored the /anthropic-suffixed URL — strip it so both shapes
+        // produce the identical route.
+        const parsed = new URL(gateway.url.replace(/\/+$/, "").replace(/\/anthropic$/, ""));
         hostname = parsed.hostname;
         port = parsed.port || undefined;
-        path = parsed.pathname + DIRECT_PATH;
+        path = parsed.pathname + "/anthropic" + DIRECT_PATH;
       } catch (e) {
         log.warn("[anthropic] Invalid gateway URL, falling back to direct:", gateway.url);
       }

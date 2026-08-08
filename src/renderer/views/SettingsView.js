@@ -325,7 +325,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
   const anthropicConfigured = Boolean(anthropicApiKey);
-  const geminiConfigured = Boolean(geminiApiKey);
+  // #249: gateway BYOK supplies the Gemini key server-side — keyless installs
+  // with a gateway token are genuinely configured, show them green.
+  const geminiConfigured = Boolean(geminiApiKey) || Boolean(gatewayUrl && gatewayAuthToken);
   const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
   const metaConfigured = Boolean(metaAppId && metaAppSecret);
   const instagramConfigured = Boolean(instagramAppId && instagramAppSecret);
@@ -1229,15 +1231,15 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Used for AI title/caption generation (Sonnet) and game research (Opus).</p>
                 <SectionLabel style={{ marginTop: 16 }}>Gateway URL</SectionLabel>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
-                  <input value={gatewayUrlVal} onChange={(e) => setGatewayUrlVal(e.target.value)} type="text" style={{ ...inputStyle, flex: 1 }} placeholder="https://gateway.ai.cloudflare.com/v1/.../anthropic" />
+                  <input value={gatewayUrlVal} onChange={(e) => setGatewayUrlVal(e.target.value)} type="text" style={{ ...inputStyle, flex: 1 }} placeholder="https://gateway.ai.cloudflare.com/v1/.../clipflow-prod" />
                 </div>
                 <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Cloudflare AI Gateway base URL. Leave default unless you have a custom gateway.</p>
                 <SectionLabel style={{ marginTop: 16 }}>Gateway Auth Token</SectionLabel>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
-                  <input value={gatewayTokenVal} onChange={(e) => setGatewayTokenVal(e.target.value)} type={showGatewayTokenEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="cf-aig token (leave empty to call Anthropic directly)" />
+                  <input value={gatewayTokenVal} onChange={(e) => setGatewayTokenVal(e.target.value)} type={showGatewayTokenEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="cf-aig token (leave empty to use raw API keys)" />
                   <button onClick={() => setShowGatewayTokenEdit(!showGatewayTokenEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGatewayTokenEdit ? "Hide" : "Show"}>{showGatewayTokenEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>If set, all API calls route through the gateway. Clear to call Anthropic directly.</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>If set, AI calls (Anthropic + Gemini) route through the gateway, which supplies the provider keys. Clear to use the raw API keys directly.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1300,7 +1302,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <input value={geminiVal} onChange={(e) => setGeminiVal(e.target.value)} type={showGeminiKeyEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="AIza..." />
                   <button onClick={() => setShowGeminiKeyEdit(!showGeminiKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGeminiKeyEdit ? "Hide" : "Show"}>{showGeminiKeyEdit ? "👁" : "👁‍🗨"}</button>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>With a key set, title/caption suggestions are generated from the actual clip video (with sound) instead of a few stills. Clear the key to go back to stills.</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>When Gemini is available (a key here, or the gateway token in the Anthropic panel), title/caption suggestions are generated from the actual clip video (with sound) instead of a few stills.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

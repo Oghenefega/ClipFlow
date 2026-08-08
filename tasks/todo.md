@@ -6,6 +6,69 @@
 
 ---
 
+## ✅ BUILT (session 158) — #249 gap 1: Gemini routed through the Cloudflare gateway — VERIFIED LIVE, ships with next installer
+
+Approved by Fega 2026-08-08 ("go", Gemini status dot fix included). All five
+files changed as planned. Verified: 13/13 harness checks — live BYOK text +
+54MB video (full Files API path) with the Gemini key BLANK, Anthropic 200 on
+both old- and new-shape URLs, migration proven on the real dev store at boot
+(`Migrated gatewayUrl to gateway base`), existing tests green (14+62+15+
+weights), renderer build clean, dev boot clean. Harness: session scratchpad
+`verify-249.js`. Issue #249 stays open (gaps 2–4 + packaged-installer
+inspection remain).
+
+Goal: title generation (Gemini) stops needing a raw Google key on the machine.
+The gateway side is done and live-proven (see #249's 2026-08-08 comment — the
+spec). This session is the app-code half only. Beta installers must ship with
+zero raw AI provider keys; detection (Anthropic) already routes this way.
+
+### File impact
+
+1. `src/main/ai/providers/gemini.js` — route generate + file-upload start +
+   poll + delete through the gateway, mirroring anthropic.js. Gateway token
+   present → send `cf-aig-authorization`, no Google key (Cloudflare injects
+   it, credential named `default`, no alias headers). Key becomes optional
+   when a gateway token exists (mirror anthropic.js:171). Recognize
+   Cloudflare's array-shaped gateway errors in `fetchJson` (mirror
+   anthropic.js:95-98). Byte-upload step (gemini.js:106) stays pointed at
+   Google — per spec, its URL carries its own authorization.
+   Export an `isConfigured()` helper: "raw key OR gateway token" for gates.
+2. `src/main/ai/providers/anthropic.js` — stored gatewayUrl becomes the BASE;
+   this file appends `/anthropic` itself and strips a trailing `/anthropic`
+   from old-style stored values first. Old and new values produce identical
+   routes (trap: detection must not change behavior).
+3. `src/main/main.js` — (a) default gatewayUrl at :245 loses the `/anthropic`
+   tail; (b) migration in `runStoreMigrations` strips the tail from existing
+   installs (hard rule: stored-data change ⇒ migration; idempotent, fresh
+   installs skip); (c) titlegen gate at :2870 uses `isConfigured()` instead
+   of key-only — without this a keyless install silently falls back to
+   stills and the gateway is never exercised (gate not in the issue's anchor
+   list; discovered during research).
+4. `src/main/queue-imports.js:198` — same gate fix for #240 import titles
+   (identical key-only check).
+5. `src/renderer/views/SettingsView.js` — placeholder/hint wording only:
+   Gateway URL example drops `/anthropic` (:1232), token hint stops saying
+   "call Anthropic directly" (:1237, :1240).
+
+Not touched: gaps 2–4 of #249, byte-upload URL, prompts, #235 watch gate
+(ai-pipeline.js:497 still wants a raw key; feature is hard-gated OFF — flagged
+in chat, not changed).
+
+Open question for Fega: Settings shows Gemini "Not set" (red) when the key box
+is empty even though titles will now work via gateway — fix dot or leave?
+
+### Verification criteria
+
+- Live BYOK call through real provider code with Gemini key BLANK (dev copy):
+  one text call + one >14MB video call (full 3-step upload path) return titles.
+- Live Anthropic regression call through changed code with the OLD-style
+  stored URL: HTTP 200, same route as before.
+- Migration run against a copy of real settings: URL cleaned, nothing else.
+- `npm run build` clean + boot verify (dev profile). Existing bare-node tests
+  still pass.
+
+---
+
 ## ✅ BUILT (sessions 155–156) — #246 auto-research + play style, #245 wiring — ALL STEPS DONE; cell PASSED; awaiting Fega sign-off, ships with next installer (alpha.41+)
 
 Approved direction from Fega 2026-08-06 chat: auto-research on add, play-style
