@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-10 (session 158) — Rename-then-schedule no longer publishes a ghost file
+
+### Fixed
+- **Renaming a clip in the Queue and then publishing in the same sitting no longer fails with "Video file not found".** Since #188, editing a title also renames the video file on disk to match — but the Queue screen kept its old idea of where the file lived, so any publish before an app restart (including a scheduled one firing unattended) pointed every platform at the old filename. Found by Fega on an imported Arc Raiders clip: renamed, scheduled, all four platforms failed. Two-part fix: the Queue now picks up the file's new location the moment a rename returns, and the scheduler publishes from the fresh record it already re-reads from disk at fire time instead of discarding it. Nothing was ever lost — the file and the saved record were always correct; only the screen's memory was stale.
+
 ## [0.3.0-alpha.42] — 2026-08-08 (session 158) — Installer: Gemini joins the gateway
 
 ### Changed

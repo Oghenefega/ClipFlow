@@ -831,7 +831,10 @@ export default function QueueView({
         }
         updateClipInState(clip._projectId, clip.id, { scheduledAt: null });
         console.log("[Scheduler] Firing scheduled publish:", clip.title, "(was scheduled for", clip.scheduledAt + ")");
-        await publishClip(clip.id, null);
+        // Publish the clip the claim just re-read from disk, not this renderer's
+        // copy — in-memory state can hold a pre-rename renderPath (#188 renames
+        // the file on disk), and a stale path fails every platform at once.
+        await publishClip(clip.id, null, { ...clip, ...claim.clip, _projectId: clip._projectId });
       } catch (e) {
         console.error("[Scheduler] Auto-fire failed for", clip.id, e);
       } finally {
@@ -994,7 +997,13 @@ export default function QueueView({
     }
     try {
       const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, updates);
-      if (!r?.error) updateClipInState(clip._projectId, clip.id, updates);
+      // #188 renames the render + thumbnail files on disk to follow the title —
+      // mirror the returned paths too, or this session keeps publishing the old
+      // filename ("Video file not found" on every platform).
+      if (!r?.error) {
+        const pathFields = r?.clip ? { renderPath: r.clip.renderPath, thumbnailPath: r.clip.thumbnailPath } : {};
+        updateClipInState(clip._projectId, clip.id, { ...updates, ...pathFields });
+      }
     } catch (e) { console.error("Title update failed:", e); }
     setEditingTitle(null);
   };
@@ -1468,9 +1477,9 @@ export default function QueueView({
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
   // Phase 2: respects per-clip platformToggles, captionOverrides, youtubeTitle, youtubePrivacy
-  const publishClip = async (clipId, scheduleOpts) => {
+  const publishClip = async (clipId, scheduleOpts, freshClip) => {
     if (publishingRef.current) return;
-    const clip = approved.find((c) => c.id === clipId);
+    const clip = freshClip || approved.find((c) => c.id === clipId);
     if (!clip || !clip.renderPath) {
       setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Clip not rendered — render it first from the Editor", platforms: {} } }));
       return;
