@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.43] — 2026-08-10 (session 158) — Installer: the rename-then-schedule publish fix
+
+### Changed
+- **Version bumped to 0.3.0-alpha.43 and a fresh installer cut.** Promotes the Queue publish fix below — cut on request right after Fega hit the bug live, so scheduled publishes on renamed clips work without the restart workaround.
+
 ## [Unreleased] — 2026-08-10 (session 158) — Rename-then-schedule no longer publishes a ghost file
 
 ### Fixed
