@@ -10,7 +10,7 @@ The #1 beta blocker (#251) is built and verified: `energy_scorer.py` rescued off
 
 ## Current State
 
-Master at `858fe32` (alpha.44 bump). **Fega is on alpha.44 (installed + confirmed)** — full pipeline run on RL Day10 Pt3 completed end-to-end on the installed build: no settings re-entry, no model re-download (prod first-boot log shows `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`; watchFolder/whisperPythonPath migrations no-op'd — both explicitly set in his prod store), bundled FFmpeg n7.1.5 carried the whole run. **#251 CLOSED**; #68 closed (untested label removed after the confirmed run). The Arc Raiders scheduled fire (2026-08-11) confirming the alpha.43 queue fix is still worth checking in `clipflow-publish-log.json`.
+Master at `858fe32` (alpha.44 bump). **Fega is on alpha.44 (installed + confirmed)** — full pipeline run on RL Day10 Pt3 completed end-to-end on the installed build: no settings re-entry, no model re-download (prod first-boot log shows `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`; watchFolder/whisperPythonPath migrations no-op'd — both explicitly set in his prod store), bundled FFmpeg n7.1.5 carried the whole run. **#251 CLOSED**; #68 closed (untested label removed after the confirmed run). The Arc Raiders clip was scheduled (not posted) by Fega — the alpha.43 queue-fix confirmation lands when its slot fires.
 
 ## What Was Just Built (session 159 — #251)
 
@@ -40,10 +40,10 @@ Master at `858fe32` (alpha.44 bump). **Fega is on alpha.44 (installed + confirme
 
 ## Next Steps
 
-1. **Check the 2026-08-11 scheduled fire result** (alpha.43 queue fix confirmation) — `clipflow-publish-log.json`.
-2. #249 gaps 4+2 (tester gateway token posture) — Wick recommendation pending Fega's call. With #251 closed this is the likely next beta-arc item, alongside #248 (feedback reporter, spec ready) and #250 (tester update channel — see the UPDATE_DIST_DIR note there).
-3. #244 loud scheduled-publish failures, #219 Add Game crash.
-4. Tester #1's install = the true clean-machine proof for #251 (watch, no action). #199 (energy_scorer audio track) is now unblocked since the script lives in-repo. #146 remains the commercial-launch Python gate.
+1. **Build #249 Option A — RATIFIED by Fega 2026-08-11** (comment 5250776779; Wick's decision comment 5224920718 is the spec). Scope: `cf-aig-metadata` on every gateway call (BOTH providers) using the existing PostHog device ID (do NOT invent a new identity or a "tester name" field), surface that ID read-only in Settings, preset the shared beta gateway token in the build, then re-inspect the packaged installer against the RESTATED done-means (no raw provider keys; the bundled gateway token is a deliberate, revocable inclusion — NOT a leak; don't "fix" it). B is off the table. **C (Supabase-issued after login) is deferred to be decided WITH pricing at launch** — Fega asked and chose explicitly; C is ~4-6 sessions riding on Supabase auth that doesn't exist yet, and it's the same plumbing as the paid tier.
+2. #248 beta feedback reporter (spec ready) → then tester #1 gets an installer.
+3. **Arc Raiders clip: Fega scheduled it instead of posting** — the alpha.43 queue-fix real-world confirmation fires whenever that slot hits; check `clipflow-publish-log.json` after.
+4. #244 loud scheduled-publish failures, #219 Add Game crash. Tester #1's install = true clean-machine proof for #251. #199 unblocked. #146 = commercial-launch Python gate. #156 looks already-implemented (lock is in main.js) — close on Fega's nod.
 
 ## Watch Out For
 
