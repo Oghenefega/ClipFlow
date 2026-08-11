@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.45] — 2026-08-11 (session 160) — First beta-posture installer: preset AI access + per-install usage labels
+
+### Changed
+- **Version bumped to 0.3.0-alpha.45 and a fresh installer cut.** Promotes the #249 Option A batch below: this is the first installer where a tester's machine talks to AI with zero setup — the shared beta gateway token ships preset, every AI call is labeled with the install's ID, and no raw provider key exists anywhere in the package.
+
+## [Unreleased] — 2026-08-11 (session 160) — #249 Option A: bundled-first AI access for beta installs
+
+### Added
+- **AI works out of the box on a fresh install.** The shared beta gateway token ships preset in the build (Fega ratified Option A: one shared token + usage labels, instead of per-tester tokens). A tester installs ClipFlow and detection + titles work immediately through the Cloudflare AI Gateway — no API keys, no pasting anything. The token value itself deliberately lives outside git (git-ignored `vendor/beta-token.json`, shipped as `resources/beta-token.json`) after GitHub's push protection correctly refused a committed live token; a clone without the file simply falls back to raw-key mode.
+- **Every gateway AI call now carries a usage label.** Both providers (Anthropic and Gemini, including the Gemini Files API upload/poll/delete legs) send the install's existing analytics device ID as `cf-aig-metadata`, so Cloudflare's gateway logs show which install made every call. This keeps per-tester spend visibility and abuse attribution without giving each tester their own token.
+- **Install ID visible in Settings.** Settings → Diagnostics → the analytics card now shows this install's ID read-only with a copy button — a tester reads it out once and Fega can map gateway usage to a person.
+
+### Fixed
+- **#249 was accidentally auto-closed by the session-159 wrap commit message** ("Session 159 close: #249 …" matched GitHub's close keyword). Reopened; the Option A build in this session is the actual close.
+
 ## [0.3.0-alpha.44] — 2026-08-11 (session 159) — Installer: runs on machines that aren't Fega's
 
 ### Changed
