@@ -6,7 +6,7 @@
 
 ---
 
-## ACTIVE (session 160) — #249 Option A token posture (ratified by Fega 2026-08-11, spec = Wick's decision comment)
+## ✅ BUILT (session 160) — #249 Option A token posture — alpha.45 cut + inspected; issue OPEN pending Fega's nod + auto-recharge check
 
 Goal: a tester's install talks to AI out of the box (shared gateway token
 preset in the build), every gateway call carries a usage label (the existing

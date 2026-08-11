@@ -1,62 +1,60 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 159 (#251 SHIPPED and CLOSED: hardcoded Fega-machine paths removed, FFmpeg bundled, first-run dependency check; alpha.44 cut, installed, and Fega-confirmed with a full pipeline run)._
+_Last updated: 2026-08-11 — Session 160 (#249 Option A BUILT: preset beta gateway token + per-install usage labels + Install ID in Settings; alpha.45 cut and inspected; issue open pending Fega's nod + auto-recharge check)._
 
 ---
 
 ## One-line TL;DR
 
-The #1 beta blocker (#251) is built and verified: `energy_scorer.py` rescued off the D: drive into the repo (data-loss fix, landed first as `7f4f1f7`), FFmpeg + ffprobe now ship in the installer and every call site resolves bundled-first, all six hardcoded `D:\whisper` paths are gone, the model cache defaults to per-user app data, and a first-run dependency banner + pipeline gate name plainly what's missing on a tester machine. Four boot migrations pin the legacy locations on Fega's machines so his install needs zero re-entry and zero re-downloads — proven live on the dev profile across three CDP-verified boots.
+The ratified #249 Option A posture is built and live-verified: every gateway AI call (both providers, including Gemini Files API legs) now carries `cf-aig-metadata` with the install's PostHog deviceId, Settings → Diagnostics shows that Install ID read-only with copy, and the shared beta gateway token ships preset in the build — via a git-ignored `vendor/beta-token.json` shipped as `resources/beta-token.json` (GitHub push protection correctly refused a committed live token; the vendor/ffmpeg pattern was the answer). Alpha.45 cut and byte-scan inspected against the RESTATED done-means: zero raw provider keys anywhere, token present exactly where designed.
 
 ## Current State
 
-Master at `858fe32` (alpha.44 bump). **Fega is on alpha.44 (installed + confirmed)** — full pipeline run on RL Day10 Pt3 completed end-to-end on the installed build: no settings re-entry, no model re-download (prod first-boot log shows `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`; watchFolder/whisperPythonPath migrations no-op'd — both explicitly set in his prod store), bundled FFmpeg n7.1.5 carried the whole run. **#251 CLOSED**; #68 closed (untested label removed after the confirmed run). The Arc Raiders clip was scheduled (not posted) by Fega — the alpha.43 queue-fix confirmation lands when its slot fires.
+Master at `22a3b3e` (alpha.45 bump). Fega is still on **alpha.44**; alpha.45 sits in `dist/` and will surface via the in-app update banner. **#249 reopened and still OPEN** — it had been auto-closed by the session-159 wrap commit message ("Session 159 close: #249 …" matched GitHub's close keyword; the known `Fix #N` trap in a new costume). It closes when Fega (1) confirms auto-recharge is OFF on both provider billing dashboards (Wick's hard warning — the prepaid wall IS the risk model behind A) and (2) installs alpha.45 and nods. Verification record: [issue comment](https://github.com/Oghenefega/ClipFlow/issues/249#issuecomment-5251187364).
 
-## What Was Just Built (session 159 — #251)
+## What Was Just Built (session 160 — #249 Option A)
 
-- **Step 0 rescue (`7f4f1f7`, committed alone):** `D:\whisper\energy_scorer.py` → `tools/energy_scorer.py`. It was on one physical drive, no history, not shipped. Audit found nothing else out-of-repo (`check_ebur128.py` on D: is unreferenced; left).
-- **`src/main/app-paths.js` (new):** dependency-free (guarded electron require, no logger — safe under the replay-score plain-node stub). Exports `FFMPEG_BIN`/`FFPROBE_BIN` (packaged → `resources/ffmpeg/`, source → `vendor/ffmpeg/`, else bare name → PATH), `envWithBundledFfmpeg()` (prepends bundled dir to a child's PATH, reusing the existing `Path` key), `defaultHfHome()` (`<userData>\hf_cache`, lazy).
-- **23 bare-name call sites switched** to the resolved bins: ffmpeg.js (16), ai-pipeline.js:365ish, gemini-watch.js:118ish, render.js (3), subtitle-overlay-renderer.js (2). Python children (energy scorer spawn, both stable-ts exec paths, signals runPythonSignal) get `envWithBundledFfmpeg()` because energy_scorer.py and WhisperX's audio loader shell out to ffmpeg by bare name themselves.
-- **energy_scorer resolution** mirrors transcribe.py/#143: `ENERGY_SCRIPT` in ai-pipeline.js, packaged → `resources/tools/`, source → repo `tools/`.
-- **whisperPythonPath: no fallback.** Unset/missing → plain error naming Settings → Tools & Credentials → BetterWhisperX Configuration → "Python Path (venv)" (ai-pipeline stage-4 check + shared `PYTHON_SETUP_ERROR` in stable-ts for both transcribe paths).
-- **Four boot migrations in `runStoreMigrations`** (all condition-guarded, idempotent, fire only where the legacy path exists): watchFolder ← legacy W:\ default (STORE_DEFAULTS.watchFolder now ""), hfHome ← `D:\whisper\hf_cache`, whisperPythonPath ← `D:\whisper\betterwhisperx-venv\Scripts\python.exe`. The python one was added mid-session after discovering the DEV profile had `whisperPythonPath: ""` and relied on the deleted code fallback (prod store peeked read-only: explicitly set, safe either way).
-- **First-run dependency check:** `src/main/deps-check.js` (ffmpeg/ffprobe run-check, python set+exists, 4 required tool scripts present) → IPC `system:checkDependencies` → preload `checkDependencies` → `DependencyBanner.js` under UpdateBanner in App.js (amber, lists title+fix per issue, Check again, dismissible). Same check gates `pipeline:generateClips` and refuses early with the same message.
-- **Packaging:** extraResources — tools now filtered (`!**/__pycache__/**`), new `vendor/ffmpeg → ffmpeg` entry (ffmpeg.exe, ffprobe.exe, LICENSE*). `vendor/ffmpeg/` is git-ignored (exes ~138MB each, GitHub cap is 100MB); `scripts/fetch-ffmpeg.ps1` / `npm run fetch:ffmpeg` populates it (BtbN FFmpeg n7.1 GPL zip — NVENC + libx264 confirmed present). Script is pure ASCII on purpose (PS 5.1 reads ANSI; em-dashes broke the parser on first run).
-- **SettingsView copy:** "Not found in PATH" → "Not found"; missing-ffmpeg hint now says reinstall ClipFlow or install to PATH.
+- **`src/main/ai/llm-provider.js`** — `gatewayMetadataHeader()`: JSON `{"deviceId": <store deviceId>}` or null. Single source so both providers label identically.
+- **`src/main/ai/providers/anthropic.js`** — gateway config carries `metadata`; `anthropicRequest` sends `cf-aig-metadata` whenever routed. Direct calls untouched.
+- **`src/main/ai/providers/gemini.js`** — `resolveRouting` adds the header to `authHeaders` in the gateway branch only → generateContent + Files start/poll/delete all labeled; the Google-issued byte-upload URL stays direct/unlabeled per the gap-1 spec.
+- **`src/main/app-paths.js`** — `bundledGatewayToken()`: packaged → `resources/beta-token.json`, source → git-ignored `vendor/beta-token.json`; missing/unparseable → `""` (raw-key fallback, fresh clones still run).
+- **`src/main/main.js`** — `STORE_DEFAULTS.gatewayAuthToken: appPaths.bundledGatewayToken()` with a loud comment stating the restated done-means (bundled token = deliberate inclusion, do NOT "fix"). No migration: no shape change; users who cleared the token keep `""` (file values beat defaults).
+- **`src/renderer/views/SettingsView.js`** — AnalyticsToggle card grew an Install ID row (read-only deviceId, copy button with ✓ feedback, hint "Identifies this install in AI usage logs"). Lives in Settings → Diagnostics.
+- **`package.json`** — extraResources gains `vendor/beta-token.json → beta-token.json`; `.gitignore` gains `vendor/beta-token.json`.
+- **The push-protection pivot:** first commit hardcoded the token → GitHub push protection rejected it (Cloudflare User API Token). Commit was amended before push (secret never reached remote history); token moved to the file-based mechanism above. Do not allowlist secrets into git instead.
 
 ## Verification record
 
-- All runnable test suites green: ai-prompt 62, game-profiles 15, gemini-watch 14, signals weights, segmentWords 29, trackerCalendarModel 19. (renderAudioMix + nleModel + audioPlacements are jest-style with no jest installed — pre-existing, skipped in #249's baseline too.)
-- Packaged build inspected: `resources/ffmpeg/{ffmpeg,ffprobe}.exe` + LICENSE, `resources/tools/energy_scorer.py`, ZERO `__pycache__`/`.pyc`; asar lists app-paths.js + deps-check.js.
-- Three dev-profile boots (CDP on 9222/9223, `scratchpad/cdp-check.js`): (1) as-was store → banner with Whisper line only + `Pinned hfHome` log line; (2) clean-machine sim (PATH stripped to System32, vendor renamed away, watchFolder+hfHome keys removed) → banner with BOTH lines + `Pinned watchFolder` fires + screenshot; (3) post-python-migration healthy boot → NO banner, `Pinned whisperPythonPath` fires, and in-app `window.clipflow.ffmpegCheck()` returns **n7.1.5** = the bundled build, not chocolatey's PATH one. Store + vendor fully restored after.
-- Known accepted deviation: `grep 'D:\\' src/` = exactly 1 hit, the hfHome migration's legacy-path constant (main.js ~:327). Mandated by the migrate-at-boot trap; noted on #251 so the mechanical check gets refined, NOT obfuscated.
+- Suites green: ai-prompt 62, game-profiles 15, gemini-watch 14, signals weights, segmentWords 29, trackerCalendarModel 19.
+- **Live harness over the real provider modules, stub store, NO raw keys:** Anthropic and Gemini both HTTP 200 through the gateway with `cf-aig-metadata: {"deviceId":"s160-verify-label"}` captured on the wire; no `x-api-key`/`x-goog-api-key` sent. (Fega can filter CF gateway logs for `s160-verify-label` to see the labels landing.)
+- Dev-profile CDP boot: Settings → Diagnostics shows the Install ID row with the dev store's real deviceId (screenshot taken). Second boot on the token-file code path clean.
+- **Packaged inspection (alpha.45):** Fega's live key values 0 hits in app.asar / beta-token.json / Setup exe. Pattern hits all adjudicated benign (2× `sk-ant-...` + 2× `AIza...` = Settings placeholders in bundle+sourcemap; 5× `AIza` = sourcemap VLQ coincidences). Token present exactly once in `resources/beta-token.json` and once in the exe; NOT inside app.asar; NOT in git.
 
 ## Key Decisions
 
-- **Q1 (Fega, 2026-08-11): watchFolder default is now ""** — renderer's #167 guard means no watcher starts until a folder is picked. His installs rescued by migration.
-- **Q2 (Fega): UPDATE_DIST_DIR** (`C:\Users\IAmAbsolute\...\dist` in main.js ~:4165) stays — it's #250's territory; noted on #250.
-- **Bundled-first, PATH-fallback** — Fega's render path now uses the bundled n7.1.5 (NVENC confirmed in it), not his chocolatey install. First full pipeline run on alpha.44 is the watch item.
-- **Whisper/Python bundling stays OUT** (per issue): documented setup step + the dependency check is the 3-tester answer; commercial-launch gate filed separately (see below).
+- **Token lives OUTSIDE git** (vendor/beta-token.json, extraResources) rather than allowlisting the secret past push protection. Same shipped result, clean history, matches the vendor/ffmpeg precedent.
+- **The bundled token = the existing shared token** (same one Fega's install uses). A dedicated beta token (separate revocation for the tester cohort) is a one-file swap + rebuild if Fega wants it — offered on the issue, not required for A.
+- deviceId is read at call time from the store (migration guarantees it exists before any call).
 
 ## Next Steps
 
-1. **Build #249 Option A — RATIFIED by Fega 2026-08-11** (comment 5250776779; Wick's decision comment 5224920718 is the spec). Scope: `cf-aig-metadata` on every gateway call (BOTH providers) using the existing PostHog device ID (do NOT invent a new identity or a "tester name" field), surface that ID read-only in Settings, preset the shared beta gateway token in the build, then re-inspect the packaged installer against the RESTATED done-means (no raw provider keys; the bundled gateway token is a deliberate, revocable inclusion — NOT a leak; don't "fix" it). B is off the table. **C (Supabase-issued after login) is deferred to be decided WITH pricing at launch** — Fega asked and chose explicitly; C is ~4-6 sessions riding on Supabase auth that doesn't exist yet, and it's the same plumbing as the paid tier.
+1. **Fega:** confirm auto-recharge/auto-top-up OFF on BOTH Anthropic and Google billing (dashboard check) → install alpha.45 → nod closes #249.
 2. #248 beta feedback reporter (spec ready) → then tester #1 gets an installer.
-3. **Arc Raiders clip: Fega scheduled it instead of posting** — the alpha.43 queue-fix real-world confirmation fires whenever that slot hits; check `clipflow-publish-log.json` after.
-4. #244 loud scheduled-publish failures, #219 Add Game crash. Tester #1's install = true clean-machine proof for #251. #199 unblocked. #146 = commercial-launch Python gate. #156 looks already-implemented (lock is in main.js) — close on Fega's nod.
+3. Arc Raiders clip: scheduled, not posted — alpha.43 queue-fix confirmation fires when its slot hits; check `clipflow-publish-log.json` after.
+4. #244 loud scheduled-publish failures, #219 Add Game crash, #199 unblocked, #156 close on Fega's nod.
 
 ## Watch Out For
 
-- **`vendor/ffmpeg/` must exist before `npm run build`** on any machine cutting installers — electron-builder errors on the missing extraResources dir. `npm run fetch:ffmpeg` once fixes it. It's git-ignored; a fresh clone doesn't have it.
-- **The banner is dismissible by design** — the hard stop is the pipeline gate (`pipeline:generateClips` re-checks in main). Don't "fix" the banner into a blocking modal.
-- **Retranscribe/editor paths don't have their own deps gate** — they surface the plain PYTHON_SETUP_ERROR from stable-ts instead. Acceptable; revisit if testers hit it.
-- **Keep `scripts/fetch-ffmpeg.ps1` pure ASCII** — PS 5.1 parses it as ANSI; smart punctuation breaks it at parse time.
-- The pre-existing jest-style test files (renderAudioMix, nleModel, audioPlacements) still can't run — not a session-159 regression.
+- **Build machines now need TWO git-ignored vendor files before `npm run build`:** `vendor/ffmpeg/` (populate: `npm run fetch:ffmpeg`) AND `vendor/beta-token.json` (`{"gatewayAuthToken": "<the shared cfut_ token>"}` — value is in Fega's prod settings store or the CF dashboard). electron-builder errors on either missing.
+- **Do NOT commit the token or allowlist it past push protection** — the file-based mechanism exists precisely so git history stays clean. A future "found a token in resources/beta-token.json" is the restated done-means working, not a leak.
+- **A wrap commit message must never put a close keyword before "#N"** — "Session 159 close: #249" auto-closed the issue. Say "Session close (#249 …)" or reword.
+- The metadata header rides ONLY gateway-routed calls (both providers) — direct/raw-key calls intentionally unlabeled; don't "fix" that.
+- Sourcemaps ship in app.asar (pre-existing) — they're why byte-scans hit UI placeholder strings twice.
 
 ## Logs/Debugging
 
-- **Migration lines** (system module, app.log, first boot of new code): `Pinned watchFolder to legacy default W:\...`, `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`, `Pinned whisperPythonPath to existing legacy venv D:\...python.exe`.
-- **Dependency check:** renderer calls `window.clipflow.checkDependencies()` → `{ok, issues:[{id,title,detail,fix}]}`; ids are `ffmpeg`, `whisper-python`, `tool-scripts`. Pipeline refusal returns the same text joined as `{error}` from `pipeline:generateClips`.
-- **Which ffmpeg ran?** Settings → Local Tools shows the resolved version — bundled = `n7.1.5-...`; chocolatey PATH fallback reports its own string. `ffmpegCheck` IPC returns the same.
-- **CDP boot-verification harness:** session scratchpad `cdp-check.js` (launch dev electron with `--remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`, script prints BANNER_PRESENT/WHISPER_LINE/FFMPEG_LINE + screenshot). Kill dev electron with `taskkill //IM electron.exe //F` (daily driver is ClipFlow.exe, unaffected).
-- Dev-profile logs: `%APPDATA%\clipflow-dev\logs\app.log`; dev store: `%APPDATA%\clipflow-dev\clipflow-settings.json`.
+- **Which install made a call:** CF AI Gateway logs → Metadata filter on `deviceId`. Harness proof label from this session: `s160-verify-label`.
+- **An install's ID:** Settings → Diagnostics → analytics card (read-only + copy), or `deviceId` in `%APPDATA%\clipflow\clipflow-settings.json`.
+- **Token resolution:** `app-paths.js bundledGatewayToken()`; packaged file at `<install>\resources\beta-token.json`. Empty/missing → Settings shows "Direct (no gateway)" unless the user pasted a token.
+- Provider log lines unchanged: `[anthropic] Gateway (BYOK) → …` / `[gemini] Gateway (BYOK) → …`.
+- CDP boot-verify scripts from this session: session scratchpad `cdp-settings-check3.js` (Diagnostics expand + Install ID assert) + `cdp-shot.js`. Kill dev electron with `taskkill //IM electron.exe //F`.
