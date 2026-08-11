@@ -33,7 +33,8 @@ Master at `22a3b3e` (alpha.45 bump). Fega is still on **alpha.44**; alpha.45 sit
 ## Key Decisions
 
 - **Token lives OUTSIDE git** (vendor/beta-token.json, extraResources) rather than allowlisting the secret past push protection. Same shipped result, clean history, matches the vendor/ffmpeg precedent.
-- **The bundled token = the existing shared token** (same one Fega's install uses). A dedicated beta token (separate revocation for the tester cohort) is a one-file swap + rebuild if Fega wants it — offered on the issue, not required for A.
+- **LATE-SESSION UPDATE: the bundled card is now a DEDICATED tester token.** Fega minted `clipflow-beta-testers` in the CF dashboard (2026-08-11, token id 5cebaaeff0584b08035bab6bc24a9cd5) and it replaced his personal token in `vendor/beta-token.json`. His own installs keep his personal token (explicitly set in their stores — file values beat defaults), so revoking the tester card never touches him. Verified end-to-end: harness with ONLY the new card → both providers HTTP 200, label `s160-tester-card-verify` on the wire.
+- **The alpha.45 exe in dist/ still carries the PERSONAL card** (it was cut before the swap). Fine for Fega's own machine; do NOT hand that exe to a tester — the first tester installer must be a build cut AFTER the swap (next cut picks it up automatically).
 - deviceId is read at call time from the store (migration guarantees it exists before any call).
 
 ## Next Steps
