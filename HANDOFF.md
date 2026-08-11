@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 160 (#249 Option A BUILT: preset beta gateway token + per-install usage labels + Install ID in Settings; alpha.45 cut and inspected; issue open pending Fega's nod + auto-recharge check)._
+_Last updated: 2026-08-11 — Session 160 (#249 Option A SHIPPED and CLOSED: preset beta gateway token + per-install usage labels + Install ID in Settings; alpha.45 installed and Fega-confirmed; auto-recharge confirmed OFF on both providers; dedicated tester token minted and bundled)._
 
 ---
 
@@ -10,7 +10,7 @@ The ratified #249 Option A posture is built and live-verified: every gateway AI 
 
 ## Current State
 
-Master at `22a3b3e` (alpha.45 bump). Fega is still on **alpha.44**; alpha.45 sits in `dist/` and will surface via the in-app update banner. **#249 reopened and still OPEN** — it had been auto-closed by the session-159 wrap commit message ("Session 159 close: #249 …" matched GitHub's close keyword; the known `Fix #N` trap in a new costume). It closes when Fega (1) confirms auto-recharge is OFF on both provider billing dashboards (Wick's hard warning — the prepaid wall IS the risk model behind A) and (2) installs alpha.45 and nods. Verification record: [issue comment](https://github.com/Oghenefega/ClipFlow/issues/249#issuecomment-5251187364).
+Master at `5bbad75`. **Fega is on alpha.45 (installed + confirmed, Settings reads v0.3.0-alpha.45).** **#249 is CLOSED and fully verified** — auto-recharge confirmed OFF on both Anthropic and Google billing (2026-08-11), untested label applied then removed on his confirmation. (Session note: #249 had briefly been auto-closed by the session-159 wrap commit message — "Session 159 close: #249 …" matched GitHub's close keyword — reopened at session start, then properly closed at the end. Wrap commits must never put close/fix before "#N".) Verification record: [issue comment](https://github.com/Oghenefega/ClipFlow/issues/249#issuecomment-5251187364).
 
 ## What Was Just Built (session 160 — #249 Option A)
 
@@ -39,10 +39,9 @@ Master at `22a3b3e` (alpha.45 bump). Fega is still on **alpha.44**; alpha.45 sit
 
 ## Next Steps
 
-1. **Fega:** confirm auto-recharge/auto-top-up OFF on BOTH Anthropic and Google billing (dashboard check) → install alpha.45 → nod closes #249.
-2. #248 beta feedback reporter (spec ready) → then tester #1 gets an installer.
-3. Arc Raiders clip: scheduled, not posted — alpha.43 queue-fix confirmation fires when its slot hits; check `clipflow-publish-log.json` after.
-4. #244 loud scheduled-publish failures, #219 Add Game crash, #199 unblocked, #156 close on Fega's nod.
+1. **#248 beta feedback reporter (spec ready) → then tester #1 gets an installer.** That installer must be cut AFTER this session (it picks up the dedicated tester token); alpha.45 predates the swap.
+2. Arc Raiders clip: scheduled, not posted — alpha.43 queue-fix confirmation fires when its slot hits; check `clipflow-publish-log.json` after.
+3. #244 loud scheduled-publish failures, #219 Add Game crash, #199 unblocked, #156 close on Fega's nod.
 
 ## Watch Out For
 
