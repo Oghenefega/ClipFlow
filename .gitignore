@@ -27,6 +27,7 @@ __pycache__/
 # Bundled FFmpeg binaries (#251) — too large for GitHub; populated per build
 # machine by scripts/fetch-ffmpeg.ps1, shipped via extraResources.
 vendor/ffmpeg/
+vendor/beta-token.json
 
 # Windows reserved-name junk (stray `> nul` redirects)
 nul

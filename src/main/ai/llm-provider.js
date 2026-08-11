@@ -64,4 +64,16 @@ function listProviders() {
   return Object.keys(_providers);
 }
 
-module.exports = { init, registerProvider, getProvider, getStore, listProviders };
+/**
+ * #249 Option A: usage label for Cloudflare AI Gateway logs. Every routed
+ * call carries the install's PostHog deviceId as cf-aig-metadata so usage is
+ * attributable per install without per-tester tokens. Shared here so both
+ * providers label identically.
+ * @returns {string|null} JSON string for the cf-aig-metadata header, or null
+ */
+function gatewayMetadataHeader() {
+  const id = _store ? String(_store.get("deviceId") || "").trim() : "";
+  return id ? JSON.stringify({ deviceId: id }) : null;
+}
+
+module.exports = { init, registerProvider, getProvider, getStore, listProviders, gatewayMetadataHeader };

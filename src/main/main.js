@@ -255,7 +255,15 @@ const STORE_DEFAULTS = {
   // #249: gateway BASE (no provider segment) — each provider appends its own
   // (/anthropic, /google-ai-studio). Migration below strips the legacy suffix.
   gatewayUrl: "https://gateway.ai.cloudflare.com/v1/58332e30c2b9ef9de6c53d37ee9fd3dc/clipflow-prod",
-  gatewayAuthToken: "",
+  // #249 Option A (Fega ratified 2026-08-11): the shared beta gateway token
+  // ships preset so a tester's install talks to AI with zero setup. This is a
+  // DELIBERATE, revocable, spend-capped inclusion — NOT a leaked secret. Do
+  // not "fix" it. Raw provider keys must never ship; Cloudflare injects them
+  // server-side. The token value lives OUTSIDE git (resources/beta-token.json
+  // packaged, vendor/beta-token.json from source — GitHub push protection
+  // rejects committed live tokens). Users who clear this field in Settings
+  // keep their "" (file values win over defaults) and fall back to raw keys.
+  gatewayAuthToken: appPaths.bundledGatewayToken(),
   youtubeClientId: "",
   youtubeClientSecret: "",
   metaAppId: "",

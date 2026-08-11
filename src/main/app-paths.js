@@ -59,4 +59,24 @@ function defaultHfHome() {
   return path.join(require("electron").app.getPath("userData"), "hf_cache");
 }
 
-module.exports = { BUNDLED_FFMPEG_DIR, FFMPEG_BIN, FFPROBE_BIN, envWithBundledFfmpeg, defaultHfHome };
+/**
+ * #249 Option A: the shared beta gateway token ships IN THE BUILD but stays
+ * OUT of git (GitHub push protection rejects committed live tokens — same
+ * reasoning as vendor/ffmpeg staying out of the repo). Packaged apps read
+ * resources/beta-token.json (extraResources); source runs read the
+ * git-ignored vendor/beta-token.json. Missing file → "" → the app falls back
+ * to raw API keys / a user-pasted token, so a fresh clone still runs.
+ */
+function bundledGatewayToken() {
+  const tokenFile = _electronApp && _electronApp.isPackaged
+    ? path.join(process.resourcesPath, "beta-token.json")
+    : path.join(__dirname, "..", "..", "vendor", "beta-token.json");
+  try {
+    const token = JSON.parse(fs.readFileSync(tokenFile, "utf8")).gatewayAuthToken;
+    return typeof token === "string" ? token.trim() : "";
+  } catch (_) {
+    return "";
+  }
+}
+
+module.exports = { BUNDLED_FFMPEG_DIR, FFMPEG_BIN, FFPROBE_BIN, envWithBundledFfmpeg, defaultHfHome, bundledGatewayToken };

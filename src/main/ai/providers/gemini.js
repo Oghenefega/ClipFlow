@@ -21,7 +21,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { registerProvider, getStore } = require("../llm-provider");
+const { registerProvider, getStore, gatewayMetadataHeader } = require("../llm-provider");
 const log = require("electron-log");
 
 const API_BASE = "https://generativelanguage.googleapis.com";
@@ -78,11 +78,19 @@ function resolveRouting(apiKey) {
     try {
       const base = gatewayUrl.replace(/\/+$/, "").replace(/\/anthropic$/, "");
       new URL(base); // validate before committing to the route
+      // #249: label every gateway call with this install's ID (CF log
+      // filtering). Rides authHeaders so generateContent + Files start/poll/
+      // delete all carry it; the Google-issued byte-upload URL doesn't use
+      // authHeaders and stays unlabeled by design.
+      const metadata = gatewayMetadataHeader();
       return {
         base: `${base}/google-ai-studio`,
-        authHeaders: authToken
-          ? { "cf-aig-authorization": `Bearer ${authToken}` }
-          : { "x-goog-api-key": apiKey },
+        authHeaders: {
+          ...(authToken
+            ? { "cf-aig-authorization": `Bearer ${authToken}` }
+            : { "x-goog-api-key": apiKey }),
+          ...(metadata ? { "cf-aig-metadata": metadata } : {}),
+        },
         mode: authToken ? "Gateway (BYOK)" : "Gateway (passthrough)",
         byok: Boolean(authToken),
       };

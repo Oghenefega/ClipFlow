@@ -1697,12 +1697,18 @@ function RecordingLayoutSection() {
 function AnalyticsToggle() {
   const [enabled, setEnabled] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  // #249: the install ID (PostHog deviceId) also labels every AI gateway call —
+  // shown read-only so a tester can read it out for usage attribution.
+  const [installId, setInstallId] = useState("");
+  const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
     (async () => {
       if (window.clipflow?.storeGet) {
         const val = await window.clipflow.storeGet("analyticsEnabled");
         if (val !== undefined && val !== null) setEnabled(val);
+        const id = await window.clipflow.storeGet("deviceId");
+        if (id) setInstallId(id);
       }
       setLoaded(true);
     })();
@@ -1717,6 +1723,12 @@ function AnalyticsToggle() {
     } else {
       posthog.opt_out_capturing();
     }
+  };
+
+  const copyId = () => {
+    navigator.clipboard.writeText(installId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 1500);
   };
 
   if (!loaded) return null;
@@ -1744,6 +1756,14 @@ function AnalyticsToggle() {
           }} />
         </button>
       </div>
+      {installId && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+          <span style={{ fontSize: 11, color: T.textTertiary, flexShrink: 0 }}>Install ID</span>
+          <span style={{ fontSize: 11, color: T.textSecondary, fontFamily: T.mono, userSelect: "text", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{installId}</span>
+          <button onClick={copyId} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: copiedId ? T.green : T.textTertiary, padding: 0, flexShrink: 0 }} title="Copy Install ID">{copiedId ? "✓" : "📋"}</button>
+          <span style={{ fontSize: 10, color: T.textTertiary, marginLeft: "auto", flexShrink: 0 }}>Identifies this install in AI usage logs</span>
+        </div>
+      )}
     </Card>
   );
 }

@@ -14,7 +14,7 @@
  */
 
 const https = require("https");
-const { registerProvider, getStore } = require("../llm-provider");
+const { registerProvider, getStore, gatewayMetadataHeader } = require("../llm-provider");
 const log = require("electron-log");
 
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -33,6 +33,7 @@ const DIRECT_PATH = "/v1/messages";
  * @param {object} [opts.gateway] - Cloudflare AI Gateway config
  * @param {string} opts.gateway.url - Gateway base URL (e.g. https://gateway.ai.cloudflare.com/v1/.../clipflow-prod)
  * @param {string} opts.gateway.authToken - cf-aig-authorization bearer token
+ * @param {string} [opts.gateway.metadata] - cf-aig-metadata JSON string (#249 usage label)
  * @returns {Promise<object>} Raw API response
  */
 function anthropicRequest(apiKey, body, opts = {}) {
@@ -77,6 +78,11 @@ function anthropicRequest(apiKey, body, opts = {}) {
     } else {
       // Direct or passthrough: client sends the API key
       headers["x-api-key"] = apiKey;
+    }
+
+    // #249: label every gateway call with this install's ID (CF log filtering)
+    if (routed && gateway.metadata) {
+      headers["cf-aig-metadata"] = gateway.metadata;
     }
 
     const options = { hostname, path, method: "POST", headers };
@@ -169,7 +175,9 @@ const provider = {
     // Build gateway config — URL alone = passthrough, URL + token = BYOK
     const gatewayAuthToken = store ? store.get("gatewayAuthToken", "") : "";
     const gatewayUrl = store ? store.get("gatewayUrl", "") : "";
-    const gateway = gatewayUrl ? { url: gatewayUrl, authToken: gatewayAuthToken } : undefined;
+    const gateway = gatewayUrl
+      ? { url: gatewayUrl, authToken: gatewayAuthToken, metadata: gatewayMetadataHeader() }
+      : undefined;
 
     // BYOK: Anthropic key not required when gateway handles auth via Provider Keys
     if (!apiKey && !(gateway && gateway.authToken)) {

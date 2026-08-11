@@ -6,6 +6,65 @@
 
 ---
 
+## ACTIVE (session 160) — #249 Option A token posture (ratified by Fega 2026-08-11, spec = Wick's decision comment)
+
+Goal: a tester's install talks to AI out of the box (shared gateway token
+preset in the build), every gateway call carries a usage label (the existing
+PostHog install ID) so Fega can tell testers apart in Cloudflare's logs, and
+the packaged installer is re-inspected against the RESTATED done-means: no
+raw provider keys; the bundled gateway token is a deliberate, revocable,
+spend-capped inclusion — NOT a leak.
+
+Note: #249 had been auto-closed by the session-159 wrap commit message
+("Session 159 close: #249 ..." matched GitHub's close keyword). Reopened at
+session start.
+
+### File impact
+
+1. `src/main/ai/llm-provider.js` — new `gatewayMetadataHeader()`: returns
+   `{"deviceId": "<store deviceId>"}` as a JSON string (null if unset). One
+   shared source so both providers label identically.
+2. `src/main/ai/providers/anthropic.js` — gateway config gains the metadata
+   string; `anthropicRequest` sends `cf-aig-metadata` whenever the call is
+   routed through the gateway. Direct calls untouched.
+3. `src/main/ai/providers/gemini.js` — `resolveRouting` adds `cf-aig-metadata`
+   to `authHeaders` in the gateway branch only. Covers generateContent +
+   Files start/poll/delete. The Google-issued byte-upload URL stays direct
+   and unlabeled (per spec — must not be rewritten).
+4. `src/main/main.js` — `STORE_DEFAULTS.gatewayAuthToken` becomes the shared
+   beta token (today: ""). Comment states the restated done-means so no
+   future session "fixes" it as a leak. No migration needed: no shape change;
+   installs that explicitly cleared the token keep their "" (electron-store
+   file values win over defaults).
+   **PIVOT (mid-session): the token value lives OUTSIDE git.** GitHub push
+   protection (correctly) rejected a committed live Cloudflare token. Instead
+   of allowlisting the secret, the token follows the vendor/ffmpeg pattern:
+   git-ignored `vendor/beta-token.json`, shipped via extraResources as
+   `resources/beta-token.json`, read at boot by
+   `app-paths.js bundledGatewayToken()` as the store default. Missing file →
+   "" → raw-key fallback, so fresh clones still run. Same zero-setup install,
+   no secret in git history. Build machines cutting installers need the file
+   (same class of prerequisite as vendor/ffmpeg).
+5. `src/renderer/views/SettingsView.js` — AnalyticsToggle card grows an
+   "Install ID" row: the deviceId, read-only, monospace, with a copy button
+   (✓ feedback). This is the ID a tester reads out so Fega can map ID→person.
+
+### Verification
+
+- Existing suites green: ai-prompt, game-profiles, gemini-watch, signals,
+  segmentWords, trackerCalendarModel.
+- Live harness over the REAL provider modules (stub store, gateway base +
+  token, fake deviceId): Anthropic call and Gemini call both HTTP 200 WITH
+  the cf-aig-metadata header attached — proves Cloudflare accepts the label.
+- Renderer build + dev-profile boot: Settings shows the Install ID row.
+- Bump to alpha.45, `npm run build`, then byte-scan `app.asar` + the Setup
+  exe: zero `sk-ant-`/`AIza` hits, zero raw-key values from Fega's store,
+  gateway token PRESENT by design.
+- Comment the verification record on #249. Fega's remaining manual check
+  (from Wick's decision): auto-recharge OFF on both provider billing pages.
+
+---
+
 ## ✅ SHIPPED (session 159) — #251: ClipFlow runs on a machine that isn't Fega's — alpha.44 installed, Fega-confirmed, issue CLOSED
 
 Fega installed alpha.44 (2026-08-11) and ran a full pipeline on RL Day10 Pt3

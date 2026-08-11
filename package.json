@@ -49,6 +49,10 @@
           "ffprobe.exe",
           "LICENSE*"
         ]
+      },
+      {
+        "from": "vendor/beta-token.json",
+        "to": "beta-token.json"
       }
     ],
     "win": {
