@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-11 (session 161) — #248 feedback reporter: design locked, build planned (no app code this session)
+
+### Added
+- **Interactive design mock for the beta feedback reporter** (`tasks/mocks/feedback-bubble.html`). Fega iterated on it live and locked the design: a labeled pill ("?" dot + rotating prompt) on the right edge that opens a compact report panel, tucks into a slim edge peel via its ×, drags vertically along the edge, and pulses only when the app just logged a real error. The mock's look, copy, and interaction feel are the build's source of truth.
+- **Design context file for future UI sessions** (`.agents/context/PRODUCT.md`): ClipFlow's users, tone, aesthetic rules, and anti-references in one place, so design tooling starts from the product instead of generic defaults.
+
+### Changed
+- **#248 re-scoped from "avatar" to "feedback pill", and widened beyond problems.** Every report now carries one category — Problem, Idea, or Feedback — picked by a segmented toggle. The pill's prompt rotates ("Having a problem?" / "Got an idea?" / "Got feedback?") and whichever prompt invited the click preselects the category; panel title, placeholder, and consent line adapt. Activity logs attach to Problem reports only, and Sentry events are tagged per category so the three piles are filterable apart. Spec (`tasks/specs/beta-feedback-reporter.md`), build plan (`tasks/todo.md`, with build order for a cold session), and the GitHub issue title all updated to match.
+- **The report panel is position-aware:** it opens above the pill normally and flips below it when the pill is dragged too high to leave headroom — a report panel can never be clipped off-screen. Verified interactively in the mock.
+
 ## [0.3.0-alpha.45] — 2026-08-11 (session 160) — First beta-posture installer: preset AI access + per-install usage labels
 
 ### Changed

@@ -1,60 +1,54 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 160 (#249 Option A SHIPPED and CLOSED: preset beta gateway token + per-install usage labels + Install ID in Settings; alpha.45 installed and Fega-confirmed; auto-recharge confirmed OFF on both providers; dedicated tester token minted and bundled)._
+_Last updated: 2026-08-11 — Session 161 (#248 design phase: avatar dropped for a feedback pill, Problem/Idea/Feedback categories added, interactive mock Fega-approved, spec + build plan locked. NO app code written — session hit its token budget by design; next session builds)._
 
 ---
 
 ## One-line TL;DR
 
-The ratified #249 Option A posture is built and live-verified: every gateway AI call (both providers, including Gemini Files API legs) now carries `cf-aig-metadata` with the install's PostHog deviceId, Settings → Diagnostics shows that Install ID read-only with copy, and the shared beta gateway token ships preset in the build — via a git-ignored `vendor/beta-token.json` shipped as `resources/beta-token.json` (GitHub push protection correctly refused a committed live token; the vendor/ffmpeg pattern was the answer). Alpha.45 cut and byte-scan inspected against the RESTATED done-means: zero raw provider keys anywhere, token present exactly where designed.
+#248's design is DONE and Fega-approved via an interactive mock: a labeled pill ("?" dot + rotating prompt "Having a problem?" / "Got an idea?" / "Got feedback?") on the right edge, tuck-to-peel, vertical drag, a position-aware report panel with a Problem/Idea/Feedback toggle, and point-at-the-problem capture. Spec and build plan are updated to match; the next session ports the mock into the app — design questions are closed, do not reopen them.
 
 ## Current State
 
-Master at `5bbad75`. **Fega is on alpha.45 (installed + confirmed, Settings reads v0.3.0-alpha.45).** **#249 is CLOSED and fully verified** — auto-recharge confirmed OFF on both Anthropic and Google billing (2026-08-11), untested label applied then removed on his confirmation. (Session note: #249 had briefly been auto-closed by the session-159 wrap commit message — "Session 159 close: #249 …" matched GitHub's close keyword — reopened at session start, then properly closed at the end. Wrap commits must never put close/fix before "#N".) Verification record: [issue comment](https://github.com/Oghenefega/ClipFlow/issues/249#issuecomment-5251187364).
+Master at `5bbad75` + this session's docs/design commit. **Fega is on alpha.45 (installed).** No app code changed this session — everything shipped in alpha.45 is still exactly what's running. #248 moved from "spec ready, design open" to "design locked, build planned."
 
-## What Was Just Built (session 160 — #249 Option A)
+## What Was Just Done (session 161 — all design/docs, no code)
 
-- **`src/main/ai/llm-provider.js`** — `gatewayMetadataHeader()`: JSON `{"deviceId": <store deviceId>}` or null. Single source so both providers label identically.
-- **`src/main/ai/providers/anthropic.js`** — gateway config carries `metadata`; `anthropicRequest` sends `cf-aig-metadata` whenever routed. Direct calls untouched.
-- **`src/main/ai/providers/gemini.js`** — `resolveRouting` adds the header to `authHeaders` in the gateway branch only → generateContent + Files start/poll/delete all labeled; the Google-issued byte-upload URL stays direct/unlabeled per the gap-1 spec.
-- **`src/main/app-paths.js`** — `bundledGatewayToken()`: packaged → `resources/beta-token.json`, source → git-ignored `vendor/beta-token.json`; missing/unparseable → `""` (raw-key fallback, fresh clones still run).
-- **`src/main/main.js`** — `STORE_DEFAULTS.gatewayAuthToken: appPaths.bundledGatewayToken()` with a loud comment stating the restated done-means (bundled token = deliberate inclusion, do NOT "fix"). No migration: no shape change; users who cleared the token keep `""` (file values beat defaults).
-- **`src/renderer/views/SettingsView.js`** — AnalyticsToggle card grew an Install ID row (read-only deviceId, copy button with ✓ feedback, hint "Identifies this install in AI usage logs"). Lives in Settings → Diagnostics.
-- **`package.json`** — extraResources gains `vendor/beta-token.json → beta-token.json`; `.gitignore` gains `vendor/beta-token.json`.
-- **The push-protection pivot:** first commit hardcoded the token → GitHub push protection rejected it (Cloudflare User API Token). Commit was amended before push (secret never reached remote history); token moved to the file-based mechanism above. Do not allowlist secrets into git instead.
+- **`tasks/mocks/feedback-bubble.html`** — interactive mock, iterated live with Fega across 4 rounds. Final state = variant B (labeled pill) on the right edge, 3 category chips, rotating prompts, tuck-to-peel, vertical drag, panel flip, error pulse, fake point-at-the-problem with a simulated cropped snapshot. Every interaction was verified in the browser pane (JS state assertions + screenshots) before each handover.
+- **`tasks/specs/beta-feedback-reporter.md`** — re-scoped: avatar → pill (locked decision block updated), new locked decision 5 (category model), report flow + verification script (now 6 steps, includes an Idea-report check) updated.
+- **`tasks/todo.md`** — session-161 PLANNED section: goal, file impact, build order for a cold session, verification. The mock is named as the source of truth for look/copy/feel.
+- **Issue [#248](https://github.com/Oghenefega/ClipFlow/issues/248)** — title updated twice, final: "in-app pill + Problem/Idea/Feedback categories + point-at-the-problem capture (Sentry-backed)".
+- **`.agents/context/PRODUCT.md`** — new design-context file (users/tone/aesthetic rules/anti-references) so future design-skill sessions load ClipFlow context instead of generic defaults.
 
-## Verification record
+## Key Decisions (all Fega, 2026-08-11 — closed, don't relitigate)
 
-- Suites green: ai-prompt 62, game-profiles 15, gemini-watch 14, signals weights, segmentWords 29, trackerCalendarModel 19.
-- **Live harness over the real provider modules, stub store, NO raw keys:** Anthropic and Gemini both HTTP 200 through the gateway with `cf-aig-metadata: {"deviceId":"s160-verify-label"}` captured on the wire; no `x-api-key`/`x-goog-api-key` sent. (Fega can filter CF gateway logs for `s160-verify-label` to see the labels landing.)
-- Dev-profile CDP boot: Settings → Diagnostics shows the Install ID row with the dev store's real deviceId (screenshot taken). Second boot on the token-file code path clean.
-- **Packaged inspection (alpha.45):** Fega's live key values 0 hits in app.asar / beta-token.json / Setup exe. Pattern hits all adjudicated benign (2× `sk-ant-...` + 2× `AIza...` = Settings placeholders in bundle+sourcemap; 5× `AIza` = sourcemap VLQ coincidences). Token present exactly once in `resources/beta-token.json` and once in the exe; NOT inside app.asar; NOT in git.
-
-## Key Decisions
-
-- **Token lives OUTSIDE git** (vendor/beta-token.json, extraResources) rather than allowlisting the secret past push protection. Same shipped result, clean history, matches the vendor/ffmpeg precedent.
-- **LATE-SESSION UPDATE: the bundled card is now a DEDICATED tester token.** Fega minted `clipflow-beta-testers` in the CF dashboard (2026-08-11, token id 5cebaaeff0584b08035bab6bc24a9cd5) and it replaced his personal token in `vendor/beta-token.json`. His own installs keep his personal token (explicitly set in their stores — file values beat defaults), so revoking the tester card never touches him. Verified end-to-end: harness with ONLY the new card → both providers HTTP 200, label `s160-tester-card-verify` on the wire.
-- **The alpha.45 exe in dist/ still carries the PERSONAL card** (it was cut before the swap). Fine for Fega's own machine; do NOT hand that exe to a tester — the first tester installer must be a build cut AFTER the swap (next cut picks it up automatically).
-- deviceId is read at call time from the store (migration guarantees it exists before any call).
+- **Entry point = variant B labeled pill**, right edge, NOT the avatar (no character art anywhere) and NOT variant A glow dot (A was picked first, then superseded by B for beta discoverability).
+- **Categories: Problem / Idea / Feedback** — one per report, segmented toggle, NOT checkboxes. "Feedback" replaced "Comment" (Fega's word choice); "Idea" deliberately kept — Idea prescribes ("should do X"), Feedback describes ("X feels like Y"); Fega accepted the overlap argument after examples.
+- **Prompt rotation advances on tab switch** and preselects the category in the panel. The mock's idle 6-second auto-rotate is MOCK-ONLY (so Fega could see rotation without clicking) — do not build it.
+- **Log tail attaches to Problem reports only**; Idea/Feedback send words + snapshot + version. Consent line adapts per category. Sentry events tagged with the category.
+- **Self-animation only on real failure** (pipeline/publish error → pulse 3×, label swaps, next open preselects Problem). Otherwise the pill never moves on its own.
+- **Tuck state persists across launches; drag is vertical-along-edge only** (no free-float). Panel is a popover that flips below the pill when dragged too high (headroom check on every open, content-height aware).
 
 ## Next Steps
 
-1. **#248 beta feedback reporter (spec ready) → then tester #1 gets an installer.** That installer must be cut AFTER this session (it picks up the dedicated tester token); alpha.45 predates the swap.
-2. Arc Raiders clip: scheduled, not posted — alpha.43 queue-fix confirmation fires when its slot hits; check `clipflow-publish-log.json` after.
-3. #244 loud scheduled-publish failures, #219 Add Game crash, #199 unblocked, #156 close on Fega's nod.
+1. **Build #248** per `tasks/todo.md` (session-161 PLANNED section has file impact + build order). Verify spec anchors first; port the mock, don't redesign it. Ends with Fega's 6-step script from the spec.
+2. **Then cut the tester installer** — it must be a build cut AFTER the session-160 token swap (alpha.45 still carries Fega's personal gateway token; the next cut picks up the dedicated `clipflow-beta-testers` card automatically). Consider folding #244 (loud scheduled-publish failures) and #219 (Add Game crash) into that same pre-tester build.
+3. **#250** (beta distribution / auto-update) follows once tester #1 has the first build.
+4. Carry-overs from session 160: Arc Raiders scheduled clip still unconfirmed (publish log's newest entries are Aug 8 failures — "Video file not found" on an Arc Raiders import; note the failed entries show a title/path mismatch worth a look when in Queue territory); #156 close on Fega's nod.
 
 ## Watch Out For
 
-- **Build machines now need TWO git-ignored vendor files before `npm run build`:** `vendor/ffmpeg/` (populate: `npm run fetch:ffmpeg`) AND `vendor/beta-token.json` (`{"gatewayAuthToken": "<the shared cfut_ token>"}` — value is in Fega's prod settings store or the CF dashboard). electron-builder errors on either missing.
-- **Do NOT commit the token or allowlist it past push protection** — the file-based mechanism exists precisely so git history stays clean. A future "found a token in resources/beta-token.json" is the restated done-means working, not a leak.
-- **A wrap commit message must never put a close keyword before "#N"** — "Session 159 close: #249" auto-closed the issue. Say "Session close (#249 …)" or reword.
-- The metadata header rides ONLY gateway-routed calls (both providers) — direct/raw-key calls intentionally unlabeled; don't "fix" that.
-- Sourcemaps ship in app.asar (pre-existing) — they're why byte-scans hit UI placeholder strings twice.
+- **You are building UI a non-coder approved from a mock** — match the mock, not your taste. Copy strings live in the mock's `copy` object; lift them verbatim.
+- **Build machines need TWO git-ignored vendor files before `npm run build`:** `vendor/ffmpeg/` (`npm run fetch:ffmpeg`) and `vendor/beta-token.json`. electron-builder errors on either missing.
+- **A wrap commit message must never put a close keyword before "#N"** (session-159 incident auto-closed #249).
+- The gateway metadata header rides ONLY gateway-routed AI calls — direct/raw-key calls intentionally unlabeled; don't "fix".
+- `tasks/todo.md` is huge (80k+ tokens) — never read it whole; the session-161 section is at the top.
+- Editor renderer uses ESM imports only (no `require()`); new cross-tree main→renderer imports need `build.files` coverage (see CLAUDE.md).
 
 ## Logs/Debugging
 
-- **Which install made a call:** CF AI Gateway logs → Metadata filter on `deviceId`. Harness proof label from this session: `s160-verify-label`.
-- **An install's ID:** Settings → Diagnostics → analytics card (read-only + copy), or `deviceId` in `%APPDATA%\clipflow\clipflow-settings.json`.
-- **Token resolution:** `app-paths.js bundledGatewayToken()`; packaged file at `<install>\resources\beta-token.json`. Empty/missing → Settings shows "Direct (no gateway)" unless the user pasted a token.
-- Provider log lines unchanged: `[anthropic] Gateway (BYOK) → …` / `[gemini] Gateway (BYOK) → …`.
-- CDP boot-verify scripts from this session: session scratchpad `cdp-settings-check3.js` (Diagnostics expand + Install ID assert) + `cdp-shot.js`. Kill dev electron with `taskkill //IM electron.exe //F`.
+- **Mock:** `tasks/mocks/feedback-bubble.html` — open directly in a browser; controls strip has style/edge switchers ("Reset" reloads). The pill's idle rotation there is mock-only.
+- **Publish results:** `%APPDATA%\clipflow\clipflow-publish-log.json` (newest entries at the tail).
+- **Which install made an AI call:** CF AI Gateway logs → Metadata filter on `deviceId`. An install's ID: Settings → Diagnostics, or `deviceId` in `%APPDATA%\clipflow\clipflow-settings.json`.
+- **Sentry:** crashes land per release already; #248 will add user-feedback events tagged `problem`/`idea`/`feedback` — filter by release + category once built.
+- Kill dev electron for CDP work with `taskkill //IM electron.exe //F` (TaskStop leaves a zombie on 9222).

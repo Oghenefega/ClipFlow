@@ -6,6 +6,71 @@
 
 ---
 
+## 📋 PLANNED (session 161) — #248 beta feedback reporter (bubble design locked, awaiting Fega's go)
+
+Goal: ship the in-app feedback reporter per the locked spec
+(`tasks/specs/beta-feedback-reporter.md`): the variant-B labeled pill on the
+right edge (design mock: `tasks/mocks/feedback-bubble.html`, Fega-approved
+2026-08-11 — rotating category prompts, tuck-to-peel, vertical drag, panel
+flips below when the pill sits high), a Problem/Idea/Feedback category toggle
+(single choice; inviting prompt preselects; copy adapts; logs attach to
+Problem only; Sentry tagged per category), point-at-the-problem element
+capture with auto region snapshot, auto-attached context, Sentry-backed
+transport with offline queue. This is the gate before tester #1's installer.
+
+### File impact (planned — verify all anchors at build start, repo moves fast)
+
+1. NEW `src/renderer/components/FeedbackBubble.js` — pill + edge peel +
+   report panel (category toggle + adaptive copy + rotating prompt advancing
+   on tab switch), ported from the mock into T-theme inline styles. Persists
+   tucked/expanded state and drag offset across launches. Mounted once at the
+   app root so it overlays every tab.
+2. Pick mode (same component or a small helper) — crosshair overlay, hover
+   outline, click captures: nearest stable element identity (aria/test
+   id/visible text), current view id, bounding rect. One point per report;
+   re-pointing replaces.
+3. `src/App.js` — mount point + current-tab wiring; reuse/extend the existing
+   `clipflow_tab_changed` breadcrumb trail (spec anchor App.js:758) for the
+   panel's auto-context; error-pulse hook: bubble pulses 3× when a
+   pipeline/publish error is logged (the only self-animation).
+4. Main process (likely new `src/main/feedback.js` + handlers in main.js,
+   bridge in `src/main/preload.js`):
+   - `feedback:snapshot` — `webContents.capturePage` cropped to element rect
+     + margin; Settings-view captures mask key fields.
+   - `feedback:submit` — assemble app version/build, OS, view id, category,
+     last ~20 breadcrumbs, PostHog deviceId, electron-log tail (~200 lines,
+     Problem reports only), last pipeline error if any → Sentry user-feedback
+     event tagged with the category + attachments tied to `release`.
+5. Offline: verify sentry-electron queues feedback envelopes offline; if not,
+   minimal local queue retried on next launch. A report must never vanish.
+6. Panel copy and layout exactly per mock (consent line included).
+
+### Build order (next session — design is DONE, do not reopen it)
+
+The mock `tasks/mocks/feedback-bubble.html` is the source of truth for look,
+copy, and interaction feel (Fega approved it interactively, session 161).
+Port it; don't redesign it.
+
+1. Verify spec anchors (breadcrumb trail App.js:758, Sentry inits main.js:31
+   / src/index.js:9, preload bridge shape) — repo moves fast.
+2. FeedbackBubble component: pill + peel + panel + category toggle + rotating
+   prompt (advances on tab switch; no idle auto-rotate — that's mock-only).
+3. Pick mode + `feedback:snapshot` IPC (capturePage crop).
+4. `feedback:submit`: context assembly + Sentry feedback event, category tag,
+   attachments (log tail on Problem only).
+5. Offline behavior (verify sentry-electron queueing; else local queue).
+6. Settings-view masking + error-pulse hook (pipeline/publish errors only).
+7. Build + `npm start`, then Fega's 6-step script from the spec.
+
+### Verification
+
+- Fega's 5-step script from the spec (report with point + snapshot from
+  Editor; report without pointing from Queue; offline queue survives
+  relaunch; crashes unaffected; Settings snapshot masked).
+- Build + `npm start` boot; existing suites stay green.
+
+---
+
 ## ✅ BUILT (session 160) — #249 Option A token posture — alpha.45 cut + inspected; issue OPEN pending Fega's nod + auto-recharge check
 
 Goal: a tester's install talks to AI out of the box (shared gateway token

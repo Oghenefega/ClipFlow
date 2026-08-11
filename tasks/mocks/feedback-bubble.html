@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow — Feedback bubble mock (#248)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218; --surfaceHover:#16171f;
+    --border:rgba(255,255,255,0.06); --borderHover:rgba(255,255,255,0.12);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32);
+    --labelStrong:rgba(255,255,255,0.68);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12);
+    --accentBorder:rgba(139,92,246,0.28); --accentGlow:rgba(139,92,246,0.07);
+    --green:#34d399; --greenDim:rgba(52,211,153,0.10); --greenBorder:rgba(52,211,153,0.22);
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#07080c;color:var(--text);font-family:var(--font);padding:22px 20px 60px}
+  .wrap{max-width:1060px;margin:0 auto}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.3px;margin:0 0 3px}
+  .sub{color:var(--text2);font-size:12.5px;margin:0 0 14px;line-height:1.6}
+  .sub b{color:var(--labelStrong)}
+
+  /* controls */
+  .controls{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .cgroup{display:flex;gap:6px;align-items:center}
+  .cgroup .cl{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.4px;text-transform:uppercase;margin-right:2px}
+  .controls button{font-family:var(--font);font-size:12px;font-weight:700;border-radius:8px;padding:6px 12px;cursor:pointer;
+    border:1px solid var(--border);background:var(--surface);color:var(--text2);transition:all .15s var(--ease)}
+  .controls button:hover{border-color:var(--borderHover);color:var(--text)}
+  .controls button.active{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+
+  /* ---- fake ClipFlow shell ---- */
+  .shell{position:relative;height:640px;border:1px solid var(--borderHover);border-radius:12px;background:var(--bg);overflow:hidden}
+  .topbar{height:46px;display:flex;align-items:center;gap:4px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .logo{font-weight:800;font-size:14px;letter-spacing:-.2px;margin-right:14px}
+  .logo i{font-style:normal;color:var(--accent)}
+  .tab{font-size:12.5px;font-weight:600;color:var(--text2);padding:5px 11px;border-radius:7px;cursor:pointer}
+  .tab.on{background:var(--accentDim);color:var(--accentLight)}
+  .content{padding:18px 20px}
+  .content h2{font-size:15px;font-weight:800;margin:0}
+  .content .chint{font-size:12px;color:var(--text3);margin:2px 0 14px}
+  .qtools{display:flex;gap:8px;margin-bottom:12px}
+  .btn{font-family:var(--font);font-size:12px;font-weight:700;border-radius:8px;padding:6px 13px;cursor:pointer;
+    border:1px solid var(--border);background:var(--surface);color:var(--text2)}
+  .btn.primary{background:var(--accentDim);border-color:var(--accentBorder);color:var(--accentLight)}
+
+  .qrow{display:flex;gap:14px;align-items:center;border:1px solid var(--border);border-radius:12px;background:var(--surface);
+    padding:12px 14px;margin-bottom:10px}
+  .thumb{width:38px;aspect-ratio:9/16;border-radius:7px;background:linear-gradient(160deg,#3a2a55,#1a2740 60%,#10202e);
+    display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 38px}
+  .qmain{flex:1;min-width:0}
+  .qtitle{font-size:13.5px;font-weight:700;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qmeta{font-size:11.5px;color:var(--text3);margin-top:2px}
+  .pills{display:flex;gap:6px;margin-right:6px}
+  .pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid var(--borderHover);color:var(--labelStrong)}
+  .pill.sch{border-color:var(--greenBorder);background:var(--greenDim);color:var(--green)}
+  .qact{display:flex;gap:6px}
+  .ghost{font-family:var(--font);font-size:11.5px;font-weight:700;border-radius:7px;padding:5px 10px;cursor:pointer;
+    border:1px solid var(--border);background:transparent;color:var(--text2)}
+
+  /* ---- pick mode ---- */
+  body.picking .shell *{cursor:crosshair !important}
+  body.picking [data-pick]:hover{outline:2px solid var(--accentLight);outline-offset:2px;border-radius:4px}
+  .pickhint{position:absolute;top:56px;left:50%;transform:translate(-50%,-6px);opacity:0;pointer-events:none;
+    background:var(--surfaceHover);border:1px solid var(--accentBorder);border-radius:20px;padding:6px 16px;
+    font-size:12px;font-weight:600;color:var(--accentLight);transition:all .2s var(--ease);z-index:40}
+  body.picking .pickhint{opacity:1;transform:translate(-50%,0)}
+  @keyframes flash{0%{outline-color:var(--accentLight)}100%{outline-color:transparent}}
+  .flash{outline:2px solid var(--accentLight);outline-offset:2px;animation:flash .5s var(--ease) forwards}
+
+  /* ---- the bubble ---- */
+  .fb{position:absolute;bottom:88px;display:flex;align-items:center;gap:10px;z-index:30;
+    transition:opacity .22s var(--ease),transform .22s var(--ease)}
+  [data-side="right"] .fb{right:18px;flex-direction:row}
+  [data-side="left"] .fb{left:18px;flex-direction:row-reverse}
+  .fb.collapsed{opacity:0;pointer-events:none}
+  [data-side="right"] .fb.collapsed{transform:translateX(30px) scale(.4)}
+  [data-side="left"] .fb.collapsed{transform:translateX(-30px) scale(.4)}
+
+  .fb-label{background:var(--surfaceHover);border:1px solid var(--borderHover);border-radius:20px;padding:6px 13px;
+    font-size:12px;font-weight:600;color:var(--labelStrong);white-space:nowrap;
+    opacity:0;transform:translateX(4px);transition:all .2s var(--ease);pointer-events:none}
+  .fb:hover .fb-label,.fb.show-label .fb-label{opacity:1;transform:translateX(0)}
+  [data-side="left"] .fb-label{transform:translateX(-4px)}
+  [data-side="left"] .fb:hover .fb-label,[data-side="left"] .fb.show-label .fb-label{transform:translateX(0)}
+
+  .fb-bwrap{position:relative;display:flex}
+  .fb-bubble{display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+    font-family:var(--font);border:none;transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s var(--ease);
+    touch-action:none;user-select:none}
+  .fb-bubble:hover{transform:scale(1.06)}
+  .fb-bubble:active{transform:scale(.97)}
+  .fb-bubble .q{font-weight:800;line-height:1}
+  .fb-bubble .btxt{display:none;font-size:12.5px;font-weight:700;white-space:nowrap}
+
+  /* variant A: glow ring (the sketch) */
+  [data-variant="a"] .fb-bubble{width:40px;height:40px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 18px rgba(139,92,246,.38),0 4px 14px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.16)}
+  [data-variant="a"] .fb-bubble .q{color:#fff;font-size:17px}
+
+  /* variant B: labeled pill */
+  [data-variant="b"] .fb-bubble{height:38px;padding:0 15px 0 6px;border-radius:20px;background:var(--surfaceHover);
+    border:1px solid var(--accentBorder);box-shadow:0 0 14px var(--accentGlow),0 4px 14px rgba(0,0,0,.4)}
+  [data-variant="b"] .fb-bubble .q{width:27px;height:27px;border-radius:50%;background:var(--accent);color:#fff;
+    font-size:14px;display:flex;align-items:center;justify-content:center}
+  [data-variant="b"] .fb-bubble .btxt{display:inline;color:var(--text)}
+  [data-variant="b"] .fb-label{display:none}
+
+  /* variant C: quiet badge */
+  [data-variant="c"] .fb-bubble{width:38px;height:38px;border-radius:50%;background:var(--surfaceHover);
+    border:1px solid var(--borderHover);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  [data-variant="c"] .fb-bubble .q{color:var(--text2);font-size:16px}
+  [data-variant="c"] .fb-bubble:hover{border-color:var(--accentBorder)}
+  [data-variant="c"] .fb-bubble:hover .q{color:var(--accentLight)}
+
+  /* error pulse: the one moment it animates */
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(139,92,246,.5),0 0 18px rgba(139,92,246,.38)}
+    70%{box-shadow:0 0 0 15px rgba(139,92,246,0),0 0 18px rgba(139,92,246,.38)}
+    100%{box-shadow:0 0 0 0 rgba(139,92,246,0),0 0 18px rgba(139,92,246,.38)}}
+  .fb.error .fb-bubble{animation:pulse 1.1s var(--ease) 3}
+  .fb.error .fb-label{opacity:1;transform:translateX(0);color:var(--accentLight);border-color:var(--accentBorder)}
+
+  .fb-dismiss{position:absolute;top:-6px;width:17px;height:17px;border-radius:50%;border:1px solid var(--borderHover);
+    background:var(--surfaceHover);color:var(--text2);font-size:11px;line-height:1;cursor:pointer;padding:0;
+    opacity:0;transition:opacity .15s var(--ease);z-index:2;font-family:var(--font)}
+  [data-side="right"] .fb-dismiss{right:-6px}
+  [data-side="left"] .fb-dismiss{left:-6px}
+  .fb:hover .fb-dismiss{opacity:1}
+  .fb-dismiss:hover{color:var(--text);border-color:var(--text3)}
+
+  /* ---- the peel ---- */
+  .fb-peel{position:absolute;bottom:88px;width:22px;height:54px;background:var(--surface);cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;z-index:30;font-family:var(--font);
+    transition:transform .22s var(--ease),box-shadow .18s var(--ease);color:var(--text3);font-size:13px;font-weight:800}
+  [data-side="right"] .fb-peel{right:0;border:1px solid var(--borderHover);border-right:none;border-radius:9px 0 0 9px;transform:translateX(110%)}
+  [data-side="left"] .fb-peel{left:0;border:1px solid var(--borderHover);border-left:none;border-radius:0 9px 9px 0;transform:translateX(-110%)}
+  .fb-peel.visible{transform:translateX(0)}
+  [data-side="right"] .fb-peel:hover{transform:translateX(-2px);color:var(--accentLight);box-shadow:0 0 12px var(--accentGlow)}
+  [data-side="left"] .fb-peel:hover{transform:translateX(2px);color:var(--accentLight);box-shadow:0 0 12px var(--accentGlow)}
+  .fb-peel.error{animation:pulse 1.1s var(--ease) 3;color:var(--accentLight)}
+
+  /* ---- report panel ---- */
+  .panel{position:absolute;width:318px;background:var(--surface);border:1px solid var(--borderHover);border-radius:14px;
+    padding:16px;z-index:35;box-shadow:0 20px 50px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+  .panel.open{opacity:1;transform:translateY(0);pointer-events:auto}
+  [data-side="right"] .panel{right:18px}
+  [data-side="left"] .panel{left:18px}
+  .p-title{font-size:14px;font-weight:800;letter-spacing:-.2px}
+  .p-ctx{font-size:11px;color:var(--text3);margin:2px 0 10px}
+  .cats{display:flex;gap:6px;margin-bottom:10px}
+  .cat{font-family:var(--font);font-size:11.5px;font-weight:700;border-radius:20px;padding:4px 12px;cursor:pointer;
+    border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s var(--ease)}
+  .cat:hover{border-color:var(--borderHover);color:var(--text)}
+  .cat.active{border-color:var(--accentBorder);background:var(--accentDim);color:var(--accentLight)}
+  .fb-bubble .btxt{transition:opacity .15s ease}
+  .panel textarea{width:100%;height:76px;resize:none;background:var(--bg);border:1px solid var(--border);border-radius:9px;
+    color:var(--text);font-family:var(--font);font-size:12.5px;padding:9px 11px;outline:none;line-height:1.5}
+  .panel textarea:focus{border-color:var(--accentBorder)}
+  .panel textarea::placeholder{color:var(--text3)}
+  .p-point{width:100%;margin-top:9px;font-family:var(--font);font-size:12.5px;font-weight:700;border-radius:9px;padding:8px;
+    cursor:pointer;border:1px dashed var(--borderHover);background:transparent;color:var(--text2);transition:all .15s var(--ease)}
+  .p-point:hover{border-color:var(--accentBorder);color:var(--accentLight)}
+  .p-target{margin-top:9px}
+  .p-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--accentLight);
+    background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:4px 6px 4px 12px}
+  .p-chip button{border:none;background:transparent;color:var(--accentLight);font-size:13px;cursor:pointer;padding:0 4px;font-family:var(--font)}
+  .snap{margin-top:8px;border:1px solid var(--accentBorder);border-radius:9px;overflow:hidden;background:var(--bg);pointer-events:none}
+  .snap-cap{font-size:10.5px;color:var(--text3);padding:4px 9px;border-top:1px solid var(--border)}
+  .p-consent{font-size:10.5px;color:var(--text3);line-height:1.5;margin-top:11px}
+  .p-send{width:100%;margin-top:11px;font-family:var(--font);font-size:13px;font-weight:800;border-radius:9px;padding:9px;
+    cursor:pointer;border:1px solid var(--accentBorder);background:var(--accent);color:#fff;transition:all .15s var(--ease)}
+  .p-send:hover{background:var(--accentLight)}
+  .p-done{text-align:center;padding:22px 0 14px}
+  .p-done .tick{width:38px;height:38px;border-radius:50%;background:var(--greenDim);border:1px solid var(--greenBorder);
+    color:var(--green);font-size:17px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+  .p-done .dt{font-size:13px;font-weight:700}
+  .p-done .ds{font-size:11.5px;color:var(--text2);margin-top:3px}
+</style>
+</head>
+<body data-side="right" data-variant="b">
+<div class="wrap">
+  <h1>Feedback bubble, three ways (#248)</h1>
+  <p class="sub">Your sketch, working. <b>Click the pill</b> to open the report flow, then try <b>Point at the problem</b>
+  and the <b>Problem / Idea / Feedback</b> toggle. The pill's prompt rotates ("Having a problem?" → "Got an idea?" → "Got feedback?"):
+  <b>switch tabs</b> to see it (it also rotates every few seconds here, mock only), and whichever prompt invited the click is preselected in the panel.
+  Click the <b>×</b> to tuck it into the edge peel, <b>drag it up or down</b> the edge. <b>Simulate an error</b> shows the only moment it animates on its own.</p>
+
+  <div class="controls">
+    <div class="cgroup"><span class="cl">Style</span>
+      <button class="v" data-v="a">A · Glow dot</button>
+      <button class="v active" data-v="b">B · Labeled pill</button>
+      <button class="v" data-v="c">C · Quiet badge</button>
+    </div>
+    <div class="cgroup"><span class="cl">Edge</span>
+      <button class="s active" data-s="right">Right</button>
+      <button class="s" data-s="left">Left</button>
+    </div>
+    <div class="cgroup">
+      <button id="err">Simulate an error</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="shell" id="shell">
+    <div class="topbar">
+      <div class="logo">Clip<i>Flow</i></div>
+      <div class="tab">Rename</div><div class="tab">Recordings</div><div class="tab">Projects</div>
+      <div class="tab on">Queue</div><div class="tab">Tracker</div><div class="tab" data-pick="Settings tab">Settings</div>
+    </div>
+    <div class="content">
+      <h2>Queue</h2>
+      <div class="chint">3 clips scheduled this week</div>
+      <div class="qtools">
+        <button class="btn primary" data-pick="Add to queue button">+ Add to queue</button>
+        <button class="btn" data-pick="Week view button">Week view</button>
+      </div>
+
+      <div class="qrow">
+        <div class="thumb" data-pick="Clip thumbnail">🎮</div>
+        <div class="qmain">
+          <div class="qtitle" data-pick="Clip title">What are these Arc Raiders Outfits?!</div>
+          <div class="qmeta" data-pick="Schedule time">Scheduled · Tue 5:30 PM</div>
+        </div>
+        <div class="pills">
+          <span class="pill sch" data-pick="YouTube pill">YouTube</span>
+          <span class="pill" data-pick="TikTok pill">TikTok</span>
+        </div>
+        <div class="qact">
+          <button class="ghost" data-pick="Edit button">Edit</button>
+          <button class="ghost" data-pick="Reveal button">Reveal</button>
+        </div>
+      </div>
+
+      <div class="qrow">
+        <div class="thumb" data-pick="Clip thumbnail">🕹️</div>
+        <div class="qmain">
+          <div class="qtitle" data-pick="Clip title">I look like a bird</div>
+          <div class="qmeta" data-pick="Schedule time">Scheduled · Wed 5:30 PM</div>
+        </div>
+        <div class="pills">
+          <span class="pill sch" data-pick="Instagram pill">Instagram</span>
+        </div>
+        <div class="qact">
+          <button class="ghost" data-pick="Edit button">Edit</button>
+          <button class="ghost" data-pick="Reveal button">Reveal</button>
+        </div>
+      </div>
+
+      <div class="qrow">
+        <div class="thumb" data-pick="Clip thumbnail">🎯</div>
+        <div class="qmain">
+          <div class="qtitle" data-pick="Clip title">The most chaotic extraction ever</div>
+          <div class="qmeta" data-pick="Schedule time">Draft · not scheduled</div>
+        </div>
+        <div class="pills">
+          <span class="pill" data-pick="Facebook pill">Facebook</span>
+        </div>
+        <div class="qact">
+          <button class="ghost" data-pick="Edit button">Edit</button>
+          <button class="ghost" data-pick="Reveal button">Reveal</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pickhint">Click the thing that's misbehaving · Esc cancels</div>
+
+    <!-- bubble -->
+    <div class="fb show-label" id="fb">
+      <div class="fb-label" id="fbLabel">Having a problem?</div>
+      <span class="fb-bwrap">
+        <button class="fb-bubble" id="fbBubble" aria-label="Report a problem">
+          <span class="q">?</span><span class="btxt" id="btxt">Having a problem?</span>
+        </button>
+        <button class="fb-dismiss" id="fbDismiss" title="Tuck away">×</button>
+      </span>
+    </div>
+    <button class="fb-peel" id="fbPeel" title="Report a problem"><span>?</span></button>
+
+    <!-- report panel -->
+    <div class="panel" id="panel">
+      <div id="pform">
+        <div class="p-title" id="ptitle">Report a problem</div>
+        <div class="p-ctx" id="pctx">Queue tab · v0.3.0-alpha.45</div>
+        <div class="cats">
+          <button class="cat active" data-cat="problem">Problem</button>
+          <button class="cat" data-cat="idea">Idea</button>
+          <button class="cat" data-cat="feedback">Feedback</button>
+        </div>
+        <textarea id="ptext" placeholder="What went wrong? What did you expect to happen?"></textarea>
+        <div class="p-target" id="targetRow" hidden>
+          <span class="p-chip">⌖ <b id="targetName"></b><button id="targetClear" title="Remove">×</button></span>
+          <div class="snap" id="snapBox"></div>
+        </div>
+        <button class="p-point" id="pointBtn">⌖&nbsp; Point at the problem</button>
+        <div class="p-consent" id="pconsent">Sends your words, the snapshot, the app version and the last few minutes of activity. Nothing else.</div>
+        <button class="p-send" id="sendBtn">Send report</button>
+      </div>
+      <div class="p-done" id="pdone" hidden>
+        <div class="tick">✓</div>
+        <div class="dt">Sent. Thank you!</div>
+        <div class="ds">This goes straight to the developer.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const body=document.body, shell=document.getElementById('shell');
+  const fb=document.getElementById('fb'), bubble=document.getElementById('fbBubble');
+  const label=document.getElementById('fbLabel'), btxt=document.getElementById('btxt');
+  const dismiss=document.getElementById('fbDismiss'), peel=document.getElementById('fbPeel');
+  const panel=document.getElementById('panel'), pform=document.getElementById('pform'), pdone=document.getElementById('pdone');
+  const pointBtn=document.getElementById('pointBtn'), targetRow=document.getElementById('targetRow');
+  const targetName=document.getElementById('targetName'), snapBox=document.getElementById('snapBox');
+  let bottom=88, dragging=false, suppressClick=false, panelOpen=false;
+
+  setTimeout(()=>fb.classList.remove('show-label'), 4000);
+
+  // categories + rotating pill prompt
+  const ptitle=document.getElementById('ptitle'), pconsent=document.getElementById('pconsent'),
+        ptext=document.getElementById('ptext'), pctx=document.getElementById('pctx');
+  const prompts=[
+    {cat:'problem', pill:'Having a problem?'},
+    {cat:'idea',    pill:'Got an idea?'},
+    {cat:'feedback', pill:'Got feedback?'}
+  ];
+  const copy={
+    problem:{title:'Report a problem', ph:'What went wrong? What did you expect to happen?',
+      point:'⌖  Point at the problem',
+      consent:'Sends your words, the snapshot, the app version and the last few minutes of activity. Nothing else.'},
+    idea:{title:'Share an idea', ph:'What should ClipFlow do? What would it help with?',
+      point:'⌖  Point at what you mean',
+      consent:'Sends your words, the snapshot and the app version. Nothing else.'},
+    feedback:{title:'Share feedback', ph:'What’s working? What could be better? Anything on your mind.',
+      point:'⌖  Point at what you mean',
+      consent:'Sends your words, the snapshot and the app version. Nothing else.'}
+  };
+  let pIdx=0, cat='problem';
+  function swapPillText(t){
+    label.textContent=t;
+    btxt.style.opacity='0';
+    setTimeout(()=>{btxt.textContent=t; btxt.style.opacity='1';},150);
+  }
+  function setPrompt(i){ pIdx=i%prompts.length; swapPillText(prompts[pIdx].pill); }
+  function setCategory(c){
+    cat=c;
+    document.querySelectorAll('.cat').forEach(x=>x.classList.toggle('active',x.dataset.cat===c));
+    ptitle.textContent=copy[c].title; ptext.placeholder=copy[c].ph;
+    pointBtn.textContent=copy[c].point; pconsent.textContent=copy[c].consent;
+  }
+  document.querySelectorAll('.cat').forEach(b=>b.addEventListener('click',()=>setCategory(b.dataset.cat)));
+  // real app: prompt rotates on tab switch
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    if(body.classList.contains('picking')) return;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    pctx.textContent=t.textContent+' tab · v0.3.0-alpha.45';
+    setPrompt(pIdx+1);
+  }));
+  // mock only: slow auto-rotate so the rotation is visible without clicking tabs
+  setInterval(()=>{ if(!panelOpen && !fb.classList.contains('error') && !fb.classList.contains('collapsed')) setPrompt(pIdx+1); },6000);
+
+  // controls
+  document.querySelectorAll('.v').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.v').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); body.dataset.variant=b.dataset.v;
+  }));
+  document.querySelectorAll('.s').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.s').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); body.dataset.side=b.dataset.s;
+  }));
+  document.getElementById('reset').addEventListener('click',()=>location.reload());
+
+  // collapse / restore
+  dismiss.addEventListener('click',e=>{
+    e.stopPropagation(); closePanel();
+    fb.classList.add('collapsed'); peel.classList.add('visible');
+  });
+  peel.addEventListener('click',()=>{
+    peel.classList.remove('visible'); fb.classList.remove('collapsed');
+  });
+
+  // panel open/close
+  function openPanel(fresh){
+    if(fresh) setCategory(prompts[pIdx].cat); // the prompt that invited the click preselects
+    pform.hidden=false; pdone.hidden=true;
+    // above the bubble by default; flip below when there's no headroom
+    const margin=12, ph=panel.offsetHeight, above=bottom+bubble.offsetHeight+margin;
+    let pb=(above+ph>shell.clientHeight-margin) ? bottom-ph-margin : above;
+    panel.style.bottom=Math.max(margin,pb)+'px';
+    panel.classList.add('open'); panelOpen=true;
+  }
+  function closePanel(){ panel.classList.remove('open'); panelOpen=false; }
+  bubble.addEventListener('click',e=>{
+    if(suppressClick||e.target===dismiss) return;
+    panelOpen?closePanel():openPanel(true);
+  });
+
+  // drag along the edge
+  bubble.addEventListener('pointerdown',e=>{
+    if(e.target===dismiss) return;
+    const startY=e.clientY, b0=bottom; dragging=false;
+    bubble.setPointerCapture(e.pointerId);
+    function move(ev){
+      const dy=startY-ev.clientY;
+      if(!dragging&&Math.abs(dy)>4){dragging=true; closePanel();}
+      if(dragging){
+        bottom=Math.min(shell.clientHeight-80,Math.max(14,b0+dy));
+        fb.style.bottom=bottom+'px'; peel.style.bottom=bottom+'px';
+      }
+    }
+    function up(ev){
+      bubble.releasePointerCapture(ev.pointerId);
+      bubble.removeEventListener('pointermove',move);
+      bubble.removeEventListener('pointerup',up);
+      if(dragging){suppressClick=true; setTimeout(()=>suppressClick=false,0);}
+    }
+    bubble.addEventListener('pointermove',move);
+    bubble.addEventListener('pointerup',up);
+  });
+
+  // point at the problem
+  pointBtn.addEventListener('click',()=>{
+    closePanel(); body.classList.add('picking');
+  });
+  document.addEventListener('click',e=>{
+    if(!body.classList.contains('picking')) return;
+    const t=e.target.closest('[data-pick]');
+    if(!t) return;
+    e.preventDefault(); e.stopPropagation();
+    t.classList.add('flash'); setTimeout(()=>t.classList.remove('flash'),500);
+    targetName.textContent=t.dataset.pick;
+    // fake cropped snapshot: scaled clone of the picked element
+    const r=t.getBoundingClientRect(), s=Math.min(1,282/r.width);
+    const clone=t.cloneNode(true); clone.classList.remove('flash');
+    clone.style.cssText+=';margin:0;width:'+r.width+'px;transform:scale('+s+');transform-origin:top left;';
+    const holder=document.createElement('div');
+    holder.style.cssText='height:'+(r.height*s)+'px;overflow:hidden;padding:0';
+    holder.appendChild(clone);
+    snapBox.innerHTML=''; snapBox.appendChild(holder);
+    const cap=document.createElement('div'); cap.className='snap-cap';
+    cap.textContent='Snapshot of this area is attached automatically';
+    snapBox.appendChild(cap);
+    targetRow.hidden=false;
+    body.classList.remove('picking'); openPanel();
+  },true);
+  document.getElementById('targetClear').addEventListener('click',()=>{targetRow.hidden=true; snapBox.innerHTML='';});
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    if(body.classList.contains('picking')){body.classList.remove('picking'); openPanel();}
+    else if(panelOpen) closePanel();
+  });
+
+  // send
+  document.getElementById('sendBtn').addEventListener('click',()=>{
+    pform.hidden=true; pdone.hidden=false;
+    setTimeout(()=>{closePanel(); setTimeout(()=>{pform.hidden=false; pdone.hidden=true;
+      document.getElementById('ptext').value=''; targetRow.hidden=true; snapBox.innerHTML='';},250);},1800);
+  });
+
+  // simulated error: the one self-initiated animation (also aims the prompt at Problem)
+  document.getElementById('err').addEventListener('click',()=>{
+    if(fb.classList.contains('collapsed')){
+      peel.classList.add('error'); setTimeout(()=>peel.classList.remove('error'),4000);
+    }else{
+      pIdx=0; swapPillText('Something just went wrong?');
+      fb.classList.add('error');
+      setTimeout(()=>{fb.classList.remove('error'); setPrompt(0);},4200);
+    }
+  });
+})();
+</script>
+</body>
+</html>

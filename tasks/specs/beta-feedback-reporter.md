@@ -1,6 +1,11 @@
-# Beta Feedback Reporter — in-app avatar + point-at-the-problem capture
+# Beta Feedback Reporter — in-app bubble + point-at-the-problem capture
 
 > Spec owner: Wick (GM). Greenlit by Fega 2026-08-07.
+> Entry point re-scoped by Fega 2026-08-11: the avatar is dropped for a
+> feedback bubble. Design locked from the interactive mock
+> `tasks/mocks/feedback-bubble.html` (variant B labeled pill, right edge).
+> Same day: scope widened beyond problems — reports carry a category
+> (Problem / Idea / Feedback).
 > Written for a cold dev session. Verify anchors before building; repo moves fast.
 
 ## Why
@@ -32,28 +37,57 @@ Build the reporter ON these rails. No new vendor, no new transport, no backend.
 1. **Sentry is the pipe and the inbox.** Reports ship as Sentry user-feedback
    events (with attachments) tied to the release version, landing next to the
    crashes they often explain. No custom ingest service.
-2. **The avatar is a friendly entry point, NOT an AI chatbot.** Scripted
+2. **The entry point is a friendly bubble, NOT an AI chatbot.** Scripted
    prompts, zero API cost per report (bundled-first economics, Fega 2026-08-07:
    no per-report AI spend). The intelligence lives in the captured context,
    not in conversation. An LLM layer can be explored post-beta if reports
-   prove low-quality.
+   prove low-quality. (2026-08-11: Fega dropped the avatar concept entirely;
+   no character art anywhere in this feature.)
 3. **Point-at-the-problem replaces screenshots-by-hand.** The app owns its own
    UI, so a click on "the editor header" can capture exactly what was clicked
    plus an automatic region snapshot. Testers never touch a screenshot tool.
 4. **Reports include recent logs, and say so.** One consent line in the panel.
    No silent log exfiltration.
+5. **Every report carries ONE category: Problem, Idea, or Feedback** (Fega
+   2026-08-11 — this is a feedback channel, not just a bug channel; the
+   catch-all is named Feedback, not Comment, per Fega same day). Segmented
+   toggle in the panel, single choice (not checkboxes). The pill's rotating
+   prompt preselects the category; the tester can switch. Panel copy (title,
+   placeholder, point-button label, consent line) adapts per category. The
+   log tail attaches ONLY to Problem reports; Idea/Feedback send words +
+   snapshot + version. Sentry events are tagged with the category so
+   problems, ideas and feedback are filterable apart.
 
 ## Build (v1 scope)
 
-### Entry point
-- Persistent avatar button, visible on EVERY tab/view, docked bottom-right
-  (exact art/placement = dev session's call with Fega; it should feel like
-  ClipFlow, not a helpdesk widget). Must never overlap working controls
-  (timeline, queue actions); collapsed state is small.
+### Entry point (design LOCKED 2026-08-11, Fega, from tasks/mocks/feedback-bubble.html)
+- **Labeled pill (mock variant B):** ~38px-tall pill, 27px violet "?" dot +
+  text label, docked on the RIGHT edge, default bottom-right, visible on
+  EVERY tab/view.
+- **The label rotates between the category prompts** — "Having a problem?" /
+  "Got an idea?" / "Got feedback?" — advancing on tab switch (quiet 150ms
+  text fade, no other motion). Whichever prompt is showing when the tester
+  clicks preselects that category in the panel.
+- **× on hover tucks it into a slim edge peel** (~22px tab flush with the
+  right edge, "?" glyph). Peel click restores the bubble. Tucked/expanded
+  state persists across launches — it never nags its way back.
+- **Draggable vertically along the right edge only** (never free-floating
+  over content). Drag position persists.
+- **Self-animation ONLY on real failure:** when the app logs a pipeline/publish
+  error, the pill (or peel, if tucked) pulses 3× and the label swaps to
+  "Something just went wrong?" (and the next panel open preselects Problem).
+  Otherwise it never moves on its own.
+- Report panel = compact popover anchored to the bubble; opens above it and
+  **flips below when the bubble sits too high for the panel to fit** (never
+  clipped by the window edge). The app stays visible behind it.
+- No tab picker in the panel: the current view is auto-captured and shown
+  read-only in the panel header ("Queue tab · v0.3.0-alpha.45").
 
 ### Report flow (one panel, three beats)
-1. Avatar click → compact panel: friendly scripted opener ("Something not
-   working right? Tell me what happened.") + free-text box.
+1. Pill click → compact panel: category toggle (Problem | Idea | Feedback,
+   preselected by the inviting prompt) + free-text box. Title, placeholder
+   and consent line follow the category ("Report a problem" / "Share an
+   idea" / "Share feedback" — exact copy in the mock).
 2. **"Point at the problem" button** → panel minimizes, overlay mode arms,
    one instruction line ("Click the thing that's acting up. Esc to cancel").
    Tester clicks any element. Capture:
@@ -63,8 +97,8 @@ Build the reporter ON these rails. No new vendor, no new transport, no backend.
    - automatic cropped snapshot of that region via `webContents.capturePage`
      (element rect + small margin, NOT full screen)
    v1 = one point per report. Re-pointing replaces the previous point.
-3. Submit → confirmation beat from the avatar ("Got it. This went straight to
-   the workshop."). Panel closes. Done.
+3. Submit → success beat in the panel ("Sent. Thank you! This goes straight
+   to the developer."). Panel closes itself. Done.
 
 ### Auto-attached context (no tester action)
 - app version + build, OS version
@@ -88,21 +122,26 @@ Build the reporter ON these rails. No new vendor, no new transport, no backend.
   beta.
 
 ## Open calls for the dev session (with Fega in the room)
-- Avatar look: character vs mark. Fega has opinions; mock 2-3 in HTML first
-  (house rule).
+- ~~Avatar look~~ RESOLVED 2026-08-11: bubble variant A (glow dot), right
+  edge, per the locked entry-point section above. Mock with final look and
+  interactions: `tasks/mocks/feedback-bubble.html`.
 - Whether Sentry's prebuilt Feedback widget UI is adaptable or the panel is
-  fully custom (custom likely, the picker is bespoke anyway).
+  fully custom (custom likely, the picker is bespoke anyway; the panel must
+  match the mock's look either way).
 - Snapshot privacy pass: confirm no key fields (Settings) can be captured in a
   region snapshot while unmasked; mask inputs in Settings view captures.
 
 ## Verification (Fega's script, ~5 min)
-1. From the Editor, click the avatar, type "test report", point at the editor
+1. From the Editor, click the pill, type "test report", point at the editor
    header, submit. → Report appears in Sentry with: text, header element
-   identity, cropped snapshot of the header, correct view id, app version.
+   identity, cropped snapshot of the header, correct view id, app version,
+   category tag `problem`.
 2. Repeat from Queue tab without pointing at anything. → Report arrives, view
    id = queue, no snapshot, logs attached.
-3. Disconnect network, file a report, reconnect, relaunch. → Report arrives
+3. Switch the category to Idea and send one. → Arrives tagged `idea`, with
+   NO log attachment.
+4. Disconnect network, file a report, reconnect, relaunch. → Report arrives
    (queued, not lost).
-4. Trigger a renderer error (dev hook) → crash lands in Sentry as before,
+5. Trigger a renderer error (dev hook) → crash lands in Sentry as before,
    unaffected by the new code.
-5. Check a Settings-view report snapshot → API key fields masked.
+6. Check a Settings-view report snapshot → API key fields masked.
