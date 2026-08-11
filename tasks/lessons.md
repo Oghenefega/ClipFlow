@@ -1116,3 +1116,11 @@ Marker advanced to 2026-08-05 (s154) — no user corrections this session; the f
 The wrap summary asked Fega to "sign off (or veto) the gc245 cell" and led with a recall/rej-hit table. The detailed findings were translated to plain language, but the DECISION REQUEST itself still ran on detection-program shorthand — "cell", "sign-off", metric names — and Fega had to ask what a cell even was before he could answer. The s57/s58 jargon-free rule was applied to verification steps but not to the ask.
 
 Rule: any sentence that requests a decision from Fega must survive the "app-user words only" test on its own — name the thing plainly ("the safety test I run before shipping a detection change"), say what yes/no means in consequences ("okay to include in the next installer?"), and keep program vocabulary (cell/ablation/recall/baseline) inside the linked issue, not the chat ask.
+
+## Session 161 (2026-08-11) — Session-name structure never captured; Fega has to re-teach it "almost every new session"
+
+**What went wrong:** At wrap, the suggested session name was "#248 feedback pill — design lock" — free-form, not his format. Fega called it out: he has reminded me about naming repeatedly, and the memory that was supposed to prevent this (`feedback_session_name`) only said "proactively suggest a session name," never the actual structure, so every session reinvented one.
+
+**Why:** The original correction was saved as a behavior ("suggest a name") without capturing the SPEC of what he wants. A memory that stores the trigger but not the format guarantees the same correction recurs. The structure was discoverable the whole time — his session list is full of examples (`S150 · #239 feedback leak fixed — every approval teaches now`).
+
+**Rule:** Session names use his exact structure: `S<n> · <outcome headline>` (spaced middle dot; outcome-phrased like a changelog headline; lead with `alpha.NN —` when an installer was cut; include the issue #). More generally: when saving a correction about a recurring artifact (names, titles, messages, file layouts), the memory must contain the *format specification with examples*, not just "do the thing" — if the memory doesn't let a cold session reproduce the artifact exactly, it isn't captured yet.
