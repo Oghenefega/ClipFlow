@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.44] — 2026-08-11 (session 159) — Installer: runs on machines that aren't Fega's
+
+### Changed
+- **Version bumped to 0.3.0-alpha.44 and a fresh installer cut.** Promotes the #251 batch below: FFmpeg bundled inside the installer and resolved bundled-first everywhere, all hardcoded D:\whisper paths removed with boot migrations pinning Fega's existing locations (no settings re-entry, no model re-download), the energy scorer shipped from the repo, and the first-run dependency check that names plainly what a machine is missing before any pipeline work starts. This is the first installer a tester machine can run without Fega's dev environment existing.
+
 ## [Unreleased] — 2026-08-11 (session 159) — ClipFlow runs on machines that aren't Fega's (#251)
 
 ### Added
