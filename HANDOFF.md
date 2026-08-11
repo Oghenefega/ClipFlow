@@ -1,50 +1,54 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-07 — Session 157 (no-code session: per-clip AI unit economics measured from real logs, handed to Wick for the pricing conversation)._
+_Last updated: 2026-08-10 — Session 158 (#249 gap 1 shipped: Gemini through the Cloudflare gateway, keyless; queue rename-publish bug found by Fega and fixed; alpha.42 + alpha.43 cut, Fega on alpha.43)._
 
 ---
 
 ## One-line TL;DR
 
-Q&A session, zero code changes. Fega asked what a clip costs to run; I pulled the real numbers from the app's own pipeline cost logs (not estimates), Fega defined the heavy-user profile (10 clips/day, 7 days/week), and the whole thread — measured costs, heavy-user math ($17–30/mo API), BYOK-vs-bundled implications — is now a pending item in Wick's inbox for the pricing conversation. One stale-memory fix: Gemini billing has been PAID tier since 2026-08-04 (my memory still said "free tier, flip owed").
+All AI calls (detection AND titles, including large-clip uploads) now route through the Cloudflare gateway and work with ZERO raw provider keys on the machine — live-proven with the Gemini key blank on a 54MB video. Mid-session Fega hit a real bug (renamed a queued import, scheduled it, all four platforms failed "Video file not found" at the OLD filename) — root-caused to stale renderer state after the #188 on-disk rename, fixed at both ends, and alpha.43 cut on request. Gap 3 of #249 closed by decision (prepaid balances are the spend cap, auto-reload confirmed OFF); gaps 4+2 (how testers get a gateway token) briefed to Wick with a dev recommendation.
 
 ## Current State
 
-Unchanged from session 156: master at `c0ba219`, installer `dist\ClipFlow Setup 0.3.0-alpha.41.exe` cut — **Fega still has NOT confirmed installing it** (daily driver is alpha.40 until Settings → bottom reads v0.3.0-alpha.41). #245/#246 closed `status: untested`. No repo files touched this session.
+Master at `9da4d1d`. **Fega is on alpha.43 (installed + confirmed)** — it carries both the gateway work and the queue fix. The Arc Raiders import clip is re-scheduled to fire **2026-08-11**; that unattended fire is the real-world confirmation of the queue fix (the exact sequence that used to break). First launch of alpha.43 ran the gatewayUrl migration on his prod store (old `/anthropic`-suffixed URL → gateway base) — nothing re-entered, detection unaffected.
 
-## What Was Done (session 157)
+## What Was Just Built (session 158)
 
-- **Measured per-clip AI cost from real logs** (`%APPDATA%\clipflow\processing\logs\`, 2026-08-06 RL Day14 runs): detection $0.11–0.12 per ~30-min recording (20–23 clips found ≈ half a cent per detected clip, ~23¢/hour of footage); Gemini video titles ~$0.024 per generate; Whisper/FFmpeg local and free. **≈3¢ of AI spend per published clip. All 78 retained log runs total $5.13.**
-- **Heavy-user unit economics** (Fega's definition: 10 clips/day × 7 days ≈ 300 clips/month): titles ~$7–10/mo, detection ~$10–21/mo depending on 1.5–3h recorded daily → **$17–30/month total**. Key structural point: titles scale with clips published, detection scales with HOURS RECORDED.
-- **Handed the thread to Wick** — pending item in `Wick\inbox.md` (2026-08-07) with the numbers, the heavy-user profile, and the open pricing questions (BYOK vs bundled tier, bundled price floor, hours-vs-clips limits). Wick picks it up on his next session start.
-- **Memory correction:** `project_gemini_video_titles.md` + MEMORY.md index updated — Gemini billing flipped to paid 2026-08-04 (per Wick's inbox archive); the "free tier, billing flip owed" claim was stale.
+- **#249 gap 1 (`2953d30`):** `gemini.js` routes generateContent + Files API start/poll/delete through the gateway (`{base}/google-ai-studio/...`), sending `cf-aig-authorization` when a token is set — Cloudflare injects the Google key server-side (BYOK, credential named `default`, no alias headers). Byte upload stays on the Google-issued URL by spec. Gemini key now OPTIONAL when a gateway token exists (mirrors anthropic.js). `fetchJson` recognises Cloudflare's array-shaped gateway errors. `anthropic.js` appends its own `/anthropic` segment; both providers strip a legacy suffix defensively; startup migration rewrites stored URLs. Every "is Gemini available?" gate (titlegen main.js, #240 import titles, Settings dot) uses new `geminiProvider.isConfigured()` — the two gates were NOT in the issue's anchor list, discovered during research; without them a keyless install silently fell back to stills.
+- **Verification (13/13):** live BYOK text + 54.3MB video with the key BLANK (real clip description returned through the full 3-step upload); Anthropic HTTP 200 through both old- and new-shape URLs; migration proven on the real dev store at boot; existing bare-node tests green (14+62+15+weights). Harness: session scratchpad `verify-249.js` (reads prod settings for the token).
+- **Queue rename-publish fix (`5c89a06`):** #188 renames the render on disk when a title changes, but QueueView only mirrored its own update fields — publishes (incl. scheduled auto-fire, which fetched the fresh disk clip via the claim and then DISCARDED it) used the stale in-memory renderPath. Fix: saveTitle mirrors `r.clip.renderPath/thumbnailPath`; auto-fire passes `{ ...clip, ...claim.clip, _projectId }` into `publishClip(clipId, opts, freshClip)`. Nothing was lost on disk — file + project JSON were always correct.
+- **Installers:** alpha.42 (`1fb79a2`, gateway batch) superseded ~1h later by alpha.43 (`9da4d1d`, + queue fix). Fega skipped .42, installed .43.
+- **#249 bookkeeping:** gap-1 completion + verification table commented on the issue; gap 3 closed by decision (comment); gaps 4+2 breakdown delivered to `Wick\inbox.md` (2026-08-08 item) — options A bundled / B per-tester / C Supabase-issued, dev recommendation B-for-beta → C-at-launch. Issue stays OPEN.
 
 ## Key Decisions
 
-- **Heavy-user planning profile is Fega's call: 10 clips/day, 7 days/week.** Use this for any future pricing/capacity math, not the earlier casual "100 clips/month" figure.
-- **Pricing conversation belongs to Wick, not dev sessions** — continue it there; dev only builds what falls out (e.g. the optional cost-per-clip line below).
+- **`gatewayUrl` stores the gateway BASE** (`.../clipflow-prod`); each provider appends its own segment. Migration + read-time shims on both providers tolerate the legacy shape forever.
+- **Gateway BYOK counts as "Gemini configured" everywhere** — including the Settings green dot (Fega approved). Consequence, by design: clearing the Gemini key does NOT revert titles to stills while a gateway token is set.
+- **Gap 3 = prepaid balances are the spend cap** (~$13+$13 today, ~$25 each before testers). Fega confirmed auto-reload is OFF on both accounts — that's what makes the cap real.
+- **Byte-upload step of the Files API stays pointed at Google** (its URL carries own auth) — do not "fix" it to the gateway.
+- **#235 gemini-watch untouched** — still requires a raw key, feature hard-gated OFF; flagged, not changed.
 
-## Next Steps (priority order)
+## Next Steps
 
-1. **Confirm Fega installed alpha.41** (Settings → bottom reads v0.3.0-alpha.41). After a clean launch with games looking right, the prod settings backup (below) can go.
-2. **Fega: #240 6-step import verification** (standing, five sessions now).
-3. **Watch cut-edge quality post-install** — gc245's coverage caution (86% vs 93%, late starts 5 vs 1). Bad-cut chips ticking up → game-context injection is suspect #1; firming option ≈ $0.25 of EO runs.
-4. **Verify the first-draft play-style reframe live** next time a Play Style Update fires for an empty-profile game (the one #246 surface not CDP-driven).
-5. **#243 + #245 untested labels** — clear on real-use confirmation.
-6. **Possible from Wick:** a "cost per published clip" line in the in-app monthly cost view (`pipelineLogs:monthlyCost` already computes monthly totals) — build only if Wick/Fega ask.
-7. **#225 Part B** when a real publish can verify.
-8. **Standing session-start check:** #234 v3 re-test trigger (≥15 v3 chips in RL's 50-row rejected window; last known: 0 tagged).
+1. **Watch the 2026-08-11 scheduled fire** — confirms the queue fix in the wild (and check `clipflow-publish-log.json` if anything looks off).
+2. **Wick's gaps 4+2 recommendation** → Fega's call → dev session executes; feeds directly into #250 (beta distribution / auto-update).
+3. **#244** (scheduled publishes fail loudly: pre-flight token check, notifications, one-click retry) — top dev candidate, directly adjacent to the failure Fega just experienced.
+4. **#248** beta feedback reporter — spec ready (`tasks/specs/beta-feedback-reporter.md`), next launch-arc build.
+5. **#219** Add Game from Rename tab crash — only open crash bug, likely small.
+6. #249 remainder: gaps 4+2 execution + packaged-installer inspection (the issue's official done-means) once posture is decided.
 
 ## Watch Out For
 
-- **Boundary coverage is the metric to watch once #245 is live** — bad-cut chips after alpha.41 → game-context injection is suspect #1.
-- **Prod settings backup** `%APPDATA%\clipflow\clipflow-settings.backup-2026-08-06.json` — keep until alpha.41 installs and games look right, then it can go.
-- **Gemini titles bill real money now** (~$0.024/generate, paid tier since 2026-08-04) — regenerate loops in the editor are no longer free-tier phantoms.
-- **AddGameModal steps renumbered** (1 details → 2 play-style → 3 interstitial → 4 done; content types skip step 2). Any reference to "step 2 = generating" is stale.
-- **`gameProfiles:updatePlayStyle` takes an optional 3rd arg (gameName)** — old 2-arg callers still work.
+- **Rename-then-publish in one sitting** was the broken sequence — fixed in alpha.43, unverified in the wild until tomorrow's fire. If it ever recurs, the tell is "Video file not found" at a clip's OLD title.
+- **A pasted old-style gateway URL** (ending `/anthropic`) still works (read-time shims) and gets cleaned at next boot (migration is idempotent, runs every launch).
+- **Tester installs with no keys AND no gateway token** have AI dead by design — that's the gaps 4+2 decision.
+- `dist/` holds both alpha.42 and .43; the update notifier uses newest mtime, so .43 wins — don't prune without asking.
+- Gemini panel hint text changed ("When Gemini is available…") — don't resurrect "clear the key to go back to stills," it's now false under a gateway token.
 
 ## Logs/Debugging
 
-- **Cost evidence lives in** `%APPDATA%\clipflow\processing\logs\` — per-run `API cost:` lines (detection runs, `titlegen_*` for Gemini titles, `queue_imports_*` for #240 passes). Sum across all retained logs 2026-08-07: $5.13 over 78 runs.
-- **API spend this session:** $0 (no model calls made by the app; analysis only read logs).
-- Session 156's debug artifacts (gc245 result JSONs, coverage script, CDP drive script) unchanged — see `tasks/spikes/replay-score/results/` and prior handoff notes if needed.
+- **Gemini routing mode** logs per generate call in `app.log`: `[gemini] Gateway (BYOK) → .../google-ai-studio/v1beta/models/...` (or `Direct` / `Gateway (passthrough)`). Anthropic logs the same pattern. A gateway-level failure now surfaces as `Gateway error (HTTP n): <Cloudflare's message>` instead of a mangled fallback.
+- **Migration line** on first boot of a new build: `Migrated gatewayUrl to gateway base (stripped /anthropic)` (system module, app.log).
+- **Publish errors** live in `clipflow-publish-log.json` + the Queue card's publish results — NOT app.log (standing rule).
+- **verify-249.js** (session 158 scratchpad) is the live gateway harness — 13 checks, needs prod settings present for the token; safe to re-run (read-only on settings, uploads a Test Footage clip).
+- Dev-profile boot logs: `%APPDATA%\clipflow-dev\logs\app.log`; kill dev electron with `taskkill //IM electron.exe //F` (daily driver is ClipFlow.exe, unaffected).
