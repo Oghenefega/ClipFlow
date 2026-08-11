@@ -2,6 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const readline = require("readline");
 const { spawn } = require("child_process");
+// #251: dependency-free, loads outside Electron (same contract as this module).
+const { envWithBundledFfmpeg } = require("./app-paths");
 
 // Heartbeat protocol v1 (Issue #72 Phase 1). Python signal scripts emit lines
 // matching /^PROGRESS\s+([0-9.]+)\s*$/ on stderr. Each line resets the stall
@@ -401,7 +403,8 @@ function runPythonSignal({
     try {
       child = spawn(pythonPath, spawnArgs, {
         stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
+        // envWithBundledFfmpeg: audio loaders may shell out to ffmpeg (#251)
+        env: { ...envWithBundledFfmpeg(), PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
       });
     } catch (e) {
       logger?.info?.(`${signalName} spawn threw: ${e.message}`);

@@ -24,5 +24,9 @@ tmp/
 # Python bytecode cache
 __pycache__/
 
+# Bundled FFmpeg binaries (#251) — too large for GitHub; populated per build
+# machine by scripts/fetch-ffmpeg.ps1, shipped via extraResources.
+vendor/ffmpeg/
+
 # Windows reserved-name junk (stray `> nul` redirects)
 nul

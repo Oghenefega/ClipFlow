@@ -19,6 +19,9 @@ const fs = require("fs");
 const { execFile } = require("child_process");
 const aiPrompt = require("./ai-prompt");
 const { getCost } = require("./ai/cost-tracker");
+// #251: bundled-first FFmpeg resolution. app-paths is dependency-free with a
+// guarded electron require, so this keeps the plain-node stub contract above.
+const { FFMPEG_BIN } = require("./app-paths");
 
 const MODEL = "gemini-3.6-flash";
 const UPLOAD_TIMEOUT_MS = 15 * 60 * 1000;    // ~140MB proxy over home upstream
@@ -115,7 +118,7 @@ function transcodeProxy(masterPath, proxyPath) {
     tmpPath,
   ];
   return new Promise((resolve, reject) => {
-    execFile("ffmpeg", args, { timeout: 60 * 60 * 1000, maxBuffer: 64 * 1024 * 1024 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 60 * 60 * 1000, maxBuffer: 64 * 1024 * 1024 }, (err) => {
       if (err) {
         try { fs.unlinkSync(tmpPath); } catch (_) { /* nothing to clean */ }
         return reject(new Error(`Proxy transcode failed: ${err.message}`));

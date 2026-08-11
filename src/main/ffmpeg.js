@@ -3,6 +3,9 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const logger = require("./logger");
+// #251: bundled-first binary resolution — resources/ffmpeg/ in the packaged
+// app, vendor/ffmpeg/ from source, bare name (PATH) as fallback.
+const { FFMPEG_BIN, FFPROBE_BIN } = require("./app-paths");
 
 /**
  * Check if ffmpeg/ffprobe are available in PATH.
@@ -10,7 +13,7 @@ const logger = require("./logger");
  */
 function checkFfmpeg() {
   return new Promise((resolve) => {
-    execFile("ffmpeg", ["-version"], { timeout: 5000 }, (err, stdout) => {
+    execFile(FFMPEG_BIN, ["-version"], { timeout: 5000 }, (err, stdout) => {
       if (err) return resolve({ installed: false, error: err.message });
       const match = stdout.match(/ffmpeg version (\S+)/);
       resolve({ installed: true, version: match ? match[1] : "unknown" });
@@ -30,7 +33,7 @@ let _nvencCache = null;
 function checkNvenc() {
   if (_nvencCache !== null) return Promise.resolve(_nvencCache);
   return new Promise((resolve) => {
-    execFile("ffmpeg", ["-hide_banner", "-encoders"], { timeout: 8000 }, (err, stdout) => {
+    execFile(FFMPEG_BIN, ["-hide_banner", "-encoders"], { timeout: 8000 }, (err, stdout) => {
       if (err) { _nvencCache = false; return resolve(false); }
       _nvencCache = /\bh264_nvenc\b/.test(stdout || "");
       resolve(_nvencCache);
@@ -132,7 +135,7 @@ function transcodeCopy(videoPath, outPath, opts = {}) {
       "-movflags", "+faststart",
       outPath,
     ];
-    const proc = spawn("ffmpeg", args);
+    const proc = spawn(FFMPEG_BIN, args);
     let stderrTail = "";
     proc.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-2000); });
     proc.on("error", (e) => reject(new Error(`ffmpeg failed to start: ${e.message}`)));
@@ -176,7 +179,7 @@ function cutTitlePreview(videoPath, outPath, opts = {}) {
       "-movflags", "+faststart",
       outPath,
     ];
-    const proc = spawn("ffmpeg", args);
+    const proc = spawn(FFMPEG_BIN, args);
     let stderrTail = "";
     proc.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-2000); });
     proc.on("error", (e) => reject(new Error(`ffmpeg failed to start: ${e.message}`)));
@@ -200,7 +203,7 @@ function probe(filePath) {
       "-show_streams",
       filePath,
     ];
-    execFile("ffprobe", args, { timeout: 15000 }, (err, stdout) => {
+    execFile(FFPROBE_BIN, args, { timeout: 15000 }, (err, stdout) => {
       if (err) return reject(new Error(`ffprobe failed: ${err.message}`));
       try {
         const data = JSON.parse(stdout);
@@ -247,7 +250,7 @@ function probeAudioTracks(filePath) {
       "-show_streams",
       filePath,
     ];
-    execFile("ffprobe", args, { timeout: 30000 }, (err, stdout) => {
+    execFile(FFPROBE_BIN, args, { timeout: 30000 }, (err, stdout) => {
       if (err) return reject(new Error(`ffprobe failed: ${err.message}`));
       try {
         const data = JSON.parse(stdout);
@@ -291,7 +294,7 @@ function extractTrackSample(videoPath, wavPath, trackIndex, startSec, durSec) {
       "-y",
       wavPath,
     ];
-    execFile("ffmpeg", args, { timeout: 120000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 120000 }, (err) => {
       if (err) return reject(new Error(`Track sample extraction failed (track ${trackIndex}): ${err.message}`));
       resolve({ success: true, path: wavPath });
     });
@@ -325,7 +328,7 @@ function extractAudio(videoPath, wavPath, audioTrackIndex = 0, { fallbackToFirst
       "-y",                   // overwrite
       wavPath,
     ];
-    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 600000 }, (err) => {
       if (err) return reject(new Error(`Audio extraction failed (track ${idx}): ${err.message}`));
       resolve({ success: true, path: wavPath });
     });
@@ -375,7 +378,7 @@ function extractAudioRange(videoPath, wavPath, startSec, endSec, audioTrackIndex
       "-y",
       wavPath,
     ];
-    execFile("ffmpeg", args, { timeout: 600000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 600000 }, (err) => {
       if (err) return reject(new Error(`Audio range extraction failed (track ${idx}): ${err.message}`));
       resolve({ success: true, path: wavPath });
     });
@@ -407,7 +410,7 @@ function generateThumbnail(videoPath, outPath, time) {
       "-y",
       outPath,
     ];
-    execFile("ffmpeg", args, { timeout: 30000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 30000 }, (err) => {
       if (err) return reject(new Error(`Thumbnail generation failed: ${err.message}`));
       resolve({ success: true, path: outPath });
     });
@@ -455,7 +458,7 @@ async function extractClipStills(videoPath, times, outDir, maxEdge = 640) {
           "-y",
           outPath,
         ];
-        execFile("ffmpeg", args, { timeout: 30000 }, (err) => (err ? reject(err) : resolve()));
+        execFile(FFMPEG_BIN, args, { timeout: 30000 }, (err) => (err ? reject(err) : resolve()));
       });
       if (fs.existsSync(outPath) && fs.statSync(outPath).size > 0) out.push({ path: outPath, time });
     } catch (_) { /* skip this timestamp — a partial frame set is still useful */ }
@@ -480,7 +483,7 @@ function analyzeLoudness(audioPath, segmentDuration = 1) {
       "-f", "null",
       "-",
     ];
-    execFile("ffmpeg", args, { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(FFMPEG_BIN, args, { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }, (err, stdout, stderr) => {
       // ffmpeg outputs stats to stderr
       const output = stderr || "";
       const segments = [];
@@ -546,7 +549,7 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
       "pipe:1",                 // output to stdout
     ];
 
-    require("child_process").execFile("ffmpeg", args, {
+    require("child_process").execFile(FFMPEG_BIN, args, {
       timeout: 60000,
       maxBuffer: 128 * 1024 * 1024, // bounded payload (#64) keeps us far under this; cap high as insurance
       encoding: "buffer",
@@ -631,7 +634,7 @@ async function splitFile(inputPath, splitPoints, outputDir) {
           "-y",
           outPath,
         ];
-        execFile("ffmpeg", args, { timeout: 300000 }, (err) => {
+        execFile(FFMPEG_BIN, args, { timeout: 300000 }, (err) => {
           if (err) return reject(new Error(`Split segment ${i + 1} failed: ${err.message}`));
           resolve();
         });
@@ -686,7 +689,7 @@ async function generateThumbnailStrip(inputPath, fileId) {
       path.join(thumbDir, "thumb_%04d.jpg"),
     ];
     // Generous timeout — large files can take 30-60s
-    execFile("ffmpeg", args, { timeout: 120000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 120000 }, (err) => {
       if (err) return reject(new Error(`Thumbnail strip generation failed: ${err.message}`));
       resolve();
     });
@@ -747,7 +750,7 @@ async function generatePreviewFrames(inputPath, fileId, durationSeconds) {
         "-y",
         outPath,
       ];
-      execFile("ffmpeg", args, { timeout: 30000 }, (err) => {
+      execFile(FFMPEG_BIN, args, { timeout: 30000 }, (err) => {
         if (err) return reject(new Error(`Preview frame extraction failed at ${time}s: ${err.message}`));
         resolve();
       });

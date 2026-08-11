@@ -16,6 +16,16 @@ const path = require("path");
 const fs = require("fs");
 const { app } = require("electron");
 const { registerProvider, getStore } = require("../transcription-provider");
+// #251: per-user cache default + bundled FFmpeg for WhisperX's audio loader.
+const { envWithBundledFfmpeg, defaultHfHome } = require("../../app-paths");
+
+// Plain-language setup error (#251) — surfaced straight to the user when
+// transcription starts without a configured Whisper Python.
+const PYTHON_SETUP_ERROR =
+  "Whisper's Python environment isn't set up on this machine. " +
+  "Open Settings → Tools & Credentials → BetterWhisperX Configuration and set " +
+  "\"Python Path (venv)\" to your Whisper install's python.exe — the Beta Tester " +
+  "Manual has the setup steps.";
 
 // Resolve the bundled transcribe.py. In the packaged app the source tree lives
 // inside the read-only asar and an external python.exe can't read it there, so
@@ -82,7 +92,7 @@ function transcribe(wavPath, opts = {}) {
   return new Promise((resolve, reject) => {
     const pythonPath = opts.pythonPath || (store ? store.get("whisperPythonPath") : null);
     if (!pythonPath || !fs.existsSync(pythonPath)) {
-      return reject(new Error(`Python not found at: ${pythonPath}`));
+      return reject(new Error(PYTHON_SETUP_ERROR));
     }
 
     // Resolve transcribe.py path — in tools/ relative to project root
@@ -113,7 +123,7 @@ function transcribe(wavPath, opts = {}) {
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 
     // Build command
-    const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || "D:\\whisper\\hf_cache";
+    const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || defaultHfHome();
     let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
     cmd += ` --audio "${wavPath}"`;
     cmd += ` --output "${jsonOutPath}"`;
@@ -130,6 +140,8 @@ function transcribe(wavPath, opts = {}) {
     const proc = exec(cmd, {
       timeout: 3600000, // 60 minutes max
       maxBuffer: 100 * 1024 * 1024,
+      // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
+      env: envWithBundledFfmpeg(),
     }, (err, stdout, stderr) => {
       if (err) {
         const errOutput = (stderr || "").slice(-2000);
@@ -188,7 +200,7 @@ function transcribeBatch(items, opts = {}) {
     }
     const pythonPath = opts.pythonPath || (store ? store.get("whisperPythonPath") : null);
     if (!pythonPath || !fs.existsSync(pythonPath)) {
-      return reject(new Error(`Python not found at: ${pythonPath}`));
+      return reject(new Error(PYTHON_SETUP_ERROR));
     }
 
     const scriptPath = TRANSCRIBE_SCRIPT;
@@ -216,7 +228,7 @@ function transcribeBatch(items, opts = {}) {
     ].join(", ") + (opts.gameVocab || "");
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 
-    const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || "D:\\whisper\\hf_cache";
+    const hfHome = opts.hfHome || (store ? store.get("hfHome") : null) || defaultHfHome();
     let cmd = `cmd /c "set "HF_HOME=${hfHome}" && "${pythonPath}" "${scriptPath}"`;
     cmd += ` --batch "${manifestPath}"`;
     cmd += ` --model ${model}`;
@@ -229,6 +241,8 @@ function transcribeBatch(items, opts = {}) {
     const proc = exec(cmd, {
       timeout: 3600000, // 60 minutes max for the whole batch
       maxBuffer: 100 * 1024 * 1024,
+      // WhisperX loads audio by shelling out to ffmpeg — resolve the bundled copy (#251)
+      env: envWithBundledFfmpeg(),
     }, (err, stdout, stderr) => {
       try { fs.unlinkSync(manifestPath); } catch (_) {}
       if (err) {

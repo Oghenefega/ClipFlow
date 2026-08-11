@@ -100,6 +100,9 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Whisper
   whisperCheck: (binaryPath) => ipcRenderer.invoke("whisper:checkInstalled", binaryPath),
 
+  // First-run dependency check (#251)
+  checkDependencies: () => ipcRenderer.invoke("system:checkDependencies"),
+
   // Projects
   projectLoad: (projectId) => ipcRenderer.invoke("project:load", projectId),
   projectList: () => ipcRenderer.invoke("project:list"),

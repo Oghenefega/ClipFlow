@@ -22,6 +22,8 @@ const { BrowserWindow, app } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
+// #251: bundled-first FFmpeg resolution (resources/ffmpeg/ → PATH fallback).
+const { FFPROBE_BIN } = require("./app-paths");
 
 // Overlay capture FPS — must be high enough that the per-word pop/karaoke ease
 // (~0.2s) reads smoothly when composited over 60fps video. 10fps looked like
@@ -36,7 +38,7 @@ const OVERLAY_FPS = 30;
  */
 function probeResolution(filePath) {
   return new Promise((resolve, reject) => {
-    const proc = spawn("ffprobe", [
+    const proc = spawn(FFPROBE_BIN, [
       "-v", "error",
       "-select_streams", "v:0",
       "-show_entries", "stream=width,height",
@@ -61,7 +63,7 @@ function probeResolution(filePath) {
  */
 function probeDuration(filePath) {
   return new Promise((resolve, reject) => {
-    const proc = spawn("ffprobe", [
+    const proc = spawn(FFPROBE_BIN, [
       "-v", "error",
       "-show_entries", "format=duration",
       "-of", "csv=s=x:p=0",

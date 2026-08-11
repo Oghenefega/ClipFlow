@@ -1013,7 +1013,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           <PulseDot color={ffmpegStatus?.installed ? T.green : T.red} />
           <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>ffmpeg</span>
           <span style={{ color: ffmpegStatus?.installed ? T.green : T.textTertiary, fontSize: 12, fontFamily: T.mono }}>
-            {ffmpegStatus?.installed ? `v${ffmpegStatus.version}` : ffmpegStatus?.error ? "Not found in PATH" : "Checking..."}
+            {ffmpegStatus?.installed ? `v${ffmpegStatus.version}` : ffmpegStatus?.error ? "Not found" : "Checking..."}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1026,7 +1026,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         {(!ffmpegStatus?.installed || !whisperStatus?.installed) && (
           <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.yellow}15`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33` }}>
             <span style={{ color: T.yellow, fontSize: 11 }}>
-              {!ffmpegStatus?.installed && "ffmpeg must be installed and in PATH. "}
+              {!ffmpegStatus?.installed && "FFmpeg is missing — reinstall ClipFlow (the installer includes it), or install FFmpeg and add it to PATH. "}
               {!whisperStatus?.installed && "Set Python path below (BetterWhisperX venv)."}
             </span>
           </div>

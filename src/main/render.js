@@ -1,6 +1,8 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+// #251: bundled-first FFmpeg resolution (resources/ffmpeg/ → PATH fallback).
+const { FFMPEG_BIN, FFPROBE_BIN } = require("./app-paths");
 const { createOverlaySession } = require("./subtitle-overlay-renderer");
 const { getTimelineDuration, visibleSubtitleSegments, timelineToSource } = require("../renderer/editor/models/timeMapping");
 const { resolvePlacements } = require("../renderer/editor/models/audioPlacements");
@@ -15,7 +17,7 @@ const { resolveReframeStyle, bgBoxblurRadius, bgSourceWindow } = require("../ren
  */
 function probeFps(filePath) {
   return new Promise((resolve) => {
-    const proc = spawn("ffprobe", [
+    const proc = spawn(FFPROBE_BIN, [
       "-v", "error",
       "-select_streams", "v:0",
       "-show_entries", "stream=r_frame_rate",
@@ -612,7 +614,7 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       console.log("[Render] FFmpeg args:", args.join(" "));
 
       // Spawn FFmpeg
-      const proc = spawn("ffmpeg", args);
+      const proc = spawn(FFMPEG_BIN, args);
       if (active) active.proc = proc;
       // #140: race — a cancel may have landed between the overlay bail-check above
       // and this spawn, before active.proc was set. Kill immediately if so.
@@ -808,7 +810,7 @@ async function renderThumbnail(clipData, projectData, timelineTime, outputPath, 
     console.log("[Thumbnail] FFmpeg args:", args.join(" "));
 
     await new Promise((resolve, reject) => {
-      const proc = spawn("ffmpeg", args);
+      const proc = spawn(FFMPEG_BIN, args);
       let stderr = "";
       const timer = setTimeout(() => { try { proc.kill("SIGTERM"); } catch (_) {} }, 60000);
       proc.stderr.on("data", (d) => (stderr += d.toString()));

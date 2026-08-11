@@ -1,6 +1,8 @@
 const { execFile, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+// #251: bundled FFmpeg + per-user cache defaults (Fega-machine paths removed).
+const { FFMPEG_BIN, envWithBundledFfmpeg, defaultHfHome } = require("./app-paths");
 const ffmpeg = require("./ffmpeg");
 const projects = require("./projects");
 const whisper = require("./whisper");
@@ -162,6 +164,16 @@ function round3(n) {
   return Math.round(n * 1000) / 1000;
 }
 
+// Resolve the bundled energy_scorer.py the same way transcribe.py (#143) and
+// signals/*.py (#190) resolve: packaged app → extraResources resources/tools/,
+// from source → repo tools/. Guarded require so the module loads outside
+// Electron (replay-score harness stub), matching signals.js.
+let _electronApp = null;
+try { _electronApp = require("electron").app; } catch (_) { /* not in Electron */ }
+const ENERGY_SCRIPT = _electronApp && _electronApp.isPackaged
+  ? path.join(process.resourcesPath, "tools", "energy_scorer.py")
+  : path.join(__dirname, "..", "..", "tools", "energy_scorer.py");
+
 /**
  * Run energy_scorer.py as a subprocess.
  * @param {string} pythonPath - Path to Python executable in venv
@@ -174,16 +186,21 @@ function round3(n) {
  */
 function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger, audioTrack = 1) {
   return new Promise((resolve, reject) => {
-    const scriptPath = "D:\\whisper\\energy_scorer.py";
+    const scriptPath = ENERGY_SCRIPT;
+    if (!fs.existsSync(scriptPath)) {
+      return reject(new Error(`Energy scorer script not found at: ${scriptPath}`));
+    }
     // -X utf8 forces Python UTF-8 mode so emoji energy labels (🔥⚡💤🔇) don't crash on Windows cp1252
     const args = ["-X", "utf8", scriptPath, videoPath, srtPath, "--track", String(audioTrack)];
 
     logger.logCommand(pythonPath, args);
 
+    // envWithBundledFfmpeg: the script calls ffmpeg/ffprobe by bare name —
+    // point it at the shipped copy on machines without a system FFmpeg (#251).
     const child = spawn(pythonPath, args, {
       timeout: 600000, // 10 min
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
+      env: { ...envWithBundledFfmpeg(), PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
     });
 
     let stdout = "";
@@ -362,7 +379,7 @@ function extractFrame(videoPath, outPath, timeSeconds) {
       "-y",
       outPath,
     ];
-    execFile("ffmpeg", args, { timeout: 30000 }, (err) => {
+    execFile(FFMPEG_BIN, args, { timeout: 30000 }, (err) => {
       if (err) return reject(new Error(`Frame extraction failed: ${err.message}`));
       resolve({ success: true, path: outPath });
     });
@@ -599,7 +616,7 @@ async function runAIPipeline({
       batchSize: 16,
       computeType: "float16",
       hfToken: store.get("hfToken") || "",
-      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
+      hfHome: store.get("hfHome") || defaultHfHome(),
       gameVocab,
       onProgress: (pct) => {
         sendProgress("transcribing", 10 + Math.round(pct * 0.3), `Transcribing... ${pct}%`);
@@ -635,7 +652,17 @@ async function runAIPipeline({
     // ============ Stage 4: Energy Analysis (energy_scorer.py) ============
     sendProgress("energy", 42, "Analyzing audio energy...");
     logger.startStep("Energy Analysis");
-    const pythonPath = store.get("whisperPythonPath") || "D:\\whisper\\betterwhisperx-venv\\Scripts\\python.exe";
+    // #251: no fallback — an unset path must produce a clear error, never a
+    // guess at another machine's filesystem.
+    const pythonPath = store.get("whisperPythonPath");
+    if (!pythonPath || !fs.existsSync(pythonPath)) {
+      throw new Error(
+        "Whisper's Python environment isn't set up on this machine. " +
+        "Open Settings → Tools & Credentials → BetterWhisperX Configuration and set " +
+        "\"Python Path (venv)\" to your Whisper install's python.exe — the Beta Tester " +
+        "Manual has the setup steps."
+      );
+    }
     const { energyJson, claudeReadyText } = await runEnergyScorer(
       pythonPath, sourceFile, srtPath, processingDir, logger, audioTrack
     );

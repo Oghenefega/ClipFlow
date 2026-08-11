@@ -10,7 +10,8 @@
     "dev:seed": "node scripts/seed-dev-profile.js",
     "build:renderer": "vite build",
     "build": "npm run build:renderer && electron-builder",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "fetch:ffmpeg": "powershell -ExecutionPolicy Bypass -File scripts/fetch-ffmpeg.ps1"
   },
   "build": {
     "appId": "com.clipflow.app",
@@ -30,11 +31,24 @@
     "extraResources": [
       {
         "from": "tools",
-        "to": "tools"
+        "to": "tools",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
       },
       {
         "from": "src/fonts",
         "to": "fonts"
+      },
+      {
+        "from": "vendor/ffmpeg",
+        "to": "ffmpeg",
+        "filter": [
+          "ffmpeg.exe",
+          "ffprobe.exe",
+          "LICENSE*"
+        ]
       }
     ],
     "win": {

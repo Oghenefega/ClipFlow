@@ -6,6 +6,120 @@
 
 ---
 
+## ✅ BUILT (session 159) — #251: ClipFlow runs on a machine that isn't Fega's — VERIFIED, awaits alpha.44 cut on Fega's go
+
+Approved by Fega 2026-08-11 ("go", Q1 yes = watchFolder default emptied,
+Q2 = leave UPDATE_DIST_DIR, noted on #250). All items below implemented.
+Verified: all 4 runnable test suites green (62+15+14+weights, plus editor
+29+19); packaged build inspected — resources/ffmpeg/{ffmpeg,ffprobe}.exe
+present, tools/energy_scorer.py ships, zero __pycache__; three live dev-boots
+via CDP: (1) banner shows Whisper-only issue + hfHome migration log line,
+(2) clean-machine sim (stripped PATH, vendor hidden, store keys removed) shows
+both banner issues + watchFolder rescue fires, (3) healthy boot shows NO
+banner, whisperPythonPath migration fires, and the running app's ffmpegCheck
+reports the BUNDLED n7.1.5 build. Prod store peeked read-only: python path
+explicitly set (safe), hfHome absent (will pin on next launch). One accepted
+deviation: `grep D:\ src/` shows exactly one hit — the migration's own
+legacy-path detector constant in main.js (mandated by the migrate-at-boot
+trap; noted on #251). A fourth migration (whisperPythonPath pin) was added
+beyond the plan after discovering the dev profile relied on the deleted
+code fallback — same pattern, protects "no settings re-entry".
+
+Goal: a tester installs ClipFlow and it either works or tells them plainly
+what to install — no more silent assumptions that Fega's D: drive, W: drive,
+or PATH setup exists. Fega's own install keeps working with zero re-setup.
+
+### Already done (step 0, committed `7f4f1f7`, pushed)
+
+`tools/energy_scorer.py` rescued into the repo — it lived only on D:\whisper
+with no version history and did not ship. Audit result: every OTHER script the
+pipeline runs was already in the repo (transcribe.py, signals/*.py, yamnet
+model + class map). One stray file on D:\whisper (`check_ebur128.py`) is never
+referenced by ClipFlow — left alone.
+
+### File impact
+
+1. `package.json` — (a) `extraResources`: filter out `__pycache__` from the
+   `tools` entry (stops shipping Fega's local .pyc files); (b) new entry
+   `vendor/ffmpeg → ffmpeg` shipping `ffmpeg.exe` + `ffprobe.exe` + license.
+2. `.gitignore` + new `scripts/fetch-ffmpeg.ps1` — the two exes are ~130 MB
+   each (GitHub rejects files over 100 MB), so they stay OUT of git in a
+   `vendor/ffmpeg/` folder; the script downloads a pinned BtbN GPL build
+   (includes NVENC, which the render path needs) and unpacks the two exes.
+   Run once per machine that builds installers.
+3. `src/main/ffmpeg.js` — resolve `FFMPEG_BIN` / `FFPROBE_BIN` once at load:
+   bundled copy if present (packaged → `resources/ffmpeg/`, source →
+   `vendor/ffmpeg/`), otherwise the bare name (PATH fallback). Same guarded
+   electron require pattern signals.js uses. Export both. Replace all 16
+   bare-name call sites in this file.
+4. Bare-name call sites in other files → use the exported constants:
+   `ai-pipeline.js:365`, `gemini-watch.js:118`, `render.js:18/615/811`,
+   `subtitle-overlay-renderer.js:39/64`. (The issue listed ffmpeg.js,
+   ai-pipeline, gemini-watch "and more" — render.js and
+   subtitle-overlay-renderer.js are the "more".)
+5. **Python children also get the bundled FFmpeg.** `energy_scorer.py` and
+   WhisperX's audio loader call `ffmpeg`/`ffprobe` by bare name from inside
+   Python. Every Python spawn (energy scorer, transcribe, signals) gets the
+   bundled ffmpeg folder prepended to its child `PATH` env — no script edits
+   needed, and on Fega's machine behavior is unchanged if the bundle is
+   missing (PATH still has his install).
+6. `src/main/ai-pipeline.js:177` — energy_scorer.py resolves exactly like
+   transcribe.py does (packaged → `resources/tools/`, source → repo `tools/`).
+   The D:\ constant dies.
+7. `src/main/main.js` (migration, written FIRST per pipeline rule) — at boot:
+   if `hfHome` is unset AND `D:\whisper\hf_cache` exists on this machine,
+   write it into settings. Same pattern as #249's gatewayUrl migration.
+   Protects Fega's multi-GB model cache from a re-download.
+8. hfHome fallback at `ai-pipeline.js:602`, `stable-ts.js:116/219`,
+   `main.js:1823` — one shared helper returning
+   `store.get("hfHome") || <userData>\hf_cache` (per-user app-data). D:\ gone.
+9. `src/main/ai-pipeline.js:638` — whisperPythonPath loses the D:\ fallback
+   entirely. Unset or nonexistent → plain error: what's missing, where to fix
+   it (Settings → point at your Whisper Python), where the setup guide is.
+   Same plain-language fix for stable-ts.js:84's "Python not found at: null".
+10. First-run dependency check — new small module `src/main/deps-check.js`:
+    checks FFmpeg (bundled or PATH), Whisper Python (set + exists), bundled
+    scripts present. Returns a plain-language list: what's missing + what to
+    do. Wired in twice: (a) app launch → if anything is missing, the renderer
+    shows a clear panel before the tester invests any time, with "Check
+    again"; (b) pipeline start → same check, refuses early with the same
+    friendly message instead of dying mid-run at stage 4.
+
+### Open questions for Fega (found in audit, outside the six D:\ paths)
+
+- **Q1** `main.js:186` — fresh installs default the watch folder to your
+  `W:\...Vertical Recordings Onwards`. A tester's app would watch a folder
+  that doesn't exist. Recommend: default to empty, first-run/Settings picks
+  it. Your install is unaffected (your value is already saved). Fix in this
+  pass?
+- **Q2** `main.js:4165` — the update notifier looks for new installers in
+  `C:\Users\IAmAbsolute\Desktop\ClipFlow\dist`. Harmless for testers (finds
+  nothing) but it's a you-machine path. That's #250's territory — I'd leave
+  it and note it on #250. OK?
+
+### Out of scope (per issue)
+
+Bundling Python / whisper.cpp (separate commercial-launch gate — I'll file
+that issue when implementation starts), #249 gaps, #199 track fix, detection
+quality. Installer cut (alpha.44) only on Fega's go after verification.
+
+### Verification
+
+- `grep -rn "D:\\" src/` → zero results.
+- Existing test files pass; `npm run build` clean.
+- Packaged listing shows `tools/energy_scorer.py`, `ffmpeg/ffmpeg.exe`,
+  `ffmpeg/ffprobe.exe`, and NO `__pycache__` (checked via asar/resources
+  listing, not globs).
+- Dev-profile boot: migration writes hfHome on this machine (log line), full
+  pipeline stages resolve bundled paths.
+- Simulated clean machine: whisperPythonPath pointed at a nonexistent path +
+  ffmpeg removed → launch shows the plain first-run message, pipeline refuses
+  early. (True clean-machine proof = tester #1.)
+- Fega (after alpha.44, on his go): install, one full pipeline run on a real
+  recording — no settings re-entry, no model re-download.
+
+---
+
 ## ✅ BUILT (session 158) — #249 gap 1: Gemini routed through the Cloudflare gateway — VERIFIED LIVE, ships with next installer
 
 Approved by Fega 2026-08-08 ("go", Gemini status dot fix included). All five

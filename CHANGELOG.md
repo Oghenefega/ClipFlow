@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-11 (session 159) — ClipFlow runs on machines that aren't Fega's (#251)
+
+### Added
+- **FFmpeg now ships inside the installer.** Every FFmpeg/ffprobe call in the app (23 call sites across renaming, cutting, probing, rendering, the subtitle pipeline, and the Gemini proxy transcode) resolves the bundled copy first and only falls back to a system-installed FFmpeg on PATH. Python helpers that call ffmpeg themselves (the energy scorer, Whisper's audio loader, the signal scripts) get the bundled copy through their environment too. The binaries are too large for GitHub, so they live in a git-ignored `vendor/ffmpeg/` folder populated once per build machine by `npm run fetch:ffmpeg` (pinned FFmpeg 7.1 GPL build with NVENC for the GPU render path).
+- **First-run dependency check.** On launch, ClipFlow now checks that FFmpeg works, Whisper's Python is configured, and the bundled tool scripts are present — and shows a plain-language banner naming what's missing and what to do about it, with a "Check again" button. Starting a clip-generation run performs the same check and refuses early with the same message, so a missing dependency reads as "install this" instead of a confusing failure 40% into a pipeline run.
+- **`energy_scorer.py` rescued into the repo.** The audio-energy pipeline stage lived only at `D:\whisper\energy_scorer.py` — one physical drive, no version history, absent from the installer. It's now committed under `tools/` and ships alongside transcribe.py and the signal scripts.
+
+### Changed
+- **All six hardcoded `D:\whisper` paths are gone from the app code.** The energy scorer resolves from the bundled tools like every other script; the Whisper model cache (hfHome) defaults to a per-user app-data folder; the Whisper Python path has no fallback at all — unset now produces a clear settings-pointing error instead of a guess at another machine's filesystem. Three boot migrations pin the legacy locations into settings on machines where they actually exist (Fega's), so his install keeps its multi-GB model cache and configured venv with zero re-entry — verified live on the dev profile.
+- **Fresh installs no longer default the watch folder to Fega's W:\ recordings path.** New machines start with no watch folder (picked in Settings/onboarding); existing installs that relied on the old default are pinned by the same boot migration.
+
+### Fixed
+- **The installer no longer ships Fega's local Python bytecode.** `__pycache__` folders are excluded from the bundled tools.
+
 ## [0.3.0-alpha.43] — 2026-08-10 (session 158) — Installer: the rename-then-schedule publish fix
 
 ### Changed

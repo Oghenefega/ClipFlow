@@ -1,54 +1,62 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-10 — Session 158 (#249 gap 1 shipped: Gemini through the Cloudflare gateway, keyless; queue rename-publish bug found by Fega and fixed; alpha.42 + alpha.43 cut, Fega on alpha.43)._
+_Last updated: 2026-08-11 — Session 159 (#251 built: hardcoded Fega-machine paths removed, FFmpeg bundled, first-run dependency check; awaits alpha.44 cut on Fega's go)._
 
 ---
 
 ## One-line TL;DR
 
-All AI calls (detection AND titles, including large-clip uploads) now route through the Cloudflare gateway and work with ZERO raw provider keys on the machine — live-proven with the Gemini key blank on a 54MB video. Mid-session Fega hit a real bug (renamed a queued import, scheduled it, all four platforms failed "Video file not found" at the OLD filename) — root-caused to stale renderer state after the #188 on-disk rename, fixed at both ends, and alpha.43 cut on request. Gap 3 of #249 closed by decision (prepaid balances are the spend cap, auto-reload confirmed OFF); gaps 4+2 (how testers get a gateway token) briefed to Wick with a dev recommendation.
+The #1 beta blocker (#251) is built and verified: `energy_scorer.py` rescued off the D: drive into the repo (data-loss fix, landed first as `7f4f1f7`), FFmpeg + ffprobe now ship in the installer and every call site resolves bundled-first, all six hardcoded `D:\whisper` paths are gone, the model cache defaults to per-user app data, and a first-run dependency banner + pipeline gate name plainly what's missing on a tester machine. Four boot migrations pin the legacy locations on Fega's machines so his install needs zero re-entry and zero re-downloads — proven live on the dev profile across three CDP-verified boots.
 
 ## Current State
 
-Master at `9da4d1d`. **Fega is on alpha.43 (installed + confirmed)** — it carries both the gateway work and the queue fix. The Arc Raiders import clip is re-scheduled to fire **2026-08-11**; that unattended fire is the real-world confirmation of the queue fix (the exact sequence that used to break). First launch of alpha.43 ran the gatewayUrl migration on his prod store (old `/anthropic`-suffixed URL → gateway base) — nothing re-entered, detection unaffected.
+Master at session-159 head (post-`7f4f1f7` + main batch). **Fega is still on alpha.43** — the #251 work is committed and the packaged build in `dist/win-unpacked` carries it, but **alpha.44 is NOT cut yet** (batch rule: cut on Fega's go). The Arc Raiders scheduled fire (2026-08-11) confirming the alpha.43 queue fix may have happened — check `clipflow-publish-log.json`.
 
-## What Was Just Built (session 158)
+## What Was Just Built (session 159 — #251)
 
-- **#249 gap 1 (`2953d30`):** `gemini.js` routes generateContent + Files API start/poll/delete through the gateway (`{base}/google-ai-studio/...`), sending `cf-aig-authorization` when a token is set — Cloudflare injects the Google key server-side (BYOK, credential named `default`, no alias headers). Byte upload stays on the Google-issued URL by spec. Gemini key now OPTIONAL when a gateway token exists (mirrors anthropic.js). `fetchJson` recognises Cloudflare's array-shaped gateway errors. `anthropic.js` appends its own `/anthropic` segment; both providers strip a legacy suffix defensively; startup migration rewrites stored URLs. Every "is Gemini available?" gate (titlegen main.js, #240 import titles, Settings dot) uses new `geminiProvider.isConfigured()` — the two gates were NOT in the issue's anchor list, discovered during research; without them a keyless install silently fell back to stills.
-- **Verification (13/13):** live BYOK text + 54.3MB video with the key BLANK (real clip description returned through the full 3-step upload); Anthropic HTTP 200 through both old- and new-shape URLs; migration proven on the real dev store at boot; existing bare-node tests green (14+62+15+weights). Harness: session scratchpad `verify-249.js` (reads prod settings for the token).
-- **Queue rename-publish fix (`5c89a06`):** #188 renames the render on disk when a title changes, but QueueView only mirrored its own update fields — publishes (incl. scheduled auto-fire, which fetched the fresh disk clip via the claim and then DISCARDED it) used the stale in-memory renderPath. Fix: saveTitle mirrors `r.clip.renderPath/thumbnailPath`; auto-fire passes `{ ...clip, ...claim.clip, _projectId }` into `publishClip(clipId, opts, freshClip)`. Nothing was lost on disk — file + project JSON were always correct.
-- **Installers:** alpha.42 (`1fb79a2`, gateway batch) superseded ~1h later by alpha.43 (`9da4d1d`, + queue fix). Fega skipped .42, installed .43.
-- **#249 bookkeeping:** gap-1 completion + verification table commented on the issue; gap 3 closed by decision (comment); gaps 4+2 breakdown delivered to `Wick\inbox.md` (2026-08-08 item) — options A bundled / B per-tester / C Supabase-issued, dev recommendation B-for-beta → C-at-launch. Issue stays OPEN.
+- **Step 0 rescue (`7f4f1f7`, committed alone):** `D:\whisper\energy_scorer.py` → `tools/energy_scorer.py`. It was on one physical drive, no history, not shipped. Audit found nothing else out-of-repo (`check_ebur128.py` on D: is unreferenced; left).
+- **`src/main/app-paths.js` (new):** dependency-free (guarded electron require, no logger — safe under the replay-score plain-node stub). Exports `FFMPEG_BIN`/`FFPROBE_BIN` (packaged → `resources/ffmpeg/`, source → `vendor/ffmpeg/`, else bare name → PATH), `envWithBundledFfmpeg()` (prepends bundled dir to a child's PATH, reusing the existing `Path` key), `defaultHfHome()` (`<userData>\hf_cache`, lazy).
+- **23 bare-name call sites switched** to the resolved bins: ffmpeg.js (16), ai-pipeline.js:365ish, gemini-watch.js:118ish, render.js (3), subtitle-overlay-renderer.js (2). Python children (energy scorer spawn, both stable-ts exec paths, signals runPythonSignal) get `envWithBundledFfmpeg()` because energy_scorer.py and WhisperX's audio loader shell out to ffmpeg by bare name themselves.
+- **energy_scorer resolution** mirrors transcribe.py/#143: `ENERGY_SCRIPT` in ai-pipeline.js, packaged → `resources/tools/`, source → repo `tools/`.
+- **whisperPythonPath: no fallback.** Unset/missing → plain error naming Settings → Tools & Credentials → BetterWhisperX Configuration → "Python Path (venv)" (ai-pipeline stage-4 check + shared `PYTHON_SETUP_ERROR` in stable-ts for both transcribe paths).
+- **Four boot migrations in `runStoreMigrations`** (all condition-guarded, idempotent, fire only where the legacy path exists): watchFolder ← legacy W:\ default (STORE_DEFAULTS.watchFolder now ""), hfHome ← `D:\whisper\hf_cache`, whisperPythonPath ← `D:\whisper\betterwhisperx-venv\Scripts\python.exe`. The python one was added mid-session after discovering the DEV profile had `whisperPythonPath: ""` and relied on the deleted code fallback (prod store peeked read-only: explicitly set, safe either way).
+- **First-run dependency check:** `src/main/deps-check.js` (ffmpeg/ffprobe run-check, python set+exists, 4 required tool scripts present) → IPC `system:checkDependencies` → preload `checkDependencies` → `DependencyBanner.js` under UpdateBanner in App.js (amber, lists title+fix per issue, Check again, dismissible). Same check gates `pipeline:generateClips` and refuses early with the same message.
+- **Packaging:** extraResources — tools now filtered (`!**/__pycache__/**`), new `vendor/ffmpeg → ffmpeg` entry (ffmpeg.exe, ffprobe.exe, LICENSE*). `vendor/ffmpeg/` is git-ignored (exes ~138MB each, GitHub cap is 100MB); `scripts/fetch-ffmpeg.ps1` / `npm run fetch:ffmpeg` populates it (BtbN FFmpeg n7.1 GPL zip — NVENC + libx264 confirmed present). Script is pure ASCII on purpose (PS 5.1 reads ANSI; em-dashes broke the parser on first run).
+- **SettingsView copy:** "Not found in PATH" → "Not found"; missing-ffmpeg hint now says reinstall ClipFlow or install to PATH.
+
+## Verification record
+
+- All runnable test suites green: ai-prompt 62, game-profiles 15, gemini-watch 14, signals weights, segmentWords 29, trackerCalendarModel 19. (renderAudioMix + nleModel + audioPlacements are jest-style with no jest installed — pre-existing, skipped in #249's baseline too.)
+- Packaged build inspected: `resources/ffmpeg/{ffmpeg,ffprobe}.exe` + LICENSE, `resources/tools/energy_scorer.py`, ZERO `__pycache__`/`.pyc`; asar lists app-paths.js + deps-check.js.
+- Three dev-profile boots (CDP on 9222/9223, `scratchpad/cdp-check.js`): (1) as-was store → banner with Whisper line only + `Pinned hfHome` log line; (2) clean-machine sim (PATH stripped to System32, vendor renamed away, watchFolder+hfHome keys removed) → banner with BOTH lines + `Pinned watchFolder` fires + screenshot; (3) post-python-migration healthy boot → NO banner, `Pinned whisperPythonPath` fires, and in-app `window.clipflow.ffmpegCheck()` returns **n7.1.5** = the bundled build, not chocolatey's PATH one. Store + vendor fully restored after.
+- Known accepted deviation: `grep 'D:\\' src/` = exactly 1 hit, the hfHome migration's legacy-path constant (main.js ~:327). Mandated by the migrate-at-boot trap; noted on #251 so the mechanical check gets refined, NOT obfuscated.
 
 ## Key Decisions
 
-- **`gatewayUrl` stores the gateway BASE** (`.../clipflow-prod`); each provider appends its own segment. Migration + read-time shims on both providers tolerate the legacy shape forever.
-- **Gateway BYOK counts as "Gemini configured" everywhere** — including the Settings green dot (Fega approved). Consequence, by design: clearing the Gemini key does NOT revert titles to stills while a gateway token is set.
-- **Gap 3 = prepaid balances are the spend cap** (~$13+$13 today, ~$25 each before testers). Fega confirmed auto-reload is OFF on both accounts — that's what makes the cap real.
-- **Byte-upload step of the Files API stays pointed at Google** (its URL carries own auth) — do not "fix" it to the gateway.
-- **#235 gemini-watch untouched** — still requires a raw key, feature hard-gated OFF; flagged, not changed.
+- **Q1 (Fega, 2026-08-11): watchFolder default is now ""** — renderer's #167 guard means no watcher starts until a folder is picked. His installs rescued by migration.
+- **Q2 (Fega): UPDATE_DIST_DIR** (`C:\Users\IAmAbsolute\...\dist` in main.js ~:4165) stays — it's #250's territory; noted on #250.
+- **Bundled-first, PATH-fallback** — Fega's render path now uses the bundled n7.1.5 (NVENC confirmed in it), not his chocolatey install. First full pipeline run on alpha.44 is the watch item.
+- **Whisper/Python bundling stays OUT** (per issue): documented setup step + the dependency check is the 3-tester answer; commercial-launch gate filed separately (see below).
 
 ## Next Steps
 
-1. **Watch the 2026-08-11 scheduled fire** — confirms the queue fix in the wild (and check `clipflow-publish-log.json` if anything looks off).
-2. **Wick's gaps 4+2 recommendation** → Fega's call → dev session executes; feeds directly into #250 (beta distribution / auto-update).
-3. **#244** (scheduled publishes fail loudly: pre-flight token check, notifications, one-click retry) — top dev candidate, directly adjacent to the failure Fega just experienced.
-4. **#248** beta feedback reporter — spec ready (`tasks/specs/beta-feedback-reporter.md`), next launch-arc build.
-5. **#219** Add Game from Rename tab crash — only open crash bug, likely small.
-6. #249 remainder: gaps 4+2 execution + packaged-installer inspection (the issue's official done-means) once posture is decided.
+1. **Fega's go → cut alpha.44** (clipflow-update-launcher skill), he installs, runs one full pipeline: expect no settings re-entry, no model re-download, bundled ffmpeg does the whole run. That's #251's real-machine half; tester #1 is the true clean-machine proof.
+2. **Check the 2026-08-11 scheduled fire result** (alpha.43 queue fix confirmation) — `clipflow-publish-log.json`.
+3. #249 gaps 4+2 (tester gateway token posture) — Wick recommendation pending Fega's call.
+4. #248 beta feedback reporter (spec ready), #244 loud scheduled-publish failures, #219 Add Game crash.
 
 ## Watch Out For
 
-- **Rename-then-publish in one sitting** was the broken sequence — fixed in alpha.43, unverified in the wild until tomorrow's fire. If it ever recurs, the tell is "Video file not found" at a clip's OLD title.
-- **A pasted old-style gateway URL** (ending `/anthropic`) still works (read-time shims) and gets cleaned at next boot (migration is idempotent, runs every launch).
-- **Tester installs with no keys AND no gateway token** have AI dead by design — that's the gaps 4+2 decision.
-- `dist/` holds both alpha.42 and .43; the update notifier uses newest mtime, so .43 wins — don't prune without asking.
-- Gemini panel hint text changed ("When Gemini is available…") — don't resurrect "clear the key to go back to stills," it's now false under a gateway token.
+- **`vendor/ffmpeg/` must exist before `npm run build`** on any machine cutting installers — electron-builder errors on the missing extraResources dir. `npm run fetch:ffmpeg` once fixes it. It's git-ignored; a fresh clone doesn't have it.
+- **The banner is dismissible by design** — the hard stop is the pipeline gate (`pipeline:generateClips` re-checks in main). Don't "fix" the banner into a blocking modal.
+- **Retranscribe/editor paths don't have their own deps gate** — they surface the plain PYTHON_SETUP_ERROR from stable-ts instead. Acceptable; revisit if testers hit it.
+- **Keep `scripts/fetch-ffmpeg.ps1` pure ASCII** — PS 5.1 parses it as ANSI; smart punctuation breaks it at parse time.
+- The pre-existing jest-style test files (renderAudioMix, nleModel, audioPlacements) still can't run — not a session-159 regression.
 
 ## Logs/Debugging
 
-- **Gemini routing mode** logs per generate call in `app.log`: `[gemini] Gateway (BYOK) → .../google-ai-studio/v1beta/models/...` (or `Direct` / `Gateway (passthrough)`). Anthropic logs the same pattern. A gateway-level failure now surfaces as `Gateway error (HTTP n): <Cloudflare's message>` instead of a mangled fallback.
-- **Migration line** on first boot of a new build: `Migrated gatewayUrl to gateway base (stripped /anthropic)` (system module, app.log).
-- **Publish errors** live in `clipflow-publish-log.json` + the Queue card's publish results — NOT app.log (standing rule).
-- **verify-249.js** (session 158 scratchpad) is the live gateway harness — 13 checks, needs prod settings present for the token; safe to re-run (read-only on settings, uploads a Test Footage clip).
-- Dev-profile boot logs: `%APPDATA%\clipflow-dev\logs\app.log`; kill dev electron with `taskkill //IM electron.exe //F` (daily driver is ClipFlow.exe, unaffected).
+- **Migration lines** (system module, app.log, first boot of new code): `Pinned watchFolder to legacy default W:\...`, `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`, `Pinned whisperPythonPath to existing legacy venv D:\...python.exe`.
+- **Dependency check:** renderer calls `window.clipflow.checkDependencies()` → `{ok, issues:[{id,title,detail,fix}]}`; ids are `ffmpeg`, `whisper-python`, `tool-scripts`. Pipeline refusal returns the same text joined as `{error}` from `pipeline:generateClips`.
+- **Which ffmpeg ran?** Settings → Local Tools shows the resolved version — bundled = `n7.1.5-...`; chocolatey PATH fallback reports its own string. `ffmpegCheck` IPC returns the same.
+- **CDP boot-verification harness:** session scratchpad `cdp-check.js` (launch dev electron with `--remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`, script prints BANNER_PRESENT/WHISPER_LINE/FFMPEG_LINE + screenshot). Kill dev electron with `taskkill //IM electron.exe //F` (daily driver is ClipFlow.exe, unaffected).
+- Dev-profile logs: `%APPDATA%\clipflow-dev\logs\app.log`; dev store: `%APPDATA%\clipflow-dev\clipflow-settings.json`.

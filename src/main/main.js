@@ -46,6 +46,8 @@ const { BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const os = require("os");
 const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
+const appPaths = require("./app-paths");
+const depsCheck = require("./deps-check");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
@@ -183,7 +185,11 @@ function libraryRoot() {
 }
 
 const STORE_DEFAULTS = {
-  watchFolder: "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards",
+  // #251: empty until the user picks a folder (Settings / onboarding). The
+  // renderer never starts a watcher on "" (#167 guard in RenameView). Installs
+  // that relied on the old Fega-machine default are rescued by a boot
+  // migration below.
+  watchFolder: "",
   // Project library home (the `.clipflow` tree: projects, clips, waveform
   // caches). Pinned to the watch folder's value on first launch after the
   // split so changing the watch folder never orphans existing projects.
@@ -234,6 +240,10 @@ const STORE_DEFAULTS = {
   audioPreviewVolume: 0.35,
   whisperModel: "large-v3-turbo",
   whisperPythonPath: "",
+  // #251: HuggingFace model cache. Empty = per-user app data (app-paths.js
+  // defaultHfHome). Machines with the legacy D:\whisper\hf_cache are pinned
+  // to it by a boot migration below so models never re-download.
+  hfHome: "",
   // #240 queue imports: content-fingerprint → { status: "imported"|"skipped",
   // at, file, targetPath? }. Main-process-owned only — the renderer never
   // loads or persists this key (keeps it clear of the App.js auto-save loop).
@@ -299,6 +309,38 @@ const STORE_DEFAULTS = {
 };
 
 function runStoreMigrations(store) {
+  // ── Migration (#251): watchFolder default is no longer Fega's W:\ path ──
+  // Installs that relied on the old default (never explicitly saved a value)
+  // keep working: if the store has no watchFolder and the old default exists
+  // on this machine, persist it. Tester machines have no W:\ → stays "".
+  // Must run before the projectsRoot pin below, which reads watchFolder.
+  const LEGACY_WATCH_FOLDER = "W:\\YouTube Gaming Recordings Onward\\Vertical Recordings Onwards";
+  if (!store.get("watchFolder") && fs.existsSync(LEGACY_WATCH_FOLDER)) {
+    store.set("watchFolder", LEGACY_WATCH_FOLDER);
+    logger.info(logger.MODULES.system, `Pinned watchFolder to legacy default ${LEGACY_WATCH_FOLDER}`);
+  }
+
+  // ── Migration (#251): hfHome default moves off D:\whisper ──
+  // Same migrate-at-boot pattern as #249's gatewayUrl: if the legacy cache
+  // exists on this machine and no hfHome is set, pin it BEFORE the default
+  // changes for everyone else — protects a multi-GB populated model cache
+  // from silently re-downloading into the new per-user location.
+  const LEGACY_HF_CACHE = "D:\\whisper\\hf_cache";
+  if (!store.get("hfHome") && fs.existsSync(LEGACY_HF_CACHE)) {
+    store.set("hfHome", LEGACY_HF_CACHE);
+    logger.info(logger.MODULES.system, `Pinned hfHome to existing legacy cache ${LEGACY_HF_CACHE}`);
+  }
+
+  // ── Migration (#251): whisperPythonPath loses its D:\ code fallback ──
+  // Profiles that relied on the old hardcoded guess (unset setting) keep
+  // working: pin the legacy venv into the store if it exists on this machine.
+  // Tester machines have no D:\whisper → stays unset → clear first-run error.
+  const LEGACY_WHISPER_PYTHON = "D:\\whisper\\betterwhisperx-venv\\Scripts\\python.exe";
+  if (!store.get("whisperPythonPath") && fs.existsSync(LEGACY_WHISPER_PYTHON)) {
+    store.set("whisperPythonPath", LEGACY_WHISPER_PYTHON);
+    logger.info(logger.MODULES.system, `Pinned whisperPythonPath to existing legacy venv ${LEGACY_WHISPER_PYTHON}`);
+  }
+
   // ── Migration: pin the project library to the current watch folder ──
   // The `.clipflow` projects tree historically lived under watchFolder. Now
   // that the watch folder can point at OBS's own recording tree, the library
@@ -1144,6 +1186,14 @@ ipcMain.handle("assets:peaks", async (_, filePath) => {
   }
 });
 
+// ============ DEPENDENCY CHECK (#251) ============
+// Cheap preflight the renderer runs at boot (DependencyBanner) and the
+// pipeline runs before starting work. Plain-language issues, no jargon.
+ipcMain.handle("system:checkDependencies", async () => {
+  try { return await depsCheck.checkDependencies(store); }
+  catch (err) { return { ok: true, issues: [], error: err.message }; }
+});
+
 // ============ FFMPEG ============
 ipcMain.handle("ffmpeg:checkInstalled", async () => {
   try { return await ffmpeg.checkFfmpeg(); }
@@ -1820,7 +1870,7 @@ ipcMain.handle("retranscribe:clip", async (_, projectId, clipId) => {
       batchSize: 16,
       computeType: "float16",
       hfToken: store.get("hfToken") || "",
-      hfHome: store.get("hfHome") || "D:\\whisper\\hf_cache",
+      hfHome: store.get("hfHome") || appPaths.defaultHfHome(),
       onProgress: (pct) => {
         if (mainWindow) mainWindow.webContents.send("retranscribe:progress", { stage: "transcribing", pct: 30 + Math.floor(pct * 0.6) });
       },
@@ -2172,6 +2222,13 @@ ipcMain.handle("pipeline:degradeAnswer", async (_, requestId, answer) => {
 });
 
 ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
+  // #251: refuse before any work if a dependency is missing — a plain message
+  // now beats a confusing failure 40% into a run.
+  const deps = await depsCheck.checkDependencies(store);
+  if (!deps.ok) {
+    return { error: deps.issues.map((i) => `${i.title}. ${i.fix}`).join("\n\n") };
+  }
+
   // #169: multi-track files must have a verified track layout before we
   // transcribe — otherwise subtitles may come from game audio or music.
   const calGate = await ensureAudioCalibrated(sourceFile);
