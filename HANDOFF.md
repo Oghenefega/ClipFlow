@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 159 (#251 built: hardcoded Fega-machine paths removed, FFmpeg bundled, first-run dependency check; awaits alpha.44 cut on Fega's go)._
+_Last updated: 2026-08-11 — Session 159 (#251 SHIPPED and CLOSED: hardcoded Fega-machine paths removed, FFmpeg bundled, first-run dependency check; alpha.44 cut, installed, and Fega-confirmed with a full pipeline run)._
 
 ---
 
@@ -10,7 +10,7 @@ The #1 beta blocker (#251) is built and verified: `energy_scorer.py` rescued off
 
 ## Current State
 
-Master at session-159 head (post-`7f4f1f7` + main batch). **Fega is still on alpha.43** — the #251 work is committed and the packaged build in `dist/win-unpacked` carries it, but **alpha.44 is NOT cut yet** (batch rule: cut on Fega's go). The Arc Raiders scheduled fire (2026-08-11) confirming the alpha.43 queue fix may have happened — check `clipflow-publish-log.json`.
+Master at `858fe32` (alpha.44 bump). **Fega is on alpha.44 (installed + confirmed)** — full pipeline run on RL Day10 Pt3 completed end-to-end on the installed build: no settings re-entry, no model re-download (prod first-boot log shows `Pinned hfHome to existing legacy cache D:\whisper\hf_cache`; watchFolder/whisperPythonPath migrations no-op'd — both explicitly set in his prod store), bundled FFmpeg n7.1.5 carried the whole run. **#251 CLOSED**; #68 closed (untested label removed after the confirmed run). The Arc Raiders scheduled fire (2026-08-11) confirming the alpha.43 queue fix is still worth checking in `clipflow-publish-log.json`.
 
 ## What Was Just Built (session 159 — #251)
 
@@ -40,10 +40,10 @@ Master at session-159 head (post-`7f4f1f7` + main batch). **Fega is still on alp
 
 ## Next Steps
 
-1. **Fega's go → cut alpha.44** (clipflow-update-launcher skill), he installs, runs one full pipeline: expect no settings re-entry, no model re-download, bundled ffmpeg does the whole run. That's #251's real-machine half; tester #1 is the true clean-machine proof.
-2. **Check the 2026-08-11 scheduled fire result** (alpha.43 queue fix confirmation) — `clipflow-publish-log.json`.
-3. #249 gaps 4+2 (tester gateway token posture) — Wick recommendation pending Fega's call.
-4. #248 beta feedback reporter (spec ready), #244 loud scheduled-publish failures, #219 Add Game crash.
+1. **Check the 2026-08-11 scheduled fire result** (alpha.43 queue fix confirmation) — `clipflow-publish-log.json`.
+2. #249 gaps 4+2 (tester gateway token posture) — Wick recommendation pending Fega's call. With #251 closed this is the likely next beta-arc item, alongside #248 (feedback reporter, spec ready) and #250 (tester update channel — see the UPDATE_DIST_DIR note there).
+3. #244 loud scheduled-publish failures, #219 Add Game crash.
+4. Tester #1's install = the true clean-machine proof for #251 (watch, no action). #199 (energy_scorer audio track) is now unblocked since the script lives in-repo. #146 remains the commercial-launch Python gate.
 
 ## Watch Out For
 

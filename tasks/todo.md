@@ -6,7 +6,15 @@
 
 ---
 
-## ✅ BUILT (session 159) — #251: ClipFlow runs on a machine that isn't Fega's — VERIFIED, awaits alpha.44 cut on Fega's go
+## ✅ SHIPPED (session 159) — #251: ClipFlow runs on a machine that isn't Fega's — alpha.44 installed, Fega-confirmed, issue CLOSED
+
+Fega installed alpha.44 (2026-08-11) and ran a full pipeline on RL Day10 Pt3
+end-to-end: no settings re-entry, no model re-download (prod log: hfHome
+pinned to D:\whisper\hf_cache on first boot; other two migrations no-op'd
+as designed — both explicitly set in his store), bundled FFmpeg n7.1.5
+carried the whole run. #251 closed; #68 closed earlier + untested label
+removed. Remaining: tester #1 = true clean-machine proof; #146 = the
+commercial-launch Python-bundling gate.
 
 Approved by Fega 2026-08-11 ("go", Q1 yes = watchFolder default emptied,
 Q2 = leave UPDATE_DIST_DIR, noted on #250). All items below implemented.
