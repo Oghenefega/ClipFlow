@@ -1126,3 +1126,11 @@ Rule: any sentence that requests a decision from Fega must survive the "app-user
 **Rule:** Session names use his exact structure: `S<n> · <outcome headline>` (spaced middle dot; outcome-phrased like a changelog headline; lead with `alpha.NN —` when an installer was cut; include the issue #). More generally: when saving a correction about a recurring artifact (names, titles, messages, file layouts), the memory must contain the *format specification with examples*, not just "do the thing" — if the memory doesn't let a cold session reproduce the artifact exactly, it isn't captured yet.
 
 Marker advanced to 2026-08-12 (s162) — no user corrections this session; the two self-caught build findings (Sentry ScopeToMain clears renderer breadcrumbs; feedback events drop breadcrumbs server-side) are recorded in code comments, tasks/todo.md and HANDOFF.md, not lesson-routed.
+
+## Session 164 (2026-08-12) — "Nothing is running" claimed while a 15-hour background poll was still alive
+
+**What went wrong:** Asked "what is running and why", the answer checked OS processes (tasklist, netstat) and declared everything finished — while the harness's own Background tasks panel showed a Bash poll from the previous day still running (the round-3 Sentry wait, whose condition could never come true because round-3 landed as a different issue id than the one being watched). Fega had to screenshot the panel to correct it.
+
+**Why:** Two waits were armed during #248 verification; one was superseded by a rewritten script and mentally filed as "replaced", but only its sibling was ever TaskStop-ped. The "what is running" check then looked at the OS layer only — harness background tasks are not separate visible processes, so tasklist can never disprove one.
+
+**Rule:** Any claim about background/running state must check BOTH layers: OS processes AND the harness task registry (TaskList / the Background tasks panel). And an until-loop watcher must watch a condition that is guaranteed reachable (watch the QUERY that finds new items, not one hardcoded id) — plus every armed watcher gets explicitly stopped or confirmed-finished at session wrap, as part of the wrap checklist.
