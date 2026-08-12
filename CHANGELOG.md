@@ -17,7 +17,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Tab changes now leave a Sentry breadcrumb** alongside the existing PostHog capture, so feedback reports and crashes both show the recent tab trail.
 - **Spec updated** (`tasks/specs/beta-feedback-reporter.md`): both open calls resolved (fully custom panel; masking mechanism), plus one discovery — Sentry drops breadcrumbs from feedback events server-side, so the trail rides as a `recent-activity.txt` attachment instead.
 
-Not yet in an installer — the next cut (the tester build) picks this up. Awaiting Fega's 6-step verification script from the spec.
+### Fixed
+- **#219 (Add Game from the Rename tab crashed the app) closed — it was already fixed and shipping.** The fix landed July 30 (`fb7e264`, same day the issue was filed) and has been in the installed build since alpha.44; Sentry shows exactly one occurrence ever, on the pre-fix build. The issue had simply never been closed. Labeled `status: untested` pending Fega's 10-second Rename-tab check.
+
+Not yet in an installer — the next cut (the tester build) picks this up, alongside #244 which Fega slated for the next session. Awaiting Fega's 6-step verification script from the spec.
 
 ## [Unreleased] — 2026-08-11 (session 161) — #248 feedback reporter: design locked, build planned (no app code this session)
 

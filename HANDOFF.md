@@ -1,12 +1,12 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 162 (#248 BUILT: the feedback pill is real app code, CDP-verified 47/47 + live Sentry round-trip with byte-real attachments. Not yet in an installer; awaiting Fega's 6-step script)._
+_Last updated: 2026-08-12 — Session 162 (#248 BUILT: the feedback pill is real app code, CDP-verified 47/47 + live Sentry round-trip with byte-real attachments. #219 closed as already-fixed-and-shipped. Next session: #244, then cut the tester installer)._
 
 ---
 
 ## One-line TL;DR
 
-#248 went from locked design to working code in one session: `FeedbackBubble.js` (pill + peel + drag + panel + pick mode + renderer-side `Sentry.captureFeedback`), `feedback-report.js` in main (log tail, context, zoom-corrected region snapshot), error-pulse wiring off real publish/pipeline failures, and Settings key-field masking. A live report round-tripped into Sentry with correct tags, release, snapshot PNG, and log tail. Fega has NOT run his 6-step script yet, and no installer carries this yet.
+#248 went from locked design to working code in one session: `FeedbackBubble.js` (pill + peel + drag + panel + pick mode + renderer-side `Sentry.captureFeedback`), `feedback-report.js` in main (log tail, context, zoom-corrected region snapshot), error-pulse wiring off real publish/pipeline failures, and Settings key-field masking. A live report round-tripped into Sentry with correct tags, release, snapshot PNG, log tail, and activity trail. Fega has NOT run his 6-step script yet, and no installer carries this yet. Bonus: #219 (Add Game crash) turned out to be fixed since July 30 and shipping in alpha.44+ — closed `status: untested` (Fega's 10-second Rename-tab check pending).
 
 ## Current State
 
@@ -35,11 +35,12 @@ Master at session-162 commit (all #248 code + docs). **Fega is still on alpha.45
 - **NOT machine-verified:** error pulse end-to-end (wiring traced; needs a real pipeline/publish failure — the recurring Arc Raiders scheduled-publish failures will demo it), true offline queueing (Fega's step 4), and the visual look on the daily driver.
 - **Fega's 6-step script** (spec `tasks/specs/beta-feedback-reporter.md` bottom) runs AFTER the next installer cut — he tests on the installed exe, not source.
 
-## Next Steps
+## Next Steps (Fega ratified the order 2026-08-12: fix #244 first, then bundle)
 
-1. **Cut the tester installer** — the build that finally reaches a tester: #248 pill + the session-160 `clipflow-beta-testers` token swap. Consider folding #244 (loud scheduled-publish failures) and #219 (Add Game crash) in first, per the standing plan. Then Fega runs the 6-step script on the installed exe.
-2. **#250** (beta distribution / auto-update) once tester #1 has that build.
-3. Carry-overs: Arc Raiders scheduled clip still unconfirmed (publish log tail = Aug 8 "Video file not found" failures with a title/path mismatch worth a look in Queue territory); #156 close on Fega's nod.
+1. **#244 — loud scheduled-publish failures. A FULL session on its own** (Fega sized it and agreed to dedicate one). Three layers per the issue: (a) pre-flight token check ~1h before each scheduled slot + OS notification "YouTube needs reconnecting before your 2:30 PM post"; (b) OS notification + persistent in-app banner on any scheduled-publish failure (the #248 pulse only helps when he's looking — this reaches him when he's not); (c) one-click retry of failed clips after reconnect (`retryFailed` exists, QueueView.js ~1219). Verification is the heavy half: simulate a dead token + near-future scheduled slot. Related: #163's `needsReconnect` flag.
+2. **Then cut the tester installer** — bundles #248 + #244 automatically; #219's fix is already aboard (in alpha.44+). It picks up the session-160 `clipflow-beta-testers` token. After install, Fega runs #248's 6-step script + the 10-second #219 check.
+3. **#250** (beta distribution / auto-update) once tester #1 has that build.
+4. Carry-overs: Arc Raiders scheduled clip still unconfirmed (publish log tail = Aug 8 "Video file not found" failures with a title/path mismatch worth a look in Queue territory); #156 close on Fega's nod.
 
 ## Watch Out For
 
