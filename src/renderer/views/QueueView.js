@@ -669,6 +669,7 @@ export default function QueueView({
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
   platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor, onCreateGame,
+  onScheduledPublishFailure, refreshOauthAccounts, focusFailedSignal,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -798,6 +799,9 @@ export default function QueueView({
   // Limitation: only fires while ClipFlow is running. App closed at scheduled time =
   // the next tick after reopen catches it (still due because scheduledAt <= now).
   const autoFiringRef = useRef(new Set());
+  // #244 layer 1: accounts already pre-flighted, keyed accountKey|scheduledAt —
+  // one check (and at most one warning) per account per slot, not one per tick.
+  const preflightedRef = useRef(new Set());
   const tickRef = useRef();
   tickRef.current = async () => {
     if (publishingRef.current) return;
@@ -834,11 +838,58 @@ export default function QueueView({
         // Publish the clip the claim just re-read from disk, not this renderer's
         // copy — in-memory state can hold a pre-rename renderPath (#188 renames
         // the file on disk), and a stale path fails every platform at once.
-        await publishClip(clip.id, null, { ...clip, ...claim.clip, _projectId: clip._projectId });
+        const outcome = await publishClip(clip.id, null, { ...clip, ...claim.clip, _projectId: clip._projectId }, { scheduled: true });
+        // #244 layer 2: a scheduled failure must reach the user who ISN'T
+        // looking — OS toast + persistent app banner, never just a queue card.
+        if (outcome?.failures?.length > 0) {
+          const platNames = [...new Set(outcome.failures.map((f) => f.platform))];
+          window.clipflow?.systemNotify?.({
+            title: "Scheduled publish failed",
+            body: `"${clip.title}" didn't go out on ${platNames.join(", ")}. Open ClipFlow to retry.`,
+          });
+          onScheduledPublishFailure?.({ clipTitle: clip.title, platforms: platNames, at: Date.now() });
+          // A publish-time invalid_grant flags the account in main — pull the
+          // badge into Settings without waiting for an app restart.
+          refreshOauthAccounts?.();
+        }
       } catch (e) {
         console.error("[Scheduler] Auto-fire failed for", clip.id, e);
       } finally {
         autoFiringRef.current.delete(clip.id);
+      }
+    }
+
+    // #244 layer 1: pre-flight connections for slots coming up within the hour,
+    // so a dead account surfaces as an OS notification BEFORE the slot instead
+    // of a silent failure at post time.
+    const PREFLIGHT_WINDOW_MS = 60 * 60_000;
+    const upcoming = approved.filter((c) => {
+      if (!c.scheduledAt || isClipTest(c)) return false;
+      const t = new Date(c.scheduledAt).getTime();
+      return t > now && t - now <= PREFLIGHT_WINDOW_MS;
+    });
+    for (const clip of upcoming) {
+      const accounts = getEnabledPlatforms(clip)
+        .map((pk) => activePlat.find((p) => accountToPlatformKey(p) === pk))
+        .filter(Boolean);
+      const toCheck = accounts.filter((a) => !preflightedRef.current.has(`${a.key}|${clip.scheduledAt}`));
+      if (toCheck.length === 0) continue;
+      toCheck.forEach((a) => preflightedRef.current.add(`${a.key}|${clip.scheduledAt}`));
+      try {
+        const res = await window.clipflow?.publishPreflight?.({ accountIds: toCheck.map((a) => a.key) });
+        const dead = toCheck.filter((a) => res?.results?.[a.key]?.needsReconnect);
+        if (dead.length > 0) {
+          const when = new Date(clip.scheduledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          for (const a of dead) {
+            window.clipflow?.systemNotify?.({
+              title: `${a.platform} needs reconnecting`,
+              body: `Reconnect in Settings before your ${when} post — "${clip.title}" is scheduled.`,
+            });
+          }
+          refreshOauthAccounts?.(); // Settings badge without a restart
+        }
+      } catch (e) {
+        console.error("[Scheduler] Pre-flight failed", e);
       }
     }
   };
@@ -871,6 +922,11 @@ export default function QueueView({
   const [filterGame, setFilterGame] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all"); // all, unscheduled, scheduled, published, failed, unrendered
   const [sortBy, setSortBy] = useState("queue"); // queue, date, game, scheduled
+
+  // #244: banner "Review" lands on the Queue pre-filtered to failed clips.
+  useEffect(() => {
+    if (focusFailedSignal > 0) setFilterStatus("failed");
+  }, [focusFailedSignal]);
 
   // ── Queue imports (#240) — bring finished pre-ClipFlow clips into the queue ──
   const [importReview, setImportReview] = useState(null); // { rows, excluded } | { error }
@@ -1225,6 +1281,20 @@ export default function QueueView({
   // opts (#187): { restrictToKey } retries a single platform instead of every
   // failed one; { videoPath, qualityNote } publish a different file than the
   // clip's render (the manual Instagram 720p copy) and record which one shipped.
+  // #244 layer 3: one click re-publishes every failed clip — the recovery path
+  // after reconnecting a dead account. Sequential on purpose: retryFailed owns
+  // publishingRef, and parallel platform uploads would fight over it.
+  const [retryingAll, setRetryingAll] = useState(false);
+  const retryAllFailed = async () => {
+    if (retryingAll || publishingRef.current) return;
+    setRetryingAll(true);
+    const failedIds = approved.filter((c) => publishStatus[c.id]?.state === "failed").map((c) => c.id);
+    for (const id of failedIds) {
+      await retryFailed(id);
+    }
+    setRetryingAll(false);
+  };
+
   const retryFailed = async (clipId, opts = {}) => {
     const clip = approved.find((c) => c.id === clipId);
     const ps = publishStatus[clipId];
@@ -1477,17 +1547,21 @@ export default function QueueView({
 
   // Shared publish logic — handles both "Publish Now" and "Schedule" with optional publishTime
   // Phase 2: respects per-clip platformToggles, captionOverrides, youtubeTitle, youtubePrivacy
-  const publishClip = async (clipId, scheduleOpts, freshClip) => {
+  // #244: returns { allSuccess, failures } — failures are THIS run's per-platform
+  // errors only (publishState may hold older ones). The scheduler uses the return
+  // to notify loudly; manual callers ignore it.
+  const publishClip = async (clipId, scheduleOpts, freshClip, opts = {}) => {
     if (publishingRef.current) return;
     const clip = freshClip || approved.find((c) => c.id === clipId);
     if (!clip || !clip.renderPath) {
-      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Clip not rendered — render it first from the Editor", platforms: {} } }));
-      return;
+      const err = "Clip not rendered — render it first from the Editor";
+      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: err, platforms: {} } }));
+      return { allSuccess: false, failures: [{ platform: "all platforms", error: err }] };
     }
     // #60: Hard-block publish for test clips.
     if (isClipTest(clip)) {
       setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "Test clip — publishing blocked. Untoggle TEST on the project first.", platforms: {} } }));
-      return;
+      return { allSuccess: false, failures: [] };
     }
 
     // Phase 2: Filter platforms by per-clip toggles
@@ -1498,8 +1572,9 @@ export default function QueueView({
     });
 
     if (enabledPlat.length === 0) {
-      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: "No platforms enabled — toggle at least one platform on", platforms: {} } }));
-      return;
+      const err = "No platforms enabled — toggle at least one platform on";
+      setPublishStatus((p) => ({ ...p, [clipId]: { state: "failed", error: err, platforms: {} } }));
+      return { allSuccess: false, failures: [{ platform: "all platforms", error: err }] };
     }
 
     publishingRef.current = true;
@@ -1535,6 +1610,8 @@ export default function QueueView({
     // the render's. Only Instagram sets it, and only via its automatic fallback.
     let nextDownscaled = { ...(clip.downscaledPosts || {}) };
     let allSuccess = true;
+    // #244: this run's failures, for the scheduler's loud-failure path.
+    const runFailures = [];
     // #156: publishedAt is the durable "already went out" marker the scheduler's claim
     // checks. Stamped on the first real success rather than after the loop, so a crash
     // mid-run still can't leave the clip eligible to auto-fire and post twice.
@@ -1561,6 +1638,7 @@ export default function QueueView({
             caption, clipId: clip.id,
             postMode: platformOptions?.tiktokPostMode || "direct_post",
             isTest: isClipTest(clip),
+            scheduled: opts.scheduled === true,
             tiktokFields: {
               privacy: clip.tiktokPrivacy || null,
               disableDuet: clip.tiktokDisableDuet === true,
@@ -1575,11 +1653,13 @@ export default function QueueView({
           result = await window.clipflow.instagramPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
             caption, clipId: clip.id, isTest: isClipTest(clip),
+            scheduled: opts.scheduled === true,
           });
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({
             accountId: plat.key, videoPath: clip.renderPath, title: clip.title,
             caption, clipId: clip.id, isTest: isClipTest(clip),
+            scheduled: opts.scheduled === true,
           });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
           result = await window.clipflow.youtubePublish({
@@ -1588,12 +1668,14 @@ export default function QueueView({
             youtubeTitle: clip.youtubeTitle || clip.title,
             privacyStatus: clip.youtubePrivacy || "public",
             isTest: isClipTest(clip),
+            scheduled: opts.scheduled === true,
           });
         } else {
           console.log("Publishing not yet wired for", plat.platform);
           const msg = `${plat.platform} publishing isn't supported yet`;
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: msg } } }));
           nextPublishState[plat.key] = { error: msg, at: new Date().toISOString() };
+          runFailures.push({ platform: plat.platform, error: msg });
           allSuccess = false;
           continue;
         }
@@ -1602,6 +1684,7 @@ export default function QueueView({
           console.error(`[Publish] ${plat.platform} failed for ${plat.key}:`, result.error);
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: result.error } } }));
           nextPublishState[plat.key] = { error: String(result.error), at: new Date().toISOString() };
+          runFailures.push({ platform: plat.platform, error: String(result.error) });
           allSuccess = false;
         } else {
           console.log(`[Publish] ${plat.platform} success for ${plat.key}:`, result);
@@ -1620,6 +1703,7 @@ export default function QueueView({
         console.error(`[Publish] Error for ${plat.key}:`, err);
         setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [plat.key]: err.message || "Failed" } } }));
         nextPublishState[plat.key] = { error: err.message || "Failed", at: new Date().toISOString() };
+        runFailures.push({ platform: plat.platform, error: err.message || "Failed" });
         allSuccess = false;
       }
       // Persist this platform's outcome on the clip after each attempt so a mid-loop
@@ -1654,6 +1738,7 @@ export default function QueueView({
     publishingRef.current = false;
     setPublishProgress(null);
     loadPublishLogs(); // Refresh logs after publish
+    return { allSuccess, failures: runFailures };
   };
 
   // Phase 4: Route through confirmation modal
@@ -1809,6 +1894,16 @@ export default function QueueView({
             { value: "all", label: "All games" },
             ...gameTagSet.map((g) => ({ value: g, label: g })),
           ]} style={{ padding: "5px 10px", fontSize: 11 }} />
+        )}
+        {/* #244 layer 3: one-click recovery after reconnecting a dead account */}
+        {failedCount > 0 && (
+          <button
+            onClick={retryAllFailed}
+            disabled={retryingAll}
+            style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 7, border: `1px solid ${T.redBorder}`, background: T.redDim, color: T.red, fontSize: 11, fontWeight: 700, cursor: retryingAll ? "default" : "pointer", fontFamily: T.font, opacity: retryingAll ? 0.6 : 1 }}
+          >
+            {retryingAll ? "Retrying…" : `Retry all failed (${failedCount})`}
+          </button>
         )}
       </div>
 

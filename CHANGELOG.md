@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-12 (session 163) — #244 scheduled publishes fail loudly: pre-flight warning, OS notifications, persistent banner, one-click retry
+
+### Added
+- **Dead connections are caught up to an hour BEFORE a scheduled post.** Every minute, the scheduler now pre-flight-checks the accounts of any clip due within the next hour by running the same token refresh a real publish would. A dead connection (like YouTube's weekly refresh-token death, #163) fires a Windows notification — "YouTube needs reconnecting — reconnect in Settings before your 2:30 PM post" — instead of surfacing as a silent failure at the slot. One warning per account per slot, no re-nagging every minute. Meta/Instagram long-lived tokens are only probed near expiry by design; their rarer failure modes are still caught loudly at post time.
+- **A scheduled publish that fails is now impossible to miss.** Any platform failure during a scheduled (auto-fired) publish raises a Windows notification naming the clip and platforms, plus a red banner across the top of the app that persists until dismissed or reviewed. Clicking the notification brings ClipFlow to the front; the banner's "Review" button jumps to the Queue pre-filtered to failed clips. Manual publishes stay quiet — the user is already watching those.
+- **One-click recovery after reconnecting.** A "Retry all failed (N)" button in the Queue's filter bar re-publishes every failed clip sequentially — the recovery path after reconnecting a dead account. Failed states survive app restarts (already hydrated from disk), so the button works next launch too.
+- **Settings badges dead accounts.** Accounts whose refresh token is dead get an amber "Needs reconnect" badge + border in Settings' connected-accounts list (new `needsReconnect` flag in the token store, set by pre-flight and publish-time failures, cleared automatically by any successful refresh or reconnect).
+
+### Changed
+- **#163 folded in: dead-token errors now say what fixes them.** "Token refresh failed: Bad Request" (Google's literal text for a dead refresh token) is replaced with "YouTube connection expired — reconnect the account in Settings, then retry" across the YouTube, TikTok, and both Instagram refresh paths — and each also flags the account for the Settings badge.
+- **The publish log records which attempts were scheduled.** Auto-fired publishes now carry a `scheduled: true` flag through to `clipflow-publish-log.json` entries, so scheduled failures are distinguishable from manual ones after the fact.
+
+Verified end-to-end on the dev profile with a fabricated dead YouTube account (garbage refresh token → real `invalid_grant` from Google): pre-flight warning fired an hour ahead, the scheduled slot failed loudly (notification + banner + friendly error on the queue card), Review landed on the failed filter, Retry All re-attempted, and a manual retry raised no banner. Ships in the next installer (the tester build) alongside #248.
+
 ## [Unreleased] — 2026-08-11 (session 162) — #248 beta feedback reporter built: the pill is live in the app
 
 ### Added

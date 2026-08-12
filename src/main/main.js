@@ -42,7 +42,13 @@ process.on("uncaughtException", (err) => {
   throw err;
 });
 
-const { BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { BrowserWindow, ipcMain, dialog, shell, Notification } = require("electron");
+
+// #244: Windows toast notifications need an AppUserModelID matching the installed
+// shortcut's (electron-builder sets it from build.appId). In dev the toast
+// attributes to Electron's default identity — acceptable; branding arrives with
+// the installer.
+app.setAppUserModelId("com.clipflow.app");
 const os = require("os");
 const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
@@ -3590,6 +3596,120 @@ ipcMain.handle("oauth:getAccounts", async () => {
   return tokenStore.getAccountsForUI();
 });
 
+// #244/#163: plain-language message for a dead connection — used by the
+// pre-flight check and the publish-time refresh blocks.
+const deadTokenError = (platform) =>
+  `${platform} connection expired — reconnect the account in Settings, then retry.`;
+
+// #244: generic OS toast. Renderer decides when to notify (scheduler owns the
+// aggregation); main just shows it. Clicking focuses the app window.
+ipcMain.handle("system:notify", (_, { title, body } = {}) => {
+  try {
+    if (!Notification.isSupported()) return { ok: false, error: "unsupported" };
+    const n = new Notification({ title: String(title || "ClipFlow"), body: String(body || "") });
+    n.on("click", () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    });
+    n.show();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+// #244 layer 1: pre-flight connection check ahead of scheduled slots.
+// For YouTube/TikTok the liveness probe IS the token refresh their publish
+// handler would run anyway (access tokens live 1h/24h, so at any scheduled slot
+// a refresh is due — a dead refresh token surfaces here instead of at post
+// time). Meta/IG long-lived tokens (~60 days) are only refreshed near expiry,
+// so their pre-flight is usually a no-op by design; rarer Meta death modes are
+// caught loudly at post time by layer 2.
+async function preflightAccount(accountId) {
+  const account = tokenStore.getAccount(accountId);
+  if (!account) return { ok: false, error: "Account not found" };
+  const log = require("electron-log/main").scope("preflight");
+  try {
+    if (account.platform === "YouTube") {
+      const clientId = store.get("youtubeClientId");
+      const clientSecret = store.get("youtubeClientSecret");
+      if (!clientId || !clientSecret || !account.refreshToken) {
+        tokenStore.setNeedsReconnect(accountId);
+        return { ok: false, needsReconnect: true, error: deadTokenError("YouTube") };
+      }
+      const r = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
+      if (r.error || !r.access_token) {
+        log.warn("YouTube pre-flight refresh failed", { accountId, error: r.error });
+        if (r.error === "invalid_grant") {
+          tokenStore.setNeedsReconnect(accountId);
+          return { ok: false, needsReconnect: true, error: deadTokenError("YouTube") };
+        }
+        return { ok: false, error: `Token refresh failed: ${r.error_description || r.error || "Unknown error"}` };
+      }
+      tokenStore.updateTokens(accountId, r.access_token, account.refreshToken, Date.now() + (r.expires_in || 3600) * 1000);
+      return { ok: true };
+    }
+    if (account.platform === "TikTok") {
+      const clientKey = store.get("tiktokClientKey");
+      const clientSecret = store.get("tiktokClientSecret");
+      if (!clientKey || !clientSecret || !account.refreshToken) {
+        tokenStore.setNeedsReconnect(accountId);
+        return { ok: false, needsReconnect: true, error: deadTokenError("TikTok") };
+      }
+      const r = await tiktokOAuth.refreshAccessToken(clientKey, clientSecret, account.refreshToken);
+      if (r.error || !r.access_token) {
+        log.warn("TikTok pre-flight refresh failed", { accountId, error: r.error });
+        if (r.error === "invalid_grant" || r.error === "invalid_request") {
+          tokenStore.setNeedsReconnect(accountId);
+          return { ok: false, needsReconnect: true, error: deadTokenError("TikTok") };
+        }
+        return { ok: false, error: `Token refresh failed: ${r.error_description || r.error || "Unknown error"}` };
+      }
+      tokenStore.updateTokens(accountId, r.access_token, r.refresh_token || account.refreshToken, Date.now() + (r.expires_in || 86400) * 1000);
+      return { ok: true };
+    }
+    // Meta family: refresh only when inside the pre-flight window of expiry.
+    const nearExpiry = account.expiresAt && Date.now() > account.expiresAt - 60 * 60_000;
+    if (!nearExpiry) return { ok: true, skipped: true };
+    const platformName = account.platform === "Facebook" ? "Facebook" : "Instagram";
+    if (account.loginType === "instagram_business_login") {
+      const r = await instagramOAuth.refreshLongLivedToken(account.accessToken);
+      if (r.error || !r.access_token) {
+        log.warn("Instagram pre-flight refresh failed", { accountId, error: r.error });
+        tokenStore.setNeedsReconnect(accountId);
+        return { ok: false, needsReconnect: true, error: deadTokenError("Instagram") };
+      }
+      tokenStore.updateTokens(accountId, r.access_token, "", Date.now() + (r.expires_in || 5184000) * 1000);
+      return { ok: true };
+    }
+    const appId = store.get("metaAppId");
+    const appSecret = store.get("metaAppSecret");
+    if (!appId || !appSecret) return { ok: false, needsReconnect: true, error: deadTokenError(platformName) };
+    const r = await metaOAuth.refreshLongLivedToken(appId, appSecret, account.accessToken);
+    if (r.error || !r.access_token) {
+      log.warn("Meta pre-flight refresh failed", { accountId, error: r.error?.message || r.error });
+      tokenStore.setNeedsReconnect(accountId);
+      return { ok: false, needsReconnect: true, error: deadTokenError(platformName) };
+    }
+    tokenStore.updateTokens(accountId, r.access_token, "", Date.now() + (r.expires_in || 5184000) * 1000);
+    return { ok: true };
+  } catch (err) {
+    // Network failure etc. — NOT a dead token; don't flag reconnect.
+    log.warn("Pre-flight errored", { accountId, error: err.message });
+    return { ok: false, error: err.message };
+  }
+}
+
+ipcMain.handle("publish:preflight", async (_, { accountIds } = {}) => {
+  const results = {};
+  for (const accountId of accountIds || []) {
+    results[accountId] = await preflightAccount(accountId);
+  }
+  return { results };
+});
+
 // Remove a connected account
 ipcMain.handle("oauth:removeAccount", async (_, accountId) => {
   try {
@@ -3679,8 +3799,8 @@ ipcMain.handle("tiktok:queryCreatorInfo", async (_event, { accountId }) => {
   }
 });
 
-ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "TikTok", accountId, accountName: "", videoPath };
+ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, caption, clipId, postMode, isTest, tiktokFields, scheduled }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "TikTok", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -3713,7 +3833,12 @@ ipcMain.handle("tiktok:publish", async (event, { accountId, videoPath, title, ca
       const refreshResult = await tiktokOAuth.refreshAccessToken(clientKey, clientSecret, account.refreshToken);
       require("electron-log/main").scope("tiktok").debug("Token refresh result", refreshResult);
       if (refreshResult.error || !refreshResult.access_token) {
-        const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
+        // #163: a dead refresh token means "reconnect", not "Bad Request".
+        const dead = refreshResult.error === "invalid_grant" || refreshResult.error === "invalid_request";
+        if (dead) tokenStore.setNeedsReconnect(accountId);
+        const err = dead
+          ? deadTokenError("TikTok")
+          : `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
         publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
         return { error: err };
       }
@@ -3893,10 +4018,10 @@ ipcMain.handle("oauth:facebook:connect", async () => {
 
 // ── Instagram Content Publishing ──
 
-ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, qualityNote }) => {
+ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, qualityNote, scheduled }) => {
   // #187: qualityNote records when a lighter copy shipped instead of the render,
   // so a post's actual resolution is answerable later without guessing.
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath, ...(qualityNote ? { qualityNote } : {}) };
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Instagram", accountId, accountName: "", videoPath, ...(qualityNote ? { qualityNote } : {}), ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -3938,8 +4063,10 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
         // Instagram Business Login tokens — refresh via graph.instagram.com
         const refreshResult = await instagramOAuth.refreshLongLivedToken(accessToken);
         if (refreshResult.error || !refreshResult.access_token) {
-          const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}. Please reconnect your Instagram account.`;
-          publishLog.logPublish({ ...logBase, status: "failed", error: err });
+          // #163/#244: a long-lived token that won't refresh is dead — flag it.
+          tokenStore.setNeedsReconnect(accountId);
+          const err = deadTokenError("Instagram");
+          publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
           return { error: err };
         }
         tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
@@ -3955,8 +4082,10 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
         }
         const refreshResult = await metaOAuth.refreshLongLivedToken(appId, appSecret, accessToken);
         if (refreshResult.error || !refreshResult.access_token) {
-          const err = `Token refresh failed: ${refreshResult.error?.message || "Unknown error"}`;
-          publishLog.logPublish({ ...logBase, status: "failed", error: err });
+          // #163/#244: a long-lived token that won't refresh is dead — flag it.
+          tokenStore.setNeedsReconnect(accountId);
+          const err = deadTokenError("Instagram");
+          publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
           return { error: err };
         }
         tokenStore.updateTokens(accountId, refreshResult.access_token, "", Date.now() + (refreshResult.expires_in || 5184000) * 1000);
@@ -4036,8 +4165,8 @@ ipcMain.handle("instagram:publish", async (event, { accountId, videoPath, title,
 
 // ── Facebook Page Publishing ──
 
-ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Facebook", accountId, accountName: "", videoPath };
+ipcMain.handle("facebook:publish", async (event, { accountId, videoPath, title, caption, clipId, isTest, scheduled }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "Facebook", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -4126,8 +4255,8 @@ ipcMain.handle("oauth:youtube:connect", async () => {
 
 // ── YouTube Publishing ──
 
-ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest }) => {
-  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "YouTube", accountId, accountName: "", videoPath };
+ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, caption, clipId, tags, youtubeTitle, privacyStatus, isTest, scheduled }) => {
+  const logBase = { clipId: clipId || "", clipTitle: title || "", clipCaption: caption || "", platform: "YouTube", accountId, accountName: "", videoPath, ...(scheduled ? { scheduled: true } : {}) };
   try {
     if (isTest) {
       const err = "Test clip \u2014 publishing skipped. Untoggle TEST on the clip to go live.";
@@ -4157,7 +4286,13 @@ ipcMain.handle("youtube:publish", async (event, { accountId, videoPath, title, c
       }
       const refreshResult = await youtubeOAuth.refreshAccessToken(clientId, clientSecret, account.refreshToken);
       if (refreshResult.error || !refreshResult.access_token) {
-        const err = `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
+        // #163: Google's error_description for a dead refresh token is literally
+        // "Bad Request" — say what actually fixes it instead.
+        const dead = refreshResult.error === "invalid_grant";
+        if (dead) tokenStore.setNeedsReconnect(accountId);
+        const err = dead
+          ? deadTokenError("YouTube")
+          : `Token refresh failed: ${refreshResult.error_description || refreshResult.error || "Unknown error"}`;
         publishLog.logPublish({ ...logBase, status: "failed", error: err, apiResponse: refreshResult });
         return { error: err };
       }

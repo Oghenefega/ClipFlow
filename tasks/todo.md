@@ -6,6 +6,114 @@
 
 ---
 
+## ✅ BUILT (session 163) — #244 loud scheduled-publish failures (+ #163 folded in) — machine-verified end-to-end, ships with the tester installer
+
+Built exactly per the approved plan below; both issues closed `status: untested`
+(Fega sees it live on the next installer — the recurring weekly YouTube death
+is the natural real-world test). Verification notes: fabricated dead YouTube
+account on the dev profile produced a REAL `invalid_grant` from Google through
+both the pre-flight and publish paths; 15/15 CDP assertions passed (two probe
+bugs fixed along the way — the status filter DOES hide the scheduled clip, its
+title was matching in the hidden Tracker pane; the Settings badge renders fine
+once the collapsed PUBLISHING group is expanded). Gotcha for future harnesses:
+`safeStorage` keys live per-profile in "Local State" — seed scripts must
+`app.setPath("userData", ...clipflow-dev)` BEFORE `app.whenReady()` or the app
+decrypts seeded tokens to "".
+
+Fega's ratified choices (2026-08-12): retry via Queue button only · fold #163 in ·
+notifications on failures only (no success pings).
+
+### The three layers, in plain language
+
+1. **Warning BEFORE the slot.** Up to an hour before each scheduled post, ClipFlow
+   quietly tests every enabled account's connection. If one is dead (like the
+   YouTube weekly death), a Windows notification fires — "YouTube needs
+   reconnecting before your 2:30 PM post" — and the account gets an amber
+   "Needs reconnect" badge in Settings.
+2. **Loud failure AT the slot.** If a scheduled post still fails on any platform,
+   a Windows notification fires AND a banner appears across the top of the app
+   that stays until dismissed. (Manual publishes don't notify — you're watching
+   those. The #248 pill pulse already covers both.)
+3. **One-click recovery.** A "Retry all failed" button in the Queue header
+   re-publishes every failed clip. The banner's "Review" button jumps to the
+   Queue filtered to failed clips.
+
+Folded #163: the four token-refresh error paths stop saying "Bad Request" and
+say "YouTube connection expired — reconnect the account in Settings, then
+retry" (per platform), and mark the account with the same badge flag.
+
+### How it works (liveness-verified paths)
+
+- The scheduler tick (QueueView.js:848, fires every 60s on every tab because
+  QueueView stays mounted — App.js:824 `display:none` panes) gains a pre-flight
+  sweep: clips due within 60 min → new `publish:preflight` IPC → main tests each
+  enabled account. One warning per account per slot (ref-tracked, no re-nag
+  every minute).
+- Pre-flight "test" = the same token refresh the publish handler would do
+  (YouTube main.js:4158, TikTok 3713 — their access tokens expire
+  hourly/daily so refresh is the natural liveness probe; success updates stored
+  tokens, failure = dead). **Meta/IG long-lived tokens (~60 days) are only
+  refreshed when near expiry — Meta pre-flight is usually a no-op by design;
+  its rarer death modes get caught at post time by layer 2.**
+- OS notifications: new generic `system:notify` handler in main using
+  Electron's `Notification` (none exists in the app today — grep confirmed).
+  `app.setAppUserModelId("com.clipflow.app")` added for Windows toasts; in dev
+  they attribute to "Electron", correct branding arrives with the installer.
+  Clicking a toast focuses the app window.
+- Failure detection at post time stays renderer-side: the scheduler tick already
+  awaits `publishClip` and the per-platform results land in `publishStatus` —
+  after each scheduled fire, failures raise one toast per clip + set app-level
+  banner state in App.js. A `scheduled: true` flag threads publishClip → the four
+  platform IPC payloads → `logBase` so the publish log records which attempts
+  were scheduled ones.
+- `needsReconnect` flag lives on token-store account entries: set by pre-flight
+  and by publish-time `invalid_grant` (#163 blocks), cleared by
+  `updateTokens` on any successful refresh; reconnecting rebuilds the entry
+  from scratch (token-store.js:72) so it auto-clears. New optional field read
+  falsy-safe — no migration needed (same pattern as main.js:276).
+- "Retry all failed": header button in Queue iterating clips with
+  `publishStatus[id].state === "failed"` → existing `retryFailed`
+  (QueueView.js:1228) sequentially. Failed states hydrate from disk on restart
+  (QueueView.js:760-791), so it works after an app restart too.
+
+### Files
+
+- `src/main/main.js` — `system:notify` + `publish:preflight` handlers,
+  setAppUserModelId, #163 friendly errors + flag in 4 refresh blocks,
+  `scheduled` flag into logBase
+- `src/main/token-store.js` — `needsReconnect` (set/clear/expose in
+  getAccountsForUI)
+- `src/main/preload.js` — `systemNotify`, `publishPreflight` bridges
+- `src/renderer/views/QueueView.js` — pre-flight sweep in tick, post-failure
+  toast + banner raise, `scheduled` threading, Retry-all-failed button
+- `src/renderer/App.js` — persistent failure banner (state + render + Review →
+  Queue)
+- `src/renderer/views/SettingsView.js` — "Needs reconnect" badge on account
+  cards
+
+### Verification (dev profile only — nothing can reach a real platform)
+
+- Fabricate a dead account in the DEV token store (garbage refresh token, fake
+  id) so refresh fails with invalid_grant and no upload can ever start. Real
+  prod tokens untouched.
+- Layer 1: clip scheduled ~30 min out with the dead account enabled → next tick
+  → toast + Settings badge + friendly error text. (60-min window means it fires
+  on the first tick — no waiting.)
+- Layer 2: clip scheduled 1 min out → tick fires → publish fails at refresh →
+  toast + persistent banner + publish-log entry carries `scheduled: true` +
+  existing #248 pill pulses.
+- Layer 3: Retry-all button hits every failed clip; banner Review lands on
+  Queue filtered to failed. CDP checks for badge/banner/button states.
+- Regression: manual publish failure produces NO toast/banner (pill pulse only);
+  build + `npm start` boot-verify.
+
+### What Fega does after
+
+Nothing until the tester installer — these paths then get a live shakedown when
+the next real weekly YouTube death happens (or at the next scheduled slot).
+
+---
+
 ## ✅ BUILT (session 162) — #248 beta feedback reporter — code complete + CDP-verified + live Sentry round-trip; awaiting Fega's 6-step script
 
 Shipped per the locked spec (`tasks/specs/beta-feedback-reporter.md`) and the

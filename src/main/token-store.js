@@ -148,6 +148,8 @@ function getAccountsForUI() {
     pageName: acct.pageName || "",
     // YouTube-specific
     channelId: acct.channelId || "",
+    // #244: dead refresh token — Settings badges the account
+    needsReconnect: !!acct.needsReconnect,
   }));
 }
 
@@ -169,6 +171,22 @@ function updateTokens(id, accessToken, refreshToken, expiresAt) {
   accounts[id].accessToken = encrypt(accessToken);
   if (refreshToken) accounts[id].refreshToken = encrypt(refreshToken);
   if (expiresAt) accounts[id].expiresAt = expiresAt;
+  // #244: a successful refresh proves the connection is alive again.
+  delete accounts[id].needsReconnect;
+  tokenStore.set("accounts", accounts);
+  return true;
+}
+
+/**
+ * #244: Flag an account whose refresh token is dead (invalid_grant etc.) so
+ * Settings can badge it. Cleared by updateTokens on any successful refresh,
+ * and implicitly by reconnecting (saveAccount rebuilds the entry from scratch).
+ */
+function setNeedsReconnect(id, value = true) {
+  const accounts = tokenStore.get("accounts") || {};
+  if (!accounts[id]) return false;
+  if (value) accounts[id].needsReconnect = true;
+  else delete accounts[id].needsReconnect;
   tokenStore.set("accounts", accounts);
   return true;
 }
@@ -195,5 +213,6 @@ module.exports = {
   removeAccount,
   updateTokens,
   setLoginType,
+  setNeedsReconnect,
   PLATFORM_ABBR,
 };

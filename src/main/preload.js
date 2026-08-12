@@ -270,6 +270,10 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("retranscribe:progress");
   },
 
+  // #244: OS toast + pre-flight connection check for scheduled publishes
+  systemNotify: (params) => ipcRenderer.invoke("system:notify", params),
+  publishPreflight: (params) => ipcRenderer.invoke("publish:preflight", params),
+
   // OAuth — connected accounts
   oauthGetAccounts: () => ipcRenderer.invoke("oauth:getAccounts"),
   oauthRemoveAccount: (accountId) => ipcRenderer.invoke("oauth:removeAccount", accountId),

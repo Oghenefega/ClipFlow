@@ -215,7 +215,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           const exists = prev.findIndex((p) => p.key === result.account.key);
           if (exists >= 0) {
             const updated = [...prev];
-            updated[exists] = { ...updated[exists], ...result.account };
+            // #244: a fresh connect always clears the needs-reconnect badge —
+            // the connect handlers' return shape doesn't carry the flag.
+            updated[exists] = { ...updated[exists], ...result.account, needsReconnect: false };
             return updated;
           }
           return [...prev, result.account];
@@ -242,7 +244,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           const exists = prev.findIndex((p) => p.key === result.account.key);
           if (exists >= 0) {
             const updated = [...prev];
-            updated[exists] = { ...updated[exists], ...result.account };
+            // #244: a fresh connect always clears the needs-reconnect badge —
+            // the connect handlers' return shape doesn't carry the flag.
+            updated[exists] = { ...updated[exists], ...result.account, needsReconnect: false };
             return updated;
           }
           return [...prev, result.account];
@@ -269,7 +273,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           const exists = prev.findIndex((p) => p.key === result.account.key);
           if (exists >= 0) {
             const updated = [...prev];
-            updated[exists] = { ...updated[exists], ...result.account };
+            // #244: a fresh connect always clears the needs-reconnect badge —
+            // the connect handlers' return shape doesn't carry the flag.
+            updated[exists] = { ...updated[exists], ...result.account, needsReconnect: false };
             return updated;
           }
           return [...prev, result.account];
@@ -296,7 +302,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           const exists = prev.findIndex((p) => p.key === result.account.key);
           if (exists >= 0) {
             const updated = [...prev];
-            updated[exists] = { ...updated[exists], ...result.account };
+            // #244: a fresh connect always clears the needs-reconnect badge —
+            // the connect handlers' return shape doesn't carry the flag.
+            updated[exists] = { ...updated[exists], ...result.account, needsReconnect: false };
             return updated;
           }
           return [...prev, result.account];
@@ -931,7 +939,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {platforms.map((p) => (
-            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: T.radius.md, border: `1px solid ${T.greenBorder}`, background: "rgba(52,211,153,0.04)", position: "relative" }}>
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: T.radius.md, border: `1px solid ${p.needsReconnect ? T.yellowBorder : T.greenBorder}`, background: p.needsReconnect ? "rgba(251,191,36,0.05)" : "rgba(52,211,153,0.04)", position: "relative" }}>
               {p.avatarUrl ? (
                 <img src={p.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: `1px solid ${T.border}` }} />
               ) : (
@@ -941,7 +949,11 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{p.name || p.displayName}</span>
                 <span style={{ color: T.textTertiary, fontSize: 10, fontWeight: 600 }}>{p.platform}</span>
               </div>
-              <PulseDot color={T.green} size={7} />
+              {/* #244: dead connection — publishing will fail until reconnected */}
+              {p.needsReconnect && (
+                <span title={`${p.platform} connection expired — reconnect to keep scheduled posts going out.`} style={{ fontSize: 9, fontWeight: 800, color: T.yellow, background: "rgba(251,191,36,0.12)", border: `1px solid ${T.yellowBorder}`, padding: "2px 7px", borderRadius: 4, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Needs reconnect</span>
+              )}
+              <PulseDot color={p.needsReconnect ? T.yellow : T.green} size={7} />
               <button
                 onClick={(e) => { e.stopPropagation(); setDisconnectTarget(p.key); }}
                 style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", padding: "0 0 0 4px", lineHeight: 1 }}

@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import FeedbackBubble from "./components/FeedbackBubble";
 import UpdateBanner from "./components/UpdateBanner";
 import DependencyBanner from "./components/DependencyBanner";
+import PublishFailureBanner from "./components/PublishFailureBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
 import { normalizeHexColor } from "./components/shared";
 import AudioCalibrationModal from "./components/AudioCalibrationModal";
@@ -312,6 +313,39 @@ export default function App() {
   });
   const [ytDescriptions, setYtDescriptions] = useState(REAL_YT_DESCRIPTIONS);
 
+  // #244: scheduled-publish failures raised by QueueView's scheduler. Persist
+  // until dismissed — the whole point is reaching the user who wasn't looking.
+  const [publishAlerts, setPublishAlerts] = useState([]);
+  // Incrementing signal: banner "Review" → Queue tab with the Failed filter on.
+  const [queueFocusFailed, setQueueFocusFailed] = useState(0);
+
+  // Re-fetch OAuth accounts and merge into platforms. Used at startup and by
+  // QueueView's pre-flight when it flags a dead connection (#244) so the
+  // Settings badge appears without an app restart.
+  const refreshOauthAccounts = async () => {
+    if (!window.clipflow?.oauthGetAccounts) return;
+    try {
+      const oauthAccounts = await window.clipflow.oauthGetAccounts();
+      if (oauthAccounts && oauthAccounts.length > 0) {
+        setPlatforms((prev) => {
+          // Merge: keep existing manual entries, add/update OAuth accounts
+          const merged = [...prev];
+          for (const acct of oauthAccounts) {
+            const idx = merged.findIndex((p) => p.key === acct.key);
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...acct };
+            } else {
+              merged.push(acct);
+            }
+          }
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load OAuth accounts:", e);
+    }
+  };
+
   // ============ LOAD FROM ELECTRON-STORE ON STARTUP ============
   useEffect(() => {
     const load = async () => {
@@ -332,28 +366,7 @@ export default function App() {
         if (all.ignoredProcesses) setIgnoredProcesses(all.ignoredProcesses);
         // Load platforms: merge stored manual platforms with OAuth-connected accounts
         if (all.platforms) setPlatforms(all.platforms);
-        if (window.clipflow?.oauthGetAccounts) {
-          try {
-            const oauthAccounts = await window.clipflow.oauthGetAccounts();
-            if (oauthAccounts && oauthAccounts.length > 0) {
-              setPlatforms((prev) => {
-                // Merge: keep existing manual entries, add/update OAuth accounts
-                const merged = [...prev];
-                for (const acct of oauthAccounts) {
-                  const idx = merged.findIndex((p) => p.key === acct.key);
-                  if (idx >= 0) {
-                    merged[idx] = { ...merged[idx], ...acct };
-                  } else {
-                    merged.push(acct);
-                  }
-                }
-                return merged;
-              });
-            }
-          } catch (e) {
-            console.error("Failed to load OAuth accounts:", e);
-          }
-        }
+        await refreshOauthAccounts();
         if (all.weeklyTemplate) setWeeklyTemplate(migrateTemplate(all.weeklyTemplate));
         if (all.trackerData) setTrackerData(all.trackerData);
         if (all.weeklyTarget !== undefined) setWeeklyTarget(all.weeklyTarget);
@@ -844,6 +857,11 @@ export default function App() {
       </div>
       <UpdateBanner />
       <DependencyBanner />
+      <PublishFailureBanner
+        alerts={publishAlerts}
+        onReview={() => { setQueueFocusFailed((n) => n + 1); nav("queue"); setPublishAlerts([]); }}
+        onDismiss={() => setPublishAlerts([])}
+      />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: "0 0 8px 8px" }}>
         {/* Each persistent tab is always-mounted with its OWN scroll container so
             scrollTop is preserved per-tab across switches (#33). display:none keeps
@@ -907,6 +925,9 @@ export default function App() {
               awardXp={awardXp}
               onOpenInEditor={handleOpenQueueClipInEditor}
               onCreateGame={handleNewGame}
+              onScheduledPublishFailure={(alert) => setPublishAlerts((prev) => [...prev, alert])}
+              refreshOauthAccounts={refreshOauthAccounts}
+              focusFailedSignal={queueFocusFailed}
             />
           </div>
         </div>
