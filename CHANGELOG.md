@@ -4,6 +4,21 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-11 (session 162) — #248 beta feedback reporter built: the pill is live in the app
+
+### Added
+- **The feedback pill is now real app code** (`FeedbackBubble.js`, mounted over every tab). Ported 1:1 from the Fega-approved mock: labeled pill on the right edge whose prompt rotates between "Having a problem?" / "Got an idea?" / "Got feedback?" on tab switches, tuck-to-peel via the hover ×, vertical drag along the edge, and a report panel that opens above the pill or flips below it when the pill sits too high. Tucked state and drag position survive relaunches (new `feedbackBubble` settings key).
+- **Reports carry a category and adapt their copy.** Problem / Idea / Feedback toggle (the prompt showing at click time preselects), with the mock's exact titles, placeholders, and consent lines. The activity log tail and a recent-actions trail attach to Problem reports only — Idea and Feedback send words + snapshot + version, exactly what their consent line promises.
+- **Point-at-the-problem capture.** "Point at the problem" arms a crosshair mode with a hover highlight; clicking any element records what it is (its label/identity, not a raw DOM dump) and snapshots just that region of the window — element rect plus a small margin, zoom-corrected, never the full screen. One point per report; re-pointing replaces. On the Settings view, captures blur all API-key values and inputs for the capture frames.
+- **Reports land in Sentry next to the crashes they explain.** Sent as Sentry feedback events tagged with category, view, app version, and install ID, tied to the release — with the snapshot PNG and log tail as attachments. Offline sends queue on disk and retry automatically (the Electron SDK's offline transport carries them; verified it's the default path). A live end-to-end report was verified in Sentry during the build: correct tags, release `clipflow@0.3.0-alpha.45`, byte-real attachments.
+- **The pill's one self-animation is wired to real failures.** A failed publish (from the publish log) or a failed pipeline run pulses the pill 3×, swaps its label to "Something just went wrong?", and preselects Problem on the next open. It never moves on its own otherwise.
+
+### Changed
+- **Tab changes now leave a Sentry breadcrumb** alongside the existing PostHog capture, so feedback reports and crashes both show the recent tab trail.
+- **Spec updated** (`tasks/specs/beta-feedback-reporter.md`): both open calls resolved (fully custom panel; masking mechanism), plus one discovery — Sentry drops breadcrumbs from feedback events server-side, so the trail rides as a `recent-activity.txt` attachment instead.
+
+Not yet in an installer — the next cut (the tester build) picks this up. Awaiting Fega's 6-step verification script from the spec.
+
 ## [Unreleased] — 2026-08-11 (session 161) — #248 feedback reporter: design locked, build planned (no app code this session)
 
 ### Added

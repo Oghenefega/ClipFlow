@@ -346,4 +346,17 @@ contextBridge.exposeInMainWorld("clipflow", {
 
   // Logging & Bug Reports
   logsExportReport: (data) => ipcRenderer.invoke("logs:exportReport", data),
+
+  // #248 Beta feedback reporter (bubble). Distinct from the clip-feedback DB
+  // channels above (feedback:updateReasons / feedback:approvalStats).
+  feedbackReportContext: (opts) => ipcRenderer.invoke("feedback:context", opts),
+  feedbackReportSnapshot: (rect) => ipcRenderer.invoke("feedback:snapshot", rect),
+  // Returns an unsubscribe fn — the bubble is mounted once at the app root,
+  // but StrictMode double-mounts effects; removeAllListeners would kill the
+  // surviving listener.
+  onFeedbackAppError: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("feedback:appError", handler);
+    return () => ipcRenderer.removeListener("feedback:appError", handler);
+  },
 });

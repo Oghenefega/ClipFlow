@@ -10,6 +10,13 @@ const { createStore } = require("./store-factory");
 
 let logStore = null;
 
+// #248: main.js registers a callback so a failed publish can pulse the
+// feedback bubble. Kept out of this module's concerns beyond the one call.
+let onFailure = null;
+function setFailureNotifier(fn) {
+  onFailure = fn;
+}
+
 async function init() {
   logStore = await createStore({
     name: "clipflow-publish-log",
@@ -45,6 +52,11 @@ function logPublish(entry) {
     entries.splice(0, entries.length - MAX_ENTRIES);
   }
   logStore.set("entries", entries);
+  // #248: real failures only — "skipped" pre-flight refusals already surface
+  // in the publish UI and must not pulse the bubble.
+  if (entry.status === "failed" && onFailure) {
+    try { onFailure(entry); } catch (_) { /* notifier must never break logging */ }
+  }
 }
 
 /**
@@ -71,4 +83,4 @@ function clearLogs() {
   logStore.set("entries", []);
 }
 
-module.exports = { init, logPublish, getRecentLogs, getLogsForClip, clearLogs };
+module.exports = { init, setFailureNotifier, logPublish, getRecentLogs, getLogsForClip, clearLogs };

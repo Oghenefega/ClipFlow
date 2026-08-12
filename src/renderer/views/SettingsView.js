@@ -1245,7 +1245,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>API Key</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {!anthropicApiKey ? "Not set" : showAnthropicKey ? anthropicApiKey : maskKey(anthropicApiKey)}
                   </span>
                   {anthropicApiKey && (
@@ -1257,7 +1257,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Gateway</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {!gatewayAuthToken ? "Direct (no gateway)" : showGatewayToken ? gatewayAuthToken : maskKey(gatewayAuthToken)}
                   </span>
                   {gatewayAuthToken && (
@@ -1308,7 +1308,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>API Key</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {!geminiApiKey ? "Not set" : showGeminiKey ? geminiApiKey : maskKey(geminiApiKey)}
                   </span>
                   {geminiApiKey && (
@@ -1364,7 +1364,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client ID</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientId ? "Not set" : showYtId ? youtubeClientId : maskKey(youtubeClientId)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientId ? "Not set" : showYtId ? youtubeClientId : maskKey(youtubeClientId)}</span>
                   {youtubeClientId && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowYtId(!showYtId)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtId ? "Hide" : "Show"}>{showYtId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1374,7 +1374,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Secret</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientSecret ? "Not set" : showYtSecret ? youtubeClientSecret : maskKey(youtubeClientSecret)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!youtubeClientSecret ? "Not set" : showYtSecret ? youtubeClientSecret : maskKey(youtubeClientSecret)}</span>
                   {youtubeClientSecret && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowYtSecret(!showYtSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showYtSecret ? "Hide" : "Show"}>{showYtSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1428,7 +1428,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App ID</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppId ? "Not set" : showMetaId ? metaAppId : maskKey(metaAppId)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppId ? "Not set" : showMetaId ? metaAppId : maskKey(metaAppId)}</span>
                   {metaAppId && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowMetaId(!showMetaId)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaId ? "Hide" : "Show"}>{showMetaId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1438,7 +1438,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App Secret</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppSecret ? "Not set" : showMetaSecret ? metaAppSecret : maskKey(metaAppSecret)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!metaAppSecret ? "Not set" : showMetaSecret ? metaAppSecret : maskKey(metaAppSecret)}</span>
                   {metaAppSecret && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowMetaSecret(!showMetaSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showMetaSecret ? "Hide" : "Show"}>{showMetaSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1492,7 +1492,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App ID</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppId ? "Not set" : showIgId ? instagramAppId : maskKey(instagramAppId)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppId ? "Not set" : showIgId ? instagramAppId : maskKey(instagramAppId)}</span>
                   {instagramAppId && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowIgId(!showIgId)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgId ? "Hide" : "Show"}>{showIgId ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1502,7 +1502,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>App Secret</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppSecret ? "Not set" : showIgSecret ? instagramAppSecret : maskKey(instagramAppSecret)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!instagramAppSecret ? "Not set" : showIgSecret ? instagramAppSecret : maskKey(instagramAppSecret)}</span>
                   {instagramAppSecret && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowIgSecret(!showIgSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showIgSecret ? "Hide" : "Show"}>{showIgSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1556,7 +1556,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Key</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientKey ? "Not set" : showTtKey ? tiktokClientKey : maskKey(tiktokClientKey)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientKey ? "Not set" : showTtKey ? tiktokClientKey : maskKey(tiktokClientKey)}</span>
                   {tiktokClientKey && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowTtKey(!showTtKey)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtKey ? "Hide" : "Show"}>{showTtKey ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
@@ -1566,7 +1566,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 100 }}>Client Secret</span>
-                  <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientSecret ? "Not set" : showTtSecret ? tiktokClientSecret : maskKey(tiktokClientSecret)}</span>
+                  <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{!tiktokClientSecret ? "Not set" : showTtSecret ? tiktokClientSecret : maskKey(tiktokClientSecret)}</span>
                   {tiktokClientSecret && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       <button onClick={() => setShowTtSecret(!showTtSecret)} style={{ ...iconBtn, color: T.textTertiary }} title={showTtSecret ? "Hide" : "Show"}>{showTtSecret ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>

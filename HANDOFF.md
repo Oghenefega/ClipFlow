@@ -1,54 +1,61 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-11 — Session 161 (#248 design phase: avatar dropped for a feedback pill, Problem/Idea/Feedback categories added, interactive mock Fega-approved, spec + build plan locked. NO app code written — session hit its token budget by design; next session builds)._
+_Last updated: 2026-08-11 — Session 162 (#248 BUILT: the feedback pill is real app code, CDP-verified 47/47 + live Sentry round-trip with byte-real attachments. Not yet in an installer; awaiting Fega's 6-step script)._
 
 ---
 
 ## One-line TL;DR
 
-#248's design is DONE and Fega-approved via an interactive mock: a labeled pill ("?" dot + rotating prompt "Having a problem?" / "Got an idea?" / "Got feedback?") on the right edge, tuck-to-peel, vertical drag, a position-aware report panel with a Problem/Idea/Feedback toggle, and point-at-the-problem capture. Spec and build plan are updated to match; the next session ports the mock into the app — design questions are closed, do not reopen them.
+#248 went from locked design to working code in one session: `FeedbackBubble.js` (pill + peel + drag + panel + pick mode + renderer-side `Sentry.captureFeedback`), `feedback-report.js` in main (log tail, context, zoom-corrected region snapshot), error-pulse wiring off real publish/pipeline failures, and Settings key-field masking. A live report round-tripped into Sentry with correct tags, release, snapshot PNG, and log tail. Fega has NOT run his 6-step script yet, and no installer carries this yet.
 
 ## Current State
 
-Master at `5bbad75` + this session's docs/design commit. **Fega is on alpha.45 (installed).** No app code changed this session — everything shipped in alpha.45 is still exactly what's running. #248 moved from "spec ready, design open" to "design locked, build planned."
+Master at session-162 commit (all #248 code + docs). **Fega is still on alpha.45 (installed)** — the pill is NOT in his daily driver yet; it ships with the next cut, which is the tester build. Dev-profile verified only.
 
-## What Was Just Done (session 161 — all design/docs, no code)
+## What Was Built (session 162 — #248, all per the mock, no design changes)
 
-- **`tasks/mocks/feedback-bubble.html`** — interactive mock, iterated live with Fega across 4 rounds. Final state = variant B (labeled pill) on the right edge, 3 category chips, rotating prompts, tuck-to-peel, vertical drag, panel flip, error pulse, fake point-at-the-problem with a simulated cropped snapshot. Every interaction was verified in the browser pane (JS state assertions + screenshots) before each handover.
-- **`tasks/specs/beta-feedback-reporter.md`** — re-scoped: avatar → pill (locked decision block updated), new locked decision 5 (category model), report flow + verification script (now 6 steps, includes an Idea-report check) updated.
-- **`tasks/todo.md`** — session-161 PLANNED section: goal, file impact, build order for a cold session, verification. The mock is named as the source of truth for look/copy/feel.
-- **Issue [#248](https://github.com/Oghenefega/ClipFlow/issues/248)** — title updated twice, final: "in-app pill + Problem/Idea/Feedback categories + point-at-the-problem capture (Sentry-backed)".
-- **`.agents/context/PRODUCT.md`** — new design-context file (users/tone/aesthetic rules/anti-references) so future design-skill sessions load ClipFlow context instead of generic defaults.
+- **`src/renderer/components/FeedbackBubble.js`** (NEW) — the whole feature UI. Variant-B pill, prompts rotate on tab switch only (mock's idle rotate correctly NOT built), tuck-to-peel + vertical drag persisting via new `feedbackBubble` store key, panel with Problem/Idea/Feedback toggle + mock-verbatim copy, pick mode (crosshair, hover highlight, snap-to-parent identity, Esc paths), submit via `Sentry.captureFeedback` from the renderer.
+- **`src/main/feedback-report.js`** (NEW) — log tail (200 lines), `feedback:context`, zoom-corrected `capturePage` crop (window zoom scales to 1.35 — unscaled rects crop the wrong region). Named `feedback-report.js` because `feedback.js` is the clip-feedback DB.
+- **main.js** — `feedback:context`/`feedback:snapshot` handlers, `feedbackBubble` STORE_DEFAULTS key, pipeline-failure hook on `pipeline:generateClips`; **publish-log.js** — `setFailureNotifier` fires on status `"failed"` only (skipped ≠ pulse). Both paths → `feedback:appError` → pill pulses 3×, label "Something just went wrong?", next open preselects Problem.
+- **preload.js** — `feedbackReportContext`, `feedbackReportSnapshot`, `onFeedbackAppError` (returns unsubscribe).
+- **App.js** — mount at root; `nav()` adds a `ui.tab` Sentry breadcrumb beside the PostHog capture.
+- **SettingsView.js** — `data-secret` on all 11 key-display spans; **globals.css** — pulse/flash keyframes, `cf-picking` crosshair, `cf-snapshot-mask` blur(7px) on `[data-secret]` + inputs during Settings captures.
 
-## Key Decisions (all Fega, 2026-08-11 — closed, don't relitigate)
+## Key Decisions / Discoveries (session 162)
 
-- **Entry point = variant B labeled pill**, right edge, NOT the avatar (no character art anywhere) and NOT variant A glow dot (A was picked first, then superseded by B for beta discoverability).
-- **Categories: Problem / Idea / Feedback** — one per report, segmented toggle, NOT checkboxes. "Feedback" replaced "Comment" (Fega's word choice); "Idea" deliberately kept — Idea prescribes ("should do X"), Feedback describes ("X feels like Y"); Fega accepted the overlap argument after examples.
-- **Prompt rotation advances on tab switch** and preselects the category in the panel. The mock's idle 6-second auto-rotate is MOCK-ONLY (so Fega could see rotation without clicking) — do not build it.
-- **Log tail attaches to Problem reports only**; Idea/Feedback send words + snapshot + version. Consent line adapts per category. Sentry events tagged with the category.
-- **Self-animation only on real failure** (pipeline/publish error → pulse 3×, label swaps, next open preselects Problem). Otherwise the pill never moves on its own.
-- **Tuck state persists across launches; drag is vertical-along-edge only** (no free-float). Panel is a popover that flips below the pill when dragged too high (headroom check on every open, content-height aware).
+- **Capture happens RENDERER-side, not in a main `feedback:submit`.** Renderer envelopes ride the Sentry IPC bridge into main's transport, which is `makeElectronOfflineTransport()` by default (sdk.js:79) — offline queueing came free, no custom queue built. Main only supplies context + snapshot.
+- **Sentry drops breadcrumbs from feedback events server-side** (verified against a live event). The last ~20 attach as `recent-activity.txt` instead — Problem reports only, because the Idea/Feedback consent line promises "words + snapshot + version, nothing else."
+- **Sentry breadcrumb gotcha (cost two failed attempts):** the RENDERER scope never holds the trail — the SDK's ScopeToMain integration forwards every renderer breadcrumb to main over IPC and clears it locally; main's handleScope puts them on main's CURRENT scope. Read the trail main-side (`feedback-report.js recentBreadcrumbs()`) and return it through `feedback:context`.
+- Send button disables (opacity .5) until text or a target exists — the one guard the mock didn't specify; everything else is copy-verbatim.
+
+## Verification record (what I did / what's left for Fega)
+
+- 47/47 CDP checks on the dev build: every interaction in the mock, plus store persistence, drag clamp, flip-below, suppressed click after drag, context IPC shape. Driver: scratchpad `cf248-verify.js` + `cf248-round2.js`.
+- Live Sentry round-trip (issues 7666921068 / 7666925441, "please ignore" test reports — safe to delete): tags category/view/appVersion/deviceId, release `clipflow@0.3.0-alpha.45`, snapshot verified a real PNG whose dimensions match rect+margin ×zoom ×DPR with edge clamp, log tail 27KB of genuine app.log.
+- **NOT machine-verified:** error pulse end-to-end (wiring traced; needs a real pipeline/publish failure — the recurring Arc Raiders scheduled-publish failures will demo it), true offline queueing (Fega's step 4), and the visual look on the daily driver.
+- **Fega's 6-step script** (spec `tasks/specs/beta-feedback-reporter.md` bottom) runs AFTER the next installer cut — he tests on the installed exe, not source.
 
 ## Next Steps
 
-1. **Build #248** per `tasks/todo.md` (session-161 PLANNED section has file impact + build order). Verify spec anchors first; port the mock, don't redesign it. Ends with Fega's 6-step script from the spec.
-2. **Then cut the tester installer** — it must be a build cut AFTER the session-160 token swap (alpha.45 still carries Fega's personal gateway token; the next cut picks up the dedicated `clipflow-beta-testers` card automatically). Consider folding #244 (loud scheduled-publish failures) and #219 (Add Game crash) into that same pre-tester build.
-3. **#250** (beta distribution / auto-update) follows once tester #1 has the first build.
-4. Carry-overs from session 160: Arc Raiders scheduled clip still unconfirmed (publish log's newest entries are Aug 8 failures — "Video file not found" on an Arc Raiders import; note the failed entries show a title/path mismatch worth a look when in Queue territory); #156 close on Fega's nod.
+1. **Cut the tester installer** — the build that finally reaches a tester: #248 pill + the session-160 `clipflow-beta-testers` token swap. Consider folding #244 (loud scheduled-publish failures) and #219 (Add Game crash) in first, per the standing plan. Then Fega runs the 6-step script on the installed exe.
+2. **#250** (beta distribution / auto-update) once tester #1 has that build.
+3. Carry-overs: Arc Raiders scheduled clip still unconfirmed (publish log tail = Aug 8 "Video file not found" failures with a title/path mismatch worth a look in Queue territory); #156 close on Fega's nod.
 
 ## Watch Out For
 
-- **You are building UI a non-coder approved from a mock** — match the mock, not your taste. Copy strings live in the mock's `copy` object; lift them verbatim.
-- **Build machines need TWO git-ignored vendor files before `npm run build`:** `vendor/ffmpeg/` (`npm run fetch:ffmpeg`) and `vendor/beta-token.json`. electron-builder errors on either missing.
-- **A wrap commit message must never put a close keyword before "#N"** (session-159 incident auto-closed #249).
-- The gateway metadata header rides ONLY gateway-routed AI calls — direct/raw-key calls intentionally unlabeled; don't "fix".
-- `tasks/todo.md` is huge (80k+ tokens) — never read it whole; the session-161 section is at the top.
-- Editor renderer uses ESM imports only (no `require()`); new cross-tree main→renderer imports need `build.files` coverage (see CLAUDE.md).
+- **The pill mounts over EVERY tab including Onboarding** — z-index 940/942 sits under the render pill (950), toast (951), and modals (1000). If something ever overlaps, adjust the bubble down, not the modals up.
+- **Idea/Feedback reports must never grow a log/activity attachment** — the consent copy is a promise, enforced in `send()`. Don't "helpfully" attach more.
+- **`feedback:snapshot` rects are CSS px; the handler multiplies by `getZoomFactor()`** — don't pre-scale in the renderer or crops double-scale.
+- The two CDP test reports in Sentry are tagged "please ignore" — deleting them from the Sentry UI is fine.
+- Build machines still need the TWO git-ignored vendor files (`vendor/ffmpeg/`, `vendor/beta-token.json`) before `npm run build`.
+- Wrap commits: never put a close keyword before "#N" (session-159 incident).
+- `tasks/todo.md` is huge — session-162 BUILT section is at the top; never read the file whole.
 
 ## Logs/Debugging
 
-- **Mock:** `tasks/mocks/feedback-bubble.html` — open directly in a browser; controls strip has style/edge switchers ("Reset" reloads). The pill's idle rotation there is mock-only.
-- **Publish results:** `%APPDATA%\clipflow\clipflow-publish-log.json` (newest entries at the tail).
-- **Which install made an AI call:** CF AI Gateway logs → Metadata filter on `deviceId`. An install's ID: Settings → Diagnostics, or `deviceId` in `%APPDATA%\clipflow\clipflow-settings.json`.
-- **Sentry:** crashes land per release already; #248 will add user-feedback events tagged `problem`/`idea`/`feedback` — filter by release + category once built.
+- **Feedback reports in Sentry:** project `flowve/clipflow` → User Feedback (or Issues filtered `issue.category:feedback`). Filter by tags `category` (`problem`/`idea`/`feedback`), `view`, `deviceId`, release. Attachments tab on the event holds `snapshot.png` / `app-log-tail.txt` / `recent-activity.txt`.
+- **Sentry API:** token at `C:\Users\IAmAbsolute\.claude\sentry_token.txt`, org `flowve`, project `clipflow`. Feedback issues: `GET /api/0/projects/flowve/clipflow/issues/?query=issue.category:feedback&sort=date`. Event attachments: `GET /api/0/projects/flowve/clipflow/events/<eventID>/attachments/` (add `?download=1` on an attachment id to fetch bytes). Expect ~1 min ingestion lag before `events/latest/` resolves.
+- **Bubble state:** `feedbackBubble` key in `clipflow-settings.json` (`{ tucked, bottom }`); delete the key to reset to defaults.
+- **Publish results:** `%APPDATA%\clipflow\clipflow-publish-log.json` (newest at tail). A `"failed"` entry should now ALSO pulse the pill — if a failure lands silently, the notifier wiring in main.js (after `publishLog.init()`) is the first suspect.
+- **App log tail** (what Problem reports attach): `%APPDATA%\clipflow\logs\app.log` (dev profile: `clipflow-dev`).
 - Kill dev electron for CDP work with `taskkill //IM electron.exe //F` (TaskStop leaves a zombie on 9222).

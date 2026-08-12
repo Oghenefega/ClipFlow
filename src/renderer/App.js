@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import posthog from "posthog-js";
+import * as Sentry from "@sentry/electron/renderer";
 import T from "./styles/theme";
 import Sidebar from "./components/Sidebar";
+import FeedbackBubble from "./components/FeedbackBubble";
 import UpdateBanner from "./components/UpdateBanner";
 import DependencyBanner from "./components/DependencyBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
@@ -756,7 +758,9 @@ export default function App() {
     ).length;
   }, [allClips, trackerData]);
 
-  const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); } catch (_) {} };
+  // #248: the Sentry breadcrumb makes tab changes visible on feedback reports
+  // and crashes — same trail the PostHog capture feeds, one line richer.
+  const nav = (id) => { setView(id); setSelProj(null); try { posthog.capture("clipflow_tab_changed", { tab_name: id }); Sentry.addBreadcrumb({ category: "ui.tab", message: `Tab → ${id}`, level: "info" }); } catch (_) {} };
 
   // Bumped by RenameView after a rename batch — RecordingsView reloads its
   // SQLite-backed list on change (it otherwise only loads on mount).
@@ -1091,6 +1095,8 @@ export default function App() {
           anthropicApiKey={anthropicApiKey}
         />
       )}
+      {/* #248: beta feedback reporter — overlays every tab, right edge */}
+      <FeedbackBubble view={view} />
       {/* #246: transient toast — sits above the render pill when both show */}
       {toast && (
         <div style={{ position: "fixed", bottom: renderJob && view !== "editor" ? 92 : 20, right: 24, zIndex: 951, display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, background: T.surface, border: `1px solid ${T.greenBorder}`, boxShadow: "0 8px 24px rgba(0,0,0,0.45)", color: T.text, fontSize: 12.5, fontWeight: 600, fontFamily: T.font }}>

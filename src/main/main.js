@@ -75,6 +75,7 @@ const facebookPublish = require("./oauth/facebook-publish");
 const youtubeOAuth = require("./oauth/youtube");
 const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
+const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
 const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
@@ -314,6 +315,10 @@ const STORE_DEFAULTS = {
   // below room tone) to skip wasted inference. Default ON. User can turn off
   // in Settings to force YAMNet to run on every frame regardless of volume.
   yamnetSilenceSkip: true,
+  // #248 feedback bubble — tucked state and edge position persist across
+  // launches (locked design: it never nags its way back). bottom is CSS px
+  // from the window's bottom edge.
+  feedbackBubble: { tucked: false, bottom: 88 },
 };
 
 function runStoreMigrations(store) {
@@ -655,6 +660,15 @@ app.whenReady().then(async () => {
   llmProvider.init(store);
   transcriptionProvider.init(store);
   await publishLog.init();
+  // #248: a failed publish pulses the feedback bubble (scheduled publishes
+  // fail with nobody watching — the pulse is how the failure gets noticed).
+  publishLog.setFailureNotifier((entry) => {
+    feedbackReport.recordAppError(
+      "publish",
+      `${entry.platform || "publish"}: ${entry.error || "failed"}`,
+      mainWindow?.webContents
+    );
+  });
   await tokenStore.init();
 
   // Initialize shared SQLite database (feedback + file metadata)
@@ -2257,11 +2271,18 @@ ipcMain.handle("pipeline:generateClips", async (_, sourceFile, gameData) => {
     mainWindow?.webContents.send("pipeline:askDegrade", { requestId, failed });
   });
 
-  return aiPipeline.runAIPipeline({
+  const result = await aiPipeline.runAIPipeline({
     sourceFile, gameData, watchFolder, store,
     sendProgress, sendSignalProgress, askDegrade,
     strictMode: store.get("strictMode") !== false,
   });
+  // #248: a failed run pulses the feedback bubble and becomes the "last app
+  // error" context on the next Problem report. The pre-flight refusals above
+  // (deps missing, calibration cancelled) are deliberate non-triggers.
+  if (result?.error) {
+    feedbackReport.recordAppError("pipeline", result.error, mainWindow?.webContents);
+  }
+  return result;
 });
 
 // ============ FEEDBACK DATABASE ============
@@ -4203,6 +4224,28 @@ ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }
   fs.writeFileSync(result.filePath, JSON.stringify(report, null, 2), "utf-8");
   logger.info(logger.MODULES.system, "Bug report exported", { reportId: report.reportId, path: result.filePath });
   return { success: true, reportId: report.reportId, filePath: result.filePath };
+});
+
+// ============ #248 BETA FEEDBACK REPORTER ============
+// Context the renderer can't assemble itself. The Sentry event is captured
+// renderer-side (breadcrumbs attach there); log tail rides along only when
+// the renderer asks for it (Problem reports — the consent line says so).
+ipcMain.handle("feedback:context", async (_, opts) => {
+  try {
+    return feedbackReport.getContext(store, { includeActivity: !!(opts && opts.includeActivity) });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// Point-at-the-problem region snapshot — element rect + margin, never full screen.
+ipcMain.handle("feedback:snapshot", async (event, rect) => {
+  try {
+    const png = await feedbackReport.captureSnapshot(event.sender, rect);
+    return png ? { png } : { error: "Nothing to capture" };
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // Get app version

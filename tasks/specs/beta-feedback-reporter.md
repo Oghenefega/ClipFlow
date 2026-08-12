@@ -125,11 +125,19 @@ Build the reporter ON these rails. No new vendor, no new transport, no backend.
 - ~~Avatar look~~ RESOLVED 2026-08-11: bubble variant A (glow dot), right
   edge, per the locked entry-point section above. Mock with final look and
   interactions: `tasks/mocks/feedback-bubble.html`.
-- Whether Sentry's prebuilt Feedback widget UI is adaptable or the panel is
-  fully custom (custom likely, the picker is bespoke anyway; the panel must
-  match the mock's look either way).
-- Snapshot privacy pass: confirm no key fields (Settings) can be captured in a
-  region snapshot while unmasked; mask inputs in Settings view captures.
+- ~~Sentry's prebuilt Feedback widget vs custom~~ RESOLVED 2026-08-11 (build
+  session): fully custom panel (`FeedbackBubble.js`), transport via
+  `Sentry.captureFeedback` from the renderer — envelopes ride the SDK's IPC
+  bridge into the main process offline transport, so offline queueing needs
+  no extra code.
+- ~~Snapshot privacy pass~~ RESOLVED 2026-08-11 (build session): Settings-view
+  captures add a `cf-snapshot-mask` body class for the capture frames — all
+  `[data-secret]` key spans (11 sites in SettingsView) and every input/textarea
+  blur to 7px. Verified live via computed styles.
+- One deviation discovered live: Sentry's feedback event schema drops event
+  breadcrumbs server-side, so the last ~20 breadcrumbs attach as
+  `recent-activity.txt` on Problem reports instead (same trail — the tab-change
+  breadcrumb feeds it — different vehicle).
 
 ## Verification (Fega's script, ~5 min)
 1. From the Editor, click the pill, type "test report", point at the editor
