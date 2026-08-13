@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow — Count label &amp; reveal mock</title>
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218;
+    --border:rgba(255,255,255,0.06);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.28);
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+
+    --v-green:#0aef86;  --v-green-hi:#8fffcd; --v-green-dk:#059a55; --v-green-gl:rgba(10,239,134,.55);
+    --v-red:#ff4560;    --v-red-hi:#ffa8b4;   --v-red-dk:#c2203c;   --v-red-gl:rgba(255,69,96,.55);
+    --v-cyan:#22e0ff;   --v-cyan-hi:#a3f2ff;  --v-cyan-dk:#0d95b8;  --v-cyan-gl:rgba(34,224,255,.55);
+    --v-yellow:#ffcf24; --v-yellow-hi:#ffe9a3;--v-yellow-dk:#c98a06;--v-yellow-gl:rgba(255,207,36,.5);
+    --v-orange:#ff7d1f; --v-orange-hi:#ffc08a;--v-orange-dk:#c24f05;--v-orange-gl:rgba(255,125,31,.55);
+    --ghost:rgba(255,255,255,0.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:30px 22px 90px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 26px;line-height:1.6}
+  .sect{margin-bottom:36px}
+  .sect h2{font-size:14px;font-weight:800;margin:0 0 3px;display:flex;align-items:center;gap:8px}
+  .sect .note{font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6}
+  .pick{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:var(--accentLight);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:2px 8px}
+
+  /* slash comparison strip */
+  .strip{display:flex;gap:14px;flex-wrap:wrap;padding:14px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+  .chipbox{display:flex;flex-direction:column;gap:6px}
+  .chipbox .cap{font-size:10.5px;font-weight:700;color:var(--text3)}
+  .chip{font-size:11px;color:var(--text2);font-weight:600;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:8px 14px}
+  .chip b{color:var(--text);font-weight:700}
+
+  /* card */
+  .card{position:relative;display:flex;align-items:center;gap:14px;padding:13px;border-radius:16px;overflow:visible;margin-bottom:10px;
+    background:radial-gradient(90% 160% at 100% 0%, rgba(232,176,75,0.12) 0%, transparent 55%), linear-gradient(100deg, rgba(232,176,75,0.10) 0%, rgba(232,176,75,0.024) 40%, rgba(255,255,255,0.02) 65%);
+    border:1px solid rgba(232,176,75,0.24)}
+  .card.teal{background:radial-gradient(90% 160% at 100% 0%, rgba(45,212,191,0.12) 0%, transparent 55%), linear-gradient(100deg, rgba(45,212,191,0.10) 0%, rgba(45,212,191,0.024) 40%, rgba(255,255,255,0.02) 65%);border-color:rgba(45,212,191,0.24)}
+  .poster{position:relative;flex-shrink:0;width:60px;height:80px;border-radius:10px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(150deg,#e8b04b,#e8b04b55 65%,#e8b04b22)}
+  .card.teal .poster{background:linear-gradient(150deg,#2dd4bf,#2dd4bf55 65%,#2dd4bf22)}
+  .poster::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))}
+  .poster span{position:relative;z-index:1;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .main{flex:1;min-width:0}
+  .title{color:var(--text);font-size:15px;font-weight:600;min-height:30px;display:flex;align-items:center}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--text2)}
+  .dotrow-wrap{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .count{flex-shrink:0;margin-left:auto;white-space:nowrap;font-size:11px;color:var(--text2);font-weight:600}
+  .count b{color:var(--text);font-weight:700}
+  .count .acc{color:var(--accentLight);font-weight:700}
+
+  /* glass orbs */
+  .dots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .pub{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-cyan-hi) 0%, var(--v-cyan) 52%, var(--v-cyan-dk) 100%);box-shadow:0 0 9px var(--v-cyan-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .sch{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-yellow-hi) 0%, var(--v-yellow) 52%, var(--v-yellow-dk) 100%);box-shadow:0 0 9px var(--v-yellow-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .ren{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-orange-hi) 0%, var(--v-orange) 52%, var(--v-orange-dk) 100%);box-shadow:0 0 9px var(--v-orange-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .app{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-green-hi) 0%, var(--v-green) 52%, var(--v-green-dk) 100%);box-shadow:0 0 9px var(--v-green-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .rej{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-red-hi) 0%, var(--v-red) 52%, var(--v-red-dk) 100%);box-shadow:0 0 9px var(--v-red-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .gho{background:var(--ghost);box-shadow:inset 0 1px 1px rgba(255,255,255,.07)}
+
+  /* ── hover tooltip anchored to the orb row (option B) ── */
+  .orbzone{position:relative;display:inline-flex}
+  .tip{position:absolute;bottom:calc(100% + 10px);left:0;z-index:50;pointer-events:none;
+    opacity:0;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;
+    background:#16171f;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 13px;
+    box-shadow:0 12px 32px rgba(0,0,0,.55);white-space:nowrap}
+  .orbzone:hover .tip{opacity:1;transform:translateY(0)}
+  .tip .row{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);font-weight:600;line-height:2}
+  .tip .row b{color:var(--text);font-weight:700}
+  .tip .mini{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:none}
+  .tip .sep{color:var(--text3);margin:0 4px}
+
+  /* ── eye icon variant (option C) ── */
+  .eye{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;cursor:pointer;color:var(--text3);flex-shrink:0}
+  .eye:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+  .xrow{display:none;margin-top:8px;font-size:11.5px;color:var(--text2);font-weight:600}
+  .xrow.open{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .xrow b{color:var(--text)}
+  .xrow .mini{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:none}
+  .xrow .sep{color:var(--text3);margin:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Count label &amp; reveal — what stays on the card?</h1>
+  <p class="sub">Two decisions: <b>"of" vs slash</b>, and <b>where the secondary numbers live</b>. Hover and click things — B and C are interactive.</p>
+
+  <!-- slash strip -->
+  <div class="sect">
+    <h2>First: "of" vs slash</h2>
+    <div class="strip">
+      <div class="chipbox"><span class="cap">WORD</span><span class="chip"><b>15</b> of 18 done · 4 rendered</span></div>
+      <div class="chipbox"><span class="cap">SLASH</span><span class="chip"><b>15</b>/18 done · 4 rendered</span></div>
+      <div class="chipbox"><span class="cap">SLASH, MINIMAL (feeds option B)</span><span class="chip"><b>15</b>/18 done</span></div>
+    </div>
+  </div>
+
+  <!-- A -->
+  <div class="sect">
+    <h2>A — Everything always-on (just reworded)</h2>
+    <p class="note">Today's layout, with the done-flip and slash. All numbers permanently visible.</p>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span class="count"><b>15</b>/18 done · 4 rendered</span>
+        </div>
+      </div>
+    </div>
+    <div class="card teal">
+      <div class="poster"><span>RL</span></div>
+      <div class="main">
+        <div class="title">2026-07-22 RL Day10 Pt1</div>
+        <div class="meta">Jul 22 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot sch"></span><span class="dot sch"></span><span class="dot ren"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot app"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span>
+          </div>
+          <span class="count">kept <b>12</b>/18 (67%) · <span class="acc">3 to schedule</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="sect">
+    <h2>B — One number on the card, breakdown on orb hover <span class="pick">MY PICK</span></h2>
+    <p class="note"><b>Hover the orbs.</b> The card keeps a single state-relevant fact; the popover carries the full breakdown WITH colored dots — it doubles as the legend the orbs never had.</p>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="orbzone">
+            <div class="dots">
+              <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+            </div>
+            <div class="tip">
+              <div class="row"><span class="dot mini app"></span><b>5</b> kept<span class="sep">·</span><span class="dot mini rej"></span><b>4</b> rejected<span class="sep">·</span><span class="dot mini gho"></span><b>3</b> to review</div>
+              <div class="row"><span class="dot mini ren"></span><b>1</b> in queue<span class="sep">·</span><span class="dot mini sch"></span><b>2</b> scheduled<span class="sep">·</span><span class="dot mini pub"></span><b>3</b> published</div>
+            </div>
+          </div>
+          <span class="count"><b>15</b>/18 done</span>
+        </div>
+      </div>
+    </div>
+    <div class="card teal">
+      <div class="poster"><span>RL</span></div>
+      <div class="main">
+        <div class="title">2026-07-22 RL Day10 Pt1</div>
+        <div class="meta">Jul 22 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="orbzone">
+            <div class="dots">
+              <span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot sch"></span><span class="dot sch"></span><span class="dot ren"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot app"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span>
+            </div>
+            <div class="tip">
+              <div class="row"><span class="dot mini app"></span><b>12</b> kept (67%)<span class="sep">·</span><span class="dot mini rej"></span><b>6</b> rejected</div>
+              <div class="row"><span class="dot mini ren"></span><b>2</b> in queue<span class="sep">·</span><span class="dot mini sch"></span><b>3</b> scheduled<span class="sep">·</span><span class="dot mini pub"></span><b>4</b> published</div>
+            </div>
+          </div>
+          <span class="count"><span class="acc">3 to schedule</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="card teal">
+      <div class="poster"><span>RL</span></div>
+      <div class="main">
+        <div class="title">2026-08-06 RL Day14 Pt2 <span style="font-size:11px;color:var(--text3);font-weight:600">&nbsp;(fully wrapped card)</span></div>
+        <div class="meta">Aug 6 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="orbzone">
+            <div class="dots">
+              <span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot pub"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot rej"></span>
+            </div>
+            <div class="tip">
+              <div class="row"><span class="dot mini app"></span><b>12</b> kept (67%)<span class="sep">·</span><span class="dot mini rej"></span><b>6</b> rejected</div>
+              <div class="row"><span class="dot mini pub"></span><b>12</b> published</div>
+            </div>
+          </div>
+          <span class="count">kept <b>67%</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="sect">
+    <h2>C — Eye icon, click to expand</h2>
+    <p class="note"><b>Click the eye.</b> Same info, but it costs a click per card, pushes the card taller when open, and the icon itself is one more thing permanently on every card.</p>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+            <span class="count"><b>15</b>/18 done</span>
+            <span class="eye" onclick="this.closest('.main').querySelector('.xrow').classList.toggle('open')" title="Show breakdown">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </span>
+        </div>
+        <div class="xrow">
+          <span class="dot mini app"></span><b>5</b> kept<span class="sep">·</span><span class="dot mini rej"></span><b>4</b> rejected<span class="sep">·</span><span class="dot mini gho"></span><b>3</b> to review<span class="sep">·</span><span class="dot mini ren"></span><b>1</b> in queue<span class="sep">·</span><span class="dot mini sch"></span><b>2</b> scheduled<span class="sep">·</span><span class="dot mini pub"></span><b>3</b> published
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1169,6 +1169,8 @@ export function ProjectsListView({
   const [undoAction, setUndoAction] = useState(null); // { message, undo: fn, timer }
   // --- Project context menu state (Phase 4) ---
   const [projectContextMenu, setProjectContextMenu] = useState(null); // { x, y, projectId }
+  const [orbTip, setOrbTip] = useState(null); // { x, y, kept, rejected, toReview, inQueue, scheduled, published }
+  const orbTipTimer = useRef(null);
   const [moveFolderDropdown, setMoveFolderDropdown] = useState(false); // floating action bar dropdown
 
   // Load sort modes from store on mount
@@ -1512,7 +1514,6 @@ export function ProjectsListView({
             const clips = p.clips || [];
             const clipCount = clips.length || p.clipCount || 0;
             const reviewed = clips.filter((c) => !isClipUndecided(c)).length;
-            const rendered = clips.filter((c) => c.renderStatus === "rendered").length;
             const leftToReview = Math.max(0, clipCount - reviewed);
             const toSchedule = clips.filter((c) => isClipApproved(c) && !pub.isScheduled(c) && !pub.isPublished(c)).length;
             const publishedCount = clips.filter((c) => pub.isPublished(c)).length;
@@ -1607,7 +1608,27 @@ export function ProjectsListView({
                     <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
                   ) : clipCount > 0 ? (
                     <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+                        onMouseEnter={(e) => {
+                          // Breakdown tooltip renders at view root with position:fixed —
+                          // the card's overflow:hidden + hover translateY transform would
+                          // clip it (and re-anchor fixed) if it lived inside the card.
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const tip = {
+                            x: r.left, y: r.top,
+                            kept: approvedCount,
+                            rejected: clips.filter((c) => c.status === "rejected").length,
+                            toReview: leftToReview,
+                            inQueue: clips.filter((c) => !pub.isPublished(c) && !pub.isScheduled(c) && isClipApproved(c) && c.renderStatus === "rendered").length,
+                            scheduled: clips.filter((c) => !pub.isPublished(c) && pub.isScheduled(c)).length,
+                            published: publishedCount,
+                          };
+                          clearTimeout(orbTipTimer.current);
+                          orbTipTimer.current = setTimeout(() => setOrbTip(tip), 120);
+                        }}
+                        onMouseLeave={() => { clearTimeout(orbTipTimer.current); setOrbTip(null); }}
+                      >
                         {clips.slice(0, 40).map((c, i) => {
                           // Clip ladder (session 142) — furthest stage wins: published
                           // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
@@ -1626,13 +1647,19 @@ export function ProjectsListView({
                           }} />;
                         })}
                       </div>
-                      {/* Count pinned to the right edge — same spot on every card (Fega 2026-08-13) */}
+                      {/* Count pinned to the right edge — ONE state-relevant fact per card
+                          (Fega 2026-08-13): done-count while reviewing (progress framing —
+                          the number counts the lit orbs and grows as he works), the
+                          actionable schedule count once reviewed, full counter when wrapped.
+                          Kept-% deliberately NOT shown anywhere on the card: it's an internal
+                          detection metric, and a low % reads as "the app doesn't work" while
+                          it's still learning taste. Full breakdown lives in the orb hover. */}
                       <span style={{ flexShrink: 0, marginLeft: "auto", whiteSpace: "nowrap", fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
                         {leftToReview > 0
-                          ? <><b style={{ color: T.text }}>{leftToReview}</b> of {clipCount} left{rendered > 0 ? ` · ${rendered} rendered` : ""}</>
+                          ? <><b style={{ color: T.text }}>{reviewed}</b>/{clipCount} done</>
                           : toSchedule > 0
-                            ? <>kept <b style={{ color: T.text }}>{approvedCount}</b> of {clipCount} ({clipCount > 0 ? Math.round((approvedCount / clipCount) * 100) : 0}%) · <b style={{ color: T.accent }}>{toSchedule} to schedule</b></>
-                            : <>kept <b style={{ color: T.text }}>{approvedCount}</b> of {clipCount} ({clipCount > 0 ? Math.round((approvedCount / clipCount) * 100) : 0}%){approvedCount > 0 ? " · all scheduled" : ""}{publishedCount > 0 ? <> {"·"} <b style={{ color: T.text }}>{publishedCount}</b> published</> : ""}</>}
+                            ? <b style={{ color: T.accent }}>{toSchedule} to schedule</b>
+                            : <><b style={{ color: T.text }}>{clipCount}</b>/{clipCount} done</>}
                       </span>
                     </div>
                   ) : null}
@@ -1800,6 +1827,41 @@ export function ProjectsListView({
           >Delete Project</div>
         </div>
       )}
+
+      {/* ── Orb-row hover breakdown (Fega 2026-08-13) — counts only, no kept-%.
+          The colored minis match the orb palette, so this doubles as the legend. ── */}
+      {orbTip && (() => {
+        const item = (g, n, label) => (
+          <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, ...(g ? { ...glassDot(g), boxShadow: "none" } : { background: "rgba(255,255,255,0.18)" }) }} />
+            <span><b style={{ color: T.text, fontWeight: 700 }}>{n}</b> {label}</span>
+          </span>
+        );
+        const row1 = [
+          item(DOT_GLASS.green, orbTip.kept, "kept"),
+          item(DOT_GLASS.red, orbTip.rejected, "rejected"),
+          ...(orbTip.toReview > 0 ? [item(null, orbTip.toReview, "to review")] : []),
+        ];
+        const row2 = [
+          ...(orbTip.inQueue > 0 ? [item(DOT_GLASS.orange, orbTip.inQueue, "in queue")] : []),
+          ...(orbTip.scheduled > 0 ? [item(DOT_GLASS.yellow, orbTip.scheduled, "scheduled")] : []),
+          ...(orbTip.published > 0 ? [item(DOT_GLASS.cyan, orbTip.published, "published")] : []),
+        ];
+        const joined = (items) => items.flatMap((el, i) =>
+          i > 0 ? [<span key={`sep-${el.key}`} style={{ color: T.textMuted }}>·</span>, el] : [el]);
+        const rowStyle = { display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: T.textSecondary, fontWeight: 600, lineHeight: 1.9 };
+        return (
+          <div style={{
+            position: "fixed", left: orbTip.x, top: orbTip.y - 10, transform: "translateY(-100%)",
+            zIndex: 220, pointerEvents: "none",
+            background: T.surfaceHover, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
+            padding: "9px 13px", boxShadow: "0 12px 32px rgba(0,0,0,0.55)", whiteSpace: "nowrap",
+          }}>
+            <div style={rowStyle}>{joined(row1)}</div>
+            {row2.length > 0 && <div style={rowStyle}>{joined(row2)}</div>}
+          </div>
+        );
+      })()}
 
       {/* ── Delete Folder Confirmation Dialog ── */}
       {deletingFolder && (
