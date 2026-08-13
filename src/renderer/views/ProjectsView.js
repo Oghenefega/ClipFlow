@@ -1641,9 +1641,19 @@ export function ProjectsListView({
                             : isClipApproved(c) && c.renderStatus === "rendered" ? DOT_GLASS.orange
                             : isClipApproved(c) ? DOT_GLASS.green
                             : c.status === "rejected" ? DOT_GLASS.red : null;
+                          // Ember treatment (#254, Fega 2026-08-13): once a project is
+                          // fully reviewed, rejected orbs fade to a whisper — rejection
+                          // is curation, not failure, and ClipFlow's never-empty
+                          // detection guarantees red-heavy cards (the user is the
+                          // precision filter). Vivid red is decision feedback, useful
+                          // only while reviewing; at volume on wrapped cards it read
+                          // as "the app doesn't work". Opacity fades the whole orb
+                          // including its inset shading; the outer glow is dropped.
+                          const ember = leftToReview === 0 && c.status === "rejected";
                           return <span key={i} style={{
                             width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
                             ...(g ? glassDot(g) : { background: "rgba(255,255,255,0.10)", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.07)" }),
+                            ...(ember ? { opacity: 0.22, boxShadow: "inset 0 -1px 2px rgba(0,0,0,0.35)" } : {}),
                           }} />;
                         })}
                       </div>
