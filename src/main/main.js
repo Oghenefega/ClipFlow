@@ -580,7 +580,10 @@ function createWindow() {
       // sandbox-aware preload entry — no raw Node modules.
       sandbox: true,
     },
-    icon: path.join(__dirname, "../../build/icon.png"),
+    // .ico, not .png: Windows draws the taskbar button at 24/20/40px depending
+    // on display scaling, and only a multi-size .ico carries those exact rungs.
+    // A single big PNG gets bilinear-squashed to those sizes and renders soft.
+    icon: path.join(__dirname, "../../build/icon.ico"),
   });
 
   if (isDev) {
