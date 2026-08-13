@@ -1,6 +1,6 @@
 # ClipFlow — Session Handoff
 
-_Last updated: 2026-08-12 — Session 163 (#244 BUILT + machine-verified: pre-flight token warnings, loud scheduled-publish failures, one-click retry. #163 folded in and closed. Next session: cut the tester installer)._
+_Last updated: 2026-08-12 — Session 163 wrap (#244 BUILT + machine-verified: pre-flight token warnings, loud scheduled-publish failures, one-click retry. #163 folded in and closed). **Since then, sessions 164+ already cut the tester installers: alpha.46 promotes #248 + #244 + the #252 logo, alpha.47 fixes the soft taskbar icon** — the "cut the tester installer" next-step below is DONE; what remains is Fega installing alpha.47 and running the verification scripts._
 
 ---
 
@@ -40,7 +40,7 @@ Master at session-163 commit. **Fega is still on alpha.45 (installed)** — neit
 
 ## Next Steps
 
-1. **Cut the tester installer** (`clipflow-update-launcher` skill) — bundles #248 + #244 + the already-aboard #219 fix. Needs the TWO git-ignored vendor files (`vendor/ffmpeg/`, `vendor/beta-token.json`) present before `npm run build`. After install: Fega runs #248's 6-step script (spec bottom), the 10-second #219 Rename-tab check, and #244 gets its live shakedown at the next scheduled slot / weekly YouTube death.
+1. ~~Cut the tester installer~~ **DONE by sessions 164+** — alpha.46 bundles #248 + #244 (+ #219 fix, #252 logo); alpha.47 is the current cut (crisp icon). Remaining: **Fega installs alpha.47**, runs #248's 6-step script (spec bottom), the 10-second #219 Rename-tab check — and #244 gets its live shakedown at the next scheduled slot / weekly YouTube death.
 2. **#250** (beta distribution / auto-update) once tester #1 has that build.
 3. Carry-overs: Arc Raiders scheduled clip publish-log tail (Aug 8 "Video file not found" failures with a title/path mismatch — Queue territory); #156 close on Fega's nod.
 

@@ -113,6 +113,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **`CLIPFLOW_PROFILE=dev` sandboxes settings, NOT project data (session 141).** Both profiles read the same `projectsRoot`, so a destructive dev-profile verification writes to Fega's real library — pressing the new "End to playhead" key trimmed a genuine 27.3s clip to 5s, and autosave persisted it within the second. Before any destructive test: diff `projectsRoot` across both `clipflow-settings.json` files, record the pre-state (`nleSegments`, etc.), and restore through the app's own undo + Save, then confirm on disk. Only `userData` and `outputFolder` are actually isolated.
 
+- **"What is running?" answers must check BOTH layers, and every armed watcher gets stopped at wrap (session 164).** OS-level checks (tasklist/netstat) can never disprove a harness background task — check TaskList / the Background tasks panel too. Until-loop watchers must watch a condition guaranteed reachable (the QUERY that finds new items, not a hardcoded id), and session wrap explicitly stops or confirms-finished every watcher armed during the session.
+
 ## Lesson Capture
 
 After ANY correction from the user:
