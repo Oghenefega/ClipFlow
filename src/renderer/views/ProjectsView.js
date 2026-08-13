@@ -1527,7 +1527,7 @@ export function ProjectsListView({
                 {(() => {
                   const art = gameArt[p.game];
                   return (
-                    <div style={{ position: "relative", flexShrink: 0, width: 44, height: 58, borderRadius: 9, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
+                    <div style={{ position: "relative", flexShrink: 0, width: 60, height: 80, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
                       {art ? (
                         <img src={`${toFileUrl(art.path)}?v=${art.v}`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: openable ? 1 : 0.55 }} />
                       ) : (
@@ -1545,7 +1545,39 @@ export function ProjectsListView({
 
                 {/* main content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: T.text, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.name}>{p.name}</div>
+                  {/* Title row — hover-reveal actions (Review/Open + delete) share the
+                      top-right corner; the static status badge is gone (redundant with
+                      the right-aligned count, Fega 2026-08-13). */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 30 }}>
+                    <div style={{ flex: 1, minWidth: 0, color: T.text, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={p.name}>{p.name}</div>
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                      {openable && (
+                        <button
+                          className="pl-open"
+                          onClick={(e) => { e.stopPropagation(); onSelect(p); }}
+                          style={{
+                            // "schedule" gets the muted Open treatment too — the remaining
+                            // action (scheduling) happens on the Queue tab, not in here.
+                            fontFamily: T.font, fontSize: 12.5, fontWeight: 700, borderRadius: 9, padding: "6px 14px", cursor: "pointer",
+                            color: st === "ready" ? "#fff" : T.textSecondary,
+                            background: st === "ready" ? T.accent : T.surfaceHover,
+                            border: st === "ready" ? "none" : `1px solid ${T.border}`,
+                            boxShadow: st === "ready" ? "0 6px 16px -8px rgba(139,92,246,0.8)" : "none",
+                          }}
+                        >{st === "ready" ? "Review" : "Open"}</button>
+                      )}
+                      <span
+                        className="pl-trash"
+                        onClick={(e) => handleSingleDelete(e, p.id)}
+                        title="Delete project"
+                        style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                      </span>
+                    </div>
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 12, color: T.textSecondary, flexWrap: "wrap" }}>
                     {isTest && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.06em", color: T.yellow, background: T.yellowDim, border: `1px solid ${T.yellowBorder}`, padding: "1px 6px", borderRadius: 5 }}>TEST</span>}
                     <span>{dateStr ? `${dateStr} · ` : ""}{clipCount} clip{clipCount !== 1 ? "s" : ""}</span>
@@ -1555,22 +1587,26 @@ export function ProjectsListView({
                   ) : st === "error" ? (
                     <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
                   ) : clipCount > 0 ? (
-                    <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-                      {clips.slice(0, 40).map((c, i) => {
-                        // Clip ladder (session 142) — furthest stage wins: published
-                        // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
-                        // scheduled (yellow, matches the Tracker's scheduled dots) >
-                        // rendered/waiting-in-queue (orange) > approved (green) >
-                        // rejected (red). Dequeued falls through to the untouched
-                        // ghost — it needs a fresh decision.
-                        const cc = pub.isPublished(c) ? T.cyan
-                          : pub.isScheduled(c) ? T.yellow
-                          : isClipApproved(c) && c.renderStatus === "rendered" ? T.orange
-                          : isClipApproved(c) ? T.green
-                          : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
-                        return <span key={i} style={{ width: 14, height: 6, borderRadius: 2, background: cc }} />;
-                      })}
-                      <span style={{ marginLeft: 8, fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
+                    <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                        {clips.slice(0, 40).map((c, i) => {
+                          // Clip ladder (session 142) — furthest stage wins: published
+                          // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
+                          // scheduled (yellow, matches the Tracker's scheduled dots) >
+                          // rendered/waiting-in-queue (orange) > approved (green) >
+                          // rejected (red). Dequeued falls through to the untouched
+                          // ghost — it needs a fresh decision.
+                          const cc = pub.isPublished(c) ? T.cyan
+                            : pub.isScheduled(c) ? T.yellow
+                            : isClipApproved(c) && c.renderStatus === "rendered" ? T.orange
+                            : isClipApproved(c) ? T.green
+                            : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
+                          const touched = cc !== "rgba(255,255,255,0.09)";
+                          return <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: cc, boxShadow: touched ? `0 0 6px ${cc}` : "none" }} />;
+                        })}
+                      </div>
+                      {/* Count pinned to the right edge — same spot on every card (Fega 2026-08-13) */}
+                      <span style={{ flexShrink: 0, marginLeft: "auto", whiteSpace: "nowrap", fontSize: 11, color: T.textSecondary, fontWeight: 600 }}>
                         {leftToReview > 0
                           ? <><b style={{ color: T.text }}>{leftToReview}</b> of {clipCount} left{rendered > 0 ? ` · ${rendered} rendered` : ""}</>
                           : toSchedule > 0
@@ -1581,39 +1617,6 @@ export function ProjectsListView({
                   ) : null}
                 </div>
 
-                {/* status + open */}
-                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9 }}>
-                  <Badge color={st === "done" ? T.green : st === "schedule" ? T.accent : st === "processing" ? T.yellow : st === "error" ? T.red : T.accent}>
-                    {st === "done" ? "Done" : st === "schedule" ? "To schedule" : st === "processing" ? "Processing" : st === "error" ? "Error" : "Review"}
-                  </Badge>
-                  {openable && (
-                    <button
-                      className="pl-open"
-                      onClick={(e) => { e.stopPropagation(); onSelect(p); }}
-                      style={{
-                        // "schedule" gets the muted Open treatment too — the remaining
-                        // action (scheduling) happens on the Queue tab, not in here.
-                        fontFamily: T.font, fontSize: 12.5, fontWeight: 700, borderRadius: 9, padding: "7px 14px", cursor: "pointer",
-                        color: st === "ready" ? "#fff" : T.textSecondary,
-                        background: st === "ready" ? T.accent : T.surfaceHover,
-                        border: st === "ready" ? "none" : `1px solid ${T.border}`,
-                        boxShadow: st === "ready" ? "0 6px 16px -8px rgba(139,92,246,0.8)" : "none",
-                      }}
-                    >{st === "ready" ? "Review" : "Open"}</button>
-                  )}
-                </div>
-
-                {/* hover-reveal delete */}
-                <span
-                  className="pl-trash"
-                  onClick={(e) => handleSingleDelete(e, p.id)}
-                  title="Delete project"
-                  style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
-                </span>
               </div>
             );
           })}
