@@ -6,6 +6,77 @@
 
 ---
 
+## BUILT (session 166) — approved & machine-verified; installer cut pending Fega's mock verdict
+
+Two asks from Fega (2026-08-13): real game art on the Projects-tab tiles, and
+a transparent taskbar icon (no navy plate). Both built per the plan below and
+verified live on the dev profile (boot sweep fetched 6 posters incl. delisted
+Rocket League; tiles render art with letters-fallback for artless games; Edit
+Game modal art section works). Icon rebuilt from the transparent master —
+all 9 sizes, transparent corners, assets swapped in repo.
+
+**Open before cutting alpha.48:**
+1. Mock verdict — Variant A (poster only, currently built) vs B (+ tiny tag chip).
+2. Prince of Persia art fetched the 2008 game (exact Steam name match) — if
+   Fega plays a different PoP, override via Settings → Edit Game → Choose image.
+
+### A. Transparent app icon (small fix, do first)
+
+**Root cause:** `make-app-ico.py` (in `ClipFlow stuff\Logo\`) builds the
+9-size ICO from `clipflow-mark-tile-1024.png` — the dark-plate tile version.
+The transparent master `clipflow-mark-1024.png` sits unused beside it.
+`public/icon.png` is also the tile version (feeds favicon + builder fallback).
+
+**Fix:**
+1. `make-app-ico.py`: SOURCE → `clipflow-mark-1024.png`; rerun; copy the
+   output to repo `public/icon.ico`. Update the Logo README note.
+2. Swap `public/icon.png` to the transparent 1024 master for consistency.
+3. Reaches the taskbar only via a new installer → rides the alpha.48 cut at
+   session end (batched with item B, per the batch-versions rule).
+
+**Verify:** open the new .ico frames (16–256 all present, transparent
+corners), `npm run build`, install, taskbar shows the bare mark — no plate.
+
+### B. Game art on Projects-tab tiles (feature)
+
+**Source of art (recommended):** Steam's public store search + CDN poster
+(`library_600x900` capsule — same 2:3 shape as the 44×58 tile). One-time
+fetch per game, cached at `<userData>\game-art\<tag>.jpg`. Art is keyed by
+game tag on disk — NO gamesDb schema change, no migration. Manual
+"Choose image…" override in Settings covers non-Steam games (Valorant).
+No AI generation — real key art or nothing.
+
+**File impact:**
+- `src/main/main.js` — `games:fetchArt` (Steam storesearch → appid →
+  download capsule → cache), `games:setArt` (copy a user-picked file in),
+  `games:listArt` (tag → file path map). Fetch fails soft (offline/not
+  found → tile keeps letters).
+- `src/main/preload.js` — the three bridges.
+- `src/renderer/views/ProjectsView.js` — poster tile shows the art image
+  (cover, existing dark-bottom overlay kept) when art exists; letters
+  remain the fallback. Card gradients/borders untouched.
+- `src/renderer/views/SettingsView.js` — per-game art controls in the games
+  editor: fetch/refresh, choose file, clear.
+
+**Steps:**
+1. HTML mock of the tile with real posters (RL/AR/EO/DD) → open in browser
+   for Fega's eyeball before any code.
+2. Build main-process fetch/cache + bridges.
+3. Wire ProjectsView tile + Settings controls.
+4. Build + `npm start`, verify all seven gamesDb games: Steam hits get art,
+   Valorant falls back to letters until manually set.
+
+**Verify criteria:** tiles show real posters for Steam games with no layout
+shift; missing art degrades to today's letters; art survives restart
+(cached); manual override works; offline start does not error.
+
+### End of session
+- CHANGELOG entries for both, cut alpha.48 (icon + tile art in one
+  installer), Fega installs — folds into the pending alpha.47 checks
+  (#248 script, #219 rename check, #244 live shakedown).
+
+---
+
 ## ✅ BUILT (session 163) — #244 loud scheduled-publish failures (+ #163 folded in) — machine-verified end-to-end, ships with the tester installer
 
 Built exactly per the approved plan below; both issues closed `status: untested`

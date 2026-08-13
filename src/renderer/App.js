@@ -120,6 +120,15 @@ export default function App() {
   // consumers comparing against clips must use tag, not hashtag (#tracker-main-count).
   const mainGameTag = (gamesDb.find((g) => g.name === mainGame)?.tag) || "AR";
 
+  // Game art for the Projects-tab tiles: map name → { path, v }. Main process
+  // pushes gameArt:changed after its boot sweep or any Settings-side art edit.
+  const [gameArt, setGameArt] = useState({});
+  useEffect(() => {
+    const refresh = () => window.clipflow?.gameArtList?.().then((m) => setGameArt(m || {}));
+    refresh();
+    window.clipflow?.onGameArtChanged?.(refresh);
+  }, []);
+
   // Rename state — renameHistory from electron-store
   const [pendingRenames, setPendingRenames] = useState([]);
   const [renameHistory, setRenameHistory] = useState([]);
@@ -594,6 +603,11 @@ export default function App() {
         }
       }).catch((err) => console.warn(`Background game research failed for ${gd.name}:`, err?.message || err));
     }
+    // Grab the game's Steam poster in the background (Projects-tab tile art);
+    // gameArt:changed refreshes the map when it lands. Not-found fails soft.
+    if (entryType === "game") {
+      window.clipflow.gameArtFetch?.(gd.name)?.catch?.(() => {});
+    }
   };
   const handleEditGame = (u) => setGamesDb((p) => p.map((g) => (g.name === u.name ? u : g)));
 
@@ -1031,6 +1045,7 @@ export default function App() {
               onDeleteProjects={handleDeleteProjects}
               mainGame={mainGame}
               gamesDb={gamesDb}
+              gameArt={gameArt}
               trackerData={trackerData}
             />
           </div>

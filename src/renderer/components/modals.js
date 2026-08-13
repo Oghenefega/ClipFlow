@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import T from "../styles/theme";
-import { GamePill, Card, SectionLabel, ColorPicker } from "./shared";
+import { GamePill, Card, SectionLabel, ColorPicker, toFileUrl } from "./shared";
 
 // ============ ADD GAME MODAL ============
 export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, anthropicApiKey = "" }) => {
@@ -142,6 +142,10 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
   const [showAiSection, setShowAiSection] = useState(false);
   const [updateThreshold, setUpdateThreshold] = useState(5);
   const [sessionCount, setSessionCount] = useState(0);
+  const [artPath, setArtPath] = useState(null);
+  const [artV, setArtV] = useState(0);
+  const [artBusy, setArtBusy] = useState(false);
+  const [artError, setArtError] = useState("");
 
   // Load game profile data (threshold + session count) on mount
   useEffect(() => {
@@ -154,6 +158,38 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
       });
     }
   }, [game.tag]);
+
+  // Current tile art (Projects tab poster), keyed by game name on disk
+  useEffect(() => {
+    window.clipflow.gameArtList?.().then((m) => {
+      const a = m?.[game.name];
+      if (a) { setArtPath(a.path); setArtV(a.v); }
+    });
+  }, [game.name]);
+
+  const artFetch = async () => {
+    setArtBusy(true);
+    setArtError("");
+    const r = await window.clipflow.gameArtFetch?.(game.name);
+    setArtBusy(false);
+    if (r?.ok) { setArtPath(r.path); setArtV(Date.now()); }
+    else if (r?.reason === "not-found") setArtError("Not on Steam — use Choose image instead");
+    else setArtError("Couldn't reach Steam — check your connection");
+  };
+
+  const artChoose = async () => {
+    const file = await window.clipflow.openFileDialog?.({ filters: [{ name: "Images", extensions: ["jpg", "jpeg", "png", "webp"] }] });
+    if (!file) return;
+    const r = await window.clipflow.gameArtSetFile?.(game.name, file);
+    if (r?.ok) { setArtPath(r.path); setArtV(Date.now()); setArtError(""); }
+    else setArtError("Couldn't use that image");
+  };
+
+  const artClear = async () => {
+    await window.clipflow.gameArtClear?.(game.name);
+    setArtPath(null);
+    setArtError("");
+  };
 
   const handleResearch = async () => {
     if (!anthropicApiKey) return;
@@ -205,6 +241,34 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
         <div style={{ marginBottom: 16 }}>
           <SectionLabel>Color</SectionLabel>
           <div style={{ marginTop: 8 }}><ColorPicker value={color} onChange={setColor} /></div>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <SectionLabel>Game Art</SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 8 }}>
+            <div style={{ width: 44, height: 58, borderRadius: 9, overflow: "hidden", flexShrink: 0, border: `1px solid ${T.border}`, background: `${color}18`, display: "grid", placeItems: "center" }}>
+              {artPath
+                ? <img src={`${toFileUrl(artPath)}?v=${artV}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 11, fontWeight: 800, color: T.textTertiary, letterSpacing: "0.5px" }}>{tag}</span>}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={artFetch} disabled={artBusy} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: artBusy ? 0.6 : 1, whiteSpace: "nowrap" }}>
+                  {artBusy ? "Searching..." : artPath ? "Refresh from Steam" : "Find on Steam"}
+                </button>
+                <button onClick={artChoose} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>
+                  Choose image…
+                </button>
+                {artPath && (
+                  <button onClick={artClear} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textTertiary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap" }}>
+                    Remove
+                  </button>
+                )}
+              </div>
+              {artError
+                ? <div style={{ color: T.yellow, fontSize: 11 }}>{artError}</div>
+                : <div style={{ color: T.textTertiary, fontSize: 11 }}>The poster on the Projects tab tile. Steam games are fetched automatically.</div>}
+            </div>
+          </div>
         </div>
         <div style={{ marginBottom: 16 }}>
           <SectionLabel>Status</SectionLabel>

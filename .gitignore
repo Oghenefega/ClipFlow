@@ -10,6 +10,7 @@ Thumbs.db
 data/feedback.db
 data/feedback.db-wal
 data/feedback.db-shm
+data/game-art/
 processing/
 *.bak
 

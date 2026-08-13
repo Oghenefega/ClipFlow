@@ -248,6 +248,13 @@ contextBridge.exposeInMainWorld("clipflow", {
   gameProfilesSetThreshold: (gameTag, threshold) => ipcRenderer.invoke("gameProfiles:setThreshold", gameTag, threshold),
   gameProfilesResetCount: (gameTag) => ipcRenderer.invoke("gameProfiles:resetCount", gameTag),
   gameProfilesGenerateUpdate: (gameTag) => ipcRenderer.invoke("gameProfiles:generateUpdate", gameTag),
+  gameArtList: () => ipcRenderer.invoke("gameArt:list"),
+  gameArtFetch: (name) => ipcRenderer.invoke("gameArt:fetch", name),
+  gameArtSetFile: (name, filePath) => ipcRenderer.invoke("gameArt:setFile", name, filePath),
+  gameArtClear: (name) => ipcRenderer.invoke("gameArt:clear", name),
+  onGameArtChanged: (callback) => {
+    ipcRenderer.on("gameArt:changed", () => callback());
+  },
 
   // Pipeline logs
   pipelineLogsList: () => ipcRenderer.invoke("pipelineLogs:list"),

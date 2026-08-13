@@ -70,6 +70,7 @@ const reconcile = require("./reconcile");
 const subtitlePollutionMigration = require("./subtitle-pollution-migration");
 const renderCollisionRepair = require("./render-collision-repair");
 const gameProfiles = require("./game-profiles");
+const gameArt = require("./game-art");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
 const tiktokOAuth = require("./oauth/tiktok");
@@ -840,6 +841,17 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+
+  // Game-art boot sweep: fetch Steam posters for games that have none yet.
+  // Delayed so it never competes with boot I/O; fails soft offline.
+  setTimeout(() => {
+    gameArt.fetchMissing(store.get("gamesDb") || []).then((changed) => {
+      logger.info(logger.MODULES.system, "Game-art boot sweep done", { fetchedNew: changed });
+      if (changed) mainWindow?.webContents.send("gameArt:changed");
+    }).catch((err) => {
+      logger.warn(logger.MODULES.system, "Game-art boot sweep failed", { error: err.message });
+    });
+  }, 5000);
 });
 
 app.on("window-all-closed", () => {
@@ -2650,6 +2662,29 @@ ipcMain.handle("gameProfiles:resetCount", async (_, gameTag) => {
 ipcMain.handle("gameProfiles:generateUpdate", async (_, gameTag) => {
   const creatorName = (store.get("creatorProfile") || {}).name;
   return gameProfiles.generateProfileUpdate(gameTag, { creatorName });
+});
+
+// ============ GAME ART (Projects-tab tile posters) ============
+ipcMain.handle("gameArt:list", async () => {
+  return gameArt.listArt(store.get("gamesDb") || []);
+});
+
+ipcMain.handle("gameArt:fetch", async (_, name) => {
+  const result = await gameArt.fetchSteamArt(name);
+  if (result.ok) mainWindow?.webContents.send("gameArt:changed");
+  return result;
+});
+
+ipcMain.handle("gameArt:setFile", async (_, name, filePath) => {
+  const result = gameArt.setArtFromFile(name, filePath);
+  if (result.ok) mainWindow?.webContents.send("gameArt:changed");
+  return result;
+});
+
+ipcMain.handle("gameArt:clear", async (_, name) => {
+  gameArt.clearArt(name);
+  mainWindow?.webContents.send("gameArt:changed");
+  return { ok: true };
 });
 
 // ============ PIPELINE LOGS ============

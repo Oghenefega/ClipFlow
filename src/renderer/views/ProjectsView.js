@@ -1098,7 +1098,7 @@ function sortFolders(folders, mode) {
 
 export function ProjectsListView({
   localProjects = [], setLocalProjects, projectFolders = [], activeFolder, onSelectFolder,
-  onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [], trackerData = [],
+  onFoldersChanged, onSelect, onDeleteProjects, mainGame, gamesDb = [], gameArt = {}, trackerData = [],
 }) {
   const pub = useMemo(() => makePublishState(trackerData), [trackerData]);
   // Toggle per-project test mode. Optimistic update on the local state, then
@@ -1523,14 +1523,25 @@ export function ProjectsListView({
                   <Checkbox checked={isSel} size={18} />
                 </span>
 
-                {/* game-hue poster */}
-                <div style={{ position: "relative", flexShrink: 0, width: 44, height: 58, borderRadius: 9, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
-                  <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${pColor}55 65%, ${pColor}22)`, opacity: openable ? 0.9 : 0.5 }} />
-                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))" }} />
-                  <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(0,0,0,.6)" }}>
-                    {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
-                  </span>
-                </div>
+                {/* game poster — real key art when cached, game-hue + tag fallback */}
+                {(() => {
+                  const art = gameArt[p.game];
+                  return (
+                    <div style={{ position: "relative", flexShrink: 0, width: 44, height: 58, borderRadius: 9, overflow: "hidden", display: "grid", placeItems: "center", background: `${pColor}18` }}>
+                      {art ? (
+                        <img src={`${toFileUrl(art.path)}?v=${art.v}`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: openable ? 1 : 0.55 }} />
+                      ) : (
+                        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(150deg, ${pColor}, ${pColor}55 65%, ${pColor}22)`, opacity: openable ? 0.9 : 0.5 }} />
+                      )}
+                      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))" }} />
+                      {!art && (
+                        <span style={{ position: "relative", zIndex: 1, fontSize: 12, fontWeight: 800, color: "#fff", fontFamily: T.mono, letterSpacing: "0.5px", textShadow: "0 1px 4px rgba(0,0,0,.6)" }}>
+                          {p.gameTag && p.gameTag !== "?" ? p.gameTag : ""}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* main content */}
                 <div style={{ flex: 1, minWidth: 0 }}>

@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-13 (session 166) — Real game art on the Projects tiles, transparent taskbar icon
+
+### Added
+- **Projects-tab tiles now show each game's real poster art instead of two-letter tags.** ClipFlow looks each game up on Steam's public store once, downloads its official library poster (the same tall 2:3 shape as the tile), and caches it locally forever — no account, no API key, works offline after the first fetch. A boot sweep fetches art for any game that has none; games Steam can't find (Valorant lives on Riot's launcher) keep the letter tile until an image is chosen manually. Rocket League is special-cased by its known Steam app id since Epic delisted it from store search. New "Game Art" section in Settings → Edit Game: preview, "Find on Steam" / "Refresh", "Choose image…" manual override, and "Remove". Art lives in `data/game-art/` keyed by game name — no settings-schema change.
+
+### Fixed
+- **The taskbar icon no longer sits on a navy tile.** The icon pipeline was building the .ico from the dark-plate "tile" variant of the mark; Fega wants the bare transparent mark floating free like VS Code and Obsidian. `make-app-ico.py` now builds the same nine-rung sharpened ladder from the transparent 1024px master, and `public/icon.png` (favicon + builder fallback) switched to the transparent master too. Reaches the taskbar with the next installer.
+
 ## [0.3.0-alpha.47] — 2026-08-12 (session 165) — The taskbar icon is crisp
 
 ### Fixed
