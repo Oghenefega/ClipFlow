@@ -113,6 +113,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **`CLIPFLOW_PROFILE=dev` sandboxes settings, NOT project data (session 141).** Both profiles read the same `projectsRoot`, so a destructive dev-profile verification writes to Fega's real library — pressing the new "End to playhead" key trimmed a genuine 27.3s clip to 5s, and autosave persisted it within the second. Before any destructive test: diff `projectsRoot` across both `clipflow-settings.json` files, record the pre-state (`nleSegments`, etc.), and restore through the app's own undo + Save, then confirm on disk. Only `userData` and `outputFolder` are actually isolated.
 
+- **`wc -l` before any full-file Write to a file this session didn't create (session 166).** `head -40` tells you what a file starts with, not what it IS — todo.md's header claims "active plan only" but the file is a 3.7k-line archive. If the file is bigger than what you've read, Edit the section instead of Writing the file. A commit diffstat with deletions you can't name = stop and `git show --stat` before pushing.
+
 - **"What is running?" answers must check BOTH layers, and every armed watcher gets stopped at wrap (session 164).** OS-level checks (tasklist/netstat) can never disprove a harness background task — check TaskList / the Background tasks panel too. Until-loop watchers must watch a condition guaranteed reachable (the QUERY that finds new items, not a hardcoded id), and session wrap explicitly stops or confirms-finished every watcher armed during the session.
 
 ## Lesson Capture

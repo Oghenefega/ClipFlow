@@ -6,7 +6,7 @@
 
 ---
 
-## BUILT (session 166) — approved & machine-verified; installer cut pending Fega's mock verdict
+## ✅ SHIPPED (session 166) — alpha.48 installed & Fega-confirmed ("All the changes are here")
 
 Two asks from Fega (2026-08-13): real game art on the Projects-tab tiles, and
 a transparent taskbar icon (no navy plate). Both built per the plan below and
@@ -15,10 +15,11 @@ Rocket League; tiles render art with letters-fallback for artless games; Edit
 Game modal art section works). Icon rebuilt from the transparent master —
 all 9 sizes, transparent corners, assets swapped in repo.
 
-**Open before cutting alpha.48:**
-1. Mock verdict — Variant A (poster only, currently built) vs B (+ tiny tag chip).
-2. Prince of Persia art fetched the 2008 game (exact Steam name match) — if
-   Fega plays a different PoP, override via Settings → Edit Game → Choose image.
+Fega then picked card Variant A + circles from the layout mock — built, CDP-
+verified (counts 1px off a shared right edge on 8 rows, hover via forced
+pseudo-state), and shipped in the same alpha.48 cut. Still open (non-blocking):
+which Prince of Persia he plays (Steam matched the 2008 one), and a Valorant
+poster file — both solvable via Settings → Edit Game → Choose image.
 
 ### A. Transparent app icon (small fix, do first)
 
