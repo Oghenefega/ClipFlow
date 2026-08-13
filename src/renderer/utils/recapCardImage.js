@@ -4,6 +4,7 @@ import tiktokIcon from "../assets/platforms/tiktok.svg";
 import youtubeIcon from "../assets/platforms/youtube.png";
 import instagramIcon from "../assets/platforms/instagram.png";
 import facebookIcon from "../assets/platforms/facebook.png";
+import clipflowMark from "../assets/brand/clipflow-mark.png";
 
 const PLATFORM_ICON_SRC = { tiktok: tiktokIcon, youtube: youtubeIcon, instagram: instagramIcon, facebook: facebookIcon };
 const PLATFORM_LABEL = { tiktok: "TikTok", youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" };
@@ -211,19 +212,11 @@ export async function renderRecapPng({ game, gameColor, clips, platformsUsed, pe
   const markGap = 20;
   const markX = (W - (markSize + markGap + markLabelW)) / 2;
   const markY = H - padBottom - markSize;
-  const fGrad = ctx.createLinearGradient(markX, markY, markX + markSize, markY + markSize);
-  fGrad.addColorStop(0, "#a78bfa");
-  fGrad.addColorStop(1, "#8b5cf6");
-  ctx.fillStyle = fGrad;
-  roundRectPath(ctx, markX, markY, markSize, markSize, 16);
-  ctx.fill();
-  ctx.strokeStyle = "#0a0b10";
-  ctx.lineWidth = 4.5;
-  ctx.lineCap = "round";
-  const lx = markX + 11, ly = markY + 16, lw = markSize - 22;
-  ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + lw, ly); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(lx, ly + 11); ctx.lineTo(lx + lw * 0.65, ly + 11); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(lx, ly + 22); ctx.lineTo(lx + lw * 0.4, ly + 22); ctx.stroke();
+  try {
+    const markImg = await loadImage(clipflowMark);
+    ctx.drawImage(markImg, markX, markY, markSize, markSize);
+  } catch (e) { /* fall back to the wordmark alone below */ }
+
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.font = "600 30px 'DM Sans', sans-serif";
   ctx.fillText(markLabel, markX + markSize + markGap, markY + markSize - 12);
