@@ -51,6 +51,25 @@ const getGameColor = (p, gamesDb) => {
   return g ? g.color : T.accent;
 };
 
+// Clip-dot glass-orb palette (Fega 2026-08-13). Deliberately NOT the theme
+// tokens — T.green/T.red are pastel (red ships at 55% opacity elsewhere) and
+// read dull at dot size on the tinted cards. hi/core/dk shape the sphere,
+// glow feeds the outer halo. Status meanings match the theme hues 1:1.
+const DOT_GLASS = {
+  cyan: { hi: "#a3f2ff", core: "#22e0ff", dk: "#0d95b8", glow: "rgba(34,224,255,0.55)" },
+  yellow: { hi: "#ffe9a3", core: "#ffcf24", dk: "#c98a06", glow: "rgba(255,207,36,0.5)" },
+  orange: { hi: "#ffc08a", core: "#ff7d1f", dk: "#c24f05", glow: "rgba(255,125,31,0.55)" },
+  green: { hi: "#8fffcd", core: "#0aef86", dk: "#059a55", glow: "rgba(10,239,134,0.55)" },
+  red: { hi: "#ffa8b4", core: "#ff4560", dk: "#c2203c", glow: "rgba(255,69,96,0.55)" },
+};
+
+// Glass-orb dot style: white specular highlight top-left over a color sphere
+// that darkens toward the bottom edge, plus a soft outer glow.
+const glassDot = (g) => ({
+  background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 16%, transparent 42%), radial-gradient(circle at 50% 58%, ${g.hi} 0%, ${g.core} 52%, ${g.dk} 100%)`,
+  boxShadow: `0 0 9px ${g.glow}, inset 0 -1px 2px rgba(0,0,0,0.35)`,
+});
+
 // Pure helper — determine project status
 // Publish-pipeline state. Scheduled reads the clip's own scheduledAt directly:
 // scheduleClipOnly (QueueView) stamps scheduledAt WITHOUT writing a tracker
@@ -1588,7 +1607,7 @@ export function ProjectsListView({
                     <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>{p.error || "Failed"}</div>
                   ) : clipCount > 0 ? (
                     <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         {clips.slice(0, 40).map((c, i) => {
                           // Clip ladder (session 142) — furthest stage wins: published
                           // (cyan, matches the Tracker's posted-via-ClipFlow dot) >
@@ -1596,13 +1615,15 @@ export function ProjectsListView({
                           // rendered/waiting-in-queue (orange) > approved (green) >
                           // rejected (red). Dequeued falls through to the untouched
                           // ghost — it needs a fresh decision.
-                          const cc = pub.isPublished(c) ? T.cyan
-                            : pub.isScheduled(c) ? T.yellow
-                            : isClipApproved(c) && c.renderStatus === "rendered" ? T.orange
-                            : isClipApproved(c) ? T.green
-                            : c.status === "rejected" ? "rgba(248,113,113,0.55)" : "rgba(255,255,255,0.09)";
-                          const touched = cc !== "rgba(255,255,255,0.09)";
-                          return <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: cc, boxShadow: touched ? `0 0 6px ${cc}` : "none" }} />;
+                          const g = pub.isPublished(c) ? DOT_GLASS.cyan
+                            : pub.isScheduled(c) ? DOT_GLASS.yellow
+                            : isClipApproved(c) && c.renderStatus === "rendered" ? DOT_GLASS.orange
+                            : isClipApproved(c) ? DOT_GLASS.green
+                            : c.status === "rejected" ? DOT_GLASS.red : null;
+                          return <span key={i} style={{
+                            width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
+                            ...(g ? glassDot(g) : { background: "rgba(255,255,255,0.10)", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.07)" }),
+                          }} />;
                         })}
                       </div>
                       {/* Count pinned to the right edge — same spot on every card (Fega 2026-08-13) */}

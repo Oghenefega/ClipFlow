@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-13 (session 167)
+
+### Changed
+- **The clip dots on the Projects cards became vivid glass orbs.** Fega flagged the circles as dull — the approved green was a pastel emerald and the rejected red was drawn at 55% transparency, so the glow was amplifying washed-out colors. Each dot now uses a saturated palette (spring green, full-strength red, electric cyan) shaped like a lit glass sphere: white light-reflection top-left, color deepening toward the bottom edge, soft outer glow. Dots grew 8px → 10px with wider 6px spacing. Same status meanings (cyan published, yellow scheduled, orange rendered, green approved, red rejected). Picked from a 3-way mockup (`tasks/mocks/clip-dot-vibrancy.html`) — glass orb beat vivid-flat and neon-LED. Reaches the daily app with the next installer.
+
 ## [0.3.0-alpha.48] — 2026-08-13 (session 166) — Real game art on the Projects tiles, redesigned project cards, transparent taskbar icon
 
 ### Changed

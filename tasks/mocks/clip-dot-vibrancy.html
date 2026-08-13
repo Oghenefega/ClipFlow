@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClipFlow — Clip-dot vibrancy mock</title>
+<style>
+  :root{
+    --bg:#0a0b10; --surface:#111218;
+    --border:rgba(255,255,255,0.06);
+    --text:#edeef2; --text2:rgba(255,255,255,0.55); --text3:rgba(255,255,255,0.32); --textMuted:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accentLight:#a78bfa; --accentDim:rgba(139,92,246,0.12); --accentBorder:rgba(139,92,246,0.28);
+    --font:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+
+    /* ── CURRENT palette (what ships today) ── */
+    --cur-green:#34d399; --cur-red:rgba(248,113,113,0.55); --cur-cyan:#22d3ee; --cur-yellow:#fbbf24; --cur-orange:#f97316;
+
+    /* ── PROPOSED vivid palette ── */
+    --v-green:#0aef86;  --v-green-hi:#8fffcd; --v-green-dk:#059a55; --v-green-gl:rgba(10,239,134,.55);
+    --v-red:#ff4560;    --v-red-hi:#ffa8b4;   --v-red-dk:#c2203c;   --v-red-gl:rgba(255,69,96,.55);
+    --v-cyan:#22e0ff;   --v-cyan-hi:#a3f2ff;  --v-cyan-dk:#0d95b8;  --v-cyan-gl:rgba(34,224,255,.55);
+    --v-yellow:#ffcf24; --v-yellow-hi:#ffe9a3;--v-yellow-dk:#c98a06;--v-yellow-gl:rgba(255,207,36,.5);
+    --v-orange:#ff7d1f; --v-orange-hi:#ffc08a;--v-orange-dk:#c24f05;--v-orange-gl:rgba(255,125,31,.55);
+    --ghost:rgba(255,255,255,0.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:30px 22px 90px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 26px;line-height:1.6}
+
+  .sect{margin-bottom:34px}
+  .sect h2{font-size:14px;font-weight:800;letter-spacing:.2px;margin:0 0 3px;display:flex;align-items:center;gap:8px}
+  .sect .note{font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6}
+  .pick{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:var(--accentLight);background:var(--accentDim);border:1px solid var(--accentBorder);border-radius:20px;padding:2px 8px}
+
+  /* big labelled swatch row */
+  .swatches{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-bottom:10px}
+  .sw{display:flex;flex-direction:column;align-items:center;gap:8px;width:74px}
+  .sw .big{width:26px;height:26px;border-radius:50%}
+  .sw .lbl{font-size:10.5px;font-weight:700;color:var(--text2);text-align:center;line-height:1.3}
+
+  /* ── replica project card ── */
+  .card{position:relative;display:flex;align-items:center;gap:14px;padding:13px;border-radius:16px;overflow:hidden;
+    background:radial-gradient(90% 160% at 100% 0%, rgba(232,176,75,0.12) 0%, transparent 55%), linear-gradient(100deg, rgba(232,176,75,0.10) 0%, rgba(232,176,75,0.024) 40%, rgba(255,255,255,0.02) 65%);
+    border:1px solid rgba(232,176,75,0.24)}
+  .poster{position:relative;flex-shrink:0;width:60px;height:80px;border-radius:10px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(150deg,#e8b04b,#e8b04b55 65%,#e8b04b22)}
+  .poster::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,.5))}
+  .poster span{position:relative;z-index:1;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .main{flex:1;min-width:0}
+  .title{color:var(--text);font-size:15px;font-weight:600;min-height:30px;display:flex;align-items:center}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--text2)}
+  .dotrow-wrap{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .dots{display:flex;align-items:center;flex-wrap:wrap}
+  .count{flex-shrink:0;margin-left:auto;white-space:nowrap;font-size:11px;color:var(--text2);font-weight:600}
+  .count b{color:var(--text);font-weight:700}
+
+  .dot{border-radius:50%;flex-shrink:0}
+
+  /* ═══ BASELINE — exactly what ships today: 8px, gap 4, flat fill, 6px glow ═══ */
+  .base .dots{gap:4px}
+  .base .dot{width:8px;height:8px}
+  .base .pub{background:var(--cur-cyan);box-shadow:0 0 6px var(--cur-cyan)}
+  .base .sch{background:var(--cur-yellow);box-shadow:0 0 6px var(--cur-yellow)}
+  .base .ren{background:var(--cur-orange);box-shadow:0 0 6px var(--cur-orange)}
+  .base .app{background:var(--cur-green);box-shadow:0 0 6px var(--cur-green)}
+  .base .rej{background:var(--cur-red);box-shadow:0 0 6px var(--cur-red)}
+  .base .gho{background:var(--ghost)}
+
+  /* ═══ A — VIVID FLAT: saturated cores, full-strength red, double-layer glow. 10px, gap 6 ═══ */
+  .va .dots{gap:6px}
+  .va .dot{width:10px;height:10px}
+  .va .pub{background:var(--v-cyan);box-shadow:0 0 4px var(--v-cyan),0 0 10px var(--v-cyan-gl)}
+  .va .sch{background:var(--v-yellow);box-shadow:0 0 4px var(--v-yellow),0 0 10px var(--v-yellow-gl)}
+  .va .ren{background:var(--v-orange);box-shadow:0 0 4px var(--v-orange),0 0 10px var(--v-orange-gl)}
+  .va .app{background:var(--v-green);box-shadow:0 0 4px var(--v-green),0 0 10px var(--v-green-gl)}
+  .va .rej{background:var(--v-red);box-shadow:0 0 4px var(--v-red),0 0 10px var(--v-red-gl)}
+  .va .gho{background:var(--ghost)}
+
+  /* ═══ B — GLASS ORB: same vivid palette + specular highlight top-left, darker
+     bottom edge, soft outer glow. Reads as a lit glossy sphere. 10px, gap 6 ═══ */
+  .vb .dots{gap:6px}
+  .vb .dot{width:10px;height:10px}
+  .vb .pub{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-cyan-hi) 0%, var(--v-cyan) 52%, var(--v-cyan-dk) 100%);box-shadow:0 0 9px var(--v-cyan-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .vb .sch{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-yellow-hi) 0%, var(--v-yellow) 52%, var(--v-yellow-dk) 100%);box-shadow:0 0 9px var(--v-yellow-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .vb .ren{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-orange-hi) 0%, var(--v-orange) 52%, var(--v-orange-dk) 100%);box-shadow:0 0 9px var(--v-orange-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .vb .app{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-green-hi) 0%, var(--v-green) 52%, var(--v-green-dk) 100%);box-shadow:0 0 9px var(--v-green-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .vb .rej{background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.3) 16%, transparent 42%),radial-gradient(circle at 50% 58%, var(--v-red-hi) 0%, var(--v-red) 52%, var(--v-red-dk) 100%);box-shadow:0 0 9px var(--v-red-gl),inset 0 -1px 2px rgba(0,0,0,.35)}
+  .vb .gho{background:var(--ghost);box-shadow:inset 0 1px 1px rgba(255,255,255,.07)}
+
+  /* ═══ C — NEON LED: near-white hot core burning out to the color, tight halo +
+     wide bloom. Reads as a small LED. 10px, gap 6 ═══ */
+  .vc .dots{gap:6px}
+  .vc .dot{width:10px;height:10px}
+  .vc .pub{background:radial-gradient(circle, #fff 0%, var(--v-cyan) 55%, var(--v-cyan-dk) 100%);box-shadow:0 0 3px var(--v-cyan),0 0 12px var(--v-cyan-gl)}
+  .vc .sch{background:radial-gradient(circle, #fff 0%, var(--v-yellow) 55%, var(--v-yellow-dk) 100%);box-shadow:0 0 3px var(--v-yellow),0 0 12px var(--v-yellow-gl)}
+  .vc .ren{background:radial-gradient(circle, #fff 0%, var(--v-orange) 55%, var(--v-orange-dk) 100%);box-shadow:0 0 3px var(--v-orange),0 0 12px var(--v-orange-gl)}
+  .vc .app{background:radial-gradient(circle, #fff 0%, var(--v-green) 55%, var(--v-green-dk) 100%);box-shadow:0 0 3px var(--v-green),0 0 12px var(--v-green-gl)}
+  .vc .rej{background:radial-gradient(circle, #fff 0%, var(--v-red) 55%, var(--v-red-dk) 100%);box-shadow:0 0 3px var(--v-red),0 0 12px var(--v-red-gl)}
+  .vc .gho{background:var(--ghost)}
+
+  /* size strip */
+  .sizes{display:flex;gap:40px;align-items:center;flex-wrap:wrap;padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+  .sizecol{display:flex;flex-direction:column;gap:9px}
+  .sizecol .lbl{font-size:10.5px;font-weight:700;color:var(--text2)}
+  .sizecol .dots{display:flex;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Clip-dot vibrancy — 3 treatments</h1>
+  <p class="sub">Why today's dots feel dull: approved green is a <b>pastel</b> emerald, and rejected red ships at <b>55% opacity</b> — the glow is glowing a washed-out color. All three options below swap to a saturated palette (full-strength red included), bump dots <b>8px → 10px</b> and spacing <b>4px → 6px</b>. Same status meanings, same ladder.</p>
+
+  <!-- ═══════════ BASELINE ═══════════ -->
+  <div class="sect base">
+    <h2>Current (what ships today)</h2>
+    <p class="note">8px flat pastel fill, single 6px glow, rejected at 55% opacity.</p>
+    <div class="swatches">
+      <div class="sw"><span class="big dot pub"></span><span class="lbl">Published</span></div>
+      <div class="sw"><span class="big dot sch"></span><span class="lbl">Scheduled</span></div>
+      <div class="sw"><span class="big dot ren"></span><span class="lbl">Rendered</span></div>
+      <div class="sw"><span class="big dot app"></span><span class="lbl">Approved</span></div>
+      <div class="sw"><span class="big dot rej"></span><span class="lbl">Rejected</span></div>
+      <div class="sw"><span class="big dot gho"></span><span class="lbl">Untouched</span></div>
+    </div>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span class="count"><b>3</b> of 18 left · 4 rendered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ A ═══════════ -->
+  <div class="sect va">
+    <h2>A — Vivid flat</h2>
+    <p class="note">Same flat circle, but saturated colors + a two-layer glow (tight ring + soft halo). Cleanest, most "signal light" look.</p>
+    <div class="swatches">
+      <div class="sw"><span class="big dot pub"></span><span class="lbl">Published</span></div>
+      <div class="sw"><span class="big dot sch"></span><span class="lbl">Scheduled</span></div>
+      <div class="sw"><span class="big dot ren"></span><span class="lbl">Rendered</span></div>
+      <div class="sw"><span class="big dot app"></span><span class="lbl">Approved</span></div>
+      <div class="sw"><span class="big dot rej"></span><span class="lbl">Rejected</span></div>
+      <div class="sw"><span class="big dot gho"></span><span class="lbl">Untouched</span></div>
+    </div>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span class="count"><b>3</b> of 18 left · 4 rendered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ B ═══════════ -->
+  <div class="sect vb">
+    <h2>B — Glass orb <span class="pick">MY PICK</span></h2>
+    <p class="note">Same vivid palette shaped into a lit sphere: white specular highlight top-left, color deepening toward the bottom edge, soft glow. This is the "premium glass" feel — the dots look like tiny gems instead of paint.</p>
+    <div class="swatches">
+      <div class="sw"><span class="big dot pub"></span><span class="lbl">Published</span></div>
+      <div class="sw"><span class="big dot sch"></span><span class="lbl">Scheduled</span></div>
+      <div class="sw"><span class="big dot ren"></span><span class="lbl">Rendered</span></div>
+      <div class="sw"><span class="big dot app"></span><span class="lbl">Approved</span></div>
+      <div class="sw"><span class="big dot rej"></span><span class="lbl">Rejected</span></div>
+      <div class="sw"><span class="big dot gho"></span><span class="lbl">Untouched</span></div>
+    </div>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span class="count"><b>3</b> of 18 left · 4 rendered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ C ═══════════ -->
+  <div class="sect vc">
+    <h2>C — Neon LED</h2>
+    <p class="note">White-hot core burning out to the color, with a wide bloom — like an indicator LED. Loudest of the three; at a glance the colors read slightly lighter because of the white center.</p>
+    <div class="swatches">
+      <div class="sw"><span class="big dot pub"></span><span class="lbl">Published</span></div>
+      <div class="sw"><span class="big dot sch"></span><span class="lbl">Scheduled</span></div>
+      <div class="sw"><span class="big dot ren"></span><span class="lbl">Rendered</span></div>
+      <div class="sw"><span class="big dot app"></span><span class="lbl">Approved</span></div>
+      <div class="sw"><span class="big dot rej"></span><span class="lbl">Rejected</span></div>
+      <div class="sw"><span class="big dot gho"></span><span class="lbl">Untouched</span></div>
+    </div>
+    <div class="card">
+      <div class="poster"><span>EO</span></div>
+      <div class="main">
+        <div class="title">2026-02-27 EO Day3 Pt2</div>
+        <div class="meta">Feb 27 · 18 clips</div>
+        <div class="dotrow-wrap">
+          <div class="dots">
+            <span class="dot pub"></span><span class="dot pub"></span><span class="dot app"></span><span class="dot pub"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot ren"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot sch"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot rej"></span><span class="dot app"></span><span class="dot rej"></span><span class="dot gho"></span><span class="dot gho"></span><span class="dot gho"></span>
+          </div>
+          <span class="count"><b>3</b> of 18 left · 4 rendered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ sizes ═══════════ -->
+  <div class="sect vb">
+    <h2>Size &amp; spacing (shown in glass style)</h2>
+    <p class="note">All options above use 10px / 6px gap. Here's the range — say the word if you want bigger.</p>
+    <div class="sizes">
+      <div class="sizecol">
+        <span class="lbl">Current — 8px, 4px gap</span>
+        <div class="dots" style="gap:4px">
+          <span class="dot pub" style="width:8px;height:8px"></span><span class="dot app" style="width:8px;height:8px"></span><span class="dot app" style="width:8px;height:8px"></span><span class="dot rej" style="width:8px;height:8px"></span><span class="dot sch" style="width:8px;height:8px"></span><span class="dot gho" style="width:8px;height:8px"></span>
+        </div>
+      </div>
+      <div class="sizecol">
+        <span class="lbl">Proposed — 10px, 6px gap</span>
+        <div class="dots" style="gap:6px">
+          <span class="dot pub" style="width:10px;height:10px"></span><span class="dot app" style="width:10px;height:10px"></span><span class="dot app" style="width:10px;height:10px"></span><span class="dot rej" style="width:10px;height:10px"></span><span class="dot sch" style="width:10px;height:10px"></span><span class="dot gho" style="width:10px;height:10px"></span>
+        </div>
+      </div>
+      <div class="sizecol">
+        <span class="lbl">Bigger — 12px, 7px gap</span>
+        <div class="dots" style="gap:7px">
+          <span class="dot pub" style="width:12px;height:12px"></span><span class="dot app" style="width:12px;height:12px"></span><span class="dot app" style="width:12px;height:12px"></span><span class="dot rej" style="width:12px;height:12px"></span><span class="dot sch" style="width:12px;height:12px"></span><span class="dot gho" style="width:12px;height:12px"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
