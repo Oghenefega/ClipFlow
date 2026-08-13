@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.46] — 2026-08-12 — The tester installer: feedback reporter, loud publish failures, and ClipFlow's real logo
+
+### Changed
+- **Version bumped to 0.3.0-alpha.46 and a fresh installer cut.** This is the tester installer sessions 162 and 163 were built toward. It promotes three unreleased batches at once: the #248 in-app feedback reporter, #244's loud scheduled-publish failures (with #163's friendly dead-token errors folded in), and the #252 logo swap below.
+
+## [Unreleased] — 2026-08-12 — #252 the placeholder app icon is gone
+
+### Changed
+- **ClipFlow finally looks like ClipFlow.** The purple-gradient lightning bolt that stood in for a logo since March is replaced by the real mark (locked 2026-08-12) on all three surfaces that carried it: the app icon (`public/icon.png`, which one file at a time feeds the taskbar, window corner, alt-tab, shortcut, installer icon, and the renderer favicon), the title bar's 20px mark where a ⚡ emoji used to sit, and the weekly recap card's watermark — the one that leaves the building on every shared recap PNG. Mark asset added at `src/renderer/assets/brand/clipflow-mark.png`.
+
 ## [Unreleased] — 2026-08-12 (session 163) — #244 scheduled publishes fail loudly: pre-flight warning, OS notifications, persistent banner, one-click retry
 
 ### Added
