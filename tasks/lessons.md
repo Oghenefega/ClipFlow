@@ -1136,3 +1136,21 @@ Marker advanced to 2026-08-12 (s162) — no user corrections this session; the t
 **Rule:** Any claim about background/running state must check BOTH layers: OS processes AND the harness task registry (TaskList / the Background tasks panel). And an until-loop watcher must watch a condition that is guaranteed reachable (watch the QUERY that finds new items, not one hardcoded id) — plus every armed watcher gets explicitly stopped or confirmed-finished at session wrap, as part of the wrap checklist.
 
 Marker advanced to 2026-08-12 (s163+s164 pass) — s163 had no user corrections; its three CDP harness traps (per-profile safeStorage seeding, hidden-pane text matches, collapsed Settings groups unmount cards) went to memory project_cdp_verification_gotchas (traps 38-40). The s164 lesson ("nothing is running" claimed while a harness poll was alive) was routed to clipflow-code-review as a wrap-checklist rule: check OS + harness task registry, watch reachable conditions, stop every armed watcher at wrap.
+
+## Session 166 — Write-overwrote a 3,724-line file after reading 40 lines (self-caught)
+
+**What happened:** Session-start ritual reads `head -40 tasks/todo.md`. Later I
+"replaced" the file with the new session plan via a full-file Write — deleting
+3,700 lines of session archive (plans/verification records back to session 120)
+that lived below the head. Caught it post-push only because the commit diffstat
+showed 3,668 deletions; restored from git history and amended.
+
+**Why:** The file's own header says it "holds only the active session's working
+plan" — I trusted the header over the actual file size. head -40 told me what
+the file STARTS with, not what it IS.
+
+**Rule:** Before ANY full-file Write to a file I didn't create this session:
+`wc -l` it first. If it's bigger than what I've read, read the rest or Edit the
+specific section instead. A commit diffstat with deletions I can't name = stop
+and `git show --stat` before pushing. (Global CLAUDE.md §7 already warned:
+"never assume a single read captured the complete file.")
