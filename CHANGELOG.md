@@ -4,7 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-13 (session 166) — Real game art on the Projects tiles, transparent taskbar icon
+## [0.3.0-alpha.48] — 2026-08-13 (session 166) — Real game art on the Projects tiles, redesigned project cards, transparent taskbar icon
+
+### Changed
+- **Version bumped to 0.3.0-alpha.48 and a fresh installer cut.** Promotes everything below in one build: the Steam game art on Projects tiles, the card redesign around it, and the transparent taskbar icon.
 
 ### Added
 - **Projects-tab tiles now show each game's real poster art instead of two-letter tags.** ClipFlow looks each game up on Steam's public store once, downloads its official library poster (the same tall 2:3 shape as the tile), and caches it locally forever — no account, no API key, works offline after the first fetch. A boot sweep fetches art for any game that has none; games Steam can't find (Valorant lives on Riot's launcher) keep the letter tile until an image is chosen manually. Rocket League is special-cased by its known Steam app id since Epic delisted it from store search. New "Game Art" section in Settings → Edit Game: preview, "Find on Steam" / "Refresh", "Choose image…" manual override, and "Remove". Art lives in `data/game-art/` keyed by game name — no settings-schema change.
