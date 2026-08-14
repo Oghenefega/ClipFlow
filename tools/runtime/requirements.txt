@@ -1,0 +1,17 @@
+# ClipFlow AI engine — top-level packages (#146).
+#
+# Only what the four pipeline scripts import:
+#   transcribe.py        -> stable_whisper (stable-ts) via load_faster_whisper, torch, numpy
+#   energy_scorer.py     -> stdlib only (shells out to ffprobe)
+#   signals/yamnet_events.py -> numpy, soundfile, ai_edge_litert
+#   signals/pitch_spike.py   -> numpy, librosa
+#
+# Exact versions of these AND every transitive dependency are enforced by
+# constraints-cuda.txt / constraints-cpu.txt, frozen 2026-08-14 from the
+# known-good venv (D:\whisper\betterwhisperx-venv, Python 3.12.3). Do not
+# re-resolve versions here — regenerate the constraints from a working venv.
+stable-ts==2.19.1
+faster-whisper==1.2.1
+librosa==0.11.0
+soundfile==0.13.1
+ai-edge-litert==2.1.4

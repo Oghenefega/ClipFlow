@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-14 (session 168) — #146 AI engine runtime packages built and verified (zero-setup arc, session 1 of 3)
+
+### Added
+- **Downloadable "AI engine" runtime packages built and verified (#146).** Fega reversed the #251 beta posture: testers must never install Python by hand, so the whole transcription + detection stack now packs into a self-contained runtime the app will download on first launch. `tools/runtime/` holds the recipe — five top-level packages with every dependency version frozen from the proven working setup — and `scripts/build-runtime.ps1` assembles it into a relocatable bundle (embeddable Python 3.12.3 + pinned packages), zips it, and writes a SHA-256 manifest for the future in-app download step. Two flavors: NVIDIA/CUDA (2.73 GB) and CPU fallback (0.4 GB), both landed in `vendor/runtime-dist/`.
+- **Runtime verification harness (`scripts/verify-runtime.ps1`).** Proves a built engine does real work, not just that it loads: cuts a 2-minute excerpt from an actual recording and runs all four pipeline programs (transcription, YAMNet audio events, pitch spikes, energy scoring) through the bundle's own Python. Both flavors passed all four checks against the 2026-08-12 Rocket League recording.
+
+### Fixed
+- **Transcription would have crashed on every machine without an NVIDIA GPU.** `tools/transcribe.py` always requested float16 math, which CPU-only inference hard-rejects — any AMD or no-GPU tester's first transcription would have died instantly. It now auto-falls back to int8 (the standard CPU mode) when no CUDA device exists. Found by the CPU-variant verification; it never surfaced before because the dev machine always had CUDA. Measured CPU speed for expectations: ~8 minutes for a 2-minute clip on CPU versus ~20 seconds on GPU.
+
 ## [0.3.0-alpha.50] — 2026-08-13 (session 167) — Rejected clips fade to embers on finished cards
 
 ### Changed

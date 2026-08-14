@@ -627,12 +627,19 @@ def main():
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Device: {device}, CUDA available: {torch.cuda.is_available()}", file=sys.stderr)
 
+        # CPU can't do float16 — ctranslate2 hard-errors on it. int8 is the
+        # standard faster-whisper CPU mode (#146 CPU runtime variant).
+        compute_type = args.compute_type
+        if device == "cpu" and compute_type == "float16":
+            compute_type = "int8"
+            print("[INFO] float16 unsupported on CPU — using int8", file=sys.stderr)
+
         # ── Load model ONCE (shared across batch items if --batch) ──
         print_progress(5, "Loading model...")
         model = stable_whisper.load_faster_whisper(
             args.model,
             device=device,
-            compute_type=args.compute_type,
+            compute_type=compute_type,
         )
         print_progress(15, "Model loaded")
 

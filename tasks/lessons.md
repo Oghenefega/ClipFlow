@@ -7,6 +7,10 @@
 > #### ↓↓↓ New lessons go below this line ↓↓↓
 > Review at session start. Ruthlessly iterate until mistake rate drops to zero.
 
+## Beta-readiness assessment built from stale draft notes — the work had already shipped (2026-08-14, session 168)
+**Correction:** asked "what's left for beta," I presented FFmpeg bundling / hfHome / energy_scorer as open blockers, sourced from `tasks/mocks/bb*.md` (session-85 audit drafts left uncommitted in the tree). Fega: "I thought in the latest updates I just packaged ffmpeg into the installer? Are you using updated info or outdated info?" He was right — #251 (alpha.44, 2026-08-11) had shipped all of it, plus #249's zero-setup gateway token. Compounding factor: issues #145/#147 were still open on the tracker despite being superseded, so even a tracker glance would have half-confirmed the stale story.
+**Rules:** (a) A status/roadmap assessment is a present-tense claim about the codebase — verify every "still missing" item against `git log --grep`, the live code, and issue state before presenting; stray planning files (mocks/, drafts, old audit notes) are historical artifacts, never status sources. (b) When code shows an open issue's "done means" is met, close it in the same pass (superseded-by note + commit SHA) so the tracker can't corroborate stale narratives again.
+
 ## Session-name suggestion ignored the established formula while the same message's HANDOFF used it (2026-08-01, session 143)
 **Correction:** suggested "Seven-fix batch + alpha.37: hashtags, time wheel, sticky rejects" — Fega: "cmon this name is not following the formula." The formula (memory [[feedback_session_name]], refined twice: 2026-07-20 plain-words, 2026-07-27 anchors-first, no date) is `S<N> · alpha.<X> — <plain summary>`, and the HANDOFF header written seconds earlier used it correctly.
 **Rule:** the suggestion line is emitted in the exact template — copy the HANDOFF header's anchor prefix verbatim. Routed → memory [[feedback_session_name]] (reinforcement line added); no skill home needed.

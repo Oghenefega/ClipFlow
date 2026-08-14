@@ -30,5 +30,10 @@ __pycache__/
 vendor/ffmpeg/
 vendor/beta-token.json
 
+# AI engine runtime build tree + output zips (#146) — multi-GB; built by
+# scripts/build-runtime.ps1, uploaded to R2, never committed.
+vendor/runtime-build/
+vendor/runtime-dist/
+
 # Windows reserved-name junk (stray `> nul` redirects)
 nul
