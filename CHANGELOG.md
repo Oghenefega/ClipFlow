@@ -4,9 +4,10 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-13 (session 167, continued)
+## [0.3.0-alpha.50] — 2026-08-13 (session 167) — Rejected clips fade to embers on finished cards
 
 ### Changed
+- **Version bumped to 0.3.0-alpha.50 and a fresh installer cut.** Promotes the ember treatment below — the fix for alpha.49's wall-of-red Projects tab.
 - **Rejected clips fade to "embers" once a project is fully reviewed.** Installing alpha.49 revealed that the vivid red orbs at real-library volume (older projects keep 2-5 of 15-20 clips) turned the Projects tab into a wall of glowing red that read as "the app doesn't work" — when heavy rejection is actually by design (never-empty detection; the creator is the precision filter). Rejection is curation, not failure: red now stays vivid only while a project is mid-review (where the decision feedback is useful), and the moment every clip is decided, rejected orbs drop to a 22%-opacity whisper with no glow. Wrapped cards read as quiet cards with lit trophies. Direction picked from a 3-way mockup built on the real worst-case distributions (`tasks/mocks/rejected-orb-treatments.html`); hide-rejected was ruled out (empty rows on kept-nothing projects, count/visual mismatch). Tracked in #254.
 
 ## [0.3.0-alpha.49] — 2026-08-13 (session 167) — Vivid glass-orb clip dots, progress-framed counts, orb-hover breakdown
