@@ -1154,3 +1154,26 @@ the file STARTS with, not what it IS.
 specific section instead. A commit diffstat with deletions I can't name = stop
 and `git show --stat` before pushing. (Global CLAUDE.md §7 already warned:
 "never assume a single read captured the complete file.")
+
+## Session 167 — Vivid status colors shipped against a flattering mock, real library was 90% red
+
+**What went wrong:** The glass-orb redesign made every status color more
+saturated, including rejected-red, and the mockups + CDP verification all used
+balanced clip mixes (4-5 red of 18). Fega installed alpha.49 and his actual
+library — old wrapped projects keeping 2-5 of 15-20 clips — rendered as a wall
+of vivid glowing red. "Big yikes... doesn't make it look like ClipFlow actually
+works." The concern had even been filed pre-ship (#254) but as a "later"
+question instead of a pre-ship check.
+
+**Why:** Vibrancy amplifies whatever the data distribution says. I designed and
+verified against invented mock data with a flattering status mix, never against
+the real distribution — which for ClipFlow is rejection-heavy BY DESIGN
+(never-empty detection, Fega is the precision filter). The dev-profile CDP pass
+checked behavior (tooltip shows/clears), not gestalt (what does a screenful of
+real cards FEEL like).
+
+**Rule:** Before shipping any change that recolors/amplifies a status
+indicator, sample the REAL data distribution first (prod DB counts per status)
+and put the worst-case card in the mock — the one where the "bad" status
+dominates. If the worst case looks like product failure, the design isn't done.
+A status color that's honest per-item can still lie at volume.
