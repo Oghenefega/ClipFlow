@@ -117,6 +117,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **"What is running?" answers must check BOTH layers, and every armed watcher gets stopped at wrap (session 164).** OS-level checks (tasklist/netstat) can never disprove a harness background task — check TaskList / the Background tasks panel too. Until-loop watchers must watch a condition guaranteed reachable (the QUERY that finds new items, not a hardcoded id), and session wrap explicitly stops or confirms-finished every watcher armed during the session.
 
+- **Status-color/aesthetic changes verify against the REAL data distribution, worst-case first (session 167).** Vibrancy amplifies whatever the data says: the glass-orb redesign passed mocks and CDP behavior checks, then rendered Fega's real library — rejection-heavy BY DESIGN — as a wall of vivid red ("doesn't look like ClipFlow works"). Before shipping any change that recolors or amplifies a status indicator: sample real per-status counts (prod DB), put the worst-case card in the mock (the one where the "bad" status dominates), and eyeball the gestalt, not just element behavior. A color that's honest per-item can still lie at volume.
+
 ## Lesson Capture
 
 After ANY correction from the user:
