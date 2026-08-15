@@ -54,6 +54,7 @@ const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
 const appPaths = require("./app-paths");
 const depsCheck = require("./deps-check");
+const setupRuntime = require("./setup-runtime");
 const ffmpeg = require("./ffmpeg");
 const whisper = require("./whisper");
 const projects = require("./projects");
@@ -248,6 +249,10 @@ const STORE_DEFAULTS = {
   audioPreviewVolume: 0.35,
   whisperModel: "large-v3-turbo",
   whisperPythonPath: "",
+  // #146: record of the managed AI-engine install (Finish Setup flow).
+  // null = never installed via the flow (e.g. Fega's D:\ venv machines).
+  // Shape: { variant: "cuda"|"cpu", version, installedAt }
+  engineRuntime: null,
   // #251: HuggingFace model cache. Empty = per-user app data (app-paths.js
   // defaultHfHome). Machines with the legacy D:\whisper\hf_cache are pinned
   // to it by a boot migration below so models never re-download.
@@ -1235,6 +1240,24 @@ ipcMain.handle("assets:peaks", async (_, filePath) => {
 ipcMain.handle("system:checkDependencies", async () => {
   try { return await depsCheck.checkDependencies(store); }
   catch (err) { return { ok: true, issues: [], error: err.message }; }
+});
+
+// ============ AI ENGINE SETUP (#146) ============
+// First-run managed runtime download ("Setting up ClipFlow's AI engine").
+// Only offered when whisperPythonPath is unset/dangling — getState decides.
+ipcMain.handle("setup:getState", async () => {
+  try { return { success: true, ...(await setupRuntime.getState(store)) }; }
+  catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle("setup:start", async () => {
+  try { return await setupRuntime.start(store, mainWindow?.webContents); }
+  catch (err) { return { success: false, error: err.message, phase: "unknown" }; }
+});
+
+ipcMain.handle("setup:cancel", async () => {
+  setupRuntime.cancel();
+  return { success: true };
 });
 
 // ============ FFMPEG ============

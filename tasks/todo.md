@@ -6,7 +6,19 @@
 
 ---
 
-## 🔵 ACTIVE (session 168+1) — #146 session 2 of 3: engines on Cloudflare + in-app "Setting up ClipFlow's AI engine" screen
+## ✅ SHIPPED (session 169) — #146 session 2 of 3: engines on Cloudflare + in-app "Set up ClipFlow's AI engine" flow
+
+All parts landed and E2E-verified on the dev profile 2026-08-15: real R2 download
+(engine.flowve.app), kill-mid-download → resume → checksum pass, unpack, probe
+verify, model pre-download (real 1.6 GB fetch observed), "done" screen, banner
+clear, and a real 40-segment transcription through the freshly downloaded
+engine. Regression: pinned-D:\ profile never sees the screen. One bug found
+live and fixed: the overlay closed early once whisperPythonPath was set
+(pre-model phase) because an unstable parent callback re-fired the state probe
+— fixed with active-job reporting in getState + a callback ref in the view.
+Session 3 (laptop clean-machine E2E + failure modes) remains. Original plan below.
+
+### Original plan (session 168+1)
 
 **Goal:** a fresh install with no Python can click through one screen and end with
 working transcription. Fega's machines (D:\ venv pinned by the #251 migration)

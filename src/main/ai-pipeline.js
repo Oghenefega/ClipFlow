@@ -653,14 +653,13 @@ async function runAIPipeline({
     sendProgress("energy", 42, "Analyzing audio energy...");
     logger.startStep("Energy Analysis");
     // #251: no fallback — an unset path must produce a clear error, never a
-    // guess at another machine's filesystem.
+    // guess at another machine's filesystem. (#146: points at Finish Setup.)
     const pythonPath = store.get("whisperPythonPath");
     if (!pythonPath || !fs.existsSync(pythonPath)) {
       throw new Error(
-        "Whisper's Python environment isn't set up on this machine. " +
-        "Open Settings → Tools & Credentials → BetterWhisperX Configuration and set " +
-        "\"Python Path (venv)\" to your Whisper install's python.exe — the Beta Tester " +
-        "Manual has the setup steps."
+        "ClipFlow's AI engine isn't installed on this machine. " +
+        "Click \"Finish Setup\" on the banner at the top of the app to download it — " +
+        "one download, no manual installs."
       );
     }
     const { energyJson, claudeReadyText } = await runEnergyScorer(

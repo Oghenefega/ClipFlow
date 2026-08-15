@@ -5,7 +5,9 @@ import T from "../styles/theme";
 // it BEFORE the user invests time in a run. Dismissible — the pipeline start
 // re-runs the same check in the main process, so closing the banner never
 // lets a broken run begin.
-export default function DependencyBanner() {
+// #146: the whisper-python issue gets a "Finish Setup" button that opens the
+// AI engine download flow (onFinishSetup, wired in App.js).
+export default function DependencyBanner({ onFinishSetup }) {
   const [issues, setIssues] = useState([]);
   const [checking, setChecking] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -47,6 +49,24 @@ export default function DependencyBanner() {
           </div>
         ))}
       </div>
+      {onFinishSetup && issues.some((i) => i.id === "whisper-python") && (
+        <button
+          onClick={onFinishSetup}
+          style={{
+            background: "linear-gradient(180deg, #3aa9ef, #1a4fc4)",
+            color: "#fff",
+            border: "none",
+            padding: "5px 14px",
+            borderRadius: 4,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          Finish Setup
+        </button>
+      )}
       <button
         onClick={runCheck}
         disabled={checking}

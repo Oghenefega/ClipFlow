@@ -19,13 +19,12 @@ const { registerProvider, getStore } = require("../transcription-provider");
 // #251: per-user cache default + bundled FFmpeg for WhisperX's audio loader.
 const { envWithBundledFfmpeg, defaultHfHome } = require("../../app-paths");
 
-// Plain-language setup error (#251) — surfaced straight to the user when
-// transcription starts without a configured Whisper Python.
+// Plain-language setup error (#251, repointed #146) — surfaced straight to
+// the user when transcription starts without a configured AI engine.
 const PYTHON_SETUP_ERROR =
-  "Whisper's Python environment isn't set up on this machine. " +
-  "Open Settings → Tools & Credentials → BetterWhisperX Configuration and set " +
-  "\"Python Path (venv)\" to your Whisper install's python.exe — the Beta Tester " +
-  "Manual has the setup steps.";
+  "ClipFlow's AI engine isn't installed on this machine. " +
+  "Click \"Finish Setup\" on the banner at the top of the app to download it — " +
+  "one download, no manual installs.";
 
 // Resolve the bundled transcribe.py. In the packaged app the source tree lives
 // inside the read-only asar and an external python.exe can't read it there, so

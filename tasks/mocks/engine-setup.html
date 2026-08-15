@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClipFlow — AI Engine Setup mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b10; --surface: #111218; --surface2: #16171f;
+    --border: #23242e; --border-hi: #2e3040;
+    --text: #eceef4; --text2: #9ba0b0; --text3: #6b7080; --muted: #4a4e5c;
+    /* accents pulled from the ClipFlow mark: ice cyan -> royal blue (no generic AI purple) */
+    --cy: #45c8f5; --cy-soft: #7edcff; --blu: #2469e3; --blu-deep: #1a4fc4;
+    --accent-dim: rgba(69,200,245,.13);
+    --green: #34d399; --green-dim: rgba(52,211,153,.13);
+    --amber: #fbbf24; --amber-dim: rgba(251,191,36,.10);
+    --red: #f87171; --red-dim: rgba(248,113,113,.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#050609; font-family:'DM Sans',sans-serif; color:var(--text); }
+
+  /* ── mockup chrome (not part of the app screen) ── */
+  .chrome { display:flex; gap:6px; align-items:center; padding:10px 16px; background:#0d0e14; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+  .chrome .lbl { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text3); margin-right:10px; }
+  .chrome button { font-family:inherit; font-size:12.5px; font-weight:600; color:var(--text2); background:transparent; border:1px solid var(--border); border-radius:8px; padding:5px 11px; cursor:pointer; }
+  .chrome button.on { color:#fff; background:var(--accent-dim); border-color:rgba(69,200,245,.45); }
+  .chrome .hint { margin-left:auto; font-size:11.5px; color:var(--text3); }
+
+  /* ── the actual screen ── */
+  .stage { height: calc(100vh - 46px); background:var(--bg); display:flex; align-items:center; justify-content:center; }
+  .panel { width: 520px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+
+  /* ClipFlow mark on its own glow, in the logo's colors. One glow for every state —
+     status is told by the bar/buttons, not by recoloring the brand (Fega feedback).
+     Interrupted = the color drains out of the mark itself. */
+  .mark-wrap { position:relative; width:104px; height:104px; margin-bottom:22px; }
+  .mark-glow {
+    position:absolute; inset:-34px; border-radius:50%;
+    background: radial-gradient(circle at 50% 42%, rgba(126,220,255,.34) 0%, rgba(69,200,245,.20) 34%, rgba(36,105,227,.14) 58%, transparent 74%);
+    filter: blur(11px);
+  }
+  .mark-glow.breathe { animation: breathe 2.6s ease-in-out infinite; }
+  @keyframes breathe { 0%,100%{ transform:scale(1); opacity:.75;} 50%{ transform:scale(1.15); opacity:1;} }
+  .mark { position:relative; width:104px; height:104px; object-fit:contain; filter: drop-shadow(0 7px 18px rgba(10,30,70,.55)); }
+  .mark-wrap.off .mark-glow { background: radial-gradient(circle, rgba(140,146,165,.16) 0%, rgba(140,146,165,.07) 45%, transparent 70%); animation:none; }
+  .mark-wrap.off .mark { filter: grayscale(1) brightness(.72) drop-shadow(0 7px 18px rgba(0,0,0,.4)); }
+
+  h1 { font-size:21px; font-weight:700; letter-spacing:-.01em; margin-bottom:7px; }
+  .sub { font-size:13.5px; line-height:1.55; color:var(--text2); max-width:430px; margin-bottom:24px; }
+  .sub b { color:var(--text); font-weight:600; }
+
+  /* stepper */
+  .steps { display:flex; align-items:center; gap:8px; margin-bottom:18px; }
+  .step { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+  .step .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); }
+  .step.active { color:var(--cy); } .step.active .dot { background:var(--cy); box-shadow:0 0 8px rgba(69,200,245,.8); }
+  .step.done { color:var(--text3); } .step.done .dot { background:var(--green); box-shadow:none; }
+  .steps .sep { width:26px; height:1px; background:var(--border-hi); }
+
+  /* info card */
+  .card { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:4px 18px; margin-bottom:22px; text-align:left; }
+  .row { display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--text3); flex-shrink:0; }
+  .row .v { color:var(--text); font-weight:600; text-align:right; }
+  .row .v .ok { color:var(--green); } .row .v small { color:var(--text3); font-weight:500; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; }
+  .pill .p-dot { width:7px; height:7px; border-radius:50%; }
+  .pill.g { color:var(--green);} .pill.g .p-dot{ background:var(--green); box-shadow:0 0 7px rgba(52,211,153,.7);}
+  .pill.a { color:var(--amber);} .pill.a .p-dot{ background:var(--amber); box-shadow:0 0 7px rgba(251,191,36,.7);}
+
+  .note { width:100%; display:flex; gap:10px; align-items:flex-start; background:var(--amber-dim); border:1px solid rgba(251,191,36,.22); border-radius:11px; padding:11px 13px; margin:-8px 0 22px; text-align:left; }
+  .note svg { flex-shrink:0; margin-top:1px; }
+  .note p { font-size:12.5px; line-height:1.5; color:var(--text2); }
+  .note p b { color:var(--amber); font-weight:600; }
+
+  /* progress */
+  .prog { width:100%; margin-bottom:22px; }
+  .bar { height:6px; border-radius:3px; background:var(--surface2); border:1px solid var(--border); overflow:hidden; margin-bottom:10px; }
+  .fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--blu), var(--cy-soft)); box-shadow:0 0 12px rgba(69,200,245,.55); transition:width .3s; }
+  .fill.indet { width:36% !important; animation: slide 1.4s ease-in-out infinite; }
+  @keyframes slide { 0%{margin-left:-36%;} 100%{margin-left:100%;} }
+  .prog-meta { display:flex; justify-content:space-between; font-size:12.5px; color:var(--text3); }
+  .prog-meta .left { color:var(--text2); font-weight:600; }
+
+  /* buttons */
+  .actions { display:flex; flex-direction:column; align-items:center; gap:13px; }
+  .btn {
+    font-family:inherit; font-size:14px; font-weight:700; color:#fff; border:none; cursor:pointer;
+    padding:11px 30px; border-radius:11px;
+    background:linear-gradient(180deg, #3aa9ef, var(--blu-deep));
+    box-shadow:0 4px 18px rgba(36,105,227,.38), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .btn:hover { filter:brightness(1.08); }
+  .ghost { font-size:12.5px; color:var(--text3); background:none; border:none; cursor:pointer; font-family:inherit; }
+  .ghost:hover { color:var(--text2); text-decoration:underline; }
+
+  .foot { margin-top:26px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+  .foot svg { opacity:.7; }
+  .state { display:none; }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <span class="lbl">State</span>
+  <button data-s="gpu" class="on">1 · Ready (GPU)</button>
+  <button data-s="cpu">2 · Ready (no NVIDIA)</button>
+  <button data-s="down">3 · Downloading</button>
+  <button data-s="install">4 · Installing</button>
+  <button data-s="model">5 · Speech model</button>
+  <button data-s="done">6 · Done</button>
+  <button data-s="err">7 · Interrupted</button>
+  <span class="hint">← → keys work too</span>
+</div>
+
+<div class="stage">
+
+  <!-- 1 · READY, GPU -->
+  <div class="panel state" id="s-gpu" style="display:flex">
+    <div class="mark-wrap"><div class="mark-glow"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Set up ClipFlow's AI engine</h1>
+    <p class="sub">One-time download so transcription and clip detection run <b>entirely on this PC</b> — your footage never leaves your machine.</p>
+    <div class="steps">
+      <div class="step active"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="k">Graphics card</span><span class="v"><span class="pill g"><span class="p-dot"></span>NVIDIA GeForce RTX 3090</span></span></div>
+      <div class="row"><span class="k">Engine</span><span class="v">GPU engine <small>· fastest</small></span></div>
+      <div class="row"><span class="k">Download</span><span class="v">2.7 GB <small>+ 1.6 GB speech model</small></span></div>
+      <div class="row"><span class="k">Space needed</span><span class="v">7.2 GB <small>· 214 GB free</small> <span class="ok">✓</span></span></div>
+    </div>
+    <div class="actions">
+      <button class="btn">Download and install</button>
+      <button class="ghost">Set up later</button>
+    </div>
+    <div class="foot"><svg width="11" height="13" viewBox="0 0 11 13" fill="none"><path d="M5.5 1L1 3v3.5C1 9.5 3 11.5 5.5 12 8 11.5 10 9.5 10 6.5V3L5.5 1z" stroke="#6b7080" stroke-width="1.1"/></svg>Downloads securely from ClipFlow's servers · resumes automatically if interrupted</div>
+  </div>
+
+  <!-- 2 · READY, CPU -->
+  <div class="panel state" id="s-cpu">
+    <div class="mark-wrap"><div class="mark-glow"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Set up ClipFlow's AI engine</h1>
+    <p class="sub">One-time download so transcription and clip detection run <b>entirely on this PC</b> — your footage never leaves your machine.</p>
+    <div class="steps">
+      <div class="step active"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="k">Graphics card</span><span class="v"><span class="pill a"><span class="p-dot"></span>No NVIDIA card found</span></span></div>
+      <div class="row"><span class="k">Engine</span><span class="v">Processor engine</span></div>
+      <div class="row"><span class="k">Download</span><span class="v">0.4 GB <small>+ 1.6 GB speech model</small></span></div>
+      <div class="row"><span class="k">Space needed</span><span class="v">3.5 GB <small>· 88 GB free</small> <span class="ok">✓</span></span></div>
+    </div>
+    <div class="note">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 12H1L7 1z" stroke="#fbbf24" stroke-width="1.2"/><path d="M7 5.5v3" stroke="#fbbf24" stroke-width="1.2"/><circle cx="7" cy="10.2" r=".7" fill="#fbbf24"/></svg>
+      <p><b>Heads up — this will be slower.</b> Without an NVIDIA card, transcribing runs on your processor: a 2-minute clip takes around 8 minutes. Everything still works, it just takes patience.</p>
+    </div>
+    <div class="actions">
+      <button class="btn">Download and install</button>
+      <button class="ghost">Set up later</button>
+    </div>
+    <div class="foot"><svg width="11" height="13" viewBox="0 0 11 13" fill="none"><path d="M5.5 1L1 3v3.5C1 9.5 3 11.5 5.5 12 8 11.5 10 9.5 10 6.5V3L5.5 1z" stroke="#6b7080" stroke-width="1.1"/></svg>Downloads securely from ClipFlow's servers · resumes automatically if interrupted</div>
+  </div>
+
+  <!-- 3 · DOWNLOADING -->
+  <div class="panel state" id="s-down">
+    <div class="mark-wrap"><div class="mark-glow breathe"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Downloading the AI engine</h1>
+    <p class="sub">You can keep this window open or hide it — the download continues either way.</p>
+    <div class="steps">
+      <div class="step active"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="prog">
+      <div class="bar"><div class="fill" style="width:52%"></div></div>
+      <div class="prog-meta"><span class="left">1.42 GB of 2.73 GB</span><span>96 MB/s · about 15 seconds left</span></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" style="font-size:13px; color:var(--text2);">Hide — keep downloading in background</button>
+      <button class="ghost">Cancel</button>
+    </div>
+  </div>
+
+  <!-- 4 · INSTALLING -->
+  <div class="panel state" id="s-install">
+    <div class="mark-wrap"><div class="mark-glow breathe"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Installing the AI engine</h1>
+    <p class="sub">Unpacking and checking everything works. This takes a minute or two — no internet needed from here.</p>
+    <div class="steps">
+      <div class="step done"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step active"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="prog">
+      <div class="bar"><div class="fill indet"></div></div>
+      <div class="prog-meta"><span class="left">Unpacking files…</span><span></span></div>
+    </div>
+  </div>
+
+  <!-- 5 · SPEECH MODEL -->
+  <div class="panel state" id="s-model">
+    <div class="mark-wrap"><div class="mark-glow breathe"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Downloading the speech model</h1>
+    <p class="sub">The model that turns your voice into subtitles. Last step — after this, transcription is instant to start.</p>
+    <div class="steps">
+      <div class="step done"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step done"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step active"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="prog">
+      <div class="bar"><div class="fill" style="width:58%"></div></div>
+      <div class="prog-meta"><span class="left">0.94 GB of 1.62 GB</span><span>89 MB/s · about 8 seconds left</span></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" style="font-size:13px; color:var(--text2);">Hide — keep downloading in background</button>
+    </div>
+  </div>
+
+  <!-- 6 · DONE -->
+  <div class="panel state" id="s-done">
+    <div class="mark-wrap"><div class="mark-glow" style="opacity:1; filter:blur(11px) brightness(1.25);"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Your AI engine is ready</h1>
+    <p class="sub">Transcription and clip detection now run fully on this machine.<br><b>Your footage never leaves your PC.</b></p>
+    <div class="steps">
+      <div class="step done"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step done"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step done"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="actions" style="margin-top:6px;">
+      <button class="btn">Start creating</button>
+    </div>
+  </div>
+
+  <!-- 7 · ERROR / INTERRUPTED -->
+  <div class="panel state" id="s-err">
+    <div class="mark-wrap off"><div class="mark-glow"></div><img class="mark" src="../../public/icon.png" alt="ClipFlow"></div>
+    <h1>Download interrupted</h1>
+    <p class="sub">Looks like the connection dropped. Nothing is lost — the download picks up right where it stopped.</p>
+    <div class="steps">
+      <div class="step active"><span class="dot"></span>Download</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Install</div><div class="sep"></div>
+      <div class="step"><span class="dot"></span>Speech model</div>
+    </div>
+    <div class="prog">
+      <div class="bar"><div class="fill" style="width:52%; background:linear-gradient(90deg,#5b5f6e,#7a7f92); box-shadow:none;"></div></div>
+      <div class="prog-meta"><span class="left">1.42 GB of 2.73 GB saved</span><span>paused</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn">Resume download</button>
+      <button class="ghost">Set up later</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const btns = [...document.querySelectorAll('.chrome button')];
+  const show = s => {
+    document.querySelectorAll('.state').forEach(el => el.style.display = 'none');
+    document.getElementById('s-' + s).style.display = 'flex';
+    btns.forEach(b => b.classList.toggle('on', b.dataset.s === s));
+  };
+  btns.forEach(b => b.onclick = () => show(b.dataset.s));
+  document.addEventListener('keydown', e => {
+    const i = btns.findIndex(b => b.classList.contains('on'));
+    if (e.key === 'ArrowRight') show(btns[(i + 1) % btns.length].dataset.s);
+    if (e.key === 'ArrowLeft')  show(btns[(i - 1 + btns.length) % btns.length].dataset.s);
+  });
+</script>
+</body>
+</html>

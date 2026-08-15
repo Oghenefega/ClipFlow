@@ -103,6 +103,18 @@ contextBridge.exposeInMainWorld("clipflow", {
   // First-run dependency check (#251)
   checkDependencies: () => ipcRenderer.invoke("system:checkDependencies"),
 
+  // AI engine setup (#146) — first-run managed runtime download
+  setupGetState: () => ipcRenderer.invoke("setup:getState"),
+  setupStart: () => ipcRenderer.invoke("setup:start"),
+  setupCancel: () => ipcRenderer.invoke("setup:cancel"),
+  // Returns an unsubscribe fn (same pattern as onRenderProgress) — the setup
+  // screen mounts/unmounts while the download keeps running in main.
+  onSetupProgress: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("setup:progress", handler);
+    return () => ipcRenderer.removeListener("setup:progress", handler);
+  },
+
   // Projects
   projectLoad: (projectId) => ipcRenderer.invoke("project:load", projectId),
   projectList: () => ipcRenderer.invoke("project:list"),

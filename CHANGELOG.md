@@ -4,6 +4,19 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-15 (session 169) — #146 engines live on Cloudflare + in-app "Set up ClipFlow's AI engine" flow (zero-setup arc, session 2 of 3)
+
+### Added
+- **Both AI engine packages are now hosted on Cloudflare R2 behind `engine.flowve.app` (#146).** The GPU engine (2.73 GB), CPU engine (0.43 GB) and a combined manifest the app polls (version, download URL, SHA-256 fingerprint, packed/unpacked sizes per variant) live under ClipFlow's own domain — no rate-limited r2.dev involved. `scripts/publish-runtime.ps1` makes future engine versions a one-command publish: it builds the manifest, uploads anything missing (size-matched files are skipped so re-runs are safe), and then proves the hosting works — reads the manifest back over the public URL, checks both file sizes, confirms resume support (HTTP Range), and can re-download the CPU engine end-to-end to verify its fingerprint (passed).
+- **The in-app "Set up ClipFlow's AI engine" screen (#146).** A fresh install with no Python can now click one button and end with working transcription. The flow: detects an NVIDIA card (nvidia-smi probe) to pick the GPU or CPU engine → shows what it will download, the disk space needed vs. free, and an honest "this will be slower" note on CPU machines (a 2-minute clip ≈ 8 minutes) → downloads with live progress/speed/ETA → verifies the file's SHA-256 fingerprint → unpacks into the app's own data folder → runs the existing "does transcription actually import" probe → wires the Python path setting automatically → pre-downloads the ~1.6 GB speech model with visible progress (previously it ambushed the first transcription). Downloads survive a crash or quit: killed mid-transfer at 1.2 GB in testing, it offered "Resume download" on relaunch, continued from the saved bytes, and the final fingerprint check still covered every byte. The screen can be hidden mid-download ("keep downloading in background") and reopened from the dependency banner's new **Finish Setup** button. Design locked from an approved mockup (`tasks/mocks/engine-setup.html`): the ClipFlow mark on a logo-colored cyan-blue glow that breathes while working and drains to grey when interrupted — no generic AI purple.
+- **Machines with an existing Whisper setup never see any of this.** The screen is offered only when no Python path is set or the saved one is gone — checked after the boot migration that pins existing installs, verified by regression test.
+
+### Changed
+- **"Whisper isn't set up" guidance now points at Finish Setup instead of a manual.** The dependency banner's fix text, the pipeline's Python-missing errors, and the transcription provider's setup error all pointed at Settings plus a "Beta Tester Manual" that never actually existed as a link — they now all say: click Finish Setup, one download, no manual installs.
+
+### Filed
+- **#255 — clipflow.app belongs to a third party.** Surfaced while picking the download host: the exact-match domain for the product's name is a stranger's GoDaddy-parked registration (registered Jan 2025), while ClipFlow's real web home is flowve.app/clipflow on Cloudflare. Pre-launch decision filed on the launch-ops track: commit to flowve.app, buy clipflow.app, or pick another domain. The infra dashboard's H4 note "hosting will be on clipflow.app" is invalidated and needs updating.
+
 ## [Unreleased] — 2026-08-14 (session 168) — #146 AI engine runtime packages built and verified (zero-setup arc, session 1 of 3)
 
 ### Added

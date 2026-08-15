@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import FeedbackBubble from "./components/FeedbackBubble";
 import UpdateBanner from "./components/UpdateBanner";
 import DependencyBanner from "./components/DependencyBanner";
+import EngineSetupView from "./components/EngineSetupView";
 import PublishFailureBanner from "./components/PublishFailureBanner";
 import { AddGameModal, TranscriptModal } from "./components/modals";
 import { normalizeHexColor } from "./components/shared";
@@ -310,6 +311,28 @@ export default function App() {
 
   // Onboarding
   const [onboardingComplete, setOnboardingComplete] = useState(null); // null = loading, true/false = resolved
+  // #146 AI engine setup — needed: whisperPythonPath unset/dangling (main
+  // decides); open: the overlay is showing (it can be hidden mid-download and
+  // reopened from the DependencyBanner's Finish Setup button).
+  const [engineSetupNeeded, setEngineSetupNeeded] = useState(false);
+  const [engineSetupOpen, setEngineSetupOpen] = useState(false);
+  // Boot probe: main answers "needed" only when whisperPythonPath is unset or
+  // dangling AFTER the #251 boot migrations ran — so machines with a pinned
+  // D:\ venv never see the setup screen.
+  useEffect(() => {
+    window.clipflow?.setupGetState?.().then((r) => {
+      if (r?.success && r.needed) {
+        setEngineSetupNeeded(true);
+        setEngineSetupOpen(true);
+      }
+    }).catch(() => {});
+    // A download finished while the overlay was hidden still clears the
+    // banner (needed → key flip → DependencyBanner remounts and re-checks).
+    const unsub = window.clipflow?.onSetupProgress?.((d) => {
+      if (d.phase === "done") setEngineSetupNeeded(false);
+    });
+    return unsub;
+  }, []);
 
   // Queue settings
   const [requireHashtagInTitle, setRequireHashtagInTitle] = useState(true);
@@ -871,7 +894,12 @@ export default function App() {
         </div>
       </div>
       <UpdateBanner />
-      <DependencyBanner />
+      {/* key: remount (→ re-check) when engine setup finishes, so the whisper
+          issue clears from the banner without a manual "Check again" */}
+      <DependencyBanner
+        key={engineSetupNeeded ? "deps-engine-pending" : "deps-engine-ok"}
+        onFinishSetup={() => setEngineSetupOpen(true)}
+      />
       <PublishFailureBanner
         alerts={publishAlerts}
         onReview={() => { setQueueFocusFailed((n) => n + 1); nav("queue"); setPublishAlerts([]); }}
@@ -1119,6 +1147,14 @@ export default function App() {
       {onboardingComplete === false && (
         <OnboardingView onComplete={(profile) => {
           setOnboardingComplete(true);
+        }} />
+      )}
+      {/* #146: engine setup waits its turn behind onboarding, then overlays
+          everything until finished or explicitly deferred ("Set up later"). */}
+      {onboardingComplete !== false && engineSetupOpen && (
+        <EngineSetupView onClose={(completed) => {
+          setEngineSetupOpen(false);
+          if (completed) setEngineSetupNeeded(false);
         }} />
       )}
       <TranscriptModal clip={transcript} onClose={() => setTranscript(null)} />

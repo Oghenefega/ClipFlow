@@ -74,7 +74,7 @@ async function checkDependencies(store) {
       detail: pythonPath
         ? `The saved Python path no longer exists: ${pythonPath}`
         : "No Python path is set, so clips can't be transcribed or subtitled.",
-      fix: "Open Settings → Tools & Credentials → BetterWhisperX Configuration and set \"Python Path (venv)\" — the Beta Tester Manual has the install steps.",
+      fix: "Click Finish Setup to download ClipFlow's AI engine — one download, no manual installs.",
     });
   }
 
