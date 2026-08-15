@@ -6,6 +6,101 @@
 
 ---
 
+## 🔵 ACTIVE (session 168+1) — #146 session 2 of 3: engines on Cloudflare + in-app "Setting up ClipFlow's AI engine" screen
+
+**Goal:** a fresh install with no Python can click through one screen and end with
+working transcription. Fega's machines (D:\ venv pinned by the #251 migration)
+never see the screen.
+
+### Part A — Put the engines on Cloudflare R2
+
+**Fega does (one-time, ~5 min in the Cloudflare dashboard, guided click-by-click):**
+1. Create bucket `clipflow-engine` on the ClipFlow business account (same account
+   as the #249 gateway).
+2. Enable the bucket's r2.dev public URL ("Allow public access"). clipflow.app's
+   DNS is on GoDaddy, not Cloudflare, so a downloads.clipflow.app custom domain
+   isn't possible today — r2.dev is fine for this arc + session 3; a pre-beta
+   "move to custom domain" issue gets filed.
+3. Create an R2 API token (Object Read & Write, scoped to the bucket) and save
+   Account ID + Access Key ID + Secret to `C:\Users\IAmAbsolute\.claude\r2_credentials.txt`
+   (same pattern as github_token.txt — Claude never sees the dashboard secret page).
+
+**Claude does:**
+4. Install rclone (winget) and configure it against the R2 S3 endpoint from the
+   credentials file. (2.73 GB needs multipart — wrangler caps out at ~300 MB.)
+5. New `scripts/publish-runtime.ps1`: builds a combined `manifest.json` from the
+   two per-variant manifests (adds `url` + `unpackedBytes` per variant), uploads
+   both zips + manifest to `engine/v1.0.0/` + `engine/manifest.json`, prints the
+   public URLs. Repeatable for future engine versions.
+6. Verify hosting for real: re-download the CPU zip from the public URL and hash
+   it (must match manifest sha256); confirm Range requests work (resume support);
+   fetch manifest.json.
+
+### Part B — In-app "Setting up ClipFlow's AI engine" flow
+
+**B0 — Mockup checkpoint (before any UI code):** HTML mockup of the setup screen
+(all phases: detect result → confirm w/ size + CPU-speed warning → downloading
+w/ progress/speed/ETA → unpacking → verifying → model download → done → error/retry)
+in `tasks/mocks/engine-setup.html`, opened in Fega's browser. Fega picks/adjusts,
+THEN it gets built. (ui-density rule: mock aesthetic-sensitive UI first.)
+
+**New files:**
+- `src/main/setup-runtime.js` — the whole engine-install brain:
+  - GPU probe: spawn `nvidia-smi` (PATH, then System32 fallback) → cuda|cpu variant
+  - fetch `engine/manifest.json` from R2
+  - disk preflight on the userData drive: zip + unpackedBytes + ~1.6 GB model + margin
+  - download to `userData\runtime\.download\<file>.part` with Range resume,
+    streamed SHA-256, progress events throttled ~250 ms (mirrors the
+    `import:progress` pattern, main.js:1710-1740)
+  - unpack via `%SystemRoot%\System32\tar.exe -xf` (bsdtar reads zips; proven in
+    build-runtime.ps1; zero new npm deps) into `userData\runtime\.staging` →
+    rename to `userData\runtime\python-<variant>-v<ver>\` (atomic-ish), delete zip
+  - verify via existing `whisper.checkWhisper()` probe (imports stable_whisper+torch,
+    reports CUDA) → `store.set("whisperPythonPath", <new python.exe>)`
+  - model pre-download: spawn the new runtime's python on new `tools/download_model.py`
+  - cancel keeps the .part for resume; every phase has a typed error for the UI
+- `tools/download_model.py` — downloads the configured whisper model (default
+  large-v3-turbo) into HF_HOME, printing the same `PROGRESS n msg` lines
+  transcribe.py prints (rides the existing tools/ extraResources glob)
+- `src/renderer/components/EngineSetupView.js` — full-screen overlay, same slot +
+  pattern as OnboardingView (App.js:1119-1123, fixed inset-0, T tokens, DM Sans);
+  built from the approved mockup; "Set up later" escape → DependencyBanner remains
+  the way back in
+
+**Modified files:**
+- `src/main/main.js` — IPC: `setup:getState` (needed? variant? sizes), `setup:start`,
+  `setup:cancel`; `setup:progress` push events. Store: record installed engine
+  `{variant, version}` (additive default + migration-safe)
+- `src/main/preload.js` — bridge the four channels (pattern: preload.js:198-203)
+- `src/main/deps-check.js` — whisper-python issue's `fix` text → "Finish Setup"
+  (kill the Beta Tester Manual pointer, which never resolved to anything)
+- `src/main/ai/transcription/stable-ts.js` — PYTHON_SETUP_ERROR → point at Finish
+  Setup instead of Settings-path-plus-manual
+- `src/main/ai-pipeline.js` (~:659) — the inlined duplicate of that error text, same repoint
+- `src/renderer/components/DependencyBanner.js` — "Finish Setup" button on the
+  whisper-python issue → opens the setup screen
+- `src/renderer/App.js` — mount EngineSetupView after onboarding
+  (onboardingComplete !== false), gated on `setup:getState.needed`
+
+**Gate (must not fight #251 migrations):** setup is offered ONLY when
+`whisperPythonPath` is empty or points at a missing file — checked AFTER boot
+migrations run, so Fega's D:\ pin wins and his machines never see the screen.
+
+### Verification (all on this machine, dev profile)
+1. `scripts/publish-runtime.ps1` re-run is a no-op-safe overwrite; public-URL CPU-zip
+   hash matches manifest.
+2. Dev profile with `whisperPythonPath` cleared → full E2E: screen appears →
+   downloads REAL zip from R2 → unpack → probe passes → model pre-downloads →
+   a real clip transcribes through the new runtime.
+3. Resume: kill mid-download, relaunch, download continues from the .part.
+4. Regression: prod-like profile with D:\ venv present → screen never appears,
+   banner unchanged, pipeline untouched.
+5. `npm run build` + `npm start` visual pass (non-negotiable).
+6. Session 3 (laptop clean-machine E2E + failure modes: offline mid-download,
+   disk full, AMD GPU, corrupt unpack) stays scoped OUT of this session.
+
+---
+
 ## ✅ SHIPPED (session 166) — alpha.48 installed & Fega-confirmed ("All the changes are here")
 
 Two asks from Fega (2026-08-13): real game art on the Projects-tab tiles, and
