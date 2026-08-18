@@ -40,6 +40,27 @@ function runtimeRoot() {
   return path.join(app.getPath("userData"), "runtime");
 }
 
+// A retained zip only ever exists checksummed — it's renamed from .part AFTER
+// the digest matched — so size-match means it's reusable as-is (#256).
+function zipReady(zipPath, sizeBytes) {
+  try { return fs.statSync(zipPath).size === sizeBytes; } catch (_) { return false; }
+}
+
+/**
+ * Clear debris a failed prior attempt left behind (#256): the staging dir, a
+ * half-installed engine dir for this exact variant+version, and a wrong-size
+ * zip. Without this, up to ~10 GB of leftovers sink the disk preflight and a
+ * transient verify failure turns into a bogus "not enough disk space" on
+ * retry. Never called while a job is running — unpack writes into these paths.
+ */
+function reclaimDebris(variant, version, zipPath, sizeBytes) {
+  try { fs.rmSync(path.join(runtimeRoot(), ".staging"), { recursive: true, force: true }); } catch (_) {}
+  try { fs.rmSync(path.join(runtimeRoot(), `engine-${variant}-v${version}`), { recursive: true, force: true }); } catch (_) {}
+  if (!zipReady(zipPath, sizeBytes)) {
+    try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
+  }
+}
+
 function sendProgress(webContents, data) {
   try {
     if (webContents && !webContents.isDestroyed()) {
@@ -126,9 +147,16 @@ async function getState(store) {
   let resumeBytes = 0;
   if (manifest && manifest.variants && manifest.variants[variant]) {
     const v = manifest.variants[variant];
-    requiredBytes = v.sizeBytes + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
     const partPath = path.join(runtimeRoot(), ".download", `${v.file}.part`);
+    const zipPath = path.join(runtimeRoot(), ".download", v.file);
+    // Clear failed-attempt leftovers before measuring (#256) — but never while
+    // a job is live (unpack/download write into these paths).
+    if (!job) reclaimDebris(variant, manifest.version, zipPath, v.sizeBytes);
     try { resumeBytes = fs.statSync(partPath).size; } catch (_) { /* no partial */ }
+    // Space still needed FROM HERE: bytes already saved (.part) or a fully
+    // downloaded zip don't need downloading again (#256).
+    const downloadBytes = zipReady(zipPath, v.sizeBytes) ? 0 : Math.max(0, v.sizeBytes - resumeBytes);
+    requiredBytes = downloadBytes + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
   }
 
   return {
@@ -164,8 +192,16 @@ function hashExistingPart(partPath, onTick) {
   });
 }
 
+// No data for this long → treat as a dead connection. A silent stall (Wi-Fi
+// off, airplane mode — no reset packet ever arrives) otherwise freezes the
+// progress bar forever, since only real socket errors reject (#258).
+const STALL_TIMEOUT_MS = 60000;
+
 function downloadWithResume({ url, partPath, totalBytes, webContents }) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise(async (resolveRaw, rejectRaw) => {
+    let stallTimer = null;
+    const resolve = (v) => { clearTimeout(stallTimer); resolveRaw(v); };
+    const reject = (e) => { clearTimeout(stallTimer); rejectRaw(e); };
     let startAt = 0;
     let hash = crypto.createHash("sha256");
     try {
@@ -191,6 +227,7 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
     const request = https.get(url, { headers }, (res) => {
       if (startAt > 0 && res.statusCode === 200) {
         // Server ignored the Range — start over so hash and file agree.
+        clearTimeout(stallTimer); // the retry runs its own watchdog (#258)
         res.destroy();
         try { fs.rmSync(partPath, { force: true }); } catch (_) {}
         return downloadWithResume({ url, partPath, totalBytes, webContents }).then(resolve, reject);
@@ -229,6 +266,8 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
           });
         }
       });
+      armStall(); // response is live — from here, silence means a dead line (#258)
+      res.on("data", armStall);
       res.pipe(out);
       out.on("finish", () => {
         if (job && job.cancelRequested) {
@@ -243,9 +282,23 @@ function downloadWithResume({ url, partPath, totalBytes, webContents }) {
       out.on("error", reject);
       res.on("error", (err) => {
         out.end();
+        // Cancel destroys the request, which surfaces here as an "aborted"
+        // stream error — without this check it wins the race against the
+        // cancelled rejection and the UI shows "connection dropped" (#257).
+        if (job && job.cancelRequested) {
+          return reject(Object.assign(new Error("cancelled"), { cancelled: true }));
+        }
         reject(Object.assign(err, { resumable: true }));
       });
     });
+    const armStall = () => {
+      clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        try { request.destroy(); } catch (_) {}
+        reject(Object.assign(new Error("connection lost before the download finished"), { resumable: true }));
+      }, STALL_TIMEOUT_MS);
+    };
+    armStall(); // covers a request that never gets a response
     job.request = request;
     request.on("error", (err) => {
       if (job && job.cancelRequested) {
@@ -373,35 +426,39 @@ async function start(store, webContents) {
     if (!v) return fail("manifest", new Error(`manifest has no "${variant}" variant`));
 
     // ── disk preflight ──
-    const free = freeDiskBytes();
-    const required = v.sizeBytes + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
     const partPath = path.join(runtimeRoot(), ".download", `${v.file}.part`);
+    const zipPath = path.join(runtimeRoot(), ".download", v.file);
+    reclaimDebris(variant, manifest.version, zipPath, v.sizeBytes); // failed-attempt leftovers must not sink the preflight (#256)
+    const haveZip = zipReady(zipPath, v.sizeBytes);
+    const free = freeDiskBytes();
     let already = 0;
     try { already = fs.statSync(partPath).size; } catch (_) {}
-    if (free !== null && free < required - already) {
-      const needGb = ((required - already) / 1e9).toFixed(1);
+    const required = (haveZip ? 0 : Math.max(0, v.sizeBytes - already)) + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
+    if (free !== null && free < required) {
+      const needGb = (required / 1e9).toFixed(1);
       const freeGb = (free / 1e9).toFixed(1);
       return fail("disk", new Error(`Not enough disk space: setup needs about ${needGb} GB free, this drive has ${freeGb} GB.`));
     }
 
-    // ── download + checksum ──
-    job.phase = "download";
-    fs.mkdirSync(path.dirname(partPath), { recursive: true });
-    let digest;
-    try {
-      digest = await downloadWithResume({ url: v.url, partPath, totalBytes: v.sizeBytes, webContents });
-    } catch (err) {
-      return fail("download", err);
-    }
-    if (digest !== v.sha256.toLowerCase()) {
-      try { fs.rmSync(partPath, { force: true }); } catch (_) {}
-      return fail("checksum", new Error("The downloaded file didn't verify — it may have been corrupted in transit. The download was cleared; try again."));
+    // ── download + checksum (skipped when a checksummed zip is already on disk, #256) ──
+    if (!haveZip) {
+      job.phase = "download";
+      fs.mkdirSync(path.dirname(partPath), { recursive: true });
+      let digest;
+      try {
+        digest = await downloadWithResume({ url: v.url, partPath, totalBytes: v.sizeBytes, webContents });
+      } catch (err) {
+        return fail("download", err);
+      }
+      if (digest !== v.sha256.toLowerCase()) {
+        try { fs.rmSync(partPath, { force: true }); } catch (_) {}
+        return fail("checksum", new Error("The downloaded file didn't verify — it may have been corrupted in transit. The download was cleared; try again."));
+      }
+      fs.renameSync(partPath, zipPath);
     }
 
     // ── unpack to staging, then move into place ──
     job.phase = "unpack";
-    const zipPath = path.join(runtimeRoot(), ".download", v.file);
-    fs.renameSync(partPath, zipPath);
     const stagingDir = path.join(runtimeRoot(), ".staging");
     const finalDir = path.join(runtimeRoot(), `engine-${variant}-v${manifest.version}`);
     try {
@@ -416,7 +473,9 @@ async function start(store, webContents) {
     job.phase = "verify";
     sendProgress(webContents, { phase: "verify", pct: null, message: "Checking everything works..." });
     const pythonExe = path.join(finalDir, "python.exe");
-    const check = await whisper.checkWhisper(pythonExe);
+    // 3-minute budget: the first import runs while Defender scans the freshly
+    // unpacked binaries — 30s fails cold machines whose engine is fine (#256).
+    const check = await whisper.checkWhisper(pythonExe, { timeoutMs: 180000 });
     if (!check.installed) {
       return fail("verify", new Error(`The engine unpacked but failed its self-check: ${check.error || "unknown"}`));
     }

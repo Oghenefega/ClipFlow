@@ -50,7 +50,10 @@ function checkSetup(config = {}) {
     }
 
     const cmd = `"${pythonPath}" -c "import stable_whisper; import torch; print('CUDA:' + str(torch.cuda.is_available())); print('torch:' + torch.__version__); print('stable_ts:' + stable_whisper.__version__)"`;
-    exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
+    // Default 30s suits the warm boot-time check; the post-install probe passes
+    // a longer budget — the first import after unpack runs while Defender scans
+    // every fresh binary and can far exceed 30s on a cold machine (#256).
+    exec(cmd, { timeout: config.timeoutMs || 30000 }, (err, stdout, stderr) => {
       if (err) {
         return resolve({ installed: false, error: `stable-ts not importable: ${err.message}` });
       }

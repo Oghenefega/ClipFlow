@@ -4,6 +4,16 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-17 (session 170) — #146 failure-mode pass: the engine setup flow hardened before the laptop test
+
+### Fixed
+- **A fresh machine's first engine install no longer dies at the final self-check (#256).** The failure-mode pass caught the flow failing at "Checking everything works" on a machine whose engine was perfectly fine: the self-check gave Python 30 seconds to prove it loads, but the first load after unpacking ~7 GB of never-seen files runs while Windows Defender scans every one of them — observed live blowing the budget, then passing in 5.6 seconds a minute later. The post-install check now gets 3 minutes (the quick boot-time dependency check keeps its 30 seconds). This was the exact bug a first customer machine would hit.
+- **A failed install attempt no longer wrecks the retry (#256).** Before: a transient failure after the download left ~10 GB of leftovers (the verified engine file + the half-install), and Try again both re-downloaded 2.9 GB it already had and counted its own leftovers against free space — producing "Not enough disk space: setup needs about 10.8 GB free, this drive has 9.9 GB" on a machine that had 19 GB free ten minutes earlier (captured live). Now: retry clears the debris, reuses the already-verified download (straight to unpacking, no re-download), and the space math reports only what's still actually needed.
+- **Cancelling the engine download now quietly returns to the resume screen (#257).** Cancel used to lose a race between two internal signals and show "Download interrupted — looks like the connection dropped", blaming the network for a deliberate click. The saved bytes and Resume always worked; now the screen and the log both say cancelled, verified live.
+
+### Added
+- **A frozen download now recovers instead of hanging forever (#258).** The engine download had no watchdog for a silent network stall (Wi-Fi off or airplane mode often sends no error signal at all) — the progress bar would sit frozen indefinitely. Sixty seconds without data now trips the normal "Download interrupted → Resume" path, which resumes from the saved bytes once the network returns.
+
 ## [0.3.0-alpha.51] — 2026-08-17 (session 170) — Installer: the zero-setup AI engine flow ships
 
 ### Changed

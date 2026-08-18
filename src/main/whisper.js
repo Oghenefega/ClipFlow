@@ -16,8 +16,8 @@ const { getTranscriptionProvider } = require("./ai/transcription-provider");
  * @param {string} pythonPath - Path to python.exe in the venv
  * @returns {Promise<{installed: boolean, version?: string, error?: string}>}
  */
-function checkWhisper(pythonPath) {
-  return getTranscriptionProvider().checkSetup({ pythonPath });
+function checkWhisper(pythonPath, opts = {}) {
+  return getTranscriptionProvider().checkSetup({ pythonPath, ...opts });
 }
 
 /**
