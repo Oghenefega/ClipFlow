@@ -1181,3 +1181,28 @@ indicator, sample the REAL data distribution first (prod DB counts per status)
 and put the worst-case card in the mock — the one where the "bad" status
 dominates. If the worst case looks like product failure, the design isn't done.
 A status color that's honest per-item can still lie at volume.
+
+## Session 173 — Migration condition modeled the target store from memory, not from a real one (#262)
+
+**What went wrong:** The #262 heal migration required gamesDb to be EXACTLY the
+seven legacy seed games. Shipped in alpha.57, it never fired on the laptop —
+the actual target — because every install's first boot appends the built-in
+"Just Chatting" content-type entry to the same gamesDb array, making it 8
+entries. My offline test verified the condition against a synthetic 7-entry
+store I invented, and my fresh-profile boot even SHOWED me JC being seeded into
+gamesDb — I confirmed it was harmless but never connected it to the length===7
+assumption.
+
+**Why:** I proved the condition against three stores (prod, dev, synthetic
+laptop) but the synthetic one was built from the OLD DEFAULTS as written in
+code, not from what a first boot actually persists. The one store shape that
+mattered — "old defaults + one boot of file-migration" — existed nowhere in my
+test set, even though my own fresh-boot test had just demonstrated the JC
+append.
+
+**Rule:** A migration that fingerprints a store must be tested against a store
+PRODUCED BY THE REAL BOOT SEQUENCE it targets, not against a hand-built
+replica of the defaults. Cheapest honest test: boot the OLD code on a blank
+profile, then run the NEW code on the result. And when a verification run
+surfaces an unexplained entry (JC appearing in a "fresh" store), reconcile it
+against every exact-match condition in the diff before shipping.

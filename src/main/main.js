@@ -476,19 +476,27 @@ function runStoreMigrations(store) {
   // actually used it — reset to the new empty defaults so the user starts
   // clean. Any real usage (a dayCount > 0, a game added or removed) skips this,
   // so Fega's own machines are untouched.
+  // Content-type entries (Just Chatting) are appended to gamesDb by
+  // file-migration on every install's first boot, so they're excluded from the
+  // seed fingerprint and preserved through the reset (alpha.57 shipped an
+  // exact-length check that never fired on the laptop because of the JC entry).
   const LEGACY_SEED_NAMES = ["Arc Raiders", "Rocket League", "Valorant", "Egging On", "Deadline Delivery", "Bionic Bay", "Prince of Persia"];
-  const seededGames = store.get("gamesDb");
-  if (
-    Array.isArray(seededGames) && seededGames.length === LEGACY_SEED_NAMES.length &&
-    LEGACY_SEED_NAMES.every((name) => seededGames.some((g) => g && g.name === name)) &&
-    seededGames.every((g) => g && !g.dayCount)
-  ) {
-    store.set("gamesDb", []);
-    store.set("mainGame", "");
-    store.set("mainPool", []);
-    store.set("captionTemplates", STORE_DEFAULTS.captionTemplates);
-    store.set("ytDescriptions", {});
-    logger.info(logger.MODULES.system, "Reset unused seeded game library to empty defaults (#262)");
+  const storedGamesDb = store.get("gamesDb");
+  if (Array.isArray(storedGamesDb)) {
+    const contentEntries = storedGamesDb.filter((g) => g && g.entryType === "content");
+    const gameEntries = storedGamesDb.filter((g) => g && g.entryType !== "content");
+    if (
+      gameEntries.length === LEGACY_SEED_NAMES.length &&
+      LEGACY_SEED_NAMES.every((name) => gameEntries.some((g) => g.name === name)) &&
+      storedGamesDb.every((g) => g && !g.dayCount)
+    ) {
+      store.set("gamesDb", contentEntries);
+      store.set("mainGame", "");
+      store.set("mainPool", []);
+      store.set("captionTemplates", STORE_DEFAULTS.captionTemplates);
+      store.set("ytDescriptions", {});
+      logger.info(logger.MODULES.system, "Reset unused seeded game library to empty defaults (#262)");
+    }
   }
 
   // ── Migration: add project folders ──

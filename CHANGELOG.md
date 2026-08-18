@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.58] — 2026-08-18 (session 173) — Installer: the laptop self-heal actually fires
+
+### Fixed
+- **The alpha.57 self-heal never fired on the laptop (#262).** The reset required the store to hold *exactly* the seven seeded games, but every install's first boot also appends the built-in "Just Chatting" content type to the same list — eight entries, so the laptop updated to alpha.57 with all games still in place (Fega's screenshot confirmed it). The check now fingerprints only real game entries, ignores content types, and preserves them through the reset. Verified by replaying the laptop's exact store shape (old seven-game defaults + the Just Chatting entry as first boot writes it) against the new build: games cleared, Just Chatting kept, captions genericized.
+
+### Changed
+- **Version bumped to 0.3.0-alpha.58 and published to the update feed.** Promotes the fix above; the laptop needs one more banner update for the heal to actually run.
+
 ## [0.3.0-alpha.57] — 2026-08-18 (session 173) — Installer: clean factory defaults ship
 
 ### Changed
