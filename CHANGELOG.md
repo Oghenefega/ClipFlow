@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.51] — 2026-08-17 (session 170) — Installer: the zero-setup AI engine flow ships
+
+### Changed
+- **Version bumped to 0.3.0-alpha.51 and a fresh installer cut.** Promotes the #146 zero-setup arc (sessions 168–169 below) into the installable app: the in-app "Set up ClipFlow's AI engine" screen with resumable downloads from engine.flowve.app, the dependency banner's Finish Setup button, and the CPU fallback fix for machines without an NVIDIA card. This is the first build where a fresh install can reach working transcription without installing anything by hand — the build the laptop clean-machine test runs on.
+
 ## [Unreleased] — 2026-08-15 (session 169) — #146 engines live on Cloudflare + in-app "Set up ClipFlow's AI engine" flow (zero-setup arc, session 2 of 3)
 
 ### Added
