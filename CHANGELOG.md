@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-18 (session 171, post-ship) — Feed hygiene + release loop hardening
+
+### Added
+- **The update feed now cleans up after itself.** Publishing a new version automatically deletes the superseded installer from Cloudflare storage — old versions up there serve nobody (apps only ever download what the manifest currently names), and at ~200 MB per release they would have exhausted the free storage tier within weeks. The feed now holds exactly one version at all times.
+
+### Changed
+- **"Cut the installer" is now the complete release command.** The release procedure (the `clipflow-update-launcher` skill) was rewritten for the shipped auto-updater: it now includes publishing to the update feed, and its instructions about the old desktop-only update notifier — including the outdated warning against using `electron-updater` — were replaced. Fega's only remaining step in any release is clicking Install in the banner.
+
 ## [0.3.0-alpha.55] — 2026-08-18 (session 171) — Installer: the update-test twin
 
 ### Changed
