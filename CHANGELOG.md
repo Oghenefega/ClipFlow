@@ -4,6 +4,18 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-18 (session 173) — Fresh installs stop shipping Fega's personal setup
+
+### Fixed
+- **New installs no longer come preloaded with Fega's personal games and branding (#262).** Every fresh install used to start with his seven-game library, "Arc Raiders" as the main game, his weekly rotation pool, caption templates ending in `#fega #fegagaming`, and his full YouTube descriptions (channel links, affiliate links) baked into the app. Discovered when the laptop install "didn't feel fresh." A new install now starts with an empty game library (plus the built-in Just Chatting content type), no main game, and generic caption templates — the user builds their own library via + Add Game. Verified: a simulated fresh install boots clean with zero personal data on disk, while both of Fega's real machines keep every stored value untouched.
+- **The editor's AI game picker no longer defaults to "Arc Raiders" (#262).** For a clip with no game tag, the AI title prompt would silently claim the game was Arc Raiders. It now starts blank until the clip's real game seeds it.
+
+### Added
+- **A boot migration heals installs that got the old seeded library but never used it (#262).** An install still holding exactly the old seven-game set with zero renamed days (like the laptop) is reset to the new clean defaults on next launch after updating. Any real usage — a day count, an added or removed game — skips the reset, so working installs are never touched.
+
+### Changed
+- **Newly added games get a short generic YouTube description starter (#262).** Previously every added game auto-filled Fega's complete channel description (subscribe links, stream setup, affiliate links). Now it's a neutral two-line starter the user personalizes in the Captions tab — Fega included: adding a new game on his machines now needs a one-time paste of his real description.
+
 ## [0.3.0-alpha.56] — 2026-08-18 (session 172) — Installer: install-location choice ships
 
 ### Changed

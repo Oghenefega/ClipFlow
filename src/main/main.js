@@ -207,17 +207,12 @@ const STORE_DEFAULTS = {
   // #261: custom AI-engine install location ("" = <userData>\runtime), so the
   // multi-GB engine + speech model can live off the system drive.
   engineRoot: "",
-  mainGame: "Arc Raiders",
-  mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
-  gamesDb: [
-    { name: "Arc Raiders", tag: "AR", exe: ["ArcRaiders.exe"], color: "#ff6b35", dayCount: 0, hashtag: "arcraiders" },
-    { name: "Rocket League", tag: "RL", exe: ["RocketLeague.exe"], color: "#00b4d8", dayCount: 0, hashtag: "rocketleague" },
-    { name: "Valorant", tag: "Val", exe: ["VALORANT-Win64-Shipping.exe"], color: "#ff4655", dayCount: 0, hashtag: "valorant" },
-    { name: "Egging On", tag: "EO", exe: ["EggingOn.exe"], color: "#ffd23f", dayCount: 0, hashtag: "eggingon" },
-    { name: "Deadline Delivery", tag: "DD", exe: ["DeadlineDelivery.exe"], color: "#fca311", dayCount: 0, hashtag: "deadlinedelivery" },
-    { name: "Bionic Bay", tag: "BB", exe: ["BionicBay.exe"], color: "#06d6a0", dayCount: 0, hashtag: "bionicbay" },
-    { name: "Prince of Persia", tag: "PoP", exe: ["PrinceOfPersia.exe"], color: "#9b5de5", dayCount: 0, hashtag: "princeofpersia" },
-  ],
+  // #262: no seeded games — fresh installs start empty and the user adds their
+  // own via + Add Game. Installs that persisted the old Fega-library default
+  // without ever using it are reset by a boot migration below.
+  mainGame: "",
+  mainPool: [],
+  gamesDb: [],
   ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
   platforms: [],
   weeklyTemplate: {
@@ -233,10 +228,11 @@ const STORE_DEFAULTS = {
   weekMeta: {},
   xpLedger: [],
   streakState: { evaluatedThroughMondayISO: null, current: 0, best: 0 },
+  // #262: generic templates — no personal hashtags in defaults.
   captionTemplates: {
-    tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
-    instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",
-    facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
+    tiktok: "{title} #{gametitle} #fyp #gamingontiktok",
+    instagram: "{title} #{gametitle} #reels #gamingreels",
+    facebook: "{title} #{gametitle} #gaming #fbreels",
   },
   ytDescriptions: {},
   outputFolder: "",
@@ -471,6 +467,28 @@ function runStoreMigrations(store) {
       store.set("platforms", []);
       logger.info(logger.MODULES.system, "Cleared hardcoded placeholder platforms (migration)");
     }
+  }
+
+  // ── Migration (#262): reset the old seeded game library on unused installs ──
+  // Pre-#262 defaults persisted Fega's seven games (plus his main-game rotation
+  // and #fega caption hashtags) into every fresh install's store. An install
+  // still holding exactly that seven-game set with zero renamed days never
+  // actually used it — reset to the new empty defaults so the user starts
+  // clean. Any real usage (a dayCount > 0, a game added or removed) skips this,
+  // so Fega's own machines are untouched.
+  const LEGACY_SEED_NAMES = ["Arc Raiders", "Rocket League", "Valorant", "Egging On", "Deadline Delivery", "Bionic Bay", "Prince of Persia"];
+  const seededGames = store.get("gamesDb");
+  if (
+    Array.isArray(seededGames) && seededGames.length === LEGACY_SEED_NAMES.length &&
+    LEGACY_SEED_NAMES.every((name) => seededGames.some((g) => g && g.name === name)) &&
+    seededGames.every((g) => g && !g.dayCount)
+  ) {
+    store.set("gamesDb", []);
+    store.set("mainGame", "");
+    store.set("mainPool", []);
+    store.set("captionTemplates", STORE_DEFAULTS.captionTemplates);
+    store.set("ytDescriptions", {});
+    logger.info(logger.MODULES.system, "Reset unused seeded game library to empty defaults (#262)");
   }
 
   // ── Migration: add project folders ──

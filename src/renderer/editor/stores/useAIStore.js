@@ -5,7 +5,8 @@ import useCaptionStore from "./useCaptionStore";
 
 const useAIStore = create((set, get) => ({
   aiContext: "",
-  aiGame: "Arc Raiders",
+  // #262: no personal default — seeded from the clip/project on load; "" until then.
+  aiGame: "",
   aiGenerating: false,
   aiError: "",
   aiSuggestions: null, // { titles: [], captions: [] }
