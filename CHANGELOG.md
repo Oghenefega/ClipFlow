@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.56] — 2026-08-18 (session 172) — Installer: install-location choice ships
+
+### Changed
+- **Version bumped to 0.3.0-alpha.56 and published to the update feed.** Promotes the install-location work below: the installer wizard with a location page (#260) and the AI engine's "Install to" picker with corrected space math (#261). Desktop updates via the banner; the laptop (freshly uninstalled) does a manual install with the new wizard and can point everything at D: from the start.
+
 ## [Unreleased] — 2026-08-18 (session 172) — Choose where ClipFlow and its AI engine install
 
 ### Added
