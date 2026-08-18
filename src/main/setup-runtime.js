@@ -36,8 +36,40 @@ const DISK_MARGIN_BYTES = 0.5e9;
 // ── module state: at most one active job ──────────────────────────────────
 let job = null; // { phase, cancelRequested, request, child, webContents }
 
-function runtimeRoot() {
-  return path.join(app.getPath("userData"), "runtime");
+// #261: engineRoot setting ("" = default) lets the multi-GB engine + model
+// live off the system drive. whisperPythonPath is stored absolute, so the
+// rest of the pipeline never resolves this again after setup.
+function runtimeRoot(store) {
+  return store.get("engineRoot") || path.join(app.getPath("userData"), "runtime");
+}
+
+/**
+ * Persist a user-picked engine location (#261). Called from the
+ * setup:chooseLocation IPC with a folder the OS dialog returned. The engine
+ * lands in a "ClipFlow AI" subfolder so picking a drive root stays tidy.
+ * Refused mid-job — the running download/unpack writes into the old root.
+ */
+function setLocation(store, pickedDir) {
+  if (job) return { success: false, error: "Setup is already running." };
+  const newRoot = path.basename(pickedDir).toLowerCase() === "clipflow ai"
+    ? pickedDir
+    : path.join(pickedDir, "ClipFlow AI");
+  try {
+    fs.mkdirSync(newRoot, { recursive: true });
+  } catch (err) {
+    return { success: false, error: `Can't create a folder there (${err.code || err.message}). Pick a different location.` };
+  }
+  // A location change strands anything the old root held (.part, staging,
+  // broken engine dirs). No verified engine exists — this screen only shows
+  // when whisperPythonPath is unset/dangling — so the old root is debris.
+  const oldRoot = runtimeRoot(store);
+  const pythonPath = store.get("whisperPythonPath");
+  if (path.resolve(oldRoot) !== path.resolve(newRoot) && !(pythonPath && fs.existsSync(pythonPath))) {
+    try { fs.rmSync(oldRoot, { recursive: true, force: true }); } catch (_) {}
+  }
+  store.set("engineRoot", newRoot);
+  logger.info(logger.MODULES.system, `Engine install location set to ${newRoot}`);
+  return { success: true, engineRoot: newRoot };
 }
 
 // A retained zip only ever exists checksummed — it's renamed from .part AFTER
@@ -53,9 +85,9 @@ function zipReady(zipPath, sizeBytes) {
  * transient verify failure turns into a bogus "not enough disk space" on
  * retry. Never called while a job is running — unpack writes into these paths.
  */
-function reclaimDebris(variant, version, zipPath, sizeBytes) {
-  try { fs.rmSync(path.join(runtimeRoot(), ".staging"), { recursive: true, force: true }); } catch (_) {}
-  try { fs.rmSync(path.join(runtimeRoot(), `engine-${variant}-v${version}`), { recursive: true, force: true }); } catch (_) {}
+function reclaimDebris(root, variant, version, zipPath, sizeBytes) {
+  try { fs.rmSync(path.join(root, ".staging"), { recursive: true, force: true }); } catch (_) {}
+  try { fs.rmSync(path.join(root, `engine-${variant}-v${version}`), { recursive: true, force: true }); } catch (_) {}
   if (!zipReady(zipPath, sizeBytes)) {
     try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
   }
@@ -105,13 +137,36 @@ async function fetchManifest() {
   }
 }
 
-function freeDiskBytes() {
-  try {
-    const st = fs.statfsSync(app.getPath("userData"));
-    return st.bavail * st.bsize;
-  } catch (_) {
-    return null; // unknown — preflight becomes advisory only
+// Free space on the drive holding `dir`. The dir itself may not exist yet
+// (custom engineRoot before first download) — walk up to the nearest
+// existing ancestor so the right drive still gets measured (#261).
+function freeDiskBytes(dir) {
+  let p = dir;
+  for (;;) {
+    try {
+      const st = fs.statfsSync(p);
+      return st.bavail * st.bsize;
+    } catch (_) {
+      const parent = path.dirname(p);
+      if (parent === p) return null; // unknown — preflight becomes advisory only
+      p = parent;
+    }
   }
+}
+
+/**
+ * Free bytes the setup still needs at its worst moment (#261). Disk usage
+ * peaks either while unpacking (zip + unpacked tree coexist) or during the
+ * model download (zip already deleted, model landing). The old sum stacked
+ * the model on top of a zip that's gone by then — over-asking by ~1.8 GB.
+ * `zipOnDiskBytes` (the .part or a complete zip) is already spent, so it
+ * offsets the post-delete term.
+ */
+function requiredFreeBytes(downloadBytes, zipOnDiskBytes, unpackedBytes) {
+  return Math.max(
+    downloadBytes + unpackedBytes,
+    unpackedBytes - zipOnDiskBytes + MODEL_RESERVE_BYTES
+  ) + DISK_MARGIN_BYTES;
 }
 
 /**
@@ -142,25 +197,28 @@ async function getState(store) {
     manifestError = err.message;
   }
 
-  const freeBytes = freeDiskBytes();
+  const root = runtimeRoot(store);
+  const freeBytes = freeDiskBytes(root);
   let requiredBytes = null;
   let resumeBytes = 0;
   if (manifest && manifest.variants && manifest.variants[variant]) {
     const v = manifest.variants[variant];
-    const partPath = path.join(runtimeRoot(), ".download", `${v.file}.part`);
-    const zipPath = path.join(runtimeRoot(), ".download", v.file);
+    const partPath = path.join(root, ".download", `${v.file}.part`);
+    const zipPath = path.join(root, ".download", v.file);
     // Clear failed-attempt leftovers before measuring (#256) — but never while
     // a job is live (unpack/download write into these paths).
-    if (!job) reclaimDebris(variant, manifest.version, zipPath, v.sizeBytes);
+    if (!job) reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes);
     try { resumeBytes = fs.statSync(partPath).size; } catch (_) { /* no partial */ }
     // Space still needed FROM HERE: bytes already saved (.part) or a fully
     // downloaded zip don't need downloading again (#256).
-    const downloadBytes = zipReady(zipPath, v.sizeBytes) ? 0 : Math.max(0, v.sizeBytes - resumeBytes);
-    requiredBytes = downloadBytes + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
+    const haveZip = zipReady(zipPath, v.sizeBytes);
+    const downloadBytes = haveZip ? 0 : Math.max(0, v.sizeBytes - resumeBytes);
+    requiredBytes = requiredFreeBytes(downloadBytes, haveZip ? v.sizeBytes : resumeBytes, v.unpackedBytes);
   }
 
   return {
     needed: true,
+    engineRoot: root,
     variant,
     gpuName,
     manifest,
@@ -426,14 +484,15 @@ async function start(store, webContents) {
     if (!v) return fail("manifest", new Error(`manifest has no "${variant}" variant`));
 
     // ── disk preflight ──
-    const partPath = path.join(runtimeRoot(), ".download", `${v.file}.part`);
-    const zipPath = path.join(runtimeRoot(), ".download", v.file);
-    reclaimDebris(variant, manifest.version, zipPath, v.sizeBytes); // failed-attempt leftovers must not sink the preflight (#256)
+    const root = runtimeRoot(store);
+    const partPath = path.join(root, ".download", `${v.file}.part`);
+    const zipPath = path.join(root, ".download", v.file);
+    reclaimDebris(root, variant, manifest.version, zipPath, v.sizeBytes); // failed-attempt leftovers must not sink the preflight (#256)
     const haveZip = zipReady(zipPath, v.sizeBytes);
-    const free = freeDiskBytes();
+    const free = freeDiskBytes(root);
     let already = 0;
     try { already = fs.statSync(partPath).size; } catch (_) {}
-    const required = (haveZip ? 0 : Math.max(0, v.sizeBytes - already)) + v.unpackedBytes + MODEL_RESERVE_BYTES + DISK_MARGIN_BYTES;
+    const required = requiredFreeBytes(haveZip ? 0 : Math.max(0, v.sizeBytes - already), haveZip ? v.sizeBytes : already, v.unpackedBytes);
     if (free !== null && free < required) {
       const needGb = (required / 1e9).toFixed(1);
       const freeGb = (free / 1e9).toFixed(1);
@@ -459,8 +518,8 @@ async function start(store, webContents) {
 
     // ── unpack to staging, then move into place ──
     job.phase = "unpack";
-    const stagingDir = path.join(runtimeRoot(), ".staging");
-    const finalDir = path.join(runtimeRoot(), `engine-${variant}-v${manifest.version}`);
+    const stagingDir = path.join(root, ".staging");
+    const finalDir = path.join(root, `engine-${variant}-v${manifest.version}`);
     try {
       await unpackZip(zipPath, stagingDir, webContents);
       fs.rmSync(finalDir, { recursive: true, force: true });
@@ -484,6 +543,12 @@ async function start(store, webContents) {
     // ── configure + reclaim the zip's disk space before the model lands ──
     store.set("whisperPythonPath", pythonExe);
     store.set("engineRuntime", { variant, version: manifest.version, installedAt: new Date().toISOString() });
+    // Custom install location → the speech model follows the engine onto the
+    // same drive (#261). Only when hfHome was never set: an established cache
+    // must not be abandoned and re-downloaded elsewhere.
+    if (store.get("engineRoot") && !store.get("hfHome")) {
+      store.set("hfHome", path.join(root, "hf_cache"));
+    }
     try { fs.rmSync(zipPath, { force: true }); } catch (_) {}
 
     // ── model pre-download ──
@@ -512,4 +577,4 @@ function cancel() {
   try { if (job.child) job.child.kill(); } catch (_) {}
 }
 
-module.exports = { getState, start, cancel, MANIFEST_URL };
+module.exports = { getState, start, cancel, setLocation, MANIFEST_URL };

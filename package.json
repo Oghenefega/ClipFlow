@@ -55,6 +55,10 @@
         "to": "beta-token.json"
       }
     ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"

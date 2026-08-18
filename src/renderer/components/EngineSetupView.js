@@ -36,6 +36,7 @@ export default function EngineSetupView({ onClose }) {
   const [state, setState] = useState(null);       // setup:getState payload
   const [prog, setProg] = useState(null);         // last setup:progress event
   const [errInfo, setErrInfo] = useState(null);   // { errorPhase, message, resumable }
+  const [locError, setLocError] = useState(null); // "Install to" picker failure (#261)
   const startedRef = useRef(false);
   // Parent passes an inline onClose — keep it in a ref so loadState (and the
   // effects depending on it) stay stable across App re-renders. Without this
@@ -98,6 +99,15 @@ export default function EngineSetupView({ onClose }) {
   };
 
   const cancel = async () => { await window.clipflow.setupCancel(); };
+
+  // #261: pick the engine's install drive/folder. Main owns the dialog and
+  // the path logic; a fresh getState re-measures free space on the new drive.
+  const chooseLocation = async () => {
+    setLocError(null);
+    const r = await window.clipflow.setupChooseLocation();
+    if (r?.success) loadState();
+    else if (r?.error) setLocError(r.error);
+  };
 
   const v = state?.manifest?.variants?.[state?.variant];
   const diskShort = state && state.freeBytes != null && state.requiredBytes != null && state.freeBytes < state.requiredBytes;
@@ -218,6 +228,14 @@ export default function EngineSetupView({ onClose }) {
           </Row>
           <Row k="Engine">{isCpu ? "Processor engine" : <>GPU engine <span style={{ color: T.textTertiary, fontWeight: 500 }}>· fastest</span></>}</Row>
           <Row k="Download">{fmtGB(v?.sizeBytes)} <span style={{ color: T.textTertiary, fontWeight: 500 }}>+ 1.6 GB speech model</span></Row>
+          <Row k="Install to">
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 9, maxWidth: 310 }}>
+              <span title={state.engineRoot} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12.5, fontWeight: 500, color: T.textSecondary }}>
+                {state.engineRoot}
+              </span>
+              <button onClick={chooseLocation} style={{ ...ghostStyle, color: CY, fontWeight: 600, padding: 0, flexShrink: 0 }}>Change</button>
+            </span>
+          </Row>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, padding: "11px 0", fontSize: 13 }}>
             <span style={{ color: T.textTertiary, flexShrink: 0 }}>Space needed</span>
             <span style={{ color: T.text, fontWeight: 600 }}>
@@ -234,11 +252,17 @@ export default function EngineSetupView({ onClose }) {
             </p>
           </div>
         )}
+        {locError && (
+          <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: `${T.red}1a`, border: `1px solid ${T.red}38`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
+            <span style={{ color: T.red, fontWeight: 700 }}>✕</span>
+            <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>{locError}</p>
+          </div>
+        )}
         {diskShort && (
           <div style={{ width: "100%", display: "flex", gap: 10, alignItems: "flex-start", background: `${T.red}1a`, border: `1px solid ${T.red}38`, borderRadius: 11, padding: "11px 13px", margin: "-8px 0 22px", textAlign: "left" }}>
             <span style={{ color: T.red, fontWeight: 700 }}>✕</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.textSecondary, margin: 0 }}>
-              <b style={{ color: T.red }}>Not enough disk space.</b> Free up some room, then hit Check again.
+              <b style={{ color: T.red }}>Not enough disk space on this drive.</b> Hit Change above to install on a different drive, or free up some room and hit Check again.
             </p>
           </div>
         )}

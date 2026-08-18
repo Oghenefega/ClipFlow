@@ -4,6 +4,15 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-18 (session 172) — Choose where ClipFlow and its AI engine install
+
+### Added
+- **The installer now asks where to install (#260).** It previously installed itself to the Windows system drive with no questions asked — on machines with a small C: (like Fega's laptop) that's the wrong drive and there was no way to say so. Installing is now a normal wizard with a location page; updates still apply silently to wherever the app lives.
+- **The AI engine setup screen has an "Install to" row with a Change button (#261).** The multi-gigabyte engine + speech model were hard-locked to the system drive; a laptop with a full C: and a roomy D: simply could not complete setup. Picking a folder now sends the engine (and the speech model with it) to any drive, and the free-space check measures the drive that was actually picked.
+
+### Fixed
+- **The setup screen over-asked for disk space by ~2 GB (#261).** It demanded ~11 GB by counting the speech model on top of a download file that's already deleted by the time the model downloads. It now asks for the true worst-case moment (~9 GB for the GPU engine) — machines that were wrongly told "not enough space" can now proceed.
+
 ## [Unreleased] — 2026-08-18 (session 171, post-ship) — Feed hygiene + release loop hardening
 
 ### Added

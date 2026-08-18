@@ -204,6 +204,9 @@ const STORE_DEFAULTS = {
   // split so changing the watch folder never orphans existing projects.
   projectsRoot: "",
   testWatchFolder: "",
+  // #261: custom AI-engine install location ("" = <userData>\runtime), so the
+  // multi-GB engine + speech model can live off the system drive.
+  engineRoot: "",
   mainGame: "Arc Raiders",
   mainPool: ["Arc Raiders", "Rocket League", "Valorant"],
   gamesDb: [
@@ -1258,6 +1261,21 @@ ipcMain.handle("setup:start", async () => {
 ipcMain.handle("setup:cancel", async () => {
   setupRuntime.cancel();
   return { success: true };
+});
+
+// #261: "Install to" picker on the setup screen — engine + model can go on
+// any drive. Persists engineRoot; the renderer re-fetches state after.
+ipcMain.handle("setup:chooseLocation", async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose where to install the AI engine",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || !result.filePaths[0]) return { canceled: true };
+    return setupRuntime.setLocation(store, result.filePaths[0]);
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 // ============ FFMPEG ============

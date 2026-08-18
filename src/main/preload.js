@@ -113,6 +113,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   setupGetState: () => ipcRenderer.invoke("setup:getState"),
   setupStart: () => ipcRenderer.invoke("setup:start"),
   setupCancel: () => ipcRenderer.invoke("setup:cancel"),
+  setupChooseLocation: () => ipcRenderer.invoke("setup:chooseLocation"),
   // Returns an unsubscribe fn (same pattern as onRenderProgress) — the setup
   // screen mounts/unmounts while the download keeps running in main.
   onSetupProgress: (callback) => {
