@@ -4,6 +4,14 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.59] — 2026-08-18 (session 173) — Gateway-only installs get full AI
+
+### Fixed
+- **The editor's AI title generator refused to run without a personal Anthropic key (#249 follow-up).** Found on the laptop's first customer-style run: the bundled gateway was active and serving AI (detection worked), but clicking Generate in the editor showed "Anthropic API key not set" — four UI spots still demanded a personal key from before the gateway existed. The editor no longer pre-checks at all (the engine is the single authority and returns a real error only when neither path is configured), automatic game research now runs on gateway-only installs (it was silently skipped when Rocket League was added on the laptop), the research button in the game edit dialog enables, and the Settings "Anthropic" chip shows green "Configured · Gateway active" instead of a red "Not set". Verified both ways: a gateway-only store shows Configured and a real clip generated titles end-to-end through the rewired path.
+
+### Changed
+- **Version bumped to 0.3.0-alpha.59 and published to the update feed.** Promotes the gateway-only AI fix above.
+
 ## [0.3.0-alpha.58] — 2026-08-18 (session 173) — Installer: the laptop self-heal actually fires
 
 ### Fixed

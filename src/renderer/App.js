@@ -272,6 +272,9 @@ export default function App() {
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayAuthToken, setGatewayAuthToken] = useState("");
+  // #262 follow-up: AI is available with a raw key OR the bundled gateway
+  // (#249) — gateway-only installs must never be gated on a personal key.
+  const aiReady = !!(anthropicApiKey || (gatewayUrl && gatewayAuthToken));
   const [styleGuide, setStyleGuide] = useState("");
 
   // YouTube OAuth 2.0
@@ -598,10 +601,10 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
     if (entryType === "game" && (gd.aiContextUser || "").trim()) {
       window.clipflow.gameProfilesUpdatePlayStyle?.(gd.tag, gd.aiContextUser.trim(), gd.name)?.catch?.(() => {});
     }
-    // #246: auto-research in the background. No API key → silent skip (the
-    // Edit modal's hint already points at Settings). Content types excluded
-    // on purpose (JC rule — content, not a game).
-    if (entryType === "game" && anthropicApiKey) {
+    // #246: auto-research in the background. No AI path at all → silent skip
+    // (the Edit modal's hint already points at Settings). Content types
+    // excluded on purpose (JC rule — content, not a game).
+    if (entryType === "game" && aiReady) {
       window.clipflow.anthropicResearchGame(gd.name).then((result) => {
         if (result?.success && result.data) {
           setGamesDb((prev) => prev.map((g) => (g.name === gd.name ? { ...g, aiContextAuto: result.data, aiResearchedAt: new Date().toISOString() } : g)));
@@ -1074,7 +1077,7 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
         {/* Editor — full-pane sibling, only mounted when active */}
         {view === "editor" && (
           <div style={{ flex: 1, overflow: "hidden", height: "100%" }}>
-            <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} anthropicApiKey={anthropicApiKey} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} renderJob={renderJob} onCancelRenderJob={cancelRenderJob} onBack={async () => {
+            <EditorView gamesDb={gamesDb} editorContext={editorContext} localProjects={localProjects} styleGuide={styleGuide} requireHashtagInTitle={requireHashtagInTitle} renderJob={renderJob} onCancelRenderJob={cancelRenderJob} onBack={async () => {
               if (editorContext?.projectId) {
                 try {
                   const full = await window.clipflow.projectLoad(editorContext.projectId);
@@ -1150,7 +1153,7 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
           onConfirm={handleNewGame}
           onDismiss={() => { setNewGameExe(null); setShowAddGame(null); }}
           onIgnore={newGameExe ? (exe) => { setIgnoredProcesses((p) => [...p, exe]); setNewGameExe(null); } : null}
-          anthropicApiKey={anthropicApiKey}
+          aiReady={aiReady}
         />
       )}
       {/* #248: beta feedback reporter — overlays every tab, right edge */}

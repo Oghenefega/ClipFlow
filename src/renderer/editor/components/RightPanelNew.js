@@ -695,7 +695,7 @@ function DropZone({ accept, label, icon: Icon = UploadCloud }) {
 // ════════════════════════════════════════════════════════════════
 //  DRAWER 1: AI TOOLS
 // ════════════════════════════════════════════════════════════════
-function AIToolsPanel({ gamesDb, anthropicApiKey }) {
+function AIToolsPanel({ gamesDb }) {
   const aiContext = useAIStore((s) => s.aiContext);
   const setAiContext = useAIStore((s) => s.setAiContext);
   const aiGame = useAIStore((s) => s.aiGame);
@@ -733,7 +733,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
           </select>
           <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         </div>
-        <Button size="sm" onClick={() => generate(anthropicApiKey, gamesDb)} disabled={aiGenerating}
+        <Button size="sm" onClick={() => generate(gamesDb)} disabled={aiGenerating}
           className="h-8 px-3 text-xs bg-primary text-primary-foreground disabled:opacity-50">
           {aiGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Sparkles className="h-3 w-3 mr-1" />Generate</>}
         </Button>
@@ -768,8 +768,8 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                       {!isRejected && (
                         <CardActions
                           busy={!!busyCards[`title:${i}`]}
-                          onRephrase={() => rephrase(anthropicApiKey, gamesDb, "title", i)}
-                          onRegenerate={() => regenerate(anthropicApiKey, gamesDb, "title", i)}
+                          onRephrase={() => rephrase(gamesDb, "title", i)}
+                          onRegenerate={() => regenerate(gamesDb, "title", i)}
                         />
                       )}
                     </div>
@@ -804,8 +804,8 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
                       {!isRejected && (
                         <CardActions
                           busy={!!busyCards[`caption:${i}`]}
-                          onRephrase={() => rephrase(anthropicApiKey, gamesDb, "caption", i)}
-                          onRegenerate={() => regenerate(anthropicApiKey, gamesDb, "caption", i)}
+                          onRephrase={() => rephrase(gamesDb, "caption", i)}
+                          onRegenerate={() => regenerate(gamesDb, "caption", i)}
                         />
                       )}
                     </div>
@@ -817,7 +817,7 @@ function AIToolsPanel({ gamesDb, anthropicApiKey }) {
 
           {/* Regenerate */}
           {aiRejections.length > 0 && (
-            <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => generate(anthropicApiKey, gamesDb)} disabled={aiGenerating}>
+            <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => generate(gamesDb)} disabled={aiGenerating}>
               <RefreshCw className="h-3 w-3 mr-1.5" /> Regenerate
             </Button>
           )}
@@ -2240,7 +2240,7 @@ const DRAWER_LABELS = {
 // ════════════════════════════════════════════════════════════════
 //  MAIN EXPORT: RIGHT PANEL
 // ════════════════════════════════════════════════════════════════
-export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
+export default function RightPanelNew({ gamesDb }) {
   const drawerOpen = useLayoutStore((s) => s.drawerOpen);
   const activePanel = useLayoutStore((s) => s.activePanel);
   const togglePanel = useLayoutStore((s) => s.togglePanel);
@@ -2248,7 +2248,7 @@ export default function RightPanelNew({ gamesDb, anthropicApiKey }) {
 
   const renderDrawer = () => {
     switch (activePanel) {
-      case "ai": return <AIToolsPanel gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />;
+      case "ai": return <AIToolsPanel gamesDb={gamesDb} />;
       case "audio": return <AudioPanel />;
       case "brand": return <BrandKitPanel />;
       case "subs": return <SubtitlesPanel />;

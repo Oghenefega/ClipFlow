@@ -1085,7 +1085,7 @@ function MiniPlayerBar({ onShowTimeline }) {
 }
 
 // ── Main Layout Shell ──
-export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
+export default function EditorLayout({ onBack, gamesDb, requireHashtagInTitle = true, onClipRendered, renderJob, onCancelRenderJob }) {
   const tlCollapsed = useLayoutStore((s) => s.tlCollapsed);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -1158,7 +1158,7 @@ export default function EditorLayout({ onBack, gamesDb, anthropicApiKey, require
           </ResizablePanelGroup>
 
           {/* Right icon rail + drawer (not in resizable — fixed width) */}
-          <RightPanelNew gamesDb={gamesDb} anthropicApiKey={anthropicApiKey} />
+          <RightPanelNew gamesDb={gamesDb} />
         </div>
 
         {/* Mini player bar — visible when timeline collapsed */}

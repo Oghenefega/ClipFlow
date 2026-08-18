@@ -332,7 +332,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const delGame = (name) => { setGamesDb((p) => p.filter((g) => g.name !== name)); setMainPool((p) => p.filter((n) => n !== name)); };
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
-  const anthropicConfigured = Boolean(anthropicApiKey);
+  // #262 follow-up: mirror the Gemini rule below — the bundled gateway (#249)
+  // serves Anthropic too, so gateway-only installs are configured, not broken.
+  const anthropicConfigured = Boolean(anthropicApiKey) || Boolean(gatewayUrl && gatewayAuthToken);
   // #249: gateway BYOK supplies the Gemini key server-side — keyless installs
   // with a gateway token are genuinely configured, show them green.
   const geminiConfigured = Boolean(geminiApiKey) || Boolean(gatewayUrl && gatewayAuthToken);
@@ -1622,7 +1624,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
       {/* Dev Dashboard — hidden behind version click counter */}
       <DevDashboard />
 
-      {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} anthropicApiKey={anthropicApiKey} />}
+      {editGD && <GameEditModal game={editGD} gamesDb={gamesDb} onSave={(g) => { onEditGame(g); setEditGD(null); setSelGameLib(null); }} onClose={() => { setEditGD(null); setSelGameLib(null); }} aiReady={anthropicConfigured} />}
     </div>
   );
 }

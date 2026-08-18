@@ -74,14 +74,12 @@ const useAIStore = create((set, get) => ({
     };
   },
 
-  generate: async (anthropicApiKey, gamesDb) => {
+  // #262 follow-up: no renderer key gate — the main process resolves raw key
+  // vs gateway itself and returns a proper error if neither is configured.
+  generate: async (gamesDb) => {
     const { aiGenerating, aiRejections } = get();
     const { clip, project } = useEditorStore.getState();
     if (!clip || !project || aiGenerating) return;
-    if (!anthropicApiKey) {
-      set({ aiError: "Anthropic API key not set. Go to Settings." });
-      return;
-    }
 
     set({ aiGenerating: true, aiError: "" });
     try {
@@ -103,13 +101,9 @@ const useAIStore = create((set, get) => ({
 
   // Rephrase ("rephrase": same hook, reworded) or regenerate ("regenerate":
   // new angle) a SINGLE card, replacing just that slot (#85 Chunk A).
-  _runSingleCard: async (mode, anthropicApiKey, gamesDb, kind, idx) => {
+  _runSingleCard: async (mode, gamesDb, kind, idx) => {
     const { clip } = useEditorStore.getState();
     if (!clip) return;
-    if (!anthropicApiKey) {
-      set({ aiError: "Anthropic API key not set. Go to Settings." });
-      return;
-    }
     const cardKey = `${kind}:${idx}`;
     const listKey = kind === "title" ? "titles" : "captions";
     const field = kind === "title" ? "title" : "caption";
@@ -156,10 +150,10 @@ const useAIStore = create((set, get) => ({
     set({ busyCards: rest });
   },
 
-  rephrase: (anthropicApiKey, gamesDb, kind, idx) =>
-    get()._runSingleCard("rephrase", anthropicApiKey, gamesDb, kind, idx),
-  regenerate: (anthropicApiKey, gamesDb, kind, idx) =>
-    get()._runSingleCard("regenerate", anthropicApiKey, gamesDb, kind, idx),
+  rephrase: (gamesDb, kind, idx) =>
+    get()._runSingleCard("rephrase", gamesDb, kind, idx),
+  regenerate: (gamesDb, kind, idx) =>
+    get()._runSingleCard("regenerate", gamesDb, kind, idx),
 
   acceptTitle: async (titleObj, idx) => {
     const { aiGame } = get();

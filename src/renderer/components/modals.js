@@ -3,7 +3,7 @@ import T from "../styles/theme";
 import { GamePill, Card, SectionLabel, ColorPicker, toFileUrl } from "./shared";
 
 // ============ ADD GAME MODAL ============
-export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, anthropicApiKey = "" }) => {
+export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, onIgnore, aiReady = false }) => {
   const isContent = entryType === "content";
   const rawName = exe ? exe.replace(/\.exe$/i, "").replace(/[-_]/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Win64.*|Shipping.*/i, "").trim() : "";
   const [gameName, setGameName] = useState(rawName);
@@ -18,7 +18,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
   const typeLabel = isContent ? "Content Type" : "Game";
   // #246: research really happens after Done (App fires it in the background),
   // so the interstitial only claims it when it will actually run.
-  const willResearch = !isContent && !!anthropicApiKey;
+  const willResearch = !isContent && aiReady;
   const timerRef = useRef(null);
   // Clean up timeout on unmount to prevent state updates after unmount
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -128,7 +128,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
 };
 
 // ============ GAME EDIT MODAL ============
-export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicApiKey }) => {
+export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = false }) => {
   const [tag, setTag] = useState(game.tag);
   const [hashtag, setHashtag] = useState(game.hashtag || "");
   const [color, setColor] = useState(game.color);
@@ -192,7 +192,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
   };
 
   const handleResearch = async () => {
-    if (!anthropicApiKey) return;
+    if (!aiReady) return;
     setResearching(true);
     setResearchError("");
     try {
@@ -307,13 +307,13 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, anthropicAp
                   <SectionLabel>Game Knowledge (AI-Researched)</SectionLabel>
                   <button
                     onClick={handleResearch}
-                    disabled={researching || !anthropicApiKey}
-                    style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${anthropicApiKey ? T.accentBorder : T.border}`, background: anthropicApiKey ? T.accentDim : "transparent", color: anthropicApiKey ? T.accentLight : T.textTertiary, fontSize: 11, fontWeight: 600, cursor: anthropicApiKey ? "pointer" : "not-allowed", fontFamily: T.font, opacity: researching ? 0.6 : 1, whiteSpace: "nowrap" }}
+                    disabled={researching || !aiReady}
+                    style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${aiReady ? T.accentBorder : T.border}`, background: aiReady ? T.accentDim : "transparent", color: aiReady ? T.accentLight : T.textTertiary, fontSize: 11, fontWeight: 600, cursor: aiReady ? "pointer" : "not-allowed", fontFamily: T.font, opacity: researching ? 0.6 : 1, whiteSpace: "nowrap" }}
                   >
                     {researching ? "Researching..." : aiAutoContext ? "Refresh" : "Research Game"}
                   </button>
                 </div>
-                {!anthropicApiKey && (
+                {!aiReady && (
                   <div style={{ color: T.yellow, fontSize: 11, marginBottom: 6 }}>Add your Anthropic API key in Settings to enable game research</div>
                 )}
                 {researchError && (
