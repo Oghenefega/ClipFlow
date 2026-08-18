@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.52] — 2026-08-17 (session 170) — Installer: the hardened engine setup — this is the laptop-test build
+
+### Changed
+- **Version bumped to 0.3.0-alpha.52 and a fresh installer cut.** Promotes the failure-mode-pass fixes below on top of alpha.51's zero-setup flow. This is the build the laptop clean-machine test should run — alpha.51's setup flow would likely have failed its final self-check on a cold machine (#256).
+
 ## [Unreleased] — 2026-08-17 (session 170) — #146 failure-mode pass: the engine setup flow hardened before the laptop test
 
 ### Fixed
