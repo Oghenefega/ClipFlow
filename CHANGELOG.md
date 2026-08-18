@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.57] — 2026-08-18 (session 173) — Installer: clean factory defaults ship
+
+### Changed
+- **Version bumped to 0.3.0-alpha.57 and published to the update feed.** Promotes the #262 personal-defaults cleanup below. Cut early (outside the ~10-change batch rule) on Fega's call so the laptop heals mid-testing: on updating, its untouched seeded library resets and it becomes a true fresh-customer machine — adding your own game is now part of the test.
+
 ## [Unreleased] — 2026-08-18 (session 173) — Fresh installs stop shipping Fega's personal setup
 
 ### Fixed
