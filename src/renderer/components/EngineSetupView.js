@@ -338,7 +338,9 @@ export default function EngineSetupView({ onClose }) {
       fontFamily: T.font, color: T.text,
     }}>
       <style>{KEYFRAMES}</style>
-      <div style={{ width: 520, maxHeight: "90vh", overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      {/* padding keeps the mark's glow (inset -34px, breathing to ~1.15x) inside
+          this scroll container's clip box — overflowY:auto clips both axes */}
+      <div style={{ width: 520, maxHeight: "90vh", overflowY: "auto", padding: "56px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
         {Mark}
         <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.01em", margin: "0 0 7px" }}>{title}</h1>
         <p style={{ fontSize: 13.5, lineHeight: 1.55, color: T.textSecondary, maxWidth: 430, margin: "0 0 24px" }}>{sub}</p>

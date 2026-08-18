@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-17 (session 170, post-build) — The engine-setup glow no longer gets cut off
+
+### Fixed
+- **The glow behind the logo on the engine setup screen no longer clips into a rectangle (Fega's live catch during the alpha.52 download).** The screen's content column is a scroll container (so short windows can still reach the buttons), and a scroll container clips everything at its edge — including the glow, which deliberately extends ~50px beyond the logo while it breathes. The column now carries enough internal padding that the glow's full breathing range stays inside the clip boundary; verified against the live download screen. Reaches the installed app with the next installer.
+
 ## [0.3.0-alpha.52] — 2026-08-17 (session 170) — Installer: the hardened engine setup — this is the laptop-test build
 
 ### Changed
