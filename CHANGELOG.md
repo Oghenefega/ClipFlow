@@ -4,6 +4,25 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.55] — 2026-08-18 (session 171) — Installer: the update-test twin
+
+### Changed
+- **Version bumped to 0.3.0-alpha.55 and a second installer cut — identical code to alpha.54, version number only.** Exists so the auto-updater below can be proven end-to-end: alpha.53 has no network updater, so the first updater-capable build (alpha.54) needs something newer on the feed to update *to*. Install alpha.54 by hand once; it should then offer and install alpha.55 through the new banner all by itself. Every machine ends on alpha.55.
+
+## [0.3.0-alpha.54] — 2026-08-18 (session 171) — Real auto-updates: the app now updates itself
+
+### Added
+- **ClipFlow now checks for updates by itself and installs them with one click (#250).** On launch, the installed app asks the update feed on ClipFlow's own Cloudflare setup (the same infrastructure that already serves the AI engine) whether a newer version exists. If so, the existing top-of-window banner appears; clicking Install downloads the new version with a live percentage, then quietly reinstalls and relaunches. No more copying 192 MB installer files between machines by hand — this is how the laptop (and eventually every user) stays current.
+- **New release step for cutting versions: `scripts/publish-update.ps1`.** After `npm run build`, one command uploads the three files the updater needs (installer, blockmap, feed manifest) to the update feed. The manifest goes last on purpose, so a half-finished upload can never advertise an installer that isn't fully there yet.
+
+### Fixed
+- **The old update banner could never work anywhere but Fega's desktop (#259).** The previous updater looked for new installers in a folder hardcoded to the desktop's repo checkout — on the laptop or any other machine that folder doesn't exist, so the check silently reported "no update" forever. The check now goes over the network, so every installed copy sees updates no matter what machine it's on.
+
+### Changed
+- **`electron-builder` upgraded 24 → 26 (#54).** The build tool bump that was always planned to land together with the updater; the installer format is unchanged. Builds now also emit the update-feed manifest (`latest.yml`) alongside the installer.
+- **Updates install without the wizard.** Updating via the banner runs the installer silently and relaunches — the visible NSIS install wizard only appears on a manual first install, not on updates.
+- **Note:** updates are not yet code-signed (#51 tracks the certificate) — that stays acceptable while Fega is the only tester, and the first update a machine takes is always a full-size download (the small "only what changed" downloads start from the second update onward, once the updater has a local copy to diff against).
+
 ## [0.3.0-alpha.53] — 2026-08-18 (session 170) — Installer: the clean laptop-test build
 
 ### Changed

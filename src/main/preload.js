@@ -38,9 +38,15 @@ contextBridge.exposeInMainWorld("clipflow", {
   // Shell
   revealInFolder: (filePath) => ipcRenderer.invoke("shell:revealInFolder", filePath),
 
-  // Local update notifier (#80 Stage 2)
+  // Auto-update (#250 — electron-updater against the R2 feed)
   checkForUpdate: () => ipcRenderer.invoke("update:check"),
-  installUpdate: (installerPath) => ipcRenderer.invoke("update:install", installerPath),
+  installUpdate: () => ipcRenderer.invoke("update:install"),
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on("update:progress", (_, data) => callback(data));
+  },
+  removeUpdateProgressListeners: () => {
+    ipcRenderer.removeAllListeners("update:progress");
+  },
 
   // Dialogs
   openFileDialog: (options) => ipcRenderer.invoke("dialog:openFile", options),

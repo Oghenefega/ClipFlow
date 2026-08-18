@@ -1,6 +1,6 @@
 {
   "name": "clipflow",
-  "version": "0.3.0-alpha.53",
+  "version": "0.3.0-alpha.55",
   "description": "Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.",
   "main": "src/main/main.js",
   "scripts": {
@@ -58,6 +58,10 @@
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://engine.flowve.app/updates"
     }
   },
   "dependencies": {
@@ -87,6 +91,7 @@
     "dotenv": "^17.3.1",
     "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
     "posthog-js": "^1.364.5",
@@ -106,7 +111,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^8.2.0",
     "electron": "^40.9.1",
-    "electron-builder": "^24.9.0",
+    "electron-builder": "^26.15.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^5.9.3",

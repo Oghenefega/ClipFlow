@@ -4462,43 +4462,52 @@ ipcMain.handle("app:openExternal", async (_event, url) => {
   }
 });
 
-// ── Local update notifier (#80 Stage 2) ──
-// Bare-bones: scans <repo>/dist for the newest ClipFlow installer.
-// Banner shows if its filename version differs from the running app version.
-// Click "Install" → spawn installer + quit. No download, no GitHub, no auto-anything.
-const UPDATE_DIST_DIR = "C:\\Users\\IAmAbsolute\\Desktop\\ClipFlow\\dist";
-const INSTALLER_PATTERN = /^ClipFlow Setup (.+?)\.exe$/i;
+// ── Auto-update (#250; replaces the #80 Stage-2 local-dist scan, #259) ──
+// electron-updater against the generic feed on R2: engine.flowve.app/updates
+// (latest.yml + installer + blockmap, uploaded by scripts/publish-update.ps1).
+// IPC names kept from Stage 2 so preload + UpdateBanner stayed wired:
+//   update:check   → checkForUpdates(); banner shows if the feed is newer.
+//   update:install → downloadUpdate() (differential via blockmap, progress
+//                    streamed as "update:progress"), then quitAndInstall.
+// Unsigned build (#51 deferred): no signature verification on the download —
+// integrity comes from the sha512 in latest.yml, transport from HTTPS.
+const { autoUpdater } = require("electron-updater");
+autoUpdater.autoDownload = false;
+
+autoUpdater.on("download-progress", (p) => {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update:progress", {
+        percent: p.percent,
+        transferredBytes: p.transferred,
+        totalBytes: p.total,
+      });
+    }
+  } catch (_) { /* window gone mid-send */ }
+});
 
 ipcMain.handle("update:check", async () => {
   try {
-    if (!fs.existsSync(UPDATE_DIST_DIR)) return { available: false };
-    const entries = fs.readdirSync(UPDATE_DIST_DIR);
-    const candidates = entries
-      .map((name) => {
-        const m = name.match(INSTALLER_PATTERN);
-        if (!m) return null;
-        const fullPath = path.join(UPDATE_DIST_DIR, name);
-        const stat = fs.statSync(fullPath);
-        return { name, version: m[1], path: fullPath, mtime: stat.mtimeMs };
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.mtime - a.mtime);
-    if (candidates.length === 0) return { available: false };
-    const newest = candidates[0];
+    // Source runs (npm start / npm run dev) have no app-update.yml — the
+    // updater only means anything on an installed build.
+    if (!app.isPackaged) return { available: false };
+    const result = await autoUpdater.checkForUpdates();
     const current = app.getVersion();
-    if (newest.version === current) return { available: false, current };
-    return { available: true, current, newVersion: newest.version, installerPath: newest.path };
+    if (!result || !result.isUpdateAvailable) return { available: false, current };
+    return { available: true, current, newVersion: result.updateInfo.version };
   } catch (err) {
+    // Expected offline / feed-not-yet-uploaded case — quiet log, no banner.
     logger.warn(logger.MODULES.system, `update:check failed: ${err.message}`);
     return { available: false, error: err.message };
   }
 });
 
-ipcMain.handle("update:install", async (_, installerPath) => {
+ipcMain.handle("update:install", async () => {
   try {
-    const { spawn } = require("child_process");
-    spawn(installerPath, [], { detached: true, stdio: "ignore" }).unref();
-    setTimeout(() => app.quit(), 300);
+    if (!app.isPackaged) return { success: false, error: "Updates only work on the installed app" };
+    await autoUpdater.downloadUpdate();
+    // Silent NSIS install + relaunch — the "Install" click already was consent.
+    autoUpdater.quitAndInstall(true, true);
     return { success: true };
   } catch (err) {
     logger.error(logger.MODULES.system, `update:install failed: ${err.message}`);

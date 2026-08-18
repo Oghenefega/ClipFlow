@@ -4,6 +4,8 @@ import T from "../styles/theme";
 export default function UpdateBanner() {
   const [info, setInfo] = useState(null);
   const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState(null); // { percent } while downloading
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (window.clipflow?.profile === "dev") return; // banner is for daily only
@@ -11,14 +13,30 @@ export default function UpdateBanner() {
     window.clipflow.checkForUpdate().then((result) => {
       if (result?.available) setInfo(result);
     }).catch(() => {});
+    return () => window.clipflow?.removeUpdateProgressListeners?.();
   }, []);
 
   if (!info) return null;
 
   const handleInstall = async () => {
     setInstalling(true);
-    await window.clipflow.installUpdate(info.installerPath);
+    setError(null);
+    window.clipflow.onUpdateProgress?.((data) => setProgress(data));
+    // On success the app quits and relaunches — this only returns on failure.
+    const result = await window.clipflow.installUpdate();
+    if (!result?.success) {
+      window.clipflow.removeUpdateProgressListeners?.();
+      setInstalling(false);
+      setProgress(null);
+      setError(result?.error || "Update failed — try again later");
+    }
   };
+
+  const buttonLabel = !installing
+    ? "Install"
+    : progress
+      ? (progress.percent >= 100 ? "Restarting…" : `Downloading ${Math.round(progress.percent)}%`)
+      : "Preparing…";
 
   return (
     <div style={{
@@ -34,6 +52,7 @@ export default function UpdateBanner() {
       <span style={{ color: T.accentLight, fontWeight: 700 }}>↑</span>
       <span style={{ color: T.text, flex: 1 }}>
         Update available — <strong>{info.newVersion}</strong> (current: {info.current})
+        {error && <span style={{ color: T.red, marginLeft: 8 }}>{error}</span>}
       </span>
       <button
         onClick={handleInstall}
@@ -50,7 +69,7 @@ export default function UpdateBanner() {
           opacity: installing ? 0.6 : 1,
         }}
       >
-        {installing ? "Installing…" : "Install"}
+        {buttonLabel}
       </button>
       <button
         onClick={() => setInfo(null)}

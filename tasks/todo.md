@@ -6,9 +6,24 @@
 
 ---
 
-## 📋 PLAN (session 171) — Real auto-updates so the laptop stops needing sneakernet
+## ✅ SHIPPED (session 171) — Real auto-updates so the laptop stops needing sneakernet
 
-**Status: awaiting Fega's approval. No code written yet.**
+**Status: built and headlessly verified; the one remaining leg is Fega clicking
+Install in the banner (install alpha.54 → banner offers .55 → click).**
+
+Outcome vs plan: all steps landed as written, plus discoveries the plan missed —
+(1) prerelease versions get a channel manifest named **alpha.yml**, not
+latest.yml (packaged app agrees: `channel: alpha` in app-update.yml), and the
+publish script auto-detects it; (2) installed alpha.53 has no network updater,
+so E2E needed TWO builds: alpha.54 (manual install, the starting point) and
+alpha.55 (pure version bump on the feed, the target — every machine ends here);
+(3) v26 keeps real filenames (spaces) in the manifest, R2 serves them
+URL-encoded, verified 200 + correct Content-Length + Accept-Ranges. Verified
+headlessly via packaged win-unpacked on dev profile + CDP: check leg proven in
+BOTH directions over the real feed (available:false on matching version, then
+available:true → newVersion detected against a temporarily doctored manifest,
+then restored and re-proven false). Feed live at
+engine.flowve.app/updates/alpha.yml. Original plan below.
 
 **Goal (plain language):** ClipFlow on the laptop notices a new version by itself,
 downloads it in the background, and offers a one-click Install. Today the laptop
