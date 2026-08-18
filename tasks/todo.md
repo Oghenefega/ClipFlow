@@ -6,6 +6,94 @@
 
 ---
 
+## 📋 PLAN (session 171) — Real auto-updates so the laptop stops needing sneakernet
+
+**Status: awaiting Fega's approval. No code written yet.**
+
+**Goal (plain language):** ClipFlow on the laptop notices a new version by itself,
+downloads it in the background, and offers a one-click Install. Today the laptop
+gets nothing — every update means copying a 192 MB installer over by hand.
+
+### Why this is unblocked now
+
+The infra dashboard's H4 decision parked the updater behind #35, #45 and #46.
+All three closed back in sessions 10-13. The gate has been open for a while and
+nobody noticed. H4 also left "where do the update files live?" open — R1
+(2026-08-14) answered it sideways by putting the AI engine on R2 behind
+`engine.flowve.app`, which already does resumable multi-GB downloads with
+checksum verification. That is the update feed; it just needs a folder.
+
+### What already exists (verified, session 171)
+
+- `src/renderer/components/UpdateBanner.js` — the whole UI: banner, version
+  compare, Install button, Later button, suppressed on the dev profile. Correct
+  as written, no redesign needed.
+- `src/main/preload.js:42-43` — `checkForUpdate` / `installUpdate` bridge. Fine.
+- `src/main/main.js:4463-4506` — the two IPC handlers. **These are the broken
+  part**: `update:check` scans a hardcoded `C:\Users\IAmAbsolute\Desktop\ClipFlow\dist`,
+  so on the laptop it returns "no update" forever and the banner never renders.
+  Filed as #259.
+
+So this is replacing the insides of two handlers, not building a feature from zero.
+
+### Steps
+
+1. **Bump `electron-builder` 24.13.3 → 26** (#54, already scoped as "bundle with
+   the updater work"). Its NSIS + publish handling is what the updater rides on.
+2. **Add a `publish` block** to `package.json` — generic provider pointed at an
+   `/updates/` path on the existing R2 bucket. This makes `npm run build` emit a
+   `latest.yml` next to the exe and blockmap. Nothing emits `latest.yml` today.
+3. **Add `electron-updater`**, and rewrite the bodies of `update:check` /
+   `update:install` to call it. Keep the IPC names identical so preload and the
+   banner keep working untouched. Fixes #259 as a side effect.
+4. **Small banner change:** electron-updater downloads *before* installing, so the
+   banner needs a "Downloading… 40%" state between Install and restart. Today's
+   handler just launches a local file instantly.
+5. **Release step becomes:** build, then upload 3 files (exe, `.blockmap`,
+   `latest.yml`) to R2 under `/updates/`. The `.blockmap` is what lets a small
+   change download a few MB instead of the full 192.
+
+### Explicitly NOT doing
+
+- **Code signing (#51).** H4 rejected shipping unsigned, but that reasoning was
+  about install conversion for strangers buying the product. For Fega's own two
+  machines it means clicking through one SmartScreen warning. Decoupling these
+  is the whole reason this can happen now instead of after a 2-6 week cert
+  procurement. Revisit before any non-Fega tester installs.
+- Beta/stable channels. Single channel, same as H4's "single release channel at
+  launch".
+
+### Verification criteria
+
+- Build alpha.54, upload to R2. The **desktop** running alpha.53 shows the banner
+  within a launch, downloads, installs, and relaunches reporting 0.3.0-alpha.54.
+- The download is visibly smaller than 192 MB (proves the blockmap diff works).
+- Same test on the **laptop** — a genuinely different machine, which is the
+  actual point.
+- `npm run dev` still shows no banner (dev profile suppression intact).
+- Cancel/"Later" path leaves the app in a clean state.
+
+### Open question for Fega
+
+Reuse `engine.flowve.app/updates/`, or set up a separate `updates.flowve.app`?
+**Recommendation: reuse `engine.flowve.app`** — bucket, DNS and Cloudflare config
+already exist and are proven. A second subdomain is extra setup for no benefit
+today, and it can be split later without changing app code beyond one URL.
+
+### Dashboard correction needed
+
+Infra dashboard H4 records hosting as "will be on clipflow.app". That domain
+belongs to a third party (#255). Section 9 needs updating to R2/flowve.app per R1
+before this lands — flagging rather than silently diverging.
+
+### Related issues
+
+#250 (beta distribution — the closest match), #19, #50 (updater research),
+#54 (electron-builder bump), #51 (code signing, deliberately deferred),
+#259 (hardcoded dist path, fixed by step 3).
+
+---
+
 ## ✅ SHIPPED (session 169) — #146 session 2 of 3: engines on Cloudflare + in-app "Set up ClipFlow's AI engine" flow
 
 All parts landed and E2E-verified on the dev profile 2026-08-15: real R2 download
