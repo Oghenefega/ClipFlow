@@ -4,6 +4,11 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0-alpha.53] — 2026-08-18 (session 170) — Installer: the clean laptop-test build
+
+### Changed
+- **Version bumped to 0.3.0-alpha.53 and a fresh installer cut.** Adds the glow-clipping fix below on top of alpha.52's hardened engine setup, so the laptop first-boot test runs on a visually clean setup screen. This supersedes alpha.52 as the laptop-test build.
+
 ## [Unreleased] — 2026-08-17 (session 170, post-build) — The engine-setup glow no longer gets cut off
 
 ### Fixed
