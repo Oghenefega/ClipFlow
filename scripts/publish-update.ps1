@@ -73,6 +73,23 @@ if ($LASTEXITCODE -ne 0) { throw "rclone failed uploading blockmap" }
 & $rclone copyto $manifestPath "r2:$Bucket/$Prefix/$manifestName"
 if ($LASTEXITCODE -ne 0) { throw "rclone failed uploading $manifestName" }
 
+# --- prune: keep only the current version's three files in updates/ ---
+# Old installers on the feed serve no one (the manifest only ever names the
+# newest; differential downloads diff against the CLIENT's cached copy, not
+# the feed) and at ~200 MB per alpha they'd blow the R2 free tier in weeks.
+# Rollback story: dist\ keeps prior installers locally, and re-running this
+# script from an older checkout re-publishes that version.
+$keep = @($manifestName, $exeName, "$exeName.blockmap")
+$remote = & $rclone lsf "r2:$Bucket/$Prefix" --files-only
+foreach ($f in $remote) {
+    $name = $f.Trim()
+    if ($name -and ($keep -notcontains $name)) {
+        Write-Host "Pruning old feed file: $name"
+        & $rclone deletefile "r2:$Bucket/$Prefix/$name"
+        if ($LASTEXITCODE -ne 0) { Write-Warning "prune failed for $name (feed still valid, clean up manually)" }
+    }
+}
+
 Write-Host ""
 Write-Host "Done. Installed apps will see this version on next launch."
 if ($publicUrl) { Write-Host "Feed: $publicUrl/$Prefix/$manifestName" }

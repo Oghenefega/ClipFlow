@@ -1,20 +1,23 @@
 ---
 name: clipflow-update-launcher
-description: Use when Fega asks to "update the launcher", "update the ClipFlow prod app", "update the ClipFlow app", "update the installed/daily-driver app", "cut a new build", "cut/ship a new installer", "promote to prod", "bump and build", or "release the next version". This is the Stage-1 promotion loop — bump the app to the next version, build the installer, commit, and tell Fega to reinstall. NOT for `npm run build` dev verification (that's the `build` skill) or for changelog-only updates (that's `release-notes`).
+description: Use when Fega asks to "update the launcher", "update the ClipFlow prod app", "update the ClipFlow app", "update the installed/daily-driver app", "cut a new build", "cut/ship a new installer", "promote to prod", "bump and build", or "release the next version". This is the release loop — bump the version, build the installer, publish it to the R2 update feed, commit; every installed copy (desktop + laptop) then self-updates via the in-app banner. NOT for `npm run build` dev verification (that's the `build` skill) or for changelog-only updates (that's `release-notes`).
 ---
 
-# ClipFlow — Update the Launcher (Stage-1 Promotion Loop)
+# ClipFlow — Update the Launcher (Release Loop)
 
 ## What this is for
 
 Fega's **daily driver is the installed Start-Menu exe**, NOT the source build. Fixes land in
 the source `build/` folder (via `npm run build:renderer` + `npm start`) but the *installed* app
-stays on whatever version's installer he last ran — so it goes stale. "Update the launcher /
-prod app / installed app" means: **cut a fresh versioned installer carrying the latest source,
-so the daily driver catches up.**
+stays on whatever version it last updated to — so it goes stale. "Update the launcher /
+prod app / installed app" means: **cut a fresh versioned installer and publish it to the update
+feed, so every installed copy catches up by itself.**
 
-This is the interim loop. The full auto-updater (`electron-updater`) + code signing is deferred
-(infra dashboard H4) — do NOT propose `electron-updater` here.
+Since session 171 (alpha.54+) the **real auto-updater is live**: `electron-updater` against a
+generic feed on the ClipFlow R2 bucket, `https://engine.flowve.app/updates/` (channel manifest
+`alpha.yml` while versions are prereleases). Installed apps check on launch and offer a one-click
+banner install. Code signing is still deferred (#51) — that's fine for Fega's machines and is the
+sole distribution gate before non-Fega testers.
 
 ## When NOT to cut one (session 81)
 
@@ -54,10 +57,15 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    fresh and packages the NSIS installer). Run it in the **background** — it takes a few minutes.
    - The `>500 kB chunk` Vite warning is **benign** (desktop app, no code-splitting wanted). Don't "fix" it.
    - The electron-builder "author is missed" / "@electron/rebuild not required" warnings are cosmetic. Ignore.
-4. **Verify the artifact** — confirm `dist/ClipFlow Setup <version>.exe` exists with a fresh timestamp
-   (`ls -la --time-style=long-iso "dist/ClipFlow Setup <version>.exe"`).
-5. **Commit ONLY `package.json` + `CHANGELOG.md`**, then push to master. See the hard rule below.
-6. **Tell Fega to install** (see "What Fega does" below).
+4. **Verify the artifacts** — `dist/ClipFlow Setup <version>.exe`, its `.blockmap`, and `dist/alpha.yml`
+   all with fresh timestamps, and `alpha.yml`'s `version:` line reads the new version.
+5. **Publish the feed** — `powershell -ExecutionPolicy Bypass -File scripts/publish-update.ps1`.
+   Uploads exe + blockmap + manifest (manifest last, so a torn upload can't advertise a missing
+   installer) and **prunes older versions from the feed** (R2 free-tier hygiene — the manifest only
+   ever names the newest, so old feed files serve no one). Verify its final "Feed:" line, or
+   `curl -s https://engine.flowve.app/updates/alpha.yml | head -1`.
+6. **Commit ONLY `package.json` + `CHANGELOG.md`**, then push to master. See the hard rule below.
+7. **Tell Fega to relaunch** (see "What Fega does" below).
 
 ## CRITICAL — what to commit
 
@@ -73,22 +81,26 @@ churn) and must never be committed. Stage the two files explicitly; never `git a
 
 ## How the install actually reaches Fega
 
-The in-app **update notifier** (`src/main/main.js`, `update:check` handler ~line 2937) scans the
-repo's `dist/` folder for `ClipFlow Setup *.exe`, sorts by newest mtime, and shows an in-app
-**"Install update"** banner when that installer's filename version ≠ the running app version. So a
-fresh build auto-surfaces in his installed app — no manual hunting. `update:install` (~line 2962)
-spawns the installer and quits.
+On launch, the installed app's `update:check` handler (`src/main/main.js`, ~line 4463, search
+`Auto-update (#250`) asks the feed (`engine.flowve.app/updates/alpha.yml`) whether a newer version
+exists. If so, the **"Update available"** banner renders; **Install** downloads with a live
+percentage (`update:install` → `electron-updater.downloadUpdate()`), then silently reinstalls and
+relaunches — no NSIS wizard. Works identically on the desktop and the laptop; no shared disk, no
+manual copying.
 
-- The notifier shipped 2026-05-08 (session 35), so any installed build from after that date has it.
-- Old installers in `dist/` are harmless — the notifier only ever uses the newest by mtime. Don't
-  prune them unless Fega asks.
+- Any installed build ≥ alpha.54 has the network updater. (alpha.53 and earlier had a local-dist
+  scanner that only worked on the desktop — #259; if a machine is somehow still that old, its first
+  hop must be a manual installer run.)
+- First update on a machine is always a **full-size** download; differential (blockmap) downloads
+  start from the second, once the updater has a cached installer to diff against.
+- Banner is suppressed on the dev profile and on unpackaged runs (`app.isPackaged` guard).
 
 ## What Fega does (tell him this)
 
-> Open ClipFlow → click the **"Install update"** banner (it detects the new build), OR double-click
-> `dist\ClipFlow Setup <version>.exe` directly. Real data in `%APPDATA%\clipflow\` is preserved either way.
+> Relaunch ClipFlow → banner: "Update available — <version>" → click **Install** → it downloads,
+> restarts itself on the new version. Real data in `%APPDATA%\clipflow\` is preserved.
 
-After he reinstalls, **Settings → bottom** reads **ClipFlow v<version>** — that confirms the
+After it relaunches, **Settings → bottom** reads **ClipFlow v<version>** — that confirms the
 promotion took.
 
 ## Gotchas
@@ -99,3 +111,9 @@ promotion took.
 - **Sentry caches `userData` at require time** — unrelated to this loop, but don't reorder `main.js`
   top-of-file requires while here (see CLAUDE.md).
 - This loop does NOT bump schema versions or run migrations — it's purely a packaging/version step.
+- **The feed manifest is `alpha.yml`, not `latest.yml`** — electron-builder derives the channel from
+  the prerelease tag (`0.3.0-alpha.N` → `alpha`). If the `-alpha` suffix ever comes off the version,
+  the manifest becomes `latest.yml` and `publish-update.ps1` picks it up automatically — but installed
+  alpha builds watch `alpha.yml`, so plan that transition deliberately (Fega's call anyway).
+- **Old local installers in `dist/` are rollback stock** — keeping the last ~3 is plenty; older ones
+  can be deleted freely (any version can be rebuilt from its git commit).
