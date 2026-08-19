@@ -845,7 +845,7 @@ export default function QueueView({
           const platNames = [...new Set(outcome.failures.map((f) => f.platform))];
           window.clipflow?.systemNotify?.({
             title: "Scheduled publish failed",
-            body: `"${clip.title}" didn't go out on ${platNames.join(", ")}. Open ClipFlow to retry.`,
+            body: `"${clip.title}" didn't go out on ${platNames.join(", ")}. Open Corva to retry.`,
           });
           onScheduledPublishFailure?.({ clipTitle: clip.title, platforms: platNames, at: Date.now() });
           // A publish-time invalid_grant flags the account in main — pull the
@@ -2026,7 +2026,7 @@ export default function QueueView({
           {/* #240: entry point for finished clips made outside ClipFlow */}
           <button
             onClick={pickImportFiles}
-            title="Import finished vertical clips made outside ClipFlow — they become schedulable queue entries. You can also drag files anywhere onto this tab."
+            title="Import finished vertical clips made outside Corva — they become schedulable queue entries. You can also drag files anywhere onto this tab."
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 7, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -2423,7 +2423,7 @@ export default function QueueView({
                                         <span style={{ fontSize: 12 }}>{icon}</span>
                                         <span style={{ color: T.text, fontSize: 11, fontWeight: 600, minWidth: 80 }}>{plat.abbr} — {plat.name}</span>
                                         <span style={{ color, fontSize: 11, fontWeight: 600 }}>{st === "pending" ? "Waiting..." : st === "publishing" ? "Processing…" : st === "done" ? "Sent" : st}</span>
-                                        {downscaledTo && <span title={`Instagram couldn't process the full-size render, so ClipFlow sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
+                                        {downscaledTo && <span title={`Instagram couldn't process the full-size render, so Corva sent a ${downscaledTo} copy automatically. Your render is untouched.`} style={{ padding: "1px 6px", borderRadius: 4, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 10, fontWeight: 700 }}>{downscaledTo}</span>}
                                       </div>
                                     );
                                   })}

@@ -90,7 +90,7 @@ export const AddGameModal = ({ exe, entryType = "game", onConfirm, onDismiss, on
             <>
               <div style={{ color: T.text, fontSize: 16, fontWeight: 700 }}>How do you play {gameName}?</div>
               <div style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.5, marginTop: 4 }}>
-                Helps the AI pick clips and write titles that sound like you. Skip it and ClipFlow will ask again once it has seen a few of your sessions.
+                Helps the AI pick clips and write titles that sound like you. Skip it and Corva will ask again once it has seen a few of your sessions.
               </div>
               <textarea
                 value={playStyle}

@@ -46,14 +46,17 @@ function runtimeRoot(store) {
 /**
  * Persist a user-picked engine location (#261). Called from the
  * setup:chooseLocation IPC with a folder the OS dialog returned. The engine
- * lands in a "ClipFlow AI" subfolder so picking a drive root stays tidy.
+ * lands in a "Corva AI" subfolder so picking a drive root stays tidy
+ * (pre-rename "ClipFlow AI" folders are recognized so re-picking one
+ * doesn't nest a second level).
  * Refused mid-job — the running download/unpack writes into the old root.
  */
 function setLocation(store, pickedDir) {
   if (job) return { success: false, error: "Setup is already running." };
-  const newRoot = path.basename(pickedDir).toLowerCase() === "clipflow ai"
+  const base = path.basename(pickedDir).toLowerCase();
+  const newRoot = base === "corva ai" || base === "clipflow ai"
     ? pickedDir
-    : path.join(pickedDir, "ClipFlow AI");
+    : path.join(pickedDir, "Corva AI");
   try {
     fs.mkdirSync(newRoot, { recursive: true });
   } catch (err) {

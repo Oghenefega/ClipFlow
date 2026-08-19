@@ -117,7 +117,7 @@ function startOAuthFlow(appId, appSecret, timeoutMs = 120000) {
         contextIsolation: true,
       },
       autoHideMenuBar: true,
-      title: "Connect Instagram — ClipFlow",
+      title: "Connect Instagram — Corva",
     });
 
     // Intercept ALL requests — catch the redirect before it hits the network

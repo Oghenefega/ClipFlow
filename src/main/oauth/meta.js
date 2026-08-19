@@ -319,7 +319,7 @@ function buildCallbackPage(success, message) {
   const icon = success
     ? '<circle cx="50" cy="50" r="45" stroke="#10B981" stroke-width="3" fill="none"/><path d="M30 50 L45 65 L70 35" stroke="#10B981" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
     : '<circle cx="50" cy="50" r="45" stroke="#EF4444" stroke-width="3" fill="none"/><path d="M35 35 L65 65 M65 35 L35 65" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ClipFlow — Meta</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Corva — Meta</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e0e0e0}
 .card{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:48px;text-align:center;max-width:400px}
 svg{width:80px;height:80px;margin-bottom:16px}

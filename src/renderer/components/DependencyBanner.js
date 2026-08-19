@@ -40,7 +40,7 @@ export default function DependencyBanner({ onFinishSetup }) {
       <span style={{ color: T.yellow, fontWeight: 700, lineHeight: "20px" }}>⚠</span>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
         <span style={{ color: T.text, fontWeight: 700 }}>
-          ClipFlow can't run jobs on this machine yet
+          Corva can't run jobs on this machine yet
         </span>
         {issues.map((issue) => (
           <div key={issue.id} style={{ color: T.textSecondary, fontSize: 12, lineHeight: 1.5 }}>
@@ -87,7 +87,7 @@ export default function DependencyBanner({ onFinishSetup }) {
       </button>
       <button
         onClick={() => setDismissed(true)}
-        title="Hide — ClipFlow will still refuse to start a job until this is fixed"
+        title="Hide — Corva will still refuse to start a job until this is fixed"
         style={{
           background: "transparent",
           color: T.textTertiary,

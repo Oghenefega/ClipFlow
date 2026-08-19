@@ -442,7 +442,7 @@ export default function TrackerView({
   // last: it is the import round-trip payload; the human columns are derived
   // views of it.
   const fileRef = useRef(null);
-  const SOURCE_LABELS = { clipflow: "ClipFlow", import: "Imported", manual: "Manual", vizard: "Vizard" };
+  const SOURCE_LABELS = { clipflow: "Corva", import: "Imported", manual: "Manual", vizard: "Vizard" };
   const csvQuote = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
   const platformUrl = (e, platform) => {
     const r = (e.platformResults || []).find((x) => (x.platform || "").toLowerCase() === platform);
@@ -472,7 +472,7 @@ export default function TrackerView({
       csvQuote(JSON.stringify(e.platformResults || [])),
     ].join(",")).join("\n");
     const b = new Blob([h + r], { type: "text/csv" });
-    downloadBlob(b, `clipflow-tracker-${todayIso}.csv`);
+    downloadBlob(b, `corva-tracker-${todayIso}.csv`);
   };
 
   // Header-aware import (#225): maps columns by header name so BOTH the legacy
@@ -564,7 +564,7 @@ export default function TrackerView({
         rankColor: T.tiers[rank.tier] || T.accent,
         weekLabel: `${wd[0].label} – ${wd[5].label}`,
       });
-      downloadBlob(blob, `clipflow-rundown-${monday}.png`);
+      downloadBlob(blob, `corva-rundown-${monday}.png`);
       const copied = await copyBlobToClipboard(blob);
       setShareState(copied ? "copied" : "saved");
       toast(copied ? "Recap saved — copied to clipboard" : "Recap saved");
@@ -592,7 +592,7 @@ export default function TrackerView({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
           <h1 style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.01em", margin: 0 }}>Tracker</h1>
-          <div style={{ fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>ClipFlow · Now Playing</div>
+          <div style={{ fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>Corva · Now Playing</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 4 }}>
@@ -944,7 +944,7 @@ export default function TrackerView({
       {/* Legend */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 4px 16px" }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted via ClipFlow
+          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted via Corva
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Logged manually
@@ -1004,7 +1004,7 @@ export default function TrackerView({
               const isAuto = !isSched && entry.source === "clipflow";
               const srcLabel = isSched
                 ? "Scheduled — not posted yet"
-                : (isAuto ? (entry.scheduled ? "Scheduled via ClipFlow" : "Published via ClipFlow") : "Logged manually");
+                : (isAuto ? (entry.scheduled ? "Scheduled via Corva" : "Published via Corva") : "Logged manually");
               // A scheduled clip carries its own paths; a posted one is looked up by the
               // clipId logPost stored. Either can come back empty — the project may be
               // deleted or the clip drive unplugged — so every clip action is optional.
@@ -1198,7 +1198,7 @@ export default function TrackerView({
             )}
 
             <div>
-              <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>ClipFlow Rundown {"·"} {wd[0].label} – {wd[5].label}</div>
+              <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 9 }}>Corva Rundown {"·"} {wd[0].label} – {wd[5].label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
                 I posted <b style={{ color: gameColor }}>{recap.clips} clip{recap.clips === 1 ? "" : "s"}</b> to <b style={{ color: gameColor }}>{recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}</b> this week
               </div>
@@ -1208,7 +1208,7 @@ export default function TrackerView({
               <span style={{ width: 16, height: 16, borderRadius: 5, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
               </span>
-              ClipFlow
+              Corva
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

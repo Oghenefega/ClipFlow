@@ -138,9 +138,9 @@ export default function OnboardingView({ onComplete }) {
             {step === 2 && "Describe your style"}
           </h1>
           <p style={{ color: T.textSecondary, fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>
-            {step === 0 && "Pick the style that best matches your content. This helps ClipFlow find the right moments."}
+            {step === 0 && "Pick the style that best matches your content. This helps Corva find the right moments."}
             {step === 1 && "Drag to reorder. Top = highest priority for clip detection."}
-            {step === 2 && "Optional. Tell ClipFlow about your streaming personality."}
+            {step === 2 && "Optional. Tell Corva about your streaming personality."}
           </p>
         </div>
 
@@ -307,7 +307,7 @@ function PersonalityStep({ description, setDescription }) {
       {/* Description */}
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Tell ClipFlow about your streaming personality
+          Tell Corva about your streaming personality
         </label>
         <textarea
           value={description}

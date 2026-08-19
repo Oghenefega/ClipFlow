@@ -1937,7 +1937,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                       ) : h.historyId ? (
                         <button onClick={() => undoLocalEntry(h)} disabled={undoBusy === h.id} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: undoBusy === h.id ? "default" : "pointer", fontFamily: T.font, opacity: undoBusy === h.id ? 0.5 : 1 }}>{undoBusy === h.id ? "UNDOING…" : "UNDO"}</button>
                       ) : (
-                        <span title="Renamed before ClipFlow tracked undo — this entry can't be undone" style={{ color: T.textMuted, opacity: 0.5, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", flexShrink: 0, cursor: "help" }}>NO UNDO</span>
+                        <span title="Renamed before Corva tracked undo — this entry can't be undone" style={{ color: T.textMuted, opacity: 0.5, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", flexShrink: 0, cursor: "help" }}>NO UNDO</span>
                       )}
                       <span style={{ color: T.textMuted, fontSize: 11, fontFamily: T.mono, flexShrink: 0 }}>{h.time}</span>
                     </div>

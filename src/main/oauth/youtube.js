@@ -324,7 +324,7 @@ function buildResultPage(success, message) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>ClipFlow — YouTube ${success ? "Connected" : "Error"}</title>
+  <title>Corva — YouTube ${success ? "Connected" : "Error"}</title>
   <style>
     body {
       margin: 0; padding: 0;

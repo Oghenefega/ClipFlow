@@ -1,6 +1,7 @@
 {
-  "name": "clipflow",
-  "version": "0.3.0-alpha.59",
+  "name": "corva",
+  "productName": "Corva",
+  "version": "0.3.0-alpha.60",
   "description": "Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.",
   "main": "src/main/main.js",
   "scripts": {
@@ -15,7 +16,7 @@
   },
   "build": {
     "appId": "com.clipflow.app",
-    "productName": "ClipFlow",
+    "productName": "Corva",
     "directories": {
       "output": "dist"
     },

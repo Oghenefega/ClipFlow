@@ -18,7 +18,7 @@ function showCrashScreen(label, error) {
   const root = document.getElementById("root");
   if (root) {
     root.innerHTML = `<div style="padding:48px;color:#ff6b6b;background:#0a0b10;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;text-align:center">
-      <h1 style="font-size:20px;margin-bottom:12px;font-weight:700">ClipFlow crashed</h1>
+      <h1 style="font-size:20px;margin-bottom:12px;font-weight:700">Corva crashed</h1>
       <p style="font-size:13px;color:#888;margin-bottom:16px">${label}</p>
       <pre style="font-size:11px;color:#ff9999;white-space:pre-wrap;max-width:700px;margin-bottom:24px;text-align:left;max-height:300px;overflow:auto">${msg.replace(/</g, "&lt;")}</pre>
       <button id="clipflow-crash-reload" style="padding:10px 24px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Reload App</button>

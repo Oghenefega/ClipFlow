@@ -311,7 +311,7 @@ function buildResultPage(success, message) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>ClipFlow — TikTok ${success ? "Connected" : "Error"}</title>
+  <title>Corva — TikTok ${success ? "Connected" : "Error"}</title>
   <style>
     body {
       margin: 0; padding: 0;

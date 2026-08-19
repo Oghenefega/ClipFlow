@@ -24,7 +24,7 @@ const COPY = {
   },
   idea: {
     title: "Share an idea",
-    ph: "What should ClipFlow do? What would it help with?",
+    ph: "What should Corva do? What would it help with?",
     point: "⌖  Point at what you mean",
     consent: "Sends your words, the snapshot and the app version. Nothing else.",
   },

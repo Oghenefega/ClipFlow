@@ -657,7 +657,7 @@ async function runAIPipeline({
     const pythonPath = store.get("whisperPythonPath");
     if (!pythonPath || !fs.existsSync(pythonPath)) {
       throw new Error(
-        "ClipFlow's AI engine isn't installed on this machine. " +
+        "Corva's AI engine isn't installed on this machine. " +
         "Click \"Finish Setup\" on the banner at the top of the app to download it — " +
         "one download, no manual installs."
       );

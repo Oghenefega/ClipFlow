@@ -6,9 +6,25 @@ const path = require("path");
 const fs = require("fs");
 
 const CLIPFLOW_PROFILE = process.env.CLIPFLOW_PROFILE === "dev" ? "dev" : "prod";
+let userDataMigrationOutcome = null; // set on prod boots, logged once the logger exists
 if (CLIPFLOW_PROFILE === "dev") {
   const devUserData = path.join(app.getPath("appData"), "clipflow-dev");
   app.setPath("userData", devUserData);
+} else {
+  // ClipFlow → Corva rename (#268): productName now resolves userData to
+  // %APPDATA%\Corva, so the legacy %APPDATA%\clipflow folder (settings,
+  // tracker history, OAuth tokens, DB) is renamed into place on first boot.
+  // On failure the app keeps running against the old folder — it must never
+  // boot against an empty userData while the real one still exists.
+  const { migrateUserData } = require("./user-data-migration");
+  const migration = migrateUserData({
+    appDataDir: app.getPath("appData"),
+    newUserData: app.getPath("userData"),
+  });
+  if (migration.outcome === "use-old") {
+    app.setPath("userData", migration.oldDir);
+  }
+  userDataMigrationOutcome = migration.outcome;
 }
 
 // One running app per profile (#156). MUST come after the profile redirect above:
@@ -85,6 +101,9 @@ const youtubePublish = require("./oauth/youtube-publish");
 const publishLog = require("./publish-log");
 const feedbackReport = require("./feedback-report"); // #248 — NOT the clip-feedback DB (./feedback)
 const logger = require("./logger");
+if (userDataMigrationOutcome && userDataMigrationOutcome !== "noop") {
+  logger.info(logger.MODULES.system, `Corva userData migration (#268): ${userDataMigrationOutcome}`, { userData: app.getPath("userData") });
+}
 const llmProvider = require("./ai/llm-provider");
 const aiPrompt = require("./ai-prompt");
 const titleCaptionPrompt = require("./ai/title-caption-prompt");
@@ -591,7 +610,7 @@ const isDev = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    title: CLIPFLOW_PROFILE === "dev" ? "ClipFlow [DEV]" : "ClipFlow",
+    title: CLIPFLOW_PROFILE === "dev" ? "Corva [DEV]" : "Corva",
     width: 1280,
     height: 860,
     minWidth: 960,
@@ -3410,7 +3429,7 @@ function resolveTestAwareOutputFolder(projectData) {
 
   if (testMode) {
     const testRoot = store.get("testWatchFolder") || path.join(watchFolder || "", "Test");
-    return path.join(testRoot, "ClipFlow Renders");
+    return path.join(testRoot, "Corva Renders");
   }
   return store.get("outputFolder");
 }
@@ -3725,7 +3744,7 @@ const deadTokenError = (platform) =>
 ipcMain.handle("system:notify", (_, { title, body } = {}) => {
   try {
     if (!Notification.isSupported()) return { ok: false, error: "unsupported" };
-    const n = new Notification({ title: String(title || "ClipFlow"), body: String(body || "") });
+    const n = new Notification({ title: String(title || "Corva"), body: String(body || "") });
     n.on("click", () => {
       if (!mainWindow) return;
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -4467,7 +4486,7 @@ ipcMain.handle("logs:exportReport", async (_, { description, modules, severity }
 
   const result = await dialog.showSaveDialog(mainWindow, {
     title: "Save Bug Report",
-    defaultPath: path.join(app.getPath("desktop"), `clipflow-report-${report.reportId}.json`),
+    defaultPath: path.join(app.getPath("desktop"), `corva-report-${report.reportId}.json`),
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
 

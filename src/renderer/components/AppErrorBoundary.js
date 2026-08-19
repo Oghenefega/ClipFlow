@@ -23,7 +23,7 @@ class AppErrorBoundary extends React.Component {
         <div style={{ padding: 48, color: "#ff6b6b", background: "#0a0b10", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "monospace, sans-serif", textAlign: "center" }}>
           <h1 style={{ fontSize: 24, marginBottom: 12, fontWeight: 700 }}>Something went wrong</h1>
           <p style={{ fontSize: 14, color: "#888", marginBottom: 24, maxWidth: 480 }}>
-            ClipFlow encountered an unexpected error. The crash has been reported automatically.
+            Corva encountered an unexpected error. The crash has been reported automatically.
           </p>
           <pre style={{ fontSize: 12, color: "#ff9999", whiteSpace: "pre-wrap", maxWidth: 600, marginBottom: 24, fontFamily: "monospace", textAlign: "left", maxHeight: 200, overflow: "auto" }}>
             {String(this.state.error?.message || this.state.error || "Unknown error")}

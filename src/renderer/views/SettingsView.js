@@ -533,7 +533,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </button>
         </div>
         <p style={{ color: T.textTertiary, fontSize: 12, margin: "0 0 16px 0", lineHeight: 1.5 }}>
-          ClipFlow works best with recordings under 30 minutes. Longer recordings will be split into parts during rename.
+          Corva works best with recordings under 30 minutes. Longer recordings will be split into parts during rename.
         </p>
 
         {/* Threshold */}
@@ -1040,7 +1040,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
         {(!ffmpegStatus?.installed || !whisperStatus?.installed) && (
           <div style={{ marginTop: 12, padding: "8px 12px", background: `${T.yellow}15`, borderRadius: T.radius.sm, border: `1px solid ${T.yellow}33` }}>
             <span style={{ color: T.yellow, fontSize: 11 }}>
-              {!ffmpegStatus?.installed && "FFmpeg is missing — reinstall ClipFlow (the installer includes it), or install FFmpeg and add it to PATH. "}
+              {!ffmpegStatus?.installed && "FFmpeg is missing — reinstall Corva (the installer includes it), or install FFmpeg and add it to PATH. "}
               {!whisperStatus?.installed && "Set Python path below (BetterWhisperX venv)."}
             </span>
           </div>
@@ -1120,7 +1120,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               if (!picked) return;
               const info = await window.clipflow.audioProbeTracks(picked);
               if (info?.error) { setCalNotice(`Could not read that file: ${info.error}`); return; }
-              if (info.trackCount <= 1) { setCalNotice("That recording has only one audio track — nothing to calibrate. ClipFlow uses it automatically."); return; }
+              if (info.trackCount <= 1) { setCalNotice("That recording has only one audio track — nothing to calibrate. Corva uses it automatically."); return; }
               setCalFile({ path: picked, trackCount: info.trackCount });
             }} style={{ padding: "5px 14px", borderRadius: T.radius.sm, fontSize: 11, fontWeight: 600, fontFamily: T.font, cursor: "pointer", border: `1px solid ${T.border}`, background: T.surfaceHover, color: T.text }}>
               🎧 Recalibrate…
@@ -1752,7 +1752,7 @@ function AnalyticsToggle() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Send anonymous usage data</div>
-          <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 2 }}>Helps improve ClipFlow. No filenames, usernames, or personal data is collected.</div>
+          <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 2 }}>Helps improve Corva. No filenames, usernames, or personal data is collected.</div>
         </div>
         <button
           onClick={toggle}
@@ -2688,7 +2688,7 @@ function DevDashboard() {
             cursor: "default", userSelect: "none", position: "relative",
           }}
         >
-          ClipFlow v{version}
+          Corva v{version}
           {showUnlockHint && (
             <span style={{ color: T.accentLight, fontSize: 10, marginLeft: 8, opacity: 0.6 }}>
               {7 - clickCount} more...

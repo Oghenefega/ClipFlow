@@ -1,6 +1,8 @@
-# ClipFlow
+# Corva
 
 Desktop content pipeline for gaming creators — rename, upload, clip, schedule, publish.
+
+> Renamed from **ClipFlow** (2026-08). The GitHub repo, platform developer accounts, and some internal identifiers (`window.clipflow` bridge, `.clipflow` project folders, store filenames, `com.clipflow.app` appId) deliberately keep the old name — see #268.
 
 ## Setup
 

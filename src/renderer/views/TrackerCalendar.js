@@ -365,7 +365,7 @@ function DayDrawer({ dayIso, todayIso, entries, scheduled, weekAgg, resolveGame,
         <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, marginTop: 14, lineHeight: 1.5 }}>
           {isFuture
             ? "Read-only preview. Scheduling and edits live in the Queue."
-            : "View ↗ opens the live post. Links exist where ClipFlow has the post ID."}
+            : "View ↗ opens the live post. Links exist where Corva has the post ID."}
         </div>
       </div>
       <style>{`@keyframes tcSlide{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
@@ -480,7 +480,7 @@ function WeekDrill({ mondayIso, todayIso, agg, entriesByDate, scheduledByDate, r
                   <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 600, color: T.textSecondary }}>
                     <span style={{ width: 14, height: 14, borderRadius: 4, background: "linear-gradient(135deg,#a78bfa,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0a0b10" strokeWidth="2.6"><path d="M4 7h16M4 12h10M4 17h6" /></svg>
-                    </span>ClipFlow
+                    </span>Corva
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>

@@ -61,8 +61,8 @@ async function checkDependencies(store) {
     issues.push({
       id: "ffmpeg",
       title: "FFmpeg is missing",
-      detail: "ClipFlow uses FFmpeg for renaming, clip cutting, subtitles, rendering and audio — most of the app needs it.",
-      fix: "Reinstall ClipFlow (the installer includes FFmpeg), or install FFmpeg yourself and add it to PATH, then hit Check again.",
+      detail: "Corva uses FFmpeg for renaming, clip cutting, subtitles, rendering and audio — most of the app needs it.",
+      fix: "Reinstall Corva (the installer includes FFmpeg), or install FFmpeg yourself and add it to PATH, then hit Check again.",
     });
   }
 
@@ -74,7 +74,7 @@ async function checkDependencies(store) {
       detail: pythonPath
         ? `The saved Python path no longer exists: ${pythonPath}`
         : "No Python path is set, so clips can't be transcribed or subtitled.",
-      fix: "Click Finish Setup to download ClipFlow's AI engine — one download, no manual installs.",
+      fix: "Click Finish Setup to download Corva's AI engine — one download, no manual installs.",
     });
   }
 
@@ -84,9 +84,9 @@ async function checkDependencies(store) {
   if (missingScripts.length > 0) {
     issues.push({
       id: "tool-scripts",
-      title: "Part of ClipFlow's toolkit is missing",
+      title: "Part of Corva's toolkit is missing",
       detail: `These bundled files weren't found: ${missingScripts.join(", ")} (looked in ${TOOLS_DIR}).`,
-      fix: "Reinstall ClipFlow — this usually means a broken or incomplete install.",
+      fix: "Reinstall Corva — this usually means a broken or incomplete install.",
     });
   }
 

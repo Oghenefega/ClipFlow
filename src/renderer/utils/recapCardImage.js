@@ -207,7 +207,7 @@ export async function renderRecapPng({ game, gameColor, clips, platformsUsed, pe
   // 5. ClipFlow mark, anchored bottom-center (brand watermark)
   const markSize = 54;
   ctx.font = "600 30px 'DM Sans', sans-serif";
-  const markLabel = "ClipFlow";
+  const markLabel = "Corva";
   const markLabelW = ctx.measureText(markLabel).width;
   const markGap = 20;
   const markX = (W - (markSize + markGap + markLabelW)) / 2;

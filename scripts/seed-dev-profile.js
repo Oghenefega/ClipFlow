@@ -3,8 +3,8 @@
  * Seed the dev profile with a snapshot of prod data.
  *
  * Copies:
- *   %APPDATA%\clipflow\         →  %APPDATA%\clipflow-dev\
- *   <repo>/data/                →  %APPDATA%\clipflow-dev\data\
+ *   %APPDATA%\Corva\ (or pre-rename %APPDATA%\clipflow\)  →  %APPDATA%\clipflow-dev\
+ *   <repo>/data/                                          →  %APPDATA%\clipflow-dev\data\
  *
  * Idempotent: refuses to overwrite an existing dev profile unless --force.
  *
@@ -21,7 +21,12 @@ const path = require("path");
 const os = require("os");
 
 const APPDATA = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-const PROD_USERDATA = path.join(APPDATA, "clipflow");
+// Prod userData is %APPDATA%\Corva since the rename (#268); fall back to the
+// legacy clipflow folder if the migration hasn't run on this machine yet.
+const CORVA_USERDATA = path.join(APPDATA, "Corva");
+const PROD_USERDATA = fs.existsSync(path.join(CORVA_USERDATA, "clipflow-settings.json"))
+  ? CORVA_USERDATA
+  : path.join(APPDATA, "clipflow");
 const DEV_USERDATA = path.join(APPDATA, "clipflow-dev");
 const REPO_DATA = path.join(__dirname, "..", "data");
 const DEV_DATA = path.join(DEV_USERDATA, "data");

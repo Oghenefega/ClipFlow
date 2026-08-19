@@ -875,7 +875,7 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
       <div className="titlebar-drag" style={{ height: 36, flexShrink: 0, background: "rgba(10,11,16,0.8)", borderRadius: "8px 8px 0 0", display: "flex", alignItems: "center", paddingLeft: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
           <img src={clipflowMark} alt="" width={20} height={20} style={{ display: "block" }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>ClipFlow</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, letterSpacing: "-0.2px" }}>Corva</span>
           {window.clipflow?.profile === "dev" && (
             <span style={{ fontSize: 9, fontWeight: 800, color: "#ff9500", background: "rgba(255,149,0,0.15)", border: "1px solid rgba(255,149,0,0.5)", padding: "1px 5px", borderRadius: 3, letterSpacing: "0.5px", marginLeft: 4 }}>DEV</span>
           )}

@@ -87,7 +87,7 @@ class PipelineLogger {
   finalize() {
     const totalTime = ((Date.now() - this.startTime) / 1000).toFixed(1);
     const header = [
-      `=== ClipFlow AI Pipeline Log ===`,
+      `=== Corva AI Pipeline Log ===`,
       `Video: ${this.videoName}`,
       `Date: ${new Date(this.startTime).toISOString()}`,
       `Status: ${this.success ? "SUCCESS" : "FAILED"}`,

@@ -1,8 +1,19 @@
 # Changelog
 
-All notable changes to ClipFlow are documented in this file.
+All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [0.3.0-alpha.60] — 2026-08-19 (session 175) — ClipFlow is now Corva (#268)
+
+### Changed
+- **The product is renamed ClipFlow → Corva.** Every user-visible surface now says Corva: window titles, sidebar brand, About box, onboarding, setup and dependency messages, error messages, notifications, OAuth "Connected" pages, tracker labels, the recap-card watermark, and export filenames (`corva-tracker-*.csv`, `corva-rundown-*.png`, `corva-report-*.json`). The installer builds as `Corva Setup <version>.exe` and installs/shortcuts as Corva.
+- **App data migrates automatically on first boot.** The packaged app's data folder follows the product name, so a new `src/main/user-data-migration.js` renames `%APPDATA%\clipflow` → `%APPDATA%\Corva` once — an atomic same-volume rename that carries settings, full tracker history (XP, rank, streak), platform OAuth tokens, and the detection DB byte-for-byte. If the rename can't happen (old app still running, stray folder in the way), the app keeps using the old folder rather than ever booting empty. Covered by 16 unit checks including split-brain and locked-folder cases.
+- **The AI-engine setup folder is now "Corva AI"** for new setups; existing "ClipFlow AI" folders are still recognized so re-picking one doesn't nest a second level. Saved engine paths are absolute and unaffected.
+
+### Unchanged on purpose (approved classification, issue #268)
+- `appId` / AppUserModelID stay `com.clipflow.app` — the installer's upgrade identity derives from it, which is exactly what makes a Corva installer upgrade an existing ClipFlow install in place instead of installing alongside it. Also kept: the `window.clipflow` IPC bridge, the `.clipflow` project-library dotfolder, store filenames (`clipflow-settings/-tokens/-publish-log.json`, `clipflow.db`), the `CLIPFLOW_PROFILE` env var and `clipflow-dev` profile, the "ClipFlow Imports" folder, `clipflow_*` analytics event names, and the persisted `source: "clipflow"` tracker value (its display label maps to Corva).
+- External names are gated to a later step per the rename brief: GitHub repo, and the TikTok/Meta/Google developer app registrations (the TikTok app is frozen mid-review and untouched).
 
 ## [Unreleased] — 2026-08-19 (session 174) — Split children inherit the parent's name (#264)
 

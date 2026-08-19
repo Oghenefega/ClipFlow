@@ -130,8 +130,8 @@ export default function AudioCalibrationModal({ filePath, trackCount, onComplete
         <div style={{ color: T.textSecondary, fontSize: 12.5, marginBottom: 14, lineHeight: 1.5 }}>
           {hasExisting
             ? "This recording's audio layout doesn't match your saved setup — your OBS settings probably changed. "
-            : "This recording has multiple audio tracks and ClipFlow needs to know which one is your voice. "}
-          Play each track and tell ClipFlow what you hear. You'll only do this once — future recordings inherit the answer.
+            : "This recording has multiple audio tracks and Corva needs to know which one is your voice. "}
+          Play each track and tell Corva what you hear. You'll only do this once — future recordings inherit the answer.
         </div>
 
         {/* Muted video context + play control */}

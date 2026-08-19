@@ -22,7 +22,7 @@ const { envWithBundledFfmpeg, defaultHfHome } = require("../../app-paths");
 // Plain-language setup error (#251, repointed #146) — surfaced straight to
 // the user when transcription starts without a configured AI engine.
 const PYTHON_SETUP_ERROR =
-  "ClipFlow's AI engine isn't installed on this machine. " +
+  "Corva's AI engine isn't installed on this machine. " +
   "Click \"Finish Setup\" on the banner at the top of the app to download it — " +
   "one download, no manual installs.";
 

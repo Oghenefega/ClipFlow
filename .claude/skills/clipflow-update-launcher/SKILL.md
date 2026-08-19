@@ -57,7 +57,7 @@ the launcher"). This skill is the HOW; this gate is the WHEN. ([[feedback_batch_
    fresh and packages the NSIS installer). Run it in the **background** — it takes a few minutes.
    - The `>500 kB chunk` Vite warning is **benign** (desktop app, no code-splitting wanted). Don't "fix" it.
    - The electron-builder "author is missed" / "@electron/rebuild not required" warnings are cosmetic. Ignore.
-4. **Verify the artifacts** — `dist/ClipFlow Setup <version>.exe`, its `.blockmap`, and `dist/alpha.yml`
+4. **Verify the artifacts** — `dist/Corva Setup <version>.exe` (pre-rename builds: `ClipFlow Setup`), its `.blockmap`, and `dist/alpha.yml`
    all with fresh timestamps, and `alpha.yml`'s `version:` line reads the new version.
 5. **Publish the feed** — `powershell -ExecutionPolicy Bypass -File scripts/publish-update.ps1`.
    Uploads exe + blockmap + manifest (manifest last, so a torn upload can't advertise a missing

@@ -927,7 +927,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
           style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", marginBottom: 10, background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 8 }}
         >
           <span style={{ color: T.textSecondary, fontSize: 12 }}>
-            {missingFiles.length} recording{missingFiles.length === 1 ? " is" : "s are"} no longer on disk (deleted outside ClipFlow)
+            {missingFiles.length} recording{missingFiles.length === 1 ? " is" : "s are"} no longer on disk (deleted outside Corva)
           </span>
           <button
             onClick={cleanupMissing}
@@ -1714,7 +1714,7 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
             <div style={{ color: T.text, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🎙 Almost no speech found</div>
             <div style={{ color: T.textSecondary, fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>
               Only {sparseWarn.wordCount} word{sparseWarn.wordCount === 1 ? "" : "s"} were transcribed from <span style={{ color: T.text }}>{sparseWarn.fileName}</span>.
-              If you talk in your videos, the audio track ClipFlow listens to is probably no longer your mic — this happens after changing your OBS audio setup.
+              If you talk in your videos, the audio track Corva listens to is probably no longer your mic — this happens after changing your OBS audio setup.
               Recalibrating fixes future videos; for this one, delete its project and generate it again afterwards.
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>

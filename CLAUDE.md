@@ -1,4 +1,6 @@
-# ClipFlow — Commercial Desktop App for Gaming Content Creators
+# ClipFlow (now **Corva**) — Commercial Desktop App for Gaming Content Creators
+
+**Product renamed ClipFlow → Corva (2026-08-19, #268).** User-facing name, `productName`, installer, and window titles are Corva. Deliberately KEPT under the old name: `appId` `com.clipflow.app` (upgrade identity — never change), `window.clipflow` bridge, `.clipflow` project dotfolder, store filenames (`clipflow-settings/-tokens/-publish-log`, `clipflow.db`), `CLIPFLOW_PROFILE` env var, "ClipFlow Imports" folder, `clipflow_*` PostHog events, persisted `source: "clipflow"` tracker value, Cloudflare internals. The GitHub repo and platform developer app names (TikTok/Meta/Google) still say ClipFlow — their rename is gated behind the trademark opinion (brief Step 4); the TikTok dev app is frozen mid-review and must not be touched. `%APPDATA%\clipflow` migrates to `%APPDATA%\Corva` on first boot via `src/main/user-data-migration.js`.
 
 Electron + React desktop app for gaming/streaming content creators. Automates the full content pipeline: OBS recording → file rename → local clip generation (FFmpeg + Whisper) → editor (subtitles, captions, AI titles) → render → schedule & publish to multiple social platforms.
 

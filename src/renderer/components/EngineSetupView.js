@@ -201,11 +201,11 @@ export default function EngineSetupView({ onClose }) {
   let title, sub, body;
 
   if (ui === "loading") {
-    title = "Set up ClipFlow's AI engine";
+    title = "Set up Corva's AI engine";
     sub = "Checking this machine…";
     body = null;
   } else if (ui === "offline") {
-    title = "Can't reach ClipFlow's servers";
+    title = "Can't reach Corva's servers";
     sub = "The engine download needs internet for this one-time step. Check your connection and try again.";
     body = (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 13 }}>
@@ -215,7 +215,7 @@ export default function EngineSetupView({ onClose }) {
     );
   } else if (ui === "ready") {
     const isCpu = state.variant === "cpu";
-    title = "Set up ClipFlow's AI engine";
+    title = "Set up Corva's AI engine";
     sub = <>One-time download so transcription and clip detection run <b style={{ color: T.text }}>entirely on this PC</b> — your footage never leaves your machine.</>;
     body = (
       <>
@@ -273,7 +273,7 @@ export default function EngineSetupView({ onClose }) {
           <button style={ghostStyle} onClick={() => onClose(false)}>Set up later</button>
         </div>
         <div style={{ marginTop: 26, fontSize: 11.5, color: T.textMuted }}>
-          Downloads securely from ClipFlow's servers · resumes automatically if interrupted
+          Downloads securely from Corva's servers · resumes automatically if interrupted
         </div>
       </>
     );
