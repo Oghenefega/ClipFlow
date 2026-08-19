@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-08-19 (session 174) — Split children inherit the parent's name (#264)
 
+### Fixed
+- **Recordings landing after a same-session rename no longer propose the wrong day (#267).** The "default new files to the game you just renamed" convenience hand-rolled its day number as dayCount+1, ignoring the same-calendar-day rule — so renaming mid-session made every later recording that day propose Day3 when Day2 was correct (and its part number was computed against the wrong game when the default switched games). Both watcher paths now derive day and part through the same accounting as everything else. Verified live: rename → same-day drop proposes Day2 Pt2 (was Day3), next-day drop still advances to Day3 Pt1.
+
 ### Changed
 - **In-app auto-split is now rename-first with letter-suffixed children (#264).** A long recording gets its real name first (`2026-08-19 RL Day16 Pt2.mp4`, claiming its part slot through the same accounting as every other rename), and only then splits — children become `Pt2a`, `Pt2b`, `Pt2c` instead of renumbering from Pt1. The next same-day recording correctly proposes Pt3. This makes OBS auto-split optional by design: record 1-2h whole, ClipFlow splits after renaming. The original whole file stays on disk under its proper name as a safety copy, hidden inside the app.
 

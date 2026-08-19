@@ -410,21 +410,18 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     window.clipflow.onFileAdded((file) => {
       setPendingRenames((prev) => {
         if (prev.find((p) => p.filePath === file.path)) return prev;
-        const detected = detectGame(file.name, gamesDb, prev);
-        // If user recently renamed a file, default new files to that game
-        let game = detected.game, tag = detected.tag, color = detected.color, day = detected.day;
-        if (lastRenamedGame.current) {
-          const lastGame = gamesDb.find((g) => g.name === lastRenamedGame.current);
-          if (lastGame) {
-            game = lastGame.name; tag = lastGame.tag; color = lastGame.color;
-            day = (lastGame.dayCount || 0) + 1;
-          }
-        }
+        // If user recently renamed a file, default new files to that game —
+        // but derive day/part through the same detectForGame accounting as
+        // everything else. #267: a hand-rolled dayCount+1 here ignored the
+        // same-date rule (Day+1 proposed for recordings landing after a
+        // same-day rename) and kept a part computed for the main game.
+        const lastGame = lastRenamedGame.current ? gamesDb.find((g) => g.name === lastRenamedGame.current) : null;
+        const detected = lastGame ? detectForGame(lastGame, file.name, prev) : detectGame(file.name, gamesDb, prev);
         return [...prev, {
           id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           fileName: file.name, filePath: file.path,
-          game, tag, color,
-          day, part: detected.part,
+          game: detected.game, tag: detected.tag, color: detected.color,
+          day: detected.day, part: detected.part,
           preset: defaultPreset,
           customLabel: "",
           createdAt: file.createdAt,
@@ -442,20 +439,14 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     window.clipflow.onTestFileAdded((file) => {
       setPendingRenames((prev) => {
         if (prev.find((p) => p.filePath === file.path)) return prev;
-        const detected = detectGame(file.name, gamesDb, prev);
-        let game = detected.game, tag = detected.tag, color = detected.color, day = detected.day;
-        if (lastRenamedGame.current) {
-          const lastGame = gamesDb.find((g) => g.name === lastRenamedGame.current);
-          if (lastGame) {
-            game = lastGame.name; tag = lastGame.tag; color = lastGame.color;
-            day = (lastGame.dayCount || 0) + 1;
-          }
-        }
+        // #267: same accounting-based defaulting as the main watcher above.
+        const lastGame = lastRenamedGame.current ? gamesDb.find((g) => g.name === lastRenamedGame.current) : null;
+        const detected = lastGame ? detectForGame(lastGame, file.name, prev) : detectGame(file.name, gamesDb, prev);
         return [...prev, {
           id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           fileName: file.name, filePath: file.path,
-          game, tag, color,
-          day, part: detected.part,
+          game: detected.game, tag: detected.tag, color: detected.color,
+          day: detected.day, part: detected.part,
           preset: defaultPreset,
           customLabel: "",
           createdAt: file.createdAt,
