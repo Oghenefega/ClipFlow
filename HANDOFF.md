@@ -1,34 +1,38 @@
-# HANDOFF — Session 173 (2026-08-18)
+# HANDOFF — Session 174 (2026-08-19)
 
 ## Current State
-App is **0.3.0-alpha.59** everywhere via the auto-update loop. The laptop is now the **fresh-customer simulation machine**: gateway-only AI (no personal keys), de-Fega'd game library (added Rocket League by hand), and its first customer-style pipeline run works end-to-end — including editor title generation. Both bugs that run surfaced are fixed and Fega-verified on the laptop.
+App source is ahead of the installed builds: #264 (rename-first split with letter children) and #267 (same-session day+1 override) are on master, verified headlessly, **not yet in any installer** — alpha.59 remains current on both machines. Four issues closed this session (#173, #174, #264, #267), all `status: untested` pending Fega's in-app pass on the next cut.
 
-## What Was Built
-- **#262 (closed, verified): fresh installs stop shipping Fega's personal data (d223693, alpha.57).** `STORE_DEFAULTS` gamesDb/mainGame/mainPool now empty; caption templates lose `#fega #fegagaming`; `REAL_YT_DESCRIPTIONS` (~10 KB of channel + affiliate links baked into every bundle) deleted — the store is the only source; `handleNewGame` fills a two-line generic YT description instead of Fega's channel template; editor `aiGame` default `""` (was "Arc Raiders").
-- **#262 heal migration, repaired (2d0a168, alpha.58).** Boot migration resets the old seeded 7-game library on installs with zero usage. alpha.57's version required *exactly* 7 entries and never fired — file-migration appends the Just Chatting content type on every first boot (8 entries). Now fingerprints only `entryType !== "content"` entries and preserves content types through the reset. Fega's machines skip it (real dayCounts).
-- **Gateway-only AI unlock (6931d15, alpha.59).** Four pre-gateway renderer gates demanded a personal Anthropic key: editor Generate/rephrase/regenerate (the "API key not set" error Fega hit), add-game auto-research (silently skipped), the game-edit research button, and the Settings Anthropic chip (red "Not set" while the gateway served). Editor gates removed entirely — main's provider (anthropic.js:~183) is the single authority; the rest switched to `aiReady` = raw key OR (gatewayUrl && gatewayAuthToken). `anthropicApiKey` prop threading dropped from EditorView→EditorLayout→RightPanelNew→AIToolsPanel.
-- **Issues filed from the laptop-testing discussion:** #263 game auto-detection (process watch + AI frame fallback; gamesDb `exe` field is dormant scaffolding), #264 rename-aware split (Pt1a/1b letters; would subsume bugs #173/#174), #265 first-run onboarding (setup checklist + teaching empty states; OnboardingView today is only the creator-profile wizard).
+## What Was Just Built
+- **#264 rename-first split (3732905).** A long recording is renamed to its real name FIRST (claims its part slot via normal accounting), then splits into letter children (`Pt2a/Pt2b/Pt2c`). DB migration v9 adds `sub_part` (part_number stays numeric → MAX(part_number) accounting untouched; next same-day file = Pt3). Parent keeps its proper name on disk, status 'split', hidden in-app. Split-failure fallback: parent surfaces as a normal renamed whole file with a visible notice.
+- **#173 closed by design** — children can't renumber over same-day files (exists-guard half had already shipped; this removes the collision class).
+- **#174 closed with two defenses** — parent never sits under a raw OBS name, AND `handleWatcherFileAdded` now skips any path with an existing file_metadata row (kills the every-boot ghost from `ignoreInitial: false`, including legacy raw-named parents from old sessions).
+- **metadata:create `noHistory` flag** — split parents excluded from rename-undo (undo would orphan children's lineage + resurrect a raw-named file). Note: the OLD flow was silently creating that dangerous undoable row; this closes it.
+- **Parsers learned letters** — file-migration + reconcile accept `Pt2a`; Recordings sort (compareRecordings + byTagDate SQL) orders letters after their parent part; split badge/tooltip shows real proposed names.
+- **#267 fix (f685f44).** Both watcher handlers route the last-renamed-game default through `detectForGame` — day respects the same-date rule (was hand-rolled dayCount+1 → Day3 on same-day drops after a rename), part follows the defaulted game.
+- **Filed #266** — silence/scene-aware split boundaries (Fega: "the ideal thing"); pure "where to cut" upgrade inside splitFile, naming unaffected.
 
 ## Key Decisions
-- **Users add their own games** — no seeded library, ever. "Just Chatting" stays (built-in content type from file-migration, generic).
-- **The heal only touches pristine installs**: any dayCount > 0 or curated game list skips it. Laptop healed; desktop/dev untouched (verified against real store files before shipping).
-- **Renderer never pre-checks AI credentials** — the main process resolves raw-key vs gateway and its error surfaces in the same UI slot. UI affordances (research button, chips) use `aiReady`, mirroring the Gemini chip's existing rule.
-- **Fega adding a new game now gets the generic description** — he pastes his real YT description once in the Captions tab. Accepted cost of not shipping his links to customers.
+- **Letters live in `sub_part` (TEXT), never in part_number** — string parts would corrupt MAX() accounting. a-z then aa (bijective base-26); sort = length-then-lex.
+- **Fixed-interval boundaries for now** (Fega approved); #266 tracks the silence/scene-aware end state. **Parent file stays on disk** as safety copy; archive option later (Fega approved).
+- **Out of scope, deliberately:** game-switch scrubber naming (children span different games — separate accounting problem), drag-drop import split (own preset; also renumbers today, pre-existing), "Split" action on already-renamed Recordings.
+- **Splits are not undoable** — by design, enforced via noHistory.
 
 ## Next Steps
-1. **Continue laptop pipeline testing** — render, queue, and (eventually) publish from the laptop; every friction point feeds #265.
-2. **Fega: hit the research button on Rocket League** (Settings → Content Library) if not done — auto-research was skipped by the gateway bug when the game was added.
-3. Feature sessions when ready: #263 (game auto-detection — answers the "is Rename convoluted?" worry), #264 (split), #265 (onboarding).
+1. Batch continues toward the next installer cut (~10 changes or Fega's ask) — #264+#267 ride it; then Fega's in-app pass on the four `status: untested` closures.
+2. Laptop pipeline testing continues (render → queue → publish); friction feeds #265.
+3. Feature sessions when ready: #263 (game auto-detection), #265 (onboarding), #266 (smart split boundaries).
 4. Session-start backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50`.
 
 ## Watch Out For
-- **The #262 heal is idempotent and armed forever** — any store that still matches "exactly the 7 legacy games, all dayCount 0, ignoring content types" gets reset on boot. If a future test crafts that exact shape on purpose, it will be wiped.
-- **Migration fingerprints must be tested against a real-boot-produced store** (session 173 lesson, now in clipflow-code-review): first boots mutate gamesDb (JC append, entryType stamps).
-- **On this PC, "fresh install" tests aren't fully fresh**: the #167 legacy-watchFolder rescue migration finds Fega's real W:\ tree and pins it, so a blank dev profile boots watching real recordings (harmless — 111 "No game for tag" skips in file-migration are that artifact, not a bug).
-- Parked test profiles from this session: `%APPDATA%\clipflow-dev.fresh-test-262` and `%APPDATA%\clipflow-dev.replica-test-262` — disposable, delete permission was denied in-session. Real dev profile is restored and intact (verified: 8 games, dayCounts).
-- The dev DB has one extra title_caption_rounds row from the verification Generate click on Clip 20 (dev profile, harmless).
+- **Migration v9 ships with the next installer** — first boot on prod/laptop ALTERs file_metadata. Fresh installs + existing DBs both covered (additive column, no fingerprinting).
+- **The watcher's DB-path guard runs one SELECT per raw file per boot** (after stability check) — cheap, but it means a file whose DB row exists is INVISIBLE to Pending even if the user re-drops it deliberately; deleting the row (or the Recordings entry) is the escape hatch.
+- **Manage tab's batch part-renumber** updates DB part_number only (pre-existing semantics, doesn't rename files); letter children renumbered there would keep stale sub_part letters. Left alone deliberately.
+- **UploadView quick-import split still renumbers children 1..N** under tag-date accounting — pre-existing, out of #264's scope; a collision there now surfaces as the exists-guard refusing (stranded `_split_*` temp name) rather than data loss.
+- **Dev profile was heavily exercised then restored byte-identical** (settings + DB from bak267 backups; AR back to dayCount 1 / lastDayDate 2026-01-05, watchFolder → W:\). Scratchpad leftovers (watch264/watch267 fixtures, bak264/bak267 backups) live in this session's scratchpad — disposable.
+- **Git Bash taskkill trap (burned 3 probe rounds):** single-slash `/IM` is MSYS-mangled and kills NOTHING; the next launch lock-bounces with exit 0 and CDP answers from the STALE instance. Always `taskkill //IM electron.exe //F`, never suppress output, gate relaunches on `tasklist | grep -ci electron` == 0. Memory trap 45.
 
 ## Logs/Debugging
-- CDP drive pattern for the editor lives in this session's scratchpad as `cdp-check.js` (ws require from `C:\Users\IAmAbsolute\node_modules\ws`, target port 9222, Runtime.evaluate one-shot). Boot with `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`.
-- Gateway-only credential state reads as: Settings → Anthropic → "Status: Configured · Gateway active" with API Key row "Not set" (correct — the row describes the raw key).
-- The publish loop's feed check: `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` → `version: 0.3.0-alpha.59`.
+- **CDP drivers for the Rename tab** in this session's scratchpad (`64e6dd88…/scratchpad`): `cdp264.js` (phases: probe / rename / pending-count — reads `.cfr-row` innerText, clicks Rename All), `probe264.js` (storeGet + fileMetadataSearch through the page), `legacy264.js` (simulates old-install raw-named split parent: disk rename + sql.js DB rewrite).
+- **Verification pattern that worked:** fabricate OBS-named testsrc clips (vendor\ffmpeg), dev-profile store edit via node `path.join` (NEVER inline backslash literals through bash — memory trap 44), threshold 1min, drive via CDP, assert disk + DB (sql.js read of `%APPDATA%\clipflow-dev\data\clipflow.db`) + relaunch.
+- Split executes as keyframe-snapped stream copy (`-c copy`) — a 3-min file split to 3 parts in ~1s; real 1-2h recordings will be I/O-bound but no re-encode.
