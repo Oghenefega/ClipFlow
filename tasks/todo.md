@@ -6,6 +6,105 @@
 
 ---
 
+## ✅ SHIPPED (session 174) — #264 Rename-aware split with letter parts (subsumes #173 + #174)
+
+**Status: built and headlessly verified end-to-end on the dev profile (awaiting
+Fega's in-app pass).** All steps landed as planned. Verification: fabricated
+30s + 3min recordings, threshold 1min → Rename All produced `Pt1`, `Pt2`
+(whole parent, hidden) + `Pt2a/b/c`; DB rows carry part_number=2 + letters +
+lineage; no undoable parent history row; a TRUE relaunch (first attempt
+bounced off the single-instance lock — taskkill /IM was being path-mangled by
+Git Bash; use `taskkill //IM`) showed zero ghosts while a genuinely-new file
+still surfaced, proposing Pt3; the legacy case (raw-named parent + DB row)
+stayed out of Pending. Discoveries: filed #266 (silence/scene-aware
+boundaries, Fega's preferred end state) and #267 (pre-existing: files detected
+after a same-session rename propose Day+1 — the lastRenamedGame override
+skips the same-date rule; surfaced as "Day3 Pt3" during verification, correct
+after restart). Dev profile fully restored from backups (settings + DB).
+
+**Goal (plain language):** A long recording gets its real name FIRST (e.g.
+`2026-08-17 RL Day16 Pt2.mp4`), and only then gets split — children inherit the
+parent's full name plus a letter: `Pt2a`, `Pt2b`, `Pt2c`. No more children
+renumbering from Pt1 (the #173 collision class), and no more split parents
+ghosting back into Pending (#174), because the parent never sits on disk under
+a raw OBS name.
+
+### What the trace found (matters for the plan)
+
+- The exists-guard half of #173 already shipped (`fs:renameFile` refuses to
+  overwrite, main.js:926). Today a split collision is a *silent skip* — the
+  child stays behind as a `_split_0_...mp4` temp file (RenameView.js:1000
+  `continue`). Not data loss anymore, but still broken.
+- The pending row already knows the correct part slot (`r.part`, computed at
+  RenameView.js:685-690 from DB + history + pending) — the split code just
+  ignores it and hardcodes 1..N (RenameView.js:963, 980).
+- #174 is worse than filed: the watcher rescans everything on every app boot
+  (`ignoreInitial: false`, main.js:1037), so a raw-named split parent re-enters
+  Pending on EVERY launch, not just once after the split.
+- Recordings already hides split parents (status != 'split', main.js:2494), and
+  next-part accounting is MAX(part_number) per tag+date (naming-presets.js:238)
+  — so keeping children on the parent's part number (Pt2 + letters) makes the
+  next same-day file correctly propose Pt3 with zero accounting changes.
+
+### Steps
+
+1. **DB migration v9** (database.js): add `sub_part TEXT` column to
+   file_metadata. part_number stays numeric (children share the parent's
+   number) so MAX(part_number) accounting is untouched.
+2. **Naming engine** (naming-presets.js formatFilename:120): render
+   `Pt{N}{letter}` when a sub-part is present. Letters a-z, then aa, ab (a 13h+
+   recording at 30-min threshold is the only way past z).
+3. **Rework `splitAndRename`** (RenameView.js:918): rename the whole file to
+   its final name first — same collision handling as a normal rename, using the
+   pending row's own part slot — then split, then name children as parent-name
+   + letter. Child DB rows keep parent's part_number + their letter + the
+   existing split lineage columns. Parent flips to status 'split' (already
+   does) → leaves Pending and Recordings but keeps its proper name on disk.
+   Under conditional-part presets (Date+Tag etc.) a split parent always takes a
+   part number via the existing collision machinery (today's code also forces
+   Pt onto children there, so this is no new behavior).
+4. **#174 legacy guard** (main.js handleWatcherFileAdded:993): skip any
+   detected file whose path already has a file_metadata row. Covers old
+   raw-named split parents already on disk from past sessions.
+5. **Teach the three filename parsers the optional letter**
+   (file-migration.js:19, reconcile.js:34+37): `Pt(\d+)([a-z]+)?`, storing the
+   letter in sub_part on adopt/migrate.
+6. **UI touch-ups** (RenameView.js): split preview badge shows the real
+   proposed names (`Pt2a 0:00-30:00 ...`); rename-history rows show `Pt2a`.
+   `byTagDate` listing order gains `sub_part` as tiebreaker (main.js:2482).
+
+### Explicitly OUT of scope this session
+
+- **Game-switch scrubber split** (RenameView.js:1067) keeps today's naming —
+  its children span *different games* with per-tag accounting, a separate
+  problem. Letters there would be a follow-up.
+- **Drag-and-drop import split** (UploadView.js:794) unchanged — different
+  preset and accounting; it renumbers today too (pre-existing, noting it).
+- **"Split" action on already-renamed files in Recordings** (issue open
+  question 3) — follow-up feature.
+- Onboarding copy about OBS auto-split being optional → #265's territory.
+
+### Decisions assumed (objections welcome before approval)
+
+- **Split boundaries stay fixed-interval** (threshold setting, keyframe-snapped
+  stream copy — fast, no re-encode). Scene/silence-aware cutting is a
+  different, much heavier feature.
+- **Parent file stays on disk** after split (hidden in-app, proper name, acts
+  as the safety copy). Deleting/archiving can be a later setting.
+
+### Verification (mine, dev profile + scratch watch folder)
+
+- #173 repro from the issue ends correctly: short file → Pt1, long file →
+  renamed Pt2 → split into Pt2a/Pt2b; nothing overwritten, no temp files left,
+  next same-day file proposes Pt3.
+- Parent absent from Pending and Recordings after split; **app relaunch** —
+  parent must NOT reappear in Pending (kills #174 including the boot case).
+- Planted legacy case: raw-named file WITH an existing DB row → boot → stays
+  out of Pending.
+- Full build + npm start boot check before wrap.
+
+---
+
 ## ✅ SHIPPED (session 171) — Real auto-updates so the laptop stops needing sneakernet
 
 **Status: built and headlessly verified; the one remaining leg is Fega clicking

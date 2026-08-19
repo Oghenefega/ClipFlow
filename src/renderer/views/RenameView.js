@@ -20,6 +20,13 @@ const PRESETS_ALWAYS_PARTS = new Set(["tag-date-day-part", "tag-day-part"]);
 
 // ── #172 session-ledger helpers ──
 
+// #264: split-child letter suffix — 0→"a", 25→"z", 26→"aa" (bijective base-26)
+const subPartLetter = (i) => {
+  let n = i + 1, s = "";
+  while (n > 0) { n--; s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26); }
+  return s;
+};
+
 // Seconds → clock string ("29:52", "1:04:12")
 const fmtClock = (s) => {
   if (s == null || isNaN(s)) return "—";
@@ -697,11 +704,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const info = splitInfo[r.id];
     if (!info || !info.splitCount || info.skipSplit) return null;
     const thresholdSec = splitThreshold * 60;
+    const preset = r.preset || defaultPreset;
+    // #264: children inherit the row's part slot plus a letter (Pt2a, Pt2b).
+    // Conditional-part presets get their number at rename time — letters only.
+    const showPt = PRESETS_ALWAYS_PARTS.has(preset);
     const parts = [];
     for (let i = 0; i < info.splitCount; i++) {
       const start = i * thresholdSec;
       const end = Math.min((i + 1) * thresholdSec, info.durationSeconds);
-      parts.push({ start, end, partNumber: i + 1 });
+      parts.push({ start, end, label: showPt ? `Pt${r.part}${subPartLetter(i)}` : `part ${subPartLetter(i)}` });
     }
     return parts;
   };
@@ -914,43 +925,83 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return { newName, partNumber: meta.partNumber, historyId };
   };
 
-  // Helper: split a file then rename all children
+  // Helper: split a file into letter-suffixed children (#264).
+  // Rename-first: the whole file takes its real name (its own part slot, same
+  // collision rules as a plain rename), THEN splits — children inherit the
+  // parent's full identity plus a letter (Pt2a, Pt2b, ...). The parent never
+  // sits on disk under a raw OBS name, so the watcher has nothing to re-add
+  // (#174), and children can't renumber over same-day files (#173).
   const splitAndRename = async (r, preset, fileDate) => {
     const info = splitInfo[r.id];
     if (!info || !info.splitCount) return null;
 
     const thresholdSec = splitThreshold * 60;
     const game = gamesDb.find((g) => g.tag === r.tag);
-
-    // First, create a parent file_metadata record so split:execute can find it
     const targetDir = resolveTargetDir(r);
 
-    // Rename source to monthly subfolder first
-    const tempName = r.fileName; // keep original name for now
-    const parentPath = `${targetDir}\\${tempName}`;
-    const moveResult = await window.clipflow.renameFile(r.filePath, parentPath);
-    if (moveResult.error) { console.error("Move to subfolder failed:", moveResult.error); return null; }
+    // Parent naming meta — the pending row's own slot for always-part presets;
+    // conditional presets take the next number via the same collision
+    // machinery renameSingleFile uses (a split parent always needs a part
+    // number for the letters to hang off).
+    const meta = {
+      tag: r.tag,
+      date: fileDate,
+      dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
+      partNumber: PRESETS_ALWAYS_PARTS.has(preset) ? r.part : null,
+      customLabel: r.customLabel || null,
+      originalFilename: r.fileName,
+    };
 
+    if (!PRESETS_ALWAYS_PARTS.has(preset)) {
+      const collisions = await window.clipflow.presetFindCollisions(meta, preset);
+      if (collisions && collisions.length > 0) {
+        for (const existing of collisions) {
+          await window.clipflow.presetRetroactiveRename(existing, null);
+        }
+        const collisionMsg = getRetroNotificationMessage(preset, r.tag, r.customLabel);
+        setRetroNotification(collisionMsg);
+        setTimeout(() => setRetroNotification(null), 6000);
+      }
+      const nextPart = await window.clipflow.presetGetNextPartNumber(meta, preset);
+      meta.partNumber = nextPart.partNumber;
+    }
+
+    const fmtParent = await window.clipflow.presetFormatFilename(meta, preset);
+    if (fmtParent.error) { console.error("Format failed:", fmtParent.error); return null; }
+    const parentName = fmtParent.filename;
+    const parentPath = `${targetDir}\\${parentName}`;
+
+    const moveResult = await window.clipflow.renameFile(r.filePath, parentPath);
+    if (moveResult.error) {
+      console.error("Split parent rename failed:", moveResult.error);
+      setRetroNotification(`Couldn't rename "${r.fileName}": ${moveResult.error}`);
+      setTimeout(() => setRetroNotification(null), 8000);
+      return null;
+    }
+
+    // noHistory: undoing this row would orphan the children's split lineage
+    // and hand the watcher back a raw-named file — splits aren't undoable.
     const parentResult = await window.clipflow.fileMetadataCreate({
       originalFilename: r.fileName,
-      currentFilename: tempName,
+      currentFilename: parentName,
       originalPath: r.filePath,
       currentPath: parentPath,
       tag: r.tag,
       entryType: game?.entryType || "game",
       date: fileDate,
       dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
-      partNumber: null,
+      partNumber: meta.partNumber,
       customLabel: r.customLabel || null,
       namingPreset: preset,
       durationSeconds: info.durationSeconds,
       status: "pending",
       isTest: r.isTest || false,
+      noHistory: true,
     });
 
     if (!parentResult?.id) { console.error("Failed to create parent metadata"); return null; }
 
-    // Build split points
+    // Build split points — every child carries the parent's part number + letter
     const splitPoints = [];
     for (let i = 0; i < info.splitCount; i++) {
       const start = i * thresholdSec;
@@ -960,7 +1011,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         endSeconds: end,
         tag: r.tag,
         entryType: game?.entryType || "game",
-        partNumber: i + 1,
+        partNumber: meta.partNumber,
+        subPart: subPartLetter(i),
       });
     }
 
@@ -969,45 +1021,44 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const splitResult = await window.clipflow.splitExecute(parentResult.id, splitPoints);
     if (splitResult.error) {
       console.error("Split failed:", splitResult.error);
+      // The rename already succeeded — surface the file as a normal whole
+      // recording instead of stranding an invisible pending row.
+      await window.clipflow.fileMetadataUpdate(parentResult.id, { status: "renamed" });
+      setRetroNotification(`"${parentName}" was renamed, but splitting failed (${splitResult.error}). It stays whole.`);
+      setTimeout(() => setRetroNotification(null), 10000);
       setSplitProgress(null);
-      return null;
+      return [{ newName: parentName, partNumber: meta.partNumber, subPart: null }];
     }
 
-    // Now rename each child file using the preset engine with part numbers
+    // Rename each temp child to the parent's name + letter
     const renamedChildren = [];
     for (let i = 0; i < splitResult.results.length; i++) {
       const child = splitResult.results[i];
-      const partNum = i + 1;
+      const letter = subPartLetter(i);
       setSplitProgress({ fileId: r.id, current: i + 1, total: info.splitCount });
 
-      const childMeta = {
-        tag: r.tag,
-        date: fileDate,
-        dayNumber: PRESETS_USING_DAY.has(preset) ? r.day : null,
-        partNumber: partNum,
-        customLabel: r.customLabel || null,
-        originalFilename: r.fileName,
-      };
-
+      const childMeta = { ...meta, subPart: letter };
       const fmtResult = await window.clipflow.presetFormatFilename(childMeta, preset);
       if (fmtResult.error) continue;
 
       const childNewName = fmtResult.filename;
       const childNewPath = `${targetDir}\\${childNewName}`;
 
-      // Rename the temp split file
       const renResult = await window.clipflow.renameFile(child.filePath, childNewPath);
-      if (renResult.error) continue;
+      if (renResult.error) {
+        console.error(`Split child rename failed (${childNewName}):`, renResult.error);
+        continue;
+      }
 
-      // Update the child metadata record
       await window.clipflow.fileMetadataUpdate(child.childId, {
         current_filename: childNewName,
         current_path: childNewPath,
-        part_number: partNum,
+        part_number: meta.partNumber,
+        sub_part: letter,
         day_number: PRESETS_USING_DAY.has(preset) ? r.day : null,
       });
 
-      renamedChildren.push({ newName: childNewName, partNumber: partNum });
+      renamedChildren.push({ newName: childNewName, partNumber: meta.partNumber, subPart: letter });
     }
 
     // Record label usage
@@ -1321,9 +1372,9 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
           const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
           for (const c of children) {
             corrected.push({
-              id: `h-${Date.now()}-${r.id}-${c.partNumber}`, oldName: r.fileName, newName: c.newName,
+              id: `h-${Date.now()}-${r.id}-${c.partNumber}${c.subPart || ""}`, oldName: r.fileName, newName: c.newName,
               game: r.game, tag: r.tag, color: r.color, day: r.day,
-              part: c.partNumber, time, undone: false, isTest: !!r.isTest,
+              part: c.partNumber, subPart: c.subPart || null, time, undone: false, isTest: !!r.isTest,
             });
           }
         }
@@ -1753,7 +1804,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                           const isSel = selectedIds.has(r.id);
                           const labelInvalid = showLabel && r.customLabel && /[\\/:*?"<>|]/.test(r.customLabel);
                           const splitParts = hasSplit ? getSplitPreview(r) : null;
-                          const splitTitle = splitParts ? `Splits into ${splitParts.map((p) => `Pt${p.partNumber} ${fmtClock(p.start)}–${fmtClock(p.end)}`).join(", ")}. Click to keep as one file.` : "";
+                          const splitTitle = splitParts ? `Splits into ${splitParts.map((p) => `${p.label} ${fmtClock(p.start)}–${fmtClock(p.end)}`).join(", ")}. Click to keep as one file.` : "";
                           return (
                             <React.Fragment key={r.id}>
                               <div className={`cfr-row${isSel ? " rowsel" : ""}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 14px", borderTop: ri === 0 ? "none" : `1px solid ${T.border}` }}>
@@ -1958,7 +2009,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                     <GamePill tag={f.tag} color={game?.color || "#888"} size="sm" />
                     <div style={{ flex: 1, color: T.text, fontSize: 14, fontFamily: T.mono, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.current_filename}</div>
                     {f.day_number != null && <span style={{ color: T.accent, fontSize: 12, fontFamily: T.mono }}>Day{f.day_number}</span>}
-                    {f.part_number != null && <span style={{ color: T.green, fontSize: 12, fontFamily: T.mono }}>Pt{f.part_number}</span>}
+                    {f.part_number != null && <span style={{ color: T.green, fontSize: 12, fontFamily: T.mono }}>Pt{f.part_number}{f.sub_part || ""}</span>}
                   </Card>
                 );
               })}

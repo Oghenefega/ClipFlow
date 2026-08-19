@@ -16,7 +16,7 @@ const database = require("./database");
 const { uuid } = require("./uuid");
 
 // Pattern: "2026-03-03 AR Day25 Pt1.mp4" or "2026-03-03 AR Day25 Pt1.mkv"
-const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)\.(mp4|mkv)$/i;
+const RENAMED_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w+)\s+Day(\d+)\s+Pt(\d+)([a-z]+)?\.(mp4|mkv)$/i;
 
 // Month folder pattern: "2026-03"
 const MONTH_FOLDER_PATTERN = /^\d{4}-\d{2}$/;
@@ -89,9 +89,10 @@ async function runFileMigration(watchFolder, store, ffmpegProbe) {
       const match = fileName.match(RENAMED_FILE_PATTERN);
       if (!match) continue;
 
-      const [, date, tag, dayStr, partStr, ext] = match;
+      const [, date, tag, dayStr, partStr, subPartStr, ext] = match;
       const dayNumber = parseInt(dayStr, 10);
       const partNumber = parseInt(partStr, 10);
+      const subPart = subPartStr ? subPartStr.toLowerCase() : null; // #264 split-child letter
       const tagUpper = tag.toUpperCase();
 
       // Check if already migrated (by current_filename match)
@@ -144,8 +145,8 @@ async function runFileMigration(watchFolder, store, ffmpegProbe) {
       const id = uuid();
       try {
         db.run(
-          `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, sub_part, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             fileName, // Original OBS name is lost — use current filename
@@ -157,6 +158,7 @@ async function runFileMigration(watchFolder, store, ffmpegProbe) {
             date,
             dayNumber,
             partNumber,
+            subPart,
             null, // No custom labels in old format
             "tag-date-day-part", // All existing files use this format
             durationSeconds,

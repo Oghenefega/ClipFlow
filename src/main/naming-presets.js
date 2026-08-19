@@ -116,9 +116,10 @@ function formatFilename(meta, presetId) {
     parts.push(meta.customLabel);
   }
 
-  // Parts: always shown for presets 1&2, conditional for others
+  // Parts: always shown for presets 1&2, conditional for others.
+  // subPart is the split-child letter (#264): "Pt2a", "Pt2b", ...
   if (meta.partNumber != null) {
-    parts.push(`Pt${meta.partNumber}`);
+    parts.push(`Pt${meta.partNumber}${meta.subPart || ""}`);
   }
 
   return parts.join(" ") + ".mp4";

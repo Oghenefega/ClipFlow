@@ -31,10 +31,10 @@ const { uuid } = require("./uuid");
 // Current date-first shapes: "2026-03-02 RL Day6 Pt1.mp4", "2026-03-15 AR.mp4",
 // "2026-03-15 AR Pt2.mp4" (collision part). This is the app-wide convention
 // (restored session 115 — the preset engine briefly emitted tag-first).
-const DATE_FIRST_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w{1,8})(?:\s+Day(\d+))?(?:\s+Pt(\d+))?\.(mp4|mkv)$/i;
+const DATE_FIRST_PATTERN = /^(\d{4}-\d{2}-\d{2})\s+(\w{1,8})(?:\s+Day(\d+))?(?:\s+Pt(\d+)([a-z]+)?)?\.(mp4|mkv)$/i;
 // Legacy tag-first shapes from the 0.2.x drift era: "RL 2026-03-04 Day7 Pt1.mp4",
 // "RL 2026-03-04.mp4", "RL 2026-03-04 Pt2.mp4"
-const TAG_FIRST_PATTERN = /^(\w{1,8})\s+(\d{4}-\d{2}-\d{2})(?:\s+Day(\d+))?(?:\s+Pt(\d+))?\.(mp4|mkv)$/i;
+const TAG_FIRST_PATTERN = /^(\w{1,8})\s+(\d{4}-\d{2}-\d{2})(?:\s+Day(\d+))?(?:\s+Pt(\d+)([a-z]+)?)?\.(mp4|mkv)$/i;
 
 const MONTH_DIR = /^\d{4}-\d{2}$/;
 
@@ -46,6 +46,7 @@ function parseRenamedFilename(fileName) {
     const partNumber = m[4] != null ? parseInt(m[4], 10) : null;
     return {
       date: m[1], tag: m[2], dayNumber, partNumber,
+      subPart: m[5] ? m[5].toLowerCase() : null, // #264 split-child letter
       namingPreset: dayNumber != null ? "tag-date-day-part" : "tag-date",
     };
   }
@@ -55,6 +56,7 @@ function parseRenamedFilename(fileName) {
     const partNumber = m[4] != null ? parseInt(m[4], 10) : null;
     return {
       date: m[2], tag: m[1], dayNumber, partNumber,
+      subPart: m[5] ? m[5].toLowerCase() : null,
       namingPreset: dayNumber != null ? "tag-date-day-part" : "tag-date",
     };
   }
@@ -184,8 +186,8 @@ async function run({ store, roots, ffmpegProbe }) {
 
       try {
         db.run(
-          `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, sub_part, custom_label, naming_preset, duration_seconds, file_size_bytes, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             uuid(),
             fileName, // original OBS name is unknowable — use current
@@ -197,6 +199,7 @@ async function run({ store, roots, ffmpegProbe }) {
             parsed.date,
             parsed.dayNumber,
             parsed.partNumber,
+            parsed.subPart,
             null,
             parsed.namingPreset,
             durationSeconds,

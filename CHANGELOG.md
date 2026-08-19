@@ -4,6 +4,20 @@ All notable changes to ClipFlow are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-19 (session 174) — Split children inherit the parent's name (#264)
+
+### Changed
+- **In-app auto-split is now rename-first with letter-suffixed children (#264).** A long recording gets its real name first (`2026-08-19 RL Day16 Pt2.mp4`, claiming its part slot through the same accounting as every other rename), and only then splits — children become `Pt2a`, `Pt2b`, `Pt2c` instead of renumbering from Pt1. The next same-day recording correctly proposes Pt3. This makes OBS auto-split optional by design: record 1-2h whole, ClipFlow splits after renaming. The original whole file stays on disk under its proper name as a safety copy, hidden inside the app.
+
+### Fixed
+- **Split children can no longer collide with same-day files (#173).** The old flow named children Pt1..PtN from scratch, ignoring parts already taken that day — on Windows that silently overwrote an already-renamed file (real data loss; an earlier session added a refuse-to-overwrite guard that downgraded it to a stranded temp file). Letter suffixes on the parent's own name eliminate the collision class entirely; verified with the exact repro from the issue (short file Pt1 + long file split → Pt1, Pt2, Pt2a-c, nothing overwritten, no temp files left).
+- **Split parents no longer ghost back into the Pending list (#174).** Two defenses: the parent never sits on disk under a raw OBS name anymore (renamed before splitting, so the folder watcher has nothing to re-detect), and the watcher now skips any file whose path is already in the library — which also stops raw-named split parents from *old* sessions re-entering Pending on every app launch (the boot rescan made this worse than the issue described: the ghost returned every single boot, not once).
+- **Undo can no longer orphan a split.** The old flow logged the parent's pre-split move as an undoable rename; undoing it would have deleted the library row the children point at and handed the watcher back a raw-named file. Split parents are excluded from rename-undo history now.
+
+### Added
+- **Database: `sub_part` column on file_metadata** (migration v9) storing the split-child letter; part numbers stay numeric so all existing accounting (max-part lookups, day counters) works unchanged. The filename parsers (first-boot migration, library reconcile) understand `Pt2a`-style names, and the Recordings sort orders letters correctly after their parent part.
+- **Filed #266** (silence/scene-aware split boundaries — slide cuts to natural gaps; Fega's preferred end state, fixed-interval ships first) and **#267** (pre-existing bug found during verification: files detected right after a same-session rename propose Day+1 on the same calendar day due to the last-renamed-game override skipping the same-date rule).
+
 ## [0.3.0-alpha.59] — 2026-08-18 (session 173) — Gateway-only installs get full AI
 
 ### Fixed

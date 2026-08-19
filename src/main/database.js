@@ -221,6 +221,16 @@ const MIGRATIONS = [
       database.run(`ALTER TABLE title_caption_rounds ADD COLUMN gen_source TEXT`);
     },
   },
+  {
+    version: 9,
+    description: "Add sub_part to file_metadata: letter suffix for split children (#264)",
+    up(database) {
+      // Split children keep the parent's numeric part_number (so MAX(part_number)
+      // accounting still hands the next whole file the next slot) and carry the
+      // letter ('a', 'b', ... then 'aa') here. NULL = not a split child.
+      database.run(`ALTER TABLE file_metadata ADD COLUMN sub_part TEXT`);
+    },
+  },
 ];
 
 /**

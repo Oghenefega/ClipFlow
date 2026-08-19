@@ -1007,6 +1007,18 @@ async function handleWatcherFileAdded(filePath, addEvent) {
       if (entry.filename === name && entry.sizeBytes === stableSize) return;
     }
 
+    // #174/#264: a path already in the library is not a new recording. Old
+    // auto-splits left the parent on disk under its raw OBS name, and the
+    // boot rescan (ignoreInitial: false) re-added it to Pending on every
+    // launch. Windows paths are case-insensitive — compare accordingly.
+    try {
+      const db = database.getDb();
+      if (db) {
+        const known = db.exec("SELECT id FROM file_metadata WHERE current_path = ? COLLATE NOCASE", [filePath]);
+        if (database.toRows(known).length > 0) return;
+      }
+    } catch (_) { /* DB not ready — fall through to normal detection */ }
+
     let stat;
     try {
       stat = fs.statSync(filePath);
@@ -1573,8 +1585,8 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
       const childPath = r.filePath;
 
       db.run(
-        `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, custom_label, naming_preset, duration_seconds, file_size_bytes, status, split_from_id, split_timestamp_start, split_timestamp_end, is_test)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO file_metadata (id, original_filename, current_filename, original_path, current_path, tag, entry_type, date, day_number, part_number, sub_part, custom_label, naming_preset, duration_seconds, file_size_bytes, status, split_from_id, split_timestamp_start, split_timestamp_end, is_test)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           childId,
           parentFile.original_filename,
@@ -1586,6 +1598,7 @@ ipcMain.handle("split:execute", async (_, fileId, splitPoints) => {
           parentFile.date,
           parentFile.day_number,
           sp.partNumber || null,
+          sp.subPart || null,
           parentFile.custom_label,
           parentFile.naming_preset,
           r.actualEndSeconds - r.actualStartSeconds,
@@ -2423,11 +2436,12 @@ ipcMain.handle("metadata:create", async (_, data) => {
       ]
     );
     // #175: log plain renames to rename_history so UNDO can actually revert
-    // them. Split/game-switch PARENT records pass identical paths (no move
-    // happened) — those get no history row; undoing one would delete a
-    // file_metadata row that split:execute still needs.
+    // them. Split PARENT records pass noHistory (#264) — undoing one would
+    // delete a file_metadata row the children's split_from_id points at and
+    // put a raw-named file back in front of the watcher. Game-switch parents
+    // pass identical paths (no move happened) — same effect.
     let historyId = null;
-    if (data.originalPath && data.currentPath && data.originalPath !== data.currentPath) {
+    if (!data.noHistory && data.originalPath && data.currentPath && data.originalPath !== data.currentPath) {
       historyId = uuid();
       db.run(
         `INSERT INTO rename_history (id, file_metadata_id, action, previous_filename, previous_path, new_filename, new_path, metadata_snapshot)
@@ -2479,7 +2493,7 @@ ipcMain.handle("metadata:search", async (_, filters) => {
         params = [filters.status];
         break;
       case "byTagDate":
-        sql = "SELECT * FROM file_metadata WHERE tag = ? AND date = ? ORDER BY part_number ASC";
+        sql = "SELECT * FROM file_metadata WHERE tag = ? AND date = ? ORDER BY part_number ASC, length(sub_part) ASC, sub_part ASC";
         params = [filters.tag, filters.date];
         break;
       case "byTagLabel":

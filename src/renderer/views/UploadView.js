@@ -64,7 +64,12 @@ function compareRecordings(a, b) {
   if (t !== 0) return t;
   const day = (a.day_number ?? 0) - (b.day_number ?? 0);
   if (day !== 0) return day;
-  return (a.part_number ?? 0) - (b.part_number ?? 0);
+  const part = (a.part_number ?? 0) - (b.part_number ?? 0);
+  if (part !== 0) return part;
+  // #264: split children share the parent's part number and order by letter
+  // (a < b < ... < z < aa — length first, then lex). Whole files (null) sort first.
+  const sa = a.sub_part || "", sb = b.sub_part || "";
+  return (sa.length - sb.length) || sa.localeCompare(sb);
 }
 
 // AI pipeline stages in order
