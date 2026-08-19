@@ -22,6 +22,13 @@ after a same-session rename propose Day+1 — the lastRenamedGame override
 skips the same-date rule; surfaced as "Day3 Pt3" during verification, correct
 after restart). Dev profile fully restored from backups (settings + DB).
 
+**#267 fixed same session on Fega's ask (f685f44):** both watcher handlers now
+route the last-renamed-game default through detectForGame — day respects the
+same-date rule, part follows the defaulted game. Verified live: rename → same-
+day drop proposes Day2 Pt2 (was Day3, reproduced pre-fix), next-day → Day3 Pt1.
+Closed #173/#174/#264/#267 with `status: untested` pending Fega's in-app pass;
+none of this is in an installer yet (rides the next cut).
+
 **Goal (plain language):** A long recording gets its real name FIRST (e.g.
 `2026-08-17 RL Day16 Pt2.mp4`), and only then gets split — children inherit the
 parent's full name plus a letter: `Pt2a`, `Pt2b`, `Pt2c`. No more children
