@@ -1,38 +1,39 @@
-# HANDOFF — Session 174 (2026-08-19)
+# HANDOFF — Session 175 (2026-08-19)
 
 ## Current State
-App source is ahead of the installed builds: #264 (rename-first split with letter children) and #267 (same-session day+1 override) are on master, verified headlessly, **not yet in any installer** — alpha.59 remains current on both machines. Four issues closed this session (#173, #174, #264, #267), all `status: untested` pending Fega's in-app pass on the next cut.
+**The product is Corva.** 0.3.0-alpha.60 is installed and verified on Fega's desktop (in-place upgrade over ClipFlow: full tracker history/XP/rank/streak, all projects, all platform connections intact) and published to the live update feed — the laptop self-updates on next launch and runs the same data migration. #268 closed verified. Steps 1–3 of the rename brief are DONE; Step 4 (external names) stays gated on the trademark opinion. The previously-pending #264/#267 work also shipped inside alpha.60 (it was on master), so those four `status: untested` closures are now installable for Fega's in-app pass.
 
 ## What Was Just Built
-- **#264 rename-first split (3732905).** A long recording is renamed to its real name FIRST (claims its part slot via normal accounting), then splits into letter children (`Pt2a/Pt2b/Pt2c`). DB migration v9 adds `sub_part` (part_number stays numeric → MAX(part_number) accounting untouched; next same-day file = Pt3). Parent keeps its proper name on disk, status 'split', hidden in-app. Split-failure fallback: parent surfaces as a normal renamed whole file with a visible notice.
-- **#173 closed by design** — children can't renumber over same-day files (exists-guard half had already shipped; this removes the collision class).
-- **#174 closed with two defenses** — parent never sits under a raw OBS name, AND `handleWatcherFileAdded` now skips any path with an existing file_metadata row (kills the every-boot ghost from `ignoreInitial: false`, including legacy raw-named parents from old sessions).
-- **metadata:create `noHistory` flag** — split parents excluded from rename-undo (undo would orphan children's lineage + resurrect a raw-named file). Note: the OLD flow was silently creating that dangerous undoable row; this closes it.
-- **Parsers learned letters** — file-migration + reconcile accept `Pt2a`; Recordings sort (compareRecordings + byTagDate SQL) orders letters after their parent part; split badge/tooltip shows real proposed names.
-- **#267 fix (f685f44).** Both watcher handlers route the last-renamed-game default through `detectForGame` — day respects the same-date rule (was hand-rolled dayCount+1 → Day3 on same-day drops after a rename), part follows the defaulted game.
-- **Filed #266** — silence/scene-aware split boundaries (Fega: "the ideal thing"); pure "where to cut" upgrade inside splitFile, naming unaffected.
+- **Corva rename Step 1 (inventory)**: 1,455 hits classified into 3 buckets; approved by Fega. Key discoveries: persisted `source:"clipflow"` tracker value (find-replace trap), `clipflow-tokens.json` as load-bearing as trackerData, the `.clipflow` tree on the video drive is a second data root, OAuth redirect URIs are all localhost (zero name coupling).
+- **Step 3 (58ceefe)**: `productName`/`name` → Corva/corva; `appId` kept `com.clipflow.app` (NSIS GUID = upgrade identity); new `src/main/user-data-migration.js` — atomic `%APPDATA%\clipflow` → `%APPDATA%\Corva` rename at top of main.js (before Sentry require + single-instance lock), falls back to old folder on any failure, 16 unit checks; 51 display strings across 25 files → Corva; top-level `productName` added so packaged userData resolves proper-case.
+- **Kept by design**: `window.clipflow` bridge, `.clipflow` dotfolder, store filenames, `CLIPFLOW_PROFILE`/`clipflow-dev`, "ClipFlow Imports" folder, `clipflow_*` PostHog events, `clipflow-runtime` R2 contract. "Corva AI" for new engine-setup picks (old "ClipFlow AI" recognized).
+- **Released**: `Corva Setup 0.3.0-alpha.60.exe` published to `engine.flowve.app/updates/` (alpha.yml verified live, alpha.59 pruned).
+- **Post-install fixes**: install went per-machine (`C:\Program Files\Corva`, old per-user copy cleanly removed). Taskbar showed "Electron" — root cause: no shortcut carried the AUMID + dev boot-verify had claimed it; fixed by stamping `System.AppUserModel.ID` onto a per-user Start Menu shortcut + icon-cache purge (verified fixed). Filed **#269** (guard `setAppUserModelId` with `app.isPackaged`) for the next batch.
 
 ## Key Decisions
-- **Letters live in `sub_part` (TEXT), never in part_number** — string parts would corrupt MAX() accounting. a-z then aa (bijective base-26); sort = length-then-lex.
-- **Fixed-interval boundaries for now** (Fega approved); #266 tracks the silence/scene-aware end state. **Parent file stays on disk** as safety copy; archive option later (Fega approved).
-- **Out of scope, deliberately:** game-switch scrubber naming (children span different games — separate accounting problem), drag-drop import split (own preset; also renumbers today, pre-existing), "Split" action on already-renamed Recordings.
-- **Splits are not undoable** — by design, enforced via noHistory.
+- **appId/AppUserModelID never change** — it's what made the renamed installer upgrade in place. Treat as immutable.
+- **Migration is rename-not-copy** (atomic on NTFS, no partial state) and **never boots against empty userData** while real data exists — split-brain prefers the newer Corva folder, locked/stray states fall back to old.
+- **Internal identifiers keep the clipflow name** — invisible to users, and renaming them is pure risk (the `source:"clipflow"` value especially: display label maps to Corva, stored value untouched).
+- **Recap watermark now "Corva"** — supersedes the old ClipFlow-vs-Flowve decision; Fega saw the build and confirmed all good.
 
 ## Next Steps
-1. Batch continues toward the next installer cut (~10 changes or Fega's ask) — #264+#267 ride it; then Fega's in-app pass on the four `status: untested` closures.
-2. Laptop pipeline testing continues (render → queue → publish); friction feeds #265.
-3. Feature sessions when ready: #263 (game auto-detection), #265 (onboarding), #266 (smart split boundaries).
-4. Session-start backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50`.
+1. **Laptop**: launch ClipFlow there → banner → alpha.60 → confirm it comes up as Corva with its data intact. Until then, keep the desktop backup at `%APPDATA%\clipflow-backup-2026-08-19` (149 MB); delete after.
+2. Fega's in-app pass on the #264/#267 closures (now installed via alpha.60) — remove `status: untested` labels on confirmation.
+3. Next batch: #269 (AUMID guard) + remove the extra per-user Corva.lnk once the installer stamps identity properly; #263/#265/#266 feature work.
+4. **Step 4 externals when the trademark opinion lands** (Fega's gate): GitHub repo, Meta/Google app display names, corva.gg switchover — one platform at a time; **TikTok dev app (7620331243271407632) frozen mid-review, moves LAST**.
+5. Obsidian technical summary still says ClipFlow throughout — refresh it (single file, overwrite) in a docs pass.
+6. Session-start backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50`.
 
 ## Watch Out For
-- **Migration v9 ships with the next installer** — first boot on prod/laptop ALTERs file_metadata. Fresh installs + existing DBs both covered (additive column, no fingerprinting).
-- **The watcher's DB-path guard runs one SELECT per raw file per boot** (after stability check) — cheap, but it means a file whose DB row exists is INVISIBLE to Pending even if the user re-drops it deliberately; deleting the row (or the Recordings entry) is the escape hatch.
-- **Manage tab's batch part-renumber** updates DB part_number only (pre-existing semantics, doesn't rename files); letter children renumbered there would keep stale sub_part letters. Left alone deliberately.
-- **UploadView quick-import split still renumbers children 1..N** under tag-date accounting — pre-existing, out of #264's scope; a collision there now surfaces as the exists-guard refusing (stranded `_split_*` temp name) rather than data loss.
-- **Dev profile was heavily exercised then restored byte-identical** (settings + DB from bak267 backups; AR back to dayCount 1 / lastDayDate 2026-01-05, watchFolder → W:\). Scratchpad leftovers (watch264/watch267 fixtures, bak264/bak267 backups) live in this session's scratchpad — disposable.
-- **Git Bash taskkill trap (burned 3 probe rounds):** single-slash `/IM` is MSYS-mangled and kills NOTHING; the next launch lock-bounces with exit 0 and CDP answers from the STALE instance. Always `taskkill //IM electron.exe //F`, never suppress output, gate relaunches on `tasklist | grep -ci electron` == 0. Memory trap 45.
+- **Don't boot prod from source on a machine that hasn't migrated yet** — `npm start` runs the migration and strands any still-installed ClipFlow. Desktop already migrated (safe there now); the laptop until it self-updates.
+- **seed-dev-profile** now prefers `%APPDATA%\Corva`, falls back to legacy clipflow — fine on both machines.
+- **`Get-ItemProperty HKCU:...Uninstall`** still shows a stale "ClipFlow 0.3.0-alpha.48" per-user entry (the new install registers per-machine under HKLM); harmless, but don't let it mislead a future "what's installed" check — the truth is `C:\Program Files\Corva`.
+- **Memory `project_db_locations_verification` updated**: prod DB is now `%APPDATA%\Corva\data\clipflow.db`.
+- **The update feed serves Corva-named artifacts from alpha.60 on** — publish-update.ps1 reads the exe name from the manifest, nothing hardcoded, but any tooling that globbed `ClipFlow Setup*` must use `Corva Setup*` now (update-launcher skill already updated).
+- Session-174 watch-outs still apply to the newly-installed #264 split behavior (migration v9 ALTER ran on first alpha.60 boot; watcher DB-path guard makes re-dropped known files invisible to Pending).
 
 ## Logs/Debugging
-- **CDP drivers for the Rename tab** in this session's scratchpad (`64e6dd88…/scratchpad`): `cdp264.js` (phases: probe / rename / pending-count — reads `.cfr-row` innerText, clicks Rename All), `probe264.js` (storeGet + fileMetadataSearch through the page), `legacy264.js` (simulates old-install raw-named split parent: disk rename + sql.js DB rewrite).
-- **Verification pattern that worked:** fabricate OBS-named testsrc clips (vendor\ffmpeg), dev-profile store edit via node `path.join` (NEVER inline backslash literals through bash — memory trap 44), threshold 1min, drive via CDP, assert disk + DB (sql.js read of `%APPDATA%\clipflow-dev\data\clipflow.db`) + relaunch.
-- Split executes as keyframe-snapped stream copy (`-c copy`) — a 3-min file split to 3 parts in ~1s; real 1-2h recordings will be I/O-bound but no re-encode.
+- Migration outcome is logged on prod boots: `Corva userData migration (#268): migrated|use-old` (module `system`, `%APPDATA%\Corva\logs\app.log`). `noop` boots log nothing.
+- Migration unit test: this session's scratchpad `test-user-data-migration.js` (6 cases, real temp dirs, injected-fs failure case). AUMID stamper: `stamp-aumid.ps1` (per-user lnk needs no elevation; ProgramData lnk does).
+- To check a .lnk's identity tag: read bytes, UTF-16 search for `com.clipflow.app`. Exe identity: `(Get-Item ...\Corva.exe).VersionInfo` → ProductName "Corva".
+- Publish verification: `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` → `version: 0.3.0-alpha.60`.

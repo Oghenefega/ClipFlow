@@ -117,3 +117,8 @@ promotion took.
   alpha builds watch `alpha.yml`, so plan that transition deliberately (Fega's call anyway).
 - **Old local installers in `dist/` are rollback stock** — keeping the last ~3 is plenty; older ones
   can be deleted freely (any version can be rebuilt from its git commit).
+- **Taskbar shows the Electron atom / name "Electron" after an install?** Don't reach for cache-clearing
+  first — check the authority chain: does any Start Menu .lnk carry the AUMID `com.clipflow.app`
+  (read the .lnk bytes), and is the exe's ProductName right? electron-builder's shortcut does NOT stamp
+  the AUMID; source-run boot-verifies claim the prod AUMID from electron.exe (#269 guards this).
+  Deterministic fix: stamp System.AppUserModel.ID onto a per-user Start Menu shortcut (s175).
