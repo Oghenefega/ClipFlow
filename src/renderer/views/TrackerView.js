@@ -619,7 +619,7 @@ export default function TrackerView({
   };
 
   // ---------- ring geometry ----------
-  const R = 48, C = 2 * Math.PI * R; // #279: 112px ring (was 142) — height budget
+  const R = 36, C = 2 * Math.PI * R; // #279: 88px ring (was 142) — height budget
   const progFrac = target > 0 ? Math.min(1, ringCount / target) : (viewMode === "current" ? 1 : 0);
   const dashOffset = ringReady ? C * (1 - progFrac) : C;
   // #276: ring color by mode — live pace for the current week, frozen verdict for
@@ -635,19 +635,51 @@ export default function TrackerView({
 
   return (
     <div style={{ fontFamily: T.font, color: T.text }}>
-      {/* Page head */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div>
-          <h1 style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.01em", margin: 0 }}>Tracker</h1>
-          <div style={{ fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>Corva · Now Playing</div>
+      {/* Header row — #279: title, week nav, and actions share ONE line; every
+          saved row is week-log space on short windows */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: -8, marginBottom: 8, flexWrap: "wrap" }}>
+        <h1 style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.01em", margin: 0 }}>Tracker</h1>
+        <span style={{ width: 1, height: 18, background: T.border }} />
+        <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
+          {viewMode === "past" ? "WAS PLAYING" : "NOW PLAYING"} <b style={{ color: gameColor }}>{viewedGameName}</b>
+        </span>
+        <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textMuted }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
+          <span style={{ fontSize: 12, color: T.textSecondary, fontWeight: 500, minWidth: 120, textAlign: "center" }}>{wd[0].label} {"–"} {wd[5].label}</span>
+          <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {weekOffset !== 0 && (
+          <button onClick={() => goWeek(-weekOffset)} style={{ ...weekNavBtnStyle, width: "auto", padding: "0 12px", color: T.accentLight, borderColor: T.accentBorder, background: T.accentDim }}>This week</button>
+        )}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          {viewMode === "current" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 7, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 999 }}>
+              <span style={{ color: T.accent, fontSize: 13, lineHeight: 1 }}>{"▲"}</span>
+              <span><b>{streakState?.current || 0}</b> weeks</span>
+            </div>
+          ) : (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999,
+              background: outcome === "hit" ? T.greenDim : outcome === "missed" ? T.redDim : "rgba(255,255,255,0.04)",
+              border: `1px solid ${outcome === "hit" ? T.greenBorder : outcome === "missed" ? T.redBorder : T.border}`,
+              color: outcome === "hit" ? T.green : outcome === "missed" ? T.red : viewMode === "future" ? T.yellow : T.textTertiary,
+            }}>
+              {viewMode === "future"
+                ? <span>UPCOMING {"·"} {weekAgg.sched} scheduled</span>
+                : outcome === "hit"
+                  ? <span>HIT{weekAgg.streakAfter > 0 ? ` · ${weekAgg.streakAfter}-week streak` : ""}</span>
+                  : outcome === "missed"
+                    ? <span>MISSED{weekAgg.lostStreak > 0 ? ` · streak ended at ${weekAgg.lostStreak}` : ""}</span>
+                    : <span>UNTRACKED</span>}
+            </div>
+          )}
           {viewMode === "current" && <button onClick={() => setShowRundown(true)} style={{
             display: "flex", alignItems: "center", gap: 7, background: T.text, color: "#0a0b10", border: "none",
             fontFamily: T.font, fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: T.radius.md, cursor: "pointer",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
-            Weekly Rundown
+            Rundown
           </button>}
           <button onClick={exportCSV} style={ghostBtnStyle}>Export</button>
           <button onClick={() => fileRef.current?.click()} style={ghostBtnStyle}>Import</button>
@@ -655,59 +687,15 @@ export default function TrackerView({
         </div>
       </div>
 
-      {/* Week strip — #276: back/forward week navigation replaces the Calendar sub-view */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
-          {viewMode === "past" ? "WAS PLAYING" : "NOW PLAYING"} <b style={{ color: gameColor }}>{viewedGameName}</b>
-        </span>
-        <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textMuted }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
-          <span style={{ fontSize: 12, color: T.textSecondary, fontWeight: 500, minWidth: 158, textAlign: "center" }}>Week of {wd[0].label} to {wd[5].label}</span>
-          <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
-        </div>
-        {weekOffset !== 0 && (
-          <button onClick={() => goWeek(-weekOffset)} style={{ ...weekNavBtnStyle, width: "auto", padding: "0 12px", color: T.accentLight, borderColor: T.accentBorder, background: T.accentDim }}>This week</button>
-        )}
-        {viewMode === "current" ? (
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 999 }}>
-            <span style={{ color: T.accent, fontSize: 13, lineHeight: 1 }}>{"▲"}</span>
-            <span><b>{streakState?.current || 0}</b> weeks</span>
-          </div>
-        ) : (
-          <div style={{
-            marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999,
-            background: outcome === "hit" ? T.greenDim : outcome === "missed" ? T.redDim : "rgba(255,255,255,0.04)",
-            border: `1px solid ${outcome === "hit" ? T.greenBorder : outcome === "missed" ? T.redBorder : T.border}`,
-            color: outcome === "hit" ? T.green : outcome === "missed" ? T.red : viewMode === "future" ? T.yellow : T.textTertiary,
-          }}>
-            {viewMode === "future"
-              ? <span>UPCOMING {"·"} {weekAgg.sched} scheduled</span>
-              : outcome === "hit"
-                ? <span>HIT{weekAgg.streakAfter > 0 ? ` · ${weekAgg.streakAfter}-week streak` : ""}</span>
-                : outcome === "missed"
-                  ? <span>MISSED{weekAgg.lostStreak > 0 ? ` · streak ended at ${weekAgg.lostStreak}` : ""}</span>
-                  : <span>UNTRACKED</span>}
-          </div>
-        )}
-      </div>
-
-      {/* Now Playing banner — #279: compact, no fixed height; the week log below is
-          the main content and must fit on screen without scrolling */}
+      {/* Top row — #279: Now Playing + Weekly goal + Rank share ONE row so the week
+          log (the main content) fits without scrolling even on short windows */}
+      <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.15fr 0.95fr", gap: 14, marginBottom: 12 }}>
+      {/* Now Playing card (was the full-width banner) */}
       <div style={{
         position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden",
-        marginBottom: 14, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px",
+        display: "flex", alignItems: "center", gap: 14, padding: "12px 14px",
         background: `radial-gradient(120% 140% at 8% 18%, ${gameColor}33 0%, transparent 55%), linear-gradient(105deg, ${gameColor}4d 0%, ${gameColor}0d 42%, rgba(17,18,24,0) 70%), ${T.surface}`,
       }}>
-        {viewMode === "current" && <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
-          position: "absolute", top: 12, right: 12, zIndex: 3, display: "flex", alignItems: "center", gap: 7,
-          background: "rgba(10,11,16,0.55)", backdropFilter: "blur(6px)", border: `1px solid ${T.borderHover}`, color: T.text,
-          fontFamily: T.font, fontSize: 11, fontWeight: 600, padding: "8px 13px", borderRadius: T.radius.md, cursor: "pointer",
-        }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" /></svg>
-          Switch game
-        </button>}
-
         {pickerOpen && pickerPos && (
           <div ref={pickerRef} style={{
             position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 20, width: 300, maxHeight: 340, overflowY: "auto",
@@ -763,10 +751,22 @@ export default function TrackerView({
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 5, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6 }} />
-            {viewMode === "past" ? "Was playing" : "Now playing"}
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6, flexShrink: 0 }} />
+            <span style={{ whiteSpace: "nowrap" }}>{viewMode === "past" ? "Was playing" : "Now playing"}</span>
+            {/* inline on the label line — in this narrow card every absolute corner
+                and the chips row collide or add a row; this line has spare width */}
+            {viewMode === "current" && (
+              <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
+                marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "rgba(10,11,16,0.45)", border: `1px solid ${T.borderHover}`,
+                color: T.text, fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
+                textTransform: "none", letterSpacing: "normal",
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" /></svg>
+                Switch
+              </button>
+            )}
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, margin: "0 0 8px" }}>{viewedGameName}</h2>
+          <h2 style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 8px" }}>{viewedGameName}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
@@ -784,28 +784,26 @@ export default function TrackerView({
         </div>
       </div>
 
-      {/* Progress grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 14, marginBottom: 14 }}>
         {/* Goal card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 16, display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <SectionLbl>Weekly goal</SectionLbl>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, marginRight: 8 }}>Target</span>
               {viewMode !== "current" ? (
                 // #276: past targets are frozen (— when the week predates tracking);
                 // future weeks preview today's default. Only the live week edits.
-                <span style={{ fontFamily: T.mono, fontSize: 19, fontWeight: 700, color: target == null ? T.textMuted : T.text, padding: "3px 9px" }}>{target ?? "—"}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: target == null ? T.textMuted : T.text, padding: "2px 7px" }}>{target ?? "—"}</span>
               ) : editingTarget ? (
                 <input
                   type="number" min={1} max={400} value={targetVal} autoFocus
                   onChange={(e) => setTargetVal(e.target.value)}
                   onBlur={commitTarget}
                   onKeyDown={(e) => { if (e.key === "Enter") commitTarget(); if (e.key === "Escape") { setTargetVal(String(target)); setEditingTarget(false); } }}
-                  style={{ width: 62, fontFamily: T.mono, fontSize: 19, fontWeight: 700, background: T.bg, border: `1px solid ${T.accent}`, color: T.text, borderRadius: 6, padding: "3px 8px", textAlign: "center", outline: "none" }}
+                  style={{ width: 56, fontFamily: T.mono, fontSize: 16, fontWeight: 700, background: T.bg, border: `1px solid ${T.accent}`, color: T.text, borderRadius: 6, padding: "2px 7px", textAlign: "center", outline: "none" }}
                 />
               ) : (
-                <span onClick={() => setEditingTarget(true)} style={{ display: "inline-flex", alignItems: "baseline", fontFamily: T.mono, fontSize: 19, fontWeight: 700, color: T.text, cursor: "pointer", padding: "3px 9px", borderRadius: 6, border: "1px solid transparent" }}
+                <span onClick={() => setEditingTarget(true)} style={{ display: "inline-flex", alignItems: "baseline", fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: T.text, cursor: "pointer", padding: "2px 7px", borderRadius: 6, border: "1px solid transparent" }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHover; e.currentTarget.style.borderColor = T.border; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
                 >{target}<span style={{ fontSize: 11, color: T.textTertiary, marginLeft: 6 }}>{"✎"}</span></span>
@@ -813,22 +811,22 @@ export default function TrackerView({
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ position: "relative", width: 112, height: 112, flexShrink: 0 }}>
-              <svg width="112" height="112" viewBox="0 0 112 112" style={{ transform: "rotate(-90deg)" }}>
-                <circle cx="56" cy="56" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-                <circle cx="56" cy="56" r={R} fill="none" stroke={paceColor} strokeWidth="8" strokeLinecap="round"
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
+              <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+                <circle cx="44" cy="44" r={R} fill="none" stroke={paceColor} strokeWidth="7" strokeLinecap="round"
                   strokeDasharray={C.toFixed(1)} strokeDashoffset={dashOffset.toFixed(1)}
                   style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1), stroke 0.4s" }} />
                 {!tickHidden && (
-                  <line x1="56" y1="8" x2="56" y2="18" stroke={T.bg} strokeWidth="3" strokeLinecap="round"
-                    transform={`rotate(${tickDeg} 56 56)`} style={{ transition: "transform 0.9s cubic-bezier(.4,0,.2,1)" }} />
+                  <line x1="44" y1="8" x2="44" y2="16" stroke={T.bg} strokeWidth="3" strokeLinecap="round"
+                    transform={`rotate(${tickDeg} 44 44)`} style={{ transition: "transform 0.9s cubic-bezier(.4,0,.2,1)" }} />
                 )}
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: T.mono, fontSize: 24, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 3 }}>{target != null ? `of ${target}` : "posted"}</span>
-                <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 5, letterSpacing: "0.04em" }}>
+                <span style={{ fontFamily: T.mono, fontSize: 22, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>{target != null ? `of ${target}` : "posted"}</span>
+                <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 3, letterSpacing: "0.04em" }}>
                   {viewMode === "current" ? `${animPct}%`
                     : viewMode === "future" ? "scheduled"
                       : outcome === "hit" ? "HIT" : outcome === "missed" ? "MISSED" : "untracked"}
@@ -876,36 +874,36 @@ export default function TrackerView({
         </div>
 
         {/* Rank card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 16, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "absolute", top: -50, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle, ${T.tiers[rank.tier]}29, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, position: "relative" }}>
             <SectionLbl>Rank</SectionLbl>
             <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: T.green, fontSize: 11 }}>{"▲"}</span> All-time {"·"} only climbs
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, position: "relative" }}>
-            <div style={{ width: 44, height: 44, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <span style={{ position: "absolute", inset: 0, borderRadius: 12, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
-              <span style={{ width: 28, height: 28, borderRadius: 7, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(0,0,0,0.4)", background: T.tiers[rank.tier] }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, position: "relative" }}>
+            <div style={{ width: 38, height: 38, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+              <span style={{ position: "absolute", inset: 0, borderRadius: 10, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
+              <span style={{ width: 24, height: 24, borderRadius: 6, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(0,0,0,0.4)", background: T.tiers[rank.tier] }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
-              <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, marginTop: 5 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
+              <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
                 <b style={{ color: T.text, fontWeight: 600, fontFamily: T.mono }}>{fmtNum(animXp)}</b> XP earned all-time
               </div>
             </div>
           </div>
           <div style={{ marginTop: "auto", position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>To next tier</span>
               <span style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, fontFamily: T.mono }}>{rank.top ? "Top tier reached" : `${fmtNum(rank.toNextXp)} XP to ${rank.nextName}`}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
               <div style={{ height: "100%", borderRadius: 4, background: T.tiers[rank.tier], width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
             </div>
             {viewMode !== "future" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
                 <span style={{ fontFamily: T.mono }}>+{weekXp} XP {viewMode === "past" ? "earned that week" : "this week"}</span>
                 {viewMode === "current" && <span style={{ color: T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>}
               </div>
@@ -921,10 +919,23 @@ export default function TrackerView({
         <WeekStateBar mode={viewMode} outcome={outcome} posted={posted} target={target} sched={weekAgg.sched} recap={recap} streakAfter={weekAgg.streakAfter} lostStreak={weekAgg.lostStreak} onOpenQueue={onOpenQueue} />
       )}
 
-      {/* Week log */}
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 0" }}>
-          <SectionLbl>{viewMode === "current" ? "This week's log" : viewMode === "future" ? "Scheduled preview" : "Week log"}</SectionLbl>
+      {/* Week log — last element; the pane's own bottom padding is the closing gap */}
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px 0", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <SectionLbl>{viewMode === "current" ? "This week's log" : viewMode === "future" ? "Scheduled preview" : "Week log"}</SectionLbl>
+            {/* #279: legend folded into the header — its own row below the grid cost a
+                full line of week-log space */}
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Manual
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled
+            </span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {viewMode === "current" ? (
               <>
@@ -939,7 +950,7 @@ export default function TrackerView({
             )}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "10px 12px 14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "6px 12px 10px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
@@ -980,14 +991,14 @@ export default function TrackerView({
 
             return (
               <div key={d.iso} style={{
-                padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 120,
+                padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 100,
                 background: isToday ? `linear-gradient(180deg, ${T.accentDim}, transparent 60%)` : "transparent",
                 // Future days used to be empty, so 0.4 cost nothing. They now carry
                 // scheduled clips and open slots, and at 0.4 the ghost cards (already
                 // 0.62 themselves) were unreadable (#218).
                 borderRadius: isToday ? 6 : 0, opacity: isFuture ? 0.72 : 1,
               }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "2px 4px 6px" }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: isToday ? T.accentLight : T.text }}>{DAY_SHORT[di]}</span>
                   <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textTertiary }}>{d.label}</span>
                 </div>
@@ -1010,10 +1021,10 @@ export default function TrackerView({
                         title={item.title || ""}
                         onClick={(e) => openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect())}
                         style={{
-                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 4,
+                          position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 3,
                           background: rgba(gd.color, isSched ? 0.05 : 0.09),
                           border: `1px ${isSched ? "dashed" : "solid"} ${ring}`,
-                          borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer",
+                          borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: "pointer",
                           opacity: isSched ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
                         }}
                         onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = rgba(gd.color, 0.5); }}
@@ -1041,7 +1052,7 @@ export default function TrackerView({
                   return (
                     <div key={`slot-${row.time}`}
                       onClick={slotInteractive ? (e) => openLogPopover(d.iso, d.dayName, row.time, e.currentTarget.getBoundingClientRect()) : undefined}
-                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 25 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22 }}
                       onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
                       onMouseLeave={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; } : undefined}
                     >
@@ -1057,21 +1068,6 @@ export default function TrackerView({
         </div>
       </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 4px 10px" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted via Corva
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Logged manually
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled {"·"} not posted yet
-        </span>
-      </div>
-
-      {/* #279: was 60px — that alone forced a scrollbar when everything else fit */}
-      <div style={{ height: 12 }} />
 
       {/* ---- Log / Detail popover ---- */}
       {popover && (
@@ -1398,7 +1394,7 @@ function Pill({ children }) {
 function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter, lostStreak, onOpenQueue }) {
   if (mode === "future") {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14, border: `1px solid ${T.yellowBorder}`, background: T.surface }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "6px 12px", marginBottom: 8, border: `1px solid ${T.yellowBorder}`, background: T.surface }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.yellow, flexShrink: 0 }}>{"◔"}</span>
         <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, lineHeight: 1.35 }}>
           Preview — <b style={{ fontFamily: T.mono, color: T.text }}>{sched}</b> clip{sched === 1 ? "" : "s"} scheduled for this week so far.
@@ -1418,7 +1414,7 @@ function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter
         : <>Nothing was posted this week.</>;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
+      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "6px 12px", marginBottom: 8,
       border: `1px solid ${hit ? T.greenBorder : missed ? T.redBorder : T.border}`,
       background: hit ? "linear-gradient(90deg, rgba(52,211,153,0.07), transparent 60%)" : T.surface,
     }}>
@@ -1445,7 +1441,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   if (streakOverVariant && lostStreakLen > 0) {
     return (
       <div style={{
-        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
+        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "6px 12px", marginBottom: 8,
         border: `1px solid ${T.border}`, background: T.surface,
       }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.textTertiary, flexShrink: 0 }}>{"▽"}</span>
@@ -1460,7 +1456,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   if (safe) {
     return (
       <div style={{
-        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
+        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "6px 12px", marginBottom: 8,
         border: "1px solid rgba(52,211,153,0.32)", background: "linear-gradient(90deg, rgba(52,211,153,0.07), transparent 60%)",
       }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.green, flexShrink: 0, animation: "tp-pulse 2.6s ease-in-out infinite" }}>{"▲"}</span>
@@ -1478,7 +1474,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
 
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
+      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "6px 12px", marginBottom: 8,
       border: "1px solid rgba(251,191,36,0.28)", background: T.surface,
     }}>
       <span style={{ fontSize: 18, lineHeight: 1, color: T.accent, flexShrink: 0, animation: "tp-pulse 2.6s ease-in-out infinite" }}>{"▲"}</span>
