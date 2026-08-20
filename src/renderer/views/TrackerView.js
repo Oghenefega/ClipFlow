@@ -618,7 +618,7 @@ export default function TrackerView({
   };
 
   // ---------- ring geometry ----------
-  const R = 62, C = 2 * Math.PI * R;
+  const R = 48, C = 2 * Math.PI * R; // #279: 112px ring (was 142) — height budget
   const progFrac = target > 0 ? Math.min(1, ringCount / target) : (viewMode === "current" ? 1 : 0);
   const dashOffset = ringReady ? C * (1 - progFrac) : C;
   // #276: ring color by mode — live pace for the current week, frozen verdict for
@@ -635,7 +635,7 @@ export default function TrackerView({
   return (
     <div style={{ fontFamily: T.font, color: T.text }}>
       {/* Page head */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <div>
           <h1 style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.01em", margin: 0 }}>Tracker</h1>
           <div style={{ fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>Corva · Now Playing</div>
@@ -655,7 +655,7 @@ export default function TrackerView({
       </div>
 
       {/* Week strip — #276: back/forward week navigation replaces the Calendar sub-view */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
         <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
           {viewMode === "past" ? "WAS PLAYING" : "NOW PLAYING"} <b style={{ color: gameColor }}>{viewedGameName}</b>
         </span>
@@ -691,14 +691,15 @@ export default function TrackerView({
         )}
       </div>
 
-      {/* Now Playing banner */}
+      {/* Now Playing banner — #279: compact, no fixed height; the week log below is
+          the main content and must fit on screen without scrolling */}
       <div style={{
         position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden",
-        marginBottom: 18, minHeight: 148, display: "flex", alignItems: "center", gap: 22, padding: "26px 28px",
+        marginBottom: 14, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px",
         background: `radial-gradient(120% 140% at 8% 18%, ${gameColor}33 0%, transparent 55%), linear-gradient(105deg, ${gameColor}4d 0%, ${gameColor}0d 42%, rgba(17,18,24,0) 70%), ${T.surface}`,
       }}>
         {viewMode === "current" && <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
-          position: "absolute", top: 18, right: 18, zIndex: 3, display: "flex", alignItems: "center", gap: 7,
+          position: "absolute", top: 12, right: 12, zIndex: 3, display: "flex", alignItems: "center", gap: 7,
           background: "rgba(10,11,16,0.55)", backdropFilter: "blur(6px)", border: `1px solid ${T.borderHover}`, color: T.text,
           fontFamily: T.font, fontSize: 11, fontWeight: 600, padding: "8px 13px", borderRadius: T.radius.md, cursor: "pointer",
         }}>
@@ -734,17 +735,17 @@ export default function TrackerView({
         )}
 
         <div style={{
-          position: "relative", zIndex: 1, width: 96, height: 96, borderRadius: T.radius.md, display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: T.mono, fontSize: 38, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10", flexShrink: 0,
+          position: "relative", zIndex: 1, width: 56, height: 56, borderRadius: T.radius.md, display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: T.mono, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10", flexShrink: 0,
           background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
         }}>{gameTag}</div>
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 7, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 5, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6 }} />
             {viewMode === "past" ? "Was playing" : "Now playing"}
           </div>
-          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 13, margin: "0 0 13px" }}>{viewedGameName}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, margin: "0 0 8px" }}>{viewedGameName}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
@@ -763,10 +764,10 @@ export default function TrackerView({
       </div>
 
       {/* Progress grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 14, marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 14, marginBottom: 14 }}>
         {/* Goal card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 20, display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 16, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <SectionLbl>Weekly goal</SectionLbl>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, marginRight: 8 }}>Target</span>
@@ -791,20 +792,20 @@ export default function TrackerView({
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{ position: "relative", width: 142, height: 142, flexShrink: 0 }}>
-              <svg width="142" height="142" viewBox="0 0 142 142" style={{ transform: "rotate(-90deg)" }}>
-                <circle cx="71" cy="71" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
-                <circle cx="71" cy="71" r={R} fill="none" stroke={paceColor} strokeWidth="9" strokeLinecap="round"
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ position: "relative", width: 112, height: 112, flexShrink: 0 }}>
+              <svg width="112" height="112" viewBox="0 0 112 112" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="56" cy="56" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                <circle cx="56" cy="56" r={R} fill="none" stroke={paceColor} strokeWidth="8" strokeLinecap="round"
                   strokeDasharray={C.toFixed(1)} strokeDashoffset={dashOffset.toFixed(1)}
                   style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1), stroke 0.4s" }} />
                 {!tickHidden && (
-                  <line x1="71" y1="9" x2="71" y2="20" stroke={T.bg} strokeWidth="3" strokeLinecap="round"
-                    transform={`rotate(${tickDeg} 71 71)`} style={{ transition: "transform 0.9s cubic-bezier(.4,0,.2,1)" }} />
+                  <line x1="56" y1="8" x2="56" y2="18" stroke={T.bg} strokeWidth="3" strokeLinecap="round"
+                    transform={`rotate(${tickDeg} 56 56)`} style={{ transition: "transform 0.9s cubic-bezier(.4,0,.2,1)" }} />
                 )}
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: T.mono, fontSize: 30, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 24, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 3 }}>{target != null ? `of ${target}` : "posted"}</span>
                 <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 5, letterSpacing: "0.04em" }}>
                   {viewMode === "current" ? `${animPct}%`
@@ -854,22 +855,22 @@ export default function TrackerView({
         </div>
 
         {/* Rank card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 20, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 16, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "absolute", top: -50, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle, ${T.tiers[rank.tier]}29, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, position: "relative" }}>
             <SectionLbl>Rank</SectionLbl>
             <span style={{ fontSize: 10, color: T.textTertiary, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: T.green, fontSize: 11 }}>{"▲"}</span> All-time {"·"} only climbs
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18, position: "relative" }}>
-            <div style={{ width: 54, height: 54, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <span style={{ position: "absolute", inset: 0, borderRadius: 14, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
-              <span style={{ width: 34, height: 34, borderRadius: 8, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(0,0,0,0.4)", background: T.tiers[rank.tier] }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, position: "relative" }}>
+            <div style={{ width: 44, height: 44, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+              <span style={{ position: "absolute", inset: 0, borderRadius: 12, border: `1px solid ${T.tiers[rank.tier]}`, opacity: 0.35 }} />
+              <span style={{ width: 28, height: 28, borderRadius: 7, transform: "rotate(45deg)", boxShadow: "0 6px 20px rgba(0,0,0,0.4)", background: T.tiers[rank.tier] }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
-              <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, marginTop: 6 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: T.tiers[rank.tier] }}>{rank.name}</div>
+              <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, marginTop: 5 }}>
                 <b style={{ color: T.text, fontWeight: 600, fontFamily: T.mono }}>{fmtNum(animXp)}</b> XP earned all-time
               </div>
             </div>
@@ -883,7 +884,7 @@ export default function TrackerView({
               <div style={{ height: "100%", borderRadius: 4, background: T.tiers[rank.tier], width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
             </div>
             {viewMode !== "future" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 11, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
                 <span style={{ fontFamily: T.mono }}>+{weekXp} XP {viewMode === "past" ? "earned that week" : "this week"}</span>
                 {viewMode === "current" && <span style={{ color: T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>}
               </div>
@@ -900,8 +901,8 @@ export default function TrackerView({
       )}
 
       {/* Week log */}
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px 0" }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 0" }}>
           <SectionLbl>{viewMode === "current" ? "This week's log" : viewMode === "future" ? "Scheduled preview" : "Week log"}</SectionLbl>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {viewMode === "current" ? (
@@ -917,7 +918,7 @@ export default function TrackerView({
             )}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "14px 12px 18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "10px 12px 14px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
@@ -958,7 +959,7 @@ export default function TrackerView({
 
             return (
               <div key={d.iso} style={{
-                padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 150,
+                padding: "0 8px", borderRight: di < 5 ? `1px solid ${T.border}` : "none", minHeight: 120,
                 background: isToday ? `linear-gradient(180deg, ${T.accentDim}, transparent 60%)` : "transparent",
                 // Future days used to be empty, so 0.4 cost nothing. They now carry
                 // scheduled clips and open slots, and at 0.4 the ghost cards (already
@@ -1036,7 +1037,7 @@ export default function TrackerView({
       </div>
 
       {/* Legend */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 4px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 4px 10px" }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted via Corva
         </span>
@@ -1048,7 +1049,8 @@ export default function TrackerView({
         </span>
       </div>
 
-      <div style={{ height: 60 }} />
+      {/* #279: was 60px — that alone forced a scrollbar when everything else fit */}
+      <div style={{ height: 12 }} />
 
       {/* ---- Log / Detail popover ---- */}
       {popover && (
@@ -1375,7 +1377,7 @@ function Pill({ children }) {
 function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter, lostStreak, onOpenQueue }) {
   if (mode === "future") {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18, border: `1px solid ${T.yellowBorder}`, background: T.surface }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14, border: `1px solid ${T.yellowBorder}`, background: T.surface }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.yellow, flexShrink: 0 }}>{"◔"}</span>
         <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, lineHeight: 1.35 }}>
           Preview — <b style={{ fontFamily: T.mono, color: T.text }}>{sched}</b> clip{sched === 1 ? "" : "s"} scheduled for this week so far.
@@ -1395,7 +1397,7 @@ function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter
         : <>Nothing was posted this week.</>;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
       border: `1px solid ${hit ? T.greenBorder : missed ? T.redBorder : T.border}`,
       background: hit ? "linear-gradient(90deg, rgba(52,211,153,0.07), transparent 60%)" : T.surface,
     }}>
@@ -1422,7 +1424,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   if (streakOverVariant && lostStreakLen > 0) {
     return (
       <div style={{
-        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
         border: `1px solid ${T.border}`, background: T.surface,
       }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.textTertiary, flexShrink: 0 }}>{"▽"}</span>
@@ -1437,7 +1439,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
   if (safe) {
     return (
       <div style={{
-        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
         border: "1px solid rgba(52,211,153,0.32)", background: "linear-gradient(90deg, rgba(52,211,153,0.07), transparent 60%)",
       }}>
         <span style={{ fontSize: 18, lineHeight: 1, color: T.green, flexShrink: 0, animation: "tp-pulse 2.6s ease-in-out infinite" }}>{"▲"}</span>
@@ -1455,7 +1457,7 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
 
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "10px 16px", marginBottom: 14,
       border: "1px solid rgba(251,191,36,0.28)", background: T.surface,
     }}>
       <span style={{ fontSize: 18, lineHeight: 1, color: T.accent, flexShrink: 0, animation: "tp-pulse 2.6s ease-in-out infinite" }}>{"▲"}</span>
