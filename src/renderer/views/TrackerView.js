@@ -78,6 +78,7 @@ export default function TrackerView({
   xpLedger, awardXp,
   streakState,
   scheduledClips,
+  gameArt = {},
   clipIndex,
   onOpenInEditor,
   onOpenQueue,
@@ -734,11 +735,31 @@ export default function TrackerView({
           </div>
         )}
 
-        <div style={{
-          position: "relative", zIndex: 1, width: 56, height: 56, borderRadius: T.radius.md, display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: T.mono, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10", flexShrink: 0,
-          background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-        }}>{gameTag}</div>
+        {/* Game tile: the same Steam poster art the Projects tab uses (3:4, like its
+            60x80 tiles); the tag-on-color square stays as the no-art fallback and
+            shows through if the image path is stale. Sized under the text column's
+            height so the compact #279 banner doesn't grow. */}
+        {gameArt[viewedGameName]?.path ? (
+          <div style={{
+            position: "relative", zIndex: 1, width: 54, height: 72, borderRadius: 10, overflow: "hidden", flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: T.mono, fontSize: 20, fontWeight: 700, color: "#0a0b10",
+            background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+          }}>
+            {gameTag}
+            <img
+              src={`${toFileUrl(gameArt[viewedGameName].path)}?v=${gameArt[viewedGameName].v}`} alt=""
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </div>
+        ) : (
+          <div style={{
+            position: "relative", zIndex: 1, width: 56, height: 56, borderRadius: T.radius.md, display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: T.mono, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10", flexShrink: 0,
+            background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
+          }}>{gameTag}</div>
+        )}
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 5, display: "flex", alignItems: "center", gap: 8 }}>

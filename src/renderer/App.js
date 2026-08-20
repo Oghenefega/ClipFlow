@@ -985,6 +985,7 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
               awardXp={awardXp}
               streakState={streakState}
               scheduledClips={scheduledClips}
+              gameArt={gameArt}
               clipIndex={trackerClipIndex}
               onOpenInEditor={handleOpenTrackerClipInEditor}
               onOpenQueue={() => setView("queue")}

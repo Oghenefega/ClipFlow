@@ -4,9 +4,10 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275, #276, #279)
+## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275, #276, #279, #280)
 
 ### Changed
+- **The Tracker banner shows real game art (#280).** The Now Playing tile now uses the same Steam poster art as the Projects-tab tiles (portrait crop) instead of the game tag on a colored square. Games without art (like Just Chatting) keep the tag tile, and past weeks show the art of the game that was playing then.
 - **The Tracker fits on screen without scrolling (#279).** The top of the tab was mostly dead space — an oversized Now Playing banner, a 142px goal ring, roomy card paddings, and thick gaps between every section pushed the week log below the fold. Everything above the log is now compact (smaller banner and game tile, 112px ring, tighter paddings and margins, slimmer stakes bar), and a hidden 60px spacer at the bottom that forced a scrollbar even when content fit is nearly gone. On the reported window size the full week log, including the legend, is visible with room to spare. No text got smaller than before.
 - **The Tracker's Calendar folded into "This week" (#276).** The Calendar sub-view and its month grid are gone; instead, back/forward arrows next to the week label step through weeks, with a "This week" button to jump home. Past weeks are frozen history: the game you were playing that week, its target, a green HIT / red MISSED verdict with the recap (clips and platforms), your streak standing at that point, and every posted clip still clickable for its detail card and post links — but strictly read-only (no logging, no target edits, no removing history). Weeks from before weekly goals existed show as "untracked" with no judgement. Future weeks are a read-only preview of what's scheduled, with a "Manage in Queue" button as the only exit — scheduling stays in the Queue. The current week keeps everything exactly as it was: ring, pace, stakes bar, streak, logging.
 
