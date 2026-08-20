@@ -1,87 +1,88 @@
-# HANDOFF — Session 177 (2026-08-20)
+# HANDOFF — Session 178 (2026-08-20)
 
 ## Current State
-**#271 (audio wizard redesign) is built, E2E-verified, and on master.** It's the
-first of the approved four-issue batch **#271 → #270 → #272 → #273** (order
-approved by Fega this session; full plans for all four live in `tasks/todo.md`
-under "PLANNED (session 177)"). #271 rides the next installer cut alongside
-session 176's #263/#269 (batch rule). Not yet in any installer — Fega hasn't
-seen it in-app.
+**#270 (per-word caption styling) is built, E2E-verified, and on master
+(commit 1478016).** Second of the approved batch **#271 → #270 → #272 → #273**.
+It rides the next installer cut together with #271 (s177) and #263/#269 (s176)
+— no installer has been cut for any of them yet, so Fega has verified none of
+this in the daily driver. Issues #263, #269, #271, #270 are all closed with
+`status: untested`.
 
-## What Was Just Built
-- **Editor-style calibration wizard** (`src/renderer/components/AudioCalibrationModal.js`,
-  full rewrite): muted video anchor + one lane per track with its real waveform
-  (peaks come back with each 20s sample — `audio:extractTrackSample` now also
-  runs `extractWaveformPeaks` on the extracted WAV, main.js), sweeping playhead
-  driven by the video clock, lane click = solo with mid-play continuity (audio
-  swaps tracks at the same position).
-- **Per-lane waveform normalization** — E2E against Fega's real RL recording
-  measured ~-31 dBFS peaks; unnormalized lanes rendered flat. Each lane scales
-  to its own max; lanes under ~-60 dBFS stay flat as genuinely silent.
-- **Label renames** (display only, value keys untouched): Full Mix / Mic /
-  Game/Desktop / Comms ("e.g. Discord") / Music + new **browser** value key.
-  Single source of truth: new `src/renderer/audioTrackLabels.js`
-  (LABEL_OPTIONS + trackLabelText) — replaced the modal's list and BOTH
-  duplicated LABEL_TEXT maps in SettingsView.
-- **Custom names for "Other" tracks**: inline input in the wizard; persisted as
-  `{index, label:"other", customName}` (main.js sanitizes: control chars
-  stripped, trimmed, 24-char cap, only on label "other"). Shows in the wizard
-  rail and both Settings pickers via trackLabelText.
-- **Prefill on recalibrate**: modal seeds labels/customNames from stored
-  audioSetup via storeGet — ONLY when trackCount matches (mismatched layout =
-  stale labels = dangerous defaults; starts blank on purpose).
-- `AUDIO_CAL_LABELS` allow-list (main.js:1501) gained "browser" — any new
-  value key MUST be added there or saves silently strip the track.
+## What Was Just Built (#270)
+- **Per-word style overrides** for both text surfaces: subtitles (click a word
+  in Edit subtitles → compact "Word" card at the top of the Subtitles panel)
+  and hook-text captions (clickable word chips under the caption box in the
+  Text panel → same card). Controls: color, font, size, glow toggle+color,
+  shadow toggle+color, Reset. Styled words get a colored underline marker in
+  the transcript and chips.
+- **Data model:** style rides the word object itself —
+  `editSegments[].words[n].style` (flat subset of engine keys) and
+  `captionSegments[].wordStyles[tokenIdx]`. Additive/optional; no migration.
+  Survives text edits, split/merge, trim, save, render payload (all hops
+  verified). Caption text edits remap `wordStyles` (`_remapWordStyles` in
+  useCaptionStore: positional when token count unchanged, text-match otherwise).
+- **Rendering:** merged config (`{...lineConfig, ...override}`) fed through the
+  SAME engine builders — new `buildSubtitleWordOverrideCss` /
+  `buildCaptionWordOverrideCss` in `subtitleStyleEngine.js`, consumed by
+  PreviewOverlays (editor + Projects), PreviewPanelNew's caption display (new
+  shared `CaptionText` component), and the burn-in
+  `public/subtitle-overlay/overlay-renderer.js` (exposed via
+  subtitle-overlay-preload.js).
+- **Fix found by E2E:** `resolveSubtitles.js` primaryRaw rebuilt words from a
+  whitelist and stripped `style` on every clip reopen (autosave then persisted
+  the stripped copy). Now carries `style` through.
+- Filed **#278**: pre-existing word-dedup in resolveSubtitles runs on
+  editor-SAVED subs and can merge a repeated word on reopen (user-text
+  mutation; observed 41→40 words during testing).
 
 ## Key Decisions
-- **Variant C evolved into "editor-style" per Fega's direction** ("track stuff
-  should feel like it exists on an editor" + video shown + per-track
-  visualizer). Waveform-per-lane chosen over live meters: informative while
-  paused, flat-lane = silent at a glance, reads like an NLE.
-- Prefill gated on matching trackCount (wrong-default-blindly-confirmed
-  principle from #263 applies here too).
-- "Flat lanes are probably Empty" helper was REJECTED after E2E: Fega's mic was
-  silent in the first sample window. Copy now steers to "Try another part".
+- **Karaoke vs custom style (Fega approved):** a custom-styled word keeps its
+  look at ALL times — highlight color flip and progressive sweep are suppressed
+  for it; the pop/scale animation still plays.
+- **Unstyled caption words stay plain text nodes** (no spans) so existing
+  captions render pixel-identical; overridden words are inline spans whose
+  textShadow/color/font override the block's inherited style.
+- **`styleTarget: true` flag on selectedWordInfo** marks real word clicks —
+  segment/timecode/timeline clicks also set selectedWordInfo (wordIdx 0) and
+  must not pop the card.
+- **Per-letter sizing = stretch goal, parked** (per issue scope), not built.
 
 ## Next Steps
-1. **#270 (per-word caption styling) — next session**, per approved batch
-   order. Full plan + exploration findings in todo.md (two hand-synced render
-   loops, three persistence whitelists, no stable word IDs — read it first).
-2. Then #272 (per-track volume; architecture decision recorded in todo.md),
-   then #273 (volume keyframes; mock the interaction first).
-3. Installer cut when the batch feels full → Fega's in-app passes: #271
-   (Settings → Recalibrate: editor-style wizard, prefill arrives filled,
-   custom name survives), plus standing #263/#269/#264/#267 checks.
+1. **#272 — per-clip mic vs game volume balance** (next in approved batch;
+   builds the mixing mechanism #273 reuses). Plan to Fega before code.
+2. **#273 — music volume ramp over a clip** (shares #272's mechanism).
+3. When batch is ready: cut installer via `clipflow-update-launcher`
+   (#263/#269/#271/#270 all ride it), then Fega's in-app passes.
+4. #278 (saved-subs word dedup) — small gated fix, good session filler.
 
 ## Watch Out For
-- **Prefill is the one #271 surface not E2E-verified** — the Settings
-  Recalibrate path needs the native file dialog, which CDP can't drive. Code
-  path is small (one effect, storeGet + seed). Fega's pass covers it.
-- The pipeline-gate path deliberately CANNOT prefill: the gate only fires on
-  trackCount mismatch, prefill only seeds on match. Not a bug.
-- Wizard "Done" completes the gate and the pipeline PROCEEDS — in E2E always
-  exit via Cancel or the run starts a real generation.
-- Old "unknown" labels prefill as unlabeled (skipped on seed) — re-picking Mic
-  elsewhere still demotes the previous voice track to "unknown" (parity).
-- `%APPDATA%\Corva` on the DESKTOP is an empty dir; desktop prod data still
-  lives in `%APPDATA%\clipflow` (migration evidently hasn't run here — desktop
-  daily driver may not have booted alpha.60 yet). Don't assume Corva paths on
-  this machine; check both.
+- **resolveSubtitles primaryRaw is a whitelist** — any future per-word field
+  must be added there explicitly or it dies on clip reopen (and autosave then
+  wipes it on disk). Same for the extras map below it if extras ever carry
+  custom fields.
+- **Caption `cap-N` ids restart per clip** — `activeCaptionWord` is cleared in
+  both initFromClip branches for this reason; keep that if touching init.
+- **The dev profile shares Fega's real projectsRoot** — this session styled a
+  REJECTED clip (clip_1787202782990_2r7b in proj_1787202305653_tndmi9),
+  snapshotted first, and restored `project.json` byte-identical (md5
+  95bb1f9a…) after. Test render deleted from the temp output folder.
+- WordStyleCard glow/shadow toggles write explicit overrides (`glowOn: false`
+  kills a line-level glow for that word); Reset clears the whole override.
+- `_remapWordStyles` drops a styled word's override if its text changes in the
+  same edit that changes the word count — acceptable edge, documented in code.
 
 ## Logs/Debugging
-- Calibration saves log under module `system` in app.log: `[audiocal]
-  calibration saved: N tracks, voice=track N`.
-- Sample WAVs cache in `%TMP%\clipflow-audiocal\` (`<md5>-tN-<pct>.wav`),
-  deleted by the modal's unmount cleanup (`audio:cleanupSamples`).
-- E2E harness pattern (session scratchpad `cdp-wizard-e2e.js`): launch
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
-  --disable-features=CalculateNativeWinOcclusion`, fire the REAL gate via
-  `window.clipflow.generateClips(<multi-track file>, {})` with dev audioSetup
-  null → wizard mounts through production code; scope ALL DOM queries to the
-  overlay (zIndex 1100) — unscoped queries hit the Rename tab behind it and
-  clicks pass through the overlay to background handlers; `innerText`
-  comparisons must be lowercased (section headers are CSS-uppercased);
-  cancel sets a 60s re-prompt cooldown between runs. Settings groups collapse
-  by default — expand by clicking the "Show" leaves, not the header text.
-- Dev-profile state fully restored after E2E: audioSetup null,
-  transcriptionAudioTrack 0 (matches pre-test file + all backups).
+- E2E was CDP against `CLIPFLOW_PROFILE=dev npx electron .
+  --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`
+  with a ws-based evaluator (scratchpad cdp.js; 8MB maxPayload — the 64MB
+  buffer caused node VirtualAlloc crashes under this machine's memory
+  pressure). Machine also threw "paging file too small" mid-session; retries
+  succeeded.
+- Render output lands in `<outputFolder>/<project name>/<clip title>.mp4` —
+  poll the project SUBFOLDER, not the output root (this session's poll missed
+  a finished render for 4 minutes).
+- Burn-in proof pattern: render → `ffmpeg -ss <t> -frames:v 1` → Read the PNG.
+  One frame at 1.5s showed both surfaces (red Impact "breathing" + magenta
+  POSITIVITY) matching preview.
+- The dup-word merge (#278) shows as transcript word count dropping on reopen
+  of a saved clip (41→40 here); disk keeps the old count until next save.
