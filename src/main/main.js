@@ -63,8 +63,11 @@ const { BrowserWindow, ipcMain, dialog, shell, Notification } = require("electro
 // #244: Windows toast notifications need an AppUserModelID matching the installed
 // shortcut's (electron-builder sets it from build.appId). In dev the toast
 // attributes to Electron's default identity — acceptable; branding arrives with
-// the installer.
-app.setAppUserModelId("com.clipflow.app");
+// the installer. #269: packaged-only — a source run claiming this AUMID poisons
+// Windows' cached taskbar identity for the installed app ("Electron" icon/name).
+if (app.isPackaged) {
+  app.setAppUserModelId("com.clipflow.app");
+}
 const os = require("os");
 const chokidar = require("chokidar");
 const { createStore } = require("./store-factory");
