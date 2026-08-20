@@ -2,13 +2,12 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallba
 import T from "../styles/theme";
 import PlatformIcon from "../components/PlatformIcon";
 import { toFileUrl } from "../components/shared";
-import TrackerCalendar from "./TrackerCalendar";
 import {
-  ledgerTotal, rankForXp, weekEntries, paceInfo, computeRecap, localISO, addDaysISO,
+  ledgerTotal, rankForXp, weekEntries, paceInfo, computeRecap, localISO, addDaysISO, mondayISO,
   XP_PER_CLIP,
 } from "../utils/trackerEngine";
 import { renderRecapPng, downloadBlob, copyBlobToClipboard } from "../utils/recapCardImage";
-import { streakByWeek } from "../utils/trackerCalendarModel";
+import { streakByWeek, weekAggregate, groupByLocalDate } from "../utils/trackerCalendarModel";
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -83,8 +82,9 @@ export default function TrackerView({
   onOpenInEditor,
   onOpenQueue,
 }) {
-  // Tracker sub-view: Phase 1 "This week" vs Phase 2 read-only "Calendar".
-  const [subView, setSubView] = useState("week");
+  // #276: the Calendar sub-view folded into week navigation — one view, offset in
+  // weeks from today. 0 = live current week, negative = frozen past, positive = preview.
+  const [weekOffset, setWeekOffset] = useState(0);
   // Live clock: the tab pane stays mounted from app launch, so a frozen Date would
   // keep highlighting yesterday after midnight. Tick once a minute.
   const [now, setNow] = useState(() => new Date());
@@ -92,18 +92,28 @@ export default function TrackerView({
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
-  const wd = useMemo(() => getWeekDates(now), [now]);
-  const monday = wd[0].iso;
+  const wd = useMemo(() => {
+    const ref = new Date(now);
+    ref.setDate(ref.getDate() + weekOffset * 7);
+    return getWeekDates(ref);
+  }, [now, weekOffset]);
+  const monday = wd[0].iso; // Monday of the VIEWED week — everything below keys off it
+  const curMonday = useMemo(() => mondayISO(now), [now]);
   const todayIso = localISO(now);
   const todayIdx = wd.findIndex((d) => d.iso === todayIso);
+  const viewMode = weekOffset === 0 ? "current" : weekOffset > 0 ? "future" : "past";
 
   const activeGames = useMemo(() => gamesDb.filter((g) => g.active !== false), [gamesDb]);
-  const currentGame = gamesDb.find((g) => g.name === mainGame);
+  // #276: past weeks render the game frozen in that week's snapshot, not today's pick.
+  const viewedGameName = (viewMode === "past" && weekMeta?.[monday]?.nowPlaying) || mainGame;
+  const currentGame = gamesDb.find((g) => g.name === viewedGameName);
   const gameColor = currentGame?.color || T.accent;
   const gameTag = currentGame?.tag || "";
 
   const thisWeekMeta = weekMeta?.[monday];
-  const target = thisWeekMeta?.target ?? weeklyTarget;
+  // #276: a past week with no frozen snapshot is "untracked" — it must not borrow
+  // today's target and read as missed. null target = no goal existed that week.
+  const target = viewMode === "past" ? (thisWeekMeta?.target ?? null) : (thisWeekMeta?.target ?? weeklyTarget);
 
   const thisWeekEntries = useMemo(() => weekEntries(trackerData, monday), [trackerData, monday]);
   const posted = thisWeekEntries.length;
@@ -118,6 +128,15 @@ export default function TrackerView({
     }
     return m;
   }, [scheduledClips]);
+  // #276: one aggregate call gives the viewed week its state machine — current /
+  // future / hit / missed / untracked / noData — plus frozen streak numbers and the
+  // Mon..Sun scheduled count, exactly as the retired Calendar derived them.
+  const streakMap = useMemo(() => streakByWeek(weekMeta), [weekMeta]);
+  const entriesByDate = useMemo(() => groupByLocalDate(trackerData), [trackerData]);
+  const weekAgg = useMemo(() => weekAggregate({
+    mondayIso: monday, weekMeta, entriesByDate, scheduledByDate: schedByDate,
+    streakMap, todayMondayIso: curMonday, streakState,
+  }), [monday, weekMeta, entriesByDate, schedByDate, streakMap, curMonday, streakState]);
   // Main vs variety is computed live against the current Now Playing game (not the
   // stored write-time `type`), so switching games mid-week re-buckets the whole week.
   // entry.game holds the lowercased short tag ("rl") for auto-posts and the hashtag
@@ -141,14 +160,19 @@ export default function TrackerView({
   const streakOverVariant = prevWeekOutcome === "missed" && posted < target;
   // Context for the calm "streak lost" stakes state (Phase 2 decision 10): how long the
   // ended streak was, and what last week actually posted against its frozen target.
-  const lostStreakLen = useMemo(() => (streakByWeek(weekMeta)[prevMonday]?.lostStreak || 0), [weekMeta, prevMonday]);
+  const lostStreakLen = streakMap[prevMonday]?.lostStreak || 0;
   const prevWeekPosted = useMemo(() => weekEntries(trackerData, prevMonday).length, [trackerData, prevMonday]);
   const prevWeekTarget = weekMeta?.[prevMonday]?.target ?? weeklyTarget;
 
   const effectiveTemplate = weekTemplateOverrides?.[monday] || weeklyTemplate;
   const hasOverride = !!(weekTemplateOverrides?.[monday]);
 
-  const recap = useMemo(() => computeRecap(thisWeekEntries), [thisWeekEntries]);
+  // #276: past weeks show the recap frozen at rollover; live computation is the
+  // fallback for the current week (and past weeks from before recaps existed).
+  const recap = useMemo(
+    () => (viewMode === "past" && thisWeekMeta?.recap) ? thisWeekMeta.recap : computeRecap(thisWeekEntries),
+    [viewMode, thisWeekMeta, thisWeekEntries]
+  );
   const goalReached = target > 0 && posted >= target;
 
   // ---------- toast ----------
@@ -173,11 +197,14 @@ export default function TrackerView({
   // ---------- goal-reached moment ----------
   const prevGoalReached = useRef(goalReached);
   useEffect(() => {
+    // #276: arrowing into a past hit week flips goalReached too — only the live
+    // week's transition is a moment worth celebrating.
+    if (viewMode !== "current") return;
     if (goalReached && !prevGoalReached.current) {
       toast("Goal reached — recap ready to share");
     }
     prevGoalReached.current = goalReached;
-  }, [goalReached, toast]);
+  }, [goalReached, toast, viewMode]);
 
   // ---------- count-up animation ----------
   const [animPosted, setAnimPosted] = useState(0);
@@ -188,11 +215,14 @@ export default function TrackerView({
   // so the counters re-animate whenever posted/target/totalXp change (data loading in
   // after mount, a new post logged live) instead of freezing at their mount-time values.
   const animFromRef = useRef({ posted: 0, pct: 0, xp: 0 });
+  // #276: the ring counts posted clips on current/past weeks, scheduled clips on
+  // future ones. A past untracked week has target null — 0%, never a full ring.
+  const ringCount = viewMode === "future" ? weekAgg.sched : posted;
   useEffect(() => {
-    const pct = target > 0 ? Math.round(Math.min(1, posted / target) * 100) : 100;
+    const pct = target > 0 ? Math.round(Math.min(1, ringCount / target) * 100) : (viewMode === "current" ? 100 : 0);
     const done = () => {
-      setAnimPosted(posted); setAnimPct(pct); setAnimXp(totalXp); setRingReady(true);
-      animFromRef.current = { posted, pct, xp: totalXp };
+      setAnimPosted(ringCount); setAnimPct(pct); setAnimXp(totalXp); setRingReady(true);
+      animFromRef.current = { posted: ringCount, pct, xp: totalXp };
     };
     if (document.hidden) {
       done();
@@ -206,7 +236,7 @@ export default function TrackerView({
       const p = Math.min(1, (t - start) / dur);
       const e = 1 - Math.pow(1 - p, 3);
       const shown = {
-        posted: Math.round(from.posted + (posted - from.posted) * e),
+        posted: Math.round(from.posted + (ringCount - from.posted) * e),
         pct: Math.round(from.pct + (pct - from.pct) * e),
         xp: Math.round(from.xp + (totalXp - from.xp) * e),
       };
@@ -220,7 +250,7 @@ export default function TrackerView({
     setRingReady(true); // trigger CSS width/dashoffset transitions immediately
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [posted, target, totalXp]);
+  }, [ringCount, target, totalXp, viewMode]);
 
   // ---------- game switcher popover ----------
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -577,12 +607,28 @@ export default function TrackerView({
     shareTimer.current = setTimeout(() => setShareState("idle"), 2000);
   };
 
+  // ---------- week navigation (#276) ----------
+  // Anything anchored to the viewed week (popovers, the game picker, the slot
+  // editor) closes on navigation so it can't act on a week it wasn't opened for.
+  const goWeek = (delta) => {
+    setWeekOffset((o) => o + delta);
+    closePopover();
+    setPickerOpen(false);
+    setShowTemplateEditor(false);
+  };
+
   // ---------- ring geometry ----------
   const R = 62, C = 2 * Math.PI * R;
-  const progFrac = target > 0 ? Math.min(1, posted / target) : 1;
+  const progFrac = target > 0 ? Math.min(1, ringCount / target) : (viewMode === "current" ? 1 : 0);
   const dashOffset = ringReady ? C * (1 - progFrac) : C;
-  const paceColor = pace.status === "green" ? T.green : pace.status === "yellow" ? T.yellow : T.red;
-  const expFrac = target > 0 ? Math.min(1, pace.expected / target) : 0;
+  // #276: ring color by mode — live pace for the current week, frozen verdict for
+  // past weeks (green hit / red miss / neutral untracked), scheduled yellow for future.
+  const outcome = weekAgg.state; // current | future | hit | missed | untracked | noData
+  const paceColor = viewMode === "current"
+    ? (pace.status === "green" ? T.green : pace.status === "yellow" ? T.yellow : T.red)
+    : viewMode === "future" ? T.yellow
+      : outcome === "hit" ? T.green : outcome === "missed" ? T.red : T.textTertiary;
+  const expFrac = viewMode === "current" && target > 0 ? Math.min(1, pace.expected / target) : 0;
   const tickDeg = expFrac * 360;
   const tickHidden = expFrac <= 0 || expFrac >= 1;
 
@@ -595,47 +641,54 @@ export default function TrackerView({
           <div style={{ fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 2 }}>Corva · Now Playing</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 4 }}>
-            <button onClick={() => setSubView("week")} style={{ background: subView === "week" ? T.surfaceHover : "none", border: "none", color: subView === "week" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>This week</button>
-            <button onClick={() => { setSubView("calendar"); closePopover(); setPickerOpen(false); setShowTemplateEditor(false); }} style={{ background: subView === "calendar" ? T.surfaceHover : "none", border: "none", color: subView === "calendar" ? T.text : T.textTertiary, fontFamily: T.font, fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 6, cursor: "pointer" }}>Calendar</button>
-          </div>
-          <button onClick={() => setShowRundown(true)} style={{
+          {viewMode === "current" && <button onClick={() => setShowRundown(true)} style={{
             display: "flex", alignItems: "center", gap: 7, background: T.text, color: "#0a0b10", border: "none",
             fontFamily: T.font, fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: T.radius.md, cursor: "pointer",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M8 12h8M8 12l3-3M8 12l3 3M16 5h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2" /></svg>
             Weekly Rundown
-          </button>
+          </button>}
           <button onClick={exportCSV} style={ghostBtnStyle}>Export</button>
           <button onClick={() => fileRef.current?.click()} style={ghostBtnStyle}>Import</button>
           <input ref={fileRef} type="file" accept=".csv" onChange={importCSV} style={{ display: "none" }} />
         </div>
       </div>
 
-      {subView === "calendar" && (
-        <TrackerCalendar
-          trackerData={trackerData}
-          weekMeta={weekMeta}
-          streakState={streakState}
-          gamesDb={gamesDb}
-          scheduledClips={scheduledClips}
-          now={now}
-          onOpenThisWeek={() => setSubView("week")}
-        />
-      )}
-
-      {subView === "week" && (<>
-      {/* Week strip */}
+      {/* Week strip — #276: back/forward week navigation replaces the Calendar sub-view */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
         <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
-          NOW PLAYING <b style={{ color: gameColor }}>{mainGame}</b>
+          {viewMode === "past" ? "WAS PLAYING" : "NOW PLAYING"} <b style={{ color: gameColor }}>{viewedGameName}</b>
         </span>
         <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textMuted }} />
-        <span style={{ fontSize: 12, color: T.textSecondary, fontWeight: 500 }}>Week of {wd[0].label} to {wd[5].label}</span>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 999 }}>
-          <span style={{ color: T.accent, fontSize: 13, lineHeight: 1 }}>{"▲"}</span>
-          <span><b>{streakState?.current || 0}</b> weeks</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
+          <span style={{ fontSize: 12, color: T.textSecondary, fontWeight: 500, minWidth: 158, textAlign: "center" }}>Week of {wd[0].label} to {wd[5].label}</span>
+          <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
         </div>
+        {weekOffset !== 0 && (
+          <button onClick={() => goWeek(-weekOffset)} style={{ ...weekNavBtnStyle, width: "auto", padding: "0 12px", color: T.accentLight, borderColor: T.accentBorder, background: T.accentDim }}>This week</button>
+        )}
+        {viewMode === "current" ? (
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 999 }}>
+            <span style={{ color: T.accent, fontSize: 13, lineHeight: 1 }}>{"▲"}</span>
+            <span><b>{streakState?.current || 0}</b> weeks</span>
+          </div>
+        ) : (
+          <div style={{
+            marginLeft: "auto", display: "flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999,
+            background: outcome === "hit" ? T.greenDim : outcome === "missed" ? T.redDim : "rgba(255,255,255,0.04)",
+            border: `1px solid ${outcome === "hit" ? T.greenBorder : outcome === "missed" ? T.redBorder : T.border}`,
+            color: outcome === "hit" ? T.green : outcome === "missed" ? T.red : viewMode === "future" ? T.yellow : T.textTertiary,
+          }}>
+            {viewMode === "future"
+              ? <span>UPCOMING {"·"} {weekAgg.sched} scheduled</span>
+              : outcome === "hit"
+                ? <span>HIT{weekAgg.streakAfter > 0 ? ` · ${weekAgg.streakAfter}-week streak` : ""}</span>
+                : outcome === "missed"
+                  ? <span>MISSED{weekAgg.lostStreak > 0 ? ` · streak ended at ${weekAgg.lostStreak}` : ""}</span>
+                  : <span>UNTRACKED</span>}
+          </div>
+        )}
       </div>
 
       {/* Now Playing banner */}
@@ -644,14 +697,14 @@ export default function TrackerView({
         marginBottom: 18, minHeight: 148, display: "flex", alignItems: "center", gap: 22, padding: "26px 28px",
         background: `radial-gradient(120% 140% at 8% 18%, ${gameColor}33 0%, transparent 55%), linear-gradient(105deg, ${gameColor}4d 0%, ${gameColor}0d 42%, rgba(17,18,24,0) 70%), ${T.surface}`,
       }}>
-        <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
+        {viewMode === "current" && <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
           position: "absolute", top: 18, right: 18, zIndex: 3, display: "flex", alignItems: "center", gap: 7,
           background: "rgba(10,11,16,0.55)", backdropFilter: "blur(6px)", border: `1px solid ${T.borderHover}`, color: T.text,
           fontFamily: T.font, fontSize: 11, fontWeight: 600, padding: "8px 13px", borderRadius: T.radius.md, cursor: "pointer",
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" /></svg>
           Switch game
-        </button>
+        </button>}
 
         {pickerOpen && pickerPos && (
           <div ref={pickerRef} style={{
@@ -688,10 +741,10 @@ export default function TrackerView({
 
         <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 7, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: "tp-pulse 2.2s ease-in-out infinite" }} />
-            Now playing
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6 }} />
+            {viewMode === "past" ? "Was playing" : "Now playing"}
           </div>
-          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 13, margin: "0 0 13px" }}>{mainGame}</h2>
+          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 13, margin: "0 0 13px" }}>{viewedGameName}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
@@ -701,7 +754,9 @@ export default function TrackerView({
               {rank.name}
             </div>
             <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>
-              <b style={{ color: T.text, fontWeight: 600 }}>{posted}</b> posted this week
+              {viewMode === "future"
+                ? <><b style={{ color: T.text, fontWeight: 600 }}>{weekAgg.sched}</b> scheduled</>
+                : <><b style={{ color: T.text, fontWeight: 600 }}>{posted}</b> posted {viewMode === "past" ? "that week" : "this week"}</>}
             </div>
           </div>
         </div>
@@ -715,7 +770,11 @@ export default function TrackerView({
             <SectionLbl>Weekly goal</SectionLbl>
             <div style={{ display: "flex", alignItems: "center" }}>
               <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: T.textTertiary, fontWeight: 600, marginRight: 8 }}>Target</span>
-              {editingTarget ? (
+              {viewMode !== "current" ? (
+                // #276: past targets are frozen (— when the week predates tracking);
+                // future weeks preview today's default. Only the live week edits.
+                <span style={{ fontFamily: T.mono, fontSize: 19, fontWeight: 700, color: target == null ? T.textMuted : T.text, padding: "3px 9px" }}>{target ?? "—"}</span>
+              ) : editingTarget ? (
                 <input
                   type="number" min={1} max={400} value={targetVal} autoFocus
                   onChange={(e) => setTargetVal(e.target.value)}
@@ -746,8 +805,12 @@ export default function TrackerView({
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ fontFamily: T.mono, fontSize: 30, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: T.text }}>{animPosted}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 3 }}>of {target}</span>
-                <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 5, letterSpacing: "0.04em" }}>{animPct}%</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textTertiary, fontWeight: 500, marginTop: 3 }}>{target != null ? `of ${target}` : "posted"}</span>
+                <span style={{ fontSize: 10, color: paceColor, fontWeight: 600, marginTop: 5, letterSpacing: "0.04em" }}>
+                  {viewMode === "current" ? `${animPct}%`
+                    : viewMode === "future" ? "scheduled"
+                      : outcome === "hit" ? "HIT" : outcome === "missed" ? "MISSED" : "untracked"}
+                </span>
               </div>
             </div>
 
@@ -755,7 +818,7 @@ export default function TrackerView({
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: T.text, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{mainGame} <span style={{ fontFamily: T.mono, color: T.textSecondary, fontWeight: 500, marginLeft: 2 }}>{mainCount}</span>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: gameColor }} />{viewedGameName} <span style={{ fontFamily: T.mono, color: T.textSecondary, fontWeight: 500, marginLeft: 2 }}>{mainCount}</span>
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 500, color: T.textSecondary, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.textTertiary }} />Variety <span style={{ fontFamily: T.mono, marginLeft: 2 }}>{varietyCount}</span>
@@ -768,12 +831,23 @@ export default function TrackerView({
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 500 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: paceColor, flexShrink: 0 }} />
-                <span>
-                  <span style={{ color: paceColor, fontWeight: 600 }}>
-                    {pace.diff === 0 ? "On pace" : pace.diff > 0 ? `${pace.diff} ahead of pace` : `${Math.abs(pace.diff)} behind pace`}
-                  </span>{" "}
-                  <span style={{ color: T.textSecondary }}>{"·"} {pace.expectedRounded} by now</span>
-                </span>
+                {viewMode === "current" ? (
+                  <span>
+                    <span style={{ color: paceColor, fontWeight: 600 }}>
+                      {pace.diff === 0 ? "On pace" : pace.diff > 0 ? `${pace.diff} ahead of pace` : `${Math.abs(pace.diff)} behind pace`}
+                    </span>{" "}
+                    <span style={{ color: T.textSecondary }}>{"·"} {pace.expectedRounded} by now</span>
+                  </span>
+                ) : viewMode === "future" ? (
+                  <span style={{ color: T.textSecondary }}><span style={{ color: paceColor, fontWeight: 600 }}>{weekAgg.sched} scheduled</span> {"·"} nothing posted yet</span>
+                ) : (
+                  <span style={{ color: T.textSecondary }}>
+                    <span style={{ color: paceColor, fontWeight: 600 }}>
+                      {outcome === "hit" ? "Goal hit" : outcome === "missed" ? "Goal missed" : "No goal tracked"}
+                    </span>{" "}
+                    {target != null ? <>{"·"} {posted} of {target} posted</> : <>{"·"} {posted} posted</>}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -808,31 +882,46 @@ export default function TrackerView({
             <div style={{ height: 7, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
               <div style={{ height: "100%", borderRadius: 4, background: T.tiers[rank.tier], width: ringReady ? `${Math.round(rank.frac * 100)}%` : "0%", transition: "width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s" }} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 11, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
-              <span style={{ fontFamily: T.mono }}>+{weekXp} XP this week</span>
-              <span style={{ color: T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>
-            </div>
+            {viewMode !== "future" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 11, fontSize: 11, fontWeight: 600, color: T.accentLight }}>
+                <span style={{ fontFamily: T.mono }}>+{weekXp} XP {viewMode === "past" ? "earned that week" : "this week"}</span>
+                {viewMode === "current" && <span style={{ color: T.textTertiary, fontWeight: 500 }}>{"·"} {goalReached ? "goal bonus locks in at week's end" : "feeds your rank"}</span>}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stakes bar */}
-      <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} streakOverVariant={streakOverVariant} lostStreakLen={lostStreakLen} prevWeekPosted={prevWeekPosted} prevWeekTarget={prevWeekTarget} gameColor={gameColor} />
+      {/* Stakes bar (live week) / frozen-outcome or preview bar (#276) */}
+      {viewMode === "current" ? (
+        <StakesBar posted={posted} target={target} streak={streakState?.current || 0} daysLeft={pace.daysLeft} now={now} streakOverVariant={streakOverVariant} lostStreakLen={lostStreakLen} prevWeekPosted={prevWeekPosted} prevWeekTarget={prevWeekTarget} gameColor={gameColor} />
+      ) : (
+        <WeekStateBar mode={viewMode} outcome={outcome} posted={posted} target={target} sched={weekAgg.sched} recap={recap} streakAfter={weekAgg.streakAfter} lostStreak={weekAgg.lostStreak} onOpenQueue={onOpenQueue} />
+      )}
 
       {/* Week log */}
       <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px 0" }}>
-          <SectionLbl>This week's log</SectionLbl>
+          <SectionLbl>{viewMode === "current" ? "This week's log" : viewMode === "future" ? "Scheduled preview" : "Week log"}</SectionLbl>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 11, color: T.textTertiary, fontWeight: 500 }}>Click a slot to log {"·"} click a clip for detail</span>
-            <button onClick={() => setShowTemplateEditor(true)} style={ghostBtnStyle}>Edit slots</button>
-            {hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
+            {viewMode === "current" ? (
+              <>
+                <span style={{ fontSize: 11, color: T.textTertiary, fontWeight: 500 }}>Click a slot to log {"·"} click a clip for detail</span>
+                <button onClick={() => setShowTemplateEditor(true)} style={ghostBtnStyle}>Edit slots</button>
+                {hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
+              </>
+            ) : (
+              <span style={{ fontSize: 11, color: T.textTertiary, fontWeight: 500 }}>
+                {viewMode === "future" ? "Read-only — scheduling happens in the Queue" : "Read-only — click a clip for detail"}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "14px 12px 18px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
-            const isFuture = todayIdx >= 0 ? di > todayIdx : false;
+            // #276: every day of a future week is upcoming; past weeks have no future days.
+            const isFuture = viewMode === "future" ? true : (todayIdx >= 0 ? di > todayIdx : false);
             const dayEntries = thisWeekEntries.filter((e) => e.date === d.iso);
             const norm = (t) => (t || "").replace(/\s/g, "");
             const safeMinutes = (t) => { const m = parseTimeToMinutes(t || "12:00 AM"); return isNaN(m) ? 0 : m; };
@@ -854,7 +943,8 @@ export default function TrackerView({
               const schedMatches = daySched.filter((s) => norm(s.time) === norm(slot));
               matches.forEach((entry) => dayRows.push({ type: "entry", entry, minutes: safeMinutes(slot) }));
               schedMatches.forEach((sched) => dayRows.push({ type: "sched", sched, minutes: safeMinutes(slot) }));
-              if (matches.length === 0 && schedMatches.length === 0) {
+              // #276: a frozen past week has nothing left to book — no open slots.
+              if (matches.length === 0 && schedMatches.length === 0 && viewMode !== "past") {
                 dayRows.push({ type: "slot", time: slot, minutes: safeMinutes(slot) });
               }
             });
@@ -923,14 +1013,18 @@ export default function TrackerView({
                       </div>
                     );
                   }
+                  // #276: on a future week open slots are a read-only preview of what's
+                  // unbooked — logging (and scheduling) stays out of reach on purpose.
+                  const slotInteractive = viewMode === "current";
                   return (
                     <div key={`slot-${row.time}`}
-                      onClick={(e) => openLogPopover(d.iso, d.dayName, row.time, e.currentTarget.getBoundingClientRect())}
-                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer", color: T.textMuted, minHeight: 25 }}
-                      onMouseEnter={(ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; }}
-                      onMouseLeave={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; }}
+                      onClick={slotInteractive ? (e) => openLogPopover(d.iso, d.dayName, row.time, e.currentTarget.getBoundingClientRect()) : undefined}
+                      style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 25 }}
+                      onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
+                      onMouseLeave={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; } : undefined}
                     >
-                      <span style={{ fontSize: 13, lineHeight: 1, color: "inherit" }}>+</span>
+                      {/* no "+" on read-only weeks — an inert add-affordance reads as broken */}
+                      <span style={{ fontSize: 13, lineHeight: 1, color: "inherit" }}>{slotInteractive ? "+" : "○"}</span>
                       <span style={{ fontFamily: T.mono, fontSize: 9, color: "inherit", marginLeft: "auto" }}>{shortSlot(row.time)}</span>
                     </div>
                   );
@@ -1083,12 +1177,12 @@ export default function TrackerView({
                   )}
                   {isSched ? (
                     <button onClick={() => { closePopover(); onOpenQueue?.(); }} style={popBtn(T.yellowBorder, T.yellowDim, T.yellow)}>Manage in Queue</button>
-                  ) : (
+                  ) : viewMode === "current" ? (
                     <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
                     >Remove</button>
-                  )}
+                  ) : null /* #276: frozen weeks are read-only — no removing history */}
                 </>
               );
             })()
@@ -1172,7 +1266,6 @@ export default function TrackerView({
           </div>
         </div>
       )}
-      </>)}
 
       {/* ---- ClipFlow Rundown modal (preview first, download on click) ---- */}
       {showRundown && (
@@ -1277,6 +1370,46 @@ function Pill({ children }) {
   );
 }
 
+// #276: the StakesBar slot on a non-live week — frozen verdict for past weeks,
+// read-only preview note (with the one allowed exit to the Queue) for future ones.
+function WeekStateBar({ mode, outcome, posted, target, sched, recap, streakAfter, lostStreak, onOpenQueue }) {
+  if (mode === "future") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18, border: `1px solid ${T.yellowBorder}`, background: T.surface }}>
+        <span style={{ fontSize: 18, lineHeight: 1, color: T.yellow, flexShrink: 0 }}>{"◔"}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, lineHeight: 1.35 }}>
+          Preview — <b style={{ fontFamily: T.mono, color: T.text }}>{sched}</b> clip{sched === 1 ? "" : "s"} scheduled for this week so far.
+        </span>
+        <button onClick={() => onOpenQueue?.()} style={{ marginLeft: "auto", flexShrink: 0, padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.yellowBorder}`, background: T.yellowDim, color: T.yellow, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Manage in Queue</button>
+      </div>
+    );
+  }
+  const hit = outcome === "hit";
+  const missed = outcome === "missed";
+  const line = hit
+    ? <>Goal hit — <b style={{ fontFamily: T.mono, color: T.green }}>{posted} of {target}</b> posted.{streakAfter > 0 ? <> Streak stood at <b style={{ fontFamily: T.mono, color: T.text }}>{streakAfter}</b>.</> : null}</>
+    : missed
+      ? <>Missed — <b style={{ fontFamily: T.mono, color: T.red }}>{posted} of {target}</b> posted.{lostStreak > 0 ? <> A <b style={{ fontFamily: T.mono, color: T.text }}>{lostStreak}-week</b> streak ended here.</> : null}</>
+      : posted > 0
+        ? <>No weekly goal existed yet — <b style={{ fontFamily: T.mono, color: T.text }}>{posted}</b> posted, no judgement.</>
+        : <>Nothing was posted this week.</>;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12, borderRadius: T.radius.lg, padding: "14px 18px", marginBottom: 18,
+      border: `1px solid ${hit ? T.greenBorder : missed ? T.redBorder : T.border}`,
+      background: hit ? "linear-gradient(90deg, rgba(52,211,153,0.07), transparent 60%)" : T.surface,
+    }}>
+      <span style={{ fontSize: 18, lineHeight: 1, color: hit ? T.green : missed ? T.red : T.textTertiary, flexShrink: 0 }}>{hit ? "▲" : missed ? "▽" : "—"}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, lineHeight: 1.35 }}>{line}</span>
+      {recap && recap.clips > 0 && (
+        <span style={{ marginLeft: "auto", fontSize: 11, color: T.textTertiary, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>
+          {recap.clips} clip{recap.clips === 1 ? "" : "s"} {"·"} {recap.platformsUsed} platform{recap.platformsUsed === 1 ? "" : "s"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, lostStreakLen, prevWeekPosted, prevWeekTarget, gameColor }) {
   const remaining = Math.max(0, target - posted);
   const safe = remaining <= 0;
@@ -1335,6 +1468,13 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
     </div>
   );
 }
+
+// #276 week nav arrows — square ghost buttons flanking the week label.
+const weekNavBtnStyle = {
+  width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center",
+  borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",
+  color: T.textSecondary, fontSize: 14, lineHeight: 1, cursor: "pointer", fontFamily: T.font, fontWeight: 700, padding: 0,
+};
 
 const ghostBtnStyle = {
   padding: "6px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)",

@@ -4,7 +4,10 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275)
+## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275, #276)
+
+### Changed
+- **The Tracker's Calendar folded into "This week" (#276).** The Calendar sub-view and its month grid are gone; instead, back/forward arrows next to the week label step through weeks, with a "This week" button to jump home. Past weeks are frozen history: the game you were playing that week, its target, a green HIT / red MISSED verdict with the recap (clips and platforms), your streak standing at that point, and every posted clip still clickable for its detail card and post links — but strictly read-only (no logging, no target edits, no removing history). Weeks from before weekly goals existed show as "untracked" with no judgement. Future weeks are a read-only preview of what's scheduled, with a "Manage in Queue" button as the only exit — scheduling stays in the Queue. The current week keeps everything exactly as it was: ring, pace, stakes bar, streak, logging.
 
 ### Fixed
 - **Reopening a clip no longer merges repeated words in saved subtitles (#278).** The whisperx repair that collapses accidental duplicate words ("friendly," + "friendly") was also running on editor-saved subtitles, so a deliberately kept repeat ("that that", stutter subtitles) silently became one word on the next open — and the next save persisted the loss. The cleanup is now skipped for editor-saved data, matching the #115 rule that saved subtitles are the user's authoritative copy; fresh transcriptions still get the full repair. Verified: a saved repeated word now survives unlimited reopen cycles, and raw transcriptions still dedupe.
