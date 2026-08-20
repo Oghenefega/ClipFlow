@@ -1218,3 +1218,11 @@ against every exact-match condition in the diff before shipping.
 **Why it happened:** I treated the symptom as stale cache because that's the common story, without first checking whether the identity had an authoritative source (a shortcut carrying the AUMID) at all. A cache refresh can only help when the correct mapping exists somewhere.
 
 **Rule:** For Windows taskbar identity/icon bugs, check the authority chain BEFORE clearing caches: (1) does any Start Menu .lnk carry the window's AppUserModelID (read the .lnk bytes for the AUMID string)? (2) does the exe's VersionInfo say the right ProductName? Only when both are correct is cache-clearing the fix. Deterministic repair = stamp `System.AppUserModel.ID` onto a shortcut (scratchpad stamp-aumid.ps1 pattern, per-user Start Menu needs no elevation). Prevention = never let source runs claim the packaged AUMID (#269: guard `setAppUserModelId` with `app.isPackaged`).
+
+## Session 177 — Mocked a redesign without reading the component (2026-08-20)
+
+**What went wrong:** The #271 wizard mock v1 replaced the modal's video with a bare "Listen" strip. Fega's feedback ("right now I see only like an audio track but it should be a video shown") flagged the gap — the real modal ALREADY plays a muted video next to each track sample (AudioCalibrationModal.js:139). The mock was built from an explore agent's report, which answered the questions I asked (labels, persistence, progress dots) but never described the full layout.
+
+**Why it happened:** Agent reports are scoped to the questions asked; a redesign mock needs the component's complete current anatomy, not just the parts under discussion. I mocked a UI I hadn't read.
+
+**Rule:** Before mocking a redesign of an EXISTING component, read the component file yourself end-to-end — agents answer questions, they don't inventory layouts. The mock must start from everything the current UI shows, then change it.

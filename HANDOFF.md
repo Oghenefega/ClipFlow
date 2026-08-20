@@ -1,39 +1,87 @@
-# HANDOFF — Session 176 (2026-08-20)
+# HANDOFF — Session 177 (2026-08-20)
 
 ## Current State
-**#263 game auto-detection is built, E2E-verified, and on master (b725e37)** alongside the #269 taskbar-identity guard (2839dda). Neither is in an installer yet — they ride the next cut (batch rule; #266/#265 could join). Both issues closed with `status: untested` pending Fega's in-app pass. The Corva rename (#268) is fully wrapped: laptop confirmed alpha.60 with data intact, so the last migration gate is cleared. Fega declined deleting the desktop backup at `%APPDATA%\clipflow-backup-2026-08-19` (149 MB) for now — his call, leave it until he says otherwise.
+**#271 (audio wizard redesign) is built, E2E-verified, and on master.** It's the
+first of the approved four-issue batch **#271 → #270 → #272 → #273** (order
+approved by Fega this session; full plans for all four live in `tasks/todo.md`
+under "PLANNED (session 177)"). #271 rides the next installer cut alongside
+session 176's #263/#269 (batch rule). Not yet in any installer — Fega hasn't
+seen it in-app.
 
 ## What Was Just Built
-- **#263 tier 1 (foreground-majority process watch)**: new `src/main/game-detect.js`. While OBS writes a recording, the foreground process is sampled every 30s (PowerShell GetForegroundWindow via -EncodedCommand); a game claims the file only if its linked exe held >50% of samples. **Fega's requirement: background-running games must NOT win** (video-watching scenario). Only files observed *growing* during the stability watch count as live recordings — finished files (boot rescan, moved-in) discard samples and go cache → AI.
-- **#263 tier 2 (Gemini frame sniff)**: game-only prompt (mirrors the §5 "THE GAME" contract), 3 stills at 640px via `extractClipStills`, gated on `geminiProvider.isConfigured()`, serialized one-at-a-time, cost-logged via PipelineLogger. Only high-confidence matches to tracked games pre-fill. Every result (incl. unknown) is cached in the new `detectedGames` store map — one AI call per file ever. A late result never overwrites a manual pick (`gameManual` flag set by setGameForRows).
-- **Renderer routing**: detected > lastRenamedGame > mainGame in BOTH watcher handlers; drag-drop imports now get lastRenamedGame defaulting too (pre-existing #267 gap). New `gameDetect:result` push event (unsubscribe-fn preload variant) retags rows via detectForGame accounting.
-- **Settings → Edit Game → "Linked Program"**: running-apps picker (`processes:list` IPC — first real consumer of `ignoredProcesses`). Fega's machines already carry exe data from the pre-#262 seeds, so detection works there out of the box; only fresh installs need the picker.
-- **Eviction**: stamps cleared on rename commit (metadata:create), watcher unlink, and a boot sweep for paths gone from disk.
-- **#269**: `setAppUserModelId` now packaged-only (two-line guard) — dev boot-verifies can't poison the installed app's taskbar identity again.
-- **Filed #274**: record-time "was this <exe>?" teach flow (deferred from #263; AddGameModal's dormant exe branch is the ready-made UI).
+- **Editor-style calibration wizard** (`src/renderer/components/AudioCalibrationModal.js`,
+  full rewrite): muted video anchor + one lane per track with its real waveform
+  (peaks come back with each 20s sample — `audio:extractTrackSample` now also
+  runs `extractWaveformPeaks` on the extracted WAV, main.js), sweeping playhead
+  driven by the video clock, lane click = solo with mid-play continuity (audio
+  swaps tracks at the same position).
+- **Per-lane waveform normalization** — E2E against Fega's real RL recording
+  measured ~-31 dBFS peaks; unnormalized lanes rendered flat. Each lane scales
+  to its own max; lanes under ~-60 dBFS stay flat as genuinely silent.
+- **Label renames** (display only, value keys untouched): Full Mix / Mic /
+  Game/Desktop / Comms ("e.g. Discord") / Music + new **browser** value key.
+  Single source of truth: new `src/renderer/audioTrackLabels.js`
+  (LABEL_OPTIONS + trackLabelText) — replaced the modal's list and BOTH
+  duplicated LABEL_TEXT maps in SettingsView.
+- **Custom names for "Other" tracks**: inline input in the wizard; persisted as
+  `{index, label:"other", customName}` (main.js sanitizes: control chars
+  stripped, trimmed, 24-char cap, only on label "other"). Shows in the wizard
+  rail and both Settings pickers via trackLabelText.
+- **Prefill on recalibrate**: modal seeds labels/customNames from stored
+  audioSetup via storeGet — ONLY when trackCount matches (mismatched layout =
+  stale labels = dangerous defaults; starts blank on purpose).
+- `AUDIO_CAL_LABELS` allow-list (main.js:1501) gained "browser" — any new
+  value key MUST be added there or saves silently strip the track.
 
 ## Key Decisions
-- **Foreground-majority, not process-existence** — Fega explicitly rejected "game running in background wins" (session 176 chat). The >50% rule + grew-during-watch gate are the two halves of that decision; don't weaken either.
-- **AI pre-fills on high confidence only**; low/unknown stays cached but untouched — a wrong default blindly confirmed poisons day counters.
-- **detectedGames is main-process-owned** (renderer never loads/persists it) — safe for main-side writes, no gamesDb-style two-writer hazard.
-- v1 teaching = the Settings picker; the record-time chip is #274, not scope creep on #263.
+- **Variant C evolved into "editor-style" per Fega's direction** ("track stuff
+  should feel like it exists on an editor" + video shown + per-track
+  visualizer). Waveform-per-lane chosen over live meters: informative while
+  paused, flat-lane = silent at a glance, reads like an NLE.
+- Prefill gated on matching trackCount (wrong-default-blindly-confirmed
+  principle from #263 applies here too).
+- "Flat lanes are probably Empty" helper was REJECTED after E2E: Fega's mic was
+  silent in the first sample window. Copy now steers to "Try another part".
 
 ## Next Steps
-1. Next code batch candidate: **#266** (silence-aware split boundaries) — fresh session. #265 (onboarding) after.
-2. Cut alpha.61 when the batch feels full (#269 + #263 + whatever lands next session), then Fega's in-app passes: #263 (record with linked game in front → pre-filled row), #269 (taskbar still says Corva), plus the standing #264/#267 checks from session 174.
-3. #274 whenever the new-user path matters (pre-launch, not urgent for Fega's own use).
-4. Obsidian technical summary still says ClipFlow throughout — docs pass still pending (carried from s175).
-5. Rename brief Step 4 (external names) still gated on the trademark opinion.
+1. **#270 (per-word caption styling) — next session**, per approved batch
+   order. Full plan + exploration findings in todo.md (two hand-synced render
+   loops, three persistence whitelists, no stable word IDs — read it first).
+2. Then #272 (per-track volume; architecture decision recorded in todo.md),
+   then #273 (volume keyframes; mock the interaction first).
+3. Installer cut when the batch feels full → Fega's in-app passes: #271
+   (Settings → Recalibrate: editor-style wizard, prefill arrives filled,
+   custom name survives), plus standing #263/#269/#264/#267 checks.
 
 ## Watch Out For
-- **First boot of the updated app will frame-sniff any raw unrenamed recordings sitting in the watch tree** (no process context, no cache yet) — one Gemini call each (~<1¢, one-time, then cached). Expected behavior, not a bug; approved as decision (c).
-- The sniff currently sends `gameDetect:result` only for high-confidence matches; the stamp keeps `aiGuess` for everything — #274 can surface those.
-- `detectedGames` keys are exact-case absolute paths from the watcher — don't hand-edit with different casing.
-- Content-type entries (Just Chatting) CAN be exe-linked via the modal and matched by tier 1 (deliberate — e.g. linking a browser to JC); tier 2's candidate list excludes them.
-- Dev-profile settings were heavily edited during E2E and **fully restored** (watchFolder, gamesDb, stamps verified against the pre-test backup). Scratch test files remain only in the session scratchpad (rm -rf is permission-blocked; they're isolated temp).
+- **Prefill is the one #271 surface not E2E-verified** — the Settings
+  Recalibrate path needs the native file dialog, which CDP can't drive. Code
+  path is small (one effect, storeGet + seed). Fega's pass covers it.
+- The pipeline-gate path deliberately CANNOT prefill: the gate only fires on
+  trackCount mismatch, prefill only seeds on match. Not a bug.
+- Wizard "Done" completes the gate and the pipeline PROCEEDS — in E2E always
+  exit via Cancel or the run starts a real generation.
+- Old "unknown" labels prefill as unlabeled (skipped on seed) — re-picking Mic
+  elsewhere still demotes the previous voice track to "unknown" (parity).
+- `%APPDATA%\Corva` on the DESKTOP is an empty dir; desktop prod data still
+  lives in `%APPDATA%\clipflow` (migration evidently hasn't run here — desktop
+  daily driver may not have booted alpha.60 yet). Don't assume Corva paths on
+  this machine; check both.
 
 ## Logs/Debugging
-- Detection logs under module `system` in app.log: `#263 process watch detected game {file, game, samples}` and `#263 frame sniff result {file, game, confidence, prefill}`. Sniff spend appears in Settings monthly cost (PipelineLogger label `game sniff <file>`).
-- Stamps: `clipflow-settings.json` → `detectedGames` (dev: `%APPDATA%\clipflow-dev\`, prod: `%APPDATA%\Corva\`).
-- Unit harness (9 checks: sampler race, majority rules, app-list filter): session scratchpad `test-game-detect.js`, run `npx electron <path>` from repo root. E2E pattern that works: chunked-append a probe mp4 into a scratch watch folder (simulates OBS growth — an instant `cp` fails the grew-gate by design); the dev app itself is the foreground during automated tests, so `electron.exe` in a probe game's exe net is the deterministic tier-1 trigger. Programmatic focus-stealing (AppActivate/TopMost forms) is blocked by Windows — don't retry it.
-- CDP row check: `cdp-eval.js` in scratchpad (node ≥22 WebSocket, port 9222, climb ancestors from filename leaf).
+- Calibration saves log under module `system` in app.log: `[audiocal]
+  calibration saved: N tracks, voice=track N`.
+- Sample WAVs cache in `%TMP%\clipflow-audiocal\` (`<md5>-tN-<pct>.wav`),
+  deleted by the modal's unmount cleanup (`audio:cleanupSamples`).
+- E2E harness pattern (session scratchpad `cdp-wizard-e2e.js`): launch
+  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222
+  --disable-features=CalculateNativeWinOcclusion`, fire the REAL gate via
+  `window.clipflow.generateClips(<multi-track file>, {})` with dev audioSetup
+  null → wizard mounts through production code; scope ALL DOM queries to the
+  overlay (zIndex 1100) — unscoped queries hit the Rename tab behind it and
+  clicks pass through the overlay to background handlers; `innerText`
+  comparisons must be lowercased (section headers are CSS-uppercased);
+  cancel sets a 60s re-prompt cooldown between runs. Settings groups collapse
+  by default — expand by clicking the "Show" leaves, not the header text.
+- Dev-profile state fully restored after E2E: audioSetup null,
+  transcriptionAudioTrack 0 (matches pre-test file + all backups).

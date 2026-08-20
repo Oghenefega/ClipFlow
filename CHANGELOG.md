@@ -4,6 +4,17 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-20 (session 177) — The audio wizard becomes an editor (#271)
+
+### Changed
+- **The "Identify your audio tracks" wizard is redesigned editor-style (#271).** The recording's video now anchors the modal (muted — you hear only the track you're soloing), and every audio track is a lane showing its real waveform for the 20-second sample window. A playhead sweeps all lanes in sync while the video plays, and clicking a lane solos that track mid-playback without losing your place. The old row of anonymous progress dots is gone — the lane list itself shows which tracks are labeled (with their names), which one you're on, and which remain.
+- **Track labels now sound like a product, not a personal tool.** "Everything mixed" → **Full Mix**, "My voice" → **Mic**, "Game / desktop" → **Game/Desktop**, "Voice chat" → **Comms** (hint: "e.g. Discord"), plus a new **Browser** option. Display text only — the stored values are unchanged, so existing calibrations are untouched. All label text now lives in one shared module (`src/renderer/audioTrackLabels.js`) instead of three hand-synced copies.
+- **"Other" is no longer a dead end.** Picking Other… asks what the track actually is (e.g. "Spotify", "TeamSpeak"); the custom name is saved with the calibration (trimmed, capped at 24 characters) and shows up everywhere track labels appear, including both Settings audio pickers.
+- **Recalibrating no longer starts from scratch.** When the recording's track count matches your saved setup, the wizard pre-fills your previous answers so you only change what moved. A different track count still starts blank on purpose — stale labels on a changed OBS layout would be wrong defaults begging to be confirmed.
+
+### Fixed
+- **Waveform lanes are normalized per track.** Real OBS tracks sit far below full scale (measured ~-31 dBFS on actual recordings), which would have rendered every lane as a flat line. Each lane now scales to its own loudest moment; genuinely silent lanes (below ~-60 dBFS) stay visibly flat, and the helper text warns to try another part before labeling a quiet lane Empty.
+
 ## [Unreleased] — 2026-08-20 (session 176) — Recordings know their game (#263)
 
 ### Added

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audio Wizard v2 — Editor-Style (#271)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b10; --surface: #111218; --surface-hover: #16171f;
+    --border: rgba(255,255,255,0.06); --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.32);
+    --accent: #8b5cf6; --accent-light: #a78bfa; --accent-dim: rgba(139,92,246,0.12); --accent-border: rgba(139,92,246,0.25);
+    --green: #34d399; --green-dim: rgba(52,211,153,0.10); --green-border: rgba(52,211,153,0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, sans-serif; padding: 32px 24px 80px; display: flex; justify-content: center; }
+  .page { max-width: 740px; width: 100%; }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .sub { color: var(--text-2); font-size: 12.5px; line-height: 1.55; margin-bottom: 22px; }
+  .sub b { color: var(--text); }
+
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+  .m-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .m-body { color: var(--text-2); font-size: 12.5px; line-height: 1.5; margin-bottom: 16px; }
+  .m-body b { color: var(--text); font-weight: 600; }
+
+  /* video preview */
+  .videowrap { position: relative; background: #000; border: 1px solid var(--border); border-radius: 8px; height: 190px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; overflow: hidden; }
+  .videowrap .fakeframe { position: absolute; inset: 0; background:
+      radial-gradient(ellipse at 30% 60%, rgba(139,92,246,0.10), transparent 55%),
+      radial-gradient(ellipse at 75% 30%, rgba(34,211,238,0.07), transparent 50%); }
+  .bigplay { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgba(17,18,24,0.85); border: 1px solid var(--accent-border); color: var(--accent-light); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 14px rgba(139,92,246,0.35); }
+  .fname { position: absolute; top: 8px; left: 10px; color: var(--text-3); font-size: 10.5px; }
+  .soloed { position: absolute; bottom: 8px; left: 10px; color: var(--accent-light); font-size: 11px; font-weight: 600; background: rgba(17,18,24,0.85); border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 10px; }
+  .transport { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .tbtn { border: 1px solid var(--border); background: transparent; color: var(--text-2); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  .tbtn:hover { border-color: var(--border-hover); color: var(--text); }
+  .thint { color: var(--text-3); font-size: 11px; margin-left: auto; }
+
+  /* track stack */
+  .stack { position: relative; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+  .trow { display: grid; grid-template-columns: 148px 1fr; border-bottom: 1px solid var(--border); cursor: pointer; background: rgba(255,255,255,0.01); }
+  .trow:last-child { border-bottom: none; }
+  .trow:hover { background: var(--surface-hover); }
+  .tinfo { padding: 7px 12px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+  .tnum { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-3); }
+  .tlabel { font-size: 11.5px; color: var(--text-3); }
+  .lane { position: relative; height: 38px; }
+  .lane svg { display: block; width: 100%; height: 100%; }
+  .trow.done .tnum { color: var(--green); }
+  .trow.done .tlabel { color: var(--green); font-weight: 600; }
+  .trow.done { background: rgba(52,211,153,0.04); }
+  .trow.current { background: var(--accent-dim); }
+  .trow.current .tnum { color: var(--accent-light); }
+  .trow.current .tlabel { color: var(--accent-light); font-weight: 600; }
+  .playhead { position: absolute; top: 0; bottom: 0; left: 148px; width: 1.5px; background: var(--accent-light); box-shadow: 0 0 6px rgba(167,139,250,0.8); pointer-events: none; opacity: 0; }
+
+  .seclabel { color: var(--text-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-2); border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .pill:hover { border-color: var(--border-hover); color: var(--text); }
+  .pill.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent-light); }
+  .pill .hint { color: var(--text-3); font-size: 10.5px; font-weight: 400; margin-left: 5px; }
+  .customrow { display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  .customrow.open { display: flex; }
+  .customrow input { background: rgba(255,255,255,0.04); border: 1px solid var(--accent-border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 12.5px; padding: 7px 10px; width: 230px; outline: none; }
+  .customrow input::placeholder { color: var(--text-3); }
+  .customrow .ok { border: 1px solid var(--green-border); background: var(--green-dim); color: var(--green); border-radius: 6px; padding: 7px 12px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  .helper { color: var(--text-3); font-size: 11.5px; margin-top: 12px; line-height: 1.5; }
+  .helper b { color: var(--text-2); }
+  .m-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
+  .btn-ghost { border: 1px solid var(--border); background: transparent; color: var(--text-2); border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .right-actions { display: flex; gap: 10px; }
+  .btn-skip { border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .btn-primary { border: 1px solid var(--accent-border); background: rgba(255,255,255,0.04); color: var(--text-3); border-radius: 6px; padding: 8px 18px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: default; }
+
+  .note { margin-top: 26px; color: var(--text-2); font-size: 12.5px; line-height: 1.6; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .note b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Audio wizard v2 — editor-style track stack (#271, evolved Variant C)</h1>
+  <p class="sub">Your notes applied: the video is the anchor, and every track is a lane with its <b>real waveform</b> for the 20-second sample the wizard plays. Press <b>▶</b> to watch the playhead sweep all lanes while the video plays; click a lane to solo it; click <b>Other…</b> for the custom name. Silent lanes are visibly flat — you can label "Empty" without even listening.</p>
+
+  <div class="modal">
+    <div class="m-title">🎧 Identify your audio tracks</div>
+    <div class="m-body">This recording has <b>5 audio tracks</b>. Play the video and solo each lane — label what you hear. Subtitles are built from the <b>Mic</b> track. You'll only do this once.</div>
+
+    <div class="videowrap">
+      <div class="fakeframe"></div>
+      <div class="fname">2026-08-20 14-32-08.mp4</div>
+      <button class="bigplay" id="play">▶</button>
+      <div class="soloed" id="solotag">Soloing Track 2</div>
+    </div>
+    <div class="transport">
+      <button class="tbtn" id="tryanother">Try another part</button>
+      <div class="thint">video is muted — you hear only the solo'd track</div>
+    </div>
+
+    <div class="stack" id="stack">
+      <div class="trow done" data-i="0" data-kind="mix">
+        <div class="tinfo"><div class="tnum">TRACK 1 ✓</div><div class="tlabel">Full Mix</div></div>
+        <div class="lane"></div>
+      </div>
+      <div class="trow current" data-i="1" data-kind="mic">
+        <div class="tinfo"><div class="tnum">TRACK 2</div><div class="tlabel">Labeling now…</div></div>
+        <div class="lane"></div>
+      </div>
+      <div class="trow" data-i="2" data-kind="game">
+        <div class="tinfo"><div class="tnum">TRACK 3</div><div class="tlabel">Not yet</div></div>
+        <div class="lane"></div>
+      </div>
+      <div class="trow" data-i="3" data-kind="comms">
+        <div class="tinfo"><div class="tnum">TRACK 4</div><div class="tlabel">Not yet</div></div>
+        <div class="lane"></div>
+      </div>
+      <div class="trow" data-i="4" data-kind="empty">
+        <div class="tinfo"><div class="tnum">TRACK 5</div><div class="tlabel">Not yet</div></div>
+        <div class="lane"></div>
+      </div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+
+    <div class="seclabel">What is track 2?</div>
+    <div class="pills">
+      <button class="pill">Mic</button>
+      <button class="pill">Game/Desktop</button>
+      <button class="pill">Comms<span class="hint">e.g. Discord</span></button>
+      <button class="pill">Music</button>
+      <button class="pill">Browser</button>
+      <button class="pill">Full Mix</button>
+      <button class="pill other">Other…</button>
+      <button class="pill">Empty / silent</button>
+    </div>
+    <div class="customrow"><input type="text" placeholder="Name this track (e.g. Spotify, TeamSpeak)"><button class="ok">Set</button></div>
+    <div class="helper">One track must be labeled <b>Mic</b> before finishing — that's the track subtitles are built from. Flat lanes are probably <b>Empty</b>.</div>
+
+    <div class="m-actions">
+      <button class="btn-ghost">Cancel</button>
+      <div class="right-actions">
+        <button class="btn-skip">Skip the rest — Mic is found</button>
+        <button class="btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Real-app mechanics behind this mock:</b> the wizard already extracts a 20s sample per track and plays a muted video alongside — v2 extracts all tracks' samples for the same moment up front and draws each one's true waveform. "Try another part" jumps all lanes to a different moment (mock re-rolls the shapes to show it). Recalibrating will also pre-fill your previous labels now.
+  </div>
+</div>
+<script>
+  // Seeded pseudo-random so each lane keeps a stable, characteristic shape.
+  function rng(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+  var BAR_COUNT = 150;
+  function envelope(kind, seedBase) {
+    var r = rng(seedBase), bars = [], i, burst = 0;
+    for (i = 0; i < BAR_COUNT; i++) {
+      var v = 0;
+      if (kind === "mix") v = 0.30 + r() * 0.55;
+      else if (kind === "game") v = 0.25 + r() * 0.40 + (r() < 0.08 ? 0.25 : 0);
+      else if (kind === "mic") { // speech: bursts with gaps
+        if (burst > 0) { v = 0.35 + r() * 0.5; burst--; }
+        else if (r() < 0.10) { burst = 4 + Math.floor(r() * 10); v = 0.3 + r() * 0.4; }
+        else v = 0.02 + r() * 0.04;
+      }
+      else if (kind === "comms") { // rare short bursts
+        if (burst > 0) { v = 0.3 + r() * 0.35; burst--; }
+        else if (r() < 0.03) { burst = 3 + Math.floor(r() * 5); v = 0.3; }
+        else v = 0.015 + r() * 0.03;
+      }
+      else v = 0.015 + r() * 0.025; // empty: flat
+      bars.push(v);
+    }
+    return bars;
+  }
+  var seedOffset = 7;
+  function drawLanes() {
+    document.querySelectorAll(".trow").forEach(function (row, idx) {
+      var lane = row.querySelector(".lane");
+      var bars = envelope(row.dataset.kind, (idx + 1) * 1337 + seedOffset);
+      var svg = '<svg preserveAspectRatio="none" viewBox="0 0 ' + BAR_COUNT * 3 + ' 100">';
+      bars.forEach(function (v, i) {
+        var h = Math.max(2, v * 92);
+        svg += '<rect x="' + (i * 3) + '" y="' + (50 - h / 2) + '" width="2" height="' + h + '" rx="1" fill="rgba(255,255,255,0.30)"/>';
+      });
+      svg += "</svg>";
+      lane.innerHTML = svg;
+    });
+  }
+  drawLanes();
+  document.getElementById("tryanother").addEventListener("click", function () { seedOffset += 101; drawLanes(); });
+
+  // Row click = solo / make current
+  document.querySelectorAll(".trow").forEach(function (row) {
+    row.addEventListener("click", function () {
+      document.querySelectorAll(".trow").forEach(function (r) { r.classList.remove("current"); });
+      row.classList.add("current");
+      var n = Number(row.dataset.i) + 1;
+      document.getElementById("solotag").textContent = "Soloing Track " + n;
+      document.querySelector(".seclabel").textContent = "What is track " + n + "?";
+    });
+  });
+
+  // Play = sweep the playhead across all lanes (loops)
+  var playing = false, raf = null, t0 = 0, DUR = 9000;
+  var ph = document.getElementById("playhead");
+  var stack = document.getElementById("stack");
+  var playBtn = document.getElementById("play");
+  function step(ts) {
+    if (!t0) t0 = ts;
+    var frac = ((ts - t0) % DUR) / DUR;
+    var laneLeft = 148, w = stack.clientWidth - laneLeft;
+    ph.style.left = (laneLeft + frac * w) + "px";
+    raf = requestAnimationFrame(step);
+  }
+  playBtn.addEventListener("click", function () {
+    playing = !playing;
+    playBtn.textContent = playing ? "⏸" : "▶";
+    ph.style.opacity = playing ? 1 : 0;
+    if (playing) { t0 = 0; raf = requestAnimationFrame(step); }
+    else if (raf) cancelAnimationFrame(raf);
+  });
+
+  // Other… reveals the custom name input
+  var other = document.querySelector(".pill.other");
+  other.addEventListener("click", function () {
+    other.classList.toggle("active");
+    var rowEl = document.querySelector(".customrow");
+    rowEl.classList.toggle("open", other.classList.contains("active"));
+    if (other.classList.contains("active")) rowEl.querySelector("input").focus();
+  });
+</script>
+</body>
+</html>

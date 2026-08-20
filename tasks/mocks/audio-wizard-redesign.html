@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audio Wizard Redesign — #271 Mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b10; --surface: #111218; --surface-hover: #16171f;
+    --border: rgba(255,255,255,0.06); --border-hover: rgba(255,255,255,0.12);
+    --text: #edeef2; --text-2: rgba(255,255,255,0.55); --text-3: rgba(255,255,255,0.32);
+    --accent: #8b5cf6; --accent-light: #a78bfa; --accent-dim: rgba(139,92,246,0.12); --accent-border: rgba(139,92,246,0.25);
+    --green: #34d399; --green-dim: rgba(52,211,153,0.10); --green-border: rgba(52,211,153,0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, sans-serif; padding: 32px 24px 80px; }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .sub { color: var(--text-2); font-size: 12.5px; line-height: 1.55; margin-bottom: 8px; }
+  .renames { color: var(--text-2); font-size: 12px; line-height: 1.7; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin: 14px 0 34px; }
+  .renames b { color: var(--text); font-weight: 600; }
+  .renames .arr { color: var(--text-3); padding: 0 4px; }
+  .vhead { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent-light); margin: 38px 0 4px; }
+  .vdesc { color: var(--text-2); font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
+
+  /* ---- modal replica ---- */
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; max-width: 560px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+  .modal.wide { max-width: 640px; }
+  .m-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .m-body { color: var(--text-2); font-size: 12.5px; line-height: 1.5; margin-bottom: 16px; }
+  .m-body b { color: var(--text); font-weight: 600; }
+  .seclabel { color: var(--text-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .listen { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 4px; }
+  .play { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-light); font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: default; }
+  .listen span { color: var(--text-2); font-size: 12px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-2); border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-family: inherit; cursor: pointer; line-height: 1.2; }
+  .pill:hover { border-color: var(--border-hover); color: var(--text); }
+  .pill.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent-light); }
+  .pill .hint { color: var(--text-3); font-size: 11px; margin-left: 5px; }
+  .customrow { display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  .customrow.open { display: flex; }
+  .customrow input { background: rgba(255,255,255,0.04); border: 1px solid var(--accent-border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 12.5px; padding: 7px 10px; width: 220px; outline: none; }
+  .customrow input::placeholder { color: var(--text-3); }
+  .customrow .ok { border: 1px solid var(--green-border); background: var(--green-dim); color: var(--green); border-radius: 6px; padding: 7px 12px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  .helper { color: var(--text-3); font-size: 11.5px; margin-top: 14px; line-height: 1.5; }
+  .m-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .btn-ghost { border: 1px solid var(--border); background: transparent; color: var(--text-2); border-radius: 8px; padding: 8px 14px; font-size: 12.5px; font-family: inherit; cursor: pointer; }
+  .btn-primary { border: 1px solid var(--accent-border); background: var(--accent); color: #fff; border-radius: 8px; padding: 8px 18px; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; opacity: 0.35; }
+
+  /* ---- Variant A: numbered steps ---- */
+  .steps { display: flex; align-items: flex-start; margin: 4px 0 2px; }
+  .step { display: flex; flex-direction: column; align-items: center; width: 74px; }
+  .step .dot { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .step .lbl { font-size: 10px; margin-top: 6px; max-width: 70px; text-align: center; line-height: 1.3; }
+  .step.done .dot { background: var(--green-dim); border: 1px solid var(--green-border); color: var(--green); box-shadow: 0 0 6px rgba(52,211,153,0.55); }
+  .step.done .lbl { color: var(--green); font-weight: 600; }
+  .step.current .dot { background: var(--accent-dim); border: 2px solid var(--accent); color: var(--accent-light); box-shadow: 0 0 8px rgba(139,92,246,0.6); }
+  .step.current .lbl { color: var(--accent-light); font-weight: 600; }
+  .step.todo .dot { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-3); }
+  .step.todo .lbl { color: var(--text-3); }
+  .conn { flex: 1; height: 2px; background: var(--border); margin-top: 13px; min-width: 14px; }
+  .conn.filled { background: var(--green-border); box-shadow: 0 0 4px rgba(52,211,153,0.35); }
+
+  /* ---- Variant B: labeled chips ---- */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 2px; }
+  .chip { border-radius: 7px; padding: 6px 10px; font-size: 11.5px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-3); }
+  .chip .n { font-weight: 700; }
+  .chip.done { border-color: var(--green-border); background: var(--green-dim); color: var(--green); box-shadow: 0 0 6px rgba(52,211,153,0.25); }
+  .chip.current { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent-light); box-shadow: 0 0 8px rgba(139,92,246,0.4); }
+
+  /* ---- Variant C: left rail ---- */
+  .split { display: flex; gap: 20px; }
+  .rail { width: 168px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+  .rrow { border-radius: 8px; padding: 8px 10px; font-size: 12px; border: 1px solid transparent; }
+  .rrow .t { font-weight: 600; font-size: 11px; }
+  .rrow .l { font-size: 11px; margin-top: 1px; }
+  .rrow.done { background: var(--green-dim); border-color: var(--green-border); }
+  .rrow.done .t { color: var(--green); } .rrow.done .l { color: var(--green); opacity: 0.85; }
+  .rrow.current { background: var(--accent-dim); border-color: var(--accent-border); box-shadow: 0 0 8px rgba(139,92,246,0.25); }
+  .rrow.current .t { color: var(--accent-light); } .rrow.current .l { color: var(--accent-light); }
+  .rrow.todo .t { color: var(--text-3); } .rrow.todo .l { color: var(--text-3); }
+  .main { flex: 1; }
+
+  .note { margin-top: 44px; color: var(--text-2); font-size: 12.5px; line-height: 1.6; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .note b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Audio track wizard redesign — pick a direction (#271)</h1>
+  <p class="sub">All three variants below share the same fixes; only the <b style="color:var(--text)">progress indicator</b> differs. Each mock shows the same moment: 5-track recording, Track 1 already labeled Full&nbsp;Mix, you're on Track&nbsp;2.</p>
+  <div class="renames">
+    <b>Shared in every variant:</b><br>
+    Everything mixed <span class="arr">→</span> <b>Full Mix</b> &nbsp;·&nbsp; My voice <span class="arr">→</span> <b>Mic</b> &nbsp;·&nbsp; Game / desktop <span class="arr">→</span> <b>Game/Desktop</b> &nbsp;·&nbsp; Voice chat <span class="arr">→</span> <b>Comms</b> (e.g. Discord) &nbsp;·&nbsp; new <b>Browser</b> option &nbsp;·&nbsp; <b>Other…</b> now asks what the track actually is (try clicking it in any mock).
+  </div>
+
+  <!-- ============ VARIANT A ============ -->
+  <div class="vhead">Variant A — Numbered steps</div>
+  <p class="vdesc">A step circle per track with a connector line, like a checkout flow. Labeled tracks turn green and show their name under the step; the current one glows purple.</p>
+  <div class="modal">
+    <div class="m-title">🎧 Identify your audio tracks</div>
+    <div class="m-body">This recording has <b>5 audio tracks</b>. Listen to each one and tell Corva what it is — subtitles are built from the <b>Mic</b> track.</div>
+    <div class="steps">
+      <div class="step done"><div class="dot">✓</div><div class="lbl">Full Mix</div></div>
+      <div class="conn filled"></div>
+      <div class="step current"><div class="dot">2</div><div class="lbl">Labeling now</div></div>
+      <div class="conn"></div>
+      <div class="step todo"><div class="dot">3</div><div class="lbl">—</div></div>
+      <div class="conn"></div>
+      <div class="step todo"><div class="dot">4</div><div class="lbl">—</div></div>
+      <div class="conn"></div>
+      <div class="step todo"><div class="dot">5</div><div class="lbl">—</div></div>
+    </div>
+    <div class="seclabel">Listen to track 2</div>
+    <div class="listen"><div class="play">▶</div><span>Play a sample &nbsp;·&nbsp; try another moment if it's quiet</span></div>
+    <div class="seclabel">What is this track?</div>
+    <div class="pills">
+      <button class="pill">Mic</button>
+      <button class="pill">Game/Desktop</button>
+      <button class="pill">Comms<span class="hint">e.g. Discord</span></button>
+      <button class="pill">Music</button>
+      <button class="pill">Browser</button>
+      <button class="pill">Full Mix</button>
+      <button class="pill other">Other…</button>
+      <button class="pill">Empty / silent</button>
+    </div>
+    <div class="customrow"><input type="text" placeholder="Name this track (e.g. Spotify, TeamSpeak)"><button class="ok">Set</button></div>
+    <div class="helper">One track must be labeled <b>Mic</b> before finishing — that's the track subtitles are built from.</div>
+    <div class="m-actions"><button class="btn-ghost">Skip the rest — Mic is found</button><button class="btn-primary">Done</button></div>
+  </div>
+
+  <!-- ============ VARIANT B ============ -->
+  <div class="vhead">Variant B — Track chips</div>
+  <p class="vdesc">One chip per track that fills in with the chosen name as you go. Most compact; the row doubles as a summary of what you've assigned so far.</p>
+  <div class="modal">
+    <div class="m-title">🎧 Identify your audio tracks</div>
+    <div class="m-body">This recording has <b>5 audio tracks</b>. Listen to each one and tell Corva what it is — subtitles are built from the <b>Mic</b> track.</div>
+    <div class="chips">
+      <div class="chip done"><span class="n">1</span> Full Mix ✓</div>
+      <div class="chip current"><span class="n">2</span> Labeling now…</div>
+      <div class="chip"><span class="n">3</span> Track 3</div>
+      <div class="chip"><span class="n">4</span> Track 4</div>
+      <div class="chip"><span class="n">5</span> Track 5</div>
+    </div>
+    <div class="seclabel">Listen to track 2</div>
+    <div class="listen"><div class="play">▶</div><span>Play a sample &nbsp;·&nbsp; try another moment if it's quiet</span></div>
+    <div class="seclabel">What is this track?</div>
+    <div class="pills">
+      <button class="pill">Mic</button>
+      <button class="pill">Game/Desktop</button>
+      <button class="pill">Comms<span class="hint">e.g. Discord</span></button>
+      <button class="pill">Music</button>
+      <button class="pill">Browser</button>
+      <button class="pill">Full Mix</button>
+      <button class="pill other">Other…</button>
+      <button class="pill">Empty / silent</button>
+    </div>
+    <div class="customrow"><input type="text" placeholder="Name this track (e.g. Spotify, TeamSpeak)"><button class="ok">Set</button></div>
+    <div class="helper">One track must be labeled <b>Mic</b> before finishing — that's the track subtitles are built from.</div>
+    <div class="m-actions"><button class="btn-ghost">Skip the rest — Mic is found</button><button class="btn-primary">Done</button></div>
+  </div>
+
+  <!-- ============ VARIANT C ============ -->
+  <div class="vhead">Variant C — Track list rail</div>
+  <p class="vdesc">A vertical list of all tracks on the left, labeling pane on the right. Most explicit "these are your 5 audio tracks" — costs the modal some width.</p>
+  <div class="modal wide">
+    <div class="m-title">🎧 Identify your audio tracks</div>
+    <div class="m-body">This recording has <b>5 audio tracks</b>. Listen to each one and tell Corva what it is — subtitles are built from the <b>Mic</b> track.</div>
+    <div class="split">
+      <div class="rail">
+        <div class="rrow done"><div class="t">TRACK 1 ✓</div><div class="l">Full Mix</div></div>
+        <div class="rrow current"><div class="t">TRACK 2</div><div class="l">Labeling now…</div></div>
+        <div class="rrow todo"><div class="t">TRACK 3</div><div class="l">Not yet</div></div>
+        <div class="rrow todo"><div class="t">TRACK 4</div><div class="l">Not yet</div></div>
+        <div class="rrow todo"><div class="t">TRACK 5</div><div class="l">Not yet</div></div>
+      </div>
+      <div class="main">
+        <div class="seclabel" style="margin-top:0">Listen to track 2</div>
+        <div class="listen"><div class="play">▶</div><span>Play a sample</span></div>
+        <div class="seclabel">What is this track?</div>
+        <div class="pills">
+          <button class="pill">Mic</button>
+          <button class="pill">Game/Desktop</button>
+          <button class="pill">Comms<span class="hint">e.g. Discord</span></button>
+          <button class="pill">Music</button>
+          <button class="pill">Browser</button>
+          <button class="pill">Full Mix</button>
+          <button class="pill other">Other…</button>
+          <button class="pill">Empty / silent</button>
+        </div>
+        <div class="customrow"><input type="text" placeholder="Name this track (e.g. Spotify, TeamSpeak)"><button class="ok">Set</button></div>
+        <div class="helper">One track must be labeled <b>Mic</b> before finishing.</div>
+      </div>
+    </div>
+    <div class="m-actions"><button class="btn-ghost">Skip the rest — Mic is found</button><button class="btn-primary">Done</button></div>
+  </div>
+
+  <div class="note">
+    <b>To decide:</b> A, B, or C (tweaks welcome — any variant can borrow from another). Separate question, pre-existing quirk found while mapping the code: <b>recalibrating currently starts blank</b> — your previous track labels are not pre-filled, you redo every track. Want that fixed in the same pass?
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.pill.other').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.classList.toggle('active');
+      var row = btn.closest('.modal').querySelector('.customrow');
+      row.classList.toggle('open', btn.classList.contains('active'));
+      if (btn.classList.contains('active')) row.querySelector('input').focus();
+    });
+  });
+</script>
+</body>
+</html>

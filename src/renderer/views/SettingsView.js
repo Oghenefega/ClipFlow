@@ -4,6 +4,7 @@ import T from "../styles/theme";
 import { Card, PageHeader, SectionLabel, GamePill, PulseDot } from "../components/shared";
 import { GameEditModal } from "../components/modals";
 import AudioCalibrationModal from "../components/AudioCalibrationModal";
+import { trackLabelText } from "../audioTrackLabels";
 
 // Shared button styles used across all settings sections
 const BTN = { padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: T.font };
@@ -1096,9 +1097,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             {Array.from({ length: Math.max(audioSetup?.trackCount || 0, 4) }, (_, idx) => {
               const isActive = audioTrack === idx;
               // #169: show verified labels from the calibration wizard when available
-              const LABEL_TEXT = { voice: "My voice", game: "Game / desktop", music: "Music", comms: "Voice chat", mix: "Everything mixed", other: "Other", empty: "Empty", unknown: "?" };
-              const learned = audioSetup?.tracks?.find((t) => t.index === idx)?.label;
-              const label = learned ? `Track ${idx + 1} — ${LABEL_TEXT[learned] || learned}` : `Track ${idx + 1}`;
+              const learned = audioSetup?.tracks?.find((t) => t.index === idx);
+              const label = learned ? `Track ${idx + 1} — ${trackLabelText(learned)}` : `Track ${idx + 1}`;
               return (
                 <button key={idx} onClick={async () => {
                   setAudioTrack(idx);
@@ -1156,9 +1156,8 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
             {Array.from({ length: Math.max(audioSetup?.trackCount || 0, 4) }, (_, idx) => {
               const isSelected = gameAudioTrack === idx;
               const isVoiceTrack = idx === audioTrack;
-              const LABEL_TEXT = { voice: "My voice", game: "Game / desktop", music: "Music", comms: "Voice chat", mix: "Everything mixed", other: "Other", empty: "Empty", unknown: "?" };
-              const learned = audioSetup?.tracks?.find((t) => t.index === idx)?.label;
-              const label = learned ? `Track ${idx + 1} — ${LABEL_TEXT[learned] || learned}` : `Track ${idx + 1}`;
+              const learned = audioSetup?.tracks?.find((t) => t.index === idx);
+              const label = learned ? `Track ${idx + 1} — ${trackLabelText(learned)}` : `Track ${idx + 1}`;
               return (
                 <button key={idx} disabled={isVoiceTrack} title={isVoiceTrack ? "This is your voice track — detection already hears it" : undefined}
                   onClick={async () => {
@@ -1190,7 +1189,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 setAudioTrack(saved.transcriptionAudioTrack);
                 const aset = await window.clipflow.storeGet("audioSetup");
                 if (aset) setAudioSetup(aset);
-                setCalNotice(`Saved — transcription now uses Track ${saved.transcriptionAudioTrack + 1} (your voice).`);
+                setCalNotice(`Saved — transcription now uses Track ${saved.transcriptionAudioTrack + 1} (your mic).`);
               } else {
                 setCalNotice(saved?.error || "Could not save the calibration.");
               }

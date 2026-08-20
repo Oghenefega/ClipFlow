@@ -332,8 +332,9 @@ const STORE_DEFAULTS = {
   // as transcriptionAudioTrack.
   gameAudioTrack: null,
   // #169: user-verified audio track layout from the calibration wizard.
-  // null = never calibrated. Shape: { trackCount, tracks: [{ index, label }], calibratedAt }
-  // Labels: voice | game | music | comms | mix | other | empty | unknown
+  // null = never calibrated. Shape: { trackCount, tracks: [{ index, label, customName? }], calibratedAt }
+  // Labels: voice | game | music | comms | mix | browser | other | empty | unknown
+  // customName (#271): optional user-typed name, only on "other" tracks.
   audioSetup: null,
   // Project folders
   projectFolders: [],
@@ -1498,7 +1499,7 @@ ipcMain.handle("ffmpeg:extractWaveformPeaks", async (_, filePath, peakCount) => 
 // Samples are extracted to a temp dir and played in the renderer via file://.
 
 const AUDIO_CAL_SAMPLE_DIR = path.join(os.tmpdir(), "clipflow-audiocal");
-const AUDIO_CAL_LABELS = ["voice", "game", "music", "comms", "mix", "other", "empty", "unknown"];
+const AUDIO_CAL_LABELS = ["voice", "game", "music", "comms", "mix", "browser", "other", "empty", "unknown"];
 
 ipcMain.handle("audio:probeTracks", async (_, filePath) => {
   try {
@@ -1520,7 +1521,12 @@ ipcMain.handle("audio:extractTrackSample", async (_, filePath, trackIndex, offse
     if (!fs.existsSync(wavPath)) {
       await ffmpeg.extractTrackSample(filePath, wavPath, idx, sampleStart, sampleDuration);
     }
-    return { success: true, samplePath: wavPath, sampleStart, sampleDuration };
+    // #271: waveform peaks for the wizard's per-track lanes. The extracted WAV
+    // is mono 16kHz/20s, so this is a sub-second pass; the wav itself is the
+    // cache. peaks failure never blocks the sample — the lane just stays blank.
+    let peaks = [];
+    try { peaks = (await ffmpeg.extractWaveformPeaks(wavPath, 150, 0))?.peaks || []; } catch (_) {}
+    return { success: true, samplePath: wavPath, sampleStart, sampleDuration, peaks };
   } catch (err) { return { error: err.message }; }
 });
 
@@ -1531,7 +1537,16 @@ ipcMain.handle("audio:saveCalibration", async (_, setup) => {
     }
     const tracks = setup.tracks
       .filter((t) => Number.isInteger(t?.index) && AUDIO_CAL_LABELS.includes(t?.label))
-      .map((t) => ({ index: t.index, label: t.label }));
+      .map((t) => {
+        const out = { index: t.index, label: t.label };
+        // #271: user-typed name for "other" tracks. Optional, additive —
+        // old setups without it stay valid, display falls back to label text.
+        if (t.label === "other" && typeof t.customName === "string") {
+          const name = t.customName.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 24);
+          if (name) out.customName = name;
+        }
+        return out;
+      });
     const voice = tracks.find((t) => t.label === "voice");
     if (!voice) return { error: "No track was labeled as your voice" };
     store.set("audioSetup", { trackCount: setup.trackCount, tracks, calibratedAt: new Date().toISOString() });

@@ -6,6 +6,185 @@
 
 ---
 
+## 📋 PLANNED (session 177) — Batch #270–#273 (awaiting approval)
+
+**Goal (plain language):** the four editor/audio asks from 2026-08-20 — style
+individual caption words (#270), make the audio-track wizard legible and
+professional (#271), balance mic vs game volume per clip (#272), and let music
+ramp volume over a clip (#273).
+
+**Order APPROVED by Fega (2026-08-20): #271 → #270 → #272 → #273** (~4 sessions).
+- #271 first: smallest, mock-first anyway (Fega review roundtrip), and its
+  custom track names feed #272's mixer labels.
+- #270 second: Fega's first ask, fully independent, biggest single issue.
+- #272 before #273: they share a mixing mechanism; #272 builds it.
+- Mock round 1 (`tasks/mocks/audio-wizard-redesign.html`): Fega picked
+  **Variant C** ("track stuff should feel like it exists on an editor") and
+  asked for the video to be shown + a visualizer per track. Mock round 2
+  (`tasks/mocks/audio-wizard-redesign-v2.html`): editor-style track stack —
+  video anchor, real waveform lane per track, sweeping playhead, lane click =
+  solo. Awaiting his sign-off on v2, then implement #271.
+
+### ✅ #271 — Audio wizard redesign — BUILT (session 177)
+
+**Status: on master, E2E-verified via CDP against the live dev app (21/21
+checks: gate mount, lanes/waveforms, playhead sweep, solo continuity, pill
+renames, custom-name flow, mic gate, cancel path, save sanitization, Settings
+pickers showing "Track 4 — Spotify"). Riding the next installer. Fega's
+in-app pass: Settings → Recalibrate — that path also exercises the prefill,
+which automation couldn't reach (native file dialog).**
+
+E2E discovery: real OBS tracks measure ~-31 dBFS max — raw peaks rendered
+every lane flat. Lanes now normalize per track (genuinely-silent floor
+~-60 dBFS stays flat) and the helper text steers quiet lanes to "Try another
+part" instead of Empty (Fega's mic was silent in the first sample window —
+"flat = Empty" would have mislabeled it).
+
+Exploration verdict: **all renames are display-text only — persisted values
+are raw keys (`voice`/`game`/…), zero migration risk.** Custom names and the
+new Browser option DO touch the main process: any new value must be added to
+the `AUDIO_CAL_LABELS` allow-list (`main.js:1501`) or saves silently strip it.
+Labels surface in exactly 3 places (modal + two hand-duplicated `LABEL_TEXT`
+maps in `SettingsView.js:1099/:1159`); render/export never reads labels.
+
+Files: `src/renderer/components/AudioCalibrationModal.js` (labels 17–25,
+progress dots 210–234, finish 115–122), `src/main/main.js` (:1501 allow-list,
+:1527–1542 save handler, :334 schema comment), `src/renderer/views/SettingsView.js`
+(:1099/:1159 LABEL_TEXT maps).
+
+Steps:
+1. ✅ Variant picked: C evolved into **editor-style v2** (video anchor +
+   waveform lane per track + sweeping playhead + lane click = solo). Mock:
+   `tasks/mocks/audio-wizard-redesign-v2.html`. Final sign-off pending.
+2. Rename display text: Full Mix, Mic, Game/Desktop, Comms (hint "e.g.
+   Discord"), Music stays. Value keys untouched.
+3. Add `browser` value: modal pill + `AUDIO_CAL_LABELS` + both LABEL_TEXT maps.
+4. "Other" gains an inline name input → track saves as
+   `{index, label: "other", customName}`; main handler sanitizes (trim, cap
+   length) and persists; Settings pickers + modal progress show customName
+   when present.
+5. Rebuild layout per v2. Mechanics (all existing plumbing, no new main-side
+   code expected): the muted `<video>` already exists
+   (`AudioCalibrationModal.js:139` — just small, promote it to anchor);
+   per-track 20s samples already extract + cache via
+   `audioExtractTrackSample` (`main.js:1510`) — on open, fire it for ALL
+   tracks at the current offset in parallel; decode each WAV renderer-side
+   with WebAudio `decodeAudioData`, compute ~150-bucket peak envelopes, draw
+   one waveform lane per track row; playhead position = playing sample's
+   `currentTime` mapped across the lanes; clicking a lane solos that track
+   (same audio-element mechanics as today's per-track play). Waveforms are
+   per-sample-window; "Try another part" re-extracts + redraws all lanes.
+6. Prefill on recalibrate (Fega-approved fix of pre-existing quirk): seed
+   `labels` state from the existing audioSetup. SettingsView already holds
+   audioSetup in state; the pipeline-gate launch path (`App.js` via
+   `audio:calibrationNeeded`) may need the stored setup added to the event
+   payload — check at implementation.
+7. Mic-required rule untouched (client gate + `main.js:1535` server check).
+
+Verify: build + `npm start` (dev) → Settings → Recalibrate on a multi-track
+file: editor-style layout with real waveforms (silent track = flat lane),
+playhead sweeps during playback, lane click solos; new labels show, Browser
+picks, custom name survives into `clipflow-settings.json → audioSetup` and
+displays in both Settings pickers; recalibrate arrives pre-filled with the
+previous labels; finishing without a Mic pick still blocked; pre-existing
+audioSetup (old shape, no customName) still displays fine.
+
+### #270 — Per-word caption styling
+
+Exploration verdict: karaoke subtitles already render **one span per word**
+in BOTH preview (`PreviewOverlays.js:174–217`) and export
+(`public/subtitle-overlay/overlay-renderer.js:268–283`) — the override
+skeleton exists. The hook text card is the **Caption** system and has ZERO
+word-level structure (whole line = one span, no `words[]` on
+`captionSegments`) — word splitting must be built there. Preview and export
+share the style/shadow math (`subtitleStyleEngine.js` via the overlay
+preload) but the word render **loops are hand-duplicated** — every override
+lands twice or preview ≠ export.
+
+Design decisions:
+- **Override lives inline on the word object** (`word.style = {color, glow…,
+  shadow…, fontFamily, fontSize}`) — NOT an index-keyed map. Word indices
+  shift on split/merge (#131 fragility); inline rides along with the word.
+  Risk to verify early: `resolveClipSubtitles` rebuilds words as
+  `{word,start,end,probability}` — override must be carried through the
+  resolver or it dies on reload.
+- Captions: split text into tokens at render, overrides keyed by token index
+  per caption segment. v1 limitation (documented): editing caption text
+  shifts styled words. Captions are short + hand-written; acceptable.
+- Entry point: existing word selection (`selectedWordInfo`, SegmentRow) — a
+  "Style word" affordance wired to it (context-menu action or right-panel
+  section; currently ZERO wiring between selection and the style panel).
+- Active-karaoke word that also has an override: override color wins.
+- Per-letter size: stretch per issue — deferred, does not block.
+
+Files: `PreviewOverlays.js` (both overlays), `public/subtitle-overlay/overlay-renderer.js`
+(both render fns + frame-skip signature :323–356), `subtitleStyleEngine.js`
+(per-word shadow build from merged config), `SegmentRow.js` (entry point),
+`RightPanelNew.js` (controls), `useSubtitleStore.js` (+ `SUB_STYLE_KEYS` for
+undo), `useCaptionStore.js`, and the THREE persistence whitelists:
+`useEditorStore.js:1114+` (_doSilentSave), `useSubtitleStore.js:296+`
+(restoreSavedStyle), `renderPayload.js:52+` (buildRenderPayload).
+
+Verify: style a karaoke word (color+font+size) → only that word changes in
+preview; export → identical in rendered clip; same on a caption word; split/
+merge around a styled word → style stays on the right word; save → reopen →
+re-render → survives; unstyled project renders byte-identical to today.
+
+### #272 — Per-track volume (source recording tracks)
+
+Exploration verdict: **this feature doesn't "adjust" existing mixing — no
+per-track path exists at all.** Export uses only the first audio stream
+(unindexed `[i:a]` = OBS full mix, `render.js:147`); preview is one `<video>`
+element playing the default track; Chromium cannot mix multiple embedded
+tracks of one file. The issue's anchor is stale: the Audio panel lists the
+music/SFX library, not source tracks — the mixer UI is a new surface.
+
+Architecture (the core proposal):
+- **Untouched clips change nothing**: export filtergraph stays byte-identical
+  (extend `renderAudioMix.test.js` to prove it).
+- When any track level is adjusted, the clip flips to **stem mixing**: export
+  maps each labeled non-"mix" track (`[i:a:N]`) through `volume=g`, combined
+  with `amix …:normalize=0` (existing #202 pattern) as the new base audio.
+  The "Full Mix" track is excluded — otherwise stems double the full mix.
+- Preview parity: mute the main `<video>`, play per-track audio via one
+  `<audio>` element per stem, synced exactly like `syncAssetAudio` already
+  syncs placements. Stems = on-demand FFmpeg extracts of the clip's source
+  window only (small files, cached under the project folder).
+- v1 range 0–100% (attenuate-only): `<audio>.volume` caps at 1.0; balance is
+  achieved by pulling the loud track down. Boost >100% would need WebAudio
+  GainNodes — deferred unless Fega asks.
+- Persistence: per-clip `trackVolumes: {trackIndex: gain}` via the existing
+  `updateClip` merge (issue says levels persist per clip).
+- UI: mixer rows with REAL names from audioSetup (incl. #271 custom names);
+  home (Audio tab third sub-tab vs right-panel section) decided via a quick
+  mock when we get there.
+
+Verify: pull mic to 50% → preview audibly matches exported render; untouched
+clip → filtergraph byte-identical (test); levels persist across close/reopen;
+clip from a 1-track recording → mixer hidden, nothing breaks.
+
+### #273 — Volume keyframes (placed music/SFX first)
+
+Design:
+- `placement.volumeKeyframes = [{t, v}]` (t seconds from placement start,
+  sorted; absent/empty = static `volume` exactly as today).
+- One shared resolver `resolveVolumeAt(placement, t)` (CJS, next to
+  `audioPlacements.js`) — preview's per-frame gain math calls it
+  (`PreviewPanelNew.js:1316–1326`), export builds a piecewise-linear
+  `volume='…'` expression (eval=frame) from the SAME lerp so preview ≡
+  export. Fades keep multiplying on top (existing semantics).
+- UI mock-first when we reach it (points on the timeline SoundBlock vs a
+  ramp mini-editor in the existing sound-settings popover).
+- Source tracks get keyframes by reusing the resolver on #272's track gains —
+  follow-up slice, not v1.
+
+Verify: quiet-intro music: 3 points (low → up → down) → ramp audible in
+preview, identical in export; no-keyframe placement → filtergraph unchanged
+from today (test fixture); interaction usable without explanation (Fega
+pass).
+
+---
+
 ## ✅ BUILT (session 176) — #263 Auto-detect game per recording
 
 **Status: built and E2E-verified on the dev profile (awaiting Fega's in-app
