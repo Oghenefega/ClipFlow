@@ -90,6 +90,7 @@ const reconcile = require("./reconcile");
 const subtitlePollutionMigration = require("./subtitle-pollution-migration");
 const renderCollisionRepair = require("./render-collision-repair");
 const gameProfiles = require("./game-profiles");
+const gameDetect = require("./game-detect");
 const gameArt = require("./game-art");
 const pipelineLogger = require("./pipeline-logger");
 const tokenStore = require("./token-store");
@@ -236,6 +237,11 @@ const STORE_DEFAULTS = {
   mainPool: [],
   gamesDb: [],
   ignoredProcesses: ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"],
+  // #263: game auto-detect stamps for not-yet-renamed files, keyed by absolute
+  // path: { game, source: "process"|"ai", confidence?, aiGuess?, at }. game is
+  // null when detection ran and found nothing — cached so the AI sniff never
+  // re-spends on the same file. Evicted on rename, file removal, and boot sweep.
+  detectedGames: {},
   platforms: [],
   weeklyTemplate: {
     Monday: ["main","main","main","main","main","main","main","main"],
@@ -519,6 +525,16 @@ function runStoreMigrations(store) {
       store.set("ytDescriptions", {});
       logger.info(logger.MODULES.system, "Reset unused seeded game library to empty defaults (#262)");
     }
+  }
+
+  // ── #263: sweep detection stamps for files that left the disk ──
+  const detectedGamesSweep = store.get("detectedGames") || {};
+  const sweptDetected = {};
+  for (const [p, v] of Object.entries(detectedGamesSweep)) {
+    if (fs.existsSync(p)) sweptDetected[p] = v;
+  }
+  if (Object.keys(sweptDetected).length !== Object.keys(detectedGamesSweep).length) {
+    store.set("detectedGames", sweptDetected);
   }
 
   // ── Migration: add project folders ──
@@ -1006,6 +1022,73 @@ async function waitForStable(filePath, opts = {}) {
   return null; // never stabilized within maxWaitMs
 }
 
+// ─── #263: game auto-detect (tier 1 process watch + tier 2 Gemini frames) ───
+
+/** Persist a detection stamp for a not-yet-renamed file. */
+function stampDetectedGame(filePath, entry) {
+  const map = store.get("detectedGames") || {};
+  map[filePath] = entry;
+  store.set("detectedGames", map);
+}
+
+function evictDetectedGame(...filePaths) {
+  const map = store.get("detectedGames") || {};
+  let changed = false;
+  for (const p of filePaths) {
+    if (p && map[p] !== undefined) { delete map[p]; changed = true; }
+  }
+  if (changed) store.set("detectedGames", map);
+}
+
+// Tier 2 runs one file at a time — a boot rescan can surface several unstamped
+// files at once and the calls are cheap but not free. A file is sniffed at most
+// once ever: even "unknown" results are stamped (game: null) as a cache.
+let gameSniffChain = Promise.resolve();
+function queueGameSniff(filePath) {
+  gameSniffChain = gameSniffChain.then(async () => {
+    if (!fs.existsSync(filePath)) return;
+    if ((store.get("detectedGames") || {})[filePath]) return; // stamped while queued
+    // #249: gateway BYOK counts as configured — no raw key on tester installs
+    if (!geminiProvider.isConfigured()) return;
+    const games = (store.get("gamesDb") || []).filter((g) => g.entryType !== "content" && g.name);
+    if (games.length === 0) return;
+    try {
+      const processingDir = store.get("processingDir") || aiPipeline.DEFAULT_PROCESSING_DIR;
+      let costLogger = null;
+      try {
+        costLogger = new pipelineLogger.PipelineLogger(processingDir, `game sniff ${path.basename(filePath)}`);
+        costLogger.info(`#263 frame sniff — ${filePath}`);
+      } catch (_) { /* cost log is best-effort */ }
+      const result = await gameDetect.identifyGameFromFrames({
+        filePath,
+        games,
+        onUsage: (usage) => {
+          if (costLogger) { try { costLogger.logApiUsage(usage.inputTokens, usage.outputTokens, geminiProvider.defaultModel); } catch (_) {} }
+        },
+      });
+      if (costLogger) { try { costLogger.finalize(); } catch (_) {} }
+      // Pre-fill only on a high-confidence match to a game the user tracks —
+      // a wrong default blindly confirmed poisons day counters (#263).
+      const match = result.confidence === "high" ? games.find((g) => g.name === result.game) : null;
+      stampDetectedGame(filePath, {
+        game: match ? match.name : null,
+        source: "ai",
+        confidence: result.confidence,
+        aiGuess: result.game,
+        at: new Date().toISOString(),
+      });
+      logger.info(logger.MODULES.system, "#263 frame sniff result", { file: path.basename(filePath), game: result.game, confidence: result.confidence, prefill: !!match });
+      if (match) {
+        mainWindow?.webContents.send("gameDetect:result", { path: filePath, game: match.name, source: "ai", confidence: result.confidence });
+      }
+    } catch (err) {
+      // No stamp on failure — a transient error (no key yet, ffmpeg busy)
+      // shouldn't permanently mark the file as un-sniffable.
+      logger.warn(logger.MODULES.system, "#263 frame sniff failed", { file: path.basename(filePath), error: err.message });
+    }
+  });
+}
+
 /**
  * Shared file detection handler for both main and test watchers.
  * Waits for the file to finish writing before notifying the renderer.
@@ -1020,7 +1103,18 @@ async function handleWatcherFileAdded(filePath, addEvent) {
   // Dedup: chokidar can fire `add` more than once for the same path in edge cases
   if (stabilityChecksInFlight.has(filePath)) return;
   stabilityChecksInFlight.add(filePath);
+  // #263 tier 1: sample the foreground app while OBS is still writing the file.
+  // A game must hold the foreground for >50% of samples to claim the recording
+  // — merely running in the background (user watching a video) must not win.
+  gameDetect.startSampling(filePath);
   try {
+    // Size at add-time vs stable size discriminates a LIVE recording (grows
+    // while we watch — foreground samples are evidence) from an already
+    // finished file (boot rescan, move-in — whatever is foreground NOW says
+    // nothing about the recording, so those samples must be discarded).
+    let initialSize = -1;
+    try { initialSize = fs.statSync(filePath).size; } catch (_) { /* keep -1 — treated as grown */ }
+
     const stableSize = await waitForStable(filePath);
     if (stableSize === null) return; // file gone or never stabilized
 
@@ -1047,13 +1141,31 @@ async function handleWatcherFileAdded(filePath, addEvent) {
     } catch {
       return; // vanished between stabilize and stat
     }
+
+    // #263: resolve the file's game — live foreground majority first, then the
+    // persisted stamp (survives restarts; boot rescans have no process context).
+    const samples = await gameDetect.stopSampling(filePath);
+    const wasLiveRecording = stableSize !== initialSize;
+    let detectedGame = wasLiveRecording ? gameDetect.majorityGame(samples, store.get("gamesDb") || []) : null;
+    if (detectedGame) {
+      stampDetectedGame(filePath, { game: detectedGame, source: "process", at: new Date().toISOString() });
+      logger.info(logger.MODULES.system, "#263 process watch detected game", { file: name, game: detectedGame, samples: samples.length });
+    } else {
+      detectedGame = (store.get("detectedGames") || {})[filePath]?.game || null;
+    }
+
     mainWindow?.webContents.send(addEvent, {
       name,
       path: filePath,
       size: stat.size,
       createdAt: stat.birthtime.toISOString(),
+      detectedGame,
     });
+
+    // No process evidence and no cached stamp → let the AI judge the footage.
+    if (!detectedGame) queueGameSniff(filePath);
   } finally {
+    gameDetect.stopSampling(filePath); // no-op when tier 1 already collected
     stabilityChecksInFlight.delete(filePath);
   }
 }
@@ -1081,6 +1193,8 @@ function createRecordingFolderWatcher(folderPath, addEvent, removeEvent, ignored
 
   w.on("unlink", (fp) => {
     stabilityChecksInFlight.delete(fp); // cancel any in-flight check for a deleted file
+    gameDetect.stopSampling(fp); // #263: recording deleted mid-write
+    evictDetectedGame(fp);
     mainWindow?.webContents.send(removeEvent, {
       name: path.basename(fp),
       path: fp,
@@ -1107,6 +1221,17 @@ ipcMain.handle("watcher:start", async (_, folderPath) => {
 ipcMain.handle("watcher:stop", async () => {
   if (watcher) { watcher.close(); watcher = null; }
   return { success: true };
+});
+
+// #263: windowed processes for the "pick from running apps" list in Settings →
+// Edit Game. First real consumer of the ignoredProcesses setting.
+ipcMain.handle("processes:list", async () => {
+  try {
+    const apps = await gameDetect.listRunningApps(store.get("ignoredProcesses") || []);
+    return { success: true, apps };
+  } catch (err) {
+    return { error: err.message };
+  }
 });
 
 // Test watcher: start (separate instance, separate IPC events)
@@ -1841,6 +1966,10 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, tes
       readStream.pipe(writeStream);
     });
 
+    // #263: imports have no process context — let the AI judge the footage.
+    // Fire-and-forget; the result reaches the renderer via gameDetect:result.
+    queueGameSniff(targetPath);
+
     return { success: true, targetPath, filename, testMode: !!testMode, importEntry: { filename, sizeBytes: srcStat.size } };
   } catch (err) {
     return { error: err.message };
@@ -2472,6 +2601,8 @@ ipcMain.handle("metadata:create", async (_, data) => {
       );
     }
     database.save();
+    // #263: the file has its real name now — its detection stamp is spent.
+    evictDetectedGame(data.originalPath, data.currentPath);
     return { success: true, id, historyId };
   } catch (err) { return { error: err.message }; }
 });

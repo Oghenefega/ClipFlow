@@ -4,6 +4,19 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-20 (session 176) — Recordings know their game (#263)
+
+### Added
+- **Game auto-detection pre-fills the Rename tab (#263).** While OBS is still writing a recording, Corva samples which app holds the foreground every ~30 seconds; a game only claims the file if its linked program was in front for the majority of the recording — a game merely running in the background while you watch a video does NOT win. Detected recordings arrive in the Rename tab with game, day, and part already filled in; renaming becomes a one-click confirm. Files are still never renamed automatically.
+- **AI frame check for files with no process evidence.** Dragged-in files and recordings found at startup get a fallback: Gemini looks at three still frames and, only on a high-confidence match to a game you track, pre-fills it. Non-gameplay footage (a video you watched, a desktop) correctly comes back "unknown" and the row keeps its normal default. One AI call per file ever — results are cached, and a late AI result never overwrites a game you picked by hand.
+- **"Linked Program" in Settings → Edit Game.** Pick the game's program from a list of currently-running apps (no typing exe names); this is what powers detection. Existing libraries already carry program links from the old defaults, so detection works out of the box on Fega's machines. Also the first real consumer of the long-dormant ignoredProcesses setting.
+- **Detection stamps persist across restarts** (new `detectedGames` store map) and are cleaned up when a file is renamed, deleted, or gone from disk at boot.
+
+### Fixed
+- **Finished files can't inherit the current foreground app.** A file that arrives already complete (boot rescan, moved-in file) discards its foreground samples — otherwise booting Corva while playing would mislabel old unrenamed recordings. Only a file observed growing counts as a live recording.
+- **Dragged-in files now get the "same game as your last rename" default** that watcher-detected recordings already had (pre-existing gap from #267).
+- **Dev runs can no longer poison the installed app's taskbar identity (#269).** `setAppUserModelId` is now packaged-only, so a source-run boot-verify can't make Windows cache the Electron atom icon/name for the installed Corva again.
+
 ## [0.3.0-alpha.60] — 2026-08-19 (session 175) — ClipFlow is now Corva (#268)
 
 ### Changed

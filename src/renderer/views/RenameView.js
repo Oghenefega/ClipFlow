@@ -415,8 +415,12 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         // everything else. #267: a hand-rolled dayCount+1 here ignored the
         // same-date rule (Day+1 proposed for recordings landing after a
         // same-day rename) and kept a part computed for the main game.
+        // #263: an auto-detected game (foreground majority / AI frames) is
+        // direct evidence and outranks the last-renamed heuristic.
+        const detectedEntry = file.detectedGame ? gamesDb.find((g) => g.name === file.detectedGame) : null;
         const lastGame = lastRenamedGame.current ? gamesDb.find((g) => g.name === lastRenamedGame.current) : null;
-        const detected = lastGame ? detectForGame(lastGame, file.name, prev) : detectGame(file.name, gamesDb, prev);
+        const base = detectedEntry || lastGame;
+        const detected = base ? detectForGame(base, file.name, prev) : detectGame(file.name, gamesDb, prev);
         return [...prev, {
           id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           fileName: file.name, filePath: file.path,
@@ -439,9 +443,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     window.clipflow.onTestFileAdded((file) => {
       setPendingRenames((prev) => {
         if (prev.find((p) => p.filePath === file.path)) return prev;
-        // #267: same accounting-based defaulting as the main watcher above.
+        // #267/#263: same accounting-based defaulting as the main watcher above.
+        const detectedEntry = file.detectedGame ? gamesDb.find((g) => g.name === file.detectedGame) : null;
         const lastGame = lastRenamedGame.current ? gamesDb.find((g) => g.name === lastRenamedGame.current) : null;
-        const detected = lastGame ? detectForGame(lastGame, file.name, prev) : detectGame(file.name, gamesDb, prev);
+        const base = detectedEntry || lastGame;
+        const detected = base ? detectForGame(base, file.name, prev) : detectGame(file.name, gamesDb, prev);
         return [...prev, {
           id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           fileName: file.name, filePath: file.path,
@@ -460,6 +466,31 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
       setPendingRenames((prev) => prev.filter((p) => !p.isTest));
     };
   }, [testWatchFolder, isElectron, gamesDb, defaultPreset]);
+
+  // #263: late AI frame-sniff results (imports, boot rescans). Retags the row
+  // only while its game is still an untouched default — never over a manual pick.
+  useEffect(() => {
+    if (!isElectron || !window.clipflow.onGameDetectResult) return;
+    const unsub = window.clipflow.onGameDetectResult((data) => {
+      setPendingRenames((prev) => {
+        const idx = prev.findIndex((r) => r.filePath === data.path);
+        if (idx === -1) return prev;
+        const row = prev[idx];
+        if (row.gameManual) return prev;
+        const g = gamesDb.find((x) => x.name === data.game);
+        if (!g || row.game === g.name) return prev;
+        // Exclude the row itself from the accounting pool or its own current
+        // part slot would count against the recomputed one.
+        const det = detectForGame(g, row.fileName, prev.filter((p) => p.id !== row.id));
+        const next = [...prev];
+        next[idx] = { ...row, game: det.game, tag: det.tag, color: det.color, day: det.day, part: det.part };
+        return next;
+      });
+    });
+    return unsub;
+    // detectForGame's accounting reads dbManagedFiles + renameHistory — rebind
+    // so a sniff landing after they load doesn't compute parts from empty state.
+  }, [isElectron, gamesDb, dbManagedFiles, renameHistory]);
 
   // Probe duration for new pending files (auto-split detection)
   useEffect(() => {
@@ -770,7 +801,8 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     setPendingRenames((prev) => {
       const affectedTags = new Set([g.tag]);
       prev.forEach((r) => { if (idSet.has(r.id)) affectedTags.add(r.tag); });
-      const assigned = prev.map((r) => (idSet.has(r.id) ? { ...r, game: g.name, tag: g.tag, color: g.color } : r));
+      // #263: a hand-picked game must never be overwritten by a late AI result.
+      const assigned = prev.map((r) => (idSet.has(r.id) ? { ...r, game: g.name, tag: g.tag, color: g.color, gameManual: true } : r));
       const sorted = [...assigned].sort((a, b) => a.fileName.localeCompare(b.fileName));
       const done = [];
       const byId = {};
@@ -1573,8 +1605,11 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
 
     // File is now in the watch folder — add to pending manually
-    // (watcher is suppressed for this file)
-    const detected = detectGame(result.filename, gamesDb, pendingRenames);
+    // (watcher is suppressed for this file). #263: imports get the same
+    // last-renamed-game defaulting as watcher files (this path used to skip
+    // it); the AI frame sniff may still retag the row via gameDetect:result.
+    const lastGame = lastRenamedGame.current ? gamesDb.find((g) => g.name === lastRenamedGame.current) : null;
+    const detected = lastGame ? detectForGame(lastGame, result.filename, pendingRenames) : detectGame(result.filename, gamesDb, pendingRenames);
     setPendingRenames((prev) => {
       if (prev.find((p) => p.fileName === result.filename)) return prev;
       return [...prev, {

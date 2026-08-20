@@ -6,6 +6,107 @@
 
 ---
 
+## ✅ BUILT (session 176) — #263 Auto-detect game per recording
+
+**Status: built and E2E-verified on the dev profile (awaiting Fega's in-app
+pass; rides the next installer).** All steps below landed as planned, plus two
+discoveries the E2E surfaced:
+- **Sampler race (fixed in-session):** a cold PowerShell spawn (1-4s) lost to
+  the ~3s stability window on short files — the only sample a quick recording
+  ever gets was discarded. `stopSampling` now awaits the in-flight sample.
+- **Finished-file guard (fixed in-session):** the boot rescan sampled the
+  CURRENT foreground for already-finished files — booting Corva while a linked
+  game runs would have mislabeled old unrenamed files (the exact false-positive
+  class Fega asked about). Now only a file observed GROWING during the
+  stability watch counts as a live recording; finished files go cache → AI.
+
+E2E evidence (dev profile, real PowerShell + real Gemini via gateway): growing
+file + probe game in foreground → `DP Day1 Pt1` pre-filled in the Rename row,
+stamp `{source: "process"}`; restart with impossible exe → row still DP from
+cache, zero re-detection, zero re-sniff; 3 non-gameplay probe files → Gemini
+"unknown" → no pre-fill, rows kept normal defaults; `processes:list` IPC
+round-trip returns filtered windowed apps. Unit harness: 9/9 (majority rule,
+half-is-not-majority, background-game-never-wins, immediate-stop race).
+
+**Fega's in-app check (next installer):** record while a linked game is in
+front → Rename row arrives pre-filled; change nothing if right, one click if
+wrong. Settings → Edit Game shows "Linked Program" with a running-apps picker.
+
+**Goal (plain language):** a recording made while a known game is running shows
+up in the Rename tab with game, day, and part already filled in — rename
+becomes one click. Files are still NEVER auto-renamed. Two tiers: watch the
+running programs (cheap, reliable) → AI looks at a few frames (fallback for
+dragged-in files / anything with no process info).
+
+### What the exploration found (changes the plan)
+
+- **The `exe` data the issue assumed exists is GONE.** #262 wiped the seeded
+  games; `gamesDb` defaults `[]` (main.js:234) and the only writer always
+  produces `exe: []` (modals.js:121 — `newGameExe` is never set, App.js:129).
+  GameEditModal has no exe editor. Tier 1 has zero data until an exe editor +
+  running-app picker ships — that UI is now part of this issue.
+- One shared main-process handler (`handleWatcherFileAdded` main.js:1012), two
+  renderer listeners (RenameView.js:418/:443). Detection slots in as a third,
+  highest-priority default branch: **detected > lastRenamedGame > mainGame** —
+  day/part math untouched (route through existing `detectForGame`, :653).
+- Pending rows are React state only; `ignoreInitial:false` (main.js:1068)
+  rescans everything each boot → **detection stamps must persist** (new
+  electron-store map, low blast radius vs. premature file_metadata rows).
+- **AI fallback is ~80% written**: queue-imports.js:196-257 + the §5 "THE
+  GAME" prompt (title-caption-prompt.js:371-382) already do "which game is
+  this, constrained to gamesDb, else unknown". Reuse with a game-only variant;
+  frames via `extractClipStills` 640px (ffmpeg.js:439). Gate on
+  `geminiProvider.isConfigured()` — NOT raw key (ai-pipeline.js:511 gets this
+  wrong; don't copy).
+- Pre-existing inconsistency: drag-drop imports (RenameView.js:1577) bypass
+  the watcher payload AND #267's lastRenamedGame routing.
+- `ignoredProcesses` (main.js:235) has never had a consumer — the process
+  picker becomes its first.
+
+### Steps
+
+1. **Store**: `detectedGames` map, default `{}` (near main.js:234) —
+   `{ [absPath]: { game, source: "process"|"ai", exe?, confidence?, at } }`.
+   Migration per pipeline rule. Evict on rename commit (`metadata:create`),
+   watcher fileRemoved, and a boot sweep for paths no longer on disk.
+2. **Tier 1 (main)**: **foreground-majority rule (Fega, session 176 — a game
+   merely running in the background must NOT win).** While the file is being
+   written (add-time → waitForStable), sample the FOREGROUND process (PowerShell
+   GetForegroundWindow → process name) immediately and every ~30s. At stable:
+   a game pre-fills only if its exe held >50% of samples. Whole-recording
+   video-watching → browser majority → no stamp → tier 2 judges the actual
+   footage. Boot rescan of finished files: store cache first, else tier 2
+   (no live sampling possible). No new dependency (child_process + PowerShell).
+3. **Payload**: add `detectedGame` to the fileAdded payload (main.js:1050).
+4. **Renderer routing**: third branch in BOTH watcher handlers
+   (RenameView.js:418-419, :443-444): detected game → `detectForGame(game, …)`.
+5. **Settings UI**: exe editor in GameEditModal (modals.js:131+, save payload
+   :383): shows the linked program + "pick from running apps" list (new
+   `processes:list` IPC filtered by `ignoredProcesses` + system noise). No
+   typing exe names — satisfies the "new users don't know exe names"
+   constraint for v1.
+6. **Tier 2 (AI)**: game-only Gemini prompt; auto-runs for pending files with
+   no tier-1 stamp (drag-drop imports + boot-rescanned files), 3-4 stills via
+   `extractClipStills`; result arrives via new `gameDetect:result` push event
+   (unsubscribe-fn preload variant); row updates ONLY if the user hasn't
+   manually changed its game; result cached in `detectedGames` — one AI call
+   per file, ever.
+7. **Verify (dev profile, my job)**: dev game with exe `notepad.exe`, start
+   Notepad, drop a raw-named file in the dev watch folder → row pre-fills
+   game/day/part; restart app → stamp survives; drag in a real clip with no
+   process info → AI proposes the game.
+
+### Decisions for Fega (asked in chat, session 176)
+
+(a) detected game beats "same as last rename" default — recommend yes;
+(b) teach flow v1 = running-app picker in game settings; record-time "was this
+<exe>?" chip deferred to a follow-up — recommend yes;
+(c) AI sniff auto-runs on imports (well under 1¢/file) — recommend yes;
+(d) give drag-drop the same "same game as last rename" default while in here
+(pre-existing #267 gap) — recommend yes.
+
+---
+
 ## ✅ SHIPPED (session 174) — #264 Rename-aware split with letter parts (subsumes #173 + #174)
 
 **Status: built and headlessly verified end-to-end on the dev profile (awaiting

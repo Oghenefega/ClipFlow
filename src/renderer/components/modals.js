@@ -146,6 +146,10 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
   const [artV, setArtV] = useState(0);
   const [artBusy, setArtBusy] = useState(false);
   const [artError, setArtError] = useState("");
+  // #263: exe(s) this game runs as — drives auto-detection on new recordings
+  const [exeList, setExeList] = useState(game.exe || []);
+  const [pickerApps, setPickerApps] = useState(null);
+  const [pickerBusy, setPickerBusy] = useState(false);
 
   // Load game profile data (threshold + session count) on mount
   useEffect(() => {
@@ -189,6 +193,14 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
     await window.clipflow.gameArtClear?.(game.name);
     setArtPath(null);
     setArtError("");
+  };
+
+  const togglePicker = async () => {
+    if (pickerApps) { setPickerApps(null); return; }
+    setPickerBusy(true);
+    const r = await window.clipflow.listRunningProcesses?.();
+    setPickerBusy(false);
+    setPickerApps(r?.success ? r.apps : []);
   };
 
   const handleResearch = async () => {
@@ -270,6 +282,40 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             </div>
           </div>
         </div>
+        {/* #263: linked program — powers game auto-detection on new recordings */}
+        <div style={{ marginBottom: 16 }}>
+          <SectionLabel>Linked Program</SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            {exeList.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.greenBorder}`, borderRadius: T.radius.md, padding: "7px 12px" }}>
+                <span style={{ width: 7, height: 7, borderRadius: 4, background: T.green, boxShadow: `0 0 6px ${T.green}`, flexShrink: 0 }} />
+                <span style={{ color: T.text, fontSize: 13, fontFamily: T.mono }}>{exeList[0]}</span>
+                <button onClick={() => setExeList([])} style={{ background: "none", border: "none", color: T.textTertiary, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>✕</button>
+              </div>
+            )}
+            <button onClick={togglePicker} disabled={pickerBusy} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font, opacity: pickerBusy ? 0.6 : 1, whiteSpace: "nowrap" }}>
+              {pickerBusy ? "Looking..." : pickerApps ? "Close list" : exeList.length > 0 ? "Change..." : "Pick from running apps"}
+            </button>
+          </div>
+          {pickerApps && (
+            <div style={{ marginTop: 8, maxHeight: 160, overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: T.radius.md, background: "rgba(255,255,255,0.02)" }}>
+              {pickerApps.length === 0 ? (
+                <div style={{ padding: "12px 16px", color: T.textTertiary, fontSize: 12 }}>No running apps found — launch the game, then try again.</div>
+              ) : pickerApps.map((a) => (
+                <button key={a.exe} onClick={() => { setExeList([a.exe]); setPickerApps(null); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 12px", background: "none", border: "none", borderBottom: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ color: T.text, fontSize: 12, fontFamily: T.mono, flexShrink: 0 }}>{a.exe}</span>
+                  <span style={{ color: T.textTertiary, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ color: T.textTertiary, fontSize: 11, marginTop: 4 }}>
+            {exeList.length > 0
+              ? "New recordings made while this program is in front get this game pre-selected."
+              : "Launch the game, pick it from the list, and new recordings will pre-select this game."}
+          </div>
+        </div>
+
         <div style={{ marginBottom: 16 }}>
           <SectionLabel>Status</SectionLabel>
           <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
@@ -380,7 +426,7 @@ export const GameEditModal = ({ game, gamesDb = [], onSave, onClose, aiReady = f
             if (window.clipflow.gameProfilesSetThreshold) {
               window.clipflow.gameProfilesSetThreshold(game.tag, updateThreshold);
             }
-            onSave({ ...game, tag, hashtag, color, dayCount, active, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
+            onSave({ ...game, tag, hashtag, color, dayCount, active, exe: exeList, aiContextUser: aiPlayStyle, aiContextAuto: aiAutoContext, aiResearchedAt });
           }} style={{ flex: 2, padding: 14, borderRadius: T.radius.md, border: "none", background: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "rgba(255,255,255,0.1)" : T.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: (tag && gamesDb.some((g) => g.tag === tag && g.name !== game.name)) ? "not-allowed" : "pointer", fontFamily: T.font }}>Save Changes</button>
         </div>
       </div>

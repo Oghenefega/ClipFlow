@@ -25,6 +25,16 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("watcher:fileRemoved");
   },
 
+  // Game auto-detect (#263)
+  listRunningProcesses: () => ipcRenderer.invoke("processes:list"),
+  // Returns an unsubscribe fn — the AI frame sniff resolves after the pending
+  // row already exists, and removeAllListeners would kill sibling listeners.
+  onGameDetectResult: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("gameDetect:result", handler);
+    return () => ipcRenderer.removeListener("gameDetect:result", handler);
+  },
+
   // Test file watcher (separate instance, separate events)
   startTestWatching: (folder) => ipcRenderer.invoke("watcher:startTest", folder),
   onTestFileAdded: (callback) => {
