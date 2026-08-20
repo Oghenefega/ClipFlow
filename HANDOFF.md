@@ -1,39 +1,39 @@
-# HANDOFF — Session 175 (2026-08-19)
+# HANDOFF — Session 176 (2026-08-20)
 
 ## Current State
-**The product is Corva.** 0.3.0-alpha.60 is installed and verified on Fega's desktop (in-place upgrade over ClipFlow: full tracker history/XP/rank/streak, all projects, all platform connections intact) and published to the live update feed — the laptop self-updates on next launch and runs the same data migration. #268 closed verified. Steps 1–3 of the rename brief are DONE; Step 4 (external names) stays gated on the trademark opinion. The previously-pending #264/#267 work also shipped inside alpha.60 (it was on master), so those four `status: untested` closures are now installable for Fega's in-app pass.
+**#263 game auto-detection is built, E2E-verified, and on master (b725e37)** alongside the #269 taskbar-identity guard (2839dda). Neither is in an installer yet — they ride the next cut (batch rule; #266/#265 could join). Both issues closed with `status: untested` pending Fega's in-app pass. The Corva rename (#268) is fully wrapped: laptop confirmed alpha.60 with data intact, so the last migration gate is cleared. Fega declined deleting the desktop backup at `%APPDATA%\clipflow-backup-2026-08-19` (149 MB) for now — his call, leave it until he says otherwise.
 
 ## What Was Just Built
-- **Corva rename Step 1 (inventory)**: 1,455 hits classified into 3 buckets; approved by Fega. Key discoveries: persisted `source:"clipflow"` tracker value (find-replace trap), `clipflow-tokens.json` as load-bearing as trackerData, the `.clipflow` tree on the video drive is a second data root, OAuth redirect URIs are all localhost (zero name coupling).
-- **Step 3 (58ceefe)**: `productName`/`name` → Corva/corva; `appId` kept `com.clipflow.app` (NSIS GUID = upgrade identity); new `src/main/user-data-migration.js` — atomic `%APPDATA%\clipflow` → `%APPDATA%\Corva` rename at top of main.js (before Sentry require + single-instance lock), falls back to old folder on any failure, 16 unit checks; 51 display strings across 25 files → Corva; top-level `productName` added so packaged userData resolves proper-case.
-- **Kept by design**: `window.clipflow` bridge, `.clipflow` dotfolder, store filenames, `CLIPFLOW_PROFILE`/`clipflow-dev`, "ClipFlow Imports" folder, `clipflow_*` PostHog events, `clipflow-runtime` R2 contract. "Corva AI" for new engine-setup picks (old "ClipFlow AI" recognized).
-- **Released**: `Corva Setup 0.3.0-alpha.60.exe` published to `engine.flowve.app/updates/` (alpha.yml verified live, alpha.59 pruned).
-- **Post-install fixes**: install went per-machine (`C:\Program Files\Corva`, old per-user copy cleanly removed). Taskbar showed "Electron" — root cause: no shortcut carried the AUMID + dev boot-verify had claimed it; fixed by stamping `System.AppUserModel.ID` onto a per-user Start Menu shortcut + icon-cache purge (verified fixed). Filed **#269** (guard `setAppUserModelId` with `app.isPackaged`) for the next batch.
+- **#263 tier 1 (foreground-majority process watch)**: new `src/main/game-detect.js`. While OBS writes a recording, the foreground process is sampled every 30s (PowerShell GetForegroundWindow via -EncodedCommand); a game claims the file only if its linked exe held >50% of samples. **Fega's requirement: background-running games must NOT win** (video-watching scenario). Only files observed *growing* during the stability watch count as live recordings — finished files (boot rescan, moved-in) discard samples and go cache → AI.
+- **#263 tier 2 (Gemini frame sniff)**: game-only prompt (mirrors the §5 "THE GAME" contract), 3 stills at 640px via `extractClipStills`, gated on `geminiProvider.isConfigured()`, serialized one-at-a-time, cost-logged via PipelineLogger. Only high-confidence matches to tracked games pre-fill. Every result (incl. unknown) is cached in the new `detectedGames` store map — one AI call per file ever. A late result never overwrites a manual pick (`gameManual` flag set by setGameForRows).
+- **Renderer routing**: detected > lastRenamedGame > mainGame in BOTH watcher handlers; drag-drop imports now get lastRenamedGame defaulting too (pre-existing #267 gap). New `gameDetect:result` push event (unsubscribe-fn preload variant) retags rows via detectForGame accounting.
+- **Settings → Edit Game → "Linked Program"**: running-apps picker (`processes:list` IPC — first real consumer of `ignoredProcesses`). Fega's machines already carry exe data from the pre-#262 seeds, so detection works there out of the box; only fresh installs need the picker.
+- **Eviction**: stamps cleared on rename commit (metadata:create), watcher unlink, and a boot sweep for paths gone from disk.
+- **#269**: `setAppUserModelId` now packaged-only (two-line guard) — dev boot-verifies can't poison the installed app's taskbar identity again.
+- **Filed #274**: record-time "was this <exe>?" teach flow (deferred from #263; AddGameModal's dormant exe branch is the ready-made UI).
 
 ## Key Decisions
-- **appId/AppUserModelID never change** — it's what made the renamed installer upgrade in place. Treat as immutable.
-- **Migration is rename-not-copy** (atomic on NTFS, no partial state) and **never boots against empty userData** while real data exists — split-brain prefers the newer Corva folder, locked/stray states fall back to old.
-- **Internal identifiers keep the clipflow name** — invisible to users, and renaming them is pure risk (the `source:"clipflow"` value especially: display label maps to Corva, stored value untouched).
-- **Recap watermark now "Corva"** — supersedes the old ClipFlow-vs-Flowve decision; Fega saw the build and confirmed all good.
+- **Foreground-majority, not process-existence** — Fega explicitly rejected "game running in background wins" (session 176 chat). The >50% rule + grew-during-watch gate are the two halves of that decision; don't weaken either.
+- **AI pre-fills on high confidence only**; low/unknown stays cached but untouched — a wrong default blindly confirmed poisons day counters.
+- **detectedGames is main-process-owned** (renderer never loads/persists it) — safe for main-side writes, no gamesDb-style two-writer hazard.
+- v1 teaching = the Settings picker; the record-time chip is #274, not scope creep on #263.
 
 ## Next Steps
-1. **Laptop**: launch ClipFlow there → banner → alpha.60 → confirm it comes up as Corva with its data intact. Until then, keep the desktop backup at `%APPDATA%\clipflow-backup-2026-08-19` (149 MB); delete after.
-2. Fega's in-app pass on the #264/#267 closures (now installed via alpha.60) — remove `status: untested` labels on confirmation.
-3. Next batch: #269 (AUMID guard) + remove the extra per-user Corva.lnk once the installer stamps identity properly; #263/#265/#266 feature work.
-4. **Step 4 externals when the trademark opinion lands** (Fega's gate): GitHub repo, Meta/Google app display names, corva.gg switchover — one platform at a time; **TikTok dev app (7620331243271407632) frozen mid-review, moves LAST**.
-5. Obsidian technical summary still says ClipFlow throughout — refresh it (single file, overwrite) in a docs pass.
-6. Session-start backlog: `gh issue list --repo Oghenefega/ClipFlow --search 'is:open -label:"track: launch-ops"' --limit 50`.
+1. Next code batch candidate: **#266** (silence-aware split boundaries) — fresh session. #265 (onboarding) after.
+2. Cut alpha.61 when the batch feels full (#269 + #263 + whatever lands next session), then Fega's in-app passes: #263 (record with linked game in front → pre-filled row), #269 (taskbar still says Corva), plus the standing #264/#267 checks from session 174.
+3. #274 whenever the new-user path matters (pre-launch, not urgent for Fega's own use).
+4. Obsidian technical summary still says ClipFlow throughout — docs pass still pending (carried from s175).
+5. Rename brief Step 4 (external names) still gated on the trademark opinion.
 
 ## Watch Out For
-- **Don't boot prod from source on a machine that hasn't migrated yet** — `npm start` runs the migration and strands any still-installed ClipFlow. Desktop already migrated (safe there now); the laptop until it self-updates.
-- **seed-dev-profile** now prefers `%APPDATA%\Corva`, falls back to legacy clipflow — fine on both machines.
-- **`Get-ItemProperty HKCU:...Uninstall`** still shows a stale "ClipFlow 0.3.0-alpha.48" per-user entry (the new install registers per-machine under HKLM); harmless, but don't let it mislead a future "what's installed" check — the truth is `C:\Program Files\Corva`.
-- **Memory `project_db_locations_verification` updated**: prod DB is now `%APPDATA%\Corva\data\clipflow.db`.
-- **The update feed serves Corva-named artifacts from alpha.60 on** — publish-update.ps1 reads the exe name from the manifest, nothing hardcoded, but any tooling that globbed `ClipFlow Setup*` must use `Corva Setup*` now (update-launcher skill already updated).
-- Session-174 watch-outs still apply to the newly-installed #264 split behavior (migration v9 ALTER ran on first alpha.60 boot; watcher DB-path guard makes re-dropped known files invisible to Pending).
+- **First boot of the updated app will frame-sniff any raw unrenamed recordings sitting in the watch tree** (no process context, no cache yet) — one Gemini call each (~<1¢, one-time, then cached). Expected behavior, not a bug; approved as decision (c).
+- The sniff currently sends `gameDetect:result` only for high-confidence matches; the stamp keeps `aiGuess` for everything — #274 can surface those.
+- `detectedGames` keys are exact-case absolute paths from the watcher — don't hand-edit with different casing.
+- Content-type entries (Just Chatting) CAN be exe-linked via the modal and matched by tier 1 (deliberate — e.g. linking a browser to JC); tier 2's candidate list excludes them.
+- Dev-profile settings were heavily edited during E2E and **fully restored** (watchFolder, gamesDb, stamps verified against the pre-test backup). Scratch test files remain only in the session scratchpad (rm -rf is permission-blocked; they're isolated temp).
 
 ## Logs/Debugging
-- Migration outcome is logged on prod boots: `Corva userData migration (#268): migrated|use-old` (module `system`, `%APPDATA%\Corva\logs\app.log`). `noop` boots log nothing.
-- Migration unit test: this session's scratchpad `test-user-data-migration.js` (6 cases, real temp dirs, injected-fs failure case). AUMID stamper: `stamp-aumid.ps1` (per-user lnk needs no elevation; ProgramData lnk does).
-- To check a .lnk's identity tag: read bytes, UTF-16 search for `com.clipflow.app`. Exe identity: `(Get-Item ...\Corva.exe).VersionInfo` → ProductName "Corva".
-- Publish verification: `curl -s https://engine.flowve.app/updates/alpha.yml | head -1` → `version: 0.3.0-alpha.60`.
+- Detection logs under module `system` in app.log: `#263 process watch detected game {file, game, samples}` and `#263 frame sniff result {file, game, confidence, prefill}`. Sniff spend appears in Settings monthly cost (PipelineLogger label `game sniff <file>`).
+- Stamps: `clipflow-settings.json` → `detectedGames` (dev: `%APPDATA%\clipflow-dev\`, prod: `%APPDATA%\Corva\`).
+- Unit harness (9 checks: sampler race, majority rules, app-list filter): session scratchpad `test-game-detect.js`, run `npx electron <path>` from repo root. E2E pattern that works: chunked-append a probe mp4 into a scratch watch folder (simulates OBS growth — an instant `cp` fails the grew-gate by design); the dev app itself is the foreground during automated tests, so `electron.exe` in a probe game's exe net is the deterministic tier-1 trigger. Programmatic focus-stealing (AppActivate/TopMost forms) is blocked by Windows — don't retry it.
+- CDP row check: `cdp-eval.js` in scratchpad (node ≥22 WebSocket, port 9222, climb ancestors from filename leaf).
