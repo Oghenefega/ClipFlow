@@ -257,7 +257,10 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
 
   // Remove consecutive duplicate words within segments — whisperx sometimes
   // outputs the same word twice with slightly different timestamps (e.g. "friendly," then "friendly")
-  for (const s of deduped) {
+  // #278: like the cleanups above, this is a whisperx-artifact repair — skip it for
+  // editor-saved subs or a deliberately kept repeated word ("that that") gets merged
+  // on every reopen, silently mutating text the user already reviewed.
+  for (const s of hasEditorSavedSubs ? [] : deduped) {
     if (!s.words || s.words.length < 2) continue;
     const cleaned = [s.words[0]];
     for (let i = 1; i < s.words.length; i++) {

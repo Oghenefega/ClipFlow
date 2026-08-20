@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275)
+
+### Fixed
+- **Reopening a clip no longer merges repeated words in saved subtitles (#278).** The whisperx repair that collapses accidental duplicate words ("friendly," + "friendly") was also running on editor-saved subtitles, so a deliberately kept repeat ("that that", stutter subtitles) silently became one word on the next open — and the next save persisted the loss. The cleanup is now skipped for editor-saved data, matching the #115 rule that saved subtitles are the user's authoritative copy; fresh transcriptions still get the full repair. Verified: a saved repeated word now survives unlimited reopen cycles, and raw transcriptions still dedupe.
+
+### Changed
+- **The Projects header stays put while the list scrolls (#275).** Title, project counts, status/game filter chips, and the sort control now pin to the top of the Projects tab as you scroll the 33-project list, so changing a filter no longer means scrolling all the way back up. Rows slide underneath the pinned header with no see-through or overlap, and the sort dropdown works while pinned.
+
 ## [Unreleased] — 2026-08-20 (session 178) — Words get their own style (#270)
 
 ### Added

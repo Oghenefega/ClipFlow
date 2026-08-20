@@ -1403,6 +1403,12 @@ export function ProjectsListView({
         .pl-row:hover .pl-open, .pl-row:hover .pl-trash { opacity: 1; }
       `}</style>
 
+      {/* #275: header + filters pin while the list scrolls. Negative top margin
+          swallows the pane's 32px padding so the block sits flush at the scroll
+          viewport's top edge; its own padding recreates the breathing room and
+          (with the opaque bg) stops rows showing through. zIndex beats the
+          hover-transformed rows, which stack in DOM order after this block. */}
+      <div style={{ position: "sticky", top: 0, zIndex: 30, background: T.bg, margin: "-32px 0 16px", padding: "32px 0 14px" }}>
       <PageHeader
         title="Projects"
         subtitle={`${localProjects.length} project${localProjects.length !== 1 ? "s" : ""}${processingCount > 0 ? ` · ${processingCount} processing` : ""}${readyCount > 0 ? ` · ${readyCount} to review` : ""}${doneCount > 0 ? ` · ${doneCount} done` : ""}`}
@@ -1437,7 +1443,9 @@ export function ProjectsListView({
       </PageHeader>
 
       {/* Filter chips: status + game (replaces the folder sidebar + sort bar) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "2px 0 16px" }}>
+      {/* #275: bottom gap moved to the sticky wrapper — a child margin would
+          collapse out of it and leave a see-through strip under the pinned bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "2px 0 0" }}>
         <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")} count={localProjects.length}>All</FilterChip>
         <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")} count={readyCount}>To review</FilterChip>
         <FilterChip active={statusFilter === "schedule"} onClick={() => setStatusFilter("schedule")} count={scheduleCount}>To schedule</FilterChip>
@@ -1457,6 +1465,7 @@ export function ProjectsListView({
             style={{ marginLeft: "auto", background: "none", border: "none", color: T.accent, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font, padding: "6px 4px" }}
           >{visibleProjects.every((p) => selected[p.id]) ? "Deselect all" : "Select all"}</button>
         )}
+      </div>
       </div>
 
       {/* #194 per-game approval rates: quality (>=70% confidence, mechanical
