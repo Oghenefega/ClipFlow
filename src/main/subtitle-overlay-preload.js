@@ -41,6 +41,10 @@ contextBridge.exposeInMainWorld("overlayAPI", {
       styleEngine.buildCaptionStyle(style, scale),
     stripPunctuation: (text, removals) =>
       styleEngine.stripPunctuation(text, removals),
+    buildSubtitleWordOverrideCss: (style, override, scale) =>
+      styleEngine.buildSubtitleWordOverrideCss(style, override, scale),
+    buildCaptionWordOverrideCss: (style, override, scale) =>
+      styleEngine.buildCaptionWordOverrideCss(style, override, scale),
   },
   wordFinder: {
     findActiveWord: (segments, index, time) =>

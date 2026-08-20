@@ -526,6 +526,47 @@ const useSubtitleStore = create((set, get) => ({
     }));
   },
 
+  // ── Per-word style overrides (#270) ──
+  // wordIdx is the text-token index — words[] is parallel to text tokens (same
+  // positional convention as updateWordInSegment). The style lives ON the word
+  // object so it rides every split/merge/trim/save path for free.
+  setWordStyle: (segId, wordIdx, patch) => {
+    get()._pushUndo();
+    set((s) => ({
+      editSegments: s.editSegments.map(seg => {
+        if (seg.id !== segId || !seg.words || !seg.words[wordIdx]) return seg;
+        const style = { ...(seg.words[wordIdx].style || {}), ...patch };
+        // A patch value of null/undefined removes that key (back to inherit)
+        for (const k of Object.keys(style)) {
+          if (style[k] === null || style[k] === undefined) delete style[k];
+        }
+        const words = [...seg.words];
+        if (Object.keys(style).length === 0) {
+          const { style: _drop, ...rest } = words[wordIdx];
+          words[wordIdx] = rest;
+        } else {
+          words[wordIdx] = { ...words[wordIdx], style };
+        }
+        return { ...seg, words };
+      }),
+    }));
+  },
+
+  clearWordStyle: (segId, wordIdx) => {
+    const seg = get().editSegments.find(s => s.id === segId);
+    if (!seg || !seg.words || !seg.words[wordIdx] || !seg.words[wordIdx].style) return;
+    get()._pushUndo();
+    set((s) => ({
+      editSegments: s.editSegments.map(sg => {
+        if (sg.id !== segId) return sg;
+        const words = [...sg.words];
+        const { style: _drop, ...rest } = words[wordIdx];
+        words[wordIdx] = rest;
+        return { ...sg, words };
+      }),
+    }));
+  },
+
   updateWordInSegment: (segId, wordIdx, newText) => {
     const { editSegments, segmentMode } = get();
     const seg = editSegments.find(s => s.id === segId);

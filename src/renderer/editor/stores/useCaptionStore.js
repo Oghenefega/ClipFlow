@@ -12,6 +12,33 @@ function _pushCrossUndo() {
 
 let _nextCapId = 1;
 
+// ── Per-word style remap on text edits (#270) ──
+// wordStyles is keyed by whitespace-token index. When the token COUNT is
+// unchanged (typing inside a word, punctuation, caps) indexes stay positional so
+// the style sticks to the word being edited. When words are added/removed, match
+// surviving tokens by text (nearest position wins); unmatched styles drop.
+function _remapWordStyles(oldText, newText, wordStyles) {
+  if (!wordStyles || Object.keys(wordStyles).length === 0) return wordStyles;
+  const oldWords = (oldText || "").split(/\s+/).filter(Boolean);
+  const newWords = (newText || "").split(/\s+/).filter(Boolean);
+  if (oldWords.length === newWords.length) return wordStyles;
+  const next = {};
+  for (const [k, style] of Object.entries(wordStyles)) {
+    const idx = Number(k);
+    const w = oldWords[idx];
+    if (w === undefined) continue;
+    let best = -1;
+    for (let j = 0; j < newWords.length; j++) {
+      if (newWords[j] === w && next[j] === undefined &&
+          (best === -1 || Math.abs(j - idx) < Math.abs(best - idx))) {
+        best = j;
+      }
+    }
+    if (best >= 0) next[best] = style;
+  }
+  return next;
+}
+
 // Complete styling baseline — re-applied on every clip open (initFromClip) so no
 // caption style ever bleeds from the previously open clip (#99). Factory (not a
 // shared const) so array values are fresh references per reset.
@@ -80,7 +107,9 @@ const useCaptionStore = create((set, get) => ({
     _pushCrossUndo();
     set((s) => {
       const segs = s.captionSegments.map((seg) =>
-        seg.id === segId ? { ...seg, text } : seg
+        seg.id === segId
+          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles) }
+          : seg
       );
       // Keep captionText in sync with first segment
       const firstText = segs.length > 0 ? segs[0].text : "";
@@ -142,7 +171,8 @@ const useCaptionStore = create((set, get) => ({
         // Split into two independent segments with independent text copies
         return [
           { ...s2, endSec: time },
-          { id: newId, text: s2.text, startSec: time, endSec: s2.endSec },
+          { id: newId, text: s2.text, startSec: time, endSec: s2.endSec,
+            ...(s2.wordStyles ? { wordStyles: { ...s2.wordStyles } } : {}) },
         ];
       }),
     }));
@@ -150,6 +180,43 @@ const useCaptionStore = create((set, get) => ({
   },
 
   setActiveCaptionId: (id) => set({ activeCaptionId: id }),
+
+  // ── Per-word style overrides (#270) ──
+  // Which caption word chip is selected in the Captions panel: { segId, wordIdx }
+  activeCaptionWord: null,
+  setActiveCaptionWord: (info) => set({ activeCaptionWord: info }),
+
+  setCaptionWordStyle: (segId, wordIdx, patch) => {
+    _pushCrossUndo();
+    set((s) => ({
+      captionSegments: s.captionSegments.map((seg) => {
+        if (seg.id !== segId) return seg;
+        const style = { ...((seg.wordStyles || {})[wordIdx] || {}), ...patch };
+        // A patch value of null/undefined removes that key (back to inherit)
+        for (const k of Object.keys(style)) {
+          if (style[k] === null || style[k] === undefined) delete style[k];
+        }
+        const wordStyles = { ...(seg.wordStyles || {}) };
+        if (Object.keys(style).length === 0) delete wordStyles[wordIdx];
+        else wordStyles[wordIdx] = style;
+        return { ...seg, wordStyles };
+      }),
+    }));
+  },
+
+  clearCaptionWordStyle: (segId, wordIdx) => {
+    const seg = get().captionSegments.find((s) => s.id === segId);
+    if (!seg || !seg.wordStyles || !seg.wordStyles[wordIdx]) return;
+    _pushCrossUndo();
+    set((s) => ({
+      captionSegments: s.captionSegments.map((sg) => {
+        if (sg.id !== segId) return sg;
+        const wordStyles = { ...sg.wordStyles };
+        delete wordStyles[wordIdx];
+        return { ...sg, wordStyles };
+      }),
+    }));
+  },
 
   // Direct setter for caption segments array (used by auto-trim)
   setCaptionSegments: (segs) => {
@@ -176,7 +243,9 @@ const useCaptionStore = create((set, get) => ({
       // Find the active segment (or fall back to first)
       const targetId = s.activeCaptionId || s.captionSegments[0]?.id;
       const segs = s.captionSegments.map((seg) =>
-        seg.id === targetId ? { ...seg, text } : seg
+        seg.id === targetId
+          ? { ...seg, text, wordStyles: _remapWordStyles(seg.text, text, seg.wordStyles) }
+          : seg
       );
       const firstText = segs.length > 0 ? segs[0].text : "";
       return { captionSegments: segs, captionText: firstText };
@@ -274,6 +343,9 @@ const useCaptionStore = create((set, get) => ({
         ...captionStyleDefaults(),
         captionSegments: savedSegments,
         captionText: savedSegments[0]?.text || text,
+        // #270: cap-N ids restart per clip — a stale word selection could match
+        // the next clip's ids, so clear it on every open.
+        activeCaptionWord: null,
       });
     } else {
       // Legacy: create single segment from captionText
@@ -283,6 +355,7 @@ const useCaptionStore = create((set, get) => ({
         ...captionStyleDefaults(),
         captionSegments: text ? [{ id, text, startSec: 0, endSec: null }] : [],
         captionText: text,
+        activeCaptionWord: null,
       });
     }
   },

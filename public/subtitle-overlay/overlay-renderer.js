@@ -222,9 +222,17 @@ function renderSubtitle(timestamp) {
       const globalIdx = i + visibleOffset;
       const isActive = karaokeActive && globalIdx === currentWordIdx;
 
+      // #270: word-level style override — a custom-styled word keeps its own
+      // look at ALL times (karaoke color flip and progressive sweep suppressed;
+      // the pop animation still plays). Mirrors PreviewOverlays.
+      const ovCss = w.style
+        ? styleEngine.buildSubtitleWordOverrideCss(s, w.style, getScaleFactor())
+        : null;
+
       // Progressive fill only when highlightMode is "progressive"
       const useProgressiveFill = highlightMode === "progressive" &&
-        isActive && karaokeActive && wordProgress > 0 && wordProgress < 1;
+        isActive && karaokeActive && wordProgress > 0 && wordProgress < 1 &&
+        !ovCss;
 
       const wordText = styleEngine.stripPunctuation(w.word || "", punctuationRemove);
       const suffix = i < visibleWords.length - 1 ? " " : "";
@@ -273,6 +281,8 @@ function renderSubtitle(timestamp) {
         span.style.transformOrigin = "center bottom";
         span.style.verticalAlign = "baseline";
 
+        if (ovCss) applyStyles(span, ovCss);
+
         if (animateOn) {
           span.style.transform = `scale(${popScale(isActive, globalIdx)})`;
         }
@@ -315,7 +325,33 @@ function renderCaption(timestamp) {
   for (const seg of activeSegs) {
     const textDiv = document.createElement("div");
     applyStyles(textDiv, capStyle);
-    textDiv.textContent = seg.text;
+    // #270: per-word style overrides — words without one stay plain text nodes
+    // inheriting the block style (pixel-identical to the flat render). Mirrors
+    // CaptionText in PreviewOverlays.
+    const wordStyles = seg.wordStyles;
+    if (!wordStyles || Object.keys(wordStyles).length === 0) {
+      textDiv.textContent = seg.text;
+    } else {
+      const tokens = (seg.text || "").split(/(\s+)/);
+      let wordIdx = 0;
+      for (const tok of tokens) {
+        if (tok === "") continue;
+        if (/^\s+$/.test(tok)) {
+          textDiv.appendChild(document.createTextNode(tok));
+          continue;
+        }
+        const ov = wordStyles[wordIdx++];
+        if (!ov) {
+          textDiv.appendChild(document.createTextNode(tok));
+          continue;
+        }
+        const span = document.createElement("span");
+        const css = styleEngine.buildCaptionWordOverrideCss(captionStyleConfig, ov, getScaleFactor());
+        if (css) applyStyles(span, css);
+        span.textContent = tok;
+        textDiv.appendChild(span);
+      }
+    }
     inner.appendChild(textDiv);
   }
 }

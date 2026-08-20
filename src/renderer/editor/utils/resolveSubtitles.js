@@ -169,6 +169,9 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       start: Number(w.start ?? s.start) + sourceOffset,
       end: Number(w.end ?? s.end) + sourceOffset,
       probability: w.probability ?? 1,
+      // #270: per-word style overrides ride the word object — the repair stack
+      // downstream spreads words, so this is the only place they'd be lost.
+      ...(w.style ? { style: w.style } : {}),
     })),
   }));
 

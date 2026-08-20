@@ -508,6 +508,68 @@ function EffectSlider({ label, value, onChange, min, max, step = 1, suffix = "",
 // ════════════════════════════════════════════════════════════════
 const STORE_KEY = "userEffectPresets";
 
+// ════════════════════════════════════════════════════════════════
+//  SHARED: Per-word style override card (#270)
+//  Shown when a word is selected (subtitle transcript click / caption chip).
+//  `style` is the word's override object ({} when none); `lineDefaults` supplies
+//  the inherited values the controls display before an override exists.
+// ════════════════════════════════════════════════════════════════
+function WordStyleCard({ word, style = {}, lineDefaults = {}, onPatch, onClear }) {
+  const merged = { ...lineDefaults, ...style };
+  const hasStyle = Object.keys(style).length > 0;
+  return (
+    <div className="rounded-md border border-primary/40 bg-primary/5 p-2 space-y-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-[10px] uppercase tracking-wide text-primary font-semibold shrink-0">Word</span>
+        <span className="text-xs text-foreground font-semibold truncate">“{word}”</span>
+        <div className="flex-1" />
+        {hasStyle && (
+          <button onClick={onClear} className="text-[11px] text-muted-foreground hover:text-red-400 transition-colors shrink-0 cursor-pointer">
+            Reset
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <ColorPickerPopover color={merged.color || "#ffffff"} onChange={(c) => onPatch({ color: c })}>
+          <button title="Word color" className="w-6 h-6 rounded border border-border/60 shrink-0 cursor-pointer" style={{ background: merged.color || "#ffffff" }} />
+        </ColorPickerPopover>
+        <select
+          value={style.fontFamily || ""}
+          onChange={(e) => onPatch({ fontFamily: e.target.value || null })}
+          className="flex-1 min-w-0 h-7 px-1.5 text-xs rounded bg-secondary/40 border border-border/40 text-foreground outline-none cursor-pointer"
+        >
+          <option value="">Line font</option>
+          {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <input
+          type="number"
+          value={style.fontSize ?? ""}
+          placeholder={String(lineDefaults.fontSize ?? "")}
+          onChange={(e) => onPatch({ fontSize: e.target.value ? Number(e.target.value) : null })}
+          title="Word size (blank = line size)"
+          className="w-14 h-7 px-1.5 text-xs rounded bg-secondary/40 border border-border/40 text-foreground outline-none text-center"
+        />
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <ToggleSwitch size="sm" value={!!merged.glowOn} onChange={(v) => onPatch({ glowOn: v })} />
+          <span className="text-[12px] text-foreground">Glow</span>
+          <ColorPickerPopover color={merged.glowColor || "#ffffff"} onChange={(c) => onPatch({ glowOn: true, glowColor: c })}>
+            <button title="Glow color" className="w-4 h-4 rounded-full border border-border/60 cursor-pointer" style={{ background: merged.glowColor || "#ffffff" }} />
+          </ColorPickerPopover>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ToggleSwitch size="sm" value={!!merged.shadowOn} onChange={(v) => onPatch({ shadowOn: v })} />
+          <span className="text-[12px] text-foreground">Shadow</span>
+          <ColorPickerPopover color={merged.shadowColor || "#000000"} onChange={(c) => onPatch({ shadowOn: true, shadowColor: c })}>
+            <button title="Shadow color" className="w-4 h-4 rounded-full border border-border/60 cursor-pointer" style={{ background: merged.shadowColor || "#000000" }} />
+          </ColorPickerPopover>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function useUserPresets() {
   const [userPresets, setUserPresets] = useState([]);
   useEffect(() => {
@@ -1173,6 +1235,28 @@ function SubtitlesPanel() {
   const [fontColor, setFontColor] = useState("#ffffff");
   const { userPresets, persist } = useUserPresets();
 
+  // ── Per-word style override (#270) — driven by the transcript word selection ──
+  const subColor = useSubtitleStore((s) => s.subColor);
+  const selectedWordInfo = useSubtitleStore((s) => s.selectedWordInfo);
+  const editSegments = useSubtitleStore((s) => s.editSegments);
+  const setWordStyle = useSubtitleStore((s) => s.setWordStyle);
+  const clearWordStyle = useSubtitleStore((s) => s.clearWordStyle);
+  const selWord = useMemo(() => {
+    // styleTarget marks selections from an actual word click — segment/timecode
+    // clicks also set selectedWordInfo (wordIdx 0) and must not pop the card.
+    if (!selectedWordInfo || !selectedWordInfo.styleTarget) return null;
+    const seg = editSegments.find((x) => x.id === selectedWordInfo.segId);
+    if (!seg) return null;
+    const word = (seg.text || "").split(/\s+/).filter(Boolean)[selectedWordInfo.wordIdx];
+    if (word === undefined) return null;
+    return {
+      segId: seg.id,
+      wordIdx: selectedWordInfo.wordIdx,
+      word,
+      style: seg.words?.[selectedWordInfo.wordIdx]?.style || {},
+    };
+  }, [selectedWordInfo, editSegments]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Sub tabs */}
@@ -1198,6 +1282,17 @@ function SubtitlesPanel() {
         ) : (
           /* Settings */
           <div className="p-3 space-y-2">
+            {/* Selected-word override card (#270) */}
+            {selWord && (
+              <WordStyleCard
+                word={selWord.word}
+                style={selWord.style}
+                lineDefaults={{ color: subColor, fontSize, glowOn, glowColor, shadowOn, shadowColor }}
+                onPatch={(p) => setWordStyle(selWord.segId, selWord.wordIdx, p)}
+                onClear={() => clearWordStyle(selWord.segId, selWord.wordIdx)}
+              />
+            )}
+
             {/* Font toolbar */}
             <FontToolbar
               fontFamily={subFontFamily} setFontFamily={setSubFontFamily}
@@ -1372,6 +1467,21 @@ function TextPanel() {
     const active = captionSegments.find((s) => s.id === activeCaptionId);
     return active ? active.text : captionSegments[0].text;
   }, [captionSegments, activeCaptionId]);
+
+  // ── Per-word style override (#270) — word chips under the caption text ──
+  const activeCaptionWord = useCaptionStore((s) => s.activeCaptionWord);
+  const setActiveCaptionWord = useCaptionStore((s) => s.setActiveCaptionWord);
+  const setCaptionWordStyle = useCaptionStore((s) => s.setCaptionWordStyle);
+  const clearCaptionWordStyle = useCaptionStore((s) => s.clearCaptionWordStyle);
+  // Same target-segment logic as setCaptionText: active segment, else first
+  const targetCapSeg = useMemo(() => {
+    if (!captionSegments || captionSegments.length === 0) return null;
+    return captionSegments.find((s) => s.id === activeCaptionId) || captionSegments[0];
+  }, [captionSegments, activeCaptionId]);
+  const capWords = useMemo(
+    () => (captionText || "").split(/\s+/).filter(Boolean),
+    [captionText]
+  );
   const captionFontFamily = useCaptionStore((s) => s.captionFontFamily);
   const setCaptionFontFamily = useCaptionStore((s) => s.setCaptionFontFamily);
   const captionFontWeight = useCaptionStore((s) => s.captionFontWeight);
@@ -1471,6 +1581,36 @@ function TextPanel() {
               <textarea value={captionText} onChange={(e) => { setCaptionText(e.target.value); markDirty(); }} rows={3} placeholder="Enter caption text..."
                 className="w-full px-3 py-2.5 text-sm rounded-md bg-secondary/30 border border-border/40 text-foreground outline-none resize-none placeholder:text-muted-foreground focus:border-primary/30" />
             </div>
+
+            {/* Per-word styling (#270): click a word chip, style just that word */}
+            {targetCapSeg && capWords.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {capWords.map((w, i) => {
+                  const styled = !!targetCapSeg.wordStyles?.[i];
+                  const selected = activeCaptionWord?.segId === targetCapSeg.id && activeCaptionWord?.wordIdx === i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setActiveCaptionWord(selected ? null : { segId: targetCapSeg.id, wordIdx: i })}
+                      className={`px-1.5 py-0.5 text-xs rounded border transition-colors cursor-pointer ${selected ? "border-primary bg-primary/15 text-primary" : styled ? "border-primary/50 text-foreground hover:bg-secondary/60" : "border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
+                      style={styled ? { boxShadow: `inset 0 -2px 0 ${targetCapSeg.wordStyles[i].color || "hsl(var(--primary))"}` } : undefined}
+                    >
+                      {w}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {activeCaptionWord && targetCapSeg && activeCaptionWord.segId === targetCapSeg.id &&
+              capWords[activeCaptionWord.wordIdx] !== undefined && (
+              <WordStyleCard
+                word={capWords[activeCaptionWord.wordIdx]}
+                style={targetCapSeg.wordStyles?.[activeCaptionWord.wordIdx] || {}}
+                lineDefaults={{ color: captionColor, fontSize: captionFontSize, glowOn: captionGlowOn, glowColor: captionGlowColor, shadowOn: captionShadowOn, shadowColor: captionShadowColor }}
+                onPatch={(p) => { setCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx, p); markDirty(); }}
+                onClear={() => { clearCaptionWordStyle(targetCapSeg.id, activeCaptionWord.wordIdx); markDirty(); }}
+              />
+            )}
 
             {/* Font toolbar */}
             <FontToolbar

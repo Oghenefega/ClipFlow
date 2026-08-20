@@ -25,6 +25,76 @@ ramp volume over a clip (#273).
   video anchor, real waveform lane per track, sweeping playhead, lane click =
   solo. Awaiting his sign-off on v2, then implement #271.
 
+### ✅ #270 — Per-word caption styling — BUILT (session 178)
+
+**Status: on master, E2E-verified via CDP against the live dev app on a
+rejected clip (word card + color/font/size/glow through the real UI, preview
+override with untouched siblings, karaoke keep-custom-style, save → disk →
+reopen persistence, caption chips + POSITIVITY case, full render with
+frame-extraction proof of both surfaces). Test clip restored byte-identical
+from snapshot. Riding the next installer — Fega's in-app pass pending
+(`status: untested`).** Karaoke decision (approved): a custom-styled word keeps
+its look at all times; the highlight sweep never recolors it. One extra fix
+shipped: the resolver's word normalization (resolveSubtitles.js primaryRaw)
+whitelisted fields and silently dropped `style` on every reopen — caught
+because the E2E loop tested reopen, not just first-save.
+
+Original plan (approved 2026-08-20):
+
+**Goal (plain language):** pick a word in a subtitle or in the hook text and give
+just that word its own color, glow, shadow, font, or size — the rest of the line
+stays untouched, and the exported clip looks exactly like the preview.
+
+**How it fits the existing machinery (all paths verified in code):**
+- Subtitles already render word-by-word (karaoke) in BOTH the preview
+  (`PreviewOverlays.js`) and the export burn-in (`overlay-renderer.js`), driven by
+  the same shared style engine. Word objects survive text edits, split, merge,
+  trim, save, and the render payload with extra fields intact (verified: every
+  hop spreads the whole word object). So a style saved ON the word object flows
+  everywhere for free.
+- Hook text (captions) renders as ONE flat text block in all three places
+  (editor preview, Projects tab, burn-in). Those get upgraded to word-by-word
+  spans; unstyled words inherit the block's look (CSS inheritance), so
+  existing captions render pixel-identical.
+
+**Data model (additive, no migration needed — old clips simply lack the fields):**
+- Subtitle word: optional `style` object on the word entry
+  (`editSegments[].words[n].style`), holding any subset of the line-style keys
+  (color, fontFamily, fontSize, glow*, shadow*). Render = line config with the
+  word's overrides laid on top, fed through the SAME engine builders.
+- Caption segment: optional `wordStyles: { [wordIndex]: styleObj }`. On caption
+  text edits, indexes remap by matching word text; unmatched overrides drop.
+- Single-word text edit keeps the style; replacing one word with several drops
+  it (new words). Undo covers style changes (same undo stacks as today).
+
+**UI (dense, in the existing right-panel Settings sub-tabs):**
+- Subtitles tab: a compact "Selected word" card appears when a word is clicked
+  in the transcript (the existing #217 selection). Controls: color, font, size,
+  glow (toggle+color), shadow (toggle+color), Reset word.
+- Captions tab: the caption text renders as clickable word chips under the text
+  box; clicking a chip shows the same "Selected word" card (shared component).
+- Transcript words carrying a style get a subtle marker so styled words are findable.
+
+**File impact:** `subtitleStyleEngine.js` (merge helper), `PreviewOverlays.js`
+(subtitle word merge + caption word spans), `PreviewPanelNew.js` (caption display
+uses shared word-span renderer), `public/subtitle-overlay/overlay-renderer.js`
+(burn-in mirror of both), `useSubtitleStore.js` + `useCaptionStore.js` (style
+actions + caption word selection), `RightPanelNew.js` (Selected-word card +
+caption chips), `SegmentRow.js` (styled-word marker). No changes needed to
+renderPayload/timeMapping/preloads (verified they already carry the data).
+
+**Verification criteria:**
+1. Style a word in karaoke subs (color+size+font+glow) → only that word changes,
+   preview matches at multiple playhead times.
+2. Style the big word in a hook caption → only it changes; other captions untouched.
+3. Render/export → extracted frames match preview styling (FFmpeg frame probe).
+4. Close + reopen clip → styles persist. Split/merge the segment → style follows the word.
+5. Projects tab preview shows the same styling.
+6. Existing clips with no overrides render byte-identical (frame-skip signatures untouched — overrides are static per word).
+
+**Out of scope (per issue):** per-letter sizing = stretch goal, parked as a
+follow-up; does not block word-level shipping.
+
 ### ✅ #271 — Audio wizard redesign — BUILT (session 177)
 
 **Status: on master, E2E-verified via CDP against the live dev app (21/21

@@ -287,8 +287,12 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
     // clickTime lets the panel hand the highlight back to playback once the
     // video reaches this word — without it, a mid-playback click froze the
     // karaoke highlight globally until the next pause/play (#132).
+    // styleTarget: this selection came from a real word click, so the Subtitles
+    // panel shows the per-word style card (#270). Segment/timecode selections
+    // set selectedWordInfo too but must not pop the card.
     useSubtitleStore.getState().setSelectedWordInfo({
       segId: seg.id, wordIdx, clickTime: target ? target.start : null,
+      styleTarget: true,
     });
     if (target) usePlaybackStore.getState().seekTo(target.start);
   };
@@ -314,6 +318,10 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
 
       const currentWordIdx = wordIdx;
       wordIdx++;
+      // #270: words carrying a style override get an underline marker in the
+      // override's color. Same srcWordIdx mapping as handleWordClick — seg.words
+      // is the trim-filtered list, token indexes are not positional there (#131).
+      const ovStyle = seg.words?.find((w, j) => (w.srcWordIdx ?? j) === currentWordIdx)?.style;
       const isSelected = selectedWordIdx === currentWordIdx;
       // Prioritize explicit user selection over playback-derived highlight.
       // This prevents the "off-by-one" where clicking a word highlights the prior one
@@ -344,6 +352,7 @@ const SegmentRow = React.memo(forwardRef(function SegmentRow(
             ${isHighlighted ? "bg-primary/20 text-primary font-semibold" : ""}
             ${!isHighlighted ? "hover:bg-secondary/60" : ""}
           `}
+          style={ovStyle ? { boxShadow: `inset 0 -2px 0 ${ovStyle.color || "hsl(var(--primary))"}` } : undefined}
           onClick={(e) => { e.stopPropagation(); handleWordClick(currentWordIdx); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: false }); }}
           onDoubleClick={(e) => { e.stopPropagation(); setEditingWord({ segId: seg.id, wordIdx: currentWordIdx, selectAll: true }); }}
           onContextMenu={(e) => handleWordContextMenu(e, currentWordIdx)}

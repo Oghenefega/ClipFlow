@@ -4,6 +4,16 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-20 (session 178) — Words get their own style (#270)
+
+### Added
+- **Per-word caption styling (#270).** Select any word in the subtitles or the hook text and give just that word its own color, font, size, glow, and shadow — the rest of the line is untouched. In the subtitles, clicking a word in the Edit subtitles transcript pops a compact "Word" card at the top of the Subtitles panel; in the hook text, the caption's words appear as clickable chips under the text box in the Text panel. A Reset button returns the word to the line's style, and styled words show a colored underline marker in the transcript and chips so they're findable later.
+- **Custom-styled words keep their look during karaoke.** The live highlight sweep no longer recolors a word you've styled — the word keeps its custom color/glow at all times (the pop animation still plays), which is what makes a permanently emphasized word possible on karaoke subtitles.
+- **Word styles survive everything.** Editing the word's text, splitting or merging segments, trimming the clip, saving, and reopening all preserve the style; it renders identically in the editor preview, the Projects tab preview, and the exported clip (verified frame-by-frame against a real render).
+
+### Fixed
+- **Clip-open normalization now carries word-level fields through.** The subtitle resolver's normalization step rebuilt each word with a fixed field list, which would have silently dropped the new per-word styles on every clip reopen (caught during end-to-end verification; the repair pipeline downstream already preserved them).
+
 ## [Unreleased] — 2026-08-20 (session 177) — The audio wizard becomes an editor (#271)
 
 ### Changed

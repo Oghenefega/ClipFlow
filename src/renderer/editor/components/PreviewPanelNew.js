@@ -4,7 +4,7 @@ import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
-import { SubtitleOverlay, CaptionOverlay } from "./PreviewOverlays";
+import { SubtitleOverlay, CaptionOverlay, CaptionText } from "./PreviewOverlays";
 import { resolvePlacements } from "../models/audioPlacements";
 import { sourceToTimeline } from "../models/timeMapping";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
@@ -2089,7 +2089,11 @@ export default function PreviewPanelNew() {
                   style={capTextStyle}
                   onDoubleClick={onCaptionDoubleClick}
                 >
-                  {seg.text}
+                  <CaptionText
+                    segment={seg}
+                    captionStyle={captionStyleConfig}
+                    scaleFactor={scaleFactor}
+                  />
                 </div>
               )}
               {/* Inline toolbar below caption when selected */}

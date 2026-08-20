@@ -180,6 +180,13 @@ function buildCaptionStyle(config, scaleFactor) {
     style.padding = `${4 * scaleFactor}px ${10 * scaleFactor}px`;
   }
   // Text shadows
+  style.textShadow = buildCaptionShadowString(c, scaleFactor);
+  return style;
+}
+
+// Caption text-shadow string (with the legacy soft-drop fallback) — shared by the
+// whole-block style above and per-word overrides so both resolve identically.
+function buildCaptionShadowString(c, scaleFactor) {
   const allShadows = buildAllShadows({
     sf: scaleFactor,
     stroke: { on: c.strokeOn, width: c.strokeWidth, color: c.strokeColor, opacity: c.strokeOpacity, blur: c.strokeBlur, offX: c.strokeOffsetX, offY: c.strokeOffsetY },
@@ -187,12 +194,44 @@ function buildCaptionStyle(config, scaleFactor) {
     shadow: { on: c.shadowOn, color: c.shadowColor, opacity: c.shadowOpacity, blur: c.shadowBlur, offX: c.shadowOffsetX, offY: c.shadowOffsetY },
     order: c.effectOrder,
   });
-  if (allShadows) {
-    style.textShadow = allShadows;
-  } else {
-    style.textShadow = `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
-  }
-  return style;
+  return allShadows || `0 ${2 * scaleFactor}px ${8 * scaleFactor}px rgba(0,0,0,0.6)`;
+}
+
+// ── Per-word style overrides (#270) ──
+//
+// An override is a flat subset of style keys stored on the word itself:
+//   { color, fontFamily, fontSize, glowOn, glowColor, glowOpacity, glowIntensity,
+//     glowBlur, glowBlend, glowOffsetX, glowOffsetY,
+//     shadowOn, shadowColor, shadowOpacity, shadowBlur, shadowOffsetX, shadowOffsetY }
+// Rendering = line config with the override laid on top, fed through the SAME
+// builders as the line — so an overridden word and a line styled the same way
+// are pixel-identical. Returns null when there is nothing to override.
+
+function hasOverride(ov) {
+  return !!ov && Object.keys(ov).length > 0;
+}
+
+function buildSubtitleWordOverrideCss(lineConfig, ov, scaleFactor) {
+  if (!hasOverride(ov)) return null;
+  const merged = { ...(lineConfig || {}), ...ov };
+  // Subtitle configs name the text color "subColor"; overrides use neutral "color"
+  if (ov.color) merged.subColor = ov.color;
+  const css = { color: merged.subColor || "#ffffff" };
+  css.textShadow = buildSubtitleShadows(merged, scaleFactor).normal;
+  if (ov.fontFamily) css.fontFamily = `'${ov.fontFamily}', sans-serif`;
+  if (ov.fontSize) css.fontSize = `${ov.fontSize * scaleFactor}px`;
+  return css;
+}
+
+function buildCaptionWordOverrideCss(lineConfig, ov, scaleFactor) {
+  if (!hasOverride(ov)) return null;
+  const merged = { ...(lineConfig || {}), ...ov };
+  const css = { color: merged.color || "#ffffff" };
+  css.textShadow = buildCaptionShadowString(merged, scaleFactor);
+  if (ov.fontFamily) css.fontFamily = `'${ov.fontFamily}', sans-serif`;
+  // Same ×2.4 multiplier as the caption block font size
+  if (ov.fontSize) css.fontSize = `${ov.fontSize * 2.4 * scaleFactor}px`;
+  return css;
 }
 
 // ── Punctuation stripper ──
@@ -222,4 +261,6 @@ module.exports = {
   buildSubtitleShadows,
   buildCaptionStyle,
   stripPunctuation,
+  buildSubtitleWordOverrideCss,
+  buildCaptionWordOverrideCss,
 };

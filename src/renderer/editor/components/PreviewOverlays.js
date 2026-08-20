@@ -14,6 +14,8 @@ import {
   buildSubtitleShadows,
   buildCaptionStyle,
   stripPunctuation,
+  buildSubtitleWordOverrideCss,
+  buildCaptionWordOverrideCss,
 } from "../utils/subtitleStyleEngine";
 import {
   findActiveWord,
@@ -108,6 +110,23 @@ export function SubtitleOverlay({
     }
   }, [s, scaleFactor]);
 
+  // Per-word override CSS cache (#270) — keyed on the word object, reset when
+  // the line style or scale changes. Overrides are static per word, so this
+  // avoids rebuilding shadow strings on every playback tick.
+  const ovCssCache = useMemo(() => new WeakMap(), [s, scaleFactor]);
+  const getOverrideCss = useCallback((w) => {
+    if (!w || !w.style) return null;
+    if (ovCssCache.has(w)) return ovCssCache.get(w);
+    let css = null;
+    try {
+      css = buildSubtitleWordOverrideCss(s, w.style, scaleFactor);
+    } catch (err) {
+      console.error("[SubtitleOverlay] word override error:", err);
+    }
+    ovCssCache.set(w, css);
+    return css;
+  }, [ovCssCache, s, scaleFactor]);
+
   // Build word index (memoized on segments change)
   const globalWordIndex = useMemo(
     () => buildGlobalWordIndex(segments),
@@ -177,9 +196,15 @@ export function SubtitleOverlay({
             const wordText = stripPunct(w.word);
             const suffix = i < visibleWords.length - 1 ? " " : "";
 
+            // #270: word-level style override — a custom-styled word keeps its
+            // own look at ALL times (karaoke color flip and progressive sweep
+            // are suppressed for it; the pop animation still plays).
+            const ovCss = getOverrideCss(w);
+
             // Progressive mode: active word gets gradient sweep via clip-path overlay
             const useProgressiveFill = highlightMode === "progressive" &&
-              isActive && karaokeActive && wordProgress > 0 && wordProgress < 1;
+              isActive && karaokeActive && wordProgress > 0 && wordProgress < 1 &&
+              !ovCss;
 
             // Instant mode (default): whole word gets highlight color immediately
             const wordStyle = {
@@ -198,6 +223,8 @@ export function SubtitleOverlay({
               wordStyle.position = "relative";
               wordStyle.transition = undefined;
             }
+
+            if (ovCss) Object.assign(wordStyle, ovCss);
 
             if (animateOn) {
               if (isSingleWord) {
@@ -272,6 +299,46 @@ export function SubtitleOverlay({
 
 
 // ════════════════════════════════════════════════════════════
+// CaptionText — caption text with per-word style overrides (#270)
+// ════════════════════════════════════════════════════════════
+//
+// Shared by CaptionOverlay (Projects tab) and PreviewPanelNew (editor preview).
+// Words WITHOUT an override render as plain text nodes inheriting the block's
+// style — pixel-identical to the pre-#270 flat text. Overridden words become
+// inline spans carrying their merged style.
+//
+// Props:
+//   segment       — caption segment {text, wordStyles?}
+//   captionStyle  — line config, same shape as clip.captionStyle
+//   scaleFactor   — containerWidth / 1080
+
+export function CaptionText({ segment, captionStyle, scaleFactor }) {
+  const text = segment?.text || "";
+  const wordStyles = segment?.wordStyles;
+  const children = useMemo(() => {
+    if (!wordStyles || Object.keys(wordStyles).length === 0) return text;
+    const tokens = text.split(/(\s+)/);
+    let wordIdx = 0;
+    return tokens.map((tok, i) => {
+      if (tok === "" || /^\s+$/.test(tok)) return tok;
+      const idx = wordIdx++;
+      const ov = wordStyles[idx];
+      if (!ov) return tok;
+      let css = null;
+      try {
+        css = buildCaptionWordOverrideCss(captionStyle, ov, scaleFactor);
+      } catch (err) {
+        console.error("[CaptionText] word override error:", err);
+      }
+      if (!css) return tok;
+      return <span key={i} style={css}>{tok}</span>;
+    });
+  }, [text, wordStyles, captionStyle, scaleFactor]);
+  return children;
+}
+
+
+// ════════════════════════════════════════════════════════════
 // CaptionOverlay
 // ════════════════════════════════════════════════════════════
 //
@@ -314,7 +381,11 @@ export function CaptionOverlay({
 
   return (
     <span style={textStyle}>
-      {activeCaption.text || ""}
+      <CaptionText
+        segment={activeCaption}
+        captionStyle={captionStyle}
+        scaleFactor={scaleFactor}
+      />
     </span>
   );
 }
