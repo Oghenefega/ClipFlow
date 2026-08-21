@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-20 (session 179) — 0.4.0-alpha.1 cut
+
+### Changed
+- **Version 0.4.0-alpha.1 — first installer on the 0.4 line (Fega's call).** Promotes everything since 0.3.0-alpha.60: game auto-detection pre-filling the Rename tab (#263), the editor-style audio track wizard (#271), per-word caption styling (#270), saved subtitles no longer mutating on reopen (#278), the pinned Projects header (#275), the Tracker's Calendar folded into week navigation (#276), the compact no-scroll Tracker (#279, two passes), and game art in the Tracker banner (#280). Stays on the alpha channel so future alpha builds keep flowing through the in-app updater.
+
 ## [Unreleased] — 2026-08-20 (session 179) — Saved subtitles stop shape-shifting (#278, #275, #276, #279, #280)
 
 ### Changed
