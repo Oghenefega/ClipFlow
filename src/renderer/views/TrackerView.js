@@ -41,6 +41,18 @@ const parseTimeToMinutes = (s) => {
 
 const shortSlot = (s) => (s || "").replace(" PM", "p").replace(" AM", "a").replace(":30", "·30");
 
+// Slot times are compared as whitespace-free strings all over this view ("3:30 PM" vs
+// "3:30PM" both occur); one helper so the drag code matches the week-log grid's rule.
+const norm12 = (t) => (t || "").replace(/\s/g, "").toUpperCase();
+
+// #282 edge-of-calendar week travel: how wide the hot strip is, how long the cursor
+// must dwell before the first flip, and how fast it repeats while held there.
+const EDGE_PX = 30;
+const EDGE_DWELL_MS = 550;
+const EDGE_REPEAT_MS = 800;
+// No dragover for this long means the cursor left the window — stop travelling.
+const EDGE_STALE_MS = 1200;
+
 // Game colours in gamesDb are 6-digit hex, but the unknown-game fallback is already an
 // rgba() string — so alpha can't just be appended. Falls back to plain white at the same
 // alpha, which is what an untagged clip should look like anyway.
@@ -82,6 +94,7 @@ export default function TrackerView({
   clipIndex,
   onOpenInEditor,
   onOpenQueue,
+  onRescheduleClip,
 }) {
   // #276: the Calendar sub-view folded into week navigation — one view, offset in
   // weeks from today. 0 = live current week, negative = frozen past, positive = preview.
@@ -254,6 +267,9 @@ export default function TrackerView({
   }, [ringCount, target, totalXp, viewMode]);
 
   // ---------- game switcher popover ----------
+  // #281: the Now Playing card's Switch button only appears on hover, so the card
+  // needs to know it's hovered (inline styles — no CSS class to hang :hover on).
+  const [npHover, setNpHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
   const pickerBtnRef = useRef(null);
@@ -618,6 +634,115 @@ export default function TrackerView({
     setShowTemplateEditor(false);
   };
 
+  // ---------- drag a scheduled clip to another slot (#282) ----------
+  // Only clips that haven't published yet move: they carry `scheduledAt` on the clip
+  // object and nothing has gone out to a platform. Posted entries are history.
+  // The payload lives in a ref, not in dataTransfer — the source card unmounts when
+  // the week flips mid-drag, and Chromium won't re-read dataTransfer for us anyway.
+  const dragRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const [edgeDir, setEdgeDir] = useState(0); // -1 left, 0 none, 1 right
+  const edgeDirRef = useRef(0);
+  const edgeTimerRef = useRef(null);
+  const lastEdgeMoveRef = useRef(0);
+  const logCardRef = useRef(null);
+
+  const stopEdgeTimer = () => { clearTimeout(edgeTimerRef.current); edgeTimerRef.current = null; };
+
+  const endClipDrag = useCallback(() => {
+    dragRef.current = null;
+    setDragging(false);
+    setEdgeDir(0);
+    edgeDirRef.current = 0;
+    stopEdgeTimer();
+  }, []);
+
+  // Two cleanup paths, because one isn't enough here. `dragend` fires on the source
+  // card — but flipping the week unmounts that card, and events on a detached node
+  // never reach the document. The backstop is mousemove: the OS suppresses mouse
+  // events for the whole drag, so seeing one again proves the drag is over. The
+  // grace window ignores the mousemove that initiated the drag in the first place.
+  const dragStartedAt = useRef(0);
+  useEffect(() => {
+    if (!dragging) return;
+    const onEnd = () => endClipDrag();
+    const onMouseMove = () => { if (Date.now() - dragStartedAt.current > 300) endClipDrag(); };
+    document.addEventListener("dragend", onEnd);
+    document.addEventListener("mousemove", onMouseMove);
+    return () => {
+      document.removeEventListener("dragend", onEnd);
+      document.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [dragging, endClipDrag]);
+  useEffect(() => stopEdgeTimer, []);
+
+  const startClipDrag = (sched, e) => {
+    dragRef.current = { projectId: sched.projectId, clipId: sched.clipId, date: sched.date, time: sched.time, title: sched.title };
+    e.dataTransfer.effectAllowed = "move";
+    // Firefox/Chromium won't start a drag at all without payload on the transfer.
+    try { e.dataTransfer.setData("text/plain", sched.clipId || "clip"); } catch (err) { /* no-op */ }
+    dragStartedAt.current = Date.now();
+    setDragging(true);
+  };
+
+  // Hold the cursor at either edge of the calendar and the week travels, so a clip can
+  // be moved into a week that isn't on screen (Fega, 2026-08-21). Dwell first, then
+  // repeat, so brushing past an edge on the way to Monday never flips anything.
+  const armEdge = (dir) => {
+    stopEdgeTimer();
+    edgeDirRef.current = dir;
+    setEdgeDir(dir);
+    if (!dir) return;
+    const tick = (delay) => {
+      edgeTimerRef.current = setTimeout(() => {
+        if (!dragRef.current || edgeDirRef.current !== dir) return;
+        // Chromium keeps firing dragover (~every 350ms) while a drag hovers a target,
+        // even stationary. Silence means the cursor left the window — without this the
+        // week would keep marching on in the background for the rest of the drag.
+        if (Date.now() - lastEdgeMoveRef.current > EDGE_STALE_MS) { armEdge(0); return; }
+        goWeek(dir);
+        tick(EDGE_REPEAT_MS);
+      }, delay);
+    };
+    tick(EDGE_DWELL_MS);
+  };
+
+  const onLogDragOver = (e) => {
+    if (!dragRef.current || !logCardRef.current) return;
+    lastEdgeMoveRef.current = Date.now();
+    const r = logCardRef.current.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const dir = x < EDGE_PX ? -1 : x > r.width - EDGE_PX ? 1 : 0;
+    if (dir !== edgeDirRef.current) armEdge(dir);
+  };
+
+  // dragleave fires constantly while crossing child elements; only a leave that lands
+  // outside the card should disarm, or the timer would keep flipping off-screen.
+  const onLogDragLeave = (e) => {
+    if (!dragRef.current) return;
+    const el = logCardRef.current;
+    if (el && e.relatedTarget && el.contains(e.relatedTarget)) return;
+    armEdge(0);
+  };
+
+  const slotDateTime = (dayIso, slotTime) => {
+    const mins = parseTimeToMinutes(slotTime);
+    if (isNaN(mins)) return null;
+    return `${dayIso}T${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}:00`;
+  };
+
+  const dropOnSlot = (dayIso, dayName, slotTime) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const iso = slotDateTime(dayIso, slotTime);
+    endClipDrag();
+    if (!iso) return;
+    if (d.date === dayIso && norm12(d.time) === norm12(slotTime)) return; // dropped where it already was
+    if (new Date(iso).getTime() <= Date.now()) { toast("That slot has already passed"); return; }
+    onRescheduleClip?.(d.projectId, d.clipId, iso);
+    toast(`Moved to ${DAY_SHORT[DAY_NAMES.indexOf(dayName)]} ${"·"} ${shortSlot(slotTime)}`);
+  };
+
   // ---------- ring geometry ----------
   const R = 36, C = 2 * Math.PI * R; // #279: 88px ring (was 142) — height budget
   const progFrac = target > 0 ? Math.min(1, ringCount / target) : (viewMode === "current" ? 1 : 0);
@@ -635,23 +760,11 @@ export default function TrackerView({
 
   return (
     <div style={{ fontFamily: T.font, color: T.text }}>
-      {/* Header row — #279: title, week nav, and actions share ONE line; every
-          saved row is week-log space on short windows */}
+      {/* Header row — #281: the week nav moved onto the week-log card (it steers the
+          calendar, so it belongs on it) and the "NOW PLAYING <game>" echo is gone —
+          the Now Playing card directly below says the same thing, larger, with art. */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: -8, marginBottom: 8, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.01em", margin: 0 }}>Tracker</h1>
-        <span style={{ width: 1, height: 18, background: T.border }} />
-        <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 7 }}>
-          {viewMode === "past" ? "WAS PLAYING" : "NOW PLAYING"} <b style={{ color: gameColor }}>{viewedGameName}</b>
-        </span>
-        <span style={{ width: 3, height: 3, borderRadius: "50%", background: T.textMuted }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
-          <span style={{ fontSize: 12, color: T.textSecondary, fontWeight: 500, minWidth: 120, textAlign: "center" }}>{wd[0].label} {"–"} {wd[5].label}</span>
-          <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
-        </div>
-        {weekOffset !== 0 && (
-          <button onClick={() => goWeek(-weekOffset)} style={{ ...weekNavBtnStyle, width: "auto", padding: "0 12px", color: T.accentLight, borderColor: T.accentBorder, background: T.accentDim }}>This week</button>
-        )}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           {viewMode === "current" ? (
             <div style={{ display: "flex", alignItems: "center", gap: 7, background: T.accentDim, border: `1px solid ${T.accentBorder}`, color: T.accentLight, fontSize: 11, fontWeight: 600, padding: "6px 11px", borderRadius: 999 }}>
@@ -689,13 +802,24 @@ export default function TrackerView({
 
       {/* Top row — #279: Now Playing + Weekly goal + Rank share ONE row so the week
           log (the main content) fits without scrolling even on short windows */}
-      <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.15fr 0.95fr", gap: 14, marginBottom: 12 }}>
-      {/* Now Playing card (was the full-width banner) */}
-      <div style={{
-        position: "relative", border: `1px solid ${T.border}`, borderRadius: T.radius.lg, overflow: "hidden",
-        display: "flex", alignItems: "center", gap: 14, padding: "12px 14px",
-        background: `radial-gradient(120% 140% at 8% 18%, ${gameColor}33 0%, transparent 55%), linear-gradient(105deg, ${gameColor}4d 0%, ${gameColor}0d 42%, rgba(17,18,24,0) 70%), ${T.surface}`,
-      }}>
+      <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.15fr 0.95fr", gap: 14, marginBottom: 12 }}>
+      {/* Now Playing card — #281: an album-cover card. The poster is the card's left
+          edge at full height (was a 54x72 tile) and the two pills it used to carry are
+          gone: the rank pill duplicated the Rank card one column over, and "N posted
+          this week" duplicated the goal ring. Wash/border/hover-lift are the Projects
+          list-row treatment (ProjectsView.js:1536-1570) so the tabs read as one app. */}
+      <div
+        onMouseEnter={() => setNpHover(true)}
+        onMouseLeave={() => setNpHover(false)}
+        style={{
+          position: "relative", borderRadius: T.radius.lg, overflow: "hidden",
+          display: "flex", alignItems: "stretch", gap: 0, padding: 0,
+          background: `radial-gradient(90% 160% at 100% 0%, ${gameColor}1f 0%, transparent 55%), linear-gradient(100deg, ${gameColor}1a 0%, ${gameColor}06 42%, rgba(255,255,255,0.02) 68%), ${T.surface}`,
+          border: `1px solid ${npHover ? `${gameColor}70` : `${gameColor}3d`}`,
+          boxShadow: npHover ? "0 2px 4px rgba(0,0,0,.5), 0 24px 56px -22px rgba(0,0,0,.85)" : "none",
+          transform: npHover ? "translateY(-1px)" : "none",
+          transition: "border-color .18s ease, box-shadow .18s ease, transform .18s ease",
+        }}>
         {pickerOpen && pickerPos && (
           <div ref={pickerRef} style={{
             position: "fixed", top: pickerPos.top, right: pickerPos.right, zIndex: 20, width: 300, maxHeight: 340, overflowY: "auto",
@@ -723,69 +847,56 @@ export default function TrackerView({
           </div>
         )}
 
-        {/* Game tile: the same Steam poster art the Projects tab uses (3:4, like its
-            60x80 tiles); the tag-on-color square stays as the no-art fallback and
-            shows through if the image path is stale. Sized under the text column's
-            height so the compact #279 banner doesn't grow. */}
-        {gameArt[viewedGameName]?.path ? (
-          <div style={{
-            position: "relative", zIndex: 1, width: 54, height: 72, borderRadius: 10, overflow: "hidden", flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: T.mono, fontSize: 20, fontWeight: 700, color: "#0a0b10",
-            background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-          }}>
-            {gameTag}
+        {/* Poster: the same cached Steam key art the Projects tab uses, now full-bleed
+            down the card's left edge. The tag-on-colour block sits behind the image, so
+            it is both the no-art fallback and what shows through if the path goes stale
+            (external drive unplugged, art re-fetched). */}
+        <div style={{
+          position: "relative", flex: "0 0 92px", alignSelf: "stretch", overflow: "hidden",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: T.mono, fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10",
+          background: gameColor,
+        }}>
+          {gameTag}
+          {gameArt[viewedGameName]?.path && (
             <img
               src={`${toFileUrl(gameArt[viewedGameName].path)}?v=${gameArt[viewedGameName].v}`} alt=""
               onError={(e) => { e.currentTarget.style.display = "none"; }}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
-          </div>
-        ) : (
-          <div style={{
-            position: "relative", zIndex: 1, width: 56, height: 56, borderRadius: T.radius.md, display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: T.mono, fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "#0a0b10", flexShrink: 0,
-            background: gameColor, boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-          }}>{gameTag}</div>
-        )}
+          )}
+          {/* vignette + a fade into the card so the poster reads as part of the surface
+              rather than a photo pasted onto it */}
+          <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(120% 90% at 50% 20%, transparent 40%, rgba(0,0,0,0.45)), linear-gradient(90deg, transparent 58%, rgba(17,18,24,0.8) 100%)" }} />
+        </div>
 
-        <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.16em", color: T.textTertiary, fontWeight: 600, marginBottom: 5, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6, flexShrink: 0 }} />
-            <span style={{ whiteSpace: "nowrap" }}>{viewMode === "past" ? "Was playing" : "Now playing"}</span>
-            {/* inline on the label line — in this narrow card every absolute corner
-                and the chips row collide or add a row; this line has spare width */}
-            {viewMode === "current" && (
-              <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
-                marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "rgba(10,11,16,0.45)", border: `1px solid ${T.borderHover}`,
-                color: T.text, fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, cursor: "pointer",
-                textTransform: "none", letterSpacing: "normal",
-              }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" /></svg>
-                Switch
-              </button>
-            )}
-          </div>
-          <h2 style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 8px" }}>{viewedGameName}</h2>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-              background: `${T.tiers[rank.tier]}22`, border: `1px solid ${T.tiers[rank.tier]}66`, color: T.tiers[rank.tier],
+        <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "16px 16px 16px 15px" }}>
+          {/* Switch is a hover-reveal corner control (the Projects rows do the same with
+              Review/Open) — it stays pinned open while the game picker is. */}
+          {viewMode === "current" && (
+            <button ref={pickerBtnRef} onClick={() => setPickerOpen((o) => !o)} style={{
+              position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5,
+              background: "rgba(10,11,16,0.55)", border: `1px solid ${T.borderHover}`,
+              color: T.text, fontFamily: T.font, fontSize: 10, fontWeight: 600, padding: "4px 9px", borderRadius: 999, cursor: "pointer",
+              opacity: npHover || pickerOpen ? 1 : 0, transition: "opacity .15s ease",
             }}>
-              <span style={{ width: 13, height: 13, borderRadius: 3, transform: "rotate(45deg)", display: "inline-block", background: T.tiers[rank.tier] }} />
-              {rank.name}
-            </div>
-            <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 500, display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>
-              {viewMode === "future"
-                ? <><b style={{ color: T.text, fontWeight: 600 }}>{weekAgg.sched}</b> scheduled</>
-                : <><b style={{ color: T.text, fontWeight: 600 }}>{posted}</b> posted {viewMode === "past" ? "that week" : "this week"}</>}
-            </div>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" /></svg>
+              Switch
+            </button>
+          )}
+          <div style={{ fontSize: 9.5, whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.11em", color: T.textTertiary, fontWeight: 600, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gameColor, boxShadow: `0 0 8px ${gameColor}`, animation: viewMode === "current" ? "tp-pulse 2.2s ease-in-out infinite" : "none", opacity: viewMode === "current" ? 1 : 0.6, flexShrink: 0 }} />
+            <span>{viewMode === "past" ? "Was playing" : "Now playing"}</span>
           </div>
+          <h2 style={{
+            fontSize: 21, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.08, margin: 0,
+            overflowWrap: "break-word", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>{viewedGameName}</h2>
         </div>
       </div>
 
         {/* Goal card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, display: "flex", flexDirection: "column" }}>
+        <div style={{ background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <SectionLbl>Weekly goal</SectionLbl>
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -874,7 +985,7 @@ export default function TrackerView({
         </div>
 
         {/* Rank card */}
-        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg, padding: 14, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{ position: "absolute", top: -50, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle, ${T.tiers[rank.tier]}29, transparent 70%)`, pointerEvents: "none" }} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, position: "relative" }}>
             <SectionLbl>Rank</SectionLbl>
@@ -919,38 +1030,28 @@ export default function TrackerView({
         <WeekStateBar mode={viewMode} outcome={outcome} posted={posted} target={target} sched={weekAgg.sched} recap={recap} streakAfter={weekAgg.streakAfter} lostStreak={weekAgg.lostStreak} onOpenQueue={onOpenQueue} />
       )}
 
-      {/* Week log — last element; the pane's own bottom padding is the closing gap */}
-      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radius.lg }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px 0", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <SectionLbl>{viewMode === "current" ? "This week's log" : viewMode === "future" ? "Scheduled preview" : "Week log"}</SectionLbl>
-            {/* #279: legend folded into the header — its own row below the grid cost a
-                full line of week-log space */}
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Manual
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {viewMode === "current" ? (
-              <>
-                <span style={{ fontSize: 11, color: T.textTertiary, fontWeight: 500 }}>Click a slot to log {"·"} click a clip for detail</span>
-                <button onClick={() => setShowTemplateEditor(true)} style={ghostBtnStyle}>Edit slots</button>
-                {hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
-              </>
+      {/* Week log — last element; the pane's own bottom padding is the closing gap.
+          #281: the week nav lives on this card now (it steers this grid) and the legend
+          moved to the footer — the old header tried to carry the section label, three
+          legend keys, a hint line, Edit slots AND the Custom chip on one row. */}
+      <div ref={logCardRef} onDragOver={onLogDragOver} onDragLeave={onLogDragLeave} style={{ position: "relative", background: PANEL_BG, border: `1px solid ${T.border}`, borderRadius: T.radius.lg }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px 7px", borderBottom: `1px solid ${T.border}`, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => goWeek(-1)} title="Previous week" style={weekNavBtnStyle}>{"‹"}</button>
+            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.01em", color: T.text, minWidth: 150, textAlign: "center" }}>{wd[0].label} {"–"} {wd[5].label}</span>
+            <button onClick={() => goWeek(1)} title="Next week" style={weekNavBtnStyle}>{"›"}</button>
+            {weekOffset === 0 ? (
+              <SectionLbl>This week</SectionLbl>
             ) : (
-              <span style={{ fontSize: 11, color: T.textTertiary, fontWeight: 500 }}>
-                {viewMode === "future" ? "Read-only — scheduling happens in the Queue" : "Read-only — click a clip for detail"}
-              </span>
+              <button onClick={() => goWeek(-weekOffset)} style={{ ...weekNavBtnStyle, width: "auto", height: 22, padding: "0 10px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", marginLeft: 4, color: T.accentLight, borderColor: T.accentBorder, background: T.accentDim }}>Back to this week</button>
             )}
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {viewMode === "current" && <button onClick={() => setShowTemplateEditor(true)} style={ghostBtnStyle}>Edit slots</button>}
+            {viewMode === "current" && hasOverride && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", border: `1px solid ${T.yellowBorder}`, color: T.yellow, fontSize: 10, fontWeight: 700 }}>Custom</span>}
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "6px 12px 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 0, padding: "5px 12px 6px" }}>
           {wd.map((d, di) => {
             const isToday = di === todayIdx;
             // #276: every day of a future week is upcoming; past weeks have no future days.
@@ -1016,15 +1117,21 @@ export default function TrackerView({
                     const isAuto = !isSched && item.source === "clipflow";
                     const dotColor = isSched ? T.yellow : (isAuto ? T.cyan : "#fff");
                     const ring = isSched ? T.yellowBorder : rgba(gd.color, 0.26);
+                    // #282: only a not-yet-published clip can be moved — it still has its
+                    // own `scheduledAt` and nothing has gone out to a platform. Posted
+                    // entries (auto or manual) are history and stay put.
+                    const movable = isSched && !!item.clipId && !!item.projectId && !!onRescheduleClip;
                     return (
                       <div key={(isSched ? "s" : "e") + (item.id || item.clipId || `${item.date}-${item.time}-${i}`)}
-                        title={item.title || ""}
+                        title={movable ? `${item.title || "Scheduled clip"} — drag to another slot to move it` : (item.title || "")}
+                        draggable={movable}
+                        onDragStart={movable ? (e) => startClipDrag(item, e) : undefined}
                         onClick={(e) => openDetailPopover(item, isSched, e.currentTarget.getBoundingClientRect())}
                         style={{
                           position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", gap: 3,
                           background: rgba(gd.color, isSched ? 0.05 : 0.09),
                           border: `1px ${isSched ? "dashed" : "solid"} ${ring}`,
-                          borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: "pointer",
+                          borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: movable ? "grab" : "pointer",
                           opacity: isSched ? 0.62 : 1, transition: "opacity .15s, border-color .15s",
                         }}
                         onMouseEnter={(ev) => { ev.currentTarget.style.opacity = 1; ev.currentTarget.style.borderColor = rgba(gd.color, 0.5); }}
@@ -1049,12 +1156,32 @@ export default function TrackerView({
                   // #276: on a future week open slots are a read-only preview of what's
                   // unbooked — logging (and scheduling) stays out of reach on purpose.
                   const slotInteractive = viewMode === "current";
+                  // #282: a drop is only legal on a slot that hasn't happened yet —
+                  // a past `scheduledAt` would make the Queue's scheduler publish it on
+                  // its very next tick. Past weeks render no open slots at all.
+                  const slotIso = slotDateTime(d.iso, row.time);
+                  const droppable = viewMode !== "past" && !!slotIso && new Date(slotIso).getTime() > now.getTime();
+                  const resetSlot = (el) => {
+                    el.style.borderColor = "rgba(255,255,255,0.08)"; el.style.borderStyle = "dashed";
+                    el.style.color = T.textMuted; el.style.background = "transparent"; el.style.boxShadow = "none";
+                  };
                   return (
                     <div key={`slot-${row.time}`}
                       onClick={slotInteractive ? (e) => openLogPopover(d.iso, d.dayName, row.time, e.currentTarget.getBoundingClientRect()) : undefined}
+                      onDragOver={droppable ? (ev) => {
+                        if (!dragRef.current) return;
+                        ev.preventDefault();
+                        ev.dataTransfer.dropEffect = "move";
+                        const el = ev.currentTarget;
+                        el.style.borderColor = T.yellow; el.style.borderStyle = "solid"; el.style.color = T.yellow;
+                        el.style.background = "rgba(251,191,36,0.14)";
+                        el.style.boxShadow = "0 0 16px -4px rgba(251,191,36,0.55)";
+                      } : undefined}
+                      onDragLeave={droppable ? (ev) => resetSlot(ev.currentTarget) : undefined}
+                      onDrop={droppable ? (ev) => { ev.preventDefault(); resetSlot(ev.currentTarget); dropOnSlot(d.iso, d.dayName, row.time); } : undefined}
                       style={{ display: "flex", alignItems: "center", gap: 5, border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 6px", marginBottom: 3, cursor: slotInteractive ? "pointer" : "default", color: T.textMuted, minHeight: 22 }}
                       onMouseEnter={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = gameColor; ev.currentTarget.style.color = gameColor; ev.currentTarget.style.background = `${gameColor}1a`; } : undefined}
-                      onMouseLeave={slotInteractive ? (ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.color = T.textMuted; ev.currentTarget.style.background = "transparent"; } : undefined}
+                      onMouseLeave={slotInteractive ? (ev) => resetSlot(ev.currentTarget) : undefined}
                     >
                       {/* no "+" on read-only weeks — an inert add-affordance reads as broken */}
                       <span style={{ fontSize: 13, lineHeight: 1, color: "inherit" }}>{slotInteractive ? "+" : "○"}</span>
@@ -1066,6 +1193,45 @@ export default function TrackerView({
             );
           })}
         </div>
+
+        {/* #281: legend + hint live under the grid now, out of the header's way. */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 14px", borderTop: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.cyan, boxShadow: `0 0 6px ${T.cyan}88` }} /> Auto-posted
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: "#fff", boxShadow: "0 0 5px rgba(255,255,255,0.35)" }} /> Manual
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.textTertiary, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", display: "inline-block", background: T.yellow, boxShadow: "0 0 6px rgba(251,191,36,0.55)" }} /> Scheduled
+            </span>
+          </div>
+          <span style={{ fontSize: 10.5, color: T.textTertiary, fontWeight: 500 }}>
+            {viewMode === "current"
+              ? <>Click a slot to log {"·"} click a clip for detail {"·"} <b style={{ color: T.textSecondary, fontWeight: 600 }}>drag a scheduled clip to move it</b></>
+              : viewMode === "future"
+                ? <>Click a clip for detail {"·"} <b style={{ color: T.textSecondary, fontWeight: 600 }}>drag a scheduled clip to move it</b></>
+                : "Read-only — click a clip for detail"}
+          </span>
+        </div>
+
+        {/* #282: drag a clip to either edge and the week flips — the strips are pure
+            signal (pointerEvents none) so the Mon/Sat slots underneath stay droppable;
+            the flip itself is driven by cursor position in onLogDragOver. */}
+        {dragging && [-1, 1].map((dir) => (
+          <div key={dir} style={{
+            position: "absolute", top: 0, bottom: 0, [dir < 0 ? "left" : "right"]: 0, width: EDGE_PX,
+            pointerEvents: "none", zIndex: 5, borderRadius: dir < 0 ? "14px 0 0 14px" : "0 14px 14px 0",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: edgeDir === dir
+              ? `linear-gradient(${dir < 0 ? 90 : 270}deg, ${T.accent}59, transparent)`
+              : `linear-gradient(${dir < 0 ? 90 : 270}deg, rgba(255,255,255,0.05), transparent)`,
+            color: edgeDir === dir ? T.accentLight : T.textMuted,
+            fontSize: 20, fontWeight: 700, lineHeight: 1,
+            transition: "background .18s ease, color .18s ease",
+          }}>{dir < 0 ? "‹" : "›"}</div>
+        ))}
       </div>
 
 
@@ -1195,7 +1361,12 @@ export default function TrackerView({
                     </div>
                   )}
                   {isSched ? (
-                    <button onClick={() => { closePopover(); onOpenQueue?.(); }} style={popBtn(T.yellowBorder, T.yellowDim, T.yellow)}>Manage in Queue</button>
+                    <>
+                      <button onClick={() => { closePopover(); onOpenQueue?.(); }} style={popBtn(T.yellowBorder, T.yellowDim, T.yellow)}>Manage in Queue</button>
+                      {/* #282: the drag is an accelerator, not the only way to move a
+                          clip — the Queue button above is still the full control. */}
+                      <div style={{ fontSize: 10, color: T.textTertiary, textAlign: "center", marginTop: 7 }}>or drag the card to another slot</div>
+                    </>
                   ) : viewMode === "current" ? (
                     <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
@@ -1487,6 +1658,10 @@ function StakesBar({ posted, target, streak, daysLeft, now, streakOverVariant, l
     </div>
   );
 }
+
+// #281: the Projects tab's panel treatment — a whisper of a top highlight over the
+// surface colour, so a flat card catches light at its top edge (ProjectsView.js:842).
+const PANEL_BG = `linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0)), ${T.surface}`;
 
 // #276 week nav arrows — square ghost buttons flanking the week label.
 const weekNavBtnStyle = {

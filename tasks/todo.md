@@ -6,6 +6,87 @@
 
 ---
 
+## ✅ BUILT (session 180) — Tracker redesign #281 + drag-to-reschedule #282
+
+**APPROVED by Fega 2026-08-21.** Header trim confirmed (the duplicate
+`NOW PLAYING <game>` stays out of the page header). One addition to #282:
+**dragging a clip to the edge of the calendar flips the week** — left edge back,
+right edge forward — so clips can be moved across weeks without a Queue trip.
+
+**Status: on master, both issues E2E-verified through CDP against the live dev
+app on an isolated throwaway project (never a real scheduled clip).** Verified:
+only the 3 scheduled clips carried `draggable=true` and all 8 posted entries did
+not; an in-week move wrote the new `scheduledAt` to disk; a past slot refused the
+drop; holding the right edge for 1.5s walked Aug 17 → Aug 24 → Aug 31 and a drop
+landed the clip on Sep 7 in the project JSON, with the Queue tab then showing
+"Mon, Sep 7 at 12:30 PM"; past weeks stayed read-only (0 open slots, no Edit
+slots); the no-art fallback (Just Chatting) filled the poster with its tag block;
+no error boundary. Layout measured at 1280×860 — 71px of slack, no scrollbar
+(the pre-change layout had 101px, so the redesign costs 30px). Dev profile
+settings restored to their real projectsRoot afterwards. Riding the next
+installer — Fega's in-app pass pending (`status: untested`).
+
+**One bug found and fixed during verification:** the edge-travel timer kept
+flipping weeks forever if `dragover` stopped arriving (cursor dragged outside the
+window). It now stops after 1200ms of silence. A second hazard was designed
+around up front: the dragged card unmounts when the week flips, so `dragend`
+never reaches the document — cleanup also listens for `mousemove`, which the OS
+suppresses for the whole duration of a native drag.
+
+**Goal (plain language):** the Tracker tab gets the same premium look as the
+redesigned Projects tab, its cluttered header row gets untangled, and you can
+drag a scheduled clip onto another time slot to move when it posts.
+
+**Mock:** `tasks/mocks/tracker-redesign.html` (opened in your browser). It's
+interactive — hover the Now Playing card, drag the dashed yellow Friday cards
+onto open slots.
+
+### Step 1 — #281 Layout + premium pass (one file: `src/renderer/views/TrackerView.js`)
+
+| Your complaint | What changes |
+|---|---|
+| Week switcher too high | `‹ Aug 17 – Aug 22 ›` moves out of the page header (TrackerView.js:645-652) and becomes the week-log card's own header row, directly above the day columns. "This week" chip rides with it. |
+| Legend crammed in the header | Auto-posted / Manual / Scheduled (TrackerView.js:922-936) moves to a new footer strip at the bottom-left of the week-log card. The hint text goes bottom-right. |
+| Game art too small, two redundant pills | Now Playing card becomes an album-cover card: poster full-bleed on the left edge at ~92px wide by full card height (up from 54x72), `Bronze I` pill and `12 posted this week` pill deleted, game name at 21px, `Switch` becomes a hover-reveal pill in the top-right corner. |
+| Doesn't feel premium like Projects | All three top cards + the week log adopt the Projects visual language: game-hue radial+linear wash and `${color}3d` border on Now Playing, the subtle top-highlight panel on Goal/Rank, poster vignette, hover-lift. |
+
+Open question for Fega: the page header still says `NOW PLAYING Rocket League`
+right above a card that says the same thing bigger. The mock removes it — say
+the word and it comes back.
+
+### Step 2 — #282 Drag a scheduled clip to reschedule
+
+- Files: `src/renderer/views/TrackerView.js` (drag handlers on the week-log
+  cards + slots), `src/renderer/App.js` (pass `onRescheduleClip`, wired to the
+  existing `handleUpdateClipFields`, App.js:662-671).
+- Draggable: scheduled clips only (yellow dashed). Posted clips — auto or
+  manual — never pick up; the post already went out.
+- Drop targets: open `+` slots in the week on screen whose time is still in the
+  future. Past slots refuse the drop (a past `scheduledAt` fires the publish on
+  the scheduler's next tick).
+- On drop: `scheduledAt` rewritten and saved to the project JSON, card moves,
+  vacated position becomes an open slot again, toast confirms.
+- **Cross-week (added on approval):** holding the drag near the left or right
+  edge of the calendar flips the week — ~550ms dwell before the first flip, then
+  it keeps going about every 800ms so you can travel several weeks in one drag.
+  The edge zones are visual only, so Mon/Sat slots underneath stay droppable.
+  Drag payload lives in a ref (the source card unmounts when the week flips).
+
+### Verification (before I call either one done)
+
+1. `npm run build:renderer` + `npm start`, Tracker tab open.
+2. Screenshot at 1280x860 and at your window size — top row + stakes bar + full
+   week log fit with no scrolling, no wrapped lines in any of the three cards.
+3. Week arrows still work; popovers/game picker/slot editor still close on
+   navigation; past and future weeks still render their frozen/preview states.
+4. Now Playing card verified with real Steam art AND with a game that has none
+   (tag-on-colour fallback must still show).
+5. Drag one scheduled clip to a new slot → Queue tab shows the new time →
+   restart the app → new time survived (proves the disk write).
+6. Confirm a posted clip can't be dragged and a past slot refuses a drop.
+
+---
+
 ## 📋 PLANNED (session 177) — Batch #270–#273 (awaiting approval)
 
 **Goal (plain language):** the four editor/audio asks from 2026-08-20 — style

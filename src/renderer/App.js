@@ -989,6 +989,10 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
               clipIndex={trackerClipIndex}
               onOpenInEditor={handleOpenTrackerClipInEditor}
               onOpenQueue={() => setView("queue")}
+              // #282: dragging a scheduled clip onto another slot rewrites its
+              // scheduledAt through the same optimistic-then-persist path every other
+              // clip field uses, so the Queue's scheduler picks up the new time.
+              onRescheduleClip={(projectId, clipId, scheduledAt) => handleUpdateClipFields(projectId, clipId, { scheduledAt })}
             />
           </div>
         </div>

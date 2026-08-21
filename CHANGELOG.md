@@ -4,6 +4,18 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-21 (session 180) — Tracker premium pass + drag to reschedule (#281, #282)
+
+### Added
+- **Drag a scheduled clip to a different time slot (#282).** In the Tracker's week log, any clip that hasn't published yet (the yellow dashed cards) can be picked up and dropped onto an open slot, which rewrites when it posts — no trip to the Queue. Clips that already went out, whether auto-posted or manually logged, can't be picked up at all, and a slot whose time has already passed refuses the drop so nothing publishes the instant you let go. The new time saves straight to the project file, so the Queue tab and the publish scheduler both pick it up immediately.
+- **Hold a dragged clip at the edge of the calendar and the week travels (#282).** Left edge steps back a week, right edge forward, so a clip can be moved into a week that isn't on screen. There's a short dwell before the first flip (brushing past an edge does nothing) and it keeps stepping while you hold, so you can travel several weeks in one drag. The edge strips light up but never intercept the drop, so the Monday and Saturday slots underneath stay usable.
+
+### Changed
+- **The week switcher moved onto the calendar it controls (#281).** `‹ Aug 17 – Aug 22 ›` left the page header and now sits as the week log's own header row, directly above the day columns, with the current week labelled and a "Back to this week" button when you've navigated away.
+- **The clip legend moved to the bottom-left of the calendar (#281).** Auto-posted / Manual / Scheduled used to share the log's header row with the section title, a hint line, Edit slots and the Custom chip — six things competing on one line. The legend and the hint now live in a footer strip under the grid, leaving the header holding just the week switcher and Edit slots.
+- **The Now Playing card became an album cover (#281).** The game poster is now the full left edge of the card at roughly four times its previous size, and the two pills it carried are gone: the rank pill duplicated the Rank card sitting one column over, and "12 posted this week" duplicated the goal ring's "12 of 48". The game name is larger, and Switch is a hover-reveal button in the card's top-right corner. Games without cached art still show their tag on the game colour, now filling the same full-height block.
+- **The Tracker adopts the Projects tab's premium look (#281).** The Now Playing card takes the game-hue gradient wash, tinted border and hover-lift used by the Projects list rows; the Weekly Goal and Rank cards and the week log take the same subtle top-edge highlight over the surface colour. The duplicate `NOW PLAYING <game>` line in the page header is gone — the card below says it larger, with art. The redesign costs 30px of height against the #279 layout; measured at 1280×860 the whole tab still fits with 71px to spare, and far more on Fega's window.
+
 ## [Unreleased] — 2026-08-20 (session 179) — 0.4.0-alpha.1 cut
 
 ### Changed
