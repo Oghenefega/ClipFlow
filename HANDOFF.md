@@ -1,88 +1,81 @@
-# HANDOFF — Session 178 (2026-08-20)
+# HANDOFF — Session 179 (2026-08-20)
 
 ## Current State
-**#270 (per-word caption styling) is built, E2E-verified, and on master
-(commit 1478016).** Second of the approved batch **#271 → #270 → #272 → #273**.
-It rides the next installer cut together with #271 (s177) and #263/#269 (s176)
-— no installer has been cut for any of them yet, so Fega has verified none of
-this in the daily driver. Issues #263, #269, #271, #270 are all closed with
-`status: untested`.
+**Six issues shipped, 0.4.0-alpha.1 cut and published to the update feed
+(first build on the 0.4 line — Fega's call, minor bumped because the batch
+since alpha.60 was substantial).** All six are `status: untested` until Fega
+sees them in the installed app: #278, #275, #276, #279 (two passes), #280.
+Also riding this installer, still untested from earlier sessions: #263/#269
+(s176 game auto-detect), #271 (s177 audio wizard), #270 (s178 per-word
+styles).
 
-## What Was Just Built (#270)
-- **Per-word style overrides** for both text surfaces: subtitles (click a word
-  in Edit subtitles → compact "Word" card at the top of the Subtitles panel)
-  and hook-text captions (clickable word chips under the caption box in the
-  Text panel → same card). Controls: color, font, size, glow toggle+color,
-  shadow toggle+color, Reset. Styled words get a colored underline marker in
-  the transcript and chips.
-- **Data model:** style rides the word object itself —
-  `editSegments[].words[n].style` (flat subset of engine keys) and
-  `captionSegments[].wordStyles[tokenIdx]`. Additive/optional; no migration.
-  Survives text edits, split/merge, trim, save, render payload (all hops
-  verified). Caption text edits remap `wordStyles` (`_remapWordStyles` in
-  useCaptionStore: positional when token count unchanged, text-match otherwise).
-- **Rendering:** merged config (`{...lineConfig, ...override}`) fed through the
-  SAME engine builders — new `buildSubtitleWordOverrideCss` /
-  `buildCaptionWordOverrideCss` in `subtitleStyleEngine.js`, consumed by
-  PreviewOverlays (editor + Projects), PreviewPanelNew's caption display (new
-  shared `CaptionText` component), and the burn-in
-  `public/subtitle-overlay/overlay-renderer.js` (exposed via
-  subtitle-overlay-preload.js).
-- **Fix found by E2E:** `resolveSubtitles.js` primaryRaw rebuilt words from a
-  whitelist and stripped `style` on every clip reopen (autosave then persisted
-  the stripped copy). Now carries `style` through.
-- Filed **#278**: pre-existing word-dedup in resolveSubtitles runs on
-  editor-SAVED subs and can merge a repeated word on reopen (user-text
-  mutation; observed 41→40 words during testing).
+## What Was Built
+- **#278** — `resolveSubtitles.js`: the consecutive-duplicate-word cleanup is
+  now gated behind `!hasEditorSavedSubs` like the mega-filter and segment
+  dedup (#115 pattern). Saved "that that" survives reopen cycles; raw
+  transcriptions still dedupe. Unit-proved with a Node harness + live clip open.
+- **#275** — `ProjectsView.js`: PageHeader + filter chips wrapped in a sticky
+  block that swallows the pane's 32px top padding (`margin:-32px 0 16px;
+  padding:32px 0 14px`, opaque bg, zIndex 30). Zero layout jump at pin.
+- **#276** — `TrackerView.js`: Calendar sub-view deleted (`TrackerCalendar.js`
+  removed; `trackerCalendarModel.js` + tests stay and power the week
+  aggregation). `weekOffset` state replaces `subView`; `wd`/`monday` derive
+  from the viewed week so everything downstream follows. Past weeks render
+  frozen state via `weekAggregate` (snapshot game via `viewedGameName`,
+  target null → "untracked", HIT/MISSED verdict + recap + streak from
+  `streakByWeek`), read-only log (no open slots, popover without Remove, post
+  links intact). Future weeks = read-only scheduled preview with Manage in
+  Queue as the only exit. All writes (log/target/switch/slot editor/remove)
+  gated to `viewMode === "current"`; goal-reached toast gated too.
+- **#279** — Tracker density, two passes. Final shape: ONE header line
+  (title + NOW PLAYING + week nav + streak chip + Rundown/Export/Import),
+  ONE top row (Now Playing card w/ art + Weekly Goal w/ 88px ring + Rank),
+  slim stakes bar, week log with the legend folded into its header, no
+  spacer. Zero-scroll verified at 1280×860 AND 1575×1368 with an 8-slot week.
+- **#280** — Tracker card tile uses the Projects-tab `gameArt` map
+  (App → `gameArt` prop; 54×72 poster, tag-on-color fallback).
 
 ## Key Decisions
-- **Karaoke vs custom style (Fega approved):** a custom-styled word keeps its
-  look at ALL times — highlight color flip and progressive sweep are suppressed
-  for it; the pop/scale animation still plays.
-- **Unstyled caption words stay plain text nodes** (no spans) so existing
-  captions render pixel-identical; overridden words are inline spans whose
-  textShadow/color/font override the block's inherited style.
-- **`styleTarget: true` flag on selectedWordInfo** marks real word clicks —
-  segment/timecode/timeline clicks also set selectedWordInfo (wordIdx 0) and
-  must not pop the card.
-- **Per-letter sizing = stretch goal, parked** (per issue scope), not built.
+- **0.4.0-alpha.1, not 0.4.0** — keeps the `alpha` channel so future alpha
+  builds keep flowing through the updater (a bare 0.4.0 would outrank them).
+- **Tracker is motivation, Queue is operations** (issue #276 guardrail) —
+  future weeks never schedule from the Tracker.
+- **Switch game lives inline on the "Now playing" label line** — every
+  absolute corner and the chips row collide in the narrow card.
+- **#273 (volume ramps) explicitly NOT started** — it's a full session
+  (data model + Web Audio preview + FFmpeg parity + mock-first per house rule).
 
 ## Next Steps
-1. **#272 — per-clip mic vs game volume balance** (next in approved batch;
-   builds the mixing mechanism #273 reuses). Plan to Fega before code.
-2. **#273 — music volume ramp over a clip** (shares #272's mechanism).
-3. When batch is ready: cut installer via `clipflow-update-launcher`
-   (#263/#269/#271/#270 all ride it), then Fega's in-app passes.
-4. #278 (saved-subs word dedup) — small gated fix, good session filler.
+1. **Fega's in-app pass** on 0.4.0-alpha.1: Tracker (arrow back/forward, no
+   scroll at his window, art tile, Switch pill), Projects header pin, a saved
+   clip with a repeated word reopened twice. Then clear `status: untested` on
+   #275/#276/#278/#279/#280 (+ #263/#269/#270/#271).
+2. **#272 → #273** (approved batch order from s178): mic/game balance first,
+   then volume ramps. Mock the ramp interaction before code.
+3. #277 premium design pass epic is queued behind these — Tracker is now in
+   its final pre-redesign shape.
 
 ## Watch Out For
-- **resolveSubtitles primaryRaw is a whitelist** — any future per-word field
-  must be added there explicitly or it dies on clip reopen (and autosave then
-  wipes it on disk). Same for the extras map below it if extras ever carry
-  custom fields.
-- **Caption `cap-N` ids restart per clip** — `activeCaptionWord` is cleared in
-  both initFromClip branches for this reason; keep that if touching init.
-- **The dev profile shares Fega's real projectsRoot** — this session styled a
-  REJECTED clip (clip_1787202782990_2r7b in proj_1787202305653_tndmi9),
-  snapshotted first, and restored `project.json` byte-identical (md5
-  95bb1f9a…) after. Test render deleted from the temp output folder.
-- WordStyleCard glow/shadow toggles write explicit overrides (`glowOn: false`
-  kills a line-level glow for that word); Reset clears the whole override.
-- `_remapWordStyles` drops a styled word's override if its text changes in the
-  same edit that changes the word count — acceptable edge, documented in code.
+- **Short-window Tracker can still scroll on extreme days** (a day with 5+
+  posted cards at 860px tall) — that's content, not chrome; typical weeks fit.
+- **Dev profile tracker store is empty** — past-week/HIT states need seeded
+  history. Pattern used: back up `%APPDATA%\clipflow-dev\clipflow-settings.json`,
+  inject `trackerData` + `weekMeta`, test, restore (restore guarded on `seed-`
+  id markers). Dev Queue's scheduled clips DO show up in the Tracker preview.
+- **`innerText` is rendered text** — uppercase via `text-transform`, newlines
+  between inline children. Probe with `/regex/i`, or read refs/fiber state.
+- **Emulation.setDeviceMetricsOverride** is how to test other window sizes
+  in Electron via CDP (`Browser.setWindowBounds` isn't implemented); the
+  override persists across CDP sessions until cleared.
 
-## Logs/Debugging
-- E2E was CDP against `CLIPFLOW_PROFILE=dev npx electron .
-  --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`
-  with a ws-based evaluator (scratchpad cdp.js; 8MB maxPayload — the 64MB
-  buffer caused node VirtualAlloc crashes under this machine's memory
-  pressure). Machine also threw "paging file too small" mid-session; retries
-  succeeded.
-- Render output lands in `<outputFolder>/<project name>/<clip title>.mp4` —
-  poll the project SUBFOLDER, not the output root (this session's poll missed
-  a finished render for 4 minutes).
-- Burn-in proof pattern: render → `ffmpeg -ss <t> -frames:v 1` → Read the PNG.
-  One frame at 1.5s showed both surfaces (red Impact "breathing" + magenta
-  POSITIVITY) matching preview.
-- The dup-word merge (#278) shows as transcript word count dropping on reopen
-  of a saved clip (41→40 here); disk keeps the old count until next save.
+## Logs / Debugging
+- Scratchpad harnesses this session (session dir `93464d24…/scratchpad`):
+  `cdp.js` (eval helper), `shot.js` (screenshot), `verify-275.js` (sticky
+  header cycles), `verify-276.js` + `verify-276b.js` (week nav + read-only
+  popover), `verify-279b.js` (dual-viewport fit), `click-switch.js` (trusted
+  input click), `test-278.js` (resolver unit proof).
+- Build log: `scratchpad/build-0.4.0-alpha.1.log`. Feed check:
+  `curl -s https://engine.flowve.app/updates/alpha.yml | head -1`.
+- Tracker state inspection trick: walk `__reactFiber$` from the Switch button
+  to the first function-component fiber; hooks 28–31 = pickerOpen, pickerRef,
+  pickerBtnRef, pickerPos (order follows source declaration).

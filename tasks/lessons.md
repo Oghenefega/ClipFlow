@@ -1234,3 +1234,19 @@ against every exact-match condition in the diff before shipping.
 **Why it happened:** I grepped for spreads and found them, which reads as proof. A whitelist rebuild doesn't match a `\.\.\.w` search — absence of evidence in the positive search pattern.
 
 **Rule:** A field-survival claim must enumerate every site that REBUILDS the object (whitelist maps, normalizers, `{word: w.word, ...}` literals), not just the sites that spread it — grep the object's property names as literals (`word:`, `start:`) to find rebuilders. And persistence E2E must always run the full save→close→reopen loop; first-save proof is not persistence proof, especially when autosave can propagate a stripped copy back to disk.
+
+## Session 179 (2026-08-20) — "Fits on the reporter's screen" is not "fits" (#279)
+
+**What went wrong:** Fega asked for the Tracker's week log to be visible without scrolling. I compacted the top blocks, verified zero-scroll at HIS window size (1575×1368, measured from his screenshot), and shipped. My proof screenshot was taken at the dev window's default 1280×860 — where the log was still cut off — and Fega pointed at that screenshot: "I don't want that to be the case." Round 2 needed a structural change (banner folded into the cards row, header rows merged, legend into the log header), not more padding trims.
+
+**Why it happened:** I anchored the acceptance test to the one viewport I had evidence for and treated "fits there" as done. A layout requirement phrased as "X must be visible without scrolling" is a requirement about the SMALLEST reasonable window, not the reporter's current one — and my own proof screenshot contradicted the claim, which I didn't notice because I was checking the numbers, not looking at the picture.
+
+**Rule:** For any "must fit without scrolling / without cutting off" ask, verify at BOTH the reporter's size AND the app's default/small window (1280×860 here), and look at the proof screenshot as the user would before sending it — if the screenshot itself shows the defect, the fix isn't done. When padding trims can't close the gap, the answer is removing a ROW (merge blocks side-by-side, fold a legend into a header), not shaving every margin by 2px.
+
+## Session 179 (2026-08-20) — A verification probe can lie for an hour: innerText is the RENDERED text
+
+**What went wrong:** After moving the Tracker's Switch-game button, every CDP probe said the game picker no longer opened — synthetic click, trusted Input.dispatchMouseEvent, React-props instrumentation all "confirmed" it. Forty minutes of diagnosis later, the fiber showed the popover mounted at a perfect position. The probe checked `innerText.includes('What are you playing')` — but the heading has `textTransform: uppercase`, and `innerText` returns the TRANSFORMED text ("WHAT ARE YOU PLAYING"). Same class earlier in the session: `innerText` inserts newlines between inline children, so `/6 posted this week/` failed against "6\nposted this week".
+
+**Why it happened:** I trusted the probe's negative without first validating the probe on a known-positive state. Each follow-up probe also toggled the button (open→closed→open), so observations were taken in alternating states, which made the "evidence" look consistent with a real bug.
+
+**Rule:** Before diagnosing the app from a failing probe, prove the probe can detect the positive case (or read state from the React fiber / element refs, not text). Match text case-insensitively and whitespace-tolerantly (`/what are you playing/i`, `\s+`), never exact strings against `innerText`. For toggle controls, reset to a known state before each probe — one click per probe flips parity. If two different mechanisms "fail" identically, suspect the ASSERTION before the mechanism.
