@@ -6,6 +6,155 @@
 
 ---
 
+## ✅ BUILT (session 182) — #284 personal-data strip, #286 `{schedule}`, #285 YouTube tags
+
+**APPROVED by Fega 2026-08-22 ("go"). All three shipped and verified in the built
+app against the dev profile; see the verification log at the end of this block.**
+Order shipped: #284 → #286 → #285. #284 is the only launch
+blocker of the three and is the smallest. #286 and #285 are independent of it
+and of each other (Wick's "#286 depends on #284" note was self-corrected in the
+issue comments).
+
+### 1. #284 — Regenerate from Template ships Fega's affiliate links (BUG, blocker)
+
+**Root cause.** `buildYtDescription()` (`src/renderer/views/CaptionsView.js:12`)
+is the pre-#262 full description body: `@Fega` channel + join link, Twitch /
+Kick / TikTok / IG / Twitter handles, 8 `amzn.to` affiliate links, a CharaChorder
+referral code, the "these are affiliate links" line, and `#Fega`. Commit
+`d223693` (#262) swept `main.js`, `App.js` and `useAIStore.js` but never touched
+`CaptionsView.js`. Factory default is `ytDescriptions: {}`
+(`src/main/main.js:265`), so any user who hits **Edit → Regenerate from
+Template** gets Fega's monetisation in their own video description.
+
+**Fix — de-duplicate, don't rewrite.** The clean generic starter already exists
+inline in `handleNewGame` (`src/renderer/App.js:583-594`).
+1. New `src/renderer/utils/ytDescriptionTemplate.js` — one exported
+   `buildStarterYtDescription(gameName, hashtag)` returning the App.js body
+   verbatim (blurb line, keyword line, two hashtags; no channel, no links, no
+   schedule line).
+2. `App.js handleNewGame` imports and calls it.
+3. `CaptionsView handleRegenerate` imports and calls it.
+4. Delete `buildYtDescription` at `CaptionsView.js:12` entirely.
+
+**Files.** `src/renderer/utils/ytDescriptionTemplate.js` (new),
+`src/renderer/App.js`, `src/renderer/views/CaptionsView.js`.
+
+**Verify.** Dev profile, add a game → capture the generated body; open the same
+game in Captions & Descriptions → Edit → Regenerate from Template → capture.
+The two must be byte-identical, and must contain no `youtube.com/@`, no
+`amzn.to`, no `charachorder`, no `#Fega`, no schedule line.
+
+### 2. #286 — `{schedule}` substitution variable (FEATURE)
+
+**Change.**
+1. `src/main/main.js` defaults: `streamSchedule: ""`.
+2. `App.js`: `streamSchedule` state + load (`all.streamSchedule`) + `persist`
+   effect, mirroring `requireHashtagInTitle` exactly. Passed to `SettingsView`
+   and `QueueView`.
+3. `SettingsView.js`: one text field in the **Publishing** group's "Queue
+   Settings" card (or its own small card directly above it) — label "Stream
+   Schedule", helper line "Use `{schedule}` in a description template and it
+   resolves to this text.", Edit/Save pattern like the other text settings.
+4. `QueueView.js resolveCaption`: third `.replace(/\{schedule\}/g, streamSchedule)`
+   on the YouTube branch (`:325-327`) **and** on the platform-template branch
+   (`:334-336`) — same variable, both places, so TikTok/IG/FB templates can use
+   it too. Empty setting resolves to an empty string, never leaves raw
+   `{schedule}` in a published description.
+5. `CaptionsView.js`: a one-line hint under the description textarea listing the
+   available variables (`{title}`, `#{gametitle}`, `{schedule}`) — otherwise the
+   variable is undiscoverable.
+
+**Explicitly NOT in scope.** The starter template does not gain a schedule line.
+The 11 hand-authored templates are not auto-migrated — swapping their literal
+schedule text for `{schedule}` is a one-time content pass (Mushu's lane) that
+happens after this ships.
+
+**Files.** `src/main/main.js`, `src/renderer/App.js`,
+`src/renderer/views/SettingsView.js`, `src/renderer/views/QueueView.js`,
+`src/renderer/views/CaptionsView.js`.
+
+**Verify.** Dev profile: set a schedule in Settings, put `{schedule}` in one
+game's template, confirm the Queue caption preview for a clip of that game
+resolves it. Change the setting, check a clip from a *different* game picks the
+new value up with no template edit. Blank setting → no raw `{schedule}` leaks.
+
+### 3. #285 — YouTube Shorts publish with an empty Tags field (FEATURE)
+
+Downstream plumbing is already correct (`main.js:4545,4601`,
+`youtube-publish.js:131,150`). Only the renderer sends `tags: []`.
+
+**Change.**
+1. **Store.** `ytDescriptions[game].tags` — a **string array**, third field
+   beside `desc` / `ytTitle`. No new store key, no migration (absent = `[]`).
+2. **UI.** A "YouTube Tags" input in the CaptionsView per-game editor, under the
+   description box. Comma-separated text in, normalised on save (trim, drop
+   empties, case-insensitive dedupe). Live character count against YouTube's
+   500-char total; over the limit the count goes red and **Save is blocked**
+   with an inline reason — a failed publish after a render is an expensive way
+   to learn. Count is computed the way YouTube charges it (comma separators, +2
+   for any tag containing a space).
+3. **Resolution.** Extract the existing game-key matching out of
+   `resolveCaption` (`QueueView.js:305-320`) into `resolveYtGameKey(clip,
+   ytDescriptions, gamesDb)`; `resolveCaption` and a new `resolveTags` both call
+   it. No reimplementation, so `"RL"` → `"Rocket League"` behaves identically
+   for tags and descriptions.
+4. **Wire.** Replace `tags: []` at `QueueView.js:1352` (manual publish) and
+   `:1667` (scheduled publish) with `resolveTags(clip, ytDescriptions, gamesDb)`.
+
+**Files.** `src/renderer/views/CaptionsView.js`,
+`src/renderer/views/QueueView.js`.
+
+**Verify (mine).** Dev profile: set tags on one game, confirm `resolveTags`
+returns the normalised array for a clip whose `gameTag` is the short form, and
+that both publish call sites hand that array to `youtubePublish`. Over-limit
+input blocks Save; a game with no tags resolves to `[]` and publishes exactly as
+it does today.
+**Verify (Fega's).** One real manual publish and one real scheduled publish,
+then check the Tags field on the live video. I don't publish to the live channel.
+
+**Blocking constraint carried from the issue:** the comma-separated keyword wall
+stays in the description templates until this ships. Order is tags ship →
+keywords move into the tags field → wall comes out.
+
+### Verification log (built app, dev profile, CDP-driven)
+
+- **#284.** Added a throwaway game through the real Add Game flow, then hit
+  Regenerate on that game's card. The two bodies came back **byte-identical**
+  (225 chars each) and contain no `youtube.com/@`, no `amzn.to`, no
+  `charachorder`, no `#Fega`, no schedule line. An existing game's saved
+  description was untouched by the Regenerate press (it only fills the editor
+  box until you Save).
+- **#286.** Set the schedule in Settings → Publishing, put `Live: {schedule}` in
+  two templates (Egging On, Rocket League), and read the resolved YouTube
+  description on a queued clip of each: both showed the Settings line. Changed
+  the schedule to a second value — **both games updated with no template edit**.
+  Blanked it — the line resolved to empty with no raw `{schedule}` anywhere on
+  the page. Input is trimmed on save.
+- **#285.** Typed `zeta test,  Zeta Test ,   , zeta clips` → counter read
+  `24 / 500` and the save stored `["zeta test","zeta clips"]` (trimmed, blank
+  dropped, case-insensitive duplicate removed) beside the description. A
+  40-tag list read `989 / 500` in red with the warning line, Save disabled, and
+  a click on it changed nothing and left the editor open. Collapsed rows show
+  `2 tags` / `no tags`. Resolution exercised against live store data through a
+  temporary hook (removed before commit, absent from the shipped bundle): short
+  tag `RL`, hashtag slug `rocketleague`, and title-hashtag-only all resolved to
+  the Rocket League tag list; a game with no tags, an unknown game and a clip
+  with no game all returned `[]`.
+- **Not verified by me:** the live YouTube publish. Fega publishes one Short
+  manually and one on a schedule and checks the Tags field on the videos.
+- Renderer console after a full reload: no errors, no warnings. Dev profile
+  restored to its pre-session state (throwaway game removed, templates and
+  tags reverted, schedule blanked, the preview-only platform entry removed).
+
+### Noted, not doing unless asked
+
+`App.js:325-328` still carries `#fega #fegagaming` in the `captionTemplates`
+`useState` initialiser. It never reaches a user — the generic store defaults at
+`main.js:261-263` overwrite it on load — so it is a pre-load flash, not a leak.
+Three lines to sweep while I'm in the file. Say the word.
+
+---
+
 ## ✅ BUILT (session 181) — colour picker recents + vivid palette (#283)
 
 **APPROVED by Fega 2026-08-21** off the HTML mock, with one change: Recent holds

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import T from "../styles/theme";
 import { Card, PageHeader, TabBar, SectionLabel } from "../components/shared";
+import { buildStarterYtDescription } from "../utils/ytDescriptionTemplate";
 
 const PLATFORMS = [
   { id: "tiktok", label: "TikTok" },
@@ -8,16 +9,31 @@ const PLATFORMS = [
   { id: "facebook", label: "Facebook" },
 ];
 
-// Build the full YouTube description template for a game
-function buildYtDescription(gameName, hashtag) {
-  return `\u{1F534}Live every day 5PM\nThe funniest and most chaotic ${gameName} moments from my streams\u{1F602}\n\nStay connected & support the journey \n\u{1F514}SUBSCRIBE https://www.youtube.com/@Fega  \n\u{1F4AA}\u{1F3FD} Become a member: https://www.youtube.com/@Fega/join   \n\nMultistreaming ON \nTwitch: https://www.twitch.tv/fegaabsolute  \nKick: https://www.kick.com/fegaabsolute  \nTiktok: https://www.tiktok.com/fega  \n\n\u{1F53D} Watch My Best Videos \u{1F525}  \n\u{1F3AE} Old but Gold \u2013 Gaming Highlights & Reactions (Valorant, Fortnite,  Fall Guys, Outlast):  https://www.youtube.com/watch?v=GjYKMJdpESM&list=PLb2kk3HKq1SY6wAXPzbptMKqXULJulUmO    \n\n\u{1F4F2} Follow the Journey:  \n\u27A1 https://instagram.com/fegagaming \n\u27A1 https://twitter.com/FegaAbsolute   \n\n\u{1F3AE}Stream Setup  \nCamera | Sony ZVE10 - https://amzn.to/44QBgk7  \nLens | Vlog Lens (Sigma 18-35 lens) - https://amzn.to/4eX3oXm  \nMic | Blue Snowball - https://amzn.to/40ty3pw  \nElgato CamLink - https://amzn.to/4m1REVR  \nElgato Teleprompter - https://amzn.to/45a4Hit  \nGaming Mouse | Glorious Model O Wireless - https://amzn.to/453cwWe   \n\n\u2702\uFE0FMy Content & Editing Essentials  \nBEST Keyboard EVER | https://charachorder.com/FEGA  \nEditing Mouse | Master MX 3s - https://amzn.to/4kQ5D0j  \nNVME SSD Enclosure Casing - https://amzn.to/4nUunH9  \n2tb Samsung SSD - https://amzn.to/4lCtDFm   \n\n\u{1F4B8} All links above are affiliate links. \nPurchasing anything through them  helps support me. Thank you and God bless you!   \n\n${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming shorts, gaming shorts, funny gaming moments, funny clips, stream highlights, viral shorts, gaming content, gaming videos, gaming entertainment, ${hashtag} highlights, ${hashtag} fails, ${hashtag} clutch, Fega, YouTube Live, live gaming, live reaction\n\n#${hashtag} #gamingshorts #Fega`;
-}
+// #285: YouTube budgets the whole tag list at 500 characters — the tags, the
+// commas between them, and two extra for any tag containing a space (the API
+// quotes those). Counted here so the editor can block a save the upload would
+// reject at the end of a render.
+const TAGS_MAX = 500;
+
+const parseTags = (raw) => {
+  const seen = new Set();
+  return (raw || "").split(",").map((t) => t.trim()).filter((t) => {
+    const key = t.toLowerCase();
+    if (!t || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const tagsLength = (tags) =>
+  tags.reduce((n, t) => n + t.length + (/\s/.test(t) ? 2 : 0), 0) + Math.max(0, tags.length - 1);
 
 export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [] }) {
   const [section, setSection] = useState("youtube");
   const [editGame, setEditGame] = useState(null);
   const [editDesc, setEditDesc] = useState("");
   const [editTitle, setEditTitle] = useState("");
+  const [editTags, setEditTags] = useState("");
   const [editPlat, setEditPlat] = useState(null);
   const [editTpl, setEditTpl] = useState("");
   const [copied, setCopied] = useState(null);
@@ -31,14 +47,15 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
   const handleRegenerate = (game) => {
     const gameEntry = gamesDb.find((g) => g.name === game);
     const hashtag = gameEntry?.hashtag || game.toLowerCase().replace(/\s+/g, "");
-    const newDesc = buildYtDescription(game, hashtag);
+    const newDesc = buildStarterYtDescription(game, hashtag);
     setEditDesc(newDesc);
   };
 
   const handleSave = () => {
+    if (tagsOver) return;
     setYtDescriptions((p) => ({
       ...p,
-      [editGame]: { ...p[editGame], desc: editDesc, ytTitle: editTitle },
+      [editGame]: { ...p[editGame], desc: editDesc, ytTitle: editTitle, tags: parsedTags },
     }));
     setEditGame(null);
   };
@@ -47,7 +64,12 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
     setEditGame(game);
     setEditDesc(data.desc || "");
     setEditTitle(data.ytTitle || game + " Shorts");
+    setEditTags((data.tags || []).join(", "));
   };
+
+  const parsedTags = parseTags(editTags);
+  const tagsLen = tagsLength(parsedTags);
+  const tagsOver = tagsLen > TAGS_MAX;
 
   return (
     <div>
@@ -77,7 +99,12 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                       />
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={() => setEditGame(null)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 13, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
-                        <button onClick={handleSave} style={{ padding: "8px 16px", borderRadius: 8, background: T.green, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Save</button>
+                        <button
+                          onClick={handleSave}
+                          disabled={tagsOver}
+                          title={tagsOver ? "Tags are over YouTube's 500-character limit" : ""}
+                          style={{ padding: "8px 16px", borderRadius: 8, background: tagsOver ? "rgba(255,255,255,0.06)" : T.green, border: "none", color: tagsOver ? T.textMuted : "#fff", fontSize: 13, fontWeight: 700, cursor: tagsOver ? "not-allowed" : "pointer", fontFamily: T.font }}
+                        >Save</button>
                       </div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -95,10 +122,41 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                       rows={8}
                       style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: 14, color: T.text, fontSize: 13, fontFamily: T.mono, lineHeight: 1.6, outline: "none", resize: "vertical", marginTop: 4, boxSizing: "border-box" }}
                     />
+
+                    {/* #286: the variables are invisible unless we say so */}
+                    <div style={{ color: T.textMuted, fontSize: 11, marginTop: 6 }}>
+                      Variables: <span style={{ fontFamily: T.mono, color: T.textTertiary }}>{"{title}"}</span> the clip title
+                      {" · "}<span style={{ fontFamily: T.mono, color: T.textTertiary }}>{"#{gametitle}"}</span> the game hashtag
+                      {" · "}<span style={{ fontFamily: T.mono, color: T.textTertiary }}>{"{schedule}"}</span> your stream schedule from Settings
+                    </div>
+
+                    {/* #285: per-game YouTube tags — sent with every Short for this game */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, marginBottom: 8 }}>
+                      <SectionLabel>YouTube Tags</SectionLabel>
+                      <span style={{ fontSize: 11, fontFamily: T.mono, color: tagsOver ? T.red : T.textMuted }}>
+                        {tagsLen} / {TAGS_MAX}
+                      </span>
+                    </div>
+                    <input
+                      value={editTags}
+                      onChange={(e) => setEditTags(e.target.value)}
+                      placeholder="rocket league, rocket league clips, gaming shorts"
+                      style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${tagsOver ? T.red : T.border}`, borderRadius: T.radius.md, padding: "12px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" }}
+                    />
+                    <div style={{ color: tagsOver ? T.red : T.textMuted, fontSize: 11, marginTop: 6 }}>
+                      {tagsOver
+                        ? `Over YouTube's 500-character tag limit by ${tagsLen - TAGS_MAX} — shorten the list to save.`
+                        : "Comma-separated. Sent with every Short published for this game."}
+                    </div>
                   </div>
                 ) : (
                   <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ color: T.text, fontSize: 15, fontWeight: 700 }}>{data.ytTitle || game + " Shorts"}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ color: T.text, fontSize: 15, fontWeight: 700 }}>{data.ytTitle || game + " Shorts"}</div>
+                      <span style={{ fontSize: 11, color: data.tags?.length ? T.textTertiary : T.textMuted }}>
+                        {data.tags?.length ? `${data.tags.length} tag${data.tags.length === 1 ? "" : "s"}` : "no tags"}
+                      </span>
+                    </div>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => startEdit(game, data)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>
                       <button onClick={() => handleCopy(game, data.desc)} style={{ padding: "6px 12px", borderRadius: 6, background: copied === game ? T.yellow : T.yellowDim, border: `1px solid ${copied === game ? T.yellow : T.yellowBorder}`, color: copied === game ? "#000" : T.yellow, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font, transition: "all 0.2s" }}>{copied === game ? "Copied!" : "Copy"}</button>

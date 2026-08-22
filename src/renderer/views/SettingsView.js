@@ -13,10 +13,13 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, requireHashtagInTitle, setRequireHashtagInTitle, collapsedGroups, setCollapsedGroups, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, collapsedGroups, setCollapsedGroups, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
+  // #286: stream schedule — one string every template reads via {schedule}
+  const [editSchedule, setEditSchedule] = useState(false);
+  const [scheduleVal, setScheduleVal] = useState(streamSchedule || "");
   const [testFolderVal, setTestFolderVal] = useState(testWatchFolder || "");
   const [editGD, setEditGD] = useState(null);
   const [showAddMain, setShowAddMain] = useState(false);
@@ -985,6 +988,36 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
           </div>
         );
       })()}
+
+      {/* Stream Schedule (#286) — the {schedule} variable's single source */}
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: T.textSecondary, fontSize: 14, fontWeight: 700 }}>Stream Schedule</div>
+          {!editSchedule ? (
+            <button onClick={() => { setEditSchedule(true); setScheduleVal(streamSchedule || ""); }} style={btnSecondary}>Edit</button>
+          ) : (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setEditSchedule(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={() => { setStreamSchedule(scheduleVal.trim()); setEditSchedule(false); }} style={btnSave}>Save</button>
+            </div>
+          )}
+        </div>
+        {editSchedule ? (
+          <input
+            value={scheduleVal}
+            onChange={(e) => setScheduleVal(e.target.value)}
+            placeholder="Mon / Wed / Fri, 1PM-4PM EST"
+            style={{ ...inputStyle, border: `1px solid ${T.accentBorder}` }}
+          />
+        ) : (
+          <p style={{ color: streamSchedule ? T.textTertiary : T.textMuted, fontSize: 13, fontFamily: T.mono, margin: 0 }}>
+            {streamSchedule || "Not set"}
+          </p>
+        )}
+        <p style={{ color: T.textMuted, fontSize: 11, margin: "8px 0 0 0" }}>
+          Write <span style={{ fontFamily: T.mono, color: T.textTertiary }}>{"{schedule}"}</span> in any description or caption template and it resolves to this line at publish. Change it here, not in every template.
+        </p>
+      </Card>
 
       {/* Queue Settings */}
       <Card style={{ padding: 16, marginBottom: 16 }}>

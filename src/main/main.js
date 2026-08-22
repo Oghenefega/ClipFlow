@@ -263,6 +263,10 @@ const STORE_DEFAULTS = {
     facebook: "{title} #{gametitle} #gaming #fbreels",
   },
   ytDescriptions: {},
+  // #286: the user's stream schedule as one line of text. Templates reference it
+  // as {schedule} so a schedule change is one edit here instead of eleven
+  // template edits. Empty = the variable resolves to nothing.
+  streamSchedule: "",
   outputFolder: "",
   // Legacy single "Sound Effects Folder". Superseded by audioFolders (#208);
   // kept so the migration below has something to read, blanked once it runs.

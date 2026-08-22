@@ -295,8 +295,38 @@ const TIKTOK_PRIVACY_LABELS = {
 const PLACEHOLDER_TITLE_RE = /^Clip \d+$/;
 const isPlaceholderTitle = (title) => PLACEHOLDER_TITLE_RE.test((title || "").trim());
 
+// #285: the per-game YouTube lookup, in one place. ytDescriptions is keyed by
+// display name ("Rocket League") while clips carry the short tag ("RL") or a
+// hashtag slug ("rocketleague"), so descriptions and tags MUST resolve through
+// the same match or they drift apart on the same clip.
+function resolveYtGameKey(clip, ytDescriptions, gamesDb) {
+  const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
+  const game = (gamesDb || []).find((g) =>
+    (g.tag || "").toLowerCase() === gameTag ||
+    (g.hashtag || "").toLowerCase() === gameTag
+  );
+  let key = null;
+  if (game?.name && ytDescriptions?.[game.name]) {
+    key = game.name;
+  } else {
+    // Permissive fallback for legacy entries: match a key whose spaces-stripped lowercase form == gameTag.
+    key = Object.keys(ytDescriptions || {}).find((k) =>
+      k.toLowerCase().replace(/\s+/g, "") === gameTag
+    ) || null;
+  }
+  return { gameTag, game, key };
+}
+
+// #285: YouTube tags for a clip — the per-game list saved beside the description.
+// No tags set (or no matching game) publishes exactly as it did before: an empty list.
+function resolveTags(clip, ytDescriptions, gamesDb) {
+  const { key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
+  const tags = key ? ytDescriptions?.[key]?.tags : null;
+  return Array.isArray(tags) ? tags : [];
+}
+
 // Resolve caption for a platform using template + clip data, respecting overrides
-function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb) {
+function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule = "") {
   // Prefer clip.gameTag (first-class field, lowercased); fall back to title hashtag for legacy clips.
   const gameTag = (clip.gameTag || extractGameTag(clip.title) || "").toLowerCase();
   // YouTube description comes from ytDescriptions per-game system.
@@ -305,26 +335,18 @@ function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gam
   // as a hashtag slug ("rocketleague") via title extraction. Resolve via gamesDb by
   // matching either form to find the display name.
   if (platformKey === "youtube") {
-    let key = null;
-    const game = (gamesDb || []).find((g) =>
-      (g.tag || "").toLowerCase() === gameTag ||
-      (g.hashtag || "").toLowerCase() === gameTag
-    );
-    if (game?.name && ytDescriptions?.[game.name]) {
-      key = game.name;
-    } else {
-      // Permissive fallback for legacy entries: match a key whose spaces-stripped lowercase form == gameTag.
-      key = Object.keys(ytDescriptions || {}).find((k) =>
-        k.toLowerCase().replace(/\s+/g, "") === gameTag
-      ) || null;
-    }
+    const { game, key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
     if (key && ytDescriptions[key]?.desc) {
       // Prefer the gamesDb hashtag for {gametitle} substitution so saved templates
       // still render "#rocketleague" even when clip.gameTag is the short form ("RL").
       const hashtagForSub = (game?.hashtag || gameTag || "").toLowerCase();
       return ytDescriptions[key].desc
         .replace(/\{title\}/g, clip.title || "")
-        .replace(/#{gametitle}/g, hashtagForSub ? `#${hashtagForSub}` : "");
+        .replace(/#{gametitle}/g, hashtagForSub ? `#${hashtagForSub}` : "")
+        // #286: one Settings field feeds every template — a schedule change is
+        // one edit, not one per game. Unset resolves to "" so a template can
+        // never publish a raw {schedule}.
+        .replace(/\{schedule\}/g, streamSchedule || "");
     }
     return clip.title || "";
   }
@@ -333,7 +355,8 @@ function resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gam
   if (!template) return clip.title || "";
   return template
     .replace(/\{title\}/g, clip.title || "")
-    .replace(/#{gametitle}/g, gameTag ? `#${gameTag}` : "");
+    .replace(/#{gametitle}/g, gameTag ? `#${gameTag}` : "")
+    .replace(/\{schedule\}/g, streamSchedule || "");
 }
 
 // Map connected account to platform key
@@ -667,7 +690,7 @@ function TiktokInteractionToggle({ label, userOn, forceOn, onToggle }) {
 export default function QueueView({
   allClips, localProjects, setLocalProjects, mainGame, mainGameTag, platforms, trackerData, setTrackerData,
   weeklyTemplate, weekTemplateOverrides,
-  ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates,
+  ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
   platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor, onCreateGame,
   onScheduledPublishFailure, refreshOauthAccounts, focusFailedSignal,
 }) {
@@ -1083,7 +1106,7 @@ export default function QueueView({
   useEffect(() => () => clearTimeout(captionFlashTimer.current), []);
   const saveCaptionOverride = async (clip, platformKey, value) => {
     if (!clip._projectId) return;
-    const resolved = resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb);
+    const resolved = resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule);
     const current = clip.captionOverrides || {};
     // If value matches template, clear the override
     const updated = { ...current, [platformKey]: value === resolved ? undefined : value };
@@ -1147,7 +1170,7 @@ export default function QueueView({
   // Phase 2: Get effective caption for a clip+platform (override or resolved template)
   const getEffectiveCaption = (clip, platformKey) => {
     if (clip.captionOverrides?.[platformKey] != null) return clip.captionOverrides[platformKey];
-    return resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb);
+    return resolveCaption(platformKey, clip, captionTemplates, ytDescriptions, gamesDb, streamSchedule);
   };
 
   // Phase 2: Get which platform keys are enabled for a clip
@@ -1349,7 +1372,7 @@ export default function QueueView({
         } else if (plat.platform === "Facebook" && window.clipflow?.facebookPublish) {
           result = await window.clipflow.facebookPublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, isTest: isClipTest(clip) });
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
-          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: [], youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
+          result = await window.clipflow.youtubePublish({ accountId: plat.key, videoPath: publishPath, title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb), youtubeTitle: clip.youtubeTitle || clip.title, privacyStatus: clip.youtubePrivacy || "public", isTest: isClipTest(clip) });
         }
         if (result?.error) {
           setPublishStatus((prev) => ({ ...prev, [clipId]: { ...prev[clipId], platforms: { ...prev[clipId].platforms, [platKey]: result.error } } }));
@@ -1664,7 +1687,7 @@ export default function QueueView({
         } else if (plat.platform === "YouTube" && window.clipflow?.youtubePublish) {
           result = await window.clipflow.youtubePublish({
             accountId: plat.key, videoPath: clip.renderPath,
-            title: clip.title, caption, clipId: clip.id, tags: [],
+            title: clip.title, caption, clipId: clip.id, tags: resolveTags(clip, ytDescriptions, gamesDb),
             youtubeTitle: clip.youtubeTitle || clip.title,
             privacyStatus: clip.youtubePrivacy || "public",
             isTest: isClipTest(clip),

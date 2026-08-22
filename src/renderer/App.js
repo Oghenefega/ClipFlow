@@ -21,6 +21,7 @@ import SettingsView from "./views/SettingsView";
 import EditorView from "./editor/EditorView";
 import OnboardingView from "./views/OnboardingView";
 import { evaluateRollover, localISO } from "./utils/trackerEngine";
+import { buildStarterYtDescription } from "./utils/ytDescriptionTemplate";
 import clipflowMark from "./assets/brand/clipflow-mark.png";
 
 // ============ FALLBACK DEFAULTS (used if electron-store has no data yet) ============
@@ -328,6 +329,8 @@ export default function App() {
     facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
   });
   const [ytDescriptions, setYtDescriptions] = useState({});
+  // #286: one stream-schedule string, referenced by templates as {schedule}.
+  const [streamSchedule, setStreamSchedule] = useState("");
 
   // #244: scheduled-publish failures raised by QueueView's scheduler. Persist
   // until dismissed — the whole point is reaching the user who wasn't looking.
@@ -440,6 +443,7 @@ export default function App() {
         if (all.tiktokClientSecret) setTiktokClientSecret(all.tiktokClientSecret);
         if (all.styleGuide) setStyleGuide(all.styleGuide);
         if (all.requireHashtagInTitle !== undefined) setRequireHashtagInTitle(all.requireHashtagInTitle);
+        if (typeof all.streamSchedule === "string") setStreamSchedule(all.streamSchedule);
         // Onboarding flag
         setOnboardingComplete(!!all.onboardingComplete);
         // #262: no baked-in defaults — the store is the only source of descriptions
@@ -533,6 +537,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("tiktokClientSecret", tiktokClientSecret); }, [tiktokClientSecret]);
   useEffect(() => { if (!hasLoaded.current) return; persist("styleGuide", styleGuide); }, [styleGuide]);
   useEffect(() => { if (!hasLoaded.current) return; persist("requireHashtagInTitle", requireHashtagInTitle); }, [requireHashtagInTitle]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("streamSchedule", streamSchedule); }, [streamSchedule]);
 
   // XP ledger append with idempotency — nothing is ever double-banked or removed (rank only climbs).
   const awardXp = useCallback((key, amount, reason, dateISO) => {
@@ -584,13 +589,10 @@ export default function App() {
     setGamesDb((p) => [...p, { ...gd, entryType: gd.entryType || showAddGame || "game", dayCount: gd.entryType === "content" || showAddGame === "content" ? 0 : 1 }]);
     // #262: starter YouTube description — generic; the user makes it theirs in
     // the Captions tab (no baked-in channel links or personal hashtags).
+    // #284: shared with CaptionsView's Regenerate button — one generator only.
     const gameName = gd.name;
     const hashtag = gd.hashtag || gameName.toLowerCase().replace(/\s+/g, "");
-    const ytDesc = `The best ${gameName} moments from my streams
-
-${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming shorts, gaming shorts, funny gaming moments, stream highlights, gaming content
-
-#${hashtag} #gamingshorts`;
+    const ytDesc = buildStarterYtDescription(gameName, hashtag);
     setYtDescriptions((p) => ({ ...p, [gameName]: { desc: ytDesc } }));
     setNewGameExe(null);
     setShowAddGame(false);
@@ -950,6 +952,7 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
               setYtDescriptions={setYtDescriptions}
               captionTemplates={captionTemplates}
               setCaptionTemplates={setCaptionTemplates}
+              streamSchedule={streamSchedule}
               platformOptions={platformOptions}
               setPlatformOptions={setPlatformOptions}
               gamesDb={gamesDb}
@@ -1045,6 +1048,8 @@ ${hashtag} shorts, ${hashtag} funny moments, ${hashtag} gameplay, funny gaming s
               setStyleGuide={setStyleGuide}
               requireHashtagInTitle={requireHashtagInTitle}
               setRequireHashtagInTitle={setRequireHashtagInTitle}
+              streamSchedule={streamSchedule}
+              setStreamSchedule={setStreamSchedule}
               collapsedGroups={settingsCollapsed}
               setCollapsedGroups={setSettingsCollapsed}
               isActive={view === "settings"}
