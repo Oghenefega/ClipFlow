@@ -88,6 +88,12 @@ NEVER use timing-gap heuristics for merging — whisper gaps are too inconsisten
 - **`visibleSubtitleSegments` output is sorted by `timelineStartSec`** — consumers walk it as a flat sequence (karaoke global word index, Edit-subtitles rows, Transcript paragraphs) and track the wrong word if it arrives in source order. Any new derived list built off the segment list needs the same explicit sort; the input's incidental order is not a guarantee.
 - **A subtitle straddling a cut can map to an inverted range** (start lands late, end lands early) once the two sides aren't adjacent. `visibleSubtitleSegments` clips it to the section holding its start and rebuilds `text` from the kept words — keep `text`/`words[]` in sync there or the burned-in render silently drops a word (#116).
 
+## Keyboard Shortcuts
+
+- All editor keys live in `shortcuts/registry.js` — one entry buys the binding, its cheat-sheet row and user rebinding. Never hardcode a key outside it.
+- **A free key is not the same as a reachable one.** `eventToKey()` records Shift ONLY alongside Ctrl/Alt or on a non-printable key — so `shift+<letter>` canonicalises to the bare letter and can never match (it silently fires whatever owns that letter). Use `alt+<letter>` or `ctrl+<letter>` for a modified letter; `shift+delete` is fine. Check the canonicaliser, not just the SHORTCUTS list, before adding a binding (#296).
+- Keys needing the timeline's local selection (split, delete, disable) are published via `registerTimelineHandlers` and no-op while the timeline is collapsed — by design.
+
 ## NEVER Do These
 
 - Never load video/audio files in the renderer process (OOM crash) — use main process + FFmpeg
