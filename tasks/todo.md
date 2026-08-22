@@ -6,9 +6,182 @@
 
 ---
 
+## 📋 PLAN (session 184) — Disable / enable elements and lanes, plus source-audio mute
+
+**STATUS: AWAITING APPROVAL. No code written.** Supersedes the #294 mute plan below.
+
+Resolve-style enable/disable: a greyed-out element or lane is excluded from the viewer
+AND the final render until switched back on. Scope confirmed by Fega 2026-08-22.
+
+**In scope**
+- Element disable: one SFX, one music drop, one subtitle line, one caption block.
+- Lane disable: Caption, Subtitle, Music, SFX.
+- Audio lane: **mute** (picture stays, the clip's own sound goes silent).
+- Shortcut: `d` toggles the selection, `shift+d` toggles the lane it sits on. Both rebindable.
+
+**Out of scope (deferred, own ticket if wanted)**
+- Disabling a video segment. Segments are concatenated, so skipping one ripples the
+  timeline and re-maps every subtitle — a different and much deeper change.
+
+### Findings (verified session 184)
+
+1. **The lanes are Caption, Subtitle, Audio, Music, SFX** — `TimelinePanelNew.js:1155`,
+   `:1205`, `:1274`, `:1320`, `:1321`. There is **no separate Video lane**: the Audio
+   lane maps `nleSegments` to one `WaveformTrack` each, so it IS the video-segment lane.
+   That is exactly why it gets a mute rather than a disable — "disabling" it would mean
+   deleting the picture.
+2. **`d` and `shift+d` are unbound.** Bound today: `space r e u m s delete/backspace
+   ctrl+z ctrl+y ctrl+. ?` (`shortcuts/registry.js`). No editor key is hardcoded outside
+   the registry, so one entry buys the key, its cheat-sheet row and user rebinding at once.
+   Note `m` is Trim-start — Resolve's M-for-mute is NOT free.
+3. **Pre-existing bug this feature must absorb: "Show subtitles" is ignored by the render.**
+   `showSubs` lives in `useSubtitleStore` (default true, persisted — `:80`, `:243`), is
+   honoured by the preview (`PreviewPanelNew.js:2144`), and is even shipped to the main
+   process inside `subtitleStyle` (`renderPayload.js:61`) — but `grep -rn showSubs src/main/`
+   is **empty**. Nothing in the main process reads it, and `subtitles: timelineSubs`
+   (`renderPayload.js:44`) is passed unconditionally. Turn the toggle off, render, and the
+   subtitles burn in anyway. Neither label says preview-only: "Show subtitles"
+   (`RightPanelNew.js:1438`) and "Subtitle display" (`LeftPanelNew.js:120`).
+   → **Resolution: the Subtitle lane's disable and `showSubs` become ONE state**, honoured
+   by preview and render. Shipping a second subtitle switch beside a broken one is worse
+   than the bug. Filed separately so it can be fixed on its own if this slips.
+4. **One enforcement point per surface — all already single choke points:**
+   - Render, sounds: `activeAudioAssets = resolvePlacements(sfxPlacements, nleSegments)` — `render.js:469`.
+   - Render, subs/captions: `subtitleSegments` (`render.js:447`) and `captionSegments`
+     (`render.js:450`), both consumed by `createOverlaySession` at `:489-492`.
+   - Render, source audio: the `base_a` label in the filter graph — `render.js:244`.
+   - Preview, sounds: `el.volume = clamp(p.volume ?? 1)` — `PreviewPanelNew.js:1340-1350`.
+   - Preview, subs/captions: `PreviewPanelNew.js:2144` and `:2068`.
+
+### Data model — absent means enabled, so nothing migrates
+
+`enabled !== false` is on. Existing clips and placements carry no flag and are unaffected.
+
+| Thing | Where the flag lives |
+|---|---|
+| Sound / music placement | `enabled` on the placement — `setAudioPlacementProps` merges arbitrary keys (`useEditorStore.js:590`) and it persists inside `clip.sfx` |
+| Caption block | `enabled` on the segment — `useCaptionStore.captionSegments` |
+| Subtitle line | `enabled` on the segment — `useSubtitleStore.editSegments` |
+| Caption / Music / SFX lane | new persisted per-clip flags |
+| Subtitle lane | **reuses `showSubs`** — see finding 3 |
+| Audio lane mute | `sourceAudioMuted` on the clip |
+
+### File impact
+
+| File | Change |
+|---|---|
+| `src/renderer/editor/shortcuts/registry.js` | Two entries: `toggleDisable` (`d`) and `toggleLaneDisable` (`shift+d`), group Editing. |
+| `src/renderer/editor/shortcuts/timelineHandlers.js` | Handlers routing to the right store by selected track. |
+| `src/renderer/editor/components/TimelinePanelNew.js` | Lane-label toggles; greyed rendering; disable item in the sound popover and the segment context menu. |
+| `src/renderer/editor/components/timeline/SoundBlock.js` | Greyed/struck styling when disabled. |
+| `src/renderer/editor/stores/useEditorStore.js` | Placement + lane toggles, `sourceAudioMuted`. |
+| `src/renderer/editor/stores/useCaptionStore.js` / `useSubtitleStore.js` | Per-segment toggle; `showSubs` becomes the Subtitle lane's state. |
+| `src/renderer/editor/components/PreviewPanelNew.js` | Skip disabled sounds, subtitles, captions; honour source mute. |
+| `src/renderer/editor/utils/renderPayload.js` | Carry the flags into the render payload. |
+| `src/main/render.js` | Filter disabled sounds out of `activeAudioAssets`; disabled subs/captions out of the overlay inputs; mute `base_a` when source audio is muted. |
+
+### Steps
+
+1. Flags + store actions, with `enabled !== false` as the read everywhere.
+2. Element disable end-to-end for sounds first (smallest loop: popover item → grey block →
+   silent preview → absent from render), then captions, then subtitles.
+3. Lane toggles in the lane labels; Subtitle's wires to `showSubs`.
+4. Fix `showSubs` in the render as part of step 3 — filter subtitles out of the payload
+   when it's off, so preview and render finally agree.
+5. Audio-lane mute: `sourceAudioMuted` → `volume=0` on `base_a` in the graph, and the
+   preview video element muted to match.
+6. Shortcuts last, once the store actions they call are proven.
+
+### Verification criteria
+
+1. Build + `npm start`. Disable one SFX: block greys, `d` toggles it back, volume slider
+   still reads its old level (never zeroed).
+2. Disabled SFX is silent in preview AND absent from the rendered MP4 (verify by ear or
+   by inspecting the audio graph, not by assuming).
+3. Disable one subtitle line and one caption block: gone from the viewer, gone from the
+   render, still present and re-enable-able in the timeline.
+4. Lane toggles switch a whole lane off in one click; `shift+d` does the same from the keyboard.
+5. **The `showSubs` bug is dead:** turn "Show subtitles" off, render, confirm the output
+   has no subtitles. This must be checked on the RENDER, not the preview — the preview
+   was always right.
+6. Audio-lane mute: rendered file has no source audio but keeps music/SFX, and the picture
+   is untouched.
+7. `d` and `shift+d` appear in the shortcuts dialog and can be rebound; rebinding survives
+   a restart.
+8. **Regression — the big one:** a clip with nothing disabled renders byte-identically to
+   before. Absent flag must mean enabled on every single path.
+
+---
+
+## 📋 PLAN (session 184) — Mute an SFX on the timeline (#294)
+
+**STATUS: SUPERSEDED by the disable plan above.** Disabling a sound preserves its volume
+by construction — you never touch the slider — so the `preMuteVolume` bookkeeping and the
+"Remember 0%" trap both disappear. Kept for the render/preview findings, which still hold.
+
+Today the only way to silence one placed sound is to drag its Volume slider to 0,
+which destroys the level you had set — unmuting means guessing it again.
+
+### Why this is small
+
+`volume: 0` is ALREADY true silence on both paths, so nothing in the pipeline changes:
+- Render: `chain += ",volume=" + clamp(a.volume ?? 1)` — `src/main/render.js:266`.
+- Preview: `el.volume = clamp(p.volume ?? 1)` — `src/renderer/editor/components/PreviewPanelNew.js:1340-1350`.
+
+This is a UI affordance over the existing `volume` field. No new render flag, no schema
+change: `setAudioPlacementProps` merges arbitrary keys (`useEditorStore.js:590`), so the
+remembered level rides on the placement and survives save/reopen.
+
+### File impact
+
+| File | Change |
+|---|---|
+| `src/renderer/editor/components/TimelinePanelNew.js` | Speaker toggle beside the Volume label in the sound popover (~`:1372`). Muted = `volume === 0`: readout reads "Muted", icon flips to `VolumeX`. |
+| `src/renderer/editor/components/timeline/SoundBlock.js` | Muted block reads muted — dim it and say so in the existing `title` (`:192`). |
+
+### Steps
+
+1. Mute: write `preMuteVolume: p.volume ?? 1` and `volume: 0` in one patch.
+2. Unmute: restore `volume: preMuteVolume ?? 1`, clear `preMuteVolume`.
+3. Dragging the slider off 0 by hand unmutes implicitly — clear `preMuteVolume` so a
+   later mute captures the new level, not a stale one.
+4. Hide "Remember N% for this sound" while muted. At `volume: 0` it currently offers
+   **"Remember 0%"**, which would pin silence as that sound's default for every future
+   drop — a trap this feature would otherwise walk users straight into.
+5. Timeline block: reduced opacity + `· Muted` in the tooltip.
+
+### Verification criteria
+
+1. Build + `npm start`; place an SFX, set volume to 26%, mute → readout says Muted, block dims.
+2. Unmute → **26%**, not 100%.
+3. Close and reopen the editor while muted → still muted, and unmute still returns 26%.
+4. Drag the slider off 0 by hand, then mute → returns to the hand-set level, not 26%.
+5. "Remember …% for this sound" is absent while muted, and never pins 0%.
+6. Muted SFX is silent in preview playback AND absent from the rendered file.
+7. Regression: an unmuted sound behaves exactly as before — volume, fades, trim, duplicate, remove.
+
+### Not in scope
+
+Per-track mute (the whole SFX lane at once) and a mute item on the block's right-click
+menu. Fega asked for one sound; say so rather than guessing wider.
+
+---
+
+## ✅ BUILT (session 184) — #293 published clips on the Queue
+
+**Shipped in b28e56d.** Verified in the built app over CDP: shelf renders collapsed with
+20 rows newest-first, expands to title/description/tags with working copy buttons (tag
+copy confirmed against the real system clipboard), zero editable elements in the panel,
+provenance labels correct on both the snapshot and recomputed branches, the "Published"
+filter chip now opens the shelf, and the rest of the Queue is unchanged. The snapshot
+WRITE path is proven by build + identical resolver calls already live at both publish
+sites; it gets its end-to-end confirmation on the next real publish.
+
+Original plan below.
+
 ## 📋 PLAN (session 184) — Published clips on the Queue, read-only, with a publish snapshot
 
-**STATUS: AWAITING APPROVAL. No code written.**
+**STATUS: APPROVED and BUILT — see above.**
 
 Fega wants published clips visible on the Queue so their settings (title, description,
 tags) can be read and copied onto future clips — e.g. reusing the tag list from a

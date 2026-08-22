@@ -1,141 +1,156 @@
-# HANDOFF — Session 183 (2026-08-22)
+# HANDOFF — Session 184 (2026-08-22)
 
 ## Current State
-**#291 shipped and 0.4.0-alpha.3 is cut and published.** The queue's YouTube card
-now shows and edits tags; the code is on master in `36f3f5f`, the version bump in
-`2bd292d`. The feed at `https://engine.flowve.app/updates/alpha.yml` reads
-`0.4.0-alpha.3`, so **every installed copy offers the update on next launch** —
-desktop and laptop both. alpha.2's files were pruned from the feed by the publish
-script, as always.
 
-This was a one-issue session: Fega spotted the gap in the alpha.2 build the moment
-he opened the queue — #285 had given tags a home in Captions & Descriptions and
-wired them into the publish call, but the queue's YouTube card still showed only
-Title, Privacy and Description.
+**#293 shipped (`b28e56d`, pushed to master). No installer cut** — this is one
+feature on top of 0.4.0-alpha.3, well short of the ~10-change batch that earns a
+version bump. The daily driver does NOT have it yet.
 
-**Awaiting Fega's in-app pass:** #291 (left OPEN on purpose, commented not closed),
-plus everything still open from before — #284, #285, #286, #263/#269, #270, #271,
-#275, #276, #278, #279, #280, #281, #282, #283.
+The rest of the session was research and planning. **Three issues filed, one closed,
+two plans written to `tasks/todo.md` — one of them approved and awaiting a build.**
 
-**#285 still has the leg nobody has tested:** a real YouTube publish with tags
-attached. Set tags on a game, publish one Short manually and one on a schedule,
-then check the Tags field on the live videos. Until that passes, **the
-comma-separated keyword wall stays in the description templates** — it is still
-the only keyword signal on the channel. #291 does not change that; it only moves
-where tags can be edited.
+| Issue | State |
+|---|---|
+| [#292](https://github.com/Oghenefega/ClipFlow/issues/292) | Filed. Reactions as its own content type. **Gated — do not build yet**, see below. |
+| [#293](https://github.com/Oghenefega/ClipFlow/issues/293) | **Shipped** in `b28e56d`. Left OPEN pending Fega's in-app pass. |
+| [#294](https://github.com/Oghenefega/ClipFlow/issues/294) | **Closed as superseded** by #296. No code shipped. |
+| [#295](https://github.com/Oghenefega/ClipFlow/issues/295) | Filed. Real bug — "Show subtitles" off still burns subtitles into the render. |
+| [#296](https://github.com/Oghenefega/ClipFlow/issues/296) | Filed and **APPROVED by Fega**. Deferred to next session on context grounds. **This is the next build.** |
+
+Still awaiting Fega's in-app pass from before: #284, #285, #286, #263/#269, #270,
+#271, #275, #276, #278, #279, #280, #281, #282, #283, #291 — plus #293 now.
+
+**#285's untested leg still stands:** a real YouTube publish with tags attached has
+never been verified on a live video. Unchanged by this session.
 
 ## What Was Built
 
-### #291 — the queue's YouTube card had no tags field
-`resolveTags()` (`QueueView.js:322`) already read the per-game list at both publish
-call sites (`QueueView.js:1375` publish-now, `QueueView.js:1690` scheduled), but the
-card rendered Title → Privacy → Description and stopped. So the last screen before a
-clip goes public couldn't show what tags were attached, and a one-off clip needing
-different tags meant editing the whole game's setting in Captions and reverting it
-afterwards.
+### #293 — published clips are now visible on the Queue, read-only
 
-**A Tags block now sits directly under the description** (Fega's placement call —
-the plan had it between Privacy and Description; see Key Decisions). It shows the
-resolved list as chips with a live `N/500` count. Clicking opens a comma-separated
-editor that writes `clip.youtubeTags`:
+A collapsed **Published** shelf sits between the queue and the publish log, holding
+the 20 most recent posts: thumbnail, game pill, title, platform chips linking to the
+live posts, and the real published date/time. Opening one expands to YouTube Title /
+Description / Tags, each with a copy button. **Nothing on the card is editable** —
+editing tags there would write a per-clip override that silently changes what a
+*repost* would send.
 
-- `resolveTags` prefers the array when present, so **both publish paths pick an
-  override up for free** and an untouched clip publishes byte-identically to before.
-- An **empty array is a real answer** (tags stripped from this one clip); only a
-  missing/non-array value falls through to the game.
-- Saving a list identical to the game's **clears** the override — the same trick
-  `saveCaptionOverride` uses for descriptions.
-- Over the 500-char budget the save is **refused**, the editor stays open with the
-  text intact, and the count goes red with the overage. The alternative is a failure
-  at the very end of a render.
-- An override badges the block **CUSTOM** and adds **Reset to game tags**.
+The clips were never deleted. They vanish because the `approved` list filters out
+anything the tracker knows about (`QueueView.js:744`). The shelf rebuilds the other
+side of that: tracker entry → clip, newest-first by insertion order, capped at 20.
 
-**Copy buttons in three places** — the queue block, a game's row in Captions &
-Descriptions, and inside that game's editor. All copy `tag, tag, tag` (the format
-both editors parse back) and flip to a tick. Hidden when there's nothing to copy.
+**`logPost` now freezes a snapshot** (`published: { youtubeTitle, description, tags,
+tagsCustom }`) onto each new tracker entry, using the same resolvers the publish call
+just used. Without it a card renders the game's *current* lists, which drift the
+moment those lists are edited — and a clip that used its game's tag list stores
+nothing of its own to fall back on. The 116 pre-existing entries have no snapshot and
+are labelled *"Published before Corva started recording this…"* rather than
+back-filled. Fega's explicit call: "no need to fake data."
 
-**One set of rules, two editors:** `parseTags` / `tagsLength` / `TAGS_MAX` moved out
-of CaptionsView into `src/renderer/utils/ytTags.js`. A shared `CopyIconButton` went
-into `src/renderer/components/shared.js`.
+Also pointed the long-dead **Published** filter option at the new shelf. Its old
+predicate (`publishStatus[c.id]?.state === "done"`) filtered the unpublished queue —
+and a successful publish is exactly what removes a clip from that list, so in normal
+operation it matched nothing.
 
-### 0.4.0-alpha.3 cut and published
-`npm run build` → `dist/Corva Setup 0.4.0-alpha.3.exe` (190 MB) →
-`scripts/publish-update.ps1`. Live feed verified with `curl`.
+### Everything else was planning — no other code changed
 
 ## Key Decisions
 
-- **Per-clip override, not just a read-only display.** The description and the
-  YouTube title both already have per-clip escape hatches; tags being the one field
-  you had to leave the queue to change was the actual complaint.
-- **`clip.youtubeTags` needs no main-process change.** `projects.updateClip`
-  (`src/main/projects.js:255`) merges arbitrary fields into the clip, so the field
-  persists to the project JSON as-is. Nothing in the IPC layer was touched.
-- **Over-limit refuses rather than truncates.** Silently dropping tags to fit would
-  publish a list the user never wrote. Refusing keeps their text and tells them the
-  overage.
-- **Placement came from Fega, not from me.** The plan put Tags between Privacy and
-  Description; he moved it under the description and asked for the copy buttons in
-  the same breath. Lesson captured in `tasks/lessons.md` and routed to the
-  `feedback_ui_density_aesthetic` memory.
-- **Counting rules shared, not copied.** The 500-char budget counts the tags, the
-  separating commas, and two extra for any tag containing a space (the API quotes
-  those). Two implementations of that would have drifted.
+1. **Published clips live on the Queue, not the Tracker.** The Queue already shipped
+   a "Published" filter chip that couldn't match anything, so the UI was already
+   promising this. Capped at 20 in a collapsed shelf — the Tracker keeps the full
+   116-entry history, and the Queue has to stay a work surface.
+
+2. **The published card is its own small card, not a third copy of the queue card.**
+   `QueueView.js` is ~3000 lines with two near-identical inline card renderers
+   (`:2128` unscheduled, `:2718` scheduled). A published card needs no publish
+   button, toggles, scheduling, TikTok panel, retry or dequeue — building it fresh
+   was less code than reusing either, and refactoring those two into a shared
+   component was out of scope.
+
+3. **#294 (mute an SFX) was closed in favour of #296 (disable).** Disable never
+   touches the volume slider, so the level survives by construction — a better answer
+   to the original complaint than the `preMuteVolume` bookkeeping #294 had planned.
+   It also sidesteps a trap: at `volume: 0` the sound popover's "Remember N% for this
+   sound" button reads **"Remember 0%"**, which would pin silence as that sound's
+   library-wide default for every future drop.
+
+4. **#296 folds in #295 rather than shipping a second subtitle switch.** The Subtitle
+   lane's enable state and the existing `showSubs` become ONE flag honoured by both
+   preview and render. #295 stays filed separately so it can be fixed alone if #296
+   slips.
+
+5. **Video-segment disable is deliberately out of #296.** Segments are concatenated —
+   skipping one ripples the timeline and re-maps every subtitle. Fega was offered it
+   and left it out.
+
+6. **#292 (Reactions content type) is gated, not ready.** JC's entire taste pool is
+   23 decisions; splitting it starves both halves. The issue carries the gate: wait
+   until reaction clips alone account for ~20–30 approve/reject decisions.
 
 ## Next Steps
 
-1. **Fega verifies #291 on alpha.3** — Settings → bottom should read v0.4.0-alpha.3.
-   Then queue a clip and look under the description.
-2. **The untested #285 leg: a real publish with tags.** Manual + scheduled, then
-   read the Tags field on the live videos. This is the last thing standing between
-   the channel and dropping the keyword wall from descriptions.
-3. **The eleven hand-written description templates still carry a literal schedule
-   line** (#286 shipped `{schedule}`, but existing templates need the one-time
-   swap). One editing pass in Captions & Descriptions.
-4. **The rest of the untested backlog** — #263/#269, #270, #271, #275, #276, #278,
-   #279, #280, #281, #282, #283, #284, #286 are all sitting on shipped code awaiting
-   his pass.
+1. **Build #296.** The full plan — findings, data model, file impact, steps,
+   verification criteria — is at the head of `tasks/todo.md`. It is self-contained;
+   it does not need session 184's conversation. Build order matters: sounds
+   end-to-end first (smallest complete loop), then captions, then subtitles, then
+   lanes, then the source-audio mute, **shortcuts last** once the store actions they
+   call are proven.
+2. **#295 can be fixed on its own first** if #296 gets deferred again. It is small
+   and it is a genuine correctness bug users would hit.
+3. **Cut an installer once there's a batch.** #293 alone doesn't justify one.
+4. Fega's in-app pass on the backlog above.
 
 ## Watch Out For
 
-- **A game with no tags shows "No tags — click to add" and publishes an empty list**
-  — exactly as it did before. Fega's real games have no tags saved yet; the only
-  game that had any during testing was Valorant, and that was fixture data I
-  removed. The empty card is correct, not a bug.
-- **`youtubeTags: null` is the "follow the game" state**, written by Reset. Don't
-  "clean up" the null key — `Array.isArray` is what distinguishes it from `[]`,
-  which means "this clip publishes with no tags at all".
-- **Editing tags on a clip does not touch the game's list**, and vice versa. If a
-  clip looks stale after changing the game's tags, check for a CUSTOM badge — an
-  override is doing exactly what it should.
-- **The chips are read-only.** There's no per-chip delete; the whole list is edited
-  as text. Deliberate — it keeps one parsing path shared with Captions.
+- **`enabled !== false` must mean enabled on EVERY path in #296.** Absent flag = on
+  is what makes the feature migration-free. The regression that matters most: a clip
+  with nothing disabled must render byte-identically to today.
+- **#293's snapshot WRITE path has never run for real.** The read side is verified
+  end-to-end; `logPost`'s snapshot can only be proven by an actual publish, which was
+  not done on Fega's accounts. The identifiers are sound — `resolveTags(clip,
+  ytDescriptions, gamesDb)` and `getEffectiveCaption(clip, "youtube")` are the
+  identical calls already live at both publish sites in the same scope — but **check
+  a published card after the next real post** and confirm it reads "Exactly what was
+  published."
+- **The published shelf orders by tracker insertion order, not by `date`.** A
+  scheduled post's `date` is the slot it was aimed at, not when it ran. Don't
+  "fix" this into a date sort.
+- **A tracker entry whose clip no longer exists is skipped**, not shown as a stub.
+  The project was deleted; there are no settings there to copy.
+- **`m` is Trim-start, not mute.** Resolve's M-for-mute is unavailable in #296.
+  `d` and `shift+d` are free and are what the plan uses.
+- **The Audio lane IS the video-segment lane.** There is no separate Video lane in
+  `TimelinePanelNew.js` — the waveforms are the segments. That is why #296 gives it a
+  *mute* and not a *disable*.
 
 ## Logs/Debugging
 
-- **Verification ran against a throwaway fixture, not real data.** Dev profile
-  (`CLIPFLOW_PROFILE=dev`) was pointed at a scratchpad projects root holding two
-  fabricated approved clips, with a fake YouTube account written into
-  `%APPDATA%\clipflow-dev\clipflow-tokens.json` so the card would render. Both dev
-  stores were backed up first and **restored afterwards** — the dev profile is back
-  on the real `projectsRoot` with zero accounts. Nothing real was touched and the
-  publish path was never reachable.
 - **Launching the built renderer on the dev profile:**
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`. `isDev` is
-  hardcoded `false` (`main.js:633`), so this loads `build/` — no Vite needed, and it
-  sidesteps the daily driver's single-instance lock. Confirm the profile from the
-  first log line (`logsDir: ...\clipflow-dev\logs`), not from the window title.
-- **A clip only reaches the queue with `renderStatus: "rendered"`** — `App.js:735`
-  filters on that exact string before `QueueView` ever sees it. A fixture clip with
-  `renderStatus: "done"` and `status: "approved"` renders nowhere and looks like a
-  bug in the view.
-- **CDP probes need a tick before reading the DOM.** `element.click()` followed by
-  an immediate `querySelector` misses React's re-render; every probe this session
-  wrapped the click in an async IIFE with a ~400 ms wait. The earlier
-  `innerText`-is-rendered-text trap (s179) still applies — the block's label reads
-  `TAGS`, uppercase, because of `textTransform`.
-- **`taskkill //IM electron.exe //F`** — double slashes in Git Bash, and never
-  suppress its output (s174).
-- **Heredocs with apostrophes fail in this shell.** A `cat > file <<'EOF'` block
-  containing `YouTube's` aborted with "unexpected EOF while looking for matching
-  quote" and wrote nothing. Multi-line JSX/JS insertions went through `Write` to a
-  scratchpad `.js` file run with `node` instead.
+  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`.
+  `isDev` is hardcoded `false`, so this loads `build/` — no Vite, and it sidesteps
+  the daily driver's single-instance lock.
+- **`npm run dev:seed -- --force`** copies the real prod profile (settings, tracker,
+  DB) into `%APPDATA%\clipflow-dev\`. That is how #293 was verified against 116 real
+  tracker entries without touching prod. Note the `--` before `--force`.
+- **A synthetic `published` snapshot was injected into ONE dev tracker entry** to
+  exercise the "Exactly what was published" branch, then **removed**. Prod was
+  verified untouched afterwards: 116 entries, 0 carrying a snapshot. If a future
+  session sees a stray snapshot in dev, that is a leftover fixture, not real data.
+- **CDP driver scripts** live in this session's scratchpad (`cdp.js` plain,
+  `cdp-focus.js` adds `Page.bringToFront`, `shot.js` adds `Page.captureScreenshot`).
+  Node 24 has a global `WebSocket`, so no `ws` dependency is needed — ~30 lines each.
+- **`navigator.clipboard` needs a focused document.** `readText` throws
+  `NotAllowedError: Document is not focused` and `writeText` silently no-ops in an
+  unfocused window, while the button's tick state still flips — so the UI *looks*
+  like it copied. Call `Page.bringToFront` first, and read the result back with
+  `powershell -NoProfile -Command "Get-Clipboard"` rather than trusting the button.
+- **A bare text match hits CSS-uppercased labels.** Searching the document for
+  `/^published$/i` matched the shelf's own `SectionLabel` (rendered `PUBLISHED`) and
+  clicking it toggled the shelf instead of picking the filter option. Scope option
+  clicks to the portalled `position: fixed` menu first.
+- **`Select` (shared.js) renders a wrapper div around a `<button>`.** Clicking the
+  wrapper does nothing; click `wrapper.querySelector("button")` to open the menu.
+- **`taskkill //F //IM electron.exe`** — double slashes in Git Bash.
+- **Heredocs with apostrophes still fail in this shell** (s183's lesson holds).
+  Multi-line JS for CDP went through `Write` to scratchpad `.js` files, run via
+  `node`, not inline heredocs.
