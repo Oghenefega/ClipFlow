@@ -1,114 +1,131 @@
-# HANDOFF — Session 180 (2026-08-21)
+# HANDOFF — Session 181 (2026-08-21)
 
 ## Current State
-**Two issues shipped from Fega's annotated Tracker screenshots: #281 (premium
-redesign) and #282 (drag a scheduled clip to reschedule, incl. cross-week edge
-travel).** Both on master in `71ffcd6`, both `status: untested` — **not in any
-installer yet.** Fega was asked whether to cut a build for them or let them ride
-until the batch is bigger; he wrapped the session without answering, so **that
-question is still open.**
+**One issue shipped: #283 — the editor colour picker now opens with a Recent
+row over a palette that leads with true red/green/blue/yellow.** On master in
+`d640563`, `status: untested` — **not in any installer yet.**
 
-0.4.0-alpha.1 (cut s179) is still the newest published build. Everything from
-s179 and earlier is still awaiting Fega's in-app pass: #263/#269, #270, #271,
-#275, #276, #278, #279, #280.
+The s180 question is **still open and now applies to three issues**: #281, #282
+and #283 are all on master and all invisible to Fega until a build ships (he
+tests on the installed exe). He was asked at the end of s180 and again at the
+end of s181; both times he wrapped without deciding. 0.4.0-alpha.1 (cut s179) is
+still the newest published build.
+
+Still awaiting Fega's in-app pass from earlier sessions: #263/#269, #270, #271,
+#275, #276, #278, #279, #280, plus #281/#282.
 
 ## What Was Built
-Both issues are one file's worth of change: `src/renderer/views/TrackerView.js`
-(+ 4 lines in `App.js` for the reschedule callback).
+Fega's report: the quick swatches are "always bland and pale", with no actual
+red/green/blue/yellow, four shades of grey and a peach he'd never use. Measured
+against the old 40-colour list: **no `#ff0000`, `#00ff00`, `#0000ff` or
+`#ffff00` anywhere**, 7 flat greys, 6 muddy olives, and `#f87171` present twice.
 
-- **#281 layout.** Week nav (`‹ Aug 17 – Aug 22 ›`) left the page header and is
-  now the week-log card's own header row, above the day columns — `THIS WEEK`
-  caption at offset 0, `Back to this week` button otherwise. Legend + hint moved
-  to a footer strip under the grid. The log header now carries only the nav and
-  Edit slots/Custom.
-- **#281 Now Playing card.** Album-cover shape: `flex: 0 0 92px` poster,
-  `alignSelf: stretch`, full card height (~154px), vignette + right-edge fade.
-  The rank pill and the "N posted this week" pill are deleted (both duplicated
-  cards sitting beside them). Name at 21px, clamped to 3 lines. `Switch` is an
-  absolutely-positioned hover-reveal pill driven by `npHover` state (inline
-  styles — no CSS class to hang `:hover` on); it stays visible while the picker
-  is open. `NOW PLAYING <game>` removed from the page header (Fega confirmed).
-- **#281 premium pass.** Projects list-row treatment: game-hue radial+linear
-  wash, `${gameColor}3d` border and hover-lift on Now Playing; new module-level
-  `PANEL_BG` (the ProjectsView.js:842 top-edge highlight) on Goal, Rank and the
-  week log.
-- **#282 drag.** `movable = isSched && clipId && projectId && onRescheduleClip`
-  — posted entries never get `draggable`. Payload lives in `dragRef`, not
-  `dataTransfer`. Open slots gain `onDragOver/onDragLeave/onDrop` only when
-  `droppable` (not a past week, slot time > now); the drop builds
-  `<dayIso>T<HH:MM>:00` and calls `onRescheduleClip`, wired in App.js to the
-  existing `handleUpdateClipFields` (optimistic state + `projectUpdateClip`).
-- **#282 edge travel.** `onLogDragOver` on the log card reads `e.clientX`
-  against its rect; within `EDGE_PX` (30) of either edge it arms a timer —
-  `EDGE_DWELL_MS` 550 then `EDGE_REPEAT_MS` 800 repeats — calling `goWeek(±1)`.
-  The two edge strips are `pointerEvents: none`, so Mon/Sat slots underneath
-  stay droppable.
+Three files:
+
+- **New `src/renderer/editor/utils/recentColors.js`** — renderer-only ESM.
+  Exports `PALETTE_COLORS` (24), `getRecentColors()`, `pushRecentColor(hex)` and
+  `needsOutline(hex)`. Recents persist to
+  `localStorage["clipflow-editor-recent-colors"]` (same pattern as the drawer
+  width), cap **16**, newest first, lowercase dedupe, `try/catch` so a storage
+  failure never blocks the pick.
+- **`RightPanelNew.js`** — the picker from Fega's screenshot (subtitle colour,
+  highlight swatches, glow, stroke, shadow all route through it). Local
+  `PALETTE_COLORS` deleted in favour of the shared one; `handleOpenChange`
+  replaces the bare `setOpen` on `<Popover>` and does the recents work; a local
+  `swatch(c, key)` render fn (deliberately a function, not a nested component —
+  a nested one would remount 40 buttons every render).
+- **`PreviewPanelNew.js`** — `InlineColorPicker`, the small picker under a
+  selected caption on the preview canvas. Dropped its own separate 18-colour
+  `SWATCHES` list; 6-col grid → 8-col to match the other picker.
+
+Palette is 3 rows of 8: neutrals + true primaries/secondaries, then vivids, then
+pops plus three dark tones (`#6b7280`, `#3a3a3a`, `#101010`) kept **on purpose**
+because this same picker sets stroke and shadow colours.
 
 ## Key Decisions
-- **Mock-first, as usual.** `tasks/mocks/tracker-redesign.html` (interactive —
-  real drag/drop, hover states, the real Rocket League poster embedded as a data
-  URI) was signed off before any app code. Fega approved it and confirmed the
-  header trim in the same message.
-- **The drag is an accelerator, never the only path** (`.claude/rules/
-  ui-standards.md` "Requested controls"). The scheduled-clip popover still leads
-  with **Manage in Queue** and now carries an "or drag the card to another slot"
-  line; the footer advertises the gesture.
-- **Cross-week only via edge travel** — you still cannot drop onto a week you
-  are not viewing, and past weeks remain dead ends (they render no open slots).
-- **Accepted a 30px height cost.** Measured both builds the same way at
-  1280×860: old layout had 101px of slack, new has 71px, no scrollbar either
-  way. The header border + footer strip are what the design needs; I clawed
-  back ~12px by trimming the log card's paddings.
+- **Mock-first, as usual.** `scratchpad/color-picker-mock.html` — three panels
+  (today / proposed / fresh-install empty state) opened in Fega's browser and
+  signed off before any app code.
+- **Recent = 16, two rows.** Proposed 8; Fega asked for 16 in his approval.
+- **Write on close, not on change.** The gradient fires `onChange` continuously;
+  recording each one would bury the list in near-identical smears. One entry per
+  picking session. Opening and closing without changing anything records
+  nothing (guarded by an `openedWith` ref captured at open).
+- **Recents hidden until non-empty**, so a fresh install renders a *shorter*
+  panel than before (318px vs the old 372px), not a taller one.
+- **One shared history across both editor pickers**, since Fega explicitly
+  wondered whether the picker "works the same way across the whole application".
+  It didn't — the canvas one had a different palette entirely.
+- **Left alone deliberately:** `ColorPicker` in `components/shared.js:301`
+  (game-tag accents) and `FOLDER_COLORS` in `views/ProjectsView.js:1104`.
+  Different job, both already tidy; mixing caption history into them would be
+  noise.
+- **No migration.** Colours already saved on clips are untouched — this only
+  changes what's *offered*. Existing clips still carry old-palette values
+  (e.g. `highlightColor: #a3e635`), which is correct.
 
 ## Next Steps
-1. **Answer the open question: cut an installer for #281/#282, or wait?**
-   Fega can't see any of this until one ships (he tests on the installed exe).
-2. **Fega's in-app pass** on #281/#282, then clear `status: untested`.
+1. **Decide the installer question — now covering #281, #282 and #283.** Three
+   shipped issues are invisible to Fega until a build goes out.
+2. **Fega's in-app pass** on #283, then clear `status: untested`.
 3. **#272 → #273** (approved batch order from s178): mic/game balance first,
    then volume ramps — mock the ramp interaction before code.
-4. #277 premium design pass epic — the Tracker is now done, so #277's remaining
-   scope is the other tabs.
+4. #277 premium design pass epic — Tracker done, remaining scope is other tabs.
 
 ## Watch Out For
-- **`dragend` does not fire when the week flips mid-drag.** The source card
-  unmounts, and events on a detached node never reach the document. Cleanup
-  therefore also listens for `mousemove` (the OS suppresses mouse events for the
-  whole native drag, so one arriving proves the drag ended), with a 300ms grace
-  window for the mousemove that started it. **Do not "simplify" that listener
-  away** — without it the drag state strands and the edge strips stay on screen.
-- **The edge timer needs its liveness check.** `EDGE_STALE_MS` (1200) bails when
-  no `dragover` has arrived; Chromium fires `dragover` ~every 350ms while a drag
-  hovers a target, even stationary, so a genuinely held cursor is never mistaken
-  for a departed one. Removing this brings back the runaway week-flip bug found
-  during verification (the week marched on forever after the cursor left).
-- **Short windows.** The tab needs ~789px of window height for a no-scroll fit
-  (was ~759). Fine at 1280×860 and at Fega's ~1368; a deliberately squat window
-  will scroll.
-- **`Switch` renders at `opacity: 0` until hover.** A CDP probe reading its
-  opacity will say `0` and that is correct, not a bug.
-- **Reading React state in the same expression as a synthetic click** returns the
-  pre-render value — the game picker looked broken twice for this reason before
-  a 400ms wait proved it fine. Prove the probe detects the positive case first.
+- **A component that unmounts inside the same handler that changed its value
+  never re-renders — so an unmount-cleanup ref still holds the PRE-change
+  value.** This was a real bug in the first version of `InlineColorPicker`: its
+  swatch did `onChange(c); onClose();`, React batched both, the component
+  unmounted before re-rendering, and the cleanup read the old colour, so the
+  pick was silently never recorded. **The swatch now calls `pushRecentColor(c)`
+  itself.** The unmount effect is still there and still needed — it covers the
+  native colour input and the hex field, which leave the component mounted while
+  their value changes. Don't "simplify" either half away.
+- **The two pickers write their recents by different mechanics on purpose.**
+  RightPanel's popover stays mounted and closes separately from the pick, so
+  reading `hex` state in `handleOpenChange` is safe. The canvas one closes in
+  the same handler as the pick, so it can't. Same rule, different plumbing.
+- **`recent` in `InlineColorPicker` is a `useState(getRecentColors)` snapshot**,
+  not live — the row deliberately doesn't reshuffle under the cursor while the
+  picker is open. It refreshes next open. Same for RightPanel, which reloads in
+  `handleOpenChange` on the way in.
+- **Never fake a `pointerdown` on a preview overlay with `new MouseEvent(...)`.**
+  `DraggableOverlay.onPointerDown` calls `setPointerCapture(e.pointerId)`; a
+  synthetic event has no `pointerId`, so it throws `NotFoundError` and the error
+  boundary shows "Corva crashed". That happened once this session and cost a
+  restart. Real users can never hit it (a genuine pointerdown always has an
+  active pointer) — **not a bug worth filing**. Use CDP `Input.dispatchMouseEvent`.
+- **Dev-profile localStorage is separate from prod**, so nothing tested here can
+  leak into Fega's daily driver. Test recents were cleared at session end
+  regardless.
 
 ## Logs / Debugging
-- Session scratchpad `869ddf03…/scratchpad` holds the reusable harness:
-  `cdp.js` (eval / `size` / `shot`, uses the GLOBAL-ish `ws` at
-  `C:\Users\IAmAbsolute\node_modules\ws`), `fit.js` (pane-vs-content slack
-  measurement), `drag-test.js`, `drop-test.js`, `edge-test.js` (synthetic
-  `DragEvent` + `new DataTransfer()` drivers), plus `tracker-1280x860.png`,
-  `final-1280x860.png`, `fallback-art.png` and `dev-settings.backup.json`.
-- **Isolated fixture pattern (new, and better than snapshot-restore):** point the
-  DEV profile's `projectsRoot` **and** `watchFolder` at a scratchpad dir holding
-  `.clipflow/projects/<id>/project.json`, so destructive schedule tests never
-  touch the real library. Clips must carry `renderStatus: "rendered"` or App's
-  `allClips` memo drops them (and `scheduledClips` with them). Dev settings were
-  restored from the backup at session end — verify with:
-  `node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.APPDATA+'/clipflow-dev/clipflow-settings.json','utf8')).projectsRoot)"`
-- **Launch for verification:**
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`,
-  wait ~18s, then `node cdp.js size 1280 860`. Kill with
-  `taskkill //F //IM electron.exe` (double slash) and confirm
+- Session scratchpad `9954a421…/scratchpad` holds the harness:
+  **`cdp.js`** (one-shot `Runtime.evaluate` from a file — note it requires `ws`
+  from `C:\Users\IAmAbsolute\node_modules\ws`, NOT the repo's `node_modules`),
+  **`click.js`** (real `Input.dispatchMouseEvent` click at x/y — the only way to
+  select a canvas overlay), **`shot.js`** (`Page.captureScreenshot` → png),
+  `color-picker-mock.html`, `picker-after.png`, and the `e1..e34.js` probes.
+- **Launch for verification** (`npm start` dies on the daily driver's
+  single-instance lock, and `isDev` is hardcoded `false` so this loads the built
+  renderer from `build/`, not Vite):
+  `CLIPFLOW_PROFILE=dev ./node_modules/.bin/electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`
+  Kill with `taskkill //F //IM electron.exe` (double slash) and confirm
   `tasklist | grep -ci electron` is 0 before relaunching.
+- **Reading the recents store live:**
+  `localStorage.getItem("clipflow-editor-recent-colors")` via `cdp.js`.
+- **Route to the picker** (~10s): Projects (bottom nav, y≈841) → project card
+  `2026-08-06 RL Day14 Pt2` → 3rd `Open in Editor` → right-rail `Subtitles`
+  button (x>1200) → the `w-6 h-6 rounded-full` trigger at (1179, 264). The
+  canvas picker: real-click the caption overlay at (657, 424), then the colour
+  dot at (767, 459).
+- **Test hygiene this session:** used a *pending, unapproved, unrendered* clip —
+  no rejected clips existed in any open project. Clip 3's colours were confirmed
+  back to `#ffffff` in `project.json` on disk afterwards, and dev
+  `projectsRoot` was never repointed (still the real `W:\` library).
 - App log: `%APPDATA%\clipflow-dev\logs`. Publish errors live in
   `clipflow-publish-log.json`, not `app.log`.
-- Both traps above are recorded as gotchas 48–49 in the CDP memory file.
+- New traps recorded as **gotchas 50–52** in the CDP memory file
+  (synthetic-pointerdown crash, don't-batch-mutating-probes, unmount-ref
+  staleness).
