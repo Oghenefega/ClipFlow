@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 182) — 0.4.0-alpha.2 cut
+
+### Changed
+- **Version 0.4.0-alpha.2.** Promotes everything since alpha.1: the Tracker premium redesign (#281) and drag-to-reschedule with edge week travel (#282), the editor colour picker's recent colours and rebuilt palette (#283), and today's YouTube batch — the personal channel and affiliate links out of the description generator (#284), per-game YouTube tags actually reaching the publish call (#285), and the `{schedule}` substitution variable (#286).
+
 ## [Unreleased] — 2026-08-22 (session 182) — YouTube tags, {schedule} variable, personal links out of the description generator (#284, #285, #286)
 
 ### Fixed
