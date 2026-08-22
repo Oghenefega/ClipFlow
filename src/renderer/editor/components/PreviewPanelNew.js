@@ -762,6 +762,10 @@ export default function PreviewPanelNew() {
   const rawEditSegments = useSubtitleStore((s) => s.editSegments);
   const segmentMode = useSubtitleStore((s) => s.segmentMode);
   const showSubs = useSubtitleStore((s) => s.showSubs);
+  // #296: lane switches + the Audio lane's mute. `laneEnabled` is replaced
+  // wholesale on every toggle, so plain reference equality re-renders correctly.
+  const laneEnabled = useEditorStore((s) => s.laneEnabled);
+  const sourceAudioMuted = useEditorStore((s) => s.sourceAudioMuted);
   const subColor = useSubtitleStore((s) => s.subColor);
   const setSubColor = useSubtitleStore((s) => s.setSubColor);
   const subFontFamily = useSubtitleStore((s) => s.subFontFamily);
@@ -1093,6 +1097,17 @@ export default function PreviewPanelNew() {
     };
   }, [videoSrc]);
 
+  // #296: the Audio lane's mute — the clip's OWN sound, not the placed music
+  // and SFX (those are separate <audio> elements). Applied to BOTH buffers:
+  // the standby becomes the active element at every cut, so muting only the
+  // visible one would let the sound back in the moment the timeline crossed a
+  // section boundary. Re-runs on videoSrc because a src swap reloads both.
+  useEffect(() => {
+    for (const vid of [videoElARef.current, videoElBRef.current]) {
+      if (vid) vid.muted = sourceAudioMuted;
+    }
+  }, [sourceAudioMuted, videoSrc]);
+
   // ── #164 B4: first-recording auto-offer ──
   // Offer a vertical-layout setup once per project open when the source is
   // non-9:16, no layout is attached, no library entry fits these dims, and
@@ -1306,7 +1321,10 @@ export default function PreviewPanelNew() {
 
   // Derive timeline-mapped subtitle segments (source-absolute → timeline time)
   const editSegments = useMemo(
-    () => useSubtitleStore.getState().getTimelineMappedSegments(),
+    // #296: a disabled line is dropped here, once, so the overlay, the karaoke
+    // word index and the "any subtitles at all?" check below all agree.
+    () => useSubtitleStore.getState().getTimelineMappedSegments()
+      .filter((seg) => seg.enabled !== false),
     [rawEditSegments, nleSegments] // re-derive when either store changes
   );
 
@@ -1324,9 +1342,14 @@ export default function PreviewPanelNew() {
     // Same resolver the timeline and the render use: songs and SFX both come
     // back with tlStart/tlEnd, and anything whose footage is gone is absent.
     const blocks = resolvePlacements(es.audioPlacements, nle);
+    const lanes = es.laneEnabled || {};
     for (const p of blocks) {
       let el = map.get(p.id);
-      const within = timelineTime >= p.tlStart && timelineTime < p.tlEnd;
+      // #296: disabled, or on a switched-off lane. Treated exactly like "outside
+      // its window" — the element is paused rather than torn down, so switching
+      // the sound back on mid-playback picks it up on the next tick.
+      const on = p.enabled !== false && lanes[p.kind] !== false;
+      const within = on && timelineTime >= p.tlStart && timelineTime < p.tlEnd;
       if (!isPlaying || !within) {
         if (el && !el.paused) el.pause();
         continue;
@@ -2065,8 +2088,8 @@ export default function PreviewPanelNew() {
 
           {/* Caption overlay(s) — render all active caption segments at current time.
               Hidden while calibrating (#164) — they belong to the composed space. */}
-          {!calibrating && captionSegments
-            .filter((seg) => seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity))
+          {!calibrating && laneEnabled?.cap !== false && captionSegments
+            .filter((seg) => seg.enabled !== false && seg.text && currentTime >= seg.startSec && currentTime <= (seg.endSec ?? Infinity))
             .map((seg, idx) => (
             <DraggableOverlay
               key={seg.id}

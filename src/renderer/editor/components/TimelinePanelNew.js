@@ -9,7 +9,7 @@ import { getTimelineDuration, getSegmentTimelineRange, sourceToTimeline, timelin
 import { resolvePlacements, assignRows } from "../models/audioPlacements";
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors,
-  PanelBottomClose, Music, Volume2, Trash2, Copy, RotateCcw, Check,
+  PanelBottomClose, Music, Volume2, VolumeX, Eye, EyeOff, Trash2, Copy, RotateCcw, Check,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -26,6 +26,8 @@ import {
   CLUSTER_GAP_PX, CLUSTER_MIN_WIDTH_PX, SEGMENT_RADIUS, RIPPLE_ANIM_MS, SNAP_THRESHOLD_PX,
 } from "./timeline/timelineConstants";
 import { registerTimelineHandlers } from "../shortcuts/timelineHandlers";
+import useShortcutBindings from "../shortcuts/useShortcutBindings";
+import { formatKey } from "../shortcuts/registry";
 import SpeedDropdown from "./timeline/SpeedDropdown";
 import TrackContextMenu from "./timeline/TrackContextMenu";
 import SegmentBlock from "./timeline/SegmentBlock";
@@ -33,6 +35,26 @@ import SoundBlock from "./timeline/SoundBlock";
 import WaveformTrack from "./timeline/WaveformTrack";
 import Ruler from "./timeline/Ruler";
 import { TimelinePlayhead, TimelineTimecode } from "./timeline/TimelinePlayhead";
+
+/**
+ * #296: a lane's on/off, living in its label.
+ *
+ * Two icon families on purpose: the Caption and Subtitle lanes are things you
+ * SEE, so they get an eye; the three audio lanes get a speaker. The Audio
+ * lane's switch is a MUTE rather than a disable — its blocks are the video
+ * sections themselves, so "disabling" it would mean deleting the picture.
+ */
+function LaneToggle({ on, family, title }) {
+  const Icon = family === "eye" ? (on ? Eye : EyeOff) : (on ? Volume2 : VolumeX);
+  return (
+    <Icon
+      className={`h-3 w-3 shrink-0 transition-colors ${
+        on ? "text-muted-foreground/45 group-hover/lane:text-foreground" : "text-amber-400/90"
+      }`}
+      aria-label={title}
+    />
+  );
+}
 
 // ── Main Timeline Panel ──
 export default function TimelinePanelNew() {
@@ -77,6 +99,16 @@ export default function TimelinePanelNew() {
   const trimNleSegmentLeft = useEditorStore((s) => s.trimNleSegmentLeft);
   const trimNleSegmentRight = useEditorStore((s) => s.trimNleSegmentRight);
   const audioPlacements = useEditorStore((s) => s.audioPlacements); // #202 Music + SFX lanes
+  // #296: lane switches. `showSubs` IS the Subtitle lane — the switch the
+  // render was already handed and never honoured (#295) — so there is one
+  // subtitle on/off, not two competing ones.
+  const laneEnabled = useEditorStore((s) => s.laneEnabled);
+  const sourceAudioMuted = useEditorStore((s) => s.sourceAudioMuted);
+  const showSubs = useSubtitleStore((s) => s.showSubs);
+  const capLaneOn = laneEnabled?.cap !== false;
+  const musicLaneOn = laneEnabled?.music !== false;
+  const sfxLaneOn = laneEnabled?.sfx !== false;
+  const disableKeyLabel = useShortcutBindings((s) => formatKey(s.bindings.toggleDisable));
 
   // ── Local state ──
   const [speedOpen, setSpeedOpen] = useState(false);
@@ -803,9 +835,39 @@ export default function TimelinePanelNew() {
     }
   }, [selectedTrack, selectedSegId, selectedSegIds, handleDelete, handleBatchDelete]);
 
+  // ── #296: disable / enable ──
+  // One pair of handlers behind the keyboard, the lane labels and both menus,
+  // so the three routes can't drift. Routing is by which lane the selection
+  // sits on. The Audio lane has no per-block disable — its blocks ARE the
+  // video sections — so `d` there does nothing; `alt+d` mutes the lane.
+  const handleToggleDisable = useCallback(() => {
+    if (selectedSegIds.size === 0 || !selectedTrack) return;
+    const ids = Array.from(selectedSegIds);
+    if (selectedTrack === "sound") useEditorStore.getState().toggleAudioPlacementEnabled(ids);
+    else if (selectedTrack === "sub") useSubtitleStore.getState().toggleSegmentsEnabled(ids);
+    else if (selectedTrack === "cap") useCaptionStore.getState().toggleCaptionSegmentsEnabled(ids);
+  }, [selectedTrack, selectedSegIds]);
+
+  const handleToggleLaneDisable = useCallback(() => {
+    const es = useEditorStore.getState();
+    if (selectedTrack === "sub") useSubtitleStore.getState().toggleShowSubs();
+    else if (selectedTrack === "cap") es.toggleLaneEnabled("cap");
+    else if (selectedTrack === "audio") es.toggleSourceAudioMuted();
+    else if (selectedTrack === "sound") {
+      // Music and SFX are two lanes; the selected block says which one.
+      const p = es.audioPlacements.find((x) => selectedSegIds.has(x.id));
+      es.toggleLaneEnabled(p?.kind === "music" ? "music" : "sfx");
+    }
+  }, [selectedTrack, selectedSegIds]);
+
   useEffect(
-    () => registerTimelineHandlers({ split: handleSplit, deleteSelected: handleKeyboardDelete }),
-    [handleSplit, handleKeyboardDelete]
+    () => registerTimelineHandlers({
+      split: handleSplit,
+      deleteSelected: handleKeyboardDelete,
+      toggleDisable: handleToggleDisable,
+      toggleLaneDisable: handleToggleLaneDisable,
+    }),
+    [handleSplit, handleKeyboardDelete, handleToggleDisable, handleToggleLaneDisable]
   );
 
   // ── Zoom anchored to PLAYHEAD — gently slides playhead toward center ──
@@ -921,6 +983,7 @@ export default function TimelinePanelNew() {
   }, []);
 
   const renderSoundLane = (kind, label, hint) => {
+    const laneOn = kind === "music" ? musicLaneOn : sfxLaneOn;
     const { blocks, rows } = assignRows(resolvedSounds.filter((s) => s.kind === kind));
     const rowH = rows === 2 ? SOUND_STACK_ROW_H : SOUND_ROW_H;
     const baseTop = rows === 2 ? 2 : Math.round((SOUND_TRACK_H - SOUND_ROW_H) / 2);
@@ -931,10 +994,13 @@ export default function TimelinePanelNew() {
         onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
       >
         <div
-          className="shrink-0 flex items-center gap-1 px-2 z-10"
+          className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 cursor-pointer group/lane"
           style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+          title={laneOn ? `Disable the ${label} lane` : `Enable the ${label} lane`}
+          onClick={() => useEditorStore.getState().toggleLaneEnabled(kind)}
         >
-          <span className="text-[12px] text-muted-foreground font-medium">{label}</span>
+          <span className={`text-[12px] font-medium truncate ${laneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}>{label}</span>
+          <LaneToggle on={laneOn} family="sound" title={`${label} lane`} />
         </div>
         <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
           {blocks.length === 0 && (
@@ -954,6 +1020,7 @@ export default function TimelinePanelNew() {
               top={baseTop + b.row * (rowH + 2)}
               height={rowH}
               selected={selectedTrack === "sound" && selectedSegIds.has(b.id)}
+              disabled={!laneOn || b.enabled === false}
               onSelect={handleSoundSelect}
               onContextMenu={openSoundPopover}
               onGestureStart={soundGestureStart}
@@ -1149,10 +1216,13 @@ export default function TimelinePanelNew() {
             }}
           >
             <div
-              className="shrink-0 flex items-center gap-1 px-2 z-10"
+              className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 cursor-pointer group/lane"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+              title={capLaneOn ? "Disable the Caption lane" : "Enable the Caption lane"}
+              onClick={() => useEditorStore.getState().toggleLaneEnabled("cap")}
             >
-              <span className="text-[12px] text-muted-foreground font-medium">Caption</span>
+              <span className={`text-[12px] font-medium truncate ${capLaneOn ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}>Caption</span>
+              <LaneToggle on={capLaneOn} family="eye" title="Caption lane" />
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {captionSegs.map((seg) => (
@@ -1160,6 +1230,7 @@ export default function TimelinePanelNew() {
                   key={seg.id} seg={seg} trackColor={TRACK_COLORS.cap}
                   duration={effectiveDuration} timelineWidth={clipContentWidth}
                   selected={selectedSegIds.has(seg.id) && selectedTrack === "cap"}
+                  disabled={!capLaneOn || seg.enabled === false}
                   onSelect={(id, e) => handleSegSelect("cap", id, e)}
                   onResize={handleCaptionResize}
                   onResizeEnd={handleCaptionResizeEnd}
@@ -1199,10 +1270,13 @@ export default function TimelinePanelNew() {
             }}
           >
             <div
-              className="shrink-0 flex items-center gap-1 px-2 z-10"
+              className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 cursor-pointer group/lane"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+              title={showSubs ? "Disable the Subtitle lane" : "Enable the Subtitle lane"}
+              onClick={() => useSubtitleStore.getState().toggleShowSubs()}
             >
-              <span className="text-[12px] text-muted-foreground font-medium">Subtitle</span>
+              <span className={`text-[12px] font-medium truncate ${showSubs ? "text-muted-foreground" : "text-muted-foreground/40 line-through"}`}>Subtitle</span>
+              <LaneToggle on={showSubs} family="eye" title="Subtitle lane" />
             </div>
             <div data-track-content className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {(() => {
@@ -1214,6 +1288,7 @@ export default function TimelinePanelNew() {
                       key={seg.id} seg={seg} trackColor={TRACK_COLORS.sub}
                       duration={effectiveDuration} timelineWidth={clipContentWidth}
                       selected={selectedSegIds.has(seg.id) && selectedTrack === "sub"}
+                      disabled={!showSubs || seg.enabled === false}
                       onSelect={(id, e) => handleSegSelect("sub", id, e)}
                       onResize={(id, start, end) => handleSubtitleResize(id, start, end)}
                       onResizeEnd={handleSubtitleResizeEnd}
@@ -1268,10 +1343,13 @@ export default function TimelinePanelNew() {
             onPointerDown={(e) => { if (e.button === 2) e.stopPropagation(); }}
           >
             <div
-              className="shrink-0 flex items-center gap-1 px-2 z-10"
+              className="shrink-0 flex items-center justify-between gap-1 px-1.5 z-10 cursor-pointer group/lane"
               style={{ width: LABEL_W, position: "sticky", left: 0, background: TIMELINE_BG, borderRight: `1px solid ${TRACK_SEPARATOR}` }}
+              title={sourceAudioMuted ? "Unmute the clip's own audio" : "Mute the clip's own audio (the picture stays)"}
+              onClick={() => useEditorStore.getState().toggleSourceAudioMuted()}
             >
-              <span className="text-[12px] text-muted-foreground font-medium">Audio</span>
+              <span className={`text-[12px] font-medium truncate ${sourceAudioMuted ? "text-muted-foreground/40 line-through" : "text-muted-foreground"}`}>Audio</span>
+              <LaneToggle on={!sourceAudioMuted} family="sound" title="Clip audio" />
             </div>
             <div className="flex-1 relative" style={{ minWidth: clipContentWidth + END_PADDING }}>
               {nleSegments.map((seg) => {
@@ -1283,6 +1361,9 @@ export default function TimelinePanelNew() {
                 return (
                   <div key={seg.id} className="absolute top-0 bottom-0" style={{
                     left: leftPx, width: Math.max(widthPx, 4),
+                    // #296: muted — the waveform IS this lane's sound, so it dims.
+                    // The section itself is untouched: the picture still renders.
+                    opacity: sourceAudioMuted ? 0.45 : 1,
                     transition: rippleAnimating ? `left ${RIPPLE_ANIM_MS}ms cubic-bezier(0.25,0.1,0.25,1)` : "none",
                   }}>
                     <WaveformTrack
@@ -1457,6 +1538,22 @@ export default function TimelinePanelNew() {
                   </button>
                 )}
               </div>
+              {/* #296: switching a sound off never touches its Volume — the level
+                  above survives, which is the whole point of a disable over a
+                  drag-the-slider-to-zero mute (#294). */}
+              <button
+                onClick={() => useEditorStore.getState().toggleAudioPlacementEnabled(p.id)}
+                className={`w-full h-7 rounded-md text-[11px] flex items-center justify-center gap-1.5 border transition-colors ${
+                  p.enabled === false
+                    ? "text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
+                    : "text-foreground/80 border-border/60 hover:bg-secondary/50"
+                }`}
+              >
+                {p.enabled === false
+                  ? <><Volume2 className="h-3 w-3" /> Enable</>
+                  : <><VolumeX className="h-3 w-3" /> Disable</>}
+                <span className="ml-1 text-muted-foreground text-[10px]">{disableKeyLabel}</span>
+              </button>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => {
@@ -1504,11 +1601,24 @@ export default function TimelinePanelNew() {
         const nleIdx = contextMenu.track === "audio"
           ? nleSegments.findIndex((s) => s.id === contextMenu.segId)
           : -1;
+        // #296: only the Caption and Subtitle lanes have a per-block disable.
+        // A scene segment has none — the blocks on the Audio lane ARE the video.
+        const menuSeg = contextMenu.track === "cap"
+          ? captionSegs.find((c) => c.id === contextMenu.segId)
+          : contextMenu.track === "sub"
+            ? editSegments.find((c) => c.id === contextMenu.segId)
+            : null;
         return (
         <TrackContextMenu
           x={contextMenu.x} y={contextMenu.y}
           track={contextMenu.track}
           onClose={() => setContextMenu(null)}
+          onToggleDisable={menuSeg ? () => {
+            if (contextMenu.track === "cap") useCaptionStore.getState().toggleCaptionSegmentsEnabled(contextMenu.segId);
+            else useSubtitleStore.getState().toggleSegmentsEnabled(contextMenu.segId);
+          } : undefined}
+          isDisabled={menuSeg?.enabled === false}
+          disableKey={disableKeyLabel}
           onMoveEarlier={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx - 1) : undefined}
           onMoveLater={contextMenu.track === "audio" ? () => useEditorStore.getState().moveNleSegment(contextMenu.segId, nleIdx + 1) : undefined}
           canMoveEarlier={nleIdx > 0}

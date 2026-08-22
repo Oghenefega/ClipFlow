@@ -57,6 +57,13 @@ const useEditorStore = create((set, get) => ({
   //          sourceTime, trimStart, trimEnd, volume 0-1,
   //          fadeIn?/fadeOut? (music only, seconds) }
   audioPlacements: [],
+  // #296: lane enable + source-audio mute, persisted per clip. Absent means
+  // ENABLED everywhere — every read is `!== false` — so clips saved before this
+  // feature open with every lane on and nothing has to migrate. The Subtitle
+  // lane is NOT here: it is `showSubs` in useSubtitleStore, the switch the
+  // render already had and never honoured (#295).
+  laneEnabled: { cap: true, music: true, sfx: true },
+  sourceAudioMuted: false,
   // #210: bumped whenever something outside the Audio panel edits the asset
   // LIBRARY (not a placement) — saving a sound's default volume from the
   // timeline popover, for one. The panel owns `assets` in its own state, so
@@ -129,6 +136,8 @@ const useEditorStore = create((set, get) => ({
         audioSegments: [],
         nleSegments: [],
         audioPlacements: [],
+        laneEnabled: { cap: true, music: true, sfx: true },
+        sourceAudioMuted: false,
         sourceStartTime: 0,
         sourceEndTime: 0,
         sourceDuration: 0,
@@ -158,7 +167,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [] });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], laneEnabled: { cap: true, music: true, sfx: true }, sourceAudioMuted: false });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -225,6 +234,14 @@ const useEditorStore = create((set, get) => ({
       // #202: restore SFX/music placements from the clip record (normalize fills
       // the trim window + anchor that pre-trimming clips don't carry)
       audioPlacements: normalizePlacements(clip?.sfx, nleSegs),
+      // #296: absent = enabled, so a clip that predates the feature opens with
+      // every lane on and its source audio audible.
+      laneEnabled: {
+        cap: clip?.laneEnabled?.cap !== false,
+        music: clip?.laneEnabled?.music !== false,
+        sfx: clip?.laneEnabled?.sfx !== false,
+      },
+      sourceAudioMuted: clip?.sourceAudioMuted === true,
       sourceStartTime: sourceStart,
       sourceEndTime: sourceEnd,
       sourceDuration: sourceDur,
@@ -599,6 +616,43 @@ const useEditorStore = create((set, get) => ({
   deleteAudioPlacement: (id) => {
     get()._pushNleUndo();
     set({ audioPlacements: get().audioPlacements.filter((p) => p.id !== id) });
+    get().markDirty();
+  },
+
+  // ── #296: disable / enable ──
+  // Disabling never touches `volume`, so the level you dialled in survives
+  // being switched off and back on — the whole reason this replaced the
+  // mute-by-zeroing-the-slider idea (#294).
+  // A mixed selection resolves one way: if anything is still on, turn it off.
+  // Re-enabling REMOVES the key rather than writing `enabled: true`, so a
+  // placement switched off and back on is byte-identical to before.
+  toggleAudioPlacementEnabled: (ids) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 0) return;
+    const placements = get().audioPlacements;
+    const anyOn = placements.some((p) => list.includes(p.id) && p.enabled !== false);
+    get()._pushNleUndo();
+    set({
+      audioPlacements: placements.map((p) => {
+        if (!list.includes(p.id)) return p;
+        if (!anyOn) { const { enabled, ...rest } = p; return rest; }
+        return { ...p, enabled: false };
+      }),
+    });
+    get().markDirty();
+  },
+
+  // Caption / Music / SFX lanes. The Subtitle lane lives in useSubtitleStore
+  // (`showSubs`), and the Audio lane gets a MUTE rather than a disable — its
+  // blocks are the video sections, so switching it off would delete the picture.
+  toggleLaneEnabled: (lane) => {
+    const cur = get().laneEnabled || {};
+    set({ laneEnabled: { ...cur, [lane]: cur[lane] === false } });
+    get().markDirty();
+  },
+
+  toggleSourceAudioMuted: () => {
+    set({ sourceAudioMuted: !get().sourceAudioMuted });
     get().markDirty();
   },
 
@@ -1109,7 +1163,7 @@ const useEditorStore = create((set, get) => ({
       const editSegments = subState.editSegments;
       const capState = useCaptionStore.getState();
       const layState = useLayoutStore.getState();
-      const { nleSegments, audioSegments, audioPlacements } = get();
+      const { nleSegments, audioSegments, audioPlacements, laneEnabled, sourceAudioMuted } = get();
       // Save subtitle styling snapshot for preview rendering
       const subtitleStyle = {
         fontFamily: subState.subFontFamily, fontWeight: subState.subFontWeight,
@@ -1134,6 +1188,10 @@ const useEditorStore = create((set, get) => ({
         syncOffset: subState.syncOffset || 0,
         highlightMode: subState.highlightMode,
         effectOrder: subState.effectOrder,
+        // #296: the Subtitle lane's switch. Saved here so it belongs to the
+        // clip like every other subtitle setting, instead of leaking across
+        // clips for the rest of the session.
+        showSubs: subState.showSubs,
       };
       const captionStyle = {
         fontFamily: capState.captionFontFamily, fontWeight: capState.captionFontWeight || 900,
@@ -1174,6 +1232,8 @@ const useEditorStore = create((set, get) => ({
         subtitles: { sub1: persistedSubs, sub2: [], _format: "source-absolute" },
         nleSegments: nleSegments,
         sfx: audioPlacements, // #202: SFX/music placements (Sounds lane)
+        laneEnabled, // #296: Caption / Music / SFX lane switches
+        sourceAudioMuted, // #296: Audio lane mute (the clip's own sound)
         audioSegments: audioSegments, // legacy — kept for backwards compatibility
         subtitleStyle,
         captionStyle,

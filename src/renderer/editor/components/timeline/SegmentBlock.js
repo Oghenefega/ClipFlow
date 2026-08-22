@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { SEGMENT_RADIUS, TRIM_HANDLE_HIT_W, WORD_TOOTH_HIT_W, RIPPLE_ANIM_MS } from "./timelineConstants";
 
-function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onDuplicate, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating }) {
+function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSelect, onResize, onResizeEnd, onDrag, onDragEnd, onDuplicate, onWordBoundaryDrag, onWordBoundaryDragEnd, sourceWordCount, rippleAnimating, disabled = false }) {
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -176,6 +176,10 @@ function SegmentBlock({ seg, trackColor, duration, timelineWidth, selected, onSe
           ? `0 0 0 1px ${trackColor.ring}, inset 0 1px 0 rgba(255,255,255,0.08)`
           : "inset 0 1px 0 rgba(255,255,255,0.06)",
         zIndex: selected ? 5 : hovered ? 3 : 1,
+        // #296: switched off. Greyed and faded rather than hidden — the block
+        // stays exactly where it was, so it can be switched back on.
+        filter: disabled ? "grayscale(1)" : "none",
+        opacity: disabled ? 0.4 : 1,
         transition,
       }}
       onClick={(e) => { e.stopPropagation(); if (!dragThresholdRef.current) onSelect(seg.id, e); }}
@@ -292,6 +296,7 @@ export default React.memo(SegmentBlock, (prev, next) => {
     prev.seg.text === next.seg.text &&
     prev.seg.words === next.seg.words &&
     prev.selected === next.selected &&
+    prev.disabled === next.disabled &&
     prev.duration === next.duration &&
     prev.timelineWidth === next.timelineWidth &&
     prev.rippleAnimating === next.rippleAnimating &&

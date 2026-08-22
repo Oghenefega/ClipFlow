@@ -315,6 +315,11 @@ const useSubtitleStore = create((set, get) => ({
       animateGrowFrom: "animateGrowFrom", animateSpeed: "animateSpeed",
       highlightMode: "highlightMode",
       effectOrder: "effectOrder",
+      // #296: the Subtitle lane's on/off IS showSubs, so it persists per clip
+      // now. Before this it was a session-lived store value that leaked from
+      // one clip to the next and reset on restart. Absent in an older clip's
+      // saved style → the default (true) from clearAll() stands.
+      showSubs: "showSubs",
       // segmentMode is NOT restored here — openClip merges per-clip saved mode
       // into the template before applyTemplate so editSegments are built once.
     };
@@ -408,6 +413,7 @@ const useSubtitleStore = create((set, get) => ({
       endSec: s.end,       // SOURCE-ABSOLUTE
       warning: (s.end - s.start) > 10 ? "Long segment — consider splitting" : null,
       words: s.words,      // word.start/end are SOURCE-ABSOLUTE
+      ...(s.enabled === false ? { enabled: false } : {}), // #296: survives a reopen
     }));
 
     // Store original sentence-level segments for transcript tab and mode switching.
@@ -1061,6 +1067,27 @@ const useSubtitleStore = create((set, get) => ({
   deleteSegment: (segId) => {
     get()._pushUndo();
     set((s) => ({ editSegments: s.editSegments.filter(seg => seg.id !== segId) }));
+  },
+
+  // #296: switch subtitle lines off without deleting them — they stay on the
+  // timeline, greyed, and come back with the same key. `enabled` is only ever
+  // written here; every reader tests `!== false`, so lines that predate the
+  // feature are on. A mixed selection resolves one way: anything still on
+  // turns the whole selection off. Re-enabling REMOVES the key rather than
+  // writing `enabled: true`, so the saved line is byte-identical to before.
+  toggleSegmentsEnabled: (ids) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 0) return;
+    const { editSegments } = get();
+    const anyOn = editSegments.some((seg) => list.includes(seg.id) && seg.enabled !== false);
+    get()._pushUndo();
+    set({
+      editSegments: editSegments.map((seg) => {
+        if (!list.includes(seg.id)) return seg;
+        if (!anyOn) { const { enabled, ...rest } = seg; return rest; }
+        return { ...seg, enabled: false };
+      }),
+    });
   },
 
   // Delete ONE word from a segment, keeping text and words[] in sync (#136).

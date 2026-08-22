@@ -1,12 +1,12 @@
 /**
- * Split and Delete need the timeline's own selection state (which track, which
- * blocks), which lives as local state inside TimelinePanelNew. Rather than
- * hoist that into a store — a far wider change than this feature needs — the
- * panel publishes those two handlers here while it is mounted, and the global
- * key layer calls through.
+ * Split, Delete and Disable (#296) need the timeline's own selection state
+ * (which track, which blocks), which lives as local state inside
+ * TimelinePanelNew. Rather than hoist that into a store — a far wider change
+ * than these features need — the panel publishes those handlers here while it
+ * is mounted, and the global key layer calls through.
  *
  * Consequence, by design: with the timeline collapsed the panel is unmounted,
- * so Split and Delete no-op. Everything else (play/pause, shuttle, trim to
+ * so those keys no-op. Everything else (play/pause, shuttle, trim to
  * playhead) runs off stores and keeps working either way.
  */
 

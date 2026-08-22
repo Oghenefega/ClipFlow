@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from "react";
-import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Scissors, Trash2, Copy, FilePlus, ArrowLeftToLine, Film, Plus, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Separator } from "../../../../components/ui/separator";
 
-export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater }) {
+export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDelete, onRippleDelete, onDuplicate, onCreateClip, onDeleteWithAudio, splitDisabledReason, onAddWord, onMoveEarlier, onMoveLater, canMoveEarlier, canMoveLater, onToggleDisable, isDisabled, disableKey }) {
   const ref = useRef(null);
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -50,6 +50,19 @@ export default function TrackContextMenu({ x, y, track, onClose, onSplit, onDele
           onClick={() => { onAddWord(); onClose(); }}
         >
           <Plus className="h-3.5 w-3.5 text-green-400" /> Add word
+        </button>
+      )}
+      {/* #296: switch this block off — excluded from the viewer AND the render,
+          but still on the timeline and reversible with the same click. */}
+      {onToggleDisable && (
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/60 transition-colors"
+          onClick={() => { onToggleDisable(); onClose(); }}
+        >
+          {isDisabled
+            ? <><Eye className="h-3.5 w-3.5 text-emerald-400" /> Enable {trackLabel}</>
+            : <><EyeOff className="h-3.5 w-3.5 text-amber-400" /> Disable {trackLabel}</>}
+          <span className="ml-auto text-muted-foreground text-[10px]">{disableKey || "D"}</span>
         </button>
       )}
       <Separator />

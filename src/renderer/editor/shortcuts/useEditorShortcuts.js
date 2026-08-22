@@ -29,6 +29,11 @@ const ACTIONS = {
   // Owned by the timeline panel — absent while the timeline is collapsed.
   split: (e) => getTimelineHandlers()?.split?.(e),
   deleteSelected: (e) => getTimelineHandlers()?.deleteSelected?.(e),
+  // #296: both need the timeline's selection (which lane, which blocks), so
+  // they live with the panel like Split and Delete — and no-op while the
+  // timeline is collapsed, for the same reason.
+  toggleDisable: (e) => getTimelineHandlers()?.toggleDisable?.(e),
+  toggleLaneDisable: (e) => getTimelineHandlers()?.toggleLaneDisable?.(e),
 
   undo: () => {
     const store = useSubtitleStore.getState();

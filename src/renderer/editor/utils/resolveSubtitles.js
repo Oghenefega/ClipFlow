@@ -113,6 +113,10 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       end: s.endSec,
       text: s.text,
       words: s.words,
+      // #296: a switched-off line stays switched off across a reopen. Written
+      // as a conditional spread at every hop below, so a segment that never
+      // carried the flag comes out byte-identical to before.
+      ...(s.enabled === false ? { enabled: false } : {}),
     }));
     sourceOffset = 0;
     rawIsSourceAbsolute = true;
@@ -173,6 +177,7 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
       // downstream spreads words, so this is the only place they'd be lost.
       ...(w.style ? { style: w.style } : {}),
     })),
+    ...(s.enabled === false ? { enabled: false } : {}), // #296
   }));
 
   // ─── Pull source-wide extras when primary is clip-bounded ─────────────
@@ -320,6 +325,7 @@ function resolveClipSubtitles(clip, project, { includeExtras = false, verbose = 
         end: segEndSec,       // SOURCE-ABSOLUTE
         text: segText || s.text,
         words: repairedWords, // word.start/end are SOURCE-ABSOLUTE
+        ...(s.enabled === false ? { enabled: false } : {}), // #296
       };
     })
     // #115: keep blank segments for editor-saved data — a newly-created (still-empty)

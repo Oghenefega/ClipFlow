@@ -35,6 +35,7 @@ function useAssetPeaks(filePath) {
 function SoundBlock({
   p, pxPerSec, maxTl, top, height, selected,
   onSelect, onContextMenu, onGestureStart, onMove, onTrimLeft, onTrimRight, onDuplicate,
+  disabled = false,
 }) {
   const canvasRef = useRef(null);
   const [hovered, setHovered] = useState(false);
@@ -189,7 +190,7 @@ function SoundBlock({
 
   return (
     <div
-      title={`${p.name} · ${Math.round((p.volume ?? 1) * 100)}%`}
+      title={`${p.name} · ${Math.round((p.volume ?? 1) * 100)}%${disabled ? " · Off" : ""}`}
       onPointerDown={onBodyDown}
       // The scroll container's onClick deselects everything — a click that
       // reached it would undo the selection this block just made (pointerup
@@ -209,7 +210,10 @@ function SoundBlock({
         background: colors.bg,
         border: `1px solid ${selected ? colors.ring : colors.border}`,
         boxShadow: selected ? `0 0 0 1px ${colors.ring}` : "none",
-        opacity: gesture === "move" ? 0.85 : 1,
+        // #296: switched off — greyed, but still draggable and trimmable, so
+        // switching a sound off while you position it doesn't cost you the handles.
+        filter: disabled ? "grayscale(1)" : "none",
+        opacity: disabled ? 0.4 : gesture === "move" ? 0.85 : 1,
         cursor: gesture === "move" ? "grabbing" : "grab",
       }}
     >

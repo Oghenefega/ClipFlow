@@ -6,9 +6,32 @@
 
 ---
 
-## 📋 PLAN (session 184) — Disable / enable elements and lanes, plus source-audio mute
+## ✅ BUILT (session 185) — #296 disable/enable + #295 showSubs render fix
 
-**STATUS: AWAITING APPROVAL. No code written.** Supersedes the #294 mute plan below.
+**SHIPPED.** Verified in the built app over CDP against a real clip: lane labels toggle
+Caption/Subtitle/Music/SFX and mute Audio, `d` and `alt+d` work and are rebindable, every
+flag survives an app restart, and THREE real renders proved the render side — one with a
+line disabled + source muted + a disabled SFX (silent track, that line absent, neighbours
+intact), one with the Subtitle lane off (zero subtitles burned in, sound back at its
+preserved 60%), and one fully clean (audio graph byte-identical to before: `-map [base_a]`,
+no `volume=0`, no mixin).
+
+**One deviation from the plan:** the lane shortcut is `alt+d`, NOT `shift+d`. `eventToKey()`
+deliberately drops Shift when it is the only modifier on a printable character, so
+`shift+d` canonicalises to plain `d` and could never match — confirmed by testing, it fired
+the element toggle instead. `alt+d` is the working equivalent.
+
+**One extra fix the plan missed:** `enabled` was being dropped on reopen.
+`resolveClipSubtitles` rebuilds every segment field-by-field (start/end/text/words), so a
+disabled line came back enabled. Carried through all four hops (the editor-saved branch,
+`primaryRaw`, the final resolved shape, and `initSegments`) as a conditional spread, so a
+segment without the flag is unchanged.
+
+**Test artefacts cleaned up:** the render written for Clip 12 (rejected, JC Day2 Pt1) was
+deleted along with its thumbnail, `renderPath`/`thumbnailPath` nulled, the test SFX
+placement removed, and the stray `enabled: true` keys stripped from its saved segments.
+
+Original plan below.
 
 Resolve-style enable/disable: a greyed-out element or lane is excluded from the viewer
 AND the final render until switched back on. Scope confirmed by Fega 2026-08-22.

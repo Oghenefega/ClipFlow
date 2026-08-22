@@ -134,6 +134,8 @@ function computeReframeGeometry(reframe, sourceWidth, sourceHeight) {
  *   durationSec, fadeIn, fadeOut }] — each carries its own file window and
  *   timeline delay, so songs no longer depend on the clip's duration.
  *   With no audioAssets the audio graph is byte-identical to the pre-#202 output.
+ *   { sourceMuted: true } (#296) silences the clip's OWN audio while leaving the
+ *   picture and the mixed-in sounds alone. Omitted/false is byte-identical too.
  * @returns {{ filterComplex: string, mapArgs: string[] }}
  */
 function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sourceHeight, opts = {}) {
@@ -241,7 +243,16 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
   // exactly as long as the base track; normalize=0 stops amix from ducking
   // everything by 1/N. When no assets are given this whole block is skipped and
   // the audio graph text is unchanged.
-  let audioLabel = "base_a";
+  // #296: the Audio lane's mute. volume=0 rather than dropping the stream —
+  // it stays the right length, so the amix below (duration=first) still ends
+  // where the picture does, and a clip with no sounds still gets a valid,
+  // silent audio track instead of none at all.
+  let baseAudio = "base_a";
+  if (withAudio && opts.sourceMuted) {
+    filters.push(`[base_a]volume=0[base_am]`);
+    baseAudio = "base_am";
+  }
+  let audioLabel = baseAudio;
   const audioAssets = withAudio ? (opts.audioAssets || []) : [];
   if (audioAssets.length > 0) {
     const mixinLabels = [];
@@ -269,7 +280,7 @@ function buildNleFilterComplex(nleSegments, hasFrames, reframe, sourceWidth, sou
       filters.push(`[${a.inputIndex}:a]${chain}[mixin${i}]`);
       mixinLabels.push(`[mixin${i}]`);
     });
-    filters.push(`[base_a]aformat=sample_rates=48000:channel_layouts=stereo[base_af]`);
+    filters.push(`[${baseAudio}]aformat=sample_rates=48000:channel_layouts=stereo[base_af]`);
     filters.push(`[base_af]${mixinLabels.join("")}amix=inputs=${audioAssets.length + 1}:duration=first:normalize=0[mix_a]`);
     audioLabel = "mix_a";
   }
@@ -455,7 +466,17 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
       // was trimmed away is skipped (songs clamp forward instead — see
       // models/audioPlacements.js). A missing sound file fails the render
       // loudly — never a silently different-sounding export.
-      const sfxPlacements = Array.isArray(clipData.sfx) ? clipData.sfx : [];
+      // #296: a disabled sound, or one on a switched-off lane, never reaches
+      // the graph. Filtered BEFORE the missing-file check below on purpose: a
+      // sound the user has already switched off must not fail their render.
+      const lanes = clipData.laneEnabled || {};
+      const allPlacements = Array.isArray(clipData.sfx) ? clipData.sfx : [];
+      const sfxPlacements = allPlacements.filter(
+        (p) => p.enabled !== false && lanes[p.kind] !== false
+      );
+      if (sfxPlacements.length !== allPlacements.length) {
+        console.log(`[Render] ${allPlacements.length - sfxPlacements.length} sound(s) disabled — excluded from the render`);
+      }
       let activeAudioAssets = [];
       if (sfxPlacements.length > 0 && useNle) {
         for (const p of sfxPlacements) {
@@ -579,12 +600,17 @@ function renderClip(clipData, projectData, outputPath, options = {}) {
         // NLE mode: trim/concat segments from source + overlay (+ reframe #164)
         const { filterComplex, mapArgs } = buildNleFilterComplex(
           nleSegments, hasFrames, projectData.reframe, projectData.sourceWidth, projectData.sourceHeight,
-          { audioAssets: activeAudioAssets }
+          { audioAssets: activeAudioAssets, sourceMuted: clipData.sourceAudioMuted === true }
         );
         args.push("-filter_complex", filterComplex);
         args.push(...mapArgs);
       } else if (hasFrames) {
-        // Fallback: simple overlay on pre-cut clip (legacy behavior)
+        // Fallback: simple overlay on pre-cut clip (legacy behavior). #296: this
+        // path maps the source audio straight through, so a muted Audio lane is
+        // not honoured here — same limitation the sound placements already have.
+        if (clipData.sourceAudioMuted) {
+          console.warn("[Render] Audio lane is muted but this clip is rendering via the legacy (no-NLE) path — source audio kept");
+        }
         args.push(
           "-filter_complex",
           "[1:v]format=rgba[sub];[0:v][sub]overlay=0:0:eof_action=pass[out]",

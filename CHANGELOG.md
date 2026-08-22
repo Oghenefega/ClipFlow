@@ -4,6 +4,20 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 185) — Disable/enable in the editor (#296, #295)
+
+### Added
+- **Anything on the timeline can now be switched off instead of deleted (#296).** One sound, one music drop, one subtitle line or one caption block can be disabled: it greys out where it sits, disappears from the viewer, and is left out of the rendered file — then comes back exactly as it was with one more click. Sounds get a **Disable / Enable** button in their right-click settings popover; subtitles and captions get a **Disable / Enable** item in their right-click menu. Switching a sound off never touches its Volume slider, so the level you dialled in survives being muted and unmuted — the reason this replaced the earlier plan to mute by dragging the slider to zero (#294, closed as superseded).
+- **Whole lanes have an on/off switch in their label (#296).** Click the **Caption**, **Subtitle**, **Music** or **SFX** label and the entire lane leaves the viewer and the render at once; the label greys and strikes through and its icon flips, so the timeline says what will ship without having to open anything. The **Audio** lane gets a *mute* rather than a disable: its blocks are the video sections themselves, so switching it off silences the clip's own sound while the picture — and any music or SFX you've placed — carries on untouched.
+- **Two keyboard shortcuts, both rebindable (#296).** `D` toggles whatever is selected, `Alt + D` toggles the lane it sits on. Both appear in the shortcuts dialog (`?`) with the rest and can be reassigned there. `Alt + D` rather than `Shift + D` because the editor's key handling deliberately ignores Shift on a plain letter, so `Shift + D` could never have matched.
+
+### Fixed
+- **"Show subtitles" off now means the render has no subtitles (#295).** Turning the toggle off hid subtitles in the editor preview but they were still burned into the rendered file — the flag was passed to the renderer and then never read, so a Short could ship with subtitles that had been deliberately switched off. The switch now decides what ships, for the render and the WYSIWYG screenshot alike, and it is the same switch as the Subtitle lane's on/off rather than a second competing one.
+- **"Show subtitles" is now remembered per clip.** It used to be a session-only setting that leaked from one clip to the next and reset when the app restarted. It is saved with the clip's other subtitle settings, so a clip you deliberately shipped without subtitles opens that way. Clips saved before this open with subtitles on, as they always did.
+
+### Changed
+- **Nothing changes for a clip with nothing disabled.** Every switch reads "absent means on", so existing clips need no migration and render exactly as before — verified by rendering the same clip clean and comparing the video filter graph, which is unchanged. Switching something off and back on removes the flag again rather than leaving a marker behind, so the saved clip returns to the file it was.
+
 ## [Unreleased] — 2026-08-22 (session 184) — Published clips on the Queue (#293)
 
 ### Added

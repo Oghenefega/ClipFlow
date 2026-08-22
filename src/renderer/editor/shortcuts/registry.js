@@ -22,6 +22,12 @@ export const SHORTCUTS = [
   { id: "trimStart", defaultKey: "m", group: "Editing", label: "Start to playhead", hint: "Trims away everything before it" },
   { id: "trimEnd", defaultKey: "s", group: "Editing", label: "End to playhead", hint: "Trims away everything after it" },
   { id: "deleteSelected", defaultKey: "delete", group: "Editing", label: "Delete selected", altKeys: ["backspace"] },
+  // #296. Note M is Trim-start, so Resolve's M-for-mute is not available here.
+  // The lane toggle is ALT+D, not Shift+D: eventToKey() below deliberately drops
+  // Shift when it's the only modifier on a printable character, so "shift+d"
+  // canonicalises to plain "d" and could never match.
+  { id: "toggleDisable", defaultKey: "d", group: "Editing", label: "Disable / enable selected", hint: "Stays on the timeline, leaves the viewer and the render" },
+  { id: "toggleLaneDisable", defaultKey: "alt+d", group: "Editing", label: "Disable / enable the whole lane", hint: "The lane the selection sits on" },
   { id: "undo", defaultKey: "ctrl+z", group: "Editing", label: "Undo" },
   { id: "redo", defaultKey: "ctrl+y", group: "Editing", label: "Redo", hint: "Ctrl + Shift + Z also works", altKeys: ["ctrl+shift+z"] },
 

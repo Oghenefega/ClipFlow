@@ -126,6 +126,24 @@ const useCaptionStore = create((set, get) => ({
     }));
   },
 
+  // #296: switch caption blocks off without deleting them. Same rule as
+  // subtitles — `enabled` is written only here and read as `!== false`.
+  toggleCaptionSegmentsEnabled: (ids) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 0) return;
+    _pushCrossUndo();
+    set((s) => {
+      const anyOn = s.captionSegments.some((seg) => list.includes(seg.id) && seg.enabled !== false);
+      return {
+        captionSegments: s.captionSegments.map((seg) => {
+          if (!list.includes(seg.id)) return seg;
+          if (!anyOn) { const { enabled, ...rest } = seg; return rest; }
+          return { ...seg, enabled: false };
+        }),
+      };
+    });
+  },
+
   deleteCaptionSegment: (segId) => {
     _pushCrossUndo();
     set((s) => {

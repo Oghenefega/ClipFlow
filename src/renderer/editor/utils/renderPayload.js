@@ -39,13 +39,28 @@ export function buildRenderPayload() {
     timelineSubs = rawEditSegments;
   }
 
+  // #296 / #295: what ships is decided here, in one place, for both the render
+  // and the WYSIWYG screenshot. `enabled !== false` is the read everywhere, so
+  // a clip that carries no flags produces exactly the payload it did before.
+  // The Subtitle lane's switch IS `showSubs` — the toggle the render was
+  // already handed and never consulted (#295).
+  const lanes = editorState.laneEnabled || {};
+  const subsOn = subState.showSubs !== false;
+  const capsOn = lanes.cap !== false;
   const renderClip = {
     ...clip,
-    subtitles: timelineSubs,
+    // Must be an empty ARRAY when nothing ships, never an absent key —
+    // render.js falls back to resolveClipSubtitles() when `subtitles` is not
+    // an array, and would burn in the very lines that were switched off.
+    subtitles: subsOn ? timelineSubs.filter((seg) => seg.enabled !== false) : [],
     nleSegments: nleSegs,
     // #202: current (possibly unsaved) SFX/music placements — the render must
-    // match the preview, not the last-saved clip record.
+    // match the preview, not the last-saved clip record. Disabled placements
+    // ride along and are filtered in render.js, which is the one choke point
+    // every render path shares.
     sfx: editorState.audioPlacements || [],
+    laneEnabled: lanes,
+    sourceAudioMuted: editorState.sourceAudioMuted === true,
   };
   // Full subtitle style — every property the overlay renderer needs
   // Includes both store names (subFontFamily) and engine names (fontFamily)
@@ -107,7 +122,9 @@ export function buildRenderPayload() {
   const safeOptions = JSON.parse(JSON.stringify({
     subtitleStyle: fullSubtitleStyle,
     captionStyle: fullCaptionStyle,
-    captionSegments: capState.captionSegments || [],
+    captionSegments: capsOn
+      ? (capState.captionSegments || []).filter((seg) => seg.enabled !== false)
+      : [],
   }));
   return { safeClip, safeProject, safeOptions };
 }
