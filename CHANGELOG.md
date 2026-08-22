@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 183) — 0.4.0-alpha.3 cut
+
+### Changed
+- **Version 0.4.0-alpha.3.** Promotes the queue's YouTube tags work (#291): the Tags block under the description with per-clip overrides, the CUSTOM badge and reset, the shared 500-character counting rules, and the copy-tags buttons in the queue and in Captions & Descriptions.
+
 ## [Unreleased] — 2026-08-22 (session 183) — Tags on the queue card (#291)
 
 ### Added
