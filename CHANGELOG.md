@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 184) — Published clips on the Queue (#293)
+
+### Added
+- **The Queue now keeps a read-only shelf of what you've already published (#293).** A collapsed **Published** section sits between the queue and the publish log, holding the 20 most recent posts — thumbnail, game pill, title, the platforms it went to (each linking straight to the live post) and the date and time it went out. Open one and it expands to the YouTube title, the description and the tag list, each with a copy button; the tags copy as `tag, tag, tag`, the same format the queue's tag editor reads back, so reusing last week's tag list on a new clip is copy-then-paste. Nothing on the card is editable, deliberately: editing tags there would write a per-clip override that silently changes what a *repost* of that clip would send. Published clips were never deleted — they were only hidden by the filter that drops anything the Tracker knows about — so this surfaces existing data rather than storing anything new. The Tracker tab still holds the full history; the Queue only shows a recent shelf so the work you're actually doing doesn't get pushed down the page.
+- **Publishing now records what actually shipped (#293).** Tags and descriptions are worked out at publish time from the game's current lists, so reading them back weeks later showed today's values rather than the post's — and a clip that used its game's tag list stored nothing of its own to fall back on. Every new tracker entry now carries a snapshot of the resolved YouTube title, description and tags, taken with the same resolvers the upload used. The published card labels it plainly: **"Exactly what was published"** for posts that have one, and an amber note that the values are recomputed and may have changed for the 116 posts that predate this. Nothing is back-filled or guessed.
+
+### Changed
+- **The Queue's "Published" filter now shows something (#293).** The filter option has existed for a while but its condition could essentially never match — it filtered the unpublished queue, and a successful publish is exactly what removes a clip from that list. Choosing **Published** now opens the new shelf with the game filter still applied. The odd clip that published but never got a tracker entry (a partial failure, or a row deleted by hand) still appears in the lists above as before.
+
 ## [Unreleased] — 2026-08-22 (session 183) — 0.4.0-alpha.3 cut
 
 ### Changed

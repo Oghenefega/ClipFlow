@@ -6,6 +6,96 @@
 
 ---
 
+## 📋 PLAN (session 184) — Published clips on the Queue, read-only, with a publish snapshot
+
+**STATUS: AWAITING APPROVAL. No code written.**
+
+Fega wants published clips visible on the Queue so their settings (title, description,
+tags) can be read and copied onto future clips — e.g. reusing the tag list from a
+reaction video posted last week. Explicitly **read-only**: "I shouldn't really be able
+to edit them imo."
+
+Decisions taken 2026-08-22: **recent 20 in a collapsed section** (not the full history —
+the Tracker keeps that), and **snapshot what actually shipped, going forward**.
+
+### Findings (verified session 184)
+
+1. **Published clips are not deleted.** The six most-recent tracked clips are still in
+   project JSON with `status: "approved"`, `publishedAt` stamped and `renderPath` intact.
+   They are hidden from the Queue by one filter — the Tracker knockout at
+   `QueueView.js:744` (`!scheduledClipIds.has(c.id)`, that set built from `trackerData`
+   at `:712`). Showing them is a filter change, not data recovery.
+2. **The Queue already ships a "Published" filter chip** (`QueueView.js:1965`) whose
+   predicate (`publishStatus[c.id]?.state === "done"`, `:1861`) can essentially never
+   match. It filters `approved`; `logPost` writes the Tracker entry only on full success
+   (`:1802-1804`), which is exactly what removes the clip from `approved`. In normal
+   operation the chip matches nothing — the UI already promises this feature.
+3. **What actually shipped is NOT stored.** `resolveTags` (`:326`) recomputes from
+   `ytDescriptions[game].tags` at publish time; a per-clip list is saved only when it
+   *differs* from the game's (`saveYoutubeTags`, `:1186`). All six sampled published clips
+   have `youtubeTags: undefined` and no `captionOverrides` — they used their game's list.
+   So a published card would render **today's** game list, not what went out.
+   - Fega's own use case still works without the snapshot: a custom tag list is exactly
+     the case that gets stored on the clip. The snapshot fixes every other case.
+4. **`logPost` (`:1585`) is the single choke point** where a Tracker entry is created —
+   both publish paths call it (`:1474`, `:1808`, `:1811`). That is where the snapshot goes.
+5. **Two near-identical inline card renderers already exist** (unscheduled `:2128`,
+   scheduled `:2718`) in a 2903-line file. A third copy is not acceptable, and refactoring
+   the monster is out of scope. The published card is deliberately a **smaller, separate**
+   card — no publish buttons, platform toggles, scheduling, TikTok panel, retry or dequeue
+   — so it is less code than reusing either existing one.
+
+### File impact
+
+| File | Change |
+|---|---|
+| `src/renderer/views/QueueView.js` | Build a `publishedClips` list (tracker-matched, newest 20). New collapsed "Published" section below the scheduled list, with its own small read-only card. Point the existing "Published" filter chip at this list instead of its dead predicate. Snapshot resolved title/description/tags into the tracker entry inside `logPost`. |
+| `src/renderer/App.js` | None expected — `trackerData` already flows into QueueView as a prop (`:947`, `:974`). Verify only. |
+
+No main-process change expected: tracker entries are plain objects persisted via
+`persist("trackerData", ...)` (`App.js:511`), so extra fields ride along.
+
+### Steps
+
+1. `publishedClips`: join `trackerData` (newest first) to clips in `allClips` by `clipId`,
+   take 20, carry `_projectId` plus the tracker entry (for the real published date and the
+   platform URLs already in `platformResults`).
+2. Snapshot in `logPost`: add `published: { youtubeTitle, description, tags }` to the new
+   tracker entry, resolved through the same `resolveTags` / `resolveCaption` the publish
+   call used — so the record matches the upload exactly.
+3. Read-only card: thumbnail, title, game pill, published date, platform chips linking to
+   the live URLs. Expands to Title / Description / Tags, each with the existing
+   `CopyIconButton` (`:2465`). No inputs, no save, no click-to-edit.
+4. Provenance label on the tags block: "as published" on snapshot-bearing entries;
+   otherwise "custom for this clip" when `clip.youtubeTags` is an array, or
+   "from &lt;Game&gt;'s list" when it falls through to the game.
+5. Collapsed by default, disclosure header with a count.
+
+### Verification criteria
+
+1. Build + `npm start` → Queue tab shows a collapsed "Published" section below the
+   scheduled clips, with a count.
+2. Expanded: the 20 most recent published clips, newest first, each showing its real
+   published date from the tracker.
+3. A card expands to Title / Description / Tags; copy buttons put the same text on the
+   clipboard that an unpublished card's copy buttons do.
+4. **No way to edit** a published clip's settings — no input, no save, no click-to-edit.
+5. The 100T reaction clips show their custom tag list, labelled custom. A clip that used
+   its game's list is labelled as such.
+6. The "Published" filter chip shows this list instead of an empty result.
+7. **Regression:** unpublished and scheduled clips behave exactly as before — publish,
+   schedule, dequeue, retry, count badges all unaffected.
+8. Publish one test-mode clip; confirm its tracker entry carries the `published` snapshot
+   and its card reads "as published".
+
+### Known limitation (flagged, not hidden)
+
+The 116 existing tracker entries have no snapshot. Their cards fall back to recomputed
+settings and say so via the provenance label. Only clips published after this ships show
+guaranteed-accurate history.
+
+---
+
 ## ✅ BUILT (session 183) — #291 tags on the Queue's YouTube card
 
 **APPROVED by Fega 2026-08-22 with two changes to the proposal: tags sit UNDER the

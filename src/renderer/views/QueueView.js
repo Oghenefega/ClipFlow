@@ -296,6 +296,26 @@ const TIKTOK_PRIVACY_LABELS = {
 const PLACEHOLDER_TITLE_RE = /^Clip \d+$/;
 const isPlaceholderTitle = (title) => PLACEHOLDER_TITLE_RE.test((title || "").trim());
 
+// #293: how many past posts the Queue's Published section holds. The Tracker tab
+// keeps the full history — this is a reference shelf for copying settings forward,
+// not an archive, and it must not push the actual work down the page.
+const PUBLISHED_LIMIT = 20;
+
+// #293: one field on the read-only Published card. Mirrors the queue card's
+// description box minus every edit affordance — no click-to-edit, no hover border,
+// no cursor:text, no Edit glyph — so it can't be mistaken for something changeable.
+const ReadOnlyField = ({ label, value, multiline }) => (
+  <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>{label}</div>
+      {!!value && <CopyIconButton value={value} title={`Copy ${label.toLowerCase()}`} />}
+    </div>
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: "rgba(255,255,255,0.03)", padding: "8px 11px", fontSize: 13, color: T.textSecondary, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: multiline ? 200 : undefined, overflowY: multiline ? "auto" : undefined }}>
+      {value || <span style={{ color: T.textMuted, fontStyle: "italic" }}>Empty</span>}
+    </div>
+  </div>
+);
+
 // #285: the per-game YouTube lookup, in one place. ytDescriptions is keyed by
 // display name ("Rocket League") while clips carry the short tag ("RL") or a
 // hashtag slug ("rocketleague"), so descriptions and tags MUST resolve through
@@ -956,6 +976,9 @@ export default function QueueView({
   // Phase 5: filter/sort
   const [filterGame, setFilterGame] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all"); // all, unscheduled, scheduled, published, failed, unrendered
+  // #293: the Published shelf — collapsed by default, and which past clip is expanded.
+  const [publishedOpen, setPublishedOpen] = useState(false);
+  const [selPublished, setSelPublished] = useState(null); // clipId
   const [sortBy, setSortBy] = useState("queue"); // queue, date, game, scheduled
 
   // #244: banner "Review" lands on the Queue pre-filtered to failed clips.
@@ -1603,7 +1626,20 @@ export default function QueueView({
       const k = accountToPlatformKey(p);
       return captured[k] || { platform: k, accountId: p.key };
     });
-    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled }]);
+    // #293: freeze what actually shipped. resolveTags and getEffectiveCaption both
+    // recompute from the game's CURRENT lists (ytDescriptions), so reading them back
+    // weeks later shows today's values, not this post's — and a clip that used its
+    // game's tag list stores nothing of its own to fall back on. This is the one place
+    // a tracker entry is born, and it runs the same resolvers the publish call just
+    // used, so the record matches the upload. Entries written before this shipped have
+    // no snapshot; the Published card labels those as recomputed rather than faking it.
+    const publishedSnapshot = {
+      youtubeTitle: clip.youtubeTitle || clip.title || "",
+      description: getEffectiveCaption(clip, "youtube"),
+      tags: resolveTags(clip, ytDescriptions, gamesDb),
+      tagsCustom: Array.isArray(clip.youtubeTags),
+    };
+    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot }]);
     // #183: the title/caption that actually shipped is voice training data —
     // especially when it was hand-written and never matched a suggestion.
     // Fire-and-forget; a logging failure must never affect the publish result.
@@ -1847,6 +1883,36 @@ export default function QueueView({
   ).size;
   const failedCount = approved.filter((c) => publishStatus[c.id]?.state === "failed").length;
 
+  // #293: the published clips, newest first. `approved` deliberately excludes anything
+  // the tracker knows about (see the knockout above) — that filter is exactly what makes
+  // a clip disappear once it goes out. This rebuilds the other side of it: the tracker
+  // entry IS the published record, joined back to the clip it came from. Nothing was
+  // deleted, so the clip still carries its thumbnail, render and per-clip settings.
+  // Reverse insertion order = publish order (logPost appends), which is what "recent"
+  // means here — a scheduled post's `date` is the slot it was aimed at, not when it ran.
+  // Capped: the tracker holds the full history, the Queue is a work surface.
+  const publishedClips = useMemo(() => {
+    const byId = new Map();
+    for (const [projectId, clips] of Object.entries(allClips || {})) {
+      for (const c of clips) byId.set(c.id, { ...c, _projectId: projectId });
+    }
+    const out = [];
+    for (let i = trackerData.length - 1; i >= 0 && out.length < PUBLISHED_LIMIT; i--) {
+      const t = trackerData[i];
+      const clip = t?.clipId ? byId.get(t.clipId) : null;
+      // No clip means the project was deleted since. The tracker keeps the record;
+      // there is nothing here to copy settings from, so skip it.
+      if (!clip) continue;
+      const projGameTag = projectInfo[clip._projectId]?.gameTag || "";
+      out.push({
+        ...clip,
+        gameTag: (clip.gameTag || "").toLowerCase() || projGameTag || extractGameTag(clip.title) || "",
+        _tracker: t,
+      });
+    }
+    return out;
+  }, [trackerData, allClips, projectInfo]);
+
   // Phase 5: Collect unique game tags for filter (lowercased — clip.gameTag is canonical)
   const gameTagSet = useMemo(() => {
     const s = new Set();
@@ -1868,6 +1934,12 @@ export default function QueueView({
   const filteredScheduled = filterClips(scheduledClips);
   const showUnscheduled = filterStatus !== "scheduled";
   const showScheduled = filterStatus !== "unscheduled";
+  // #293: the published section takes the game filter but not the status filter —
+  // "published" IS its status. filterClips is left alone so the existing chip keeps
+  // surfacing the odd clip that published but never got a tracker entry (a partial
+  // failure, or a tracker row deleted by hand); that clip stays in the lists above.
+  const filteredPublished = filterGame === "all" ? publishedClips : publishedClips.filter((c) => c.gameTag === filterGame);
+  const showPublished = filterStatus === "all" || filterStatus === "published";
 
   // Status badge helper — Phase 3: show schedule time
   const statusBadge = (clip) => {
@@ -2847,6 +2919,119 @@ export default function QueueView({
 
       </SortableContext>
       </DndContext>
+
+      {/* #293: PUBLISHED — a read-only shelf of what already went out, so a past clip's
+          title / description / tags can be copied onto a new one. Deliberately NOT the
+          queue card: no publish, schedule, retry, dequeue, and nothing editable. Editing
+          tags here would write a per-clip override, which silently changes what a REPOST
+          of that clip would send. Copy buttons only. */}
+      {showPublished && publishedClips.length > 0 && (() => {
+        const expanded = publishedOpen || filterStatus === "published";
+        return (
+          <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
+            <div
+              onClick={() => { setPublishedOpen(!expanded); if (expanded) setSelPublished(null); }}
+              style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+            >
+              <SectionLabel>Published</SectionLabel>
+              <span style={{ fontSize: 11, fontWeight: 800, fontFamily: T.mono, color: T.green, background: "rgba(52,211,153,0.1)", padding: "1px 7px", borderRadius: 5 }}>{filteredPublished.length}</span>
+              <span style={{ fontSize: 11, color: T.textTertiary }}>read-only — copy settings onto a new clip</span>
+              <div style={{ flex: 1 }} />
+              <span style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.03)", color: T.textSecondary, fontSize: 11, fontWeight: 700 }}>{expanded ? "Hide" : "Show"}</span>
+            </div>
+
+            {expanded && (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                {filteredPublished.length === 0 && (
+                  <div style={{ color: T.textTertiary, fontSize: 12, padding: "10px 0" }}>No published clips for this game.</div>
+                )}
+                {filteredPublished.map((clip) => {
+                  const t = clip._tracker;
+                  // Present only on posts published after #293 shipped. Absent = fall back
+                  // to recomputing, and SAY SO — never dress a reconstruction up as history.
+                  const snap = t.published;
+                  const isOpen = selPublished === clip.id;
+                  const gc = gameColorFor(clip);
+                  const ytTitle = snap ? snap.youtubeTitle : (clip.youtubeTitle || clip.title || "");
+                  const desc = snap ? snap.description : getEffectiveCaption(clip, "youtube");
+                  const tags = snap ? (snap.tags || []) : resolveTags(clip, ytDescriptions, gamesDb);
+                  const tagsCustom = snap ? !!snap.tagsCustom : Array.isArray(clip.youtubeTags);
+                  const gameName = (gamesDb || []).find((g) =>
+                    (g.tag || "").toLowerCase() === clip.gameTag || (g.hashtag || "").toLowerCase() === clip.gameTag
+                  )?.name || "";
+                  // Noon, not midnight — t.date is a local ISO day and parsing it bare
+                  // would land on UTC midnight and read as the day before in EST.
+                  const when = t.date ? new Date(`${t.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+                  const rowBg = `linear-gradient(100deg, ${gc}14 0%, ${gc}05 40%, rgba(255,255,255,0.015) 65%)`;
+
+                  return (
+                    <div key={clip.id} style={{ border: `1px solid ${isOpen ? T.borderHover : T.border}`, borderRadius: 9, background: rowBg, overflow: "hidden" }}>
+                      <div
+                        onClick={() => setSelPublished(isOpen ? null : clip.id)}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 12px", cursor: "pointer" }}
+                      >
+                        <div style={{ width: 17, flexShrink: 0, aspectRatio: "9/16", borderRadius: 3, overflow: "hidden", background: "rgba(255,255,255,0.04)" }}>
+                          {clip.thumbnailPath && (
+                            <img src={toFileUrl(clip.thumbnailPath)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          )}
+                        </div>
+                        {clip.gameTag && <GamePill tag={clip.gameTag.toUpperCase()} color={gc} size="sm" />}
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clip.title}</span>
+                        {(t.platformResults || []).map((row, i) => (
+                          row.url ? (
+                            <span key={i} onClick={(e) => { e.stopPropagation(); window.clipflow?.openExternal?.(row.url); }} title={`${row.platform} · view post`} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 6, cursor: "pointer", background: T.accentDim, border: `1px solid ${T.accentBorder}` }}>
+                              <PlatformIcon platform={row.platform} size={12} />
+                            </span>
+                          ) : (
+                            <span key={i} title={row.platform} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 6, opacity: 0.55, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}` }}>
+                              <PlatformIcon platform={row.platform} size={12} />
+                            </span>
+                          )
+                        ))}
+                        <span style={{ fontSize: 10.5, color: T.textTertiary, fontFamily: T.mono, whiteSpace: "nowrap", minWidth: 84, textAlign: "right" }}>{when}{t.time ? ` · ${t.time}` : ""}</span>
+                      </div>
+
+                      {isOpen && (
+                        <div style={{ borderTop: `1px solid ${T.border}`, background: "rgba(0,0,0,0.16)" }}>
+                          {/* Provenance, once, for all three blocks below. A recomputed
+                              view drifts the moment the game's lists are edited. */}
+                          <div style={{ padding: "7px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 10.5, fontWeight: 600, color: snap ? T.green : T.yellow }}>
+                            {snap
+                              ? "Exactly what was published."
+                              : "Published before Corva started recording this — showing what these settings resolve to today, which may have changed since."}
+                          </div>
+
+                          <ReadOnlyField label="YouTube title" value={ytTitle} />
+                          <ReadOnlyField label="Description" value={desc} multiline />
+
+                          <div style={{ padding: "10px 12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>Tags</div>
+                              {tags.length > 0 && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
+                              {tagsCustom
+                                ? <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>
+                                : <span style={{ fontSize: 10, color: T.textTertiary }}>from {gameName || "the game"}&rsquo;s list</span>}
+                            </div>
+                            {tags.length === 0 ? (
+                              <span style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>No tags</span>
+                            ) : (
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                                {tags.map((tag) => (
+                                  <span key={tag} style={{ fontSize: 11, color: T.textSecondary, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px" }}>{tag}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* PUBLISH LOG */}
       <Card style={{ padding: "14px 20px", marginBottom: 28 }}>
