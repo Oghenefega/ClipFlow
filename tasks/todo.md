@@ -6,6 +6,84 @@
 
 ---
 
+## ✅ BUILT (session 183) — #291 tags on the Queue's YouTube card
+
+**APPROVED by Fega 2026-08-22 with two changes to the proposal: tags sit UNDER the
+description (not between Privacy and Description), and a copy-tags icon is added in
+BOTH Captions & Descriptions and the new queue slot.**
+
+Follow-up to #285: tags ship per-game from Captions but the Queue's YouTube card
+never renders them, and there is no per-clip override the way there is for the
+description and the YouTube title.
+
+### Root cause
+
+#285 stored tags at `ytDescriptions[game].tags` (edited in Captions & Descriptions →
+YouTube, `CaptionsView.js:126-150`) and taught the publish path to read them —
+`resolveTags()` (`QueueView.js:322`), used at publish-now (`QueueView.js:1375`) and
+scheduled publish (`QueueView.js:1690`). The card itself renders Title
+(`QueueView.js:2276`), Privacy (`QueueView.js:2301`), Description (`QueueView.js:2324`)
+and stops. So tags are invisible on the last screen before a clip goes public, and a
+one-off clip that wants different tags forces editing the whole game's setting.
+
+### File impact
+
+| File | Change |
+|---|---|
+| `src/renderer/utils/ytTags.js` | **New.** `TAGS_MAX` + `parseTags` + `tagsLength` lifted verbatim out of CaptionsView so both editors normalise and count identically. |
+| `src/renderer/components/shared.js` | **New** `CopyIconButton` — icon-only copy with a tick-on-success state, used by both views. |
+| `src/renderer/views/CaptionsView.js` | Delete the local tag helpers, import from the util. Copy-tags icon in the editor (next to the count) and on the collapsed row (next to the "N tags" chip). |
+| `src/renderer/views/QueueView.js` | `resolveTags()` prefers `clip.youtubeTags`; new `saveYoutubeTags` / `resetYoutubeTags`; Tags block **below** the description block; copy-tags icon in its header; `editingYtTags` + `editYtTagsValue` state. |
+
+No main-process change: `projects.updateClip` (`src/main/projects.js:255`) merges
+arbitrary fields, so `clip.youtubeTags` persists as-is, and both publish call sites
+already go through `resolveTags`.
+
+### Steps
+
+1. Extract `parseTags` / `tagsLength` / `TAGS_MAX` into `src/renderer/utils/ytTags.js`; point CaptionsView at it.
+2. `CopyIconButton` into shared.js.
+3. `resolveTags(clip, ...)` returns `clip.youtubeTags` when it is an array, else the game list. Nothing else in the publish path changes.
+4. Tags block in the YouTube card, directly under the description, same section style:
+   - Header row — `TAGS` label, copy icon, `N/500` count.
+   - Read view — the tags as chips. Empty resolves to "No tags — click to add".
+   - Click → textarea (auto-grow), comma-separated, same as Captions.
+   - Blur saves; Escape cancels. Save normalises (trim, drop blanks, case-insensitive dedupe) and writes `youtubeTags`.
+   - Over 500: refuse the save, keep the editor open with the text intact, red count + "Over YouTube's 500-character limit — not saved".
+   - Saving a list identical to the game's list clears the override (same trick `saveCaptionOverride` uses).
+   - "Reset to game tags" button under the block, visible only while an override exists.
+5. Copy icons copy the resolved list as `tag, tag, tag` — the format both editors accept back.
+6. Build + `npm start`, verify against the dev profile.
+
+### Verification criteria
+
+- Card shows the game's tags for a clip with no override; publish payload unchanged.
+- Tags render UNDER the description, not above it.
+- Editing one clip's tags leaves the game setting and every other clip untouched.
+- Reset restores the game's list and the button disappears.
+- Over-500 blocks the save, keeps the typed text, and says why.
+- Tags survive a queue reload (persisted to the project JSON).
+- Scheduled publish sends the override, not the game list.
+- Copy icon in both views puts the comma-separated list on the clipboard and flashes a tick.
+
+### Verification log (built app, dev profile, 2026-08-22)
+
+Run against a throwaway projects root (scratchpad fixture: two approved clips, one
+`val`, one `jc`) with a fake YouTube account in the dev token store — no real
+project JSON touched, no publish path reachable. Dev stores backed up and restored
+afterwards; the dev profile is back on the real projectsRoot with zero accounts.
+
+- Tags block renders **under** the description, chips + count `58/500`, reading the game's four Valorant tags through with no per-clip value stored.
+- Editing `"  ace clip , Ace Clip, , clutch moments,valorant  "` saved `["ace clip","clutch moments","valorant"]` — trimmed, blank dropped, case-insensitive duplicate dropped. CUSTOM badge + Saved flash + "Reset to game tags" appeared.
+- Persisted to the clip: `clip_291_a.youtubeTags` written; the sibling clip and the game's setting both unchanged.
+- 40-tag paste (1229 chars): save refused, editor stayed open with all 1188 characters, red `Over YouTube's 500-character limit by 729 — not saved.`, project JSON still held the previous list. Cancel restored the saved list.
+- Reset wrote `youtubeTags: null` and the card went back to the game's four tags; badge and button gone.
+- Clip on a game with no tags shows `No tags — click to add`, count `0/500`.
+- Copy icons: queue block copied `"ace clip, clutch moments, valorant"`, Captions row and Captions editor both copied `"valorant, valorant clips, gaming shorts, fps highlights"`; icon flipped to the tick.
+- `resolveTags` (the exact source pulled out of QueueView and run over seven cases): override wins, `[]` is a real answer, `null` falls through to the game, unknown game → `[]`, hashtag-form game tag still resolves. Both publish call sites go through it.
+
+---
+
 ## ✅ BUILT (session 182) — #284 personal-data strip, #286 `{schedule}`, #285 YouTube tags
 
 **APPROVED by Fega 2026-08-22 ("go"). All three shipped and verified in the built

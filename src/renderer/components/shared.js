@@ -59,6 +59,36 @@ export const Checkbox = ({ checked, size = 20 }) => (
   </div>
 );
 
+// #291: icon-only copy button. Swaps to a tick for 1.5s so the click answers
+// itself without the label reflowing the row it sits in.
+export const CopyIconButton = ({ value, title = "Copy", size = 13, style: x }) => {
+  const [done, setDone] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value || "");
+    setDone(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setDone(false), 1500);
+  };
+  return (
+    <button
+      onClick={copy}
+      title={done ? "Copied" : title}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 3, borderRadius: 5, border: "none", background: "transparent", color: done ? T.green : T.textTertiary, cursor: "pointer", lineHeight: 0, transition: "color 0.15s", ...x }}
+      onMouseEnter={(e) => { if (!done) e.currentTarget.style.color = T.text; }}
+      onMouseLeave={(e) => { if (!done) e.currentTarget.style.color = T.textTertiary; }}
+    >
+      {done ? (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+      ) : (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+      )}
+    </button>
+  );
+};
+
 export const Card = ({ children, style: x, onClick, borderColor }) => (
   <div onClick={onClick} style={{ background: T.surface, borderRadius: T.radius.lg, border: `1px solid ${borderColor || T.border}`, cursor: onClick ? "pointer" : "default", ...x }}>
     {children}

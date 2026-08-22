@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 183) — Tags on the queue card (#291)
+
+### Added
+- **The Queue's YouTube card now shows and edits tags (#291).** #285 gave tags a home in Captions & Descriptions and wired them into publishing, but nothing surfaced them on the last screen before a clip goes public — the card had a title, a privacy picker and a description, and no way to see what tags were attached or change them for one clip. A **Tags** block now sits directly under the description, showing the game's tags as chips. Click it to give that clip its own list: the same comma-separated format as Captions, normalised on save (trimmed, blanks dropped, case-insensitive duplicates removed), with a live count against YouTube's 500-character budget. Over the limit, the save is refused with the reason and your typed text is left in the box rather than shipping a list the upload would reject at the end of a render. A clip with its own list is badged **CUSTOM** and gains a **Reset to game tags** button; a clip without one follows its game, so nothing about today's publish payloads changes until you edit something. Both the manual and the scheduled publish paths read the same resolver, so an override reaches YouTube either way.
+- **A copy-tags button in both editors (#291).** The tag list can be copied to the clipboard as `tag, tag, tag` — the format both editors accept back — from the Queue's new Tags block, from a game's row in Captions & Descriptions, and from inside that game's editor. The icon flips to a tick on success. It only appears when there are tags to copy.
+
+### Changed
+- **Tag parsing and counting moved into one shared module (#291).** The trim/dedupe rules and the 500-character count (which includes the separating commas, and two extra characters for any tag containing a space) lived inside CaptionsView. They now live in `src/renderer/utils/ytTags.js` and both editors import them, so the queue and the settings screen can never disagree about what a tag list is or when it's too long.
+
 ## [Unreleased] — 2026-08-22 (session 182) — 0.4.0-alpha.2 cut
 
 ### Changed

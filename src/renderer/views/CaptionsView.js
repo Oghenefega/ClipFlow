@@ -1,32 +1,14 @@
 import React, { useState } from "react";
 import T from "../styles/theme";
-import { Card, PageHeader, TabBar, SectionLabel } from "../components/shared";
+import { Card, PageHeader, TabBar, SectionLabel, CopyIconButton } from "../components/shared";
 import { buildStarterYtDescription } from "../utils/ytDescriptionTemplate";
+import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 
 const PLATFORMS = [
   { id: "tiktok", label: "TikTok" },
   { id: "instagram", label: "Instagram" },
   { id: "facebook", label: "Facebook" },
 ];
-
-// #285: YouTube budgets the whole tag list at 500 characters — the tags, the
-// commas between them, and two extra for any tag containing a space (the API
-// quotes those). Counted here so the editor can block a save the upload would
-// reject at the end of a render.
-const TAGS_MAX = 500;
-
-const parseTags = (raw) => {
-  const seen = new Set();
-  return (raw || "").split(",").map((t) => t.trim()).filter((t) => {
-    const key = t.toLowerCase();
-    if (!t || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-
-const tagsLength = (tags) =>
-  tags.reduce((n, t) => n + t.length + (/\s/.test(t) ? 2 : 0), 0) + Math.max(0, tags.length - 1);
 
 export default function CaptionsView({ ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, platformOptions, setPlatformOptions, gamesDb = [] }) {
   const [section, setSection] = useState("youtube");
@@ -132,7 +114,10 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
 
                     {/* #285: per-game YouTube tags — sent with every Short for this game */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, marginBottom: 8 }}>
-                      <SectionLabel>YouTube Tags</SectionLabel>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <SectionLabel>YouTube Tags</SectionLabel>
+                        {parsedTags.length > 0 && <CopyIconButton value={tagsToText(parsedTags)} title="Copy tags" />}
+                      </div>
                       <span style={{ fontSize: 11, fontFamily: T.mono, color: tagsOver ? T.red : T.textMuted }}>
                         {tagsLen} / {TAGS_MAX}
                       </span>
@@ -156,6 +141,7 @@ export default function CaptionsView({ ytDescriptions, setYtDescriptions, captio
                       <span style={{ fontSize: 11, color: data.tags?.length ? T.textTertiary : T.textMuted }}>
                         {data.tags?.length ? `${data.tags.length} tag${data.tags.length === 1 ? "" : "s"}` : "no tags"}
                       </span>
+                      {data.tags?.length > 0 && <CopyIconButton value={tagsToText(data.tags)} title="Copy tags" style={{ marginLeft: -4 }} />}
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => startEdit(game, data)} style={{ padding: "6px 12px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, color: T.textSecondary, fontSize: 12, cursor: "pointer", fontFamily: T.font }}>Edit</button>

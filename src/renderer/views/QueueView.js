@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import T from "../styles/theme";
-import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, extractGameTag, toFileUrl } from "../components/shared";
+import { Card, PageHeader, SectionLabel, Badge, Select, InfoBanner, Checkbox, GamePill, CopyIconButton, extractGameTag, toFileUrl } from "../components/shared";
 import CaptionsView from "./CaptionsView";
 import ImportReviewModal from "../components/ImportReviewModal";
 import TestChip from "../components/TestChip";
 import PlatformIcon from "../components/PlatformIcon";
 import { localISO } from "../utils/trackerEngine";
+import { TAGS_MAX, parseTags, tagsLength, tagsToText } from "../utils/ytTags";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -319,7 +320,12 @@ function resolveYtGameKey(clip, ytDescriptions, gamesDb) {
 
 // #285: YouTube tags for a clip — the per-game list saved beside the description.
 // No tags set (or no matching game) publishes exactly as it did before: an empty list.
+// #291: a per-clip list (edited on the queue card) wins outright, the same way
+// captionOverrides beats the template. An empty array is a real answer — the user
+// stripped the tags off this one clip — so only a missing/non-array value falls
+// through to the game.
 function resolveTags(clip, ytDescriptions, gamesDb) {
+  if (Array.isArray(clip.youtubeTags)) return clip.youtubeTags;
   const { key } = resolveYtGameKey(clip, ytDescriptions, gamesDb);
   const tags = key ? ytDescriptions?.[key]?.tags : null;
   return Array.isArray(tags) ? tags : [];
@@ -938,6 +944,12 @@ export default function QueueView({
   const [editCaptionValue, setEditCaptionValue] = useState("");
   const [editingYtTitle, setEditingYtTitle] = useState(null); // clipId
   const [editYtTitleValue, setEditYtTitleValue] = useState("");
+  // #291: per-clip YouTube tags. ytTagsError holds the clipId whose last save was
+  // refused for being over YouTube's 500-char budget — the editor stays open so
+  // the typed list isn't thrown away.
+  const [editingYtTags, setEditingYtTags] = useState(null); // clipId
+  const [editYtTagsValue, setEditYtTagsValue] = useState("");
+  const [ytTagsError, setYtTagsError] = useState(null); // clipId
   // Phase 3: scheduling state
   const [confirmClipId, setConfirmClipId] = useState(null); // Phase 4: publish confirmation modal
   const [confirmSchedOpts, setConfirmSchedOpts] = useState(null);
@@ -1153,6 +1165,48 @@ export default function QueueView({
       const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubePrivacy: value });
       if (!r?.error) updateClipInState(clip._projectId, clip.id, { youtubePrivacy: value });
     } catch (e) { console.error("YouTube privacy save failed:", e); }
+  };
+
+  // #291: the game's tag list for a clip, ignoring any per-clip override — the
+  // value "Reset to game tags" goes back to, and what a save is compared against.
+  const gameTagsFor = (clip) => resolveTags({ ...clip, youtubeTags: undefined }, ytDescriptions, gamesDb);
+
+  // #291: save the per-clip YouTube tag list. Normalised by the same rules as the
+  // Captions editor (shared ytTags util). A list identical to the game's clears the
+  // override so the clip follows the game again — the trick saveCaptionOverride
+  // uses for descriptions.
+  const saveYoutubeTags = async (clip, value) => {
+    if (!clip._projectId) return;
+    const parsed = parseTags(value);
+    // Over budget: refuse the write and leave the editor open with the text intact.
+    // Publishing this would fail at the very end of a render, which is the worst
+    // possible moment to find out.
+    if (tagsLength(parsed) > TAGS_MAX) { setYtTagsError(clip.id); return; }
+    const gameTags = gameTagsFor(clip);
+    const matchesGame = parsed.length === gameTags.length && parsed.every((t, i) => t === gameTags[i]);
+    const next = matchesGame ? null : parsed;
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeTags: next });
+      if (!r?.error) {
+        updateClipInState(clip._projectId, clip.id, { youtubeTags: next });
+        setCaptionSavedFlash(`${clip.id}:youtube-tags`);
+        clearTimeout(captionFlashTimer.current);
+        captionFlashTimer.current = setTimeout(() => setCaptionSavedFlash(null), 1600);
+      }
+    } catch (e) { console.error("YouTube tags save failed:", e); }
+    setYtTagsError(null);
+    setEditingYtTags(null);
+  };
+
+  // #291: drop the per-clip list — back to whatever the game says today.
+  const resetYoutubeTags = async (clip) => {
+    if (!clip._projectId) return;
+    try {
+      const r = await window.clipflow?.projectUpdateClip(clip._projectId, clip.id, { youtubeTags: null });
+      if (!r?.error) updateClipInState(clip._projectId, clip.id, { youtubeTags: null });
+    } catch (e) { console.error("YouTube tags reset failed:", e); }
+    setYtTagsError(null);
+    setEditingYtTags(null);
   };
 
   // TikTok Content Posting API audit: persist any subset of the per-clip TikTok
@@ -2392,6 +2446,94 @@ export default function QueueView({
                                           </div>
                                         )}
                                       </div>
+
+                                      {/* #291: YouTube tags — under the description, not above it.
+                                          Reads through to the game's list (Captions & Descriptions)
+                                          until this clip is given its own. */}
+                                      {isYt && (() => {
+                                        const tags = resolveTags(clip, ytDescriptions, gamesDb);
+                                        const hasTagOverride = Array.isArray(clip.youtubeTags);
+                                        const isEditingTags = editingYtTags === clip.id;
+                                        const shown = isEditingTags ? parseTags(editYtTagsValue) : tags;
+                                        const len = tagsLength(shown);
+                                        const over = len > TAGS_MAX;
+                                        const refused = ytTagsError === clip.id;
+                                        return (
+                                          <div style={{ padding: "10px 12px", borderBottom: `1px solid ${T.border}` }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: T.labelStrong, textTransform: "uppercase" }}>Tags</div>
+                                              {tags.length > 0 && !isEditingTags && <CopyIconButton value={tagsToText(tags)} title="Copy tags" />}
+                                              {hasTagOverride && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, color: T.accent, background: T.accentDim, padding: "1px 7px", borderRadius: 5 }}>CUSTOM</span>}
+                                              {captionSavedFlash === `${clip.id}:youtube-tags` && (
+                                                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, boxShadow: `0 0 6px ${T.green}`, display: "inline-block" }} />
+                                                  Saved
+                                                </span>
+                                              )}
+                                              <div style={{ flex: 1 }} />
+                                              <span style={{ fontSize: 10, fontFamily: T.mono, color: over ? T.red : T.textTertiary }}>{len}/{TAGS_MAX}</span>
+                                            </div>
+                                            {isEditingTags ? (
+                                              <textarea
+                                                autoFocus
+                                                ref={(el) => {
+                                                  if (el && !el.dataset.sized) {
+                                                    el.dataset.sized = "1";
+                                                    el.style.height = Math.max(56, el.scrollHeight + 2) + "px";
+                                                  }
+                                                }}
+                                                value={editYtTagsValue}
+                                                onChange={(e) => {
+                                                  setEditYtTagsValue(e.target.value);
+                                                  const el = e.target;
+                                                  if (el.scrollHeight > el.clientHeight) el.style.height = Math.max(56, el.scrollHeight + 2) + "px";
+                                                }}
+                                                onKeyDown={(e) => { if (e.key === "Escape") { setEditingYtTags(null); setYtTagsError(null); } }}
+                                                onBlur={() => saveYoutubeTags(clip, editYtTagsValue)}
+                                                placeholder="rocket league, rocket league clips, gaming shorts"
+                                                style={{ width: "100%", minHeight: 56, background: "rgba(255,255,255,0.06)", border: `1px solid ${over ? T.red : T.accentBorder}`, borderRadius: 8, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: T.font, outline: "none", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }}
+                                              />
+                                            ) : (
+                                              <div
+                                                onClick={(e) => { e.stopPropagation(); setYtTagsError(null); setEditingYtTags(clip.id); setEditYtTagsValue(tagsToText(tags)); }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentBorder; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderHover; }}
+                                                style={{ position: "relative", border: `1px solid ${T.borderHover}`, borderRadius: 8, background: "rgba(255,255,255,0.045)", padding: "8px 54px 8px 10px", minHeight: 20, cursor: "text", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", transition: "border-color 0.15s" }}
+                                                title="Click to edit"
+                                              >
+                                                {tags.length === 0 ? (
+                                                  <span style={{ fontSize: 12.5, color: T.textMuted, fontStyle: "italic" }}>No tags — click to add</span>
+                                                ) : tags.map((t) => (
+                                                  <span key={t} style={{ fontSize: 11.5, color: T.textSecondary, background: "rgba(255,255,255,0.05)", border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>{t}</span>
+                                                ))}
+                                                <span style={{ position: "absolute", top: 7, right: 10, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: T.textTertiary, pointerEvents: "none" }}>
+                                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                                                    <path d="M12 20h9" />
+                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                                  </svg>
+                                                  Edit
+                                                </span>
+                                              </div>
+                                            )}
+                                            {isEditingTags && (
+                                              <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                                                <span style={{ fontSize: 10.5, color: over ? T.red : T.textTertiary }}>
+                                                  {over
+                                                    ? `Over YouTube's ${TAGS_MAX}-character limit by ${len - TAGS_MAX}${refused ? " — not saved" : ""}. Shorten the list.`
+                                                    : "Comma-separated · click outside to save"}
+                                                </span>
+                                                <div style={{ flex: 1 }} />
+                                                <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditingYtTags(null); setYtTagsError(null); }} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Cancel</button>
+                                              </div>
+                                            )}
+                                            {!isEditingTags && hasTagOverride && (
+                                              <div style={{ marginTop: 8 }}>
+                                                <button onClick={(e) => { e.stopPropagation(); resetYoutubeTags(clip); }} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: "transparent", color: T.textSecondary, fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: T.font }}>Reset to game tags</button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
 
                                       {/* TikTok: per-clip options panel (Content Posting API audit) */}
                                       {pk === "tiktok" && (() => {
