@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-22 (session 185) — 0.4.0-alpha.4 cut
+
+### Changed
+- **Version 0.4.0-alpha.4.** Promotes three issues to the installed app: the Queue's read-only **Published** shelf with the publish snapshot (#293), the editor's disable/enable for elements and lanes plus the Audio-lane mute (#296), and the fix for "Show subtitles" being ignored by the render (#295).
+
 ## [Unreleased] — 2026-08-22 (session 185) — Disable/enable in the editor (#296, #295)
 
 ### Added
