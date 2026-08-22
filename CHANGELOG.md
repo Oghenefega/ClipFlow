@@ -4,6 +4,14 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-21 (session 181) — Colour picker recents + vivid palette (#283)
+
+### Added
+- **The editor's colour picker remembers what you actually pick (#283).** Both editor pickers — the one in the Subtitles/effects panel and the small one that appears under a selected caption on the preview canvas — now open with a **Recent** row above the fixed swatches, holding the last 16 colours you chose, newest first. The two pickers share one history, so a colour mixed on the canvas is waiting for you in the Subtitles panel, and it survives closing the clip and restarting the app. A colour is recorded when the picker closes rather than on every change, so dragging across the gradient adds one entry instead of thirty near-identical smears, and opening a picker without changing anything records nothing. The row and its label are absent until you've picked something, so a fresh install shows a shorter panel than before, not a taller one.
+
+### Changed
+- **The quick swatches were cut from 40 to 24 and made usable (#283).** The old grid had no pure red, green, blue or yellow anywhere in it, but did carry seven flat greys, six muddy olives and one exact duplicate — so almost every colour choice meant opening the gradient. The replacement leads with white, black and the true primaries and secondaries, then a row of vivids, then pops plus three dark tones kept deliberately because this same picker sets stroke and shadow colours. The preview-canvas picker had its own separate 18-colour list and now draws from the same set, so the two behave identically. Near-white and near-black swatches get a visible rim so they don't disappear against the panel. Colours already saved on existing clips are untouched — the change only affects what's offered.
+
 ## [Unreleased] — 2026-08-21 (session 180) — Tracker premium pass + drag to reschedule (#281, #282)
 
 ### Added

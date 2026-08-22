@@ -29,17 +29,7 @@ import useLayoutStore from "../stores/useLayoutStore";
 import AudioPanel, { AUDIO_EXTENSIONS } from "./audio/AudioPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
 import { bgSourceWindow, presetFullyZoomed, presetFitToScreen } from "../utils/reframeStyle";
-
-// ════════════════════════════════════════════════════════════════
-//  SHARED: Color Palette (matches Vizard predefined palette)
-// ════════════════════════════════════════════════════════════════
-const PALETTE_COLORS = [
-  "#ffffff","#4cce8a","#000000","#333333","#555555","#777777","#999999","#bbbbbb",
-  "#e8e87a","#cccc00","#a0a000","#808000","#606000","#404000","#e0e0e0","#c0c0c0",
-  "#f87171","#ef4444","#dc2626","#ff8c00","#ffa500","#ffbf00","#ffd700","#ffec8b",
-  "#d946ef","#c026d3","#f87171","#fb923c","#fbbf24","#a3e635","#34d399","#22d3ee",
-  "#818cf8","#a78bfa","#c084fc","#e879f9","#f472b6","#fb7185","#6366f1","#8b5cf6",
-];
+import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 
 // ════════════════════════════════════════════════════════════════
 //  SHARED: Section Label
@@ -186,6 +176,8 @@ function ColorPickerPopover({ color, onChange, children }) {
   const [sat, setSat] = useState(0);
   const [val, setVal] = useState(1);
   const [open, setOpen] = useState(false);
+  const [recent, setRecent] = useState([]);
+  const openedWith = useRef(color);
   const gradientRef = useRef(null);
   const hueRef = useRef(null);
 
@@ -276,8 +268,28 @@ function ColorPickerPopover({ color, onChange, children }) {
   // Pure hue color for gradient background
   const pureHueHex = useMemo(() => rgbToHex(...hsvToRgb(hue, 1, 1)), [hue]);
 
+  // Recents are written once per picking session — on close — so dragging the
+  // gradient contributes one entry rather than every value it fired (#283). A
+  // picker opened and closed without changing anything writes nothing.
+  const handleOpenChange = (next) => {
+    if (next) {
+      setRecent(getRecentColors());
+      openedWith.current = color;
+    } else if (hex.toLowerCase() !== String(openedWith.current || "").toLowerCase()) {
+      pushRecentColor(hex);
+    }
+    setOpen(next);
+  };
+
+  const swatch = (c, key) => (
+    <button key={key} onClick={() => handlePaletteClick(c)} title={c}
+      className={`w-6 h-6 rounded-full border cursor-pointer transition-transform hover:scale-110 ${hex.toLowerCase() === c ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : ""}`}
+      style={{ background: c, borderColor: needsOutline(c) ? "hsl(240 4% 30%)" : "transparent" }}
+    />
+  );
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[260px] p-3 bg-card border-border" side="left" align="start" sideOffset={8}>
         {/* SV gradient area */}
@@ -331,14 +343,20 @@ function ColorPickerPopover({ color, onChange, children }) {
           />
         </div>
 
+        {/* Recently used — row and label are absent until something has been picked */}
+        {recent.length > 0 && (
+          <>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Recent</div>
+            <div className="grid grid-cols-8 gap-1 mb-3 pb-3 border-b border-border">
+              {recent.map((c) => swatch(c, `r-${c}`))}
+            </div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Palette</div>
+          </>
+        )}
+
         {/* Predefined palette */}
         <div className="grid grid-cols-8 gap-1">
-          {PALETTE_COLORS.map((c, i) => (
-            <button key={i} onClick={() => handlePaletteClick(c)}
-              className={`w-6 h-6 rounded-full border cursor-pointer transition-transform hover:scale-110 ${hex === c ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : ""}`}
-              style={{ background: c, borderColor: c === "#ffffff" ? "hsl(240 4% 30%)" : "transparent" }}
-            />
-          ))}
+          {PALETTE_COLORS.map((c) => swatch(c, c))}
         </div>
       </PopoverContent>
     </Popover>

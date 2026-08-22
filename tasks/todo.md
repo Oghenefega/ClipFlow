@@ -6,6 +6,58 @@
 
 ---
 
+## ✅ BUILT (session 181) — colour picker recents + vivid palette (#283)
+
+**APPROVED by Fega 2026-08-21** off the HTML mock, with one change: Recent holds
+**16** colours (two rows of 8), not 8.
+
+**Problem.** The 40-swatch quick grid has no pure red, green, blue or yellow, but
+does have 7 greys, 6 muddy olives and one exact duplicate (`#f87171` twice). Fega
+has to open the gradient for almost every colour.
+
+**Change.**
+1. New `src/renderer/editor/utils/recentColors.js` — renderer-only ESM. Holds
+   `PALETTE_COLORS` + `getRecentColors()` / `pushRecentColor(hex)` backed by
+   `localStorage["clipflow-editor-recent-colors"]` (same pattern as the drawer
+   width at `RightPanelNew.js:2409`). Cap 8, newest first, lowercase dedupe.
+2. `RightPanelNew.js` — delete the local `PALETTE_COLORS` (line 36), import it;
+   render a **Recent** row above the palette; hide row + label when empty; write
+   the recent entry in `onOpenChange` when the popover *closes* (one entry per
+   picking session, so gradient drags don't flood the list).
+3. `PreviewPanelNew.js` — `InlineColorPicker` (line 195) drops its own 18-swatch
+   `SWATCHES` list, uses the same shared palette + the same Recent row, so both
+   editor pickers behave identically and share one history.
+4. Palette cut 40 → 24 (3 × 8): row 1 neutrals + true primaries/secondaries,
+   row 2 vivids, row 3 pops + three dark tones for stroke/shadow.
+
+**Not touched.** `ColorPicker` in `components/shared.js:301` (game-tag accents)
+and `FOLDER_COLORS` in `views/ProjectsView.js:1104` — different job, tidy already.
+
+**Verified** in the built app via CDP against the dev profile, on a pending
+(unapproved, unrendered) clip — no rejected clips existed in any open project.
+Empty state: 24 swatches, 8 cols, pure red/green/blue/yellow present, no Recent
+row, popover 318px (old palette was 372px). Pick → close writes one entry;
+nothing is written while open. A 25-move gradient drag added exactly one entry.
+Re-picking an existing recent moves it to front without duplicating. Seeded 16 +
+a 17th pick stays at 16 with the oldest dropped, rendered as 2 rows (437px).
+Recents survived a full app restart. The preview-canvas picker showed the same
+Recent list written from the Subtitles panel. Clip 3's colours confirmed back to
+`#ffffff` on disk afterwards; test recents cleared.
+
+**One bug found and fixed during verification:** the canvas picker's swatch click
+calls `onChange` + `onClose` in the same handler, so the component unmounted
+before re-rendering and the unmount cleanup still saw the pre-click colour — the
+pick was never recorded. The swatch now writes its own value directly; the
+unmount path still covers the colour-input and hex-field cases.
+
+**Verify steps were.** `npm run build:renderer` + `npm start`; on a *rejected* clip: (a) pure
+red/green/blue/yellow present and one click away, (b) pick a colour off the
+gradient → close → reopen: it's first in Recent, (c) a full gradient drag adds
+exactly one entry, (d) restart the app → Recent survives, (e) preview-canvas
+toolbar picker shows the same Recent list, (f) no console errors.
+
+---
+
 ## ✅ BUILT (session 180) — Tracker redesign #281 + drag-to-reschedule #282
 
 **APPROVED by Fega 2026-08-21.** Header trim confirmed (the duplicate

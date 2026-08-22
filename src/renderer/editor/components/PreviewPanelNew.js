@@ -10,6 +10,7 @@ import { sourceToTimeline } from "../models/timeMapping";
 import { buildCaptionStyle } from "../utils/subtitleStyleEngine";
 import { resolveReframeStyle, bgCanvasBlurPx, bgSourceWindow, shouldOfferReframe } from "../utils/reframeStyle";
 import { buildRenderPayload } from "../utils/renderPayload";
+import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
 import {
   Maximize,
   ChevronDown,
@@ -194,11 +195,12 @@ function FontDropdown({ value, onChange, onClose }) {
 // ── Color picker popover for inline toolbar ──
 function InlineColorPicker({ color, onChange, onClose }) {
   const ref = useRef(null);
-  const SWATCHES = [
-    "#ffffff", "#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00",
-    "#ff6b6b", "#ffa500", "#a4ff00", "#00e5ff", "#8b5cf6", "#ff69b4",
-    "#4cce8a", "#fbbf24", "#22d3ee", "#f87171", "#34d399", "#c084fc",
-  ];
+  // Snapshot at mount so the recents list stays put while the picker is open —
+  // it refreshes next time it opens (#283).
+  const [recent] = useState(getRecentColors);
+  const openedWith = useRef(color);
+  const latest = useRef(color);
+  latest.current = color;
 
   useEffect(() => {
     const handler = (e) => {
@@ -208,17 +210,39 @@ function InlineColorPicker({ color, onChange, onClose }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
+  // One recent per picking session. The colour input and hex field keep this
+  // component mounted, so their final value is written on unmount; a swatch click
+  // closes in the same handler and unmounts before re-rendering, so it has to write
+  // its own value directly (the ref would still hold the pre-click colour).
+  useEffect(() => () => {
+    if (String(latest.current || "").toLowerCase() !== String(openedWith.current || "").toLowerCase()) {
+      pushRecentColor(latest.current);
+    }
+  }, []);
+
+  const swatch = (c, key) => (
+    <button
+      key={key}
+      title={c}
+      className={`w-6 h-6 rounded-full border transition-transform hover:scale-110 ${String(color || "").toLowerCase() === c ? "ring-2 ring-primary ring-offset-1 ring-offset-popover" : ""}`}
+      style={{ background: c, borderColor: needsOutline(c) ? "hsl(240 4% 30%)" : "transparent" }}
+      onClick={() => { pushRecentColor(c); onChange(c); onClose(); }}
+    />
+  );
+
   return (
     <div ref={ref} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-lg border bg-popover shadow-xl z-[60]">
-      <div className="grid grid-cols-6 gap-1.5">
-        {SWATCHES.map((c) => (
-          <button
-            key={c}
-            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? "border-primary ring-1 ring-primary" : "border-transparent"}`}
-            style={{ background: c }}
-            onClick={() => { onChange(c); onClose(); }}
-          />
-        ))}
+      {recent.length > 0 && (
+        <>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Recent</div>
+          <div className="grid grid-cols-8 gap-1.5 mb-2 pb-2 border-b border-border/40">
+            {recent.map((c) => swatch(c, `r-${c}`))}
+          </div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Palette</div>
+        </>
+      )}
+      <div className="grid grid-cols-8 gap-1.5">
+        {PALETTE_COLORS.map((c) => swatch(c, c))}
       </div>
       {/* Custom color input */}
       <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/40">
