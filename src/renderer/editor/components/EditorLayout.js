@@ -38,6 +38,7 @@ import {
   X,
   Trash2,
   Keyboard,
+  AlertTriangle,
 } from "lucide-react";
 import { Slider } from "../../../components/ui/slider";
 import { Button } from "../../../components/ui/button";
@@ -245,6 +246,7 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   const clipTitle = useEditorStore((s) => s.clipTitle);
   const editingTitle = useEditorStore((s) => s.editingTitle);
   const dirty = useEditorStore((s) => s.dirty);
+  const saveError = useEditorStore((s) => s.saveError);
   const project = useEditorStore((s) => s.project);
   const clip = useEditorStore((s) => s.clip);
   const setClipTitle = useEditorStore((s) => s.setClipTitle);
@@ -296,7 +298,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
   }, [editingTitle]);
 
   const onSave = useCallback(async () => {
-    await handleSave();
+    // #297: "Saved!" only when it really was. A failed write leaves the banner
+    // below up instead of flashing green over lost work.
+    const ok = await handleSave();
+    if (!ok) return;
     setLastSaved(Date.now());
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1200);
@@ -319,6 +324,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     const prevRenderStatus = clip.renderStatus;
     const prevStatus = clip.status;
     await handleSave();
+    // #297: rendering reads the clip back off disk, so a failed save would
+    // export the previous version and stamp it "approved". Stop instead —
+    // the banner in the topbar already says why.
+    if (useEditorStore.getState().saveError) return;
     setLastSaved(Date.now());
 
     // Pre-render project update. Only flip status when adding to queue; otherwise
@@ -555,12 +564,14 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     }
   };
 
-  const onBackClick = () => {
+  const onBackClick = async () => {
     if (dirty) {
-      handleSave().then(() => onBack?.());
-    } else {
-      onBack?.();
+      await handleSave();
+      // #297: this used to leave regardless. A save that failed now keeps the
+      // user here with the reason on screen, instead of closing over the loss.
+      if (useEditorStore.getState().saveError) return;
     }
+    onBack?.();
   };
 
   const clips = project?.clips || [];
@@ -581,7 +592,10 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
     // those lazily — an un-awaited save would capture the cleared state and persist
     // empty subtitles/captions onto the outgoing clip. Mirror onBackClick.
     if (dirty) {
-      handleSave().then(switchToClip);
+      handleSave().then(() => {
+        if (useEditorStore.getState().saveError) return; // #297: stay on the clip that failed to save
+        switchToClip();
+      });
     } else {
       switchToClip();
     }
@@ -869,6 +883,24 @@ function Topbar({ onBack, requireHashtagInTitle = true, onClipRendered, renderJo
         </TooltipProvider>
 
         <Separator orientation="vertical" className="h-5" />
+
+        {/* #297: a failed save used to be completely silent — the dirty dot
+            cleared and the work was gone. Sticks until a save succeeds. */}
+        {saveError && (
+          <div
+            className="h-8 max-w-[300px] pl-2.5 pr-2 flex items-center gap-2 rounded-md border border-red-500/50 bg-red-950/80 text-red-200"
+            title={saveError}
+          >
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[11px] truncate">Not saved — {saveError}</span>
+            <button
+              className="text-[11px] font-semibold underline shrink-0 hover:text-white"
+              onClick={onSave}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         <Button
           size="sm"

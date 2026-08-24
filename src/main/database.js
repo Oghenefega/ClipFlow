@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const { app } = require("electron");
 const log = require("electron-log/main").scope("database");
+const { writeFileAtomicSync } = require("./atomic-write");
 
 let initSqlJs;
 try {
@@ -19,6 +20,8 @@ const DB_DIR =
     ? path.join(app.getPath("userData"), "data")
     : path.join(__dirname, "..", "..", "data");
 const DB_PATH = path.join(DB_DIR, "clipflow.db");
+// #299: one rolling copy of the last good write, left behind by save()'s rename.
+const BAK_PATH = DB_PATH + ".bak";
 const OLD_FEEDBACK_PATH = path.join(DB_DIR, "feedback.db");
 
 let db = null;
@@ -256,12 +259,7 @@ async function init() {
   }
 
   // Load existing DB or create new one
-  if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(buffer);
-  } else {
-    db = new SQL.Database();
-  }
+  db = _openOrRecover();
 
   // Ensure schema_version table exists
   db.run(`
@@ -309,12 +307,73 @@ function _runMigrations() {
   }
 }
 
-/** Persist database to disk */
+/**
+ * Persist database to disk.
+ *
+ * #299: sql.js holds the whole database in memory and flushes all of it, so the
+ * write window grows with the corpus. Writing in place meant a crash mid-flush
+ * left a truncated file, which bricked the next launch and took the entire
+ * approve/reject training history with it. Temp file + rename instead, keeping
+ * the file it replaced as the .bak that init() falls back to.
+ */
 function save() {
   if (!db) return;
   const data = db.export();
   const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_PATH, buffer);
+  writeFileAtomicSync(DB_PATH, buffer, BAK_PATH);
+}
+
+/**
+ * Open a database file, proving it is actually readable before accepting it.
+ * A truncated file can survive `new SQL.Database()` and only throw on the
+ * first real read, so every candidate gets a query put through it.
+ */
+function _openFile(filePath) {
+  const candidate = new SQL.Database(fs.readFileSync(filePath));
+  candidate.exec("SELECT count(*) FROM sqlite_master");
+  return candidate;
+}
+
+/**
+ * #299: recover rather than throw. A throw here escapes into the bootstrap
+ * chain and leaves the app invisible and unstartable (#298), so a damaged file
+ * falls back to the rolling backup, and a damaged backup falls back to empty.
+ * The damaged file is kept — it is the user's data and may be salvageable.
+ */
+function _openOrRecover() {
+  if (fs.existsSync(DB_PATH)) {
+    try {
+      return _openFile(DB_PATH);
+    } catch (err) {
+      log.error(`Database at ${DB_PATH} is unreadable: ${err.message}`);
+      const quarantine = `${DB_PATH}.corrupt-${Date.now()}`;
+      try {
+        fs.renameSync(DB_PATH, quarantine);
+        log.error(`Damaged database kept at ${quarantine}`);
+      } catch (e) {
+        log.warn(`Could not set the damaged database aside: ${e.message}`);
+      }
+    }
+  } else if (!fs.existsSync(BAK_PATH)) {
+    return new SQL.Database();
+  } else {
+    // The only way the primary goes missing while a backup exists is a crash
+    // inside save()'s swap. Starting empty here would drop the whole corpus and
+    // then overwrite the backup on the next save.
+    log.error("Primary database is missing but a backup is present.");
+  }
+
+  if (fs.existsSync(BAK_PATH)) {
+    try {
+      const recovered = _openFile(BAK_PATH);
+      log.warn(`Recovered from ${BAK_PATH} — anything written since the last good save is gone.`);
+      return recovered;
+    } catch (e) {
+      log.error(`Backup at ${BAK_PATH} is also unreadable: ${e.message}`);
+    }
+  }
+  log.error("Starting with an empty database.");
+  return new SQL.Database();
 }
 
 /** Get the raw sql.js database instance (for modules that need direct access) */

@@ -27,6 +27,28 @@ let _autosaveTimer = null;
 let _savesInFlight = 0;
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
+// #297: the writer hands back errno text ("EPERM: operation not permitted,
+// rename '...'"). A creator needs the cause, not the syscall — and needs enough
+// to report it. Say what happened, keep the code. Unrecognised errors pass
+// through verbatim rather than being flattened into something vague.
+function describeSaveFailure(reason) {
+  const code = /(EPERM|EACCES|EROFS|EBUSY|ENOSPC|ENOENT)/.exec(reason || "")?.[1];
+  switch (code) {
+    case "EPERM":
+    case "EACCES":
+    case "EROFS":
+      return `the project file is read-only or locked by another program (${code})`;
+    case "EBUSY":
+      return `the project file is in use by another program (${code})`;
+    case "ENOSPC":
+      return `the drive is full (${code})`;
+    case "ENOENT":
+      return `the project folder is missing — is the drive still connected? (${code})`;
+    default:
+      return reason;
+  }
+}
+
 // _loadGen guards initFromContext against overlapping/stale runs. initFromContext is
 // async + destructive (it clears all stores, then awaits project load, then applies
 // template/style in a Promise). If two runs overlap (rapid clip switch, StrictMode
@@ -42,6 +64,10 @@ const useEditorStore = create((set, get) => ({
   clipTitle: "",
   editingTitle: false,
   dirty: false,
+  // #297: why the last save failed, or null when the clip is safely on disk.
+  // Sticky on purpose — unlike a flash, silent data loss deserves to stay on
+  // screen until it is actually resolved.
+  saveError: null,
   waveformPeaks: null,
   waveformError: null,
 
@@ -102,7 +128,7 @@ const useEditorStore = create((set, get) => ({
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
-      set({ project: null, clip: null, clipTitle: "", dirty: false, reframeDraft: null, reframeAutoDetectPending: false });
+      set({ project: null, clip: null, clipTitle: "", dirty: false, saveError: null, reframeDraft: null, reframeAutoDetectPending: false });
       return;
     }
 
@@ -167,7 +193,7 @@ const useEditorStore = create((set, get) => ({
       const newClipId = editorContext?.clipId || null;
       useAIStore.getState().swapToClip(oldClipId, newClipId);
     } catch (e) {}
-    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], laneEnabled: { cap: true, music: true, sfx: true }, sourceAudioMuted: false });
+    set({ clip: null, project: null, clipTitle: "Loading...", dirty: false, saveError: null, waveformPeaks: null, waveformError: null, audioSegments: [], nleSegments: [], audioPlacements: [], laneEnabled: { cap: true, music: true, sfx: true }, sourceAudioMuted: false });
 
     // Load full project via IPC — localProjects are summaries without clips
     let project = null;
@@ -1246,16 +1272,29 @@ const useEditorStore = create((set, get) => ({
       // renderPath to recognise (and overwrite) this clip's OWN file.
       // Gated on the three fields main can rewrite behind the renderer's back so
       // an ordinary autosave swaps nothing and costs no re-render.
+      // #297: a resolved promise is NOT a successful save. project:updateClip
+      // returns { error } instead of throwing, so a locked project.json, a full
+      // disk or a disconnected drive all arrived here looking exactly like a
+      // good write — and dirty was cleared regardless, telling the user their
+      // work was safe moments before it vanished. Nothing is marked clean now
+      // unless the clip came back from disk.
       const next = res?.clip;
-      const changed = !!next && (
+      if (!next) {
+        const reason = res?.error || "the app got no answer from the file writer";
+        console.error("Save failed:", reason);
+        set({ saveError: describeSaveFailure(reason) });
+        return false;
+      }
+      const changed = (
         next.title !== clip.title ||
         next.renderPath !== clip.renderPath ||
         next.thumbnailPath !== clip.thumbnailPath
       );
-      set({ dirty: false, ...(changed ? { clip: next } : {}) });
+      set({ dirty: false, saveError: null, ...(changed ? { clip: next } : {}) });
       return true;
     } catch (e) {
       console.error("Save failed:", e);
+      set({ saveError: describeSaveFailure(e?.message) || "the clip could not be written" });
       return false;
     }
   },

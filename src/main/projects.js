@@ -3,6 +3,10 @@ const fs = require("fs");
 // Cross-tree require: editor/utils/** is bundled via package.json build.files,
 // so this is safe in the packaged app (see CLAUDE.md "Cross-tree requires").
 const { resolveReframeStyle } = require("../renderer/editor/utils/reframeStyle");
+// #299: project.json is rewritten whole about once a second while editing.
+// In-place writes left a truncated file if the process died mid-write, which
+// drops the project out of the Projects tab entirely.
+const { writeFileAtomicSync } = require("./atomic-write");
 
 /**
  * Get the projects root directory.
@@ -117,7 +121,7 @@ function createProject(watchFolder, data) {
   };
 
   const projectPath = path.join(projectDir, "project.json");
-  fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), "utf-8");
+  writeFileAtomicSync(projectPath, JSON.stringify(project, null, 2));
 
   return { success: true, project };
 }
@@ -151,7 +155,7 @@ function saveProject(watchFolder, project) {
 
   project.updatedAt = new Date().toISOString();
   const projectPath = path.join(projectDir, "project.json");
-  fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), "utf-8");
+  writeFileAtomicSync(projectPath, JSON.stringify(project, null, 2));
 
   return { success: true };
 }

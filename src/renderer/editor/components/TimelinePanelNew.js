@@ -1588,6 +1588,9 @@ export default function TimelinePanelNew() {
           const { project, clip } = s;
           if (!project?.id || !clip?.id || project.id === "__source_preview__") return;
           await s.handleSave();
+          // #297: the copy is made from the clip on disk, so a failed save here
+          // would duplicate the previous version. Stop — the topbar says why.
+          if (useEditorStore.getState().saveError) return;
           const r = await window.clipflow?.projectDuplicateClip?.(project.id, clip.id, overrides);
           if (r?.success && r.clip) {
             s.initFromContext({ projectId: project.id, clipId: r.clip.id }, []);

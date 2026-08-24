@@ -51,11 +51,40 @@ Sentry.init({
   environment: CLIPFLOW_PROFILE,
 });
 
+/**
+ * #298: an error that reached the top used to be re-thrown, which suppressed
+ * Electron's own error dialog AND — since createWindow() is the last thing the
+ * bootstrap does — left a live process still holding the single-instance lock
+ * taken above. No window, no message, and every later double-click a silent
+ * no-op, because each new instance sees the lock and exits. Say what happened,
+ * say where the log is, then exit so the lock is released.
+ *
+ * Requires are lazy on purpose: this can fire while the module graph is still
+ * loading, before the bindings further down this file exist.
+ */
+function fatal(context, err) {
+  const detail = err?.stack || err?.message || String(err);
+  let logsDir = "";
+  try {
+    const logger = require("./logger");
+    logsDir = logger.getLogsDir();
+    logger.error(logger.MODULES.system, `${context} ${detail}`);
+  } catch (_) { /* the logger itself may not be up yet */ }
+  try { Sentry.captureException(err); } catch (_) {}
+  try {
+    const lines = [context, "", err?.message || String(err)];
+    if (logsDir) lines.push("", "Details are in:", logsDir);
+    // Modal and synchronous: it is the only thing the user will ever see, and it
+    // holds the process open long enough for Sentry's transport to get out.
+    require("electron").dialog.showErrorBox("Corva has to close", lines.join("\n"));
+  } catch (_) {}
+  app.exit(1);
+}
+
 // Suppress EPIPE errors from Sentry/electron-log writing to a closed stdout pipe on quit
 process.on("uncaughtException", (err) => {
   if (err.code === "EPIPE") return;
-  // Re-throw non-EPIPE errors so Sentry still captures them
-  throw err;
+  fatal("Corva hit an unexpected error.", err);
 });
 
 const { BrowserWindow, ipcMain, dialog, shell, Notification } = require("electron");
@@ -929,7 +958,7 @@ app.whenReady().then(async () => {
       logger.warn(logger.MODULES.system, "Game-art boot sweep failed", { error: err.message });
     });
   }, 5000);
-});
+}).catch((err) => fatal("Corva couldn't finish starting up.", err));
 
 app.on("window-all-closed", () => {
   if (watcher) watcher.close();
