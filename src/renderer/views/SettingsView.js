@@ -1267,7 +1267,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
               ) : (
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditAnthropic(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={() => { setAnthropicApiKey(anthropicVal); setGatewayUrl(gatewayUrlVal.replace(/\/+$/, "")); setGatewayAuthToken(gatewayTokenVal); setEditAnthropic(false); }} style={btnSave}>Save</button>
+                  <button onClick={() => { setAnthropicApiKey(anthropicVal); setGatewayUrl(gatewayUrlVal.replace(/\/+$/, "")); setGatewayAuthToken(gatewayTokenVal.trim()); setEditAnthropic(false); }} style={btnSave}>Save</button>
                 </div>
               )}
             </div>
@@ -1354,7 +1354,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <input value={geminiVal} onChange={(e) => setGeminiVal(e.target.value)} type={showGeminiKeyEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="AIza..." />
                   <button onClick={() => setShowGeminiKeyEdit(!showGeminiKeyEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGeminiKeyEdit ? "Hide" : "Show"}>{showGeminiKeyEdit ? "👁" : "👁‍🗨"}</button>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>When Gemini is available (a key here, or the gateway token in the Anthropic panel), title/caption suggestions are generated from the actual clip video (with sound) instead of a few stills.</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>When Gemini is available (a key here, or Corva's built-in gateway), title/caption suggestions are generated from the actual clip video (with sound) instead of a few stills.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

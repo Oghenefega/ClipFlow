@@ -34,6 +34,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **A new install starts on a neutral posting schedule instead of Fega's (#302).** The default weekly template was his real routine — eight slots from 12:30 PM to 9:30 PM, Monday to Saturday, with his main/variety rotation — and the default weekly goal was his 48. New installs now get three slots a day (12:00 PM, 4:00 PM, 8:00 PM), Monday to Saturday, all on the main game, with a goal of 18 derived from that grid rather than from a number nobody asked for. Both remain editable in the Tracker. The two copies of this default (main process and renderer) had also drifted into different shapes — the main-process one carried no time slots at all, so the renderer grafted its own on — and are now written identically. Existing installs keep their own schedule and goal untouched, and stores written before time slots existed keep the eight they were authored against instead of having five columns hidden by the new three-slot default.
 - **The Gateway Auth Token field in Settings means something slightly different.** Leaving it empty now means "use the token built into Corva" rather than "don't use the gateway at all". Clearing the **Gateway URL** above it is what skips the gateway and calls the provider APIs directly with your own keys; the field's help text says so.
 
+## [Unreleased] — 2026-08-24 (session 190) — Fresh-eyes review of Batch 2: two small gaps closed
+
+### Fixed
+- **The Gateway Auth Token field trims what you paste (#301 follow-up).** Batch 2 made an empty field mean "use the token built into Corva", and the main process trims the stored value before deciding whose token a call sends — but the Settings Save button stored the pasted text verbatim. A token with a stray space or trailing newline (the normal paste artifact), or a field holding only whitespace that looks empty on screen, made the app show a personal token as active while every actual call had already fallen back to the built-in one. Save now trims, so what Settings displays and what the calls use can't disagree.
+- **The Gemini panel no longer points at a token that isn't there (#301 follow-up).** Its help text still said Gemini becomes available via "the gateway token in the Anthropic panel" — after batch 2 that field is empty on a normal install and the panel reads "Built-in beta gateway". The text now says a key here or Corva's built-in gateway.
+
 ## [Unreleased] — 2026-08-23 (session 186) — Backlog truth audit: all 110 open issues verified against the code
 
 ### Added
