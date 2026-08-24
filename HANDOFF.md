@@ -42,6 +42,10 @@ verified correct. No installer cut — desktop and laptop remain on 0.4.0-alpha.
    s188: small isolated diff per review, bugs can't compound into later batches, #301 is
    ordering-critical, and fix load stays spread out instead of landing right before the
    installer.
+4. **Model/effort split (saved to memory `feedback_model_effort_split`):** Opus at effort
+   **high** builds batches (bump to extra only if a build turns into ambiguous debugging);
+   Fable at effort **extra** reviews. If Opus fails twice on the same problem, wrap and hand
+   that specific problem to Fable. Ultracode shelved — overkill for 3-4-issue batches.
 
 ## Next Steps
 
