@@ -1,124 +1,103 @@
-# HANDOFF — Session 189 (2026-08-24)
+# HANDOFF — Session 190 (2026-08-24)
 
 ## Current State
 
-**Batch 2 shipped: `713477d` on master, pushed.** #301 (rotatable gateway token) and #302
-(de-Fega sweep round 3) are both fully implemented and runtime-verified on the dev profile.
-No installer cut — desktop and laptop remain on **0.4.0-alpha.4**, so nothing here has
-reached a machine yet.
+**Batch 2 review is DONE and clean.** This session was the s188-cadence fresh-eyes review
+of `713477d` (#301 rotatable gateway token, #302 de-Fega defaults), run by Fable in its
+own session per the batch loop. The implementation held up under two full passes; **two
+small gaps** were found and fixed on master, both in `SettingsView.js`, both consequences
+of #301's new field semantics. Review results recorded as a comment on #301.
 
-`npm run build:renderer` exits 0. Dev-profile boot is clean (schema v9, migration logged
-exactly once, no DB-recovery lines). `node --check` passes on all six touched main-process
-files; control-char scan clean on every edited file.
+No installer cut — desktop and laptop remain on **0.4.0-alpha.4**. Batches 1 and 2 have
+both shipped to master and both passed their reviews; nothing has reached a machine yet.
 
-**Batch 2 has NOT been reviewed yet.** Per the s188 cadence, the next thing that should
-happen is a separate **Fable session at effort extra**, given the commit hash **`713477d`**
-explicitly, doing the same fresh-eyes review s188 did for batch 1.
+`npm run build:renderer` exits 0 with the review fixes. Control-char scan clean on the
+edited file. Working tree clean after the wrap commit.
 
-## What Was Just Built
+## What Was Just Built (review fixes)
 
-### #301 — the bundled AI token can now be rotated by shipping a build
-- `gatewayAuthToken` defaults to `""` and holds **the user's own token only**
-  (`main.js` STORE_DEFAULTS). The bundled token resolves at call time via new
-  `llm-provider.resolveGatewayToken()` — user's wins, else the build's, read fresh off disk.
-  Wired into `anthropic.chat()`, `gemini.resolveRouting()`, `gemini.isConfigured()`.
-- **One-time boot migration** `_migrated_gatewayToken_v1` clears the persisted copy and
-  stashes it as `gatewayAuthTokenPreMigration`.
-- The renderer never receives the token. New IPC `ai:gatewayInfo` → `{ hasBundledToken }`
-  (boolean only), exposed as `getGatewayInfo()` in preload. `aiReady` (App.js) and
-  `gatewayActive` (SettingsView) derive from it; Settings shows **"Built-in beta gateway"**
-  in place of "Direct (no gateway)", and the "Gateway active" chip keys off `gatewayActive`.
-- Gateway **401/402/429** map to plain language in `llm-provider.gatewayErrorMessage()`.
-  The 401 text branches on whose token was refused (build's vs. one pasted in Settings).
-- Both providers now recognise Cloudflare's error array **wrapped in `.error`**, not just
-  the bare array — see Key Decision 2.
+1. **Gateway Auth Token Save now trims (#301 follow-up).** Batch 2 made an empty field
+   mean "use the built-in token", and main trims the stored value before deciding whose
+   token a call sends — but Save stored the pasted text verbatim. A trailing space/newline
+   from a paste, or a whitespace-only field that looks empty, made Settings show a
+   personal token as active while calls had already fallen back to the built-in one.
+   Save now trims (matching the Gemini key save one panel down).
+2. **Gemini panel help copy (#301 follow-up).** Still pointed at "the gateway token in
+   the Anthropic panel" — a field that post-#301 is empty and labeled "Built-in beta
+   gateway" on a normal install. Now says: a key here, or Corva's built-in gateway.
 
-### #302 — four pieces of personal data out of the defaults
-- `"Fega"` deleted from both Whisper `initial_prompt` arrays (`stable-ts.js` single + batch).
-- Built-in Brand Kit preset display name → **"Corva Default"**; `fega-default` **id unchanged**.
-- `App.js` caption seed now byte-identical to `STORE_DEFAULTS.captionTemplates`.
-- Default schedule → **three slots (12:00 PM / 4:00 PM / 8:00 PM), Mon–Sat, all `main`**,
-  `weeklyTarget: 18` (3 × 6). Main-process and renderer copies now written identically in
-  the `timeSlots` + `grid` shape (the main-process one previously had no `timeSlots` at all).
-- New `LEGACY_TIME_SLOTS` constant in App.js: pre-`timeSlots` stores convert against the old
-  eight slots, not the new three.
+## What The Review Verified (no change needed)
+
+- Migration ordering: `runStoreMigrations` runs before `createWindow`, so the renderer
+  can never observe the pre-migration token via `store:getAll`.
+- `bundledGatewayToken()` genuinely reads the JSON from disk per call — no caching, so
+  "rotate by shipping a build" holds.
+- Every AI-availability gate routes through `resolveGatewayToken` (main) or
+  `gatewayActive`/`aiReady` (renderer); no stragglers still checking the store token.
+- The two copies of the neutral schedule default (main STORE_DEFAULTS / App.js
+  DEFAULT_TEMPLATE) are byte-identical; every template consumer iterates `timeSlots`
+  generically — no hardcoded column counts; `savedTemplates` and `weekTemplateOverrides`
+  also pass through `migrateTemplate`, so old-format presets get LEGACY_TIME_SLOTS too.
+- `gameVocab` always starts with ", " so the Whisper "Fega" removal can't mangle the
+  prompt concatenation; both prompt arrays are identical.
+- Remaining "Fega" hits in src/ are comments, test fixtures, and the deliberately-kept
+  `fega-default` id only.
+
+**Noted, deliberately left:** `store:getAll` ships the dead `gatewayAuthTokenPreMigration`
+stash into the renderer. No reader, feeds nothing, on-disk anyway — filtering it would be
+machinery for no behavior. Also pre-existing and untouched: "Direct (no gateway)" label
+vs actual passthrough mode when a URL is set but no token exists anywhere (dev-only
+scenario), and the 402 wording assumes the shared beta gateway (a user running their own
+CF gateway with budgets would get slightly-wrong copy — nobody does).
 
 ## Key Decisions
 
-1. **The #301 migration clears unconditionally, not on an exact match** — a deliberate
-   deviation from the issue text, recorded as a comment on #301. Both of Fega's profiles
-   were found holding a token that **no longer matches the build's** (same 53-char length,
-   different value; prod and dev both `sha adefa84b`, build `sha 11026d2b`). That is the
-   defect already live, and a match-only migration would have skipped exactly those
-   machines. The stash key makes it non-destructive.
-2. **The plain-language gateway message needed a payload-shape fix that only live testing
-   exposed.** Cloudflare returns `{"error":[{"code":2009,"message":"Unauthorized"}]}` for a
-   rejected token — the array **wrapped in `.error`**. Both providers only tested the bare
-   array, so the generic Anthropic/Google `result.error` branch caught it first and printed
-   raw JSON. The gateway check now runs first and accepts either shape. **Static review
-   would not have caught this** — the first Test Connection did.
-3. **Clearing the token field now means "use the built-in token", not "no gateway".**
-   Clearing the **Gateway URL** is the off switch (it always was, in code). Approved by
-   Fega in chat; the field's help text and placeholder were rewritten to say so.
-4. **Neutral schedule over an onboarding question** (Fega approved). A fourth onboarding
-   step was real UI work and the issue accepted a neutral default; the target is derived
-   from the visible grid rather than being a personal number.
-5. **Bundled token confirmed live before switching anyone onto it** — a direct gateway call
-   returned HTTP 200. Without that check this batch could have silently killed AI on every
-   install that gets the migration.
+1. **Both review fixes were judged in-scope for the review session** because the
+   semantics that made them wrong shipped in batch 2 itself (empty-means-built-in). The
+   untrimmed Anthropic API key save is the same latent shape but pre-existing — left
+   alone per surgical-changes.
+2. #301/#302 stay OPEN — closing is Fega's call after in-app verification, per the
+   standing batch rule.
 
 ## Next Steps
 
-1. **Review batch 2 first.** Fable, effort extra, own session, pointed at **`713477d`**.
-2. **Batch 3 — recordings that aren't mine still work.** #62, #300, #178. #178 and #300
-   share a root shape — the `<video>` has no `onError`; add that regardless.
-3. **Batch 4 — the first ten minutes don't look broken.** #153, #74 (**needs Fega to
+1. **Batch 3 — recordings that aren't mine still work.** #62, #300, #178. #178 and #300
+   share a root shape — the `<video>` has no `onError`; add that regardless. Opus@high
+   builds it; Fable reviews it in its own session after it lands, given the commit hash.
+2. **Batch 4 — the first ten minutes don't look broken.** #153, #74 (**needs Fega to
    approve replacement copy** — the long pole), #152.
-4. **Then cut ONE installer** covering all four batches (~14 issues). Optional batch 5 if
+3. **Then cut ONE installer** covering all batches (~14 issues). Optional batch 5 if
    there is room: #157, #151, #158.
 
 ## Watch Out For
 
-- **`gatewayAuthTokenPreMigration` has no reader.** It exists so a hand-pasted token is
-  recoverable. If a future session decides nobody ever pasted one, it can be dropped — but
-  don't drop it before the installer reaches the laptop.
-- **The prod profile has NOT run the migration yet** (the installed 0.4.0-alpha.4 predates
-  it). `%APPDATA%\clipflow\clipflow-settings.json` still holds the stale token; it will be
-  cleared on the first boot of a build carrying this commit.
-- **"Corva Default" is verified at source and in the built bundle, but never seen on
-  screen** — `builtInTemplateDeleted: true` on both of Fega's profiles hides the built-in
-  preset. A reviewer wanting eyes on it needs a fresh profile.
-- **Fega's prod store is old-format** (`weeklyTemplate` with no `timeSlots`, eight-entry day
-  arrays), so `LEGACY_TIME_SLOTS` is load-bearing, not defensive. Breaking it truncates his
-  schedule to three columns.
-- **#297/#298/#299 and now #301/#302 all remain OPEN by design** — fix notes are comments
-  on each issue; closing is Fega's call after he verifies in-app.
-- **All s187 warnings still stand:** control-char scan after any script-driven source edit;
-  the assume-success audit covered the editor only (Projects rail / Queue clip writes
-  unreviewed); `clipflow.db.bak` is rewritten every save — not the manual
-  `clipflow.db.bak-20260805-pre239`; untracked `.agents/` `.codex/` `AGENTS.md`
-  `tasks/mocks/*` pre-date all this and were left alone again.
+- **`gatewayAuthTokenPreMigration` still has no reader** — keep it until the installer
+  reaches the laptop; only then is dropping it on the table.
+- **The prod profile has NOT run the #301 migration** (installed 0.4.0-alpha.4 predates
+  it); `%APPDATA%\clipflow\clipflow-settings.json` still holds the stale token until the
+  first boot of a build carrying batch 2.
+- **"Corva Default" still never seen on screen** — `builtInTemplateDeleted: true` on both
+  of Fega's profiles hides the built-in preset; verifying it visually needs a fresh
+  profile.
+- **Fega's prod store is old-format** (`weeklyTemplate` with no `timeSlots`) —
+  `LEGACY_TIME_SLOTS` in App.js is load-bearing; breaking it truncates his schedule to
+  three columns.
+- **All s187/s189 warnings still stand:** control-char scan after script-driven edits;
+  assume-success audit covered the editor only; `clipflow.db.bak` is rewritten every save
+  (the manual `clipflow.db.bak-20260805-pre239` is the safe one); untracked `.agents/`
+  `.codex/` `AGENTS.md` `tasks/mocks/*` pre-date all this and were left alone again.
 
 ## Logs / Debugging
 
-- **Dev boot-verify recipe (used repeatedly this session):**
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`, poll
-  `http://127.0.0.1:9222/json/list` for the "Corva" page (~2–20s), then read
+- **Dev boot-verify recipe:** `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222`,
+  poll `http://127.0.0.1:9222/json/list` for the "Corva" page, then read
   `%APPDATA%\clipflow-dev\logs\app.log`. Clean boot = `Database initialized … (schema v9)`
   and no `is unreadable` / `Recovered from` lines.
-- **New log line to expect once per profile:** `Cleared the persisted gateway token (#301)
-  — it now resolves from the build at call time; previous value stashed as
-  gatewayAuthTokenPreMigration`.
-- **Fastest end-to-end AI check:** Settings → Dev Dashboard → Providers → **Test
-  Connection**. Returns `OK — <ms> (anthropic/…)` on success and the exact user-facing
-  error string on failure — this is how both 401 wordings were verified.
-- **Gateway status codes** land in `app.log` as `[anthropic] Response: HTTP nnn (n bytes)`,
+- **#301 migration log line, once per profile that held a token:** `Cleared the persisted
+  gateway token (#301) — …stashed as gatewayAuthTokenPreMigration`. Fresh profiles set
+  the flag silently (nothing to clear) — absence of the line on a fresh profile is normal.
+- **Fastest end-to-end AI check:** Settings → Dev Dashboard → Providers → Test
+  Connection; returns `OK — <ms>` or the exact user-facing error string.
+- **Gateway status codes** land in `app.log` as `[anthropic] Response: HTTP nnn (n bytes)`
   right after `[anthropic] Gateway (BYOK) → …`.
-- **Fresh-install simulation** (safe, reversible): kill electron, `mv clipflow-settings.json
-  clipflow-settings.json.saved` in `%APPDATA%\clipflow-dev\`, boot, inspect the regenerated
-  file, then restore. DB and OAuth tokens are untouched by this.
 - `taskkill //F //IM electron.exe` between runs, or CDP attaches to a stale zombie on 9222.
-- CDP driver script used this session:
-  `%TEMP%\claude\C--Users-IAmAbsolute-Desktop-ClipFlow\<session>\scratchpad\cdp.js`
-  (reads `exprs.json`, a list of `[label, expression]` pairs). Note: escape sequences like
-  `\n` do not survive the heredoc → JSON → CDP path — use `String.fromCharCode(10)`.
