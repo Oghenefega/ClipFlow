@@ -1,165 +1,143 @@
-# HANDOFF — Session 185 (2026-08-22)
+# HANDOFF — Session 186 (2026-08-23)
 
 ## Current State
 
-**0.4.0-alpha.4 is cut, published to the R2 feed, and pushed** (`b7be2d8`). The live
-manifest at `engine.flowve.app/updates/alpha.yml` reads `0.4.0-alpha.4`; alpha.3 was pruned
-from the feed. Every installed copy (desktop + laptop) gets the banner on next launch.
-**Fega has NOT installed it yet** — that is the first thing to confirm next session.
+**Audit session. No product code changed.** Commit `046040e` on master carries the audit
+document and the changelog entry, nothing else.
 
-Two issues shipped and were closed, both `status: untested`:
+**0.4.0-alpha.4 is installed on the desktop and confirmed** — `C:\Program Files\Corva\Corva.exe`
+reports FileVersion `0.4.0-alpha.4`. That closes session 185's open question ("Fega has NOT
+installed it yet"). The R2 feed at `engine.flowve.app/updates/alpha.yml` serves alpha.4.
+`npm run build:renderer` exits 0 on the current tree.
 
-| Issue | State |
+**All 110 open issues were verified against the code** at `464dc53`, not against their titles.
+Full document: `tasks/specs/backlog-truth-audit-2026-08-23.md`.
+
+| | count |
 |---|---|
-| [#295](https://github.com/Oghenefega/ClipFlow/issues/295) | **Shipped + closed** — "Show subtitles" off no longer burns subtitles into the render. |
-| [#296](https://github.com/Oghenefega/ClipFlow/issues/296) | **Shipped + closed** — disable/enable for elements and lanes, plus the Audio-lane mute. |
+| ALREADY-FIXED (open but done in code) | **35** |
+| PARTIALLY-FIXED | 23 |
+| STILL-LIVE | 48 |
+| NOT-CODE | 4 |
 
-Both ride the installer alongside **#293** (published clips on the Queue), which shipped
-last session and had never reached a build until now.
+Beta impact, rated for a stranger on their own machine: **1 blocker, 12 high, 13 medium, 35 low,
+49 none.**
 
-Awaiting Fega's in-app pass: #284, #285, #286, #263/#269, #270, #271, #275, #276, #278,
-#279, #280, #281, #282, #283, #291, #293, #295, #296.
+**Six previously unfiled defects filed: #297–#302.** Each was found by a fresh-install sweep and
+then verified by hand before filing.
 
-**#285's untested leg still stands:** a real YouTube publish with tags attached has never
-been verified on a live video. Unchanged by this session.
+**Nothing was closed.** The 35 closable issues are Fega's call and were deliberately left open.
 
 ## What Was Built
 
-### #295 — "Show subtitles" off now means no subtitles in the render
+### The audit itself
 
-`showSubs` was shipped to the main process inside `subtitleStyle` and never read
-(`grep -rn showSubs src/main/` was empty), while `subtitles: timelineSubs` went across
-unconditionally. The gate is now payload-side in `buildRenderPayload` — which also covers
-the WYSIWYG screenshot, since that goes through the same builder.
+Method that matters for reproducing it: every issue read in full via `gh issue view N --comments`
+(comments frequently carry the fix, a rescope, or a "handled by #X"), then traced into the code.
+Every `ALREADY-FIXED` / `PARTIALLY-FIXED` / `BLOCKER` verdict was handed to a second agent
+instructed to **refute** it — 58 claims went through that pass, 2 verdicts were overturned
+(#43 PARTIALLY-FIXED → STILL-LIVE, #151 impact MEDIUM → HIGH).
 
-**The subtle part:** it must pass an empty **array**, never omit the key. `render.js` falls
-back to `resolveClipSubtitles()` whenever `clipData.subtitles` is not an array, and would
-have burned in the very lines that were switched off.
+**Two agent-reported BLOCKERs were refuted and must not be re-reported:**
+- "Editor Layout panel crashes on fresh install" — `RightPanelNew.js:2191` has
+  `if (!project) return null;`. The crash does not exist.
+- "Render takes audio stream 0, ignoring the calibrated track" — it does take `0:a`
+  (`render.js:149`, `:618`), but that is correct. OBS writes the master mix to track 1; the
+  calibration wizard finds the *mic-only* track for transcription, deliberately a different
+  track. Fega's own published clips are the standing proof.
 
-`showSubs` now also **persists per clip** (saved in `subtitleStyle`, restored in
-`restoreSavedStyle`). It used to be a session-lived store value that leaked from one clip to
-the next and reset on restart — wrong for a switch that decides what ships.
+### Fega's two corrections to Wick both confirmed
 
-### #296 — disable / enable elements and lanes, plus source-audio mute
+- **#146 is fixed.** FFmpeg ships in the installer (`package.json` `build.extraResources`,
+  `vendor/ffmpeg` → `resources/ffmpeg`); Python/Whisper is a managed one-click download
+  (`src/main/setup-runtime.js`, `EngineSetupView.js`).
+- **#153 is mostly fixed.** `watchFolder` defaults to `""` (`main.js:224`); the legacy `W:\` pin
+  is gated behind `fs.existsSync` (`main.js:374-375`) so it cannot fire on a stranger's machine.
+  What survives is cosmetic: the Rename tab still shows a pulsing green **WATCHING** badge over a
+  blank path.
 
-`enabled !== false` is the read on every path, so absent means enabled and nothing migrates.
+### The real blocker is #21, and not for the reason the ticket says
 
-- **Elements:** one SFX, one music drop, one subtitle line, one caption block. Sounds toggle
-  from their right-click settings popover; subs/captions from the right-click menu. A
-  disabled block greys (`grayscale(1)` + `opacity 0.4`) in place, leaves the viewer, and is
-  absent from the render.
-- **Lanes:** the **Caption / Subtitle / Music / SFX** labels ARE the switch — click the
-  label. It greys and strikes through and its icon flips (eye for the two visual lanes,
-  speaker for the audio ones). The **Audio** lane gets a *mute* instead: its blocks are the
-  video sections, so disabling it would mean deleting the picture.
-- **The Subtitle lane's switch IS `showSubs`** — one flag, not a second one beside a broken
-  one. That is how #295 got folded in.
-- **Shortcuts:** `d` toggles the selection, `alt+d` toggles its lane. Both in the shortcuts
-  dialog, both rebindable, rebinds survive a restart.
-- Disabling never touches `volume`, so a sound comes back at the level it had and the
-  popover still offers "Remember 60% for this sound" rather than "Remember 0%".
-
-**Extra fix the plan missed:** `enabled` was silently dropped on reopen.
-`resolveClipSubtitles` rebuilds every segment field-by-field at four hops, so a disabled
-line came back enabled. Carried through all four as a conditional spread, so a segment that
-never had the flag is byte-identical.
+All six credential slots default to `""` (`main.js:311-316`) — **no platform secrets ship, there
+is nothing to leak.** The live problem is the inverse: a tester cannot connect or publish to any
+platform without registering their own Google / TikTok / Meta developer apps. Shipping Fega's
+client secrets is not an option (violates all three platforms' terms; risks the frozen TikTok
+Direct Post approval). Re-framing posted as a comment on #21; #56 re-triaged the same way.
 
 ## Key Decisions
 
-1. **One choke point per surface, and it is the payload.** `buildRenderPayload` decides what
-   ships for subtitles and captions; `render.js` filters sounds (because `clipData.sfx` is
-   read there directly, which covers any future from-disk path). Deliberately did NOT add a
-   second `showSubs` gate inside `render.js` — the issue itself argued for keeping the "what
-   ships" decision in one place, and no from-disk render path exists today.
+1. **Nothing closed unilaterally.** 35 issues are code-verified as done, but Fega has not
+   confirmed any of them in the running app. Per the repo's own convention that is his call.
+2. **Six new issues filed rather than fixed in place.** This was an audit session per Wick's own
+   gate ("findings report first, zero code changes").
+3. **`context/technical-summary.md` overwritten, not versioned** — per CLAUDE.md. The prior file
+   was dated 2026-07-02 and pre-dated the Corva rename.
 
-2. **The lane shortcut is `alt+d`, NOT the approved plan's `shift+d`.** `eventToKey()`
-   deliberately drops Shift when it is the only modifier on a printable character — that is
-   what makes `?` work — so `shift+d` canonicalises to plain `d` and could never match.
-   Confirmed by testing: Shift+D fired the element toggle. Distilled into
-   `clipflow-editor-patterns` so the next shortcut does not repeat it.
+## Next Steps — the four fix batches (agreed shape, not yet started)
 
-3. **Re-enabling REMOVES the key rather than writing `enabled: true`.** A clip switched off
-   and back on returns to exactly the JSON it had. Caught by inspecting a saved record
-   mid-verification and fixed in all three stores.
+Grouped by surface so each is one coherent session. All four are independent; 1 and 2 are the
+irreversible-harm ones.
 
-4. **Sounds are filtered BEFORE the missing-file check in `render.js`.** A sound the user has
-   already switched off must not fail their render because its file moved.
+**Batch 1 — Don't eat the tester's work.** #297 (autosave reports success on a failed save and
+clears `dirty`; `project:updateClip` *returns* `{error}` instead of throwing), #298 (bootstrap is
+an async chain with no `.catch()`, window created last, lock held → invisible zombie), #299
+(SQLite rewritten whole in place, no temp file, no backup). All `small`. #299 is the likeliest
+trigger of #298 — do them together.
 
-5. **`volume=0` on `base_a`, not dropping the stream.** The stream stays the right length, so
-   `amix duration=first` still ends where the picture does, and a clip with no sounds still
-   gets a valid silent track rather than none.
+**Batch 2 — Nothing of mine ships in the build.** #302 (delete `"Fega"` from both Whisper
+`initial_prompt` arrays at `stable-ts.js:123`/`:229`; rename the **display name** of the
+`fega-default` template but **NOT its id**, which is persisted in `activeTemplateId` /
+`defaultTemplateId` / `builtInTemplateDeleted`; align `App.js:326-330` caption seed with
+`STORE_DEFAULTS`; neutralise the default schedule + `weeklyTarget: 48`), #301 (resolve the
+gateway token at call time instead of seeding it as a store default, plus a one-time migration
+clearing a persisted copy). **Hard ordering constraint: #301 must land before the token reaches
+anyone**, because afterwards the fix can only travel by the very path the defect breaks.
 
-6. **Video-segment disable stayed out of scope**, as agreed. So did the Edit-subtitles text
-   list — a disabled line still shows there normally. The disable is a timeline affordance.
+**Batch 3 — Recordings that aren't mine still work.** #62 (`energy_scorer.py:337-339` exits 1 on
+digital silence — emit an all-zero energy JSON and exit 0), #300 (MKV accepted by the watcher at
+`main.js:987` but `formatFilename` unconditionally appends `.mp4` at `RenameView.js:784`), #178
+(ALAC/PCM silent in the editor preview). #178 and #300 share a root shape — the `<video>` has no
+`onError`, so a decode failure is invisible. Add that regardless.
 
-## Next Steps
+**Batch 4 — The first ten minutes don't look broken.** #153 (fake WATCHING badge), #74 (pipeline
+internals — "Transcription (stable-ts)", "Claude Analysis", the five-row signal table — on the
+most-watched screen in the product; **needs Fega to approve replacement copy**, that is the long
+pole not the code), #152 (`trivial` — one un-confirmed click deletes a whole project folder).
 
-1. **Confirm Fega installed alpha.4** and that Settings reads `v0.4.0-alpha.4`.
-2. **His in-app pass on #293, #295, #296** — all three are `status: untested`. In the editor
-   the lane switches are the labels themselves; `D` toggles a block, `Alt + D` its lane.
-3. **#293's snapshot write path STILL has never run for real** (carried from s184). It only
-   fires on an actual publish. After the next real post, open that clip on the Published
-   shelf and confirm it says "Exactly what was published" rather than the amber recomputed
-   note. If it does not, that is the bug and it is small.
-4. Backlog is otherwise unchanged — `start session` will surface it grouped by label.
+**Then cut ONE installer** covering all four (~14 issues), per the batch-versions convention.
+
+**Not in scope this week:** #21 (scope decision, Wick), #51 (cert procurement, 2–6 week KYC),
+#265 (`large`), #70 (`medium`), #161 (`medium`).
+
+**Optional Batch 5 if there's room:** #157 (`trivial` — Transcript Download button has no
+onClick), #151 (`small` — render failure shows a 4s red flash, no reason, no retry), #158
+(`medium` — subtitle mode round-trip 3w→1w→3w merges across pauses and stretches timings;
+`segmentWords` is non-idempotent on its own output via `applyTimingRules` LINGER_DURATION).
 
 ## Watch Out For
 
-- **`enabled !== false` must stay the read on EVERY path.** Absent = on is what makes this
-  migration-free. The regression that matters: a clip with nothing disabled must render
-  byte-identically. Verified this session — the clean render's graph is
-  `-map [out] -map [base_a]`, no `volume=0`, no `amix`, no filtering.
-- **Any NEW per-object field on a subtitle segment will be dropped the same way `enabled`
-  was.** `resolveClipSubtitles` rebuilds segments field-by-field at four separate hops (the
-  editor-saved branch, `primaryRaw`, the final resolved shape, and `initSegments` in the
-  store). Add the passthrough at all four, then E2E the save → reload → reopen loop —
-  first-save proof is not persistence proof.
-- **`SegmentBlock` is `React.memo` with a CUSTOM comparator.** A new prop that should
-  re-render it must be added to that comparator or the block silently keeps its old paint.
-  `disabled` was added there; the next prop needs the same.
-- **The preview has TWO `<video>` elements** (active + standby, swapped at cuts). Anything
-  imperative — `muted`, `playbackRate` — must be applied to both, or it reverts the moment
-  the timeline crosses a section boundary.
-- **`shift+<letter>` can never be a binding.** See Key Decision 2.
-- **The legacy (no-NLE) render path honours neither the Audio mute nor sound placements.** It
-  maps `0:a?` straight through. It logs a warning now. Same pre-existing limitation sounds
-  already had; no clip in the library uses that path today.
-- **`showSubs` persisting per clip is a behaviour change.** If Fega notices subtitles coming
-  back on when switching clips — that is the fix, not a bug. It used to leak.
+- **Do not re-report the two refuted findings above.** They cost a verification pass each.
+- **#302: change the template display name only.** Touching the `fega-default` **id** orphans
+  Fega's own persisted template selection.
+- **`tasks/todo.md` is a 3.7k-line archive** — Edit the head, never full-file Write it.
+- **Untracked files pre-date this session** and were deliberately not committed: `.agents/skills/`,
+  `.codex/`, `AGENTS.md`, `tasks/mocks/*`.
+- **Wick has an open decision** in his inbox (publish scope A or B) plus three Cloudflare/provider
+  dashboard checks for #56 that cannot be answered from code.
+- **The `%APPDATA%\Corva` folder is still an empty shell**, so the #268 migration takes the safe
+  `use-old` branch on every boot and real data stays in `%APPDATA%\clipflow`. Safe indefinitely;
+  that is #288.
 
-## Logs/Debugging
+## Logs / Debugging
 
-- **Launching the built renderer on the dev profile:**
-  `CLIPFLOW_PROFILE=dev npx electron . --remote-debugging-port=9222 --disable-features=CalculateNativeWinOcclusion`.
-  `isDev` is hardcoded `false`, so this loads `build/` and sidesteps the daily driver's
-  single-instance lock. `taskkill //F //IM electron.exe` to stop it (double slashes in Git Bash).
-- **CDP driver** lives in this session's scratchpad (`cdp.js`) — reads an expression from a
-  file, supports `--focus` and `--shot out.png`. Node 24 has a global `WebSocket`, no `ws` needed.
-- **Reload after a rebuild via `location.reload()` over CDP** — the renderer picks up the new
-  `build/` bundle without restarting Electron. Used four times this session.
-- **The dev profile's projectsRoot points at the REAL project tree**, not a copy.
-  `npm run dev:seed` copies settings/tracker/DB into `%APPDATA%\clipflow-dev\`, but project
-  JSON lives under `projectsRoot` and is shared with prod. Editor edits made in dev DO write
-  to real project files — this session used rejected Clip 12 and cleaned up afterwards.
-- **Proving the render side:** read the `[Render] FFmpeg args:` line out of the app log. It
-  carries the whole filter graph, so `volume=0` on `base_a`, the presence or absence of a
-  sound's `-i` and its `amix` mixin, and `-map [base_a]` vs `-map [base_am]` are all readable
-  without decoding a frame. `[Render] Overlay frames: N captured` is a strong subtitle signal
-  too: 99 with subtitles on, 92 with one line disabled, **1** with the lane off.
-- **Frame-level proof:** `ffmpeg -ss <t> -i out.mp4 -frames:v 1 -vf scale=270:480 f.png`, then
-  `hstack` several into one strip and look at it. `ffmpeg -af volumedetect -f null -` gives
-  `mean_volume` — `-91 dB` is digital silence.
-- **`ffmpeg`/`ffprobe` are on PATH** (chocolatey). There is no `node_modules/ffmpeg-static`;
-  the app resolves its own from `resources/ffmpeg/` in a packaged build.
-- **Test artefacts cleaned up:** the render written for Clip 12 was deleted along with its
-  thumbnail, `renderPath`/`thumbnailPath` nulled, the test SFX placement removed, and the
-  stray `enabled: true` keys stripped from its saved segments. Clip 12 is back to a plain
-  rejected clip with no render.
-- **The dev profile's shortcut bindings were reset to defaults** during the rebind test.
-  Dev-only (`%APPDATA%\clipflow-dev\`); the daily driver is untouched. A pre-existing dev
-  rebind of "End to playhead" (S → K) was lost in that reset.
-- **Heredocs with apostrophes still fail in this shell** (s183's lesson holds, and it bit
-  again writing this file). Multi-line prose and JS go through `Write` to a file, not an
-  inline heredoc.
-- **Do not dump whole clip records over CDP.** `projectLoad` plus a clip object is ~40KB of
-  transcription and styling; project the three fields you need instead.
+- **App log:** `%APPDATA%\clipflow\logs\` (prod is still the legacy dir — see #288).
+  Dev profile: `%APPDATA%\clipflow-dev\logs\`.
+- **Publish errors live in `clipflow-publish-log.json`, NOT `app.log`.**
+- **Pipeline artifacts:** `%APPDATA%\clipflow\processing\{frames,energy,signals,claude,transcripts}\`.
+  Only `logs` is pruned (`pipeline-logger.js:173`) — the rest grow forever.
+- **Audit working data** (verdicts, evidence, per-agent reports) is in this session's scratchpad:
+  `audit-data.json`, `arch-data.json`, `briefing-raw.md`. Regenerate the audit doc with
+  `gendoc.py` + `newfind.py` if the tables need rebuilding.
+- **Boot-verify without fighting the daily driver's single-instance lock:** launch with
+  `CLIPFLOW_PROFILE=dev`. `npm start` exits 0 silently under the prod lock.
+- **Repo `data/clipflow.db` is stale** — measure against `%APPDATA%\clipflow\data\`.
