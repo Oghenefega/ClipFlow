@@ -13,7 +13,7 @@ const btnSave = { ...BTN, background: T.green, border: "none", color: "#fff", fo
 const inputStyle = { width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: T.radius.md, padding: "10px 14px", color: T.text, fontSize: 13, fontFamily: T.mono, outline: "none", boxSizing: "border-box" };
 const maskKey = (key) => (!key || key.length < 8) ? (key || "") : key.substring(0, 4) + "\u2022\u2022\u2022\u2022" + key.substring(key.length - 4);
 
-export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, collapsedGroups, setCollapsedGroups, isActive }) {
+export default function SettingsView({ mainGame, setMainGame, mainPool, setMainPool, gamesDb, setGamesDb, onEditGame, onAddGame, watchFolder, setWatchFolder, testWatchFolder, setTestWatchFolder, platforms, setPlatforms, anthropicApiKey, setAnthropicApiKey, geminiApiKey, setGeminiApiKey, gatewayUrl, setGatewayUrl, gatewayAuthToken, setGatewayAuthToken, hasBundledGatewayToken, youtubeClientId, setYoutubeClientId, youtubeClientSecret, setYoutubeClientSecret, metaAppId, setMetaAppId, metaAppSecret, setMetaAppSecret, instagramAppId, setInstagramAppId, instagramAppSecret, setInstagramAppSecret, tiktokClientKey, setTiktokClientKey, tiktokClientSecret, setTiktokClientSecret, styleGuide, setStyleGuide, outputFolder, setOutputFolder, audioFolders, setAudioFolders, requireHashtagInTitle, setRequireHashtagInTitle, streamSchedule, setStreamSchedule, collapsedGroups, setCollapsedGroups, isActive }) {
   const [editFolder, setEditFolder] = useState(false);
   const [folderVal, setFolderVal] = useState(watchFolder);
   const [editTestFolder, setEditTestFolder] = useState(false);
@@ -336,12 +336,16 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
   const delGame = (name) => { setGamesDb((p) => p.filter((g) => g.name !== name)); setMainPool((p) => p.filter((n) => n !== name)); };
   const nonPool = gamesDb.filter((g) => !mainPool.includes(g.name));
 
+  // #301: the gateway is live when a URL is set and SOME token exists — the
+  // user's own, or the one this build carries (which the renderer only ever
+  // knows about as a boolean).
+  const gatewayActive = Boolean(gatewayUrl && (gatewayAuthToken || hasBundledGatewayToken));
   // #262 follow-up: mirror the Gemini rule below — the bundled gateway (#249)
   // serves Anthropic too, so gateway-only installs are configured, not broken.
-  const anthropicConfigured = Boolean(anthropicApiKey) || Boolean(gatewayUrl && gatewayAuthToken);
+  const anthropicConfigured = Boolean(anthropicApiKey) || gatewayActive;
   // #249: gateway BYOK supplies the Gemini key server-side — keyless installs
   // with a gateway token are genuinely configured, show them green.
-  const geminiConfigured = Boolean(geminiApiKey) || Boolean(gatewayUrl && gatewayAuthToken);
+  const geminiConfigured = Boolean(geminiApiKey) || gatewayActive;
   const youtubeConfigured = Boolean(youtubeClientId && youtubeClientSecret);
   const metaConfigured = Boolean(metaAppId && metaAppSecret);
   const instagramConfigured = Boolean(instagramAppId && instagramAppSecret);
@@ -1282,10 +1286,10 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Cloudflare AI Gateway base URL. Leave default unless you have a custom gateway.</p>
                 <SectionLabel style={{ marginTop: 16 }}>Gateway Auth Token</SectionLabel>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
-                  <input value={gatewayTokenVal} onChange={(e) => setGatewayTokenVal(e.target.value)} type={showGatewayTokenEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="cf-aig token (leave empty to use raw API keys)" />
+                  <input value={gatewayTokenVal} onChange={(e) => setGatewayTokenVal(e.target.value)} type={showGatewayTokenEdit ? "text" : "password"} style={{ ...inputStyle, flex: 1 }} placeholder="cf-aig token (leave empty to use the built-in one)" />
                   <button onClick={() => setShowGatewayTokenEdit(!showGatewayTokenEdit)} style={{ ...iconBtn, color: T.textTertiary }} title={showGatewayTokenEdit ? "Hide" : "Show"}>{showGatewayTokenEdit ? "\ud83d\udc41" : "\ud83d\udc41\u200d\ud83d\udde8"}</button>
                 </div>
-                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>If set, AI calls (Anthropic + Gemini) route through the gateway, which supplies the provider keys. Clear to use the raw API keys directly.</p>
+                <p style={{ color: T.textTertiary, fontSize: 11, margin: "8px 0 0" }}>Your own token, if you have one — it overrides the token built into Corva. Leave it empty to use the built-in one. To skip the gateway entirely and call the APIs directly with your own keys, clear the Gateway URL above.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1304,7 +1308,9 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Gateway</span>
                   <span data-secret="" style={{ color: T.text, fontSize: 13, fontFamily: T.mono, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {!gatewayAuthToken ? "Direct (no gateway)" : showGatewayToken ? gatewayAuthToken : maskKey(gatewayAuthToken)}
+                    {gatewayAuthToken
+                      ? (showGatewayToken ? gatewayAuthToken : maskKey(gatewayAuthToken))
+                      : gatewayActive ? "Built-in beta gateway" : "Direct (no gateway)"}
                   </span>
                   {gatewayAuthToken && (
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
@@ -1317,7 +1323,7 @@ export default function SettingsView({ mainGame, setMainGame, mainPool, setMainP
                   <span style={{ color: T.textTertiary, fontSize: 12, width: 80 }}>Status</span>
                   <PulseDot color={anthropicConfigured ? T.green : T.red} size={6} />
                   <span style={{ color: anthropicConfigured ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>{anthropicConfigured ? "Configured" : "Not set"}</span>
-                  {gatewayAuthToken && (<>
+                  {gatewayActive && (<>
                     <span style={{ color: T.textTertiary, fontSize: 12, margin: "0 4px" }}>&middot;</span>
                     <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>Gateway active</span>
                   </>)}

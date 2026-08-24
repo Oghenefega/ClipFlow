@@ -120,7 +120,6 @@ function transcribe(wavPath, opts = {}) {
       "lit, fire, bet, dope, vibe, salty, clutch, cracked, goated, mid",
       "GG, OP, nerf, buff, AFK, respawn, aggro, ADS, headshot, one-shot",
       "let's go, oh my god, what the, are you kidding me",
-      "Fega",
     ].join(", ") + (opts.gameVocab || "");
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 
@@ -226,7 +225,6 @@ function transcribeBatch(items, opts = {}) {
       "lit, fire, bet, dope, vibe, salty, clutch, cracked, goated, mid",
       "GG, OP, nerf, buff, AFK, respawn, aggro, ADS, headshot, one-shot",
       "let's go, oh my god, what the, are you kidding me",
-      "Fega",
     ].join(", ") + (opts.gameVocab || "");
     const initialPrompt = opts.initialPrompt || defaultSlangPrompt;
 

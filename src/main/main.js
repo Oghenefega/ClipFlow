@@ -275,16 +275,26 @@ const STORE_DEFAULTS = {
   // re-spends on the same file. Evicted on rename, file removal, and boot sweep.
   detectedGames: {},
   platforms: [],
+  // #302: neutral starter schedule — three slots a day, Mon–Sat, all on the
+  // main game. Replaces Fega's own eight-slot routine, which every fresh
+  // install inherited. Written in the timeSlots+grid shape (App.js
+  // DEFAULT_TEMPLATE must stay identical) — the old shape had no slot list,
+  // so the renderer had to graft its own on, and the two drifted apart.
   weeklyTemplate: {
-    Monday: ["main","main","main","main","main","main","main","main"],
-    Tuesday: ["main","other","main","other","main","other","main","main"],
-    Wednesday: ["main","other","other","main","other","other","other","main"],
-    Thursday: ["main","other","other","main","other","other","main","main"],
-    Friday: ["main","other","other","main","other","other","other","main"],
-    Saturday: ["main","other","main","other","main","other","main","main"],
+    timeSlots: ["12:00 PM","4:00 PM","8:00 PM"],
+    grid: {
+      Monday: ["main","main","main"],
+      Tuesday: ["main","main","main"],
+      Wednesday: ["main","main","main"],
+      Thursday: ["main","main","main"],
+      Friday: ["main","main","main"],
+      Saturday: ["main","main","main"],
+    },
   },
   trackerData: [],
-  weeklyTarget: 48,
+  // #302: 3 slots x 6 days — derived from the starter schedule above rather
+  // than from Fega's personal 48. Editable in the Tracker.
+  weeklyTarget: 18,
   weekMeta: {},
   xpLedger: [],
   streakState: { evaluatedThroughMondayISO: null, current: 0, best: 0 },
@@ -337,9 +347,15 @@ const STORE_DEFAULTS = {
   // not "fix" it. Raw provider keys must never ship; Cloudflare injects them
   // server-side. The token value lives OUTSIDE git (resources/beta-token.json
   // packaged, vendor/beta-token.json from source — GitHub push protection
-  // rejects committed live tokens). Users who clear this field in Settings
-  // keep their "" (file values win over defaults) and fall back to raw keys.
-  gatewayAuthToken: appPaths.bundledGatewayToken(),
+  // rejects committed live tokens).
+  //
+  // #301: this key holds the USER'S OWN token only, and defaults to "". The
+  // bundled token is resolved at call time in llm-provider.resolveGatewayToken
+  // — seeding it here copied it into the settings file on first launch, where
+  // the file value outranks every later build and the token could never be
+  // rotated. Empty here does NOT mean "no gateway": gatewayUrl is the on/off
+  // switch, and clearing it is what falls back to raw provider keys.
+  gatewayAuthToken: "",
   youtubeClientId: "",
   youtubeClientSecret: "",
   metaAppId: "",
@@ -637,6 +653,27 @@ function runStoreMigrations(store) {
   if (/\/anthropic\/*$/.test(legacyGatewayUrl)) {
     store.set("gatewayUrl", legacyGatewayUrl.replace(/\/+$/, "").replace(/\/anthropic$/, ""));
     logger.info(logger.MODULES.system, "Migrated gatewayUrl to gateway base (stripped /anthropic)");
+  }
+
+  // ── Migration (#301): un-pin installs from their copied bundled token ──
+  // Pre-fix builds seeded gatewayAuthToken as a store DEFAULT, so first launch
+  // persisted the bundled token into the settings file — and from then on the
+  // file value beat every future build. Both of Fega's profiles were found
+  // holding a token that no longer matched the shipped one, which is the
+  // defect in the flesh: matching only the CURRENT bundled value would have
+  // left exactly those machines pinned. So this clears the field once,
+  // unconditionally, and stashes what was there under a separate key so a
+  // token someone pasted by hand is recoverable rather than destroyed.
+  // After this runs, a non-empty gatewayAuthToken can only have been typed by
+  // the user — the renderer is never handed the bundled one again.
+  if (!store.has("_migrated_gatewayToken_v1")) {
+    const persistedToken = String(store.get("gatewayAuthToken") || "").trim();
+    if (persistedToken) {
+      store.set("gatewayAuthTokenPreMigration", persistedToken);
+      store.set("gatewayAuthToken", "");
+      logger.info(logger.MODULES.system, "Cleared the persisted gateway token (#301) — it now resolves from the build at call time; previous value stashed as gatewayAuthTokenPreMigration");
+    }
+    store.set("_migrated_gatewayToken_v1", true);
   }
 }
 
@@ -3008,6 +3045,14 @@ ipcMain.handle("store:set", (_, key, value) => {
 
 ipcMain.handle("store:getAll", () => {
   return store.store;
+});
+
+// #301: the renderer decides whether AI is available and what Settings shows,
+// but must never hold the bundled token — holding it is what let a copy get
+// persisted and outrank the build. So it gets the one bit it actually needs:
+// whether this build carries a token at all. The value stays in main.
+ipcMain.handle("ai:gatewayInfo", () => {
+  return { hasBundledToken: Boolean(appPaths.bundledGatewayToken()) };
 });
 
 // ============ DEV DASHBOARD ============

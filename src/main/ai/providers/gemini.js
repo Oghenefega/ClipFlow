@@ -21,7 +21,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { registerProvider, getStore, gatewayMetadataHeader } = require("../llm-provider");
+const { registerProvider, getStore, gatewayMetadataHeader, resolveGatewayToken, gatewayErrorMessage } = require("../llm-provider");
 const log = require("electron-log");
 
 const API_BASE = "https://generativelanguage.googleapis.com";
@@ -46,9 +46,13 @@ async function fetchJson(url, options, timeout) {
     let json = null;
     try { json = JSON.parse(body); } catch (_) { /* non-JSON error body */ }
     if (!res.ok) {
-      // Cloudflare gateway errors come back as arrays, not objects with .error
-      if (Array.isArray(json) && json[0]?.code) {
-        throw new Error(`Gateway error (HTTP ${res.status}): ${json[0].message || JSON.stringify(json)}`);
+      // Cloudflare gateway errors are an ARRAY of { code, message }, bare on
+      // some responses and wrapped in .error on others (a rejected token
+      // returns {"error":[{"code":2009,...}]}) — both are the gateway talking,
+      // not Google (#301).
+      const gatewayErrors = Array.isArray(json) ? json : (Array.isArray(json?.error) ? json.error : null);
+      if (gatewayErrors && gatewayErrors[0]?.code) {
+        throw new Error(gatewayErrorMessage(res.status, gatewayErrors));
       }
       const msg = json?.error?.message || body.substring(0, 300);
       throw new Error(`Gemini API error (HTTP ${res.status}): ${msg}`);
@@ -73,7 +77,8 @@ async function fetchJson(url, options, timeout) {
 function resolveRouting(apiKey) {
   const store = getStore();
   const gatewayUrl = store ? String(store.get("gatewayUrl") || "").trim() : "";
-  const authToken = store ? String(store.get("gatewayAuthToken") || "").trim() : "";
+  // #301: user's own token if they pasted one, else this build's bundled token.
+  const authToken = resolveGatewayToken();
   if (gatewayUrl) {
     try {
       const base = gatewayUrl.replace(/\/+$/, "").replace(/\/anthropic$/, "");
@@ -112,7 +117,7 @@ function isConfigured() {
   if (String(store.get("geminiApiKey") || "").trim()) return true;
   return Boolean(
     String(store.get("gatewayUrl") || "").trim() &&
-    String(store.get("gatewayAuthToken") || "").trim()
+    resolveGatewayToken()
   );
 }
 

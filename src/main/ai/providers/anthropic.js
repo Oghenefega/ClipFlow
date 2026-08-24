@@ -14,7 +14,7 @@
  */
 
 const https = require("https");
-const { registerProvider, getStore, gatewayMetadataHeader } = require("../llm-provider");
+const { registerProvider, getStore, gatewayMetadataHeader, resolveGatewayToken, gatewayErrorMessage } = require("../llm-provider");
 const log = require("electron-log");
 
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -98,13 +98,20 @@ function anthropicRequest(apiKey, body, opts = {}) {
         log.info(`[anthropic] Response: HTTP ${res.statusCode} (${data.length} bytes)`);
         try {
           const result = JSON.parse(data);
+          // Cloudflare gateway errors are an ARRAY of { code, message } — bare
+          // on some responses, wrapped in .error on others (a rejected token
+          // returns {"error":[{"code":2009,...}]}). Both shapes have to be
+          // recognised HERE, before the Anthropic branch below: .error is
+          // truthy for the wrapped form too, so checking that first swallowed
+          // every gateway rejection into a raw JSON dump (#301, seen live on a
+          // 401 while verifying).
+          const gatewayErrors = Array.isArray(result) ? result : (Array.isArray(result.error) ? result.error : null);
+          if (gatewayErrors && gatewayErrors[0]?.code) {
+            log.error(`[anthropic] Gateway error: HTTP ${res.statusCode} — ${JSON.stringify(result)}`);
+            return reject(new Error(gatewayErrorMessage(res.statusCode, gatewayErrors)));
+          }
           if (result.error) {
             return reject(new Error(`Anthropic API error: ${result.error.message || JSON.stringify(result.error)}`));
-          }
-          // Cloudflare gateway errors come back as arrays, not objects with .error
-          if (Array.isArray(result) && result[0]?.code) {
-            log.error(`[anthropic] Gateway error: HTTP ${res.statusCode} — ${JSON.stringify(result)}`);
-            return reject(new Error(`Gateway error (HTTP ${res.statusCode}): ${result[0].message || JSON.stringify(result)}`));
           }
           resolve(result);
         } catch (e) {
@@ -172,8 +179,9 @@ const provider = {
     const store = getStore();
     const apiKey = store ? store.get("anthropicApiKey") : null;
 
-    // Build gateway config — URL alone = passthrough, URL + token = BYOK
-    const gatewayAuthToken = store ? store.get("gatewayAuthToken", "") : "";
+    // Build gateway config — URL alone = passthrough, URL + token = BYOK.
+    // #301: the token is resolved per call (user's own, else the build's).
+    const gatewayAuthToken = resolveGatewayToken();
     const gatewayUrl = store ? store.get("gatewayUrl", "") : "";
     const gateway = gatewayUrl
       ? { url: gatewayUrl, authToken: gatewayAuthToken, metadata: gatewayMetadataHeader() }

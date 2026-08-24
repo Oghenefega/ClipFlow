@@ -4,7 +4,10 @@ import useLayoutStore from "../stores/useLayoutStore";
 
 // ── Built-in default template ──
 export const BUILTIN_TEMPLATE = {
-  id: "fega-default", name: "Fega Default", builtIn: true,
+  // #302: display name only — the id stays `fega-default` because existing
+  // installs persist it in activeTemplateId / defaultTemplateId /
+  // builtInTemplateDeleted, and renaming it would orphan those selections.
+  id: "fega-default", name: "Corva Default", builtIn: true,
   caption: {
     fontFamily: "Latina Essential", fontWeight: 900, fontSize: 30, color: "#ffffff",
     bold: true, italic: true, underline: false, yPercent: 15, widthPercent: 90,

@@ -28,25 +28,38 @@ import clipflowMark from "./assets/brand/clipflow-mark.png";
 // #262: no seeded games — every user builds their own library via + Add Game.
 const INITIAL_IGNORED = ["explorer.exe", "steamwebhelper.exe", "dwm.exe", "ShellExperienceHost.exe", "zen.exe"];
 const PUBLISH_ORDER_INIT = [];
-const DEFAULT_TIME_SLOTS = ["12:30 PM","1:30 PM","2:30 PM","3:30 PM","4:30 PM","7:30 PM","8:30 PM","9:30 PM"];
+// #302: a neutral starter schedule — three slots a day, Monday to Saturday,
+// every slot on the main game. It replaces Fega's own routine (eight slots
+// 12:30–9:30 PM with his main/variety rotation), which every new install used
+// to inherit. Both the grid and DEFAULT_WEEKLY_TARGET below are editable in
+// the Tracker; the target is just 3 x 6 so the number matches what's on screen.
+const DEFAULT_TIME_SLOTS = ["12:00 PM","4:00 PM","8:00 PM"];
 const DEFAULT_TEMPLATE = {
   timeSlots: [...DEFAULT_TIME_SLOTS],
   grid: {
-    Monday: ["main","main","main","main","main","main","main","main"],
-    Tuesday: ["main","other","main","other","main","other","main","main"],
-    Wednesday: ["main","other","other","main","other","other","other","main"],
-    Thursday: ["main","other","other","main","other","other","main","main"],
-    Friday: ["main","other","other","main","other","other","other","main"],
-    Saturday: ["main","other","main","other","main","other","main","main"],
+    Monday: ["main","main","main"],
+    Tuesday: ["main","main","main"],
+    Wednesday: ["main","main","main"],
+    Thursday: ["main","main","main"],
+    Friday: ["main","main","main"],
+    Saturday: ["main","main","main"],
   },
 };
+const DEFAULT_WEEKLY_TARGET = DEFAULT_TIME_SLOTS.length * 6;
+
+// #302: the eight slots the pre-timeSlots format was built against. Stores
+// written before timeSlots existed (Fega's prod profile is one) hold day
+// arrays of eight with no slot list — converting those with the new 3-slot
+// default would hide five columns of their schedule, so legacy data keeps the
+// slots it was authored with. Fresh installs never reach this path.
+const LEGACY_TIME_SLOTS = ["12:30 PM","1:30 PM","2:30 PM","3:30 PM","4:30 PM","7:30 PM","8:30 PM","9:30 PM"];
 
 // Migrate old template format (no timeSlots key) to new format
 const migrateTemplate = (tmpl) => {
   if (!tmpl) return JSON.parse(JSON.stringify(DEFAULT_TEMPLATE));
   if (tmpl.timeSlots && tmpl.grid) return tmpl;
   // Old format: { Monday: [...], Tuesday: [...], ... }
-  return { timeSlots: [...DEFAULT_TIME_SLOTS], grid: { ...tmpl } };
+  return { timeSlots: [...LEGACY_TIME_SLOTS], grid: { ...tmpl } };
 };
 
 // No more mock data — file metadata stored in SQLite, renameHistory is persisted
@@ -257,7 +270,7 @@ export default function App() {
   // Queue / Tracker
   const [weeklyTemplate, setWeeklyTemplate] = useState(JSON.parse(JSON.stringify(DEFAULT_TEMPLATE)));
   const [trackerData, setTrackerData] = useState([]);
-  const [weeklyTarget, setWeeklyTarget] = useState(48);
+  const [weeklyTarget, setWeeklyTarget] = useState(DEFAULT_WEEKLY_TARGET);
   const [weekMeta, setWeekMeta] = useState({});
   const [xpLedger, setXpLedger] = useState([]);
   const [streakState, setStreakState] = useState({ evaluatedThroughMondayISO: null, current: 0, best: 0 });
@@ -272,10 +285,13 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState("");
+  // #301: the user's OWN gateway token only — empty on every install that
+  // hasn't pasted one. The bundled token stays in the main process.
   const [gatewayAuthToken, setGatewayAuthToken] = useState("");
+  const [hasBundledGatewayToken, setHasBundledGatewayToken] = useState(false);
   // #262 follow-up: AI is available with a raw key OR the bundled gateway
   // (#249) — gateway-only installs must never be gated on a personal key.
-  const aiReady = !!(anthropicApiKey || (gatewayUrl && gatewayAuthToken));
+  const aiReady = !!(anthropicApiKey || (gatewayUrl && (gatewayAuthToken || hasBundledGatewayToken)));
   const [styleGuide, setStyleGuide] = useState("");
 
   // YouTube OAuth 2.0
@@ -323,10 +339,14 @@ export default function App() {
 
   // Captions
   const [platformOptions, setPlatformOptions] = useState({ tiktokPostMode: "direct_post" });
+  // #302: identical to STORE_DEFAULTS.captionTemplates in main.js. This seed is
+  // normally overwritten from the store on load, but the loader's early return
+  // and its catch both still flip hasLoaded — so on a settings-read failure
+  // whatever sits here gets persisted as the user's own templates.
   const [captionTemplates, setCaptionTemplates] = useState({
-    tiktok: "{title} #{gametitle} #fyp #gamingontiktok #fega #fegagaming",
-    instagram: "{title} #{gametitle} #reels #gamingreels #fega #fegagaming",
-    facebook: "{title} #{gametitle} #gaming #fbreels #fega #fegagaming",
+    tiktok: "{title} #{gametitle} #fyp #gamingontiktok",
+    instagram: "{title} #{gametitle} #reels #gamingreels",
+    facebook: "{title} #{gametitle} #gaming #fbreels",
   });
   const [ytDescriptions, setYtDescriptions] = useState({});
   // #286: one stream-schedule string, referenced by templates as {schedule}.
@@ -478,6 +498,15 @@ export default function App() {
       setLoaded(true);
     };
     load();
+  }, []);
+
+  // #301: does this build carry a gateway token? One boolean, asked once —
+  // it decides whether AI counts as available and what Settings shows, with
+  // the token itself staying in the main process where it can't be persisted.
+  useEffect(() => {
+    const p = window.clipflow?.getGatewayInfo?.();
+    if (!p) return;
+    p.then((info) => setHasBundledGatewayToken(Boolean(info?.hasBundledToken))).catch(() => {});
   }, []);
 
   // ============ AUTO-SAVE TO ELECTRON-STORE ============
@@ -1028,6 +1057,7 @@ export default function App() {
               setGatewayUrl={setGatewayUrl}
               gatewayAuthToken={gatewayAuthToken}
               setGatewayAuthToken={setGatewayAuthToken}
+              hasBundledGatewayToken={hasBundledGatewayToken}
               youtubeClientId={youtubeClientId}
               setYoutubeClientId={setYoutubeClientId}
               youtubeClientSecret={youtubeClientSecret}

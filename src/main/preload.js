@@ -90,6 +90,10 @@ contextBridge.exposeInMainWorld("clipflow", {
   storeSet: (key, value) => ipcRenderer.invoke("store:set", key, value),
   storeGetAll: () => ipcRenderer.invoke("store:getAll"),
 
+  // #301: does this build carry a gateway token? Boolean only — the token
+  // itself never crosses into the renderer.
+  getGatewayInfo: () => ipcRenderer.invoke("ai:gatewayInfo"),
+
   // ffmpeg
   ffmpegCheck: () => ipcRenderer.invoke("ffmpeg:checkInstalled"),
   ffmpegCheckNvenc: () => ipcRenderer.invoke("ffmpeg:checkNvenc"),
