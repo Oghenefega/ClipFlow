@@ -40,6 +40,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **The Gateway Auth Token field trims what you paste (#301 follow-up).** Batch 2 made an empty field mean "use the token built into Corva", and the main process trims the stored value before deciding whose token a call sends — but the Settings Save button stored the pasted text verbatim. A token with a stray space or trailing newline (the normal paste artifact), or a field holding only whitespace that looks empty on screen, made the app show a personal token as active while every actual call had already fallen back to the built-in one. Save now trims, so what Settings displays and what the calls use can't disagree.
 - **The Gemini panel no longer points at a token that isn't there (#301 follow-up).** Its help text still said Gemini becomes available via "the gateway token in the Anthropic panel" — after batch 2 that field is empty on a normal install and the panel reads "Built-in beta gateway". The text now says a key here or Corva's built-in gateway.
 
+## [Unreleased] — 2026-08-24 (session 191) — Tooling audit: the agent config catches up with the tools
+
+No app code changed this session — it was an audit of the Claude Code configuration (CLAUDE.md files, commands, skills) against the current harness, after the same audit on other agents found stale wrap-up rituals.
+
+### Fixed
+- **The `/build` command and the code-review skill built with a tool that no longer exists.** Both still ran `npx react-scripts build` (Create React App) — the renderer migrated to Vite long ago. Both now run `npm run build:renderer`. The skill's commit template also credited "Claude Opus 4.8"; it now defers to whatever model is running.
+- **Project CLAUDE.md described the release process as a future plan.** The "Stage 2 (planned)" update-notifier paragraph and the manual-reinstall promotion loop were replaced with the real, live auto-updater loop (R2 feed + in-app banner, per the `clipflow-update-launcher` skill). Also dropped the obsolete fetch-issues-via-WebFetch instruction — `gh` is the mandated path.
+
+### Changed
+- **Session wrap got leaner.** HANDOFF.md drops the "What Was Just Built" section (commits and this changelog already record it), and the wrap now sets the session title directly instead of offering candidates. The fragile "what changed this session" git command was simplified.
+- **The two always-on skills (`clipflow-code-review`, `clipflow-trace-verify`) were slimmed** — generic coaching that current models do by default was cut; every project-specific trap and distilled lesson stayed.
+- **`/review` now delegates to the built-in `code-review` skill** instead of a raw diff read-through.
+- **Global CLAUDE.md rules updated for the current harness** — removed the Sonnet-default model rule, the manual `/compact`-at-60% and `/context`/`/cost` steps (unavailable or counterproductive now), the 500-line chunked-read mandate, and pointed the feature-plan rule at plan mode instead of `tasks/todo.md`.
+
+### Added
+- **Two enforcement hooks** in `.claude/settings.json`: every Edit/Write is scanned for invisible control characters (the s187 0x08 incident class, now deterministic), and a session-wrap commit is blocked if CHANGELOG.md was never touched (the non-negotiable, now enforced). Both pipe-tested and verified firing live.
+
+### Removed
+- **Codex-experiment remnants**: `AGENTS.md` (a drifted copy of CLAUDE.md pointing at wrong paths), `.agents/` (a full stale mirror of every skill), and `.codex/`. Also four empty junk directories in the repo root (backslash-collapse artifacts) and both stale `.claude/worktrees/` checkouts that were polluting searches (the old TikTok OAuth work remains safe on its branch).
+
 ## [Unreleased] — 2026-08-23 (session 186) — Backlog truth audit: all 110 open issues verified against the code
 
 ### Added

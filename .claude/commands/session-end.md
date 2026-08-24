@@ -1,12 +1,14 @@
 ---
-description: End session — write HANDOFF.md, commit, check cost
+description: End session — distill lessons, write HANDOFF.md, commit, set the session name
 ---
 
 ## 1. What changed this session
 
-! git log --oneline $(git log --all --oneline | head -20 | tail -1 | cut -d' ' -f1)..HEAD
+! git log --oneline -15
 
 ! git diff --stat HEAD~5..HEAD 2>/dev/null || git diff --stat
+
+Identify which commits belong to THIS session (usually everything since the previous "Session N wrap" commit).
 
 ## 2. Distill new lessons into enforcement homes (the outflow pipe)
 
@@ -25,10 +27,9 @@ description: End session — write HANDOFF.md, commit, check cost
 
 ## 3. Write HANDOFF.md
 
-Based on the session's work, write HANDOFF.md with these sections:
-- **Current State** — one sentence on the app's condition
-- **What Was Just Built** — bullet list of changes
-- **Key Decisions** — architectural or design choices made and why
+Keep it lean — commits and CHANGELOG.md already record what was built; don't restate it. Sections:
+- **Current State** — one or two sentences on the app's condition and where the work stands
+- **Key Decisions** — only if any were made: one line each, with the why
 - **Next Steps** — prioritized list for next session
 - **Watch Out For** — gotchas, fragile areas, known issues
 - **Logs/Debugging** — any relevant error patterns or debug findings
@@ -37,10 +38,6 @@ Based on the session's work, write HANDOFF.md with these sections:
 
 Stage HANDOFF.md, the distilled skill changes, and any uncommitted work, commit with a descriptive message, and push to master.
 
-## 5. Report cost
+## 5. Set the session name (template-locked)
 
-Run /cost to show session spend.
-
-## 6. Suggest the session name (template-locked)
-
-A name suggestion that does not START with `S<number> ·` is INVALID — check before emitting (3 violations: s143, s145, s146). Template: `S<N> · alpha.<X> — <plain summary>` when an installer was cut this session; `S<N> · <plain summary>` when not. Copy the anchor from HANDOFF's header. Offer 2-3 alternatives, all in-template.
+Set the title directly with the session-title tool — don't just suggest it. A title that does not START with `S<number> ·` is INVALID — check before setting (3 violations: s143, s145, s146). Template: `S<N> · alpha.<X> — <plain summary>` when an installer was cut this session; `S<N> · <plain summary>` when not. Copy the anchor from HANDOFF's header. State what you set; Fega can rename if he prefers a different headline.

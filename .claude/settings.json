@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/check-control-chars.js",
+            "timeout": 15,
+            "statusMessage": "Scanning for control characters"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/check-wrap-changelog.js",
+            "if": "Bash(git *)",
+            "timeout": 15,
+            "statusMessage": "Checking changelog before wrap commit"
+          }
+        ]
+      }
+    ]
+  }
+}

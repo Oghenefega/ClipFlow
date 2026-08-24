@@ -14,7 +14,6 @@ Run this BEFORE making any claim about how existing code behaves. No exceptions.
 ### 1. Grep callers BEFORE building any claim or plan on a function
 - [ ] For every function/handler my explanation depends on, `Grep` for its callers across the codebase.
 - [ ] **Zero callers = dead code = it does NOT run = STOP. Do not reason on it.** Say so out loud: "X has no callers, it's dead — the live path must be elsewhere."
-- [ ] This single grep would have killed the wrong #103 plan in five seconds.
 
 ### 2. Trace TOP-DOWN from the mount point, never bottom-up from a plausible handler
 - [ ] Start from what the editor actually mounts/renders (e.g. `EditorLayout` → `TimelinePanelNew` → the component → the handler).
@@ -32,10 +31,6 @@ When I explain how code works or propose a fix based on existing code, the messa
 - The live path: mount/caller → handler, with `file:line`.
 - A verified/assumed tag where there's any doubt.
 - If I found dead code that looks relevant, I flag it as dead (zero callers) rather than reasoning on it.
-
-## The Trust Principle
-
-The safeguard is never "trust me more." It is making every how-it-works claim **falsifiable by inspection** — liveness proof + verified/assumed tag in the response itself — so the backstop is the structure of my answer, not the user's memory of how ClipFlow works.
 
 User's one-line trigger to pop this failure mid-conversation: **"did you grep the callers?"**
 

@@ -9,22 +9,17 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 
 ## Pre-Build Checklist
 
-### 1. Screenshot Match (if user sent a screenshot)
-- [ ] Did I actually LOOK at the screenshot and describe what's wrong?
-- [ ] Does my fix address the SPECIFIC visual symptom shown?
-- [ ] Did I mentally simulate: "will this CSS change cause the element to look like what the user expects?"
-
-### 2. No Fake Fallbacks
+### 1. No Fake Fallbacks
 - [ ] Does any code path produce placeholder/fake/degraded output?
 - [ ] If real data isn't available, am I showing empty/loading state (NOT fake data)?
 - [ ] No fake waveforms, no even-distribution timestamps, no placeholder images
 
-### 3. Data Shape Verification
+### 2. Data Shape Verification
 - [ ] Am I unwrapping IPC responses before storing in state?
 - [ ] If I filter/map on a field, does that field actually exist in the data?
 - [ ] If I changed a schema, did I write a migration function?
 
-### 4. React/Zustand Correctness
+### 3. React/Zustand Correctness
 - [ ] All store subscriptions use selectors: `useStore((s) => s.field)`
 - [ ] No `getState()` in render paths
 - [ ] Hooks reference values declared ABOVE them (no TDZ)
@@ -32,20 +27,17 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 - [ ] **Rename safety:** After renaming ANY variable, function, or export — search ALL 6 categories for the old name: (1) direct calls, (2) type-level references, (3) string literals, (4) dynamic imports, (5) re-exports/barrel files, (6) test files/mocks. Assume grep missed something.
 - [ ] **Refs inside setState updaters:** never read a mutable ref (or anything the handler mutates later) inside an updater function — React 18 runs updaters AFTER the handler body, so the ref already holds the new value. Capture it into a local const at the top of the handler (session 117: shift-click range anchor always equaled the clicked row).
 
-### 5. CSS/Layout Sanity
+### 4. CSS/Layout Sanity
 - [ ] ResizablePanel `defaultSize` values sum to exactly 100%
 - [ ] No `flex-1` on elements that should have fixed/auto width
 - [ ] Dark theme: Radix portals have explicit `dark` class + hardcoded dark HSL
 - [ ] Text minimum: 12px labels, 14px body
 
-### 6. No Regressions
-- [ ] Did I change imports? Check nothing is unused or missing
-- [ ] Did I remove a component? Check it's not referenced elsewhere
-- [ ] Did I change a store action? Check all call sites still pass correct args
+### 5. No Regressions
 - [ ] **A summary/list IPC must carry every field its consumers read.** When a "lightweight" list feeds more surfaces than the screen it was built for (Queue + auto-publish scheduler read clips from the startup project list), omitting a field silently empties those surfaces until a full load happens. Strip only fields MEASURED heavy, and grep the list's consumers before trimming. (Queue empty at launch, session 100.)
 - [ ] **Load-path invariant:** if a list's sort/filter is enforced at LOAD time (not at render), it's an invariant EVERY path that writes the full list into state must satisfy. When adding/touching any `setX(rows)` from a DB/IPC reload, grep ALL sibling setters and confirm each applies the same sort/filter — the DB's `ORDER BY` is not the UI's order. One missed `setFiles(rows)` (resetFileDone, no `compareRecordings`) flipped the whole Recordings list to newest-first until restart (session 86).
 
-### 7. Liveness — am I editing code that actually RUNS?
+### 6. Liveness — am I editing code that actually RUNS?
 - [ ] Before editing a function, `Grep` for its callers. **Zero callers = dead code.** Editing it has no user-facing effect (this is how #102/#97 got patched into the dead `commitAudioResize` path).
 - [ ] Did I confirm the component/handler I changed is the one actually mounted (top-down from `EditorLayout`), not a similarly-named twin?
 - [ ] If I claimed "this fixes X," can I name the live path mount→handler that the user's gesture actually hits? If not, verify in the running app before saying done.
@@ -54,7 +46,7 @@ Run this checklist EVERY TIME before saying a task is complete. No exceptions.
 ## Build & Launch Protocol
 
 After passing the checklist:
-1. `npx react-scripts build` — must complete with zero errors
+1. `npm run build:renderer` — must complete with zero errors
 2. `npm start` — app must launch (run in background)
 3. Commit with descriptive message
 4. `git push origin master`
@@ -69,19 +61,16 @@ NEVER skip steps 1-2. NEVER say "done" without a successful build.
 - Detail 1
 - Detail 2
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Co-Authored-By: <the current model's trailer — the harness states it>
 ```
 
 Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 ## Anti-Patterns — Things I Must NEVER Do
 
-1. **Pattern-match fixes** — "too wide" ≠ "reduce padding". Diagnose the actual CSS property.
-2. **Tweak the same property twice** — if first fix didn't work, the diagnosis is wrong. Start over.
-3. **Build features the user didn't ask for** — no WordColorPicker, no extra controls, no "nice to have" additions.
-4. **Incremental nudges** — don't change 25% → 28% → 32% → 49%. Ask what the user actually wants or calculate it correctly the first time.
-5. **Skip screenshot analysis** — every screenshot deserves 10 seconds of actual visual analysis.
-6. **Add fallbacks** — the user explicitly said: "I would rather the app not work than use something unbearable and frankly unusable." Fail visibly. Always.
+1. **Tweak the same property twice** — if first fix didn't work, the diagnosis is wrong. Start over.
+2. **Incremental nudges** — don't change 25% → 28% → 32% → 49%. Ask what the user actually wants or calculate it correctly the first time.
+3. **Add fallbacks** — the user explicitly said: "I would rather the app not work than use something unbearable and frankly unusable." Fail visibly. Always.
 
 ## Distilled Lessons (process — write/done time)
 

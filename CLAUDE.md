@@ -79,13 +79,7 @@ Two isolated profiles via `CLIPFLOW_PROFILE` env var so dev experiments never to
 
 The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow Setup *.exe`. Source-running prod via `npm start` exists as a backup but is not the daily path.
 
-**Promotion loop (manual reinstall, Stage 1):**
-1. Tweak in dev (`npm run dev`).
-2. When ready: `npm run build`.
-3. Run the new installer in `dist/`. Overwrites the prior install. Real data in `%APPDATA%\clipflow\` is preserved.
-4. Launch from Start Menu — new code, same data.
-
-**Stage 2 (planned):** in-app update notifier reads `dist/` for newer installers and offers a one-click "Install update" button. No GitHub Releases, no auto-download.
+**Promotion loop (live auto-updater since alpha.54):** use the `clipflow-update-launcher` skill — bump the version, `npm run build`, publish installer + manifest to the R2 update feed (`https://engine.flowve.app/updates/`), commit `package.json` + `CHANGELOG.md` only. Every installed copy (desktop + laptop) then offers a one-click "Update available" banner on next launch; real data in `%APPDATA%\clipflow\` is preserved. Don't cut an installer per fix — batch ~10 changes or wait for an explicit ask.
 
 **Sentry** caches `userData` at `require()` time (getsentry/sentry-electron#796) — `app.setPath('userData')` MUST happen at the top of `main.js` BEFORE `require('@sentry/electron/main')`. Don't reorder.
 
@@ -116,8 +110,7 @@ The daily-driver is the **installed exe** from `npm run build` + `dist/ClipFlow 
 
 - Repo: https://github.com/Oghenefega/ClipFlow.git
 - Branch: master (private)
-- Token: `C:\Users\IAmAbsolute\.claude\github_token.txt` — read this file to authenticate GitHub API calls
-- To fetch issues: `GET https://api.github.com/repos/Oghenefega/ClipFlow/issues?state=all&per_page=50` with `Authorization: Bearer <token>` header via WebFetch
+- Token: `C:\Users\IAmAbsolute\.claude\github_token.txt` — read this file to authenticate `gh` / GitHub API calls
 
 ## Autonomous Issue Filing (Non-Negotiable)
 
