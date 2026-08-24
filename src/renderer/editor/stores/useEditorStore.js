@@ -157,6 +157,9 @@ const useEditorStore = create((set, get) => ({
         clipTitle: label,
         editingTitle: false,
         dirty: false,
+        // #297: source preview never writes, so a saveError carried over from a
+        // previous clip could never clear here (Retry no-ops with clip: null).
+        saveError: null,
         waveformPeaks: null,
         waveformError: null,
         audioSegments: [],

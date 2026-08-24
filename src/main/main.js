@@ -83,7 +83,10 @@ function fatal(context, err) {
 
 // Suppress EPIPE errors from Sentry/electron-log writing to a closed stdout pipe on quit
 process.on("uncaughtException", (err) => {
-  if (err.code === "EPIPE") return;
+  // Optional chain: a thrown null/undefined would otherwise crash this very
+  // handler — a silent double-fault instead of fatal()'s dialog. fatal() itself
+  // is already null-safe.
+  if (err?.code === "EPIPE") return;
   fatal("Corva hit an unexpected error.", err);
 });
 

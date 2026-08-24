@@ -15,6 +15,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - **`src/main/atomic-write.js`** — the shared crash-safe write used by the database and by every `project.json` save: temp file, `fsync`, rename over the target, optional one-file backup rotation, and a rollback that restores the original and removes the temp file if the swap is refused.
 
+## [Unreleased] — 2026-08-24 (session 188) — Fresh-eyes review of Batch 1: two small gaps closed
+
+### Fixed
+- **A stale "Not saved" banner can no longer follow you into source-preview mode (#297 follow-up).** Opening a raw recording in the editor reset everything except the new save-failure state; since source preview never writes to disk, a banner carried in from a failed clip save would have been permanent there — Retry does nothing when there is no clip. Source preview now clears it like every other editor entry path does.
+- **The crash handler itself can no longer crash (#298 follow-up).** The catch-all that shows the "Corva has to close" dialog first checked the error's `code` property to ignore harmless EPIPE noise — but if the thrown value was ever `null` or `undefined`, that check itself threw inside the handler and the process died silently with no dialog and no Sentry report, which is exactly the invisible death the handler exists to prevent. The check is now null-safe.
+
 ## [Unreleased] — 2026-08-23 (session 186) — Backlog truth audit: all 110 open issues verified against the code
 
 ### Added
