@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 197) — Batch 5: cut a word in half, and post a clip twice (#305, #306)
+
+### Added
+- **A one-word subtitle can now be cut in half (#305).** Splitting a subtitle whose text is a single word used to do nothing at all — no error, no movement — from every entry point (the `U` shortcut, the Edit Subtitles scissors, the timeline right-click menu). There is no word boundary to split at, so the blade now cuts through the word itself: two adjacent subtitles carrying the same word, its time range divided at the playhead, each half trimmable, retimeable and deletable on its own. The toolbar's scissors (which has no playhead to work from) cuts at the block's midpoint. Multi-word splits behave exactly as before, and the right-click menu no longer greys Split out with "needs 2+ words". A hidden cleanup pass that treats two copies of the same word starting milliseconds apart as a transcription artifact now leaves deliberate split copies alone, so neither half disappears on the next segment-mode switch.
+- **Published clips can be reposted (#306).** The content lifecycle used to dead-end at "published". A **Repost** button now sits in the Tracker's clip popover and on every row of the Queue's Published shelf; it makes a fresh copy of the clip — same title, same captions, and the already-rendered video copied on disk — and drops it into the Queue as an ordinary unscheduled card. From there you can tweak the title, captions or platforms in the existing card panel, or just schedule it as-is; tweaking is optional, not a gate. The Tracker itself gains no scheduling powers: its button creates the copy and hands off to the Queue. Reposting is framed as a plain action on any published clip, not a remedy for one that underperformed. Drag-and-drop out of the Tracker (from the original sketch) was deliberately not built — cross-tab drag isn't feasible with the current tab architecture, and the buttons carry the capability.
+
+### Changed
+- **A reposted clip is tracked separately from the post it repeats (#306).** The repost publishes to its own Tracker row, marked with a small **REPOST** badge so a repeated title in a week's plan doesn't read as a scheduling mistake; the original post's stats are never touched. The copy gets its own video file rather than sharing the original's, so removing either clip with "delete rendered video" can't destroy the other one's. Reposts are also excluded from the AI title/caption training data — the title already taught the model when the original went out, and counting it twice would double-weight it and conflate the two posts' view histories (the same reasoning behind imports never teaching).
+
 ## [Unreleased] — 2026-08-25 (session 196) — Planning: word-split cut (#305) and Tracker repost (#306)
 
 ### Planned
