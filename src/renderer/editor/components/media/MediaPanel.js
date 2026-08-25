@@ -6,6 +6,7 @@ import { Button } from "../../../../components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../../components/ui/tooltip";
 import useEditorStore from "../../stores/useEditorStore";
 import { fmtDur } from "../audio/TrackRow";
+import { toFileUrl } from "../../../components/shared";
 
 export const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 export const GIF_EXTENSIONS = ["gif"];
@@ -18,10 +19,6 @@ const SUB_TABS = [
   ["video", "Videos"],
 ];
 
-function fileUrl(p) {
-  return `file://${p.replace(/\\/g, "/")}`;
-}
-
 /**
  * Video cell thumbnail. preload="metadata" paints the first frame without
  * pulling the whole file; the unmount teardown (pause → removeAttribute →
@@ -33,7 +30,7 @@ function VideoThumb({ path }) {
     const v = ref.current;
     if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
   }, []);
-  return <video ref={ref} src={fileUrl(path)} muted preload="metadata" className="w-full h-16 object-cover block" />;
+  return <video ref={ref} src={toFileUrl(path)} muted preload="metadata" className="w-full h-16 object-cover block" />;
 }
 
 /**
@@ -97,9 +94,15 @@ export default function MediaPanel() {
     if (!paths || paths.length === 0) return;
     const result = await window.clipflow.assetsImport(paths, null);
     if (!result?.success) { flashStatus(result?.error || "Import failed", true); return; }
-    const n = result.imported.length;
-    const skipNote = result.skipped.length ? ` · ${result.skipped.length} skipped (${result.skipped[0].reason})` : "";
-    flashStatus(n ? `Imported ${n} file${n === 1 ? "" : "s"}${skipNote}` : `Nothing imported${skipNote}`, n === 0);
+    // Audio is still importable here (the library is one index) — say where it
+    // went, or a dropped sound looks like it vanished.
+    const sounds = result.imported.filter((a) => a.type === "music" || a.type === "sfx").length;
+    const media = result.imported.length - sounds;
+    const parts = [];
+    if (media) parts.push(`Imported ${media} file${media === 1 ? "" : "s"}`);
+    if (sounds) parts.push(`${sounds} sound${sounds === 1 ? "" : "s"} → Audio panel`);
+    if (result.skipped.length) parts.push(`${result.skipped.length} skipped (${result.skipped[0].reason})`);
+    flashStatus(parts.join(" · ") || "Nothing imported", result.imported.length === 0);
     refresh();
   }, [flashStatus, refresh]);
 
@@ -263,7 +266,7 @@ export default function MediaPanel() {
                   ) : item.type === "video" ? (
                     <VideoThumb path={item.path} />
                   ) : (
-                    <img src={fileUrl(item.path)} alt="" loading="lazy" className="w-full h-16 object-cover block" />
+                    <img src={toFileUrl(item.path)} alt="" loading="lazy" className="w-full h-16 object-cover block" />
                   )}
                   {/* Star — hover or already favorited */}
                   <button

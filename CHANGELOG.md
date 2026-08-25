@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 201) — Fresh-eyes review of the Media tab batch: two small fixes
+
+### Fixed
+- **Media thumbnails survive `#` and `?` in filenames (#309 review follow-up).** The Media panel built its `file://` thumbnail URLs with a local helper that didn't escape `#` or `?`, so a file named like `clip #5.png` would render a broken thumbnail (the browser reads `#` as the start of a URL fragment). It now uses the app's shared URL builder, which escapes both.
+- **Dropping a sound on the Media panel says where it went (#309 review follow-up).** Audio dropped on the Media tab's import strip is still accepted (the library is one index), but the confirmation only said "Imported 1 file" while the file appeared in the Audio panel — looking like it vanished. The message now reads "1 sound → Audio panel", the same wording the retired Upload drawer used.
+
+### Added
+- **Filed #314 from the review:** the audio and media watched-folder lists are merged for "which entries survive" checks but scanned per-list for file kinds, so a root shared (or nested) across both lists can strand permanent "file missing" ghost entries after being removed from one list, and a toggle-off in one list leaks into the other. Doesn't bite disjoint folder setups (the normal case today).
+
 ## [Unreleased] — 2026-08-25 (session 200) — Batch 1 of media overlays: the Media tab (#309)
 
 ### Added
