@@ -1826,7 +1826,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(255,255,255,0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={watchDetail}>
           {watchStatus.state === "watching"
             ? <PulseDot size={8} />
-            : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, flexShrink: 0 }} />}
+            : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, boxShadow: `0 0 6px ${watchTone}`, flexShrink: 0 }} />}
           <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: watchTone, flexShrink: 0 }}>{watchLabel}</span>
           <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchDetail}</span>
           {watchStatus.state !== "watching" && onNavigate && (

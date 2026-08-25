@@ -4,6 +4,13 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 195) — Fresh-eyes review of Batch 4: the happy ending was showing the sad line
+
+### Fixed
+- **A successful run no longer ends on "✅ Finished — nothing made the cut" (#74 follow-up).** The pipeline's final progress event carries the clip count and signal summary, but when the generate call returned, the renderer overwrote that event with its own bare "complete" object that had neither field — and the overwrite always lands last. So every successful run's resting headline claimed nothing was found, the ⚠️ short-handed variant could never appear, and the #200 zero-clip explainer could never show (its `clipCount === 0` check saw `undefined`). This was exactly the "completion headline never seen on screen" gap the s194 handoff flagged: the two live runs cleared between checks, and the 19 direct checks fed the function well-formed objects the real UI never produced. The renderer's final write now carries `clipCount` and `signalSummary` from the pipeline result.
+- **Deleting a project from its right-click menu works again (#152 follow-up).** Batch 4 changed `handleSingleDelete` to take the full project object (the dialog needs its name and clip count), but the context menu's "Delete Project" entry still passed the bare id string — the dialog would have opened as `Delete "this project"?` with no clip count, and confirming would have deleted `undefined`: nothing removed, plus a spurious "Couldn't delete" toast. The menu now looks the project up and passes the object.
+- **The yellow/red watch-status dots got their glow (#153 follow-up).** The static dots for NO FOLDER SET and FOLDER NOT FOUND were flat 8px circles, against the project's standing rule that small indicators on the dark theme carry a `0 0 6px` glow to be visible. The green state's PulseDot already had one.
+
 ## [Unreleased] — 2026-08-25 (session 194) — Batch 4: the first ten minutes don't look broken (#153, #152, #74)
 
 ### Fixed

@@ -1846,7 +1846,11 @@ export function ProjectsListView({
           )}
           <div style={{ height: 1, background: T.border, margin: "2px 0" }} />
           <div
-            onClick={(e) => { handleSingleDelete(e, projectContextMenu.projectId); setProjectContextMenu(null); }}
+            onClick={(e) => {
+              const proj = localProjects.find((p) => p.id === projectContextMenu.projectId);
+              if (proj) handleSingleDelete(e, proj);
+              setProjectContextMenu(null);
+            }}
             style={{ padding: "8px 14px", cursor: "pointer", fontSize: 12, color: T.red }}
             onMouseEnter={(e) => { e.currentTarget.style.background = T.redDim; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}

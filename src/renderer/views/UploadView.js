@@ -451,7 +451,9 @@ export default function RecordingsView({ gamesDb = [], localProjects = [], onPro
         posthog.capture("clipflow_pipeline_failed");
         return { ok: false, error: result.error };
       }
-      setProgress({ stage: "complete", pct: 100, detail: `${result.clipCount} clips generated` });
+      // #74: this write lands after the pipeline's own "complete" progress event
+      // and replaces it, so it must carry the fields the headline reads.
+      setProgress({ stage: "complete", pct: 100, clipCount: result.clipCount, signalSummary: result.signalSummary });
       posthog.capture("clipflow_pipeline_completed", { clip_count: result.clipCount });
       if (result.projectId) onProjectCreated?.(result.projectId);
       // #169: almost no words on a long recording → voice track likely wrong

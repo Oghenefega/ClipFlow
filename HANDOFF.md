@@ -4,11 +4,16 @@
 
 ## Current State
 
-**Batch 4 is built and verified — `1b7e78d` + `e2c3031`.** #153, #152 and #74 are all
-closed `status: untested`. That completes batches 1–4 (~14 issues), none of which has
-reached a machine: desktop and laptop are still on **0.4.0-alpha.4**, by design. Batch 4
-has NOT had its fresh-eyes Fable review yet — batches 1, 2 and 3 each got one and each
-one found a real gap, so batch 4 should get the same treatment before the installer.
+**Batch 4 is built, verified AND fresh-eyes reviewed — `1b7e78d` + `e2c3031` + the s195
+review commit.** #153, #152 and #74 are all closed `status: untested`. The review found
+two real bugs (the resting completion headline read "nothing made the cut" on every
+successful run because UploadView's post-invoke setProgress clobbered the pipeline's
+clipCount/signalSummary; the project context-menu Delete passed an id into the
+object-taking handleSingleDelete, deleting `undefined`) plus glow-less status dots —
+all three fixed and verified (headline via direct checks on the real object shapes,
+boot via dev profile; the reconciliation logger fix from #152 fired live on that boot).
+That completes batches 1–4 (~14 issues), none of which has reached a machine: desktop
+and laptop are still on **0.4.0-alpha.4**, by design.
 
 #304 filed (dead `STAGE_LABELS` map in `UploadView.js`) and left open on purpose.
 
@@ -38,9 +43,8 @@ one found a real gap, so batch 4 should get the same treatment before the instal
 
 ## Next Steps
 
-1. **Fresh-eyes review of batch 4** (Fable @ xhigh, own session, commit-by-hash:
-   `1b7e78d` and `e2c3031`). Three prior batch reviews each caught a real gap.
-2. **Then cut ONE installer** covering batches 1–4. Optional batch 5 first if there is
+1. ~~Fresh-eyes review of batch 4~~ — DONE s195, caught two real bugs (see Current State).
+2. **Cut ONE installer** covering batches 1–4. Optional batch 5 first if there is
    room: #157, #151, #158.
 3. When Fega tests batch 4: the three watcher states on the Rename tab, the delete dialog,
    and — the one thing never seen on screen — the **completion** headline on a real
