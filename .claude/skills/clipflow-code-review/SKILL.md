@@ -114,6 +114,8 @@ Verbs: Fix, Add, Remove, Update, Refactor, Clean up
 
 - **Status-color/aesthetic changes verify against the REAL data distribution, worst-case first (session 167).** Vibrancy amplifies whatever the data says: the glass-orb redesign passed mocks and CDP behavior checks, then rendered Fega's real library — rejection-heavy BY DESIGN — as a wall of vivid red ("doesn't look like ClipFlow works"). Before shipping any change that recolors or amplifies a status indicator: sample real per-status counts (prod DB), put the worst-case card in the mock (the one where the "bad" status dominates), and eyeball the gestalt, not just element behavior. A color that's honest per-item can still lie at volume.
 
+- **A filter/logic block whose comment says it mirrors another copy MUST update both (session 198).** Batch 5 exempted reposts from QueueView's title knockout but not from App.js's badge count — whose own comment says "mirrors QueueView's list filter so the badge matches the list (#139)". Before done: grep for the code you changed being referenced elsewhere ("mirror", "same as", "matches", the issue number in comments) and patch every declared copy in the same commit.
+
 ## Lesson Capture
 
 After ANY correction from the user:
