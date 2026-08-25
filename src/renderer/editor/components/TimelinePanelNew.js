@@ -1256,13 +1256,14 @@ export default function TimelinePanelNew() {
                 if (seg) {
                   handleSegSelect("sub", seg.id);
                   // Split eligibility computed at menu-open so the item can render
-                  // disabled with a reason instead of silently no-opping (1-word
+                  // disabled with a reason instead of silently no-opping (empty
                   // block, or playhead not inside this block). Mapped seg times and
                   // currentTime are both timeline coords.
                   const wordCount = seg.text.split(/\s+/).filter(Boolean).length;
                   const t = usePlaybackStore.getState().currentTime;
                   let splitDisabledReason = null;
-                  if (wordCount < 2) splitDisabledReason = "needs 2+ words";
+                  // #305: a 1-word block IS splittable now (it cuts the word in two).
+                  if (wordCount === 0) splitDisabledReason = "no words to split";
                   else if (!(t > seg.startSec + 0.001 && t < seg.endSec - 0.001)) splitDisabledReason = "playhead not over this subtitle";
                   setContextMenu({ x: e.clientX, y: e.clientY, track: "sub", segId: seg.id, splitDisabledReason });
                 }

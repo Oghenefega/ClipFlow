@@ -833,9 +833,43 @@ const useSubtitleStore = create((set, get) => ({
     if (idx < 0) return;
     const seg = editSegments[idx];
     const textWords = seg.text.split(/\s+/).filter(Boolean);
-    // A 1-word/empty segment can't split — it would just leave an empty half.
+    // An empty segment can't split — there is no word to cut.
     // Guard BEFORE pushing undo so a no-op doesn't pollute the undo stack.
-    if (textWords.length < 2) return;
+    if (textWords.length === 0) return;
+
+    // #305: a 1-word subtitle has no word boundary to split at, so the blade cuts
+    // THROUGH the word instead — two adjacent segments carrying the same word, its
+    // time range divided at the playhead. Retiming, trimming or deleting either half
+    // then works like any other block. Multi-word segments fall through unchanged.
+    if (textWords.length === 1) {
+      const EPS1 = 0.001;
+      if (seg.endSec - seg.startSec <= 2 * EPS1) return; // nothing to divide
+      _pushUndo();
+      // No usable playhead (the toolbar's no-arg Scissors) → cut at the midpoint.
+      let cutSec = (atTime != null && atTime > seg.startSec + EPS1 && atTime < seg.endSec - EPS1)
+        ? atTime
+        : (seg.startSec + seg.endSec) / 2;
+      cutSec = Math.max(seg.startSec + EPS1, Math.min(seg.endSec - EPS1, cutSec));
+      const origin1 = get()._sourceOrigin || 0;
+      // A word-less segment would render without a karaoke highlight and get dropped
+      // on merge (#116), so synthesize one rather than shipping an empty words[].
+      const base = (seg.words && seg.words.length > 0)
+        ? seg.words[0]
+        : (_wordsFromText(seg.startSec, seg.endSec, seg.text)[0] || { word: textWords[0], probability: 1 });
+      // splitCopy marks both copies so setSegmentMode's whisperx-artifact dedup
+      // (same word starting within 0.5s = duplicate) can't silently eat one half.
+      // Each half's word spans its own half: a 1-word block's word normally covers
+      // the whole block, and this keeps both highlights positive-duration even when
+      // the word is narrower than the block.
+      const w1 = { ...base, start: seg.startSec, end: cutSec, splitCopy: true };
+      const w2 = { ...base, start: cutSec, end: seg.endSec, splitCopy: true };
+      const half1 = { ...seg, endSec: cutSec, end: _displayFmt(cutSec, origin1), dur: (cutSec - seg.startSec).toFixed(1) + "s", warning: (cutSec - seg.startSec) > 10 ? "Long segment — consider splitting" : null, words: [w1] };
+      const half2 = { ...seg, id: _newSegId(), startSec: cutSec, start: _displayFmt(cutSec, origin1), dur: (seg.endSec - cutSec).toFixed(1) + "s", warning: (seg.endSec - cutSec) > 10 ? "Long segment — consider splitting" : null, words: [w2] };
+      const halved = [...editSegments];
+      halved.splice(idx, 1, half1, half2);
+      set({ editSegments: halved, selectedWordInfo: null, activeSegId: half1.id });
+      return;
+    }
     _pushUndo();
 
     // Determine split time and word boundary
@@ -1260,8 +1294,13 @@ const useSubtitleStore = create((set, get) => ({
     const stripP = (t) => (t || "").toLowerCase().replace(/[.,!?;:'"]+/g, "").trim();
     const dedupedWords = [];
     for (const w of allWords) {
+      // #305: a deliberate mid-word split produces two copies of the same word
+      // milliseconds apart — precisely what this artifact filter targets. Words
+      // carrying splitCopy are the user's own cut, so a pair only counts as a
+      // whisperx artifact when NEITHER side was split-created (whisperx words
+      // never carry the flag).
       const isDup = dedupedWords.some(
-        (d) => Math.abs(d.start - w.start) < 0.5 && stripP(d.word) === stripP(w.word)
+        (d) => Math.abs(d.start - w.start) < 0.5 && stripP(d.word) === stripP(w.word) && !d.splitCopy && !w.splitCopy
       );
       if (!isDup) dedupedWords.push(w);
     }
