@@ -4,6 +4,13 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 196) — Planning: word-split cut (#305) and Tracker repost (#306)
+
+### Planned
+- **No app code changed this session.** Two features were explored, designed, and approved; their full build specs live as comments on the GitHub issues, ready for the build session.
+- **Cut a single-word subtitle into two copies of the word (#305).** Pressing Split with the playhead over a one-word subtitle currently does nothing, silently; it will divide the word into two identical copies split at the playhead, each independently trimmable. The design also defuses a hidden cleanup pass that would otherwise delete one copy on the next segment-mode switch.
+- **Repost a published clip from the Tracker (#306).** A visible Repost button on the Tracker's clip popover and the Queue's Published shelf creates a fresh copy of the clip reusing the already-rendered video, dropped into the Queue's unscheduled list — tweak the title/captions there if wanted (optional), schedule as usual. Reposts get their own Tracker row and badge, keep stats separate from the original, and never feed the AI title-training data.
+
 ## [Unreleased] — 2026-08-25 (session 195) — Fresh-eyes review of Batch 4: the happy ending was showing the sad line
 
 ### Fixed

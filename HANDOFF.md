@@ -1,63 +1,58 @@
-# HANDOFF — Session 195 (2026-08-25)
+# HANDOFF — Session 196 (2026-08-25)
 
 ## Current State
 
-**Batches 1–4 are all built, verified AND fresh-eyes reviewed.** The batch 4 review
-(`0265378`) caught two real bugs — the resting completion headline read "nothing made
-the cut" on every successful run (UploadView's post-invoke setProgress clobbered the
-pipeline's clipCount/signalSummary; the overwrite always lands last), and the project
-context-menu Delete passed an id into the now-object-taking handleSingleDelete
-(deleted `undefined`, spurious toast) — plus glow-less status dots on the Rename strip.
-All fixed in the same commit. That's four batch reviews in a row that each found a real
-gap. Desktop and laptop are still on **0.4.0-alpha.4**, by design. **The installer
-covering batches 1–4 is now unblocked.**
+**Planning-only session — zero app code changed.** Two new features filed, explored,
+designed, and approved: **#305** (cut a single-word subtitle at the playhead into two
+copies of the word) and **#306** (Repost a published clip from the Tracker, optional
+tweak step, bangers included). The full build specs live as comments on the issues —
+the build session needs nothing from this conversation. Everything from s195 still
+stands: batches 1–4 built + reviewed, **the installer covering them is still uncut**.
 
 ## Key Decisions
 
-1. **The headline fix routes fields through the invoke result, not by deleting the
-   renderer's final write.** The post-invoke setProgress stays (it covers a missed IPC
-   event) but now carries `clipCount` + `signalSummary` from `generateClips`' return.
-2. **The orphaned preload pair (`onSignalProgress`/`removeSignalProgressListener`) was
-   NOT removed** — parked on #304 with a comment, same precedent as s194's STAGE_LABELS.
-   The main-process emit stays by design.
+1. **Model split for this batch:** Fable planned (this session) → **Opus@high builds
+   #305 + #306 as one batch in its own session** (commit per feature) → Fable@xhigh
+   reviews commit-by-hash right after. Per the 2026-08-24 workflow memory.
+2. **#306 repost = a fresh clip copy that reuses the render** (file copied on disk),
+   NOT re-arming the original id — the Queue's trackerData knockout (QueueView.js:763-768)
+   and the `UNIQUE(clip_id)` title-training table make id-reuse unworkable.
+3. **Reposts never teach** the AI title/caption data (extends #240's imports fence).
+   The optional tweak step is the existing Queue card panel — no new editing UI.
+4. **Drag-and-drop from the Tracker consciously deferred** (cross-tab drag infeasible;
+   visible Repost buttons on the Tracker popover + Published shelf carry the capability).
+5. **#305 mechanism:** 1-word branch inside `splitSegment` + a `splitCopy` flag on the
+   duplicated word objects so `setSegmentMode`'s whisperx dedup can't eat one half.
 
 ## Next Steps
 
-1. **Cut ONE installer** covering batches 1–4 (clipflow-update-launcher skill).
-   Optional batch 5 first if there's room: #157, #151, #158.
-2. When Fega tests batch 4: the three watcher states on the Rename tab, the delete
-   dialog (both the trash icon AND the right-click menu), and the completion headline
-   on a real generation — now expected to genuinely read "✅ N clips ready for you".
-3. #304 sweep (dead STAGE_LABELS + the preload onSignalProgress pair) whenever.
+1. **Opus@high build session:** build #305 + #306 from the specs on the issues.
+2. **Fable@xhigh review session** on those commits, right after they land.
+3. **Cut the installer** covering batches 1–4 (clipflow-update-launcher) — carried from
+   s195; decide whether to fold the #305/#306 batch in first.
+4. Fega's batch-4 eyeball checks (Rename watcher states, delete dialog, completion
+   headline) — carried from s195.
 
 ## Watch Out For
 
-- **The completion/degraded headlines are direct-checked against the real writer
-  shapes now, but still never eyeballed on screen** — the card auto-clears 3s after
-  finishing. Fega's first real run is the eyeball.
-- **`log` is not a binding in `main.js` module scope.** The ~7 bare `log.` calls around
-  main.js ~4055–4208 are FINE (those two functions define `log` locally) — don't
-  "tidy" them into `logger`.
-- **`pipeline:signalProgress` is emitted with no renderer subscriber, on purpose.**
-- **A future summary/list IPC must not strip `progress.clipCount` or `signalSummary`**
-  — the headline is the only place clip count shows at the end of a run. (Now also a
-  clipflow-code-review checklist line: "last write wins".)
-- **Standing s190/s192/s193 items:** `gatewayAuthTokenPreMigration` has no reader (keep
-  until the installer reaches the laptop); prod profile has NOT run the #301 migration;
-  "Corva Default" still never seen on screen; `LEGACY_TIME_SLOTS` in App.js is
-  load-bearing; `SUPPORTED_EXTENSIONS`/`normalizeExtension` in naming-presets.js has
-  exactly one live caller; `source` on clip objects has two live values (`"import"`,
-  `"silent-fallback"`).
+- **#305's landmine is the segment-mode dedup** (`useSubtitleStore.js:1258-1267`):
+  verification MUST include the 1-word → 3-word → 1-word round trip proving neither
+  word copy vanishes.
+- **#306: the title-based queue knockout will silently eat a same-titled repost** unless
+  the `c.repostOf` exemption at QueueView.js:768 ships with it — it's in the spec, don't
+  let it get simplified away.
+- **Never run a real publish while verifying #306** — dev profile only; the publish path
+  itself is unchanged and its repost passthrough is verified by review, not execution.
+- `duplicateClip` cannot be reused for repost (its hard-coded resets land AFTER the
+  overrides spread) — the spec calls for a sibling `repostClip()`, not an option flag.
+- Standing s190–s195 items unchanged (see f97bbb0's HANDOFF): prod hasn't run the #301
+  migration; `gatewayAuthTokenPreMigration` kept until the installer reaches the laptop;
+  completion headline still never eyeballed on screen.
 
 ## Logs / Debugging
 
-- **This session's verification kit:** extract a pure function out of the JSX with a
-  regex + `eval` in `node -e` to direct-check it (statusHeadline: 5 branch cases +
-  rotation); control-char scan over every touched file (bytes < 32 minus tab/CR/LF);
-  boot smoke via `CLIPFLOW_PROFILE=dev npx electron .` then `taskkill //IM electron.exe //F`
-  (double slash in Git Bash). The dev boot's own log confirmed the #152 logger fix live
-  ("Reconciliation: reset 1 orphaned done file" logged instead of throwing).
-- The s194 scratchpad (`…\2acb5ac4-…\scratchpad\b4\`) still holds the reusable CDP
-  drivers (cdp.js, shot.js, setfolder.js, test-lines.js, lockfile.py).
-- App log: `%APPDATA%\clipflow-dev\logs\app.log`. Pipeline logs:
-  `%APPDATA%\clipflow-dev\processing\logs\<video>_<ts>.log` — still fully technical.
+- No app runs this session — nothing new in logs.
+- Exploration evidence (file:line citations for every claim in the specs) is embedded in
+  the issue comments on #305/#306; the approved plan file is at
+  `C:\Users\IAmAbsolute\.claude\plans\declarative-squishing-swing.md`.
+- CHANGELOG.md deliberately untouched: no product change to record this session.
