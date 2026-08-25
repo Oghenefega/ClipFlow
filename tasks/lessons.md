@@ -1372,3 +1372,11 @@ and the anchor no longer matches the file. Don't retype them: slice the existing
 the file and splice it back verbatim (`header = old_card[hs:he]`), or build the backslash with
 `chr(92)`. For anything longer than a few lines, write the patch script to a file with the Write
 tool and run it — large heredocs also fail outright on quote balancing.
+
+## Session 199 — folder names are internal lingo, not UI labels
+
+Media panel mock surfaced watched-folder names ("Cutouts", "vids to gifs") as group headers.
+Fega: "'Cutouts' should be called Images. No need for extra lingo." Copied AudioPanel's
+folder-grouping without asking whether folder names mean anything to the user.
+Rule: user-facing grouping is by content category (Images/GIFs/Videos); source folder names
+live only in Settings. Same principle as "hide the mechanism, not the labels."
