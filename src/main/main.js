@@ -1045,6 +1045,28 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
   }
 });
 
+// #300: rename a recording whose container isn't MP4. Same contract as
+// fs:renameFile — the file ends up at newPath — but the bytes are remuxed into
+// a real MP4 first, because Chromium can't decode Matroska and the editor
+// preview would be a silent black rectangle. Video is stream-copied; the
+// original is deleted only once the output probes as complete.
+ipcMain.handle("fs:convertAndRename", async (_, oldPath, newPath) => {
+  try {
+    const dir = path.dirname(newPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (fs.existsSync(newPath)) {
+      return { error: `A file named "${path.basename(newPath)}" already exists in the destination` };
+    }
+    const result = await ffmpeg.remuxToMp4(oldPath, newPath);
+    logger.info(logger.MODULES.videoProcessing,
+      `#300 converted ${path.basename(oldPath)} → ${path.basename(newPath)}${result.audioReencoded ? " (audio re-encoded to AAC)" : ""}`);
+    return { success: true, audioReencoded: result.audioReencoded };
+  } catch (err) {
+    logger.error(logger.MODULES.videoProcessing, `#300 convert failed for ${oldPath}: ${err.message}`);
+    return { error: err.message };
+  }
+});
+
 // File system: check if file exists
 ipcMain.handle("fs:exists", async (_, filePath) => {
   return fs.existsSync(filePath);
@@ -2880,14 +2902,20 @@ function _undoRenameHistory(historyId) {
     if (!fs.existsSync(entry.new_path)) {
       return { error: `"${entry.new_filename}" is no longer at its renamed location — it may have been moved or deleted` };
     }
-    if (fs.existsSync(entry.previous_path)) {
-      return { error: `A file named "${entry.previous_filename}" already exists at the original location — undo would overwrite it` };
+    // #300: an MKV that was converted on rename can't go back into its old
+    // container — those bytes are gone. Restore the raw OBS name carrying the
+    // extension the file actually has now; the watcher re-detects either one.
+    const restorePath = path.extname(entry.previous_path).toLowerCase() === path.extname(entry.new_path).toLowerCase()
+      ? entry.previous_path
+      : entry.previous_path.replace(/\.[^.\\/]+$/, path.extname(entry.new_path));
+    if (fs.existsSync(restorePath)) {
+      return { error: `A file named "${path.basename(restorePath)}" already exists at the original location — undo would overwrite it` };
     }
-    fs.renameSync(entry.new_path, entry.previous_path);
+    fs.renameSync(entry.new_path, restorePath);
     db.run("DELETE FROM file_metadata WHERE id = ?", [entry.file_metadata_id]);
     db.run("UPDATE rename_history SET undone = 1 WHERE id = ?", [historyId]);
     database.save();
-    return { success: true, restoredPath: entry.previous_path };
+    return { success: true, restoredPath: restorePath };
   }
 
   // Restore metadata from snapshot

@@ -4,6 +4,10 @@ const log = require("electron-log/main").scope("naming");
 const database = require("./database");
 const { uuid } = require("./uuid");
 
+// Containers a renamed recording may keep. Anything else falls back to .mp4.
+// (#300 — MKV kept its bytes but was renamed to .mp4, which killed the editor.)
+const SUPPORTED_EXTENSIONS = ["mp4", "mkv"];
+
 // ── Preset Definitions ──
 
 const PRESETS = {
@@ -83,9 +87,9 @@ const INVALID_LABEL_CHARS = /[\\/:*?"<>|]/;
  * Format a filename from metadata fields and a preset ID.
  * Pure function — no DB access.
  *
- * @param {object} meta - { tag, date, dayNumber, partNumber, customLabel, originalFilename }
+ * @param {object} meta - { tag, date, dayNumber, partNumber, customLabel, originalFilename, extension }
  * @param {string} presetId - One of the 6 preset IDs
- * @returns {string} Formatted filename with .mp4 extension
+ * @returns {string} Formatted filename, carrying meta.extension (default .mp4)
  */
 function formatFilename(meta, presetId) {
   const preset = PRESETS[presetId];
@@ -122,7 +126,17 @@ function formatFilename(meta, presetId) {
     parts.push(`Pt${meta.partNumber}${meta.subPart || ""}`);
   }
 
-  return parts.join(" ") + ".mp4";
+  // #300: the extension must describe the bytes. Callers renaming a whole
+  // recording pass the source's own extension; split children legitimately
+  // default to .mp4 because the splitter re-writes them as MP4.
+  return parts.join(" ") + normalizeExtension(meta.extension);
+}
+
+/** Sanitize a caller-supplied extension down to a known container, defaulting to .mp4. */
+function normalizeExtension(ext) {
+  if (!ext) return ".mp4";
+  const clean = String(ext).trim().toLowerCase().replace(/^\.+/, "");
+  return SUPPORTED_EXTENSIONS.includes(clean) ? `.${clean}` : ".mp4";
 }
 
 // ── Validation ──
@@ -383,6 +397,8 @@ function _executeRetroactiveRename(file, partNumber, triggeringHistoryId) {
     customLabel: file.custom_label,
     originalFilename: file.original_filename,
     partNumber,
+    // #300: the file already exists — keep the extension it actually has.
+    extension: path.extname(file.current_filename || file.current_path || ""),
   }, file.naming_preset);
 
   const dir = path.dirname(file.current_path);

@@ -34,6 +34,20 @@ def count_audio_streams(video_path: str) -> int:
         return 0
 
 
+def get_duration(video_path: str) -> float:
+    cmd = [
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "csv=p=0",
+        video_path
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        return float(result.stdout.strip())
+    except (OSError, ValueError):
+        return 0.0
+
+
 def resolve_audio_track(video_path: str, requested: int) -> int:
     count = count_audio_streams(video_path)
     if count > 0 and requested >= count:
@@ -281,6 +295,46 @@ def merge_energy_with_transcript(segments: list[dict], energy_data: list[dict]) 
     return merged
 
 
+def silent_energy_series(duration: float) -> list[dict]:
+    """
+    A zero-energy stand-in for a recording with no measurable audio (#62).
+    Same schema as the real extractors, so everything downstream — merging,
+    frame extraction, signal extraction — sees a normal (if flat) timeline
+    instead of an empty one.
+    """
+    return [
+        {
+            "second": s,
+            "timestamp": format_timestamp(s),
+            "energy_db": -90.0,
+            "energy": 0.0,
+        }
+        for s in range(int(duration) + 1)
+    ]
+
+
+def windowed_segments(energy_data: list[dict], window: int = 30) -> list[dict]:
+    """
+    Fixed-length pseudo-segments covering the whole recording, used when the
+    transcript is empty (#62 — a silent recording transcribes to nothing).
+    Text is blank; the energy merge and frame picker only need the bounds.
+    """
+    if not energy_data:
+        return []
+    total = energy_data[-1]["second"] + 1
+    segments = []
+    for start in range(0, total, window):
+        end = min(start + window, total)
+        segments.append({
+            "start": float(start),
+            "end": float(end),
+            "start_timestamp": format_timestamp(start),
+            "end_timestamp": format_timestamp(end),
+            "text": "",
+        })
+    return segments
+
+
 def format_timestamp(seconds: int) -> str:
     h, r = divmod(int(seconds), 3600)
     m, s = divmod(r, 60)
@@ -334,21 +388,40 @@ def main():
     # Step 1
     print("\n=== STEP 1: Audio Energy Analysis ===")
     energy_data = get_audio_energy(video_path, track)
+    silent_source = False
     if not energy_data:
-        print("Could not extract audio energy. Is ffmpeg in your PATH?")
-        sys.exit(1)
+        # #62: a silent, music-only or audio-less recording is legitimate input,
+        # not an error. Fall back to a flat zero-energy timeline so the pipeline
+        # picks highlights from the transcript and frames instead of dying.
+        duration = get_duration(video_path)
+        if duration <= 0:
+            print("No audio energy AND no readable duration — this file looks unplayable, not silent.")
+            sys.exit(1)
+        silent_source = True
+        energy_data = silent_energy_series(duration)
+        print(f"  No measurable audio on track {track + 1} — treating {int(duration)}s "
+              f"as silent. Energy scoring is flat; highlights come from transcript + frames.")
 
-    peaks = sorted(energy_data, key=lambda x: x["energy"], reverse=True)[:10]
-    print("\nTop 10 energy peaks:")
-    for p in peaks:
-        bar = "█" * int(p["energy"] * 30)
-        print(f"  {p['timestamp']} | {p['energy']:.3f} | {energy_label(p['energy'])} | {bar}")
+    if silent_source:
+        print("\nTop 10 energy peaks: none — every second is silent.")
+    else:
+        peaks = sorted(energy_data, key=lambda x: x["energy"], reverse=True)[:10]
+        print("\nTop 10 energy peaks:")
+        for p in peaks:
+            bar = "█" * int(p["energy"] * 30)
+            print(f"  {p['timestamp']} | {p['energy']:.3f} | {energy_label(p['energy'])} | {bar}")
 
     # Step 2 + 3
     if transcript_path:
         print(f"\n=== STEP 2: Parsing Transcript ===")
         segments = parse_whisper_transcript(transcript_path)
         print(f"  Found {len(segments)} transcript segments")
+
+        if not segments:
+            # #62: nothing was said (or nothing was heard). Cover the recording
+            # in fixed windows so frame extraction still has a timeline to sort.
+            segments = windowed_segments(energy_data)
+            print(f"  Empty transcript — covering the recording in {len(segments)} 30s windows instead")
 
         print(f"\n=== STEP 3: Merging Energy + Transcript ===")
         merged = merge_energy_with_transcript(segments, energy_data)

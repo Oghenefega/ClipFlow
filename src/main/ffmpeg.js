@@ -605,6 +605,106 @@ function extractWaveformPeaks(filePath, peakCount = 400, audioTrackIndex = 0) {
 }
 
 /**
+ * Remux a recording into a real MP4 container without re-encoding video (#300).
+ *
+ * OBS's MKV recordings survive a crash, which is why most "best OBS settings"
+ * guides recommend them — but the renamer wrote those bytes out under a .mp4
+ * name, so the extension disagreed with the container and whether the editor
+ * could preview it came down to which codecs happened to be inside. Renaming an
+ * MKV converts it here first, so the name matches the bytes and the preview has
+ * a container it is guaranteed to open.
+ *
+ * Video is always stream-copied (seconds, not minutes, on a multi-GB file).
+ * All audio tracks are carried across; if the container refuses an audio codec
+ * MP4 cannot hold (PCM, for one), the audio — and only the audio — is re-encoded
+ * to AAC on a second attempt. Subtitle/attachment streams are dropped: MP4
+ * cannot hold OBS's, and nothing downstream reads them.
+ *
+ * The source is deleted only after the output probes as a complete file.
+ *
+ * @param {string} inputPath - Source recording (typically .mkv)
+ * @param {string} outPath - Destination .mp4 path (must not already exist)
+ * @param {object} [opts] - { keepSource = false }
+ * @returns {Promise<{ path: string, audioReencoded: boolean }>}
+ */
+async function remuxToMp4(inputPath, outPath, opts = {}) {
+  const { keepSource = false } = opts;
+
+  if (!fs.existsSync(inputPath)) throw new Error(`Source not found: ${inputPath}`);
+  // Same refusal as the rename path (#173) — never overwrite an existing file.
+  if (fs.existsSync(outPath)) throw new Error(`A file named "${path.basename(outPath)}" already exists`);
+
+  const sourceProbe = await probe(inputPath);
+
+  const run = (audioArgs) => new Promise((resolve, reject) => {
+    const args = [
+      "-y",
+      "-i", inputPath,
+      "-map", "0:v",
+      "-map", "0:a?",
+      "-c:v", "copy",
+      ...audioArgs,
+      "-movflags", "+faststart",
+      outPath,
+    ];
+    const proc = spawn(FFMPEG_BIN, args);
+    let stderrTail = "";
+    proc.stderr.on("data", (d) => { stderrTail = (stderrTail + d.toString()).slice(-2000); });
+    proc.on("error", (e) => reject(new Error(`ffmpeg failed to start: ${e.message}`)));
+    proc.on("close", (code) => {
+      if (code === 0 && fs.existsSync(outPath)) return resolve();
+      // Every failure exit drops its half-written output: a leftover zero-byte
+      // file would make the next attempt refuse with "already exists".
+      try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch (_) {}
+      // ffmpeg's last line is usually just "Conversion failed!" — reach back for
+      // the line that actually says what went wrong, and drop its [module @ ptr]
+      // prefix so the message is readable in a toast.
+      const lines = stderrTail.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const cause = [...lines].reverse().find((l) => /not supported|could not|invalid|unable|no space|permission|denied/i.test(l));
+      const reason = (cause || lines.pop() || `exit ${code}`).replace(/^\[[^\]]+\]\s*/, "");
+      reject(new Error(reason.slice(0, 200)));
+    });
+  });
+
+  let audioReencoded = false;
+  try {
+    await run(["-c:a", "copy"]);
+  } catch (copyErr) {
+    logger.warn(logger.MODULES.videoProcessing, `#300 remux stream-copy failed, re-encoding audio: ${copyErr.message}`);
+    try {
+      await run(["-c:a", "aac", "-b:a", "256k"]);
+    } catch (aacErr) {
+      // The retry only changes the audio, so when it fails too the first error
+      // is the one naming the real cause (usually a video codec MP4 can't hold).
+      logger.warn(logger.MODULES.videoProcessing, `#300 remux audio re-encode also failed: ${aacErr.message}`);
+      throw copyErr;
+    }
+    audioReencoded = true;
+  }
+
+  // Verify before touching the source: a truncated remux must never cost the
+  // user their only copy of the recording.
+  const outProbe = await probe(outPath).catch(() => null);
+  const shortfall = outProbe ? sourceProbe.duration - outProbe.duration : Infinity;
+  if (!outProbe || !(outProbe.duration > 0) || shortfall > 2) {
+    try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch (_) {}
+    throw new Error(
+      `Converted file was incomplete (${outProbe ? `${Math.round(outProbe.duration)}s of ${Math.round(sourceProbe.duration)}s` : "unreadable"}) — original left untouched`
+    );
+  }
+
+  if (!keepSource) {
+    try {
+      fs.unlinkSync(inputPath);
+    } catch (e) {
+      logger.warn(logger.MODULES.videoProcessing, `#300 remux: could not delete source ${inputPath}: ${e.message}`);
+    }
+  }
+
+  return { path: outPath, audioReencoded };
+}
+
+/**
  * Split a video file into segments using stream copy (no re-encode).
  * All-or-nothing: if any segment fails, partial outputs are deleted.
  * @param {string} inputPath - Source video file
@@ -787,6 +887,7 @@ module.exports = {
   extractClipStills,
   analyzeLoudness,
   extractWaveformPeaks,
+  remuxToMp4,
   splitFile,
   generateThumbnailStrip,
   cleanupThumbnailStrip,

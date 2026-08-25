@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
   renameFile: (oldPath, newPath) => ipcRenderer.invoke("fs:renameFile", oldPath, newPath),
+  convertAndRenameFile: (oldPath, newPath) => ipcRenderer.invoke("fs:convertAndRename", oldPath, newPath),
   fileExists: (path) => ipcRenderer.invoke("fs:exists", path),
 
   // File watcher

@@ -352,6 +352,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [splitThreshold, setSplitThreshold] = useState(30);
   const [autoSplitEnabled, setAutoSplitEnabled] = useState(true);
   const [splitProgress, setSplitProgress] = useState(null); // { fileId, current, total }
+  const [convertProgress, setConvertProgress] = useState(null); // { fileName } — #300 MKV → MP4
 
   // Game-switch scrubber state
   // scrubberOpen: { [fileId]: true } — which files have scrubber expanded
@@ -865,6 +866,34 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     return /[\\/]\d{4}-\d{2}$/.test(dir) ? dir : `${dir}\\${monthFolder}`;
   };
 
+  // #300: OBS's other recommended container is MKV, and the renamer used to
+  // write MKV bytes out under a .mp4 name. Renaming converts it into a real MP4
+  // (video stream-copied) so the extension always describes the bytes, and the
+  // editor gets a container it is guaranteed to preview.
+  const sourceExt = (fileName) => {
+    const m = (fileName || "").match(/\.[^.\\/]+$/);
+    return m ? m[0].toLowerCase() : ".mp4";
+  };
+  const needsConvert = (fileName) => sourceExt(fileName) !== ".mp4";
+
+  // Move a recording to its renamed path, converting the container first when
+  // it isn't already MP4. Returns the same { success } / { error } shape as
+  // renameFile — a failed conversion refuses the rename rather than leaving a
+  // file whose extension lies about its contents.
+  const moveToRenamedPath = async (r, newPath) => {
+    if (!needsConvert(r.fileName)) return window.clipflow.renameFile(r.filePath, newPath);
+    setConvertProgress({ fileName: r.fileName });
+    try {
+      const result = await window.clipflow.convertAndRenameFile(r.filePath, newPath);
+      if (result.error) {
+        return { error: `couldn't convert ${sourceExt(r.fileName).slice(1).toUpperCase()} to MP4 — ${result.error}` };
+      }
+      return result;
+    } finally {
+      setConvertProgress(null);
+    }
+  };
+
   // Helper: rename a single file (no split) — extracted for reuse
   const renameSingleFile = async (r, preset, fileDate) => {
     const meta = {
@@ -905,7 +934,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     if (isElectron && r.filePath) {
       const targetDir = resolveTargetDir(r);
       const newPath = `${targetDir}\\${newName}`;
-      const result = await window.clipflow.renameFile(r.filePath, newPath);
+      const result = await moveToRenamedPath(r, newPath);
       if (result.error) {
         // #173: collisions now refuse instead of overwriting — say so.
         console.error("Rename failed:", result.error);
@@ -994,7 +1023,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     const parentName = fmtParent.filename;
     const parentPath = `${targetDir}\\${parentName}`;
 
-    const moveResult = await window.clipflow.renameFile(r.filePath, parentPath);
+    const moveResult = await moveToRenamedPath(r, parentPath);
     if (moveResult.error) {
       console.error("Split parent rename failed:", moveResult.error);
       setRetroNotification(`Couldn't rename "${r.fileName}": ${moveResult.error}`);
@@ -1575,8 +1604,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
     }
 
     const file = files[0];
-    if (!file.name.toLowerCase().endsWith(".mp4")) {
-      setRetroNotification("Only .mp4 files are supported");
+    // #300: MKV is accepted here too — it converts to MP4 on rename, the same
+    // as a watcher-detected MKV.
+    if (!/\.(mp4|mkv)$/i.test(file.name)) {
+      setRetroNotification("Only .mp4 and .mkv files are supported");
       setTimeout(() => setRetroNotification(null), 3000);
       return;
     }
@@ -1726,7 +1757,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         }}>
           <div style={{ color: T.accentLight, fontSize: 16, fontWeight: 700, textAlign: "center" }}>
             Drop recording here
-            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 files only</div>
+            <div style={{ color: T.textMuted, fontSize: 12, fontWeight: 500, marginTop: 4 }}>.mp4 or .mkv files only</div>
           </div>
         </div>
       )}
@@ -1944,7 +1975,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               </div>
             ) : (
               <Card style={{ padding: "40px 20px", textAlign: "center" }}>
-                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>No pending files — watching for new recordings...</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 file here</div></>)}
+                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>No pending files — watching for new recordings...</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 or .mkv file here</div></>)}
               </Card>
             )}
           </>
@@ -2077,7 +2108,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               // PrimaryButton's (the treatment this button had before #172), and
               // the dark shadow replaces the one the shell used to cast.
               style={{ ...BAR_BTN, padding: "11px 22px", fontSize: 13, borderRadius: T.radius.md, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer", boxShadow: renaming ? "none" : "0 4px 24px rgba(139,92,246,0.35), 0 6px 18px rgba(0,0,0,0.45)" }}
-            >{renaming ? (splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
+            >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename All ${pendingRenames.length} File${pendingRenames.length === 1 ? "" : "s"}`}</button>
           ) : (
             <>
               <span style={{ fontSize: 12.5, color: T.textSecondary, padding: "0 4px", whiteSpace: "nowrap", fontFamily: T.font }}><b style={{ color: T.text }}>{selectedIds.size}</b> selected</span>
@@ -2107,7 +2138,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
                 onClick={() => renameFiles(pendingRenames.filter((r) => selectedIds.has(r.id)))}
                 disabled={renaming}
                 style={{ ...BAR_BTN, background: renaming ? "rgba(255,255,255,0.06)" : T.accent, color: renaming ? T.textTertiary : "#fff", cursor: renaming ? "default" : "pointer" }}
-              >{renaming ? (splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename ${selectedIds.size} Selected`}</button>
+              >{renaming ? (convertProgress ? "Converting to MP4…" : splitProgress ? `Splitting… (${splitProgress.current}/${splitProgress.total})` : "Renaming…") : `Rename ${selectedIds.size} Selected`}</button>
             </>
           )}
         </div>

@@ -49,6 +49,49 @@ function describeSaveFailure(reason) {
   }
 }
 
+// #178/#300: what Chromium's media stack can actually decode. FFmpeg handles
+// everything below and more, which is why a file can transcribe, waveform and
+// render perfectly while the preview shows a black rectangle or plays mute.
+// HEVC is listed because Electron decodes it where the GPU can; when it can't,
+// the <video> raises an error event and the decode path reports it instead.
+const CHROMIUM_AUDIO_CODECS = ["aac", "mp3", "opus", "vorbis", "flac", "pcm_s16le", "pcm_s24le", "pcm_u8", "pcm_f32le"];
+const CHROMIUM_VIDEO_CODECS = ["h264", "vp8", "vp9", "av1", "hevc"];
+const CODEC_LABELS = { alac: "ALAC (Apple Lossless)", ac3: "AC-3 (Dolby Digital)", eac3: "E-AC-3", dts: "DTS", truehd: "Dolby TrueHD" };
+
+/**
+ * Turn an ffprobe result into a plain-language warning, or null when the file
+ * is fine.
+ *
+ * Codecs only — deliberately NOT the container. Measured on Electron 40
+ * (s192): Chromium plays H.264 + AAC inside Matroska bytes perfectly well, so
+ * warning on "this is an MKV" would nag people whose recording works. What
+ * actually breaks is codec-level, and a codec the element can't open at all
+ * raises an error event instead (see setPreviewDecodeError).
+ */
+function describePlaybackGap(info) {
+  const audio = (info.audioCodec || "").toLowerCase();
+  if (audio && !CHROMIUM_AUDIO_CODECS.includes(audio)) {
+    return {
+      kind: "audio",
+      codec: audio,
+      title: `No sound in the preview — ${CODEC_LABELS[audio] || audio.toUpperCase()} audio`,
+      detail: "The preview can't decode this recording's audio format, so it plays silently. Subtitles, waveforms and the finished clip are unaffected. To hear it here, set OBS's recording audio encoder to AAC or FLAC.",
+    };
+  }
+
+  const video = (info.videoCodec || "").toLowerCase();
+  if (video && !CHROMIUM_VIDEO_CODECS.includes(video)) {
+    return {
+      kind: "video",
+      codec: video,
+      title: `No picture in the preview — ${video.toUpperCase()} video`,
+      detail: "The preview can't decode this recording's video format. Detection and rendering are unaffected. To see it here, record with H.264 or HEVC in OBS.",
+    };
+  }
+
+  return null;
+}
+
 // _loadGen guards initFromContext against overlapping/stale runs. initFromContext is
 // async + destructive (it clears all stores, then awaits project load, then applies
 // template/style in a Promise). If two runs overlap (rapid clip switch, StrictMode
@@ -111,6 +154,14 @@ const useEditorStore = create((set, get) => ({
   // Editor shows a "Locate file…" banner and disables preview until user resolves.
   sourceOffline: false,
 
+  // #178/#300: the preview must never fail silently. Two ways it can:
+  //   - the <video> refuses the file outright (raises an error event), or
+  //   - it plays video with no sound because Chromium has no decoder for the
+  //     audio codec (ALAC, AC-3) — no error event at all, just silence.
+  // A probe on load catches the second; onError catches the first.
+  // { kind: "decode" | "audio" | "video", codec, title, detail }
+  previewWarning: null,
+
   // ── #164 Reframe calibration draft ──
   // Live-edited copy of project.reframe while the Layout panel is open.
   // null = not calibrating. The preview renders boxes + a live vertical PiP
@@ -128,7 +179,7 @@ const useEditorStore = create((set, get) => ({
   // ── Actions ──
   initFromContext: async (editorContext, localProjects) => {
     if (!editorContext) {
-      set({ project: null, clip: null, clipTitle: "", dirty: false, saveError: null, reframeDraft: null, reframeAutoDetectPending: false });
+      set({ project: null, clip: null, clipTitle: "", dirty: false, saveError: null, previewWarning: null, reframeDraft: null, reframeAutoDetectPending: false });
       return;
     }
 
@@ -174,9 +225,11 @@ const useEditorStore = create((set, get) => ({
         maxExtendLeftSec: 0,
         extending: false,
         sourceOffline,
+        previewWarning: null,
       });
       usePlaybackStore.getState().reset();
       usePlaybackStore.setState({ clipFileOffset: 0, clipFileDuration: 0 });
+      if (!sourceOffline) get().checkSourcePlayability(path);
       return;
     }
 
@@ -278,9 +331,12 @@ const useEditorStore = create((set, get) => ({
       maxExtendLeftSec: sourceStart,
       extending: false,
       sourceOffline,
+      previewWarning: null, // re-probed below for the newly opened source
       reframeDraft: null, // #164: a clip/project switch drops any in-flight calibration
       reframeAutoDetectPending: false,
     });
+
+    if (!sourceOffline && project?.sourceFile) get().checkSourcePlayability(project.sourceFile);
 
     // Clear any stale playback state from the previous clip BEFORE we populate
     // nleSegments. reset() wipes nleSegments: [] and currentTime: 0 — running it
@@ -758,10 +814,47 @@ const useEditorStore = create((set, get) => ({
       set({
         project: { ...project, sourceFile: result.sourceFile },
         sourceOffline: false,
+        previewWarning: null,
         videoVersion: get().videoVersion + 1,
       });
+      get().checkSourcePlayability(result.sourceFile);
     }
   },
+
+  /**
+   * #178/#300: probe the source and warn about anything Chromium can't play.
+   *
+   * FFmpeg decodes far more than Chromium does, so transcription, waveforms and
+   * the final render all succeed on files the preview cannot show — which is
+   * exactly why the failure reads as "the editor is broken" rather than "this
+   * codec isn't supported". Fire-and-forget: never blocks opening a clip.
+   */
+  checkSourcePlayability: async (sourcePath) => {
+    if (!sourcePath || !window.clipflow?.ffmpegProbe) return;
+    const myGen = _loadGen;
+    let info = null;
+    try { info = await window.clipflow.ffmpegProbe(sourcePath); } catch (_) { return; }
+    if (!info || myGen !== _loadGen) return; // stale load, or probe unavailable
+
+    const warning = describePlaybackGap(info);
+    if (warning && !get().previewWarning) set({ previewWarning: warning });
+  },
+
+  /**
+   * Raised by the preview's <video> onError — the element refused the file.
+   * Outranks a probe warning: this one already happened on screen.
+   */
+  setPreviewDecodeError: (detail) => {
+    set({
+      previewWarning: {
+        kind: "decode",
+        title: "This recording can't be played here",
+        detail: detail || "The preview couldn't decode the file. Transcription, subtitles and rendering are unaffected.",
+      },
+    });
+  },
+
+  dismissPreviewWarning: () => set({ previewWarning: null }),
 
   // ── #164 Reframe calibration (Layout panel) ──
   beginReframeDraft: (sourceW, sourceH) => {

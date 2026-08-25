@@ -259,6 +259,33 @@ function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger, 
 }
 
 /**
+ * #62: evenly-spaced review windows for a recording detection couldn't read.
+ * Shaped exactly like the model's own picks (timestamp strings, zero
+ * confidence) so Stage 7 needs no special case — they simply carry no
+ * highlight claim, because nothing analysed them.
+ * @param {number} duration - Source duration in seconds
+ * @returns {Array<{start: string, end: string, confidence: number, clip_number: number}>}
+ */
+function buildSilentFallbackClips(duration) {
+  const WINDOW_SEC = 45;
+  if (!(duration > 0)) return [];
+  const count = Math.max(1, Math.min(6, Math.floor(duration / WINDOW_SEC)));
+  const slice = duration / count;
+  const clips = [];
+  for (let i = 0; i < count; i++) {
+    const start = i * slice;
+    const end = Math.min(duration, start + Math.min(WINDOW_SEC, slice));
+    clips.push({
+      start: aiPrompt.formatTimestamp(start),
+      end: aiPrompt.formatTimestamp(end),
+      confidence: 0,
+      clip_number: i + 1,
+    });
+  }
+  return clips;
+}
+
+/**
  * Generate SRT transcript from WhisperX output for energy_scorer.py compatibility.
  * @param {object} transcription - { segments: [{start, end, text}], text }
  * @param {string} outPath - Output .srt file path
@@ -815,8 +842,28 @@ async function runAIPipeline({
     });
 
     const claudeResult = await callLLMForHighlights(systemPrompt, userContent, logger);
-    const aiClips = claudeResult.clips;
+    let aiClips = claudeResult.clips;
     logger.endStep("Claude Analysis", `${aiClips.length} clips identified`);
+
+    // #62: a recording with no speech (muted mic, silent screen capture) gives
+    // detection nothing to read, and the model correctly returns nothing. An
+    // empty project is the one outcome that helps nobody (#200), so cover the
+    // recording in evenly-spaced windows the user can review or delete.
+    //
+    // The gate is words-per-minute, not an empty transcript: Whisper hallucinates
+    // "you" / "Thank you." out of pure silence, so a truly silent recording still
+    // arrives with a handful of words. Real commentary runs 30+ wpm even when
+    // sparse, so this can't fire on a run the model simply judged unremarkable.
+    const transcriptWpm = probeResult.duration > 0
+      ? transcriptWordCount / (probeResult.duration / 60)
+      : 0;
+    if (aiClips.length === 0 && transcriptWpm < 10) {
+      aiClips = buildSilentFallbackClips(probeResult.duration);
+      logger.info(
+        `#62 effectively no speech (${transcriptWpm.toFixed(1)} words/min) and no AI picks — ` +
+        `offering ${aiClips.length} evenly-spaced segment(s) to review instead of an empty project`
+      );
+    }
 
     // ============ Stage 7: Build Clip Metadata (lazy-cut, #76) ============
     // Lazy-cut: no MP4 is materialized at pipeline time. Each clip is just a

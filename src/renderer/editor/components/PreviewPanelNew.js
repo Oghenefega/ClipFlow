@@ -19,6 +19,8 @@ import {
   Crop,
   Camera,
   Loader2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
@@ -725,6 +727,9 @@ export default function PreviewPanelNew() {
   const videoVersion = useEditorStore((s) => s.videoVersion);
   const sourceOffline = useEditorStore((s) => s.sourceOffline);
   const locateSource = useEditorStore((s) => s.locateSource);
+  const previewWarning = useEditorStore((s) => s.previewWarning);
+  const setPreviewDecodeError = useEditorStore((s) => s.setPreviewDecodeError);
+  const dismissPreviewWarning = useEditorStore((s) => s.dismissPreviewWarning);
 
   // Playback
   const playing = usePlaybackStore((s) => s.playing);
@@ -1598,6 +1603,19 @@ export default function PreviewPanelNew() {
     setPlaying(false);
   }, [setPlaying]);
 
+  // #178/#300: the element gave up on the file. Until this handler existed, a
+  // recording Chromium can't decode (MKV bytes, an unsupported codec) produced
+  // a black rectangle and no signal anywhere — the hardest kind of bug for a
+  // tester to report. Not target-guarded: a failure on the standby buffer is
+  // the same failure, it just hasn't been swapped in yet.
+  const onVideoError = useCallback((e) => {
+    const err = e?.target?.error;
+    const detail = err?.code === 4 // MEDIA_ERR_SRC_NOT_SUPPORTED
+      ? "The preview can't decode this file — its container or codec isn't supported here. Detection, subtitles and rendering are unaffected."
+      : `The preview stopped decoding this file${err?.message ? ` (${err.message})` : ""}. Detection, subtitles and rendering are unaffected.`;
+    setPreviewDecodeError(detail);
+  }, [setPreviewDecodeError]);
+
   // The `playing` flag used to be write-only toward the element: if the element
   // ever ended up in a different state, nothing corrected it, and the flag went
   // on lying. That's what made Space need two or three presses — a press would
@@ -1971,6 +1989,28 @@ export default function PreviewPanelNew() {
         </div>
       )}
 
+      {/* #178/#300: the preview can never fail silently. Either the source
+          probed as something Chromium can't decode, or the <video> raised an
+          error — say which, and say what still works. Stays until dismissed. */}
+      {previewWarning && !sourceOffline && (
+        <div className="absolute top-11 right-2 z-40 max-w-[340px] rounded-lg border border-amber-500/40 bg-popover/95 shadow-xl p-2.5">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-foreground">{previewWarning.title}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{previewWarning.detail}</p>
+            </div>
+            <button
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              onClick={dismissPreviewWarning}
+              title="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Video canvas area — the canvas floats on an open background; zoom/pan are applied
           as a transform (#134). overflow-hidden clips the overflow; middle-click drags. */}
       <div
@@ -2033,6 +2073,7 @@ export default function PreviewPanelNew() {
                 onEnded={onVideoEnd}
                 onPlay={onVideoPlay}
                 onPause={onVideoPause}
+                onError={onVideoError}
                 preload="metadata"
                 data-canvas-bg="true"
               />
@@ -2044,6 +2085,7 @@ export default function PreviewPanelNew() {
                 onEnded={onVideoEnd}
                 onPlay={onVideoPlay}
                 onPause={onVideoPause}
+                onError={onVideoError}
                 preload="metadata"
                 data-canvas-bg="true"
                 style={{ opacity: 0, pointerEvents: "none" }}
