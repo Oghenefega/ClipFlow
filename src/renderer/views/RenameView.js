@@ -321,7 +321,7 @@ function PresetNamePicker({ rename, presets, currentPreset, getProposed, onPrese
   );
 }
 
-export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder, onFilesRenamed }) {
+export default function RenameView({ gamesDb, mainGameName, pendingRenames, setPendingRenames, renameHistory, setRenameHistory, onAddGame, onGameDayUpdate, watchFolder, testWatchFolder, onFilesRenamed, onNavigate }) {
   const [subTab, setSubTab] = useState("pending");
   const [renaming, setRenaming] = useState(false);
   const [renameDone, setRenameDone] = useState(false);
@@ -332,6 +332,10 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const [batchAction, setBatchAction] = useState(null);
   const [batchValue, setBatchValue] = useState("");
   const [retroNotification, setRetroNotification] = useState(null);
+
+  // #153: the strip used to render green WATCHING unconditionally. Three real
+  // states now: "watching" | "unset" (no folder picked) | "missing" (gone/unreadable).
+  const [watchStatus, setWatchStatus] = useState({ state: "watching" });
 
   // Global default preset from Settings (loaded from electron-store)
   const [defaultPreset, setDefaultPreset] = useState("tag-date-day-part");
@@ -406,8 +410,18 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
 
   // File watcher integration
   useEffect(() => {
-    if (!isElectron || !watchFolder) return; // #167: no folder yet (pre-load) — don't scan
-    window.clipflow.startWatching(watchFolder);
+    if (!isElectron) return;
+    // #167: no folder yet (pre-load) — don't scan. #153: and say so on the strip.
+    if (!watchFolder) { setWatchStatus({ state: "unset" }); return; }
+    let stale = false;
+    window.clipflow.startWatching(watchFolder).then((res) => {
+      if (stale) return;
+      setWatchStatus(res?.error ? { state: "missing", message: res.error } : { state: "watching" });
+    });
+    // A folder can also disappear mid-session — chokidar reports that here.
+    const offError = window.clipflow.onWatcherError?.(({ folderPath, message }) => {
+      if (folderPath === watchFolder) setWatchStatus({ state: "missing", message });
+    });
     window.clipflow.onFileAdded((file) => {
       setPendingRenames((prev) => {
         if (prev.find((p) => p.filePath === file.path)) return prev;
@@ -434,7 +448,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
         }];
       });
     });
-    return () => { window.clipflow.removeFileListeners(); };
+    return () => { stale = true; offError?.(); window.clipflow.removeFileListeners(); };
   }, [watchFolder, isElectron, gamesDb, defaultPreset]);
 
   // Test file watcher integration (separate chokidar instance, separate IPC events)
@@ -1544,8 +1558,14 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   const refresh = () => {
     if (isElectron) {
       setRefreshing(true);
-      window.clipflow.stopWatching().then(() => {
-        window.clipflow.startWatching(watchFolder);
+      window.clipflow.stopWatching().then(async () => {
+        // #153: Refresh restarts the watcher, so it has to re-judge the strip —
+        // otherwise a folder that vanished still reads green after a refresh.
+        if (!watchFolder) setWatchStatus({ state: "unset" });
+        else {
+          const res = await window.clipflow.startWatching(watchFolder);
+          setWatchStatus(res?.error ? { state: "missing", message: res.error } : { state: "watching" });
+        }
         setTimeout(() => setRefreshing(false), 1200);
       });
     }
@@ -1724,6 +1744,19 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
   })();
   const displayIds = sessionGroups.flatMap((g) => g.rows.map((r) => r.id));
 
+  // #153: what the status strip should say. "watching" is the only state that
+  // gets the pulsing dot — the other two are dead-stop conditions the user
+  // has to fix in Settings, so they carry the button.
+  const watchTone = watchStatus.state === "watching" ? T.green : watchStatus.state === "unset" ? T.yellow : T.red;
+  const watchLabel = watchStatus.state === "watching" ? "WATCHING" : watchStatus.state === "unset" ? "NO FOLDER SET" : "FOLDER NOT FOUND";
+  const watchDetail = watchStatus.state === "watching"
+    ? watchFolder
+    : watchStatus.state === "unset"
+      ? "Pick the folder OBS saves your recordings to — nothing lands here until you do."
+      : watchStatus.message && watchStatus.message !== "Folder not found"
+        ? `${watchFolder} — ${watchStatus.message}`
+        : watchFolder;
+
   return (
     <div
       ref={rootRef}
@@ -1790,10 +1823,15 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
             <button onClick={() => onAddGame("game")} style={{ padding: "6px 12px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>+ Add Game</button>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={`Watching ${watchFolder}`}>
-          <PulseDot size={8} />
-          <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: T.green, flexShrink: 0 }}>WATCHING</span>
-          <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchFolder}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 16px", borderTop: `1px solid ${T.border}`, background: watchStatus.state === "watching" ? "rgba(255,255,255,0.015)" : watchStatus.state === "unset" ? T.yellowDim : T.redDim, borderRadius: `0 0 ${T.radius.lg} ${T.radius.lg}` }} title={watchDetail}>
+          {watchStatus.state === "watching"
+            ? <PulseDot size={8} />
+            : <span style={{ width: 8, height: 8, borderRadius: "50%", background: watchTone, flexShrink: 0 }} />}
+          <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: watchTone, flexShrink: 0 }}>{watchLabel}</span>
+          <span style={{ color: T.textSecondary, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{watchDetail}</span>
+          {watchStatus.state !== "watching" && onNavigate && (
+            <button onClick={() => onNavigate("settings")} style={{ marginLeft: "auto", flexShrink: 0, padding: "4px 10px", borderRadius: T.radius.md, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>Choose folder</button>
+          )}
         </div>
       </div>
 
@@ -1975,7 +2013,7 @@ export default function RenameView({ gamesDb, mainGameName, pendingRenames, setP
               </div>
             ) : (
               <Card style={{ padding: "40px 20px", textAlign: "center" }}>
-                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>No pending files — watching for new recordings...</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 or .mkv file here</div></>)}
+                {renameDone ? (<><div style={{ fontSize: 32, marginBottom: 8 }}>✅</div><div style={{ color: T.green, fontSize: 16, fontWeight: 700 }}>All files renamed!</div></>) : (<><div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>📁</div><div style={{ color: T.textTertiary, fontSize: 14 }}>{watchStatus.state === "watching" ? "No pending files — watching for new recordings..." : "Nothing is being watched yet."}</div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 8 }}>Or drag and drop an .mp4 or .mkv file here</div></>)}
               </Card>
             )}
           </>

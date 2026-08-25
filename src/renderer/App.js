@@ -733,12 +733,21 @@ export default function App() {
 
   // Delete projects by IDs
   const handleDeleteProjects = useCallback(async (projectIds) => {
+    // #152: failures used to be swallowed and the row disappeared anyway, so a
+    // project still sitting on disk looked deleted until the next reload.
+    const deleted = [], failed = [];
     for (const id of projectIds) {
-      try { await window.clipflow.projectDelete(id); } catch (_) { /* ignore */ }
+      try {
+        const res = await window.clipflow.projectDelete(id);
+        (res?.error ? failed : deleted).push(id);
+      } catch (_) { failed.push(id); }
     }
-    setLocalProjects((prev) => prev.filter((p) => !projectIds.includes(p.id)));
+    setLocalProjects((prev) => prev.filter((p) => !deleted.includes(p.id)));
+    if (failed.length > 0) {
+      setToast(`Couldn't delete ${failed.length} project${failed.length !== 1 ? "s" : ""} — the files may be open in another program.`);
+    }
     // If currently viewing a deleted project's clips, go back to list
-    if (selProj && projectIds.includes(selProj.id)) {
+    if (selProj && deleted.includes(selProj.id)) {
       setSelProj(null);
       setView("projects");
     }
@@ -943,6 +952,7 @@ export default function App() {
               watchFolder={watchFolder}
               testWatchFolder={testWatchFolder}
               onFilesRenamed={() => setRecordingsRefreshKey((k) => k + 1)}
+              onNavigate={nav}
             />
           </div>
         </div>

@@ -25,6 +25,13 @@ contextBridge.exposeInMainWorld("clipflow", {
     ipcRenderer.removeAllListeners("watcher:fileAdded");
     ipcRenderer.removeAllListeners("watcher:fileRemoved");
   },
+  // #153: chokidar gave up on the folder mid-session. Returns an unsubscribe fn
+  // so this survives removeFileListeners (which nukes whole channels).
+  onWatcherError: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("watcher:error", handler);
+    return () => ipcRenderer.removeListener("watcher:error", handler);
+  },
 
   // Game auto-detect (#263)
   listRunningProcesses: () => ipcRenderer.invoke("processes:list"),

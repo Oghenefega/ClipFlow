@@ -1166,6 +1166,7 @@ export function ProjectsListView({
   const [contextMenu, setContextMenu] = useState(null); // { x, y, folderId }
   const [colorPickerFolderId, setColorPickerFolderId] = useState(null);
   const [deletingFolder, setDeletingFolder] = useState(null); // folder object for confirmation dialog
+  const [deletingProject, setDeletingProject] = useState(null); // #152: { id, name, clipCount } for the confirm dialog
   const [undoAction, setUndoAction] = useState(null); // { message, undo: fn, timer }
   // --- Project context menu state (Phase 4) ---
   const [projectContextMenu, setProjectContextMenu] = useState(null); // { x, y, projectId }
@@ -1265,9 +1266,15 @@ export function ProjectsListView({
     setConfirmDelete(false);
   };
 
-  const handleSingleDelete = (e, projectId) => {
+  // #152: this used to delete on the single click of a hover-revealed icon
+  // sitting 28px from Review/Open. The delete is an rmSync — nothing comes back.
+  const handleSingleDelete = (e, project) => {
     e.stopPropagation();
-    if (onDeleteProjects) onDeleteProjects([projectId]);
+    setDeletingProject({
+      id: project.id,
+      name: project.name || "this project",
+      clipCount: (project.clips || []).length || project.clipCount || 0,
+    });
   };
 
   // --- Folder CRUD helpers ---
@@ -1597,7 +1604,7 @@ export function ProjectsListView({
                       )}
                       <span
                         className="pl-trash"
-                        onClick={(e) => handleSingleDelete(e, p.id)}
+                        onClick={(e) => handleSingleDelete(e, p)}
                         title="Delete project"
                         style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 28, height: 28, color: T.textMuted, cursor: "pointer", borderRadius: 7 }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = T.red; e.currentTarget.style.background = T.redDim; }}
@@ -1926,6 +1933,59 @@ export function ProjectsListView({
                   color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
                 }}
               >Delete Folder</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* #152: permanent, so name what is being lost before doing it. */}
+      {deletingProject && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
+        }}
+          onClick={() => setDeletingProject(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: T.surface, border: `1px solid ${T.border}`,
+              borderRadius: T.radius.lg, padding: "24px 28px",
+              maxWidth: 380, width: "100%", boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 12 }}>
+              Delete "{deletingProject.name}"?
+            </div>
+            <div style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.6 }}>
+              {deletingProject.clipCount > 0
+                ? `Its ${deletingProject.clipCount} clip${deletingProject.clipCount !== 1 ? "s" : ""}, the transcript and the rest of this project are erased from disk.`
+                : "The transcript and the rest of this project are erased from disk."}
+            </div>
+            <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 8 }}>
+              This cannot be undone. Your original recording is left alone.
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setDeletingProject(null)}
+                style={{
+                  padding: "8px 16px", borderRadius: T.radius.sm,
+                  background: "transparent", border: `1px solid ${T.border}`,
+                  color: T.textSecondary, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                }}
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  const id = deletingProject.id;
+                  setDeletingProject(null);
+                  if (onDeleteProjects) onDeleteProjects([id]);
+                }}
+                style={{
+                  padding: "8px 16px", borderRadius: T.radius.sm,
+                  background: T.red, border: "none",
+                  color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                }}
+              >Delete Project</button>
             </div>
           </div>
         </div>

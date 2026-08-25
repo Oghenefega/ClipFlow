@@ -1299,12 +1299,24 @@ function createRecordingFolderWatcher(folderPath, addEvent, removeEvent, ignored
     });
   });
 
+  // #153: chokidar failures used to vanish here, so the Rename tab kept showing
+  // a green WATCHING badge over a folder the watcher had already given up on.
+  w.on("error", (err) => {
+    logger.error(logger.MODULES.system, `Watcher error on ${folderPath}: ${err.message}`);
+    mainWindow?.webContents.send("watcher:error", { folderPath, message: err.message });
+  });
+
   return w;
 }
 
 // Main watcher: start
 ipcMain.handle("watcher:start", async (_, folderPath) => {
-  if (watcher) watcher.close();
+  if (watcher) { watcher.close(); watcher = null; }
+  // #153: the test watcher below has always guarded this; the main one returned
+  // { success: true } unconditionally, so a fresh install rendered a green
+  // WATCHING badge over a folder that does not exist on the customer's machine.
+  if (!folderPath) return { error: "No recordings folder set" };
+  if (!fs.existsSync(folderPath)) return { error: "Folder not found" };
   // Test folders must never leak into the main watcher now that it recurses —
   // a raw test file surfacing as a normal recording would rename as non-test.
   watcher = createRecordingFolderWatcher(folderPath, "watcher:fileAdded", "watcher:fileRemoved", [
@@ -2420,11 +2432,11 @@ ipcMain.handle("project:list", async () => {
         }
         if (resetCount > 0) {
           database.save();
-          log.info(`Reconciliation: reset ${resetCount} orphaned "done" file(s) with no matching project`);
+          logger.info(logger.MODULES.system, `Reconciliation: reset ${resetCount} orphaned "done" file(s) with no matching project`);
         }
         if (doneChanged) store.set("doneRecordings", doneRecordings);
       }
-    } catch (reconcileErr) { log.warn("Reconciliation failed:", reconcileErr.message); }
+    } catch (reconcileErr) { logger.warn(logger.MODULES.system, `Reconciliation failed: ${reconcileErr.message}`); }
 
     return result;
   } catch (err) { return { error: err.message, projects: [] }; }
@@ -2494,9 +2506,9 @@ ipcMain.handle("project:delete", async (_, projectId) => {
       }
 
       if (filename || result.projectName) {
-        log.info(`Reset file status after project deletion: file=${filename || "?"}, project=${result.projectName || "?"}`);
+        logger.info(logger.MODULES.system, `Reset file status after project deletion: file=${filename || "?"}, project=${result.projectName || "?"}`);
       }
-    } catch (dbErr) { log.warn("Failed to reset file status after project deletion:", dbErr.message); }
+    } catch (dbErr) { logger.warn(logger.MODULES.system, `Failed to reset file status after project deletion: ${dbErr.message}`); }
     return result;
   } catch (err) { return { error: err.message }; }
 });
