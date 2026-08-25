@@ -502,6 +502,75 @@ function duplicateClip(watchFolder, projectId, clipId, overrides = {}) {
 }
 
 /**
+ * #306: Repost a published clip — a fresh clip that reuses the existing render.
+ * The title is kept verbatim (a repost is the same post going out again, not a
+ * "(copy)"), the copy lands approved + already-rendered so it drops straight into
+ * the Queue's unscheduled list, and it carries `repostOf` so the Queue's
+ * same-title knockout lets it through and the AI title log never learns from it.
+ *
+ * The rendered video and thumbnail are COPIED, not shared: deleting either clip
+ * with "delete rendered video" would otherwise destroy the other one's files.
+ * @param {string} watchFolder
+ * @param {string} projectId
+ * @param {string} clipId
+ * @returns {{ success: true, clip: object }|{ error: string }}
+ */
+function repostClip(watchFolder, projectId, clipId) {
+  const project = loadProject(watchFolder, projectId);
+  if (!project) return { error: "Project not found" };
+
+  const idx = project.clips.findIndex((c) => c.id === clipId);
+  if (idx === -1) return { error: "Clip not found" };
+  const src = project.clips[idx];
+
+  // Reusing the render IS the feature — without the file there is nothing to repost.
+  if (!src.renderPath || !fs.existsSync(src.renderPath)) {
+    return { error: "This clip's rendered video is missing — re-render it before reposting" };
+  }
+
+  const ext = path.extname(src.renderPath);
+  const dir = path.dirname(src.renderPath);
+  const renderPath = uniquePath(dir, `${path.basename(src.renderPath, ext)} repost`, ext);
+  try {
+    fs.copyFileSync(src.renderPath, renderPath);
+  } catch (err) {
+    return { error: `Could not copy the rendered video: ${err.message}` };
+  }
+
+  let thumbnailPath = src.thumbnailPath || null;
+  if (thumbnailPath && fs.existsSync(thumbnailPath)) {
+    const tExt = path.extname(thumbnailPath);
+    const tDir = path.dirname(thumbnailPath);
+    const tDest = uniquePath(tDir, `${path.basename(thumbnailPath, tExt)} repost`, tExt);
+    // A missing thumbnail is cosmetic — keep the repost even if the copy fails.
+    try { fs.copyFileSync(thumbnailPath, tDest); thumbnailPath = tDest; } catch (e) { /* ignore */ }
+  }
+
+  const copy = {
+    ...JSON.parse(JSON.stringify(src)),
+    id: generateClipId(),
+    repostOf: src.id,
+    status: "approved",
+    renderStatus: "rendered",
+    renderPath,
+    thumbnailPath,
+    publishState: {},
+    createdAt: new Date().toISOString(),
+  };
+  // The original's publish history belongs to the original post only.
+  delete copy.scheduledAt;
+  delete copy.publishedAt;
+  delete copy.queueOrder;
+  delete copy.downscaledPosts;
+
+  // Sit right after the original so the pair reads together in the clip list.
+  project.clips.splice(idx + 1, 0, copy);
+  saveProject(watchFolder, project);
+
+  return { success: true, clip: copy };
+}
+
+/**
  * Delete a clip from a project (and optionally its file).
  * @param {string} watchFolder
  * @param {string} projectId
@@ -567,6 +636,7 @@ module.exports = {
   updateReframe,
   addClip,
   duplicateClip,
+  repostClip,
   deleteClip,
   updateProjectField,
   getClipsDir,

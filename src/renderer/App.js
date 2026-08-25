@@ -701,6 +701,17 @@ export default function App() {
     window.clipflow?.projectUpdateClip?.(projectId, clipId, fields).catch(() => {});
   }, []);
 
+  // #306: Repost — the main process copies the published clip and its rendered
+  // file into a fresh approved, unscheduled clip. Reload the project list so the
+  // new card appears in the Queue; the caller navigates there as the confirmation.
+  const handleRepostClip = useCallback(async (projectId, clipId) => {
+    const res = await window.clipflow?.projectRepostClip?.(projectId, clipId);
+    if (!res || res.error) return res || { error: "Repost is unavailable" };
+    const list = await window.clipflow?.projectList?.();
+    if (list?.projects) setLocalProjects(list.projects);
+    return res;
+  }, []);
+
   // `from` is where Back should land (#204). Omitted = the project's clip list,
   // which is right for every caller inside Projects.
   const handleOpenInEditor = useCallback((projectId, clipId, from) => {
@@ -801,6 +812,7 @@ export default function App() {
         projectId,
         thumbnailPath: c.thumbnailPath || null,
         renderPath: c.renderPath || null,
+        repostOf: c.repostOf || null, // #306: badge a scheduled repost in the calendar
       }))
     );
   }, [allClips]);
@@ -980,6 +992,7 @@ export default function App() {
               allClips={allClips}
               localProjects={localProjects}
               setLocalProjects={setLocalProjects}
+              onRepostClip={handleRepostClip}
               mainGame={mainGame}
               mainGameTag={mainGameTag}
               platforms={platforms}
@@ -1035,6 +1048,7 @@ export default function App() {
               // scheduledAt through the same optimistic-then-persist path every other
               // clip field uses, so the Queue's scheduler picks up the new time.
               onRescheduleClip={(projectId, clipId, scheduledAt) => handleUpdateClipFields(projectId, clipId, { scheduledAt })}
+              onRepostClip={handleRepostClip}
             />
           </div>
         </div>

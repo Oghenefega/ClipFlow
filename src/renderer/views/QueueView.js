@@ -718,7 +718,7 @@ export default function QueueView({
   weeklyTemplate, weekTemplateOverrides,
   ytDescriptions, setYtDescriptions, captionTemplates, setCaptionTemplates, streamSchedule,
   platformOptions, setPlatformOptions, gamesDb, awardXp, onOpenInEditor, onCreateGame,
-  onScheduledPublishFailure, refreshOauthAccounts, focusFailedSignal,
+  onScheduledPublishFailure, refreshOauthAccounts, focusFailedSignal, onRepostClip,
 }) {
   // Mirror a successful projectUpdateClip into local React state so derived UI
   // (filters, scheduled section, override displays) updates without a tab reload.
@@ -765,7 +765,10 @@ export default function QueueView({
         // #240: imports dedupe by id only. The title knockout exists for legacy
         // clips that changed ids across re-renders; OpusClip-era names repeat,
         // so title-matching would silently eat sibling imports.
-        && (c.source === "import" || !scheduledTitles.has(c.title)));
+        // #306: a repost is deliberately the same title as the post it repeats —
+        // without this exemption the title knockout would eat every repost on sight.
+        // The id knockout still applies, so it leaves the queue once IT publishes.
+        && (c.source === "import" || c.repostOf || !scheduledTitles.has(c.title)));
   }).sort((a, b) => (a.queueOrder ?? Infinity) - (b.queueOrder ?? Infinity) || new Date(a.createdAt) - new Date(b.createdAt));
   const isClipTest = (clip) => !!(clip && clip._projectId && projectInfo[clip._projectId]?.testMode);
   // Game pill color — the clip's real game hue (parent project first, then
@@ -1639,13 +1642,16 @@ export default function QueueView({
       tags: resolveTags(clip, ytDescriptions, gamesDb),
       tagsCustom: Array.isArray(clip.youtubeTags),
     };
-    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot }]);
+    setTrackerData((p) => [...p, { id, date, day, time: snapped, title: clip.title, clipId: clip.id, game: gt, type: gt === mainGameTagLc ? "main" : "other", platforms: posted.map((p) => p.abbr + "-" + p.name).join(", "), platformResults, mainGameAtTime: mainGame, source: clip.source === "import" ? "import" : "clipflow", scheduled: !!isScheduled, published: publishedSnapshot, ...(clip.repostOf ? { repostOf: clip.repostOf } : {}) }]);
     // #183: the title/caption that actually shipped is voice training data —
     // especially when it was hand-written and never matched a suggestion.
     // Fire-and-forget; a logging failure must never affect the publish result.
     // #240 fence: imported clips still COUNT for the tracker (that's the point)
     // but their titles are another era's copy — never voice training data.
-    if (clip.source !== "import") {
+    // #306 extends the fence to reposts: the title already taught the model when the
+    // original went out, and the log is UNIQUE(clip_id), so letting a repost through
+    // would double-weight that title and conflate two posts' view histories.
+    if (clip.source !== "import" && !clip.repostOf) {
       window.clipflow?.titleCaptionRecordPublish?.({
         clipId: clip.id,
         projectId: clip._projectId,
@@ -1891,6 +1897,25 @@ export default function QueueView({
   // Reverse insertion order = publish order (logPost appends), which is what "recent"
   // means here — a scheduled post's `date` is the slot it was aimed at, not when it ran.
   // Capped: the tracker holds the full history, the Queue is a work surface.
+  // #306: Repost — App copies the clip + its rendered file and reloads the project
+  // list; the new card appearing in Unscheduled below is the confirmation. Failures
+  // (missing render file, deleted project) are shown on the row that was clicked.
+  const [reposting, setReposting] = useState(null);   // clipId in flight
+  const [repostErr, setRepostErr] = useState(null);   // { clipId, message }
+  const handleRepost = async (clip) => {
+    if (reposting) return;
+    setReposting(clip.id);
+    setRepostErr(null);
+    try {
+      const res = await onRepostClip?.(clip._projectId, clip.id);
+      if (res?.error) setRepostErr({ clipId: clip.id, message: res.error });
+    } catch (e) {
+      setRepostErr({ clipId: clip.id, message: e.message || "Repost failed" });
+    } finally {
+      setReposting(null);
+    }
+  };
+
   const publishedClips = useMemo(() => {
     const byId = new Map();
     for (const [projectId, clips] of Object.entries(allClips || {})) {
@@ -2924,7 +2949,9 @@ export default function QueueView({
           title / description / tags can be copied onto a new one. Deliberately NOT the
           queue card: no publish, schedule, retry, dequeue, and nothing editable. Editing
           tags here would write a per-clip override, which silently changes what a REPOST
-          of that clip would send. Copy buttons only. */}
+          of that clip would send. Copy buttons only.
+          #306: Repost is the one action here, and it does not break that stance — it
+          never touches the published record, it creates a separate new clip. */}
       {showPublished && publishedClips.length > 0 && (() => {
         const expanded = publishedOpen || filterStatus === "published";
         return (
@@ -2988,8 +3015,17 @@ export default function QueueView({
                             </span>
                           )
                         ))}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRepost(clip); }}
+                          disabled={!!reposting}
+                          title="Copy this clip back into the queue to post again"
+                          style={{ padding: "3px 9px", borderRadius: 6, border: `1px solid ${T.accentBorder}`, background: T.accentDim, color: T.accentLight, fontSize: 10.5, fontWeight: 700, cursor: reposting ? "default" : "pointer", fontFamily: T.font, opacity: reposting && reposting !== clip.id ? 0.4 : 1, whiteSpace: "nowrap" }}
+                        >{reposting === clip.id ? "Reposting…" : "Repost"}</button>
                         <span style={{ fontSize: 10.5, color: T.textTertiary, fontFamily: T.mono, whiteSpace: "nowrap", minWidth: 84, textAlign: "right" }}>{when}{t.time ? ` · ${t.time}` : ""}</span>
                       </div>
+                      {repostErr?.clipId === clip.id && (
+                        <div style={{ padding: "5px 12px", borderTop: `1px solid ${T.border}`, color: T.red, fontSize: 11 }}>{repostErr.message}</div>
+                      )}
 
                       {isOpen && (
                         <div style={{ borderTop: `1px solid ${T.border}`, background: "rgba(0,0,0,0.16)" }}>

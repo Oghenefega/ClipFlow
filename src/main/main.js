@@ -2551,6 +2551,15 @@ ipcMain.handle("project:duplicateClip", async (_, projectId, clipId, overrides) 
   } catch (err) { return { error: err.message }; }
 });
 
+// #306: Repost — copies a published clip (record + rendered file) into a fresh
+// approved, unscheduled clip that the Queue can schedule like any other.
+ipcMain.handle("project:repostClip", async (_, projectId, clipId) => {
+  try {
+    const watchFolder = libraryRoot(); // project library (decoupled from the OBS watch folder)
+    return projects.repostClip(watchFolder, projectId, clipId);
+  } catch (err) { return { error: err.message }; }
+});
+
 // Removes the clip record; deleteFile=true also unlinks the clip's own files
 // (rendered MP4 + thumbnail + legacy pre-cut file). The project's source
 // recording is never deleted. Default false — editor/rail callers keep

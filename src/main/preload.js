@@ -153,6 +153,7 @@ contextBridge.exposeInMainWorld("clipflow", {
   projectUpdateClip: (projectId, clipId, updates) => ipcRenderer.invoke("project:updateClip", projectId, clipId, updates),
   projectClaimScheduledPublish: (projectId, clipId) => ipcRenderer.invoke("project:claimScheduledPublish", projectId, clipId),
   projectDuplicateClip: (projectId, clipId, overrides) => ipcRenderer.invoke("project:duplicateClip", projectId, clipId, overrides),
+  projectRepostClip: (projectId, clipId) => ipcRenderer.invoke("project:repostClip", projectId, clipId),
   projectDeleteClip: (projectId, clipId, deleteFile) => ipcRenderer.invoke("project:deleteClip", projectId, clipId, deleteFile),
   projectDeleteClipRender: (projectId, clipId) => ipcRenderer.invoke("project:deleteClipRender", projectId, clipId),
   projectUpdateReframe: (projectId, reframe) => ipcRenderer.invoke("project:updateReframe", projectId, reframe),

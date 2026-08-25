@@ -95,6 +95,7 @@ export default function TrackerView({
   onOpenInEditor,
   onOpenQueue,
   onRescheduleClip,
+  onRepostClip,
 }) {
   // #276: the Calendar sub-view folded into week navigation — one view, offset in
   // weeks from today. 0 = live current week, negative = frozen past, positive = preview.
@@ -324,6 +325,30 @@ export default function TrackerView({
   const [logSelectedPlatforms, setLogSelectedPlatforms] = useState([]);
 
   const closePopover = () => { setPopover(null); setLogSelectedPlatforms([]); };
+
+  // #306: Repost — App copies the clip and its rendered file into a fresh
+  // unscheduled clip, then we hand off to the Queue, where it is now waiting.
+  // The Tracker itself grows no scheduling actions (tracker-now-playing.md): it
+  // starts the copy and gets out of the way.
+  const [reposting, setReposting] = useState(false);
+  const [repostErr, setRepostErr] = useState(null);
+  const doRepost = async (projectId, clipId) => {
+    if (reposting) return;
+    setReposting(true);
+    setRepostErr(null);
+    try {
+      const res = await onRepostClip?.(projectId, clipId);
+      if (res?.error) { setRepostErr(res.error); return; }
+      closePopover();
+      onOpenQueue?.();
+    } catch (e) {
+      setRepostErr(e.message || "Repost failed");
+    } finally {
+      setReposting(false);
+    }
+  };
+
+  useEffect(() => { setRepostErr(null); }, [popover]);
 
   useEffect(() => {
     if (!popover) return;
@@ -1140,6 +1165,11 @@ export default function TrackerView({
                         <span style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(90px 50px at 0% 0%, ${rgba(gd.color, isSched ? 0.14 : 0.34)}, transparent 72%)` }} />
                         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontFamily: T.mono, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, color: "#0a0b10", flexShrink: 0, background: gd.color }}>{gd.tag}</span>
+                          {/* #306: this post is a repeat of an earlier one — worth
+                              seeing at a glance when reading a week's stats. */}
+                          {item.repostOf && (
+                            <span title="Repost" style={{ fontFamily: T.mono, fontSize: 8, fontWeight: 800, padding: "1px 4px", borderRadius: 4, flexShrink: 0, color: T.accentLight, background: T.accentDim, border: `1px solid ${T.accentBorder}` }}>REPOST</span>
+                          )}
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.textTertiary, marginLeft: "auto" }}>{shortSlot(item.time)}</span>
                           <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: dotColor, boxShadow: `0 0 6px ${isSched ? "rgba(251,191,36,0.55)" : (isAuto ? `${T.cyan}88` : "rgba(255,255,255,0.35)")}` }} />
                         </div>
@@ -1367,12 +1397,35 @@ export default function TrackerView({
                           clip — the Queue button above is still the full control. */}
                       <div style={{ fontSize: 10, color: T.textTertiary, textAlign: "center", marginTop: 7 }}>or drag the card to another slot</div>
                     </>
-                  ) : viewMode === "current" ? (
-                    <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
-                    >Remove</button>
-                  ) : null /* #276: frozen weeks are read-only — no removing history */}
+                  ) : (
+                    <>
+                      {/* #306: Repost creates a fresh copy of the clip and hands off to
+                          the Queue — the Tracker still grows no scheduling actions
+                          (tasks/specs/tracker-now-playing.md). Offered on frozen weeks
+                          too: reposting older content is the point, and it never touches
+                          the published record. */}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {link?.projectId && link?.renderPath && (
+                          <button
+                            onClick={() => doRepost(link.projectId, entry.clipId)}
+                            disabled={reposting}
+                            title="Copy this clip back into the queue to post again"
+                            style={{ ...popBtn(T.accentBorder, T.accentDim, T.accentLight), cursor: reposting ? "default" : "pointer" }}
+                          >{reposting ? "Reposting…" : "Repost"}</button>
+                        )}
+                        {/* #276: frozen weeks are read-only — no removing history */}
+                        {viewMode === "current" && (
+                          <button onClick={() => removeEntry(entry)} style={popBtn(T.redBorder, T.redDim, T.red)}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = T.redDim; }}
+                          >Remove</button>
+                        )}
+                      </div>
+                      {repostErr && (
+                        <div style={{ marginTop: 7, fontSize: 11, color: T.red, textAlign: "center", lineHeight: 1.35 }}>{repostErr}</div>
+                      )}
+                    </>
+                  )}
                 </>
               );
             })()
