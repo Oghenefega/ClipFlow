@@ -1,52 +1,61 @@
-# HANDOFF — Session 199 (2026-08-25)
+# HANDOFF — Session 200 (2026-08-25)
 
 ## Current State
 
-**Media overlays (images/GIFs/videos on the timeline) fully planned and approved; mockup
-signed off after two revisions. No app code changed.** Epic #308 + batch issues #309–#312
-carry the complete build specs (architecture, exact file/line insertion points, locked
-product decisions) — a build session can start from #309 alone. Mock: `tasks/mocks/media-overlays.html`.
-
-Commits: `3e87fd4` (plan + mock), `c674258` (category labels), `54e5d35` (favorites/recent).
+**Media overlays Batch 1 (#309) built, verified, pushed — commit `741d3a8`.** The editor
+has a Media tab (replacing Upload) fed by a new watched `mediaFolders` list in Settings;
+GIF/video import rejections removed. Verified via dev-profile CDP drive against Fega's
+three real V:\ folders (6 images / 55 GIFs / 36 videos): sub-tab counts, star persistence
+through a 5-toggle loop, Favorites/Recent chips, video-thumb teardown, import + grid-delete
+round-trip, Settings card. #309 left open with a build comment for the review-by-hash pass.
 
 ## Key Decisions
 
-1. **Copy the `audioPlacements` pattern wholesale** for media placements: source-anchored,
-   SFX-strict cut survival, CJS resolver in `editor/models/` shared by timeline/preview/render.
-   Position is percent-of-output-canvas (aspect-agnostic).
-2. **GIF/video composite through the FFmpeg graph, never the offscreen subtitle window**
-   (30fps cap + same-frame-skip would break on animation). Slot: between reframe output and
-   the subtitle composite. Media inputs append AFTER audio inputs (index-shift trap; tests
-   assert byte-identical-when-absent).
-3. **NLE-style overlay tracks** (higher track draws on top, base clip always background);
-   the lane-descriptor refactor built for them is reused by #312's extra SFX/Music tracks.
-4. **Media tab speaks in categories only** — Images/GIFs/Videos with All/Favorites/Recent
-   chips; folder names live in Settings. Favorites/Recent reuse the existing asset index
-   (`favorite` + `lastUsedAt`, `assets.js:617` / `:459`) — no new storage.
-5. **Video overlay sound on by default** (reaction cams are the use case), per-overlay
-   volume + mute.
+1. **Built by Fable, not Opus** — Fega asked this session to build directly; the
+   Opus-builds/Fable-reviews split memory was flagged and overridden by his instruction.
+   Review of `741d3a8` still pending (fresh-eyes session or Fega's call).
+2. **Media folders scan visual kinds only, audio folders audio only** — pointing either
+   list at a mixed folder can't flood the other panel. Same root in both lists is scanned
+   once per list, deduped by the absorb set.
+3. **No "+" add-at-playhead button in this batch** — hidden (not disabled) until #310
+   lands the placement model; a no-op control invites dead clicks.
+4. **Grid delete only on uploaded one-offs** (`source !== "folder"`) — preserves the
+   capability the retired Upload drawer had; watched-folder files stay untouchable.
 
 ## Next Steps
 
-1. **Build #309** (Media library: watched `mediaFolders`, GIF/video extensions, MediaPanel
-   replacing Upload) — Opus@high in its own session, then Fable review by commit hash.
-2. Then #310 (image/GIF overlays end-to-end — the core batch), #311 (video overlays), #312
-   (dynamic SFX/Music tracks).
-3. #313 (stale ASS-burn-in claim in `clipflow-ffmpeg-media` skill) — cheap doc fix, any session.
+1. **Review `741d3a8`** (Fable@xhigh fresh-eyes, per workflow) — then Fega's in-app check:
+   open a clip → Media rail → eyeball the grid + physically drag a file onto the drop strip
+   (the one path only exercised at the IPC layer).
+2. **Build #310** — image/GIF overlays end-to-end (placement model, overlay tracks,
+   on-canvas drag/resize, FFmpeg compositing). The core batch.
+3. Then #311 (video overlays + audio), #312 (dynamic SFX/Music tracks).
+4. #313 (stale ASS-burn-in claim in `clipflow-ffmpeg-media` skill) — cheap doc fix.
 
 ## Watch Out For
 
-- **Timeline container height is a magic `276`** (`EditorLayout.js:1206`) — any new lane is
-  clipped until #310 replaces it with a computed height; verify fit at 1280×860.
-- `renderThumbnail` reuses the filter builder with a synthetic 1s segment — overlays must be
-  pre-filtered to the thumbnail's timeline `t` or thumbnails silently lose them (in #310 spec).
-- Accepted v1 limit: GIF frames don't scrub-sync in preview (playback + render are exact).
-  Fega knows; don't re-litigate in review.
-- The mock loads real files via `file:///V:/...` — it breaks if V:\ is unmounted; that's
-  expected, not a bug.
+- **Shared asset index now holds ~97 media entries** (dev run wrote them into the real
+  `.clipflow/assets/assets.json`, 763→860). Prod's installed alpha.5 PRUNES them on its
+  next Audio-panel open (its `configured` list lacks media folders) — harmless, they
+  re-absorb with new ids under new code. Don't treat media-entry ids as stable until an
+  installer ships; favorites set on media before then can be silently lost to that prune.
+- **Dev profile has the three mediaFolders seeded** (`clipflow-dev\clipflow-settings.json`);
+  prod has none until Fega adds them post-installer.
+- Timeline container height is still the magic `276` (`EditorLayout.js:1206`) — #310 must
+  replace it with a computed height or new lanes clip; verify fit at 1280×860.
+- `renderThumbnail` reuses the filter builder with a synthetic 1s segment — #310 must
+  pre-filter overlays to the thumbnail's timeline `t` or thumbnails silently lose them.
+- AudioPanel's refresh "new tracks" counter now filters media types out; MediaPanel's
+  counts only image/gif/video — type `null` means an audio file awaiting duration probe,
+  never media (media types are stamped from the extension at absorb time).
 
 ## Logs/Debugging
 
-- None this session — planning only. Exploration agents' full findings are distilled into
-  the issue bodies (#308–#312), including the render filter-graph map and preview
-  coordinate-space notes.
+- CDP driving without deps: Node 24's global `WebSocket` works — `npm install ws` into the
+  scratchpad silently landed nowhere (cd + install path issue); driver script pattern in
+  scratchpad `cdp309.js` (Runtime.evaluate, awaitPromise, returnByValue).
+- Main-view nav/tab clicks need `MouseEvent` with `bubbles:true`, walking UP the ancestor
+  chain until the screen changes; Settings group headers are CSS-uppercased (match
+  `textContent` case-insensitively) and expand via the header's cursor-styled ancestor.
+- Dev-profile boot warnings (TikTok TLS, YouTube `invalid_grant`) are stale dev tokens,
+  pre-existing, unrelated to editor/asset work.
