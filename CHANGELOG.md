@@ -52,6 +52,7 @@ No app code changed this session — it was an audit of the Claude Code configur
 - **Session wrap got leaner.** HANDOFF.md drops the "What Was Just Built" section (commits and this changelog already record it), and the wrap now sets the session title directly instead of offering candidates. The fragile "what changed this session" git command was simplified.
 - **The two always-on skills (`clipflow-code-review`, `clipflow-trace-verify`) were slimmed** — generic coaching that current models do by default was cut; every project-specific trap and distilled lesson stayed.
 - **`/review` now delegates to the built-in `code-review` skill** instead of a raw diff read-through.
+- **The twelve council report/transcript files cluttering the repo root moved into `council-reports/`**, joining the pair already there. Moved with `git mv`, so their history follows.
 - **Global CLAUDE.md rules updated for the current harness** — removed the Sonnet-default model rule, the manual `/compact`-at-60% and `/context`/`/cost` steps (unavailable or counterproductive now), the 500-line chunked-read mandate, and pointed the feature-plan rule at plan mode instead of `tasks/todo.md`.
 
 ### Added
