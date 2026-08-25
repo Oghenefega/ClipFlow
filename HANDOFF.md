@@ -1,62 +1,52 @@
-# HANDOFF — Session 198 (2026-08-25)
+# HANDOFF — Session 199 (2026-08-25)
 
 ## Current State
 
-**Batch 5 reviewed, two #306 fixes shipped, 0.4.0-alpha.5 cut, published, and confirmed
-installed on Fega's desktop** (Settings reads v0.4.0-alpha.5). #305 and #306 are CLOSED
-with `status: untested` — Fega confirmed the update took, not the features themselves.
-The installer promotes everything since alpha.4: batches 1–5 plus all review fixes.
+**Media overlays (images/GIFs/videos on the timeline) fully planned and approved; mockup
+signed off after two revisions. No app code changed.** Epic #308 + batch issues #309–#312
+carry the complete build specs (architecture, exact file/line insertion points, locked
+product decisions) — a build session can start from #309 alone. Mock: `tasks/mocks/media-overlays.html`.
 
-Commits: `3220776` (review fixes), `714aa89` (version bump + cut).
+Commits: `3e87fd4` (plan + mock), `c674258` (category labels), `54e5d35` (favorites/recent).
 
 ## Key Decisions
 
-1. **Review verdict on batch 5: #305 clean, #306 had two real edges.** (a) The Queue tab
-   badge (`totalApproved`, App.js) is a deliberate mirror of QueueView's unscheduled
-   filter but never got the `repostOf` title-knockout exemption — a waiting repost showed
-   in the list while the badge subtracted it, recreating the #139 desync. (b) On a
-   failed/missing thumbnail copy, `repostClip` fell back to the ORIGINAL's thumbnail path
-   — two clips sharing one file, violating the feature's own "copied, not shared"
-   invariant. Now the repost carries a thumbnail only when it owns the copied file.
-2. **`splitCopy` durability was traced end-to-end and passed**: saved verbatim in `sub1`,
-   `resolveSubtitles` skips whisperx dedups for editor-saved subs, `setSegmentMode` and
-   all four `cleanWordTimestamps` passes spread word objects. No fix needed.
-3. Review notes were commented on #306; both issues closed `status: untested` after Fega
-   confirmed the alpha.5 install.
+1. **Copy the `audioPlacements` pattern wholesale** for media placements: source-anchored,
+   SFX-strict cut survival, CJS resolver in `editor/models/` shared by timeline/preview/render.
+   Position is percent-of-output-canvas (aspect-agnostic).
+2. **GIF/video composite through the FFmpeg graph, never the offscreen subtitle window**
+   (30fps cap + same-frame-skip would break on animation). Slot: between reframe output and
+   the subtitle composite. Media inputs append AFTER audio inputs (index-shift trap; tests
+   assert byte-identical-when-absent).
+3. **NLE-style overlay tracks** (higher track draws on top, base clip always background);
+   the lane-descriptor refactor built for them is reused by #312's extra SFX/Music tracks.
+4. **Media tab speaks in categories only** — Images/GIFs/Videos with All/Favorites/Recent
+   chips; folder names live in Settings. Favorites/Recent reuse the existing asset index
+   (`favorite` + `lastUsedAt`, `assets.js:617` / `:459`) — no new storage.
+5. **Video overlay sound on by default** (reaction cams are the use case), per-overlay
+   volume + mute.
 
 ## Next Steps
 
-1. **Fega's eyeball checks on the installed build**: #305 (split a one-word subtitle) and
-   #306 (Repost from Tracker popover + Queue Published shelf) — remove `status: untested`
-   on confirmation. Carried batch-4 items too (Rename watcher states, delete dialog,
-   completion headline).
-2. **Laptop update** — relaunch Corva there, banner should offer alpha.5. First download
-   on a machine is full-size; differential starts from the next one.
-3. **Next build batch** per the s186 sequencing (Opus@high builds, Fable@xhigh reviews).
-4. #307 still open: timeline right-click menu labels Split `S` while the shortcut is `U`.
+1. **Build #309** (Media library: watched `mediaFolders`, GIF/video extensions, MediaPanel
+   replacing Upload) — Opus@high in its own session, then Fable review by commit hash.
+2. Then #310 (image/GIF overlays end-to-end — the core batch), #311 (video overlays), #312
+   (dynamic SFX/Music tracks).
+3. #313 (stale ASS-burn-in claim in `clipflow-ffmpeg-media` skill) — cheap doc fix, any session.
 
 ## Watch Out For
 
-- The two review fixes are UNTESTED by Fega like the features: the badge fix only shows
-  when a repost is sitting unscheduled (badge must match list count); the thumbnail fix
-  only shows on a copy failure (repost card simply has no thumbnail).
-- **#306's queue exemption is load-bearing** (QueueView.js:771 and now App.js:850 —
-  BOTH must keep `c.repostOf ||` or list and badge desync again).
-- **#305's `splitCopy` flag** must keep surviving spreads — any future pass that REBUILDS
-  word objects instead of `{...w}` silently re-arms the dedup and eats a half.
-- Standing s190–s197 items unchanged: prod hasn't run the #301 migration path until now
-  (alpha.5 IS the installer that carries it — watch first-boot logs if anything odd);
-  `gatewayAuthTokenPreMigration` kept until the laptop is on alpha.5; the second half of
-  a #305 split drifting its end on mode switches is segmentWords' existing linger rule,
-  not a bug.
+- **Timeline container height is a magic `276`** (`EditorLayout.js:1206`) — any new lane is
+  clipped until #310 replaces it with a computed height; verify fit at 1280×860.
+- `renderThumbnail` reuses the filter builder with a synthetic 1s segment — overlays must be
+  pre-filtered to the thumbnail's timeline `t` or thumbnails silently lose them (in #310 spec).
+- Accepted v1 limit: GIF frames don't scrub-sync in preview (playback + render are exact).
+  Fega knows; don't re-litigate in review.
+- The mock loads real files via `file:///V:/...` — it breaks if V:\ is unmounted; that's
+  expected, not a bug.
 
-## Logs / Debugging
+## Logs/Debugging
 
-- Review verification: `node --check` on projects.js, `npm run build:renderer` clean,
-  dev-profile boot clean (`CLIPFLOW_PROFILE=dev npx electron .` — schema v9, no errors;
-  plain `npm start` exits 0 silently under the daily driver's single-instance lock).
-- Release loop: `npm run build` (background, ~4 min), `scripts/publish-update.ps1`
-  (uploaded exe + blockmap + manifest, pruned alpha.4 from the feed), feed verified via
-  `curl https://engine.flowve.app/updates/alpha.yml` → `version: 0.4.0-alpha.5`.
-- s197's fixture-library harness scripts are in that session's scratchpad if #305/#306
-  need re-verification (see b1572b9's HANDOFF Logs section for the file list).
+- None this session — planning only. Exploration agents' full findings are distilled into
+  the issue bodies (#308–#312), including the render filter-graph map and preview
+  coordinate-space notes.

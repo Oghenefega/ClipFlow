@@ -4,6 +4,13 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 199) — Planning: media overlays on the timeline (#308)
+
+### Planned
+- **No app code changed this session.** The next major feature — layering images, GIFs, and videos over the base clip in the editor — was explored (three parallel deep-dives into the timeline, render pipeline, and preview panel), planned, and approved. Epic #308 carries the architecture; build batches are #309 (Media tab with watched folders, replacing Upload), #310 (image/GIF overlays end-to-end: placement model, dynamic overlay tracks, on-canvas drag/resize, FFmpeg compositing), #311 (video overlays with their audio mixed in, sound on by default), and #312 (add-a-track for SFX/Music — today a third overlapping SFX draws on top of another block). Product decisions locked: one Media tab that only speaks in categories (Images/GIFs/Videos — folder names stay in Settings), NLE-style layering where higher tracks draw on top of the always-background clip, and All/Favorites/Recent views reusing the audio library's existing favorite/last-used machinery.
+- **Batch 0 mockup approved** (`tasks/mocks/media-overlays.html`): a full editor mock that loads Fega's real GIFs, cutouts, and reaction videos off V:\ — revised twice on review (category labels instead of folder names; Favorites/Recent chips + star toggles).
+- **Filed #313:** the FFmpeg skill doc still describes subtitle burn-in as an ASS file; the real mechanism is the offscreen-window PNG pipe.
+
 ## [Unreleased] — 2026-08-25 (session 198) — 0.4.0-alpha.5 cut and published
 
 ### Changed
