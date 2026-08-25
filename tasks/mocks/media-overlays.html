@@ -45,6 +45,10 @@
   .subtabs div { flex:1; text-align:center; padding:4.5px 0; border-radius:5px; color:rgba(255,255,255,.5); font-size:11.5px; font-weight:500; }
   .subtabs .on { background:#1f2330; color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
   .search { margin:9px 14px 0; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); border-radius:7px; padding:6px 10px; color:rgba(255,255,255,.35); font-size:11.5px; }
+  .views { display:flex; gap:5px; margin:9px 14px 0; }
+  .views div { padding:3.5px 11px; border-radius:99px; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.5); font-size:10.5px; font-weight:500; }
+  .views .on { background:rgba(236,72,153,.16); border-color:rgba(236,72,153,.5); color:#fbcfe8; }
+  .cell .fav { position:absolute; top:4px; left:4px; font-size:11px; color:#facc15; text-shadow:0 1px 3px rgba(0,0,0,.8); }
   .drawer .scroll { overflow-y:auto; flex:1; padding:8px 14px 12px; }
   .folder { display:flex; align-items:center; gap:6px; color:rgba(255,255,255,.55); font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin:10px 0 7px; }
   .folder .n { color:rgba(255,255,255,.3); font-weight:500; letter-spacing:0; text-transform:none; }
@@ -131,10 +135,11 @@
       </div>
       <div class="subtabs"><div>Images · 4</div><div class="on">GIFs · 55</div><div>Videos · 36</div></div>
       <div class="search">Search GIFs…</div>
+      <div class="views"><div class="on">All</div><div>★ Favorites</div><div>Recent</div></div>
       <div class="scroll">
         <div class="grid">
-          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega laughing.gif"><div class="add">+</div><div class="nm">Fega laughing</div></div>
-          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/100T Fega LETS GOOO.gif"><div class="nm">100T Fega LETS GOOO</div></div>
+          <div class="cell"><span class="fav">★</span><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega laughing.gif"><div class="add">+</div><div class="nm">Fega laughing</div></div>
+          <div class="cell"><span class="fav">★</span><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/100T Fega LETS GOOO.gif"><div class="nm">100T Fega LETS GOOO</div></div>
           <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega Pointing Smile gif.gif"><div class="nm">Fega Pointing Smile</div></div>
           <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Cmon team lets go.gif"><div class="nm">Cmon team lets go</div></div>
           <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/James Franco Smirk.gif"><div class="nm">James Franco Smirk</div></div>
