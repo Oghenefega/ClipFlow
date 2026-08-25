@@ -4,6 +4,11 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 198) — 0.4.0-alpha.5 cut and published
+
+### Changed
+- **Version bumped to 0.4.0-alpha.5 and a fresh installer published to the update feed.** Promotes everything since alpha.4 — batches 1 through 5 and their reviews: crash-safe project writes and honest save failures (#297, #298, #299), the rotatable AI token and cleaned defaults (#301, #302), imported/foreign recordings working through the pipeline (#62, #300, #178), the Rename tab and clip-card honesty pass with confirmed project deletes (#152, #153, #74), splitting a one-word subtitle (#305), and reposting published clips (#306) with its two review fixes.
+
 ## [Unreleased] — 2026-08-25 (session 198) — Fresh-eyes review of Batch 5: two repost edges
 
 ### Fixed
