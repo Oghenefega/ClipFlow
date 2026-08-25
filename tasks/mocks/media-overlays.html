@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Corva — Media overlays mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0b0c10; color:#e5e7eb; font-family:"DM Sans",system-ui,sans-serif; font-size:13px; padding:18px 22px 30px; }
+  .note { color:rgba(255,255,255,.45); font-size:11.5px; margin-bottom:14px; }
+  .note b { color:#e5e7eb; font-weight:600; }
+
+  .frame { border:1px solid rgba(255,255,255,.08); border-radius:10px; overflow:hidden; background:#0e0f13; max-width:1380px; }
+
+  /* ── main row: preview + drawer + rail ── */
+  .main { display:flex; height:520px; }
+  .stage { flex:1; display:flex; align-items:center; justify-content:center; background:#0a0b0e; position:relative; }
+
+  /* preview canvas 9:16 */
+  .canvas { width:262px; height:466px; border-radius:6px; position:relative; overflow:hidden;
+            background:linear-gradient(160deg,#1d2b3a 0%,#0f1722 45%,#131019 100%); box-shadow:0 0 0 1px rgba(255,255,255,.07), 0 18px 50px rgba(0,0,0,.55); }
+  .canvas .game { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.14); font-weight:600; letter-spacing:.12em; font-size:11px; text-transform:uppercase; }
+  .canvas .cutout { position:absolute; left:6%; bottom:26%; width:34%; filter:drop-shadow(0 4px 14px rgba(0,0,0,.6)); }
+  .canvas .cutout img { width:100%; display:block; }
+
+  /* selected gif overlay + handles */
+  .ovl { position:absolute; top:7%; right:6%; width:44%; }
+  .ovl img { width:100%; display:block; border-radius:3px; }
+  .ovl .sel { position:absolute; inset:-5px; border:1.5px solid rgba(96,165,250,.9); border-radius:4px; pointer-events:none; }
+  .ovl .h { position:absolute; width:9px; height:9px; background:#fff; border:1.5px solid rgba(96,165,250,.95); border-radius:50%; }
+  .ovl .h.nw{top:-9px;left:-9px} .ovl .h.ne{top:-9px;right:-9px} .ovl .h.sw{bottom:-9px;left:-9px} .ovl .h.se{bottom:-9px;right:-9px}
+  .ovl .tag { position:absolute; top:-24px; left:-4px; background:rgba(15,17,22,.92); border:1px solid rgba(96,165,250,.5); color:#bfdbfe; font-size:9.5px; padding:2px 7px; border-radius:99px; white-space:nowrap; }
+
+  .sub { position:absolute; left:0; right:0; bottom:13%; text-align:center; font-weight:700; font-size:15px;
+         text-shadow:0 2px 6px rgba(0,0,0,.9); }
+  .sub .w2 { color:#facc15; }
+
+  /* media drawer */
+  .drawer { width:302px; border-left:1px solid rgba(255,255,255,.07); background:#111218; display:flex; flex-direction:column; }
+  .drawer .head { padding:12px 14px 0; }
+  .drawer h3 { font-size:13px; font-weight:600; letter-spacing:.01em; }
+  .drawer .sub-note { color:rgba(255,255,255,.35); font-size:10.5px; margin-top:2px; }
+  .subtabs { display:flex; gap:4px; margin:10px 14px 0; background:rgba(255,255,255,.05); border-radius:7px; padding:3px; }
+  .subtabs div { flex:1; text-align:center; padding:4.5px 0; border-radius:5px; color:rgba(255,255,255,.5); font-size:11.5px; font-weight:500; }
+  .subtabs .on { background:#1f2330; color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .search { margin:9px 14px 0; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); border-radius:7px; padding:6px 10px; color:rgba(255,255,255,.35); font-size:11.5px; }
+  .drawer .scroll { overflow-y:auto; flex:1; padding:8px 14px 12px; }
+  .folder { display:flex; align-items:center; gap:6px; color:rgba(255,255,255,.55); font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin:10px 0 7px; }
+  .folder .n { color:rgba(255,255,255,.3); font-weight:500; letter-spacing:0; text-transform:none; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+  .cell { position:relative; border-radius:6px; overflow:hidden; background:#0c0d11; border:1px solid rgba(255,255,255,.06); }
+  .cell .th { width:100%; height:64px; object-fit:cover; display:block; }
+  .cell .nm { font-size:9px; color:rgba(255,255,255,.55); padding:3px 5px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cell .add { position:absolute; top:4px; right:4px; width:17px; height:17px; border-radius:5px; background:rgba(10,11,14,.75); border:1px solid rgba(255,255,255,.25); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1; }
+  .cell .dur { position:absolute; bottom:20px; right:4px; background:rgba(0,0,0,.72); font-size:8.5px; padding:1px 4px; border-radius:3px; color:rgba(255,255,255,.85); }
+  .drop { margin-top:12px; border:1.5px dashed rgba(255,255,255,.14); border-radius:8px; text-align:center; padding:10px; color:rgba(255,255,255,.35); font-size:10.5px; }
+
+  /* icon rail */
+  .rail { width:52px; border-left:1px solid rgba(255,255,255,.07); background:#0d0e12; display:flex; flex-direction:column; align-items:center; padding-top:10px; gap:2px; }
+  .rail div { width:40px; padding:7px 0 5px; border-radius:8px; text-align:center; color:rgba(255,255,255,.42); font-size:15px; }
+  .rail div span { display:block; font-size:8px; margin-top:1px; letter-spacing:.02em; }
+  .rail .on { background:rgba(96,165,250,.14); color:#93c5fd; }
+
+  /* ── timeline ── */
+  .tl { border-top:1px solid rgba(255,255,255,.08); background:#131419; }
+  .lane { display:flex; border-bottom:1px solid rgba(255,255,255,.06); position:relative; }
+  .lbl { width:96px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; font-size:10px; font-weight:600; color:rgba(255,255,255,.5); background:#101116; border-right:1px solid rgba(255,255,255,.06); z-index:2; }
+  .lbl .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .lbl .plus { margin-left:auto; width:15px; height:15px; border-radius:4px; border:1px solid rgba(255,255,255,.18); color:rgba(255,255,255,.55); font-size:11px; line-height:13px; text-align:center; }
+  .trk { flex:1; position:relative; }
+  .blk { position:absolute; top:5px; bottom:5px; border-radius:4px; font-size:9.5px; display:flex; align-items:center; gap:5px; padding:0 7px; font-weight:500; overflow:hidden; white-space:nowrap; }
+
+  .ruler { height:22px; background:#0f1014; }
+  .ruler .trk { color:rgba(255,255,255,.35); font-size:9px; }
+  .tick { position:absolute; top:4px; }
+
+  .l-cap { height:30px; } .l-sub { height:30px; }
+  .l-med { height:34px; background:rgba(236,72,153,.025); }
+  .l-vid { height:52px; } .l-snd { height:32px; }
+
+  .b-cap { background:hsl(217 70% 55% / .16); border:1px solid hsl(217 70% 55% / .5); color:hsl(217 70% 85%); }
+  .b-sub { background:hsl(82 75% 45% / .14); border:1px solid hsl(82 75% 45% / .45); color:hsl(82 75% 82%); }
+  .b-med { background:rgba(236,72,153,.18); border:1px solid rgba(236,72,153,.55); color:#fbcfe8; }
+  .b-med.sel { border:1.5px solid rgba(244,114,182,.95); box-shadow:0 0 0 1px rgba(244,114,182,.35); }
+  .b-med .mth { height:100%; aspect-ratio:1; object-fit:cover; margin-left:-7px; }
+  .b-vid { background:hsl(25 90% 55% / .1); border:1px solid hsl(25 90% 55% / .3); color:hsl(25 90% 70%); }
+  .b-mus { background:rgba(20,184,166,.22); border:1px solid rgba(20,184,166,.55); color:hsl(172 60% 90%); }
+  .b-sfx { background:rgba(139,92,246,.28); border:1px solid rgba(139,92,246,.65); color:hsl(258 70% 93%); }
+
+  .wave { position:absolute; inset:6px 0; display:flex; align-items:center; gap:1.5px; padding:0 2px; }
+  .wave i { flex:1; background:hsl(25 90% 60% / .5); border-radius:1px; }
+
+  .ph { position:absolute; top:0; bottom:0; left:calc(96px + 38%); width:1.5px; background:#9ca3af; z-index:5; }
+  .ph::before { content:""; position:absolute; top:0; left:-4.5px; border:5px solid transparent; border-top:6px solid #9ca3af; }
+
+  /* annotations */
+  .ann { display:flex; gap:10px; margin-top:14px; max-width:1380px; }
+  .ann div { flex:1; background:#111218; border:1px solid rgba(255,255,255,.07); border-radius:9px; padding:10px 12px; font-size:11px; color:rgba(255,255,255,.6); line-height:1.45; }
+  .ann b { color:#e5e7eb; display:block; margin-bottom:3px; font-size:11.5px; }
+  .ann .k { color:#f472b6; }
+</style>
+</head>
+<body>
+
+<div class="note"><b>Media overlays — mockup (batch 0, #308).</b> Thumbnails and overlays below are your real files loading straight off V:\ — this is what the feature will look like with your library. Timeline shows the two new overlay tracks; preview shows a selected GIF with drag/resize handles.</div>
+
+<div class="frame">
+  <div class="main">
+
+    <!-- preview -->
+    <div class="stage">
+      <div class="canvas">
+        <div class="game">Deadline Delivery — gameplay</div>
+        <div class="cutout"><img src="file:///V:/Thumbnails/Gaming/HeadShots/Cutouts/Fega suprised laughing.png" alt=""></div>
+        <div class="ovl">
+          <span class="tag">Fega laughing.gif · 44% · Track 2</span>
+          <img src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega laughing.gif" alt="">
+          <div class="sel"></div>
+          <div class="h nw"></div><div class="h ne"></div><div class="h sw"></div><div class="h se"></div>
+        </div>
+        <div class="sub">NO WAY <span class="w2">HE HIT</span> THAT</div>
+      </div>
+    </div>
+
+    <!-- media drawer -->
+    <div class="drawer">
+      <div class="head">
+        <h3>Media</h3>
+        <div class="sub-note">3 watched folders · 95 items</div>
+      </div>
+      <div class="subtabs"><div>Images</div><div class="on">GIFs</div><div>Videos</div></div>
+      <div class="search">Search GIFs…</div>
+      <div class="scroll">
+        <div class="folder">▾ My Gifs <span class="n">· 55</span></div>
+        <div class="grid">
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega laughing.gif"><div class="add">+</div><div class="nm">Fega laughing</div></div>
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/100T Fega LETS GOOO.gif"><div class="nm">100T Fega LETS GOOO</div></div>
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega Pointing Smile gif.gif"><div class="nm">Fega Pointing Smile</div></div>
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Cmon team lets go.gif"><div class="nm">Cmon team lets go</div></div>
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/James Franco Smirk.gif"><div class="nm">James Franco Smirk</div></div>
+          <div class="cell"><img class="th" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega sad.gif"><div class="nm">Fega sad</div></div>
+        </div>
+        <div class="folder" style="margin-top:14px">▸ Cutouts <span class="n">· 4</span> &nbsp;&nbsp; <span class="n">(Images tab)</span></div>
+        <div class="folder">▸ vids to gifs <span class="n">· 36</span> &nbsp;&nbsp; <span class="n">(Videos tab)</span></div>
+        <div class="drop">Drop files to import — PNG · JPG · WebP · GIF · MP4 · MOV · WebM</div>
+      </div>
+    </div>
+
+    <!-- icon rail -->
+    <div class="rail">
+      <div>✦<span>AI</span></div>
+      <div>◐<span>Brand</span></div>
+      <div>≣<span>Subs</span></div>
+      <div>T<span>Text</span></div>
+      <div>♪<span>Audio</span></div>
+      <div class="on">▣<span>Media</span></div>
+      <div>◫<span>Layout</span></div>
+    </div>
+  </div>
+
+  <!-- timeline -->
+  <div class="tl" style="position:relative">
+    <div class="ph"></div>
+
+    <div class="lane ruler"><div class="lbl" style="background:#0f1014"></div><div class="trk">
+      <span class="tick" style="left:2%">0s</span><span class="tick" style="left:18%">4s</span><span class="tick" style="left:34%">8s</span><span class="tick" style="left:50%">12s</span><span class="tick" style="left:66%">16s</span><span class="tick" style="left:82%">20s</span><span class="tick" style="left:96%">24s</span>
+    </div></div>
+
+    <div class="lane l-cap"><div class="lbl"><span class="dot" style="background:hsl(217 70% 50%)"></span>Caption</div><div class="trk">
+      <div class="blk b-cap" style="left:1%;width:30%">NO WAY he hit that…</div>
+    </div></div>
+
+    <div class="lane l-sub"><div class="lbl"><span class="dot" style="background:hsl(82 75% 38%)"></span>Subtitle</div><div class="trk">
+      <div class="blk b-sub" style="left:2%;width:9%">no way</div>
+      <div class="blk b-sub" style="left:12.5%;width:11%">he hit that</div>
+      <div class="blk b-sub" style="left:30%;width:8%">bro…</div>
+      <div class="blk b-sub" style="left:44%;width:13%">I'm actually done</div>
+      <div class="blk b-sub" style="left:70%;width:10%">let's gooo</div>
+    </div></div>
+
+    <div class="lane l-med"><div class="lbl"><span class="dot" style="background:#ec4899"></span>Overlay 2<div class="plus" title="Add overlay track">+</div></div><div class="trk">
+      <div class="blk b-med sel" style="left:33%;width:14%"><img class="mth" src="file:///V:/AutoSync/Images/GIFs/My Gifs/Fega laughing.gif">Fega laughing.gif</div>
+    </div></div>
+
+    <div class="lane l-med"><div class="lbl"><span class="dot" style="background:#ec4899"></span>Overlay 1</div><div class="trk">
+      <div class="blk b-med" style="left:6%;width:22%"><img class="mth" src="file:///V:/Thumbnails/Gaming/HeadShots/Cutouts/Fega suprised laughing.png">Fega suprised laughing.png</div>
+      <div class="blk b-med" style="left:62%;width:16%">▶ OH MY GAWD.mp4 &nbsp;🔊 60%</div>
+    </div></div>
+
+    <div class="lane l-vid"><div class="lbl"><span class="dot" style="background:hsl(25 90% 50%)"></span>Video</div><div class="trk">
+      <div class="blk b-vid" style="left:0%;width:58%"><div class="wave">
+        <i style="height:30%"></i><i style="height:55%"></i><i style="height:40%"></i><i style="height:75%"></i><i style="height:90%"></i><i style="height:60%"></i><i style="height:35%"></i><i style="height:80%"></i><i style="height:95%"></i><i style="height:50%"></i><i style="height:25%"></i><i style="height:65%"></i><i style="height:85%"></i><i style="height:45%"></i><i style="height:70%"></i><i style="height:30%"></i><i style="height:55%"></i><i style="height:88%"></i><i style="height:40%"></i><i style="height:62%"></i>
+      </div></div>
+      <div class="blk b-vid" style="left:58.5%;width:41%"><div class="wave">
+        <i style="height:50%"></i><i style="height:70%"></i><i style="height:35%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:92%"></i><i style="height:45%"></i><i style="height:66%"></i><i style="height:38%"></i><i style="height:78%"></i><i style="height:55%"></i><i style="height:30%"></i><i style="height:72%"></i><i style="height:48%"></i>
+      </div></div>
+    </div></div>
+
+    <div class="lane l-snd"><div class="lbl"><span class="dot" style="background:rgb(20,184,166)"></span>Music</div><div class="trk">
+      <div class="blk b-mus" style="left:0%;width:84%">♪ Ain't Looking Back — Epidemic</div>
+    </div></div>
+
+    <div class="lane l-snd"><div class="lbl"><span class="dot" style="background:rgb(139,92,246)"></span>SFX<div class="plus" title="Add SFX track (batch 4)">+</div></div><div class="trk">
+      <div class="blk b-sfx" style="left:12%;width:6%">Boom</div>
+      <div class="blk b-sfx" style="left:36%;width:7%">Airhorn</div>
+      <div class="blk b-sfx" style="left:39%;width:6%;top:auto;bottom:2px;height:12px;font-size:8.5px">Bruh</div>
+      <div class="blk b-sfx" style="left:71%;width:8%">Crowd cheer</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="ann">
+  <div><b>Media tab = watched folders</b> Point it at <span class="k">My Gifs</span>, <span class="k">Cutouts</span>, and <span class="k">vids to gifs</span> in Settings (like the audio library). New files appear automatically; nothing is copied. Drop-to-import still exists for one-offs. Upload tab retires.</div>
+  <div><b>NLE layering</b> The clip is always the background. <span class="k">Overlay 2</span> draws on top of <span class="k">Overlay 1</span>. "+" adds a track (up to 3). Blocks drag/trim/Alt-duplicate exactly like sound blocks, and stick to their moment through cuts.</div>
+  <div><b>On-canvas control</b> Click an overlay in the preview to get the frame + corner handles — drag to move, corners to resize. Size/position are % of the output frame, so render matches preview exactly.</div>
+  <div><b>Video sound on by default</b> Reaction clips play their own audio mixed into the clip (🔊 60% on the block); each video overlay gets a volume slider + mute. Extra SFX/Music tracks come in the last batch — the "+" on SFX shows where.</div>
+</div>
+
+</body>
+</html>
