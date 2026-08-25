@@ -1,71 +1,62 @@
-# HANDOFF — Session 197 (2026-08-25)
+# HANDOFF — Session 198 (2026-08-25)
 
 ## Current State
 
-**Batch 5 built and machine-verified: #305 (cut a one-word subtitle in half) and #306
-(repost a published clip).** Two commits, one per feature, plus the changelog — all
-pushed. Both issues are left OPEN with a full verification write-up commented on each;
-Fega hasn't eyeballed either yet. Everything from s195/s196 still stands: batches 1–4
-built + reviewed, **the installer covering them is still uncut**, and batch 5 is now
-sitting in front of it.
+**Batch 5 reviewed, two #306 fixes shipped, 0.4.0-alpha.5 cut, published, and confirmed
+installed on Fega's desktop** (Settings reads v0.4.0-alpha.5). #305 and #306 are CLOSED
+with `status: untested` — Fega confirmed the update took, not the features themselves.
+The installer promotes everything since alpha.4: batches 1–5 plus all review fixes.
 
-Commits: `fa5e3fb` (#305), `e964752` (#306), `084b596` (changelog).
+Commits: `3220776` (review fixes), `714aa89` (version bump + cut).
 
 ## Key Decisions
 
-1. **#306 copies the THUMBNAIL as well as the render** — one step beyond the approved
-   spec. `deleteClip(deleteFile)` unlinks `thumbnailPath` too, so a shared thumbnail
-   meant deleting a repost would strip the frame off the original's Tracker popover,
-   which is the very surface the Repost button lives on. `filePath` (the pre-cut clip
-   file) is still shared — that's `duplicateClip`'s existing behaviour and was left alone
-   rather than widening scope.
-2. **Verification ran against an isolated fixture library, not the real one.** Dev
-   `projectsRoot`/`watchFolder` were repointed at a scratchpad tree holding a throwaway
-   project (gotcha 48), so the editor's autosave and the repost's file writes could be
-   fully destructive at zero risk. Settings were restored from backup at teardown.
-3. **No publish was run** — #306's `logPost` passthrough and the AI-training fence are
-   left for the review session to read, per the spec.
+1. **Review verdict on batch 5: #305 clean, #306 had two real edges.** (a) The Queue tab
+   badge (`totalApproved`, App.js) is a deliberate mirror of QueueView's unscheduled
+   filter but never got the `repostOf` title-knockout exemption — a waiting repost showed
+   in the list while the badge subtracted it, recreating the #139 desync. (b) On a
+   failed/missing thumbnail copy, `repostClip` fell back to the ORIGINAL's thumbnail path
+   — two clips sharing one file, violating the feature's own "copied, not shared"
+   invariant. Now the repost carries a thumbnail only when it owns the copied file.
+2. **`splitCopy` durability was traced end-to-end and passed**: saved verbatim in `sub1`,
+   `resolveSubtitles` skips whisperx dedups for editor-saved subs, `setSegmentMode` and
+   all four `cleanWordTimestamps` passes spread word objects. No fix needed.
+3. Review notes were commented on #306; both issues closed `status: untested` after Fega
+   confirmed the alpha.5 install.
 
 ## Next Steps
 
-1. **Fable@xhigh review session** on `fa5e3fb` and `e964752`, commit-by-hash. The two
-   things worth the reviewer's attention are named under Watch Out For.
-2. **Cut the installer** covering batches 1–5 (`clipflow-update-launcher`) — carried
-   from s195, now with two more features folded in.
-3. Fega's eyeball checks: #305 and #306 in the real app, plus the carried batch-4 items
-   (Rename watcher states, delete dialog, completion headline).
-4. #307 (filed this session): the timeline right-click menu labels Split with `S` while
-   the shortcut is `U`, and the hint is hardcoded so it ignores rebinds.
+1. **Fega's eyeball checks on the installed build**: #305 (split a one-word subtitle) and
+   #306 (Repost from Tracker popover + Queue Published shelf) — remove `status: untested`
+   on confirmation. Carried batch-4 items too (Rename watcher states, delete dialog,
+   completion headline).
+2. **Laptop update** — relaunch Corva there, banner should offer alpha.5. First download
+   on a machine is full-size; differential starts from the next one.
+3. **Next build batch** per the s186 sequencing (Opus@high builds, Fable@xhigh reviews).
+4. #307 still open: timeline right-click menu labels Split `S` while the shortcut is `U`.
 
 ## Watch Out For
 
-- **#305's `splitCopy` flag has to survive three hops to work**: the words array through
-  `setSegmentMode`'s rebuild, `cleanWordTimestamps` (all passes spread `{...w}`), and
-  `segmentWords` (passes word objects by reference). It does today — the 3w→1w→3w→1w
-  round trip was run and both copies survived — but any future pass that REBUILDS word
-  objects instead of spreading them will silently re-arm the dedup and eat a half.
-- **#306's queue exemption is load-bearing.** `c.repostOf ||` at QueueView.js:771 is the
-  only reason a repost isn't filtered out for matching its original's title. If a
-  simplification pass removes it, reposts vanish with no error.
-- **The second half of a #305 split drifts its end time on every mode switch**
-  (7.0 → 7.4 → 7.8 → 8.0 across the round trip). That is segmentWords' existing
-  linger/min-display rule stretching the last word of a partition, not new behaviour —
-  don't "fix" it as a split bug.
-- Standing s190–s196 items unchanged (see b1572b9's HANDOFF): prod hasn't run the #301
-  migration; `gatewayAuthTokenPreMigration` kept until the installer reaches the laptop;
-  completion headline still never eyeballed on screen.
+- The two review fixes are UNTESTED by Fega like the features: the badge fix only shows
+  when a repost is sitting unscheduled (badge must match list count); the thumbnail fix
+  only shows on a copy failure (repost card simply has no thumbnail).
+- **#306's queue exemption is load-bearing** (QueueView.js:771 and now App.js:850 —
+  BOTH must keep `c.repostOf ||` or list and badge desync again).
+- **#305's `splitCopy` flag** must keep surviving spreads — any future pass that REBUILDS
+  word objects instead of `{...w}` silently re-arms the dedup and eats a half.
+- Standing s190–s197 items unchanged: prod hasn't run the #301 migration path until now
+  (alpha.5 IS the installer that carries it — watch first-boot logs if anything odd);
+  `gatewayAuthTokenPreMigration` kept until the laptop is on alpha.5; the second half of
+  a #305 split drifting its end on mode switches is segmentWords' existing linger rule,
+  not a bug.
 
 ## Logs / Debugging
 
-- Verification harness lives in this session's scratchpad: `drv.js` (CDP evaluator),
-  `key.js` (trusted key dispatch via `Input.dispatchKeyEvent`), `shot.js` (screenshot),
-  `mkfixture.py` (builds the fixture library + repoints dev settings),
-  `checklie.py` (reads split results straight off the fixture's project.json).
-  `clipflow-settings.dev.backup.json` is the restored-from backup — dev profile is back
-  on the real library, verified after teardown.
-- Reading split results **off disk** (the editor autosaves ~800ms after every edit) was
-  far cheaper than walking the React fiber tree for store state. Worth reusing.
-- New CDP trap recorded as #57 in the `project_cdp_verification_gotchas` memory: the
-  Tracker calendar only renders the visible week, so a seeded entry dated outside it
-  reads as "the feature didn't render". Cost one restart.
-- No app errors in `%APPDATA%\clipflow-dev\logs` during the run; nothing new in Sentry.
+- Review verification: `node --check` on projects.js, `npm run build:renderer` clean,
+  dev-profile boot clean (`CLIPFLOW_PROFILE=dev npx electron .` — schema v9, no errors;
+  plain `npm start` exits 0 silently under the daily driver's single-instance lock).
+- Release loop: `npm run build` (background, ~4 min), `scripts/publish-update.ps1`
+  (uploaded exe + blockmap + manifest, pruned alpha.4 from the feed), feed verified via
+  `curl https://engine.flowve.app/updates/alpha.yml` → `version: 0.4.0-alpha.5`.
+- s197's fixture-library harness scripts are in that session's scratchpad if #305/#306
+  need re-verification (see b1572b9's HANDOFF Logs section for the file list).
