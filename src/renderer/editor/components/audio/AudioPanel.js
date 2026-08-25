@@ -136,7 +136,9 @@ export default function AudioPanel() {
     const next = await refresh();
     setRefreshing(false);
     if (!next) return; // refresh() already flashed the error
-    const added = next.filter((a) => !before.has(a.id));
+    // #309: the index now also holds media entries — only audio counts here
+    // (type null = an audio file still waiting for its duration probe).
+    const added = next.filter((a) => !before.has(a.id) && (a.type == null || a.type === "music" || a.type === "sfx"));
     if (!added.length) { flashStatus("Nothing new"); return; }
     // A just-absorbed file has no duration yet, so it has no lane yet either and
     // shows in neither tab until backfillDurations probes it (#208). Saying so

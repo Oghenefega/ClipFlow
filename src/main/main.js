@@ -316,6 +316,9 @@ const STORE_DEFAULTS = {
   // #208: folders whose audio is linked in place, never copied. Scanned
   // recursively. Shape: [{ path, enabled }].
   audioFolders: [],
+  // #309: folders whose images / GIFs / videos feed the editor's Media tab.
+  // Linked in place like audioFolders, same shape: [{ path, enabled }].
+  mediaFolders: [],
   // How loud the Audio panel auditions a track (0–1). Preview only — a placed
   // sound carries its own volume. Defaults low: a commercial music library is
   // mastered loud, and full-blast auditioning is painful.
@@ -472,6 +475,10 @@ function runStoreMigrations(store) {
     logger.info(logger.MODULES.system, `Migrated sfxFolder to audioFolders: ${legacySfxFolder}`);
   }
   if (!Array.isArray(store.get("audioFolders"))) store.set("audioFolders", []);
+
+  // ── Migration (#309): watched media folders for the editor's Media tab ──
+  // Existing installs predate the key; the defaults block only covers fresh ones.
+  if (!Array.isArray(store.get("mediaFolders"))) store.set("mediaFolders", []);
 
   // ── Migration (#208): Audio panel preview volume ──
   // Existing installs have no value; 0 is a legitimate setting, so this checks
@@ -1383,7 +1390,7 @@ ipcMain.handle("assets:list", async () => {
   try {
     if (!libraryRoot()) return { success: true, assets: [] };
     const root = assetsRootOrThrow();
-    const assets = await assetLibrary.listAssets(root, store.get("audioFolders"));
+    const assets = await assetLibrary.listAssets(root, store.get("audioFolders"), store.get("mediaFolders"));
     // Durations decide the Music/SFX lane, and a cold library is over a minute
     // of probing — run it behind the open panel and let the renderer re-fetch
     // as it lands (#208).

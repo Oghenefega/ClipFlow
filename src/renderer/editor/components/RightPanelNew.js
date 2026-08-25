@@ -15,18 +15,19 @@ import {
   TooltipTrigger,
 } from "../../../components/ui/tooltip";
 import {
-  Sparkles, Palette, Captions, Type, Music, Upload, ImagePlus,
+  Sparkles, Palette, Captions, Type, Music, ImagePlus, Image,
   X, Star, Plus, Minus, ChevronDown, ChevronRight,
   Check, RefreshCw, Loader2, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, Pipette, Heart, GripVertical,
-  UploadCloud, FolderOpen, FileImage, Film, PenLine, Crop, Trash2,
+  UploadCloud, FileImage, Film, PenLine, Crop,
 } from "lucide-react";
 import useSubtitleStore from "../stores/useSubtitleStore";
 import useCaptionStore from "../stores/useCaptionStore";
 import useAIStore from "../stores/useAIStore";
 import useEditorStore from "../stores/useEditorStore";
 import useLayoutStore from "../stores/useLayoutStore";
-import AudioPanel, { AUDIO_EXTENSIONS } from "./audio/AudioPanel";
+import AudioPanel from "./audio/AudioPanel";
+import MediaPanel from "./media/MediaPanel";
 import { EFFECT_PRESETS, applyEffectPreset, snapshotEffectPreset } from "../utils/templateUtils";
 import { bgSourceWindow, presetFullyZoomed, presetFitToScreen } from "../utils/reframeStyle";
 import { PALETTE_COLORS, getRecentColors, pushRecentColor, needsOutline } from "../utils/recentColors";
@@ -1720,159 +1721,7 @@ function TextPanel() {
 
 
 // ════════════════════════════════════════════════════════════════
-//  DRAWER 6: UPLOAD
-// ════════════════════════════════════════════════════════════════
-const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
-
-function UploadPanel() {
-  const [dragOver, setDragOver] = useState(false);
-  const [assets, setAssets] = useState([]);
-  const [status, setStatus] = useState(null); // { text, error }
-  const [armedDeleteId, setArmedDeleteId] = useState(null);
-  const statusTimer = useRef(null);
-
-  const refresh = useCallback(async () => {
-    const result = await window.clipflow.assetsList();
-    if (result?.success) setAssets(result.assets);
-  }, []);
-  useEffect(() => { refresh(); }, [refresh]);
-  useEffect(() => () => clearTimeout(statusTimer.current), []);
-
-  const flashStatus = useCallback((text, error = false) => {
-    setStatus({ text, error });
-    clearTimeout(statusTimer.current);
-    statusTimer.current = setTimeout(() => setStatus(null), 6000);
-  }, []);
-
-  const importFiles = useCallback(async (paths) => {
-    if (!paths || paths.length === 0) return;
-    const result = await window.clipflow.assetsImport(paths, null);
-    if (!result?.success) { flashStatus(result?.error || "Import failed", true); return; }
-    const sounds = result.imported.filter((a) => a.type !== "image").length;
-    const images = result.imported.filter((a) => a.type === "image").length;
-    const parts = [];
-    if (sounds) parts.push(`${sounds} sound${sounds === 1 ? "" : "s"} → Audio panel`);
-    if (images) parts.push(`${images} image${images === 1 ? "" : "s"} saved`);
-    result.skipped.forEach((s) => parts.push(`${s.file}: ${s.reason}`));
-    flashStatus(parts.join(" · ") || "Nothing imported", result.imported.length === 0);
-    refresh();
-  }, [flashStatus, refresh]);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragOver(false);
-    const paths = Array.from(e.dataTransfer.files)
-      .map((f) => { try { return window.clipflow.getPathForFile(f); } catch (_) { return null; } })
-      .filter(Boolean);
-    importFiles(paths);
-  }, [importFiles]);
-
-  const handleUpload = useCallback(async () => {
-    const paths = await window.clipflow.openFileDialog({
-      properties: ["openFile", "multiSelections"],
-      filters: [
-        { name: "Media", extensions: [...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS] },
-        { name: "Audio", extensions: AUDIO_EXTENSIONS },
-        { name: "Images", extensions: IMAGE_EXTENSIONS },
-      ],
-    });
-    if (paths) importFiles(paths);
-  }, [importFiles]);
-
-  const handleDelete = useCallback(async (asset) => {
-    if (armedDeleteId !== asset.id) { setArmedDeleteId(asset.id); return; }
-    setArmedDeleteId(null);
-    const result = await window.clipflow.assetsDelete(asset.id);
-    if (result?.success) { flashStatus(`Deleted ${asset.name}`); refresh(); }
-    else flashStatus(result?.error || "Delete failed", true);
-  }, [armedDeleteId, flashStatus, refresh]);
-
-  const images = useMemo(() => assets.filter((a) => a.type === "image"), [assets]);
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Upload button */}
-      <div className="px-3 pt-3 pb-2">
-        <Button variant="outline" className="w-full h-10 text-xs gap-2" onClick={handleUpload}>
-          <Upload className="h-4 w-4" /> Upload
-        </Button>
-      </div>
-
-      {/* Import feedback */}
-      {status && (
-        <div className={`px-3 pb-1.5 text-[11px] ${status.error ? "text-red-400" : "text-emerald-400"}`}>{status.text}</div>
-      )}
-
-      {/* Drop zone */}
-      <div className={`${images.length > 0 ? "" : "flex-1"} flex items-center justify-center px-3 pb-3`}>
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          className={`w-full h-full ${images.length > 0 ? "min-h-[120px]" : "min-h-[200px]"} rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${
-            dragOver ? "border-primary/50 bg-primary/5" : "border-border/30"
-          }`}
-        >
-          {/* Folder illustration */}
-          <div className="relative">
-            <FolderOpen className="h-16 w-16 text-primary/20" />
-            <div className="absolute -top-1 -right-2 w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
-              <FileImage className="h-3 w-3 text-primary/40" />
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground text-center">
-            Drop images or audio here<br />
-            <span className="text-muted-foreground/60">sounds land in the Audio panel</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Image library */}
-      {images.length > 0 && (
-        <ScrollArea className="flex-1">
-          <div className="px-3 pb-3">
-            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Images</div>
-            <div className="space-y-1">
-              {images.map((img) => (
-                <div key={img.id}
-                  onMouseLeave={() => setArmedDeleteId(null)}
-                  className={`flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-secondary/30 transition-colors group ${img.missing ? "opacity-50" : ""}`}>
-                  <div className="w-10 h-10 rounded-md bg-secondary/50 border border-border/30 overflow-hidden shrink-0 flex items-center justify-center">
-                    {img.missing
-                      ? <FileImage className="h-4 w-4 text-muted-foreground/50" />
-                      : <img src={`file://${img.path.replace(/\\/g, "/")}`} alt="" className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-foreground font-medium truncate" title={img.path}>{img.name}</div>
-                    <div className="text-[12px] text-muted-foreground">
-                      {img.sizeBytes ? `${Math.max(1, Math.round(img.sizeBytes / 1024))} KB` : ""}
-                      {img.missing ? " · file missing" : ""}
-                    </div>
-                  </div>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button onClick={() => handleDelete(img)}
-                          className={`h-6 w-6 rounded-full items-center justify-center transition-colors shrink-0 hidden group-hover:flex ${armedDeleteId === img.id ? "text-red-400 bg-red-500/15" : "text-muted-foreground hover:text-foreground"}`}>
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-[12px]">{armedDeleteId === img.id ? "Click again to delete" : "Delete"}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ScrollArea>
-      )}
-    </div>
-  );
-}
-
-
-// ════════════════════════════════════════════════════════════════
-//  DRAWER 7: LAYOUT (#164 Auto-Reframe Phase A calibration)
+//  DRAWER 6: LAYOUT (#164 Auto-Reframe Phase A calibration)
 // ════════════════════════════════════════════════════════════════
 
 // One calibration rect row (Webcam or Game): color swatch, live w×h@x,y readout,
@@ -2384,14 +2233,16 @@ const RAIL_ICONS = [
   { id: "subs", icon: Captions, label: "Subtitles", group: 2 },
   { id: "text", icon: Type, label: "Text", group: 2 },
   { id: "audio", icon: Music, label: "Audio", group: 3 },
-  { id: "upload", icon: Upload, label: "Upload", group: 3 },
+  // #309: the Media library (images/GIFs/videos from watched folders) replaced
+  // the Upload drawer — one-off imports live inside it as a drop zone.
+  { id: "media", icon: Image, label: "Media", group: 3 },
   // #164: vertical layout calibration — ALWAYS visible (Fega: never hide
   // features); the panel explains itself when a source is already 9:16.
   { id: "layout", icon: Crop, label: "Layout", group: 4 },
 ];
 
 const DRAWER_LABELS = {
-  ai: "AI Tools", brand: "Brand Kit", subs: "Subtitles", text: "Text", audio: "Audio", upload: "Upload", layout: "Layout",
+  ai: "AI Tools", brand: "Brand Kit", subs: "Subtitles", text: "Text", audio: "Audio", media: "Media", layout: "Layout",
 };
 
 
@@ -2411,7 +2262,7 @@ export default function RightPanelNew({ gamesDb }) {
       case "brand": return <BrandKitPanel />;
       case "subs": return <SubtitlesPanel />;
       case "text": return <TextPanel />;
-      case "upload": return <UploadPanel />;
+      case "media": return <MediaPanel />;
       case "layout": return <LayoutPanel />;
       default: return (
         <div className="p-4 flex items-center justify-center h-[200px] text-muted-foreground">
@@ -2470,7 +2321,7 @@ export default function RightPanelNew({ gamesDb }) {
           </div>
           {/* Body */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {activePanel === "audio" || activePanel === "subs" || activePanel === "text" ? (
+            {activePanel === "audio" || activePanel === "media" || activePanel === "subs" || activePanel === "text" ? (
               renderDrawer()
             ) : (
               <ScrollArea className="h-full">{renderDrawer()}</ScrollArea>

@@ -4,6 +4,15 @@ All notable changes to Corva (formerly ClipFlow) are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — 2026-08-25 (session 200) — Batch 1 of media overlays: the Media tab (#309)
+
+### Added
+- **The editor has a Media tab — images, GIFs and videos from your own folders (#309).** A new "Media Folders" list in Settings (next to Audio Folders) points Corva at the folders your media lives in; everything in them, subfolders included, appears in the editor's new Media panel automatically — linked in place, never copied, so self-syncing folders keep working. The panel lists items as thumbnails under three sub-tabs (Images / GIFs / Videos, each with a count), with search, All/Favorites/Recent views and a star on every cell to pin favorites — the same flow the Audio panel uses, backed by the same library index. Video cells show a real first-frame thumbnail plus the clip's length, and are torn down properly so browsing doesn't leak media elements. Recent stays empty for now: it fills in once Batch 2 (#310) lets media be placed on the timeline.
+- **GIFs and videos can now be imported.** The asset library's explicit "GIFs come later" / "Videos aren't supported yet" rejections are gone — dropping or uploading PNG/JPG/WebP/GIF/MP4/MOV/WebM/MKV files into the Media panel copies them into the project library as one-off items, deletable from the grid (watched-folder files deliberately aren't — they belong to you).
+
+### Removed
+- **The Upload drawer is retired.** The Media tab replaces it in the editor's icon rail; one-off drop-to-import lives inside the Media panel, and previously-uploaded images show up under its Images sub-tab. Audio uploads keep their existing button in the Audio panel.
+
 ## [Unreleased] — 2026-08-25 (session 199) — Planning: media overlays on the timeline (#308)
 
 ### Planned

@@ -13,6 +13,10 @@ const { uniquePath } = require("./projects");
 
 const AUDIO_EXTS = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"];
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
+// #309: media overlays. GIFs are their own category — Fega's library keeps
+// them apart from stills, and the Media tab lists them under their own sub-tab.
+const GIF_EXTS = [".gif"];
+const VIDEO_EXTS = [".mp4", ".mov", ".webm", ".mkv"];
 
 // Audio with no explicit music/sfx hint splits on duration: a one-shot is
 // seconds long, a music bed is not. Folder names can't do this job — measured
@@ -57,8 +61,21 @@ function generateAssetId() {
 function classifyExt(ext) {
   if (AUDIO_EXTS.includes(ext)) return "audio";
   if (IMAGE_EXTS.includes(ext)) return "image";
+  if (GIF_EXTS.includes(ext)) return "gif";
+  if (VIDEO_EXTS.includes(ext)) return "video";
   return null;
 }
+
+/** Kind of the file at `p`, from its extension alone. */
+function pathKind(p) {
+  return classifyExt(path.extname(p || "").toLowerCase());
+}
+
+// What each watched-folder list absorbs. Audio folders stay audio-only and
+// media folders stay visual-only, so pointing the Media tab at a mixed folder
+// can't flood the Audio panel (and vice versa).
+const AUDIO_KINDS = new Set(["audio"]);
+const MEDIA_KINDS = new Set(["image", "gif", "video"]);
 
 /** Absolute file path for an index entry. */
 function resolvePath(assetsRoot, entry) {
@@ -79,8 +96,8 @@ function classifyByDuration(durationSec) {
   return durationSec != null && durationSec >= MUSIC_MIN_SECONDS ? "music" : "sfx";
 }
 
-/** Every audio file under `root`, recursive, with the stat each one needs. */
-function walkAudioFiles(root) {
+/** Every file of the wanted kinds under `root`, recursive, with the stat each one needs. */
+function walkFiles(root, kinds) {
   const out = [];
   const visit = (dir, depth) => {
     if (depth > MAX_SCAN_DEPTH) return;
@@ -95,7 +112,7 @@ function walkAudioFiles(root) {
         if (e.name !== ".clipflow") visit(full, depth + 1);
         continue;
       }
-      if (classifyExt(path.extname(e.name).toLowerCase()) !== "audio") continue;
+      if (!kinds.has(classifyExt(path.extname(e.name).toLowerCase()))) continue;
       let st;
       try { st = fs.statSync(full); } catch (_) { continue; }
       out.push({ path: full, sizeBytes: st.size, mtimeMs: st.mtimeMs });
@@ -140,7 +157,7 @@ function isUnder(file, dir) {
 
 /**
  * List all assets: index entries plus a fresh recursive scan of every watched
- * audio folder. New files are absorbed with no duration yet — probing 760 files
+ * audio and media folder. New audio is absorbed with no duration yet — probing 760 files
  * takes over a minute, so `backfillDurations` fills them in behind the panel and
  * an unprobed file shows in neither lane rather than the wrong one.
  *
@@ -153,21 +170,28 @@ function isUnder(file, dir) {
  * Returns entries with a computed absolute `path`, plus `offline`, `missing` and
  * the `group` (parent folder name) the panel lists them under.
  */
-async function listAssets(assetsRoot, folders) {
+async function listAssets(assetsRoot, folders, mediaFolders) {
   let assets = loadIndex(assetsRoot);
   let dirty = false;
 
-  const configured = watchedRoots(folders, false);
-  const roots = watchedRoots(folders, true);
-  const scanned = new Map(); // reachable root -> [{ path, sizeBytes, mtimeMs }]
-  for (const root of roots) {
-    let ok = false;
-    try { ok = fs.statSync(root).isDirectory(); } catch (_) { /* offline */ }
-    if (ok) scanned.set(root, walkAudioFiles(root));
+  // #309: two watched lists, one index. The same root may appear in both lists
+  // (scanned once per list, each for its own kinds), so scans is a list, not a
+  // Map keyed by root.
+  const configured = [...watchedRoots(folders, false), ...watchedRoots(mediaFolders, false)];
+  const roots = [...watchedRoots(folders, true), ...watchedRoots(mediaFolders, true)];
+  const scans = []; // { root, files: [{ path, sizeBytes, mtimeMs }] } per reachable root
+  const reachableRoots = [];
+  for (const [list, kinds] of [[watchedRoots(folders, true), AUDIO_KINDS], [watchedRoots(mediaFolders, true), MEDIA_KINDS]]) {
+    for (const root of list) {
+      let ok = false;
+      try { ok = fs.statSync(root).isDirectory(); } catch (_) { /* offline */ }
+      if (!ok) continue;
+      reachableRoots.push(root);
+      scans.push({ root, files: walkFiles(root, kinds) });
+    }
   }
-  const reachableRoots = [...scanned.keys()];
   const onDisk = new Map(); // lowercased path -> stat, for every file found
-  for (const files of scanned.values()) for (const f of files) onDisk.set(f.path.toLowerCase(), f);
+  for (const s of scans) for (const f of s.files) onDisk.set(f.path.toLowerCase(), f);
 
   // Folder entries survive everything except the user removing their folder
   // from Settings. Toggling one off is not removing it — checked against every
@@ -177,26 +201,31 @@ async function listAssets(assetsRoot, folders) {
   if (assets.length !== before) dirty = true;
 
   // A file the sync replaced under the same name gets re-probed and re-classified.
+  // Media entries keep their type — it comes from the extension, not the probe.
   for (const a of assets) {
     if (a.source !== "folder") continue;
     const st = onDisk.get(a.path.toLowerCase());
     if (!st || (st.sizeBytes === a.sizeBytes && st.mtimeMs === a.mtimeMs)) continue;
     a.sizeBytes = st.sizeBytes;
     a.mtimeMs = st.mtimeMs;
-    a.durationSec = null;
-    if (!a.typeLocked) a.type = null;
+    const kind = pathKind(a.path);
+    if (kind === "audio" || kind === "video") a.durationSec = null;
+    if (kind === "audio" && !a.typeLocked) a.type = null;
     dirty = true;
   }
 
-  // Absorb files that aren't in the index yet.
+  // Absorb files that aren't in the index yet. A media file's category IS its
+  // extension, so it lands in the right sub-tab immediately; audio waits for a
+  // duration probe to pick its lane.
   const known = new Set(assets.filter((a) => a.source === "folder").map((a) => a.path.toLowerCase()));
-  for (const [root, files] of scanned) {
+  for (const { root, files } of scans) {
     for (const f of files) {
       if (known.has(f.path.toLowerCase())) continue;
       known.add(f.path.toLowerCase());
+      const kind = pathKind(f.path);
       assets.push({
         id: generateAssetId(),
-        type: null, // filled in by backfillDurations
+        type: kind === "audio" ? null : kind, // audio filled in by backfillDurations
         name: path.basename(f.path, path.extname(f.path)),
         path: f.path,
         source: "folder",
@@ -250,7 +279,14 @@ async function backfillDurations(assetsRoot, onProgress) {
   if (scanRunning) return;
   scanRunning = true;
   try {
-    const todo = loadIndex(assetsRoot).filter((a) => a.source === "folder" && a.durationSec == null);
+    // Images/GIFs have no meaningful duration — probing them would retry forever.
+    // Videos get probed for the panel's duration badge, but their type never
+    // comes from duration (it's the extension's job — see the flush below).
+    const todo = loadIndex(assetsRoot).filter((a) => {
+      if (a.source !== "folder" || a.durationSec != null) return false;
+      const kind = pathKind(a.path);
+      return kind === "audio" || kind === "video";
+    });
     if (!todo.length) return;
 
     const probed = new Map(); // id -> durationSec
@@ -260,7 +296,7 @@ async function backfillDurations(assetsRoot, onProgress) {
       for (const a of disk) {
         if (!probed.has(a.id)) continue;
         a.durationSec = probed.get(a.id);
-        if (!a.typeLocked) a.type = classifyByDuration(a.durationSec);
+        if (!a.typeLocked && pathKind(a.path) === "audio") a.type = classifyByDuration(a.durationSec);
       }
       saveIndex(assetsRoot, disk);
       probed.clear();
@@ -516,8 +552,8 @@ function backfillLastUsed(assetsRoot, projects) {
 
 /**
  * Import files into the library (copy + index). `typeHint` is "music"/"sfx"
- * when the import came from that sub-tab, null to infer. Images always
- * become type "image". Returns { imported, skipped: [{ file, reason }] }.
+ * when the import came from that sub-tab, null to infer. Images, GIFs and
+ * videos type by extension. Returns { imported, skipped: [{ file, reason }] }.
  */
 async function importAssets(assetsRoot, filePaths, typeHint) {
   const filesDir = getFilesDir(assetsRoot);
@@ -530,16 +566,15 @@ async function importAssets(assetsRoot, filePaths, typeHint) {
     const ext = path.extname(src).toLowerCase();
     const kind = classifyExt(ext);
     if (!kind) {
-      const reason = ext === ".gif" ? "GIFs come later" : /\.(mp4|mov|mkv|webm|avi|3gp)$/.test(ext) ? "Videos aren't supported yet" : "Unsupported type";
-      skipped.push({ file: path.basename(src), reason });
+      skipped.push({ file: path.basename(src), reason: "Unsupported type" });
       continue;
     }
     try {
       const base = path.basename(src, ext);
       const dest = uniquePath(filesDir, base, ext);
       fs.copyFileSync(src, dest);
-      const durationSec = kind === "audio" ? await probeDurationSafe(dest) : null;
-      const type = kind === "image" ? "image"
+      const durationSec = kind === "audio" || kind === "video" ? await probeDurationSafe(dest) : null;
+      const type = kind !== "audio" ? kind // image | gif | video
         : (typeHint === "music" || typeHint === "sfx") ? typeHint
         : (durationSec != null && durationSec >= MUSIC_MIN_SECONDS) ? "music" : "sfx";
       const entry = {

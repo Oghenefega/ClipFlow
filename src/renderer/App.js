@@ -261,6 +261,8 @@ export default function App() {
   const [outputFolder, setOutputFolder] = useState("");
   // #208 — folders whose audio is linked in place: [{ path, enabled }]
   const [audioFolders, setAudioFolders] = useState([]);
+  // #309 — folders whose images/GIFs/videos feed the Media tab, same shape
+  const [mediaFolders, setMediaFolders] = useState([]);
 
   // Settings section collapse state — persists across tab switches, resets on app launch
   const [settingsCollapsed, setSettingsCollapsed] = useState({
@@ -440,6 +442,7 @@ export default function App() {
         }
         if (all.outputFolder) setOutputFolder(all.outputFolder);
         if (Array.isArray(all.audioFolders)) setAudioFolders(all.audioFolders);
+        if (Array.isArray(all.mediaFolders)) setMediaFolders(all.mediaFolders);
         if (all.renameHistory) {
           const reconciled = await reconcileRenameHistory(all.renameHistory, all.watchFolder, all.testWatchFolder);
           // Persist immediately when the pass corrected anything — the auto-save
@@ -551,6 +554,7 @@ export default function App() {
   useEffect(() => { if (!hasLoaded.current) return; persist("localProjects", localProjects); }, [localProjects]);
   useEffect(() => { if (!hasLoaded.current) return; persist("outputFolder", outputFolder); }, [outputFolder]);
   useEffect(() => { if (!hasLoaded.current) return; persist("audioFolders", audioFolders); }, [audioFolders]);
+  useEffect(() => { if (!hasLoaded.current) return; persist("mediaFolders", mediaFolders); }, [mediaFolders]);
   useEffect(() => { if (!hasLoaded.current) return; persist("renameHistory", renameHistory); }, [renameHistory]);
   useEffect(() => { if (!hasLoaded.current) return; persist("anthropicApiKey", anthropicApiKey); }, [anthropicApiKey]);
   useEffect(() => { if (!hasLoaded.current) return; persist("geminiApiKey", geminiApiKey); }, [geminiApiKey]);
@@ -1075,6 +1079,8 @@ export default function App() {
               setOutputFolder={setOutputFolder}
               audioFolders={audioFolders}
               setAudioFolders={setAudioFolders}
+              mediaFolders={mediaFolders}
+              setMediaFolders={setMediaFolders}
               anthropicApiKey={anthropicApiKey}
               setAnthropicApiKey={setAnthropicApiKey}
               geminiApiKey={geminiApiKey}
