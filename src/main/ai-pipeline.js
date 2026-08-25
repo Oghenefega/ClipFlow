@@ -262,9 +262,12 @@ function runEnergyScorer(pythonPath, videoPath, srtPath, processingDir, logger, 
  * #62: evenly-spaced review windows for a recording detection couldn't read.
  * Shaped exactly like the model's own picks (timestamp strings, zero
  * confidence) so Stage 7 needs no special case — they simply carry no
- * highlight claim, because nothing analysed them.
+ * highlight claim, because nothing analysed them. `source` marks them so
+ * approving/rejecting one never enters taste calibration (feedback.js) —
+ * the model didn't pick these windows, so a decision on them says nothing
+ * about the model's taste (same fence as #240 imports).
  * @param {number} duration - Source duration in seconds
- * @returns {Array<{start: string, end: string, confidence: number, clip_number: number}>}
+ * @returns {Array<{start: string, end: string, confidence: number, clip_number: number, source: string}>}
  */
 function buildSilentFallbackClips(duration) {
   const WINDOW_SEC = 45;
@@ -280,6 +283,7 @@ function buildSilentFallbackClips(duration) {
       end: aiPrompt.formatTimestamp(end),
       confidence: 0,
       clip_number: i + 1,
+      source: "silent-fallback",
     });
   }
   return clips;
@@ -969,6 +973,9 @@ async function runAIPipeline({
         energyLevel: r.clip.energy_level || "",
         confidence: r.clip.confidence || 0,
         hasFrame: r.clip.has_frame || false,
+        // #62: silent-fallback windows carry their origin so feedback.js can
+        // fence them out of taste calibration. Absent on real model picks.
+        ...(r.clip.source ? { source: r.clip.source } : {}),
         status: "none",
         subtitles: { sub1: r.clipSubs, sub2: [] },
         sfx: [],

@@ -126,9 +126,11 @@ function formatFilename(meta, presetId) {
     parts.push(`Pt${meta.partNumber}${meta.subPart || ""}`);
   }
 
-  // #300: the extension must describe the bytes. Callers renaming a whole
-  // recording pass the source's own extension; split children legitimately
-  // default to .mp4 because the splitter re-writes them as MP4.
+  // #300: the extension must describe the bytes. The .mp4 default is correct
+  // for fresh renames (an MKV is remuxed to a real MP4 before it takes this
+  // name) and for split children (the splitter writes MP4). Only retroactive
+  // renames pass meta.extension — the file already exists on disk and nothing
+  // converts it, so the name keeps the extension the file actually has.
   return parts.join(" ") + normalizeExtension(meta.extension);
 }
 

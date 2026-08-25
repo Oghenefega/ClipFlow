@@ -134,6 +134,9 @@ function entryFromClip(project, clip, decision) {
 function handleStatusTransition(project, prevStatus, clip) {
   // #240 fence: imported (pre-ClipFlow) clips never enter taste calibration.
   if (clip.source === "import") return { skipped: "import" };
+  // #62 fence: silent-fallback windows are evenly-spaced offers the model never
+  // picked — a decision on one says nothing about the model's taste.
+  if (clip.source === "silent-fallback") return { skipped: "silent-fallback" };
   const next = clip.status;
   if (prevStatus === next) return { skipped: "no-change" };
   const key = {

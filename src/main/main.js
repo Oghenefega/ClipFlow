@@ -1047,9 +1047,11 @@ ipcMain.handle("fs:renameFile", async (_, oldPath, newPath) => {
 
 // #300: rename a recording whose container isn't MP4. Same contract as
 // fs:renameFile — the file ends up at newPath — but the bytes are remuxed into
-// a real MP4 first, because Chromium can't decode Matroska and the editor
-// preview would be a silent black rectangle. Video is stream-copied; the
-// original is deleted only once the output probes as complete.
+// a real MP4 first. NOT because Chromium can't open Matroska (measured s192:
+// h264+aac MKV previews fine) — because whether a given MKV previews depends on
+// the codecs inside, and converting makes the .mp4 name always tell the truth.
+// Video is stream-copied; the original is deleted only once the output probes
+// as complete.
 ipcMain.handle("fs:convertAndRename", async (_, oldPath, newPath) => {
   try {
     const dir = path.dirname(newPath);
@@ -2012,7 +2014,8 @@ ipcMain.handle("import:externalFile", async (event, sourcePath, watchFolder, tes
 
     const filename = path.basename(sourcePath);
     const ext = path.extname(filename).toLowerCase();
-    if (ext !== ".mp4") return { error: "Only .mp4 files are supported" };
+    // #300: .mkv is accepted — the Rename tab converts it to a real MP4 on rename.
+    if (ext !== ".mp4" && ext !== ".mkv") return { error: "Only .mp4 and .mkv files are supported" };
 
     // Build target path in monthly subfolder. Test imports land under the
     // testWatchFolder (or a "Test" sibling of the main folder if none is set)
